@@ -13,3 +13,9 @@ Copyright 2026 Alerix, under Apache License 2.0 (`Apache-2.0.txt`).
 CASMS reuses the outline geometry and sampling. Its animation is implemented
 with Reanimated and a cosine easing curve without spring overshoot, preserving
 the requested smooth motion. No upstream spring implementation is included.
+
+## Passenger icons (P01 and P02)
+
+`src/components/passenger/material-symbols.json` contains official Material
+Symbols Rounded SVG paths from https://github.com/google/material-design-icons.
+Copyright Google LLC. Apache License 2.0 (`Apache-2.0.txt`).
