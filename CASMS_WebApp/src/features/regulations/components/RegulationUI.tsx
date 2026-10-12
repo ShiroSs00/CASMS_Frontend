@@ -4,7 +4,6 @@ import {
   type ButtonHTMLAttributes,
   type ReactNode,
 } from 'react'
-import { NavLink } from 'react-router'
 
 import type {
   ConflictResult,
@@ -16,43 +15,10 @@ import {
   statusLabels,
 } from '../model/regulation'
 import styles from './Regulations.module.css'
-
-const navigation = [
-  'Tổng quan',
-  'Tàu & đội tàu',
-  'Chuyến hải trình',
-  'Quy định vận hành',
-  'Sự cố vận hành',
-]
+import { AdminFrame as SharedAdminFrame } from '@/shared/ui'
 
 export function AdminFrame({ children }: { children: ReactNode }) {
-  return (
-    <div className={styles.appShell}>
-      <a className={styles.skipLink} href="#regulation-main">
-        Chuyển đến nội dung chính
-      </a>
-      <aside className={styles.sidebar} aria-label="Điều hướng quản trị">
-        <div className={styles.brand}>CASMS</div>
-        <div className={styles.navHeading}>QUẢN TRỊ VẬN HÀNH</div>
-        <nav className={styles.navList}>
-          {navigation.map((item) =>
-            item === 'Quy định vận hành' ? (
-              <NavLink className={styles.navActive} key={item} to="/admin/regulations">
-                {item}
-              </NavLink>
-            ) : (
-              <span className={styles.navItem} key={item} aria-disabled="true">
-                {item}
-              </span>
-            ),
-          )}
-        </nav>
-      </aside>
-      <main className={styles.main} id="regulation-main" tabIndex={-1}>
-        {children}
-      </main>
-    </div>
-  )
+  return <SharedAdminFrame className={styles.appShell}>{children}</SharedAdminFrame>
 }
 export function PageHeader({
   title,
