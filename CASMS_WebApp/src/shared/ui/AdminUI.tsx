@@ -3,9 +3,10 @@ import { Link, NavLink, useLocation } from 'react-router'
 import styles from './AdminUI.module.css'
 
 // The existing Regulations AdminFrame is shared here without changing page APIs.
-export function AdminFrame({ children, className = '' }: { children: ReactNode; className?: string }) {
+export function AdminFrame({ children, className = '', topbar }: { children: ReactNode; className?: string; topbar?: ReactNode }) {
   const { pathname } = useLocation()
   const isRegulation = pathname.includes('/regulations')
+  const isCruise = pathname.startsWith('/admin/cruises') && !isRegulation
   const [expanded, setExpanded] = useState(!isRegulation)
   return <div className={`${styles.appShell} ${className}`}>
     <a className={styles.skipLink} href="#regulation-main">Chuyển đến nội dung chính</a>
@@ -20,12 +21,13 @@ export function AdminFrame({ children, className = '' }: { children: ReactNode; 
             {([['ships', 'Ship'], ['decks', 'Deck'], ['cabins', 'Cabin']] as const).map(([path, label]) => <NavLink key={path} to={`/admin/${path}`} className={({ isActive }) => `${styles.child} ${isActive && !isRegulation ? styles.childActive : ''}`}>{label}</NavLink>)}
           </div>
         </div>
-        <span className={styles.navItem} aria-disabled="true">Chuyến hải trình</span>
+        <NavLink className={isCruise ? styles.navActive : styles.navItem} to="/admin/cruises">Chuyến hải trình</NavLink>
         <NavLink className={isRegulation ? styles.navActive : styles.navItem} to="/admin/regulations">Quy định vận hành</NavLink>
         <span className={styles.navItem} aria-disabled="true">Sự cố vận hành</span>
       </nav>
     </aside>
-    <main className={styles.main} id="regulation-main" tabIndex={-1}>{children}</main>
+    {topbar && <div className={styles.topbar}>{topbar}</div>}
+    <main className={`${styles.main} ${topbar ? styles.mainWithTopbar : ''}`} id="regulation-main" tabIndex={-1}>{children}</main>
   </div>
 }
 
@@ -73,8 +75,8 @@ export function Loading({ label = 'Đang tải dữ liệu…' }: { label?: stri
 export function Empty({ title = 'Không có kết quả phù hợp', children }: { title?: string; children?: ReactNode }) {
   return <div className={styles.empty}><strong>{title}</strong>{children}</div>
 }
-export function Modal({ title, onClose, busy = false, children }:
-  { title: string; onClose: () => void; busy?: boolean; children: ReactNode }) {
+export function Modal({ title, onClose, busy = false, wide = false, children }:
+  { title: string; onClose: () => void; busy?: boolean; wide?: boolean; children: ReactNode }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const close = useRef(onClose)
   const busyRef = useRef(busy)
@@ -86,7 +88,7 @@ export function Modal({ title, onClose, busy = false, children }:
     element.showModal()
     return () => { element.close(); trigger?.focus() }
   }, [])
-  return <dialog ref={dialog} aria-labelledby={titleId} className={styles.modal}
+  return <dialog ref={dialog} aria-labelledby={titleId} className={`${styles.modal} ${wide ? styles.modalWide : ''}`}
     onCancel={(event) => { event.preventDefault(); if (!busyRef.current) close.current() }}>
     <div className={styles.modalHeader}><h2 id={titleId}>{title}</h2><button autoFocus aria-label="Đóng hộp thoại" disabled={busy} className={styles.close} onClick={onClose}>×</button></div>
     {children}

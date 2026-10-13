@@ -40,6 +40,7 @@
 .empty { display:flex; flex-direction:column; gap:12px; min-height:160px; align-items:center; justify-content:center; padding:24px; text-align:center; color:#52616b; }
 .spinner { width:28px; height:28px; border:3px solid #d9e0e4; border-top-color:#123042; border-radius:50%; animation:spin .8s linear infinite; }
 .modal { width:min(680px,calc(100vw - 32px)); max-height:calc(100dvh - 48px); padding:24px; border:0; border-radius:8px; background:#fff; color:#172b36; box-shadow:0 24px 80px rgb(9 35 51 / 28%); }
+.modalWide { width:min(840px,calc(100vw - 32px)); }
 .modal::backdrop { background:rgb(9 35 51 / 58%); }
 .modalHeader { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:20px; }
 .modalHeader h2 { margin:0; font-size:22px; line-height:33px; }
@@ -62,6 +63,8 @@
 .child:hover { background:#14384b; }
 .childActive { border-left-color:#52a8ef; background:#092333; color:#fff; }
 .main { min-width:0; margin-left:240px; padding:32px 32px 64px; }
+.topbar { position:fixed; z-index:8; top:0; right:0; left:240px; display:flex; min-height:68px; align-items:center; justify-content:space-between; gap:24px; padding:0 32px; border-bottom:1px solid #d9e0e4; background:#fff; color:#52616b; font-size:13px; line-height:20px; }
+.mainWithTopbar { padding-top:92px; }
 .buttonLink { text-decoration:none; }
-@media(max-width:760px) { .sidebar { position:static; width:100%; padding:16px; } .brand { margin-bottom:4px; } .main { margin-left:0; padding:24px 16px 48px; } .navList { display:flex; flex-wrap:wrap; flex-direction:row; } .navList > div { flex-basis:100%; order:1; } .children { flex-direction:row; } .child { flex:1; } .button { width:100%; } .panel { padding:20px 16px; } .modal { padding:20px 16px; } }
+@media(max-width:760px) { .sidebar { position:static; width:100%; padding:16px; } .brand { margin-bottom:4px; } .topbar { position:static; min-height:60px; padding:12px 16px; } .main,.mainWithTopbar { margin-left:0; padding:24px 16px 48px; } .navList { display:flex; flex-wrap:wrap; flex-direction:row; } .navList > div { flex-basis:100%; order:1; } .children { flex-direction:row; } .child { flex:1; } .button { width:100%; } .panel { padding:20px 16px; } .modal { padding:20px 16px; } }
 @media(prefers-reduced-motion:reduce) { .spinner { animation:none; } }
