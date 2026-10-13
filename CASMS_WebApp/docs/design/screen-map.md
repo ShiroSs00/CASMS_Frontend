@@ -7,6 +7,8 @@ Source: `docs/tasks/WEB-REG-001.md` and Figma file `BKLkzpHzVteitEbRhx3oKg`, pag
 | Technical ID | Route | Implementation | Figma | Status |
 | --- | --- | --- | --- | --- |
 | TECH-WEB-001 | `/` | `src/features/home` | UNCONFIRMED | CONFIRMED technical shell; not a product screen |
+| WEB-OIM-LIST | `/admin/issues` | `src/features/operational-issues` | `135:4588`, `135:5293`, `135:5361` | CONFIRMED mock UI; FOREP.sql current-state boundary |
+| WEB-OIM-DETAIL | `/admin/issues/:issueId` | `src/features/operational-issues` | `135:4689`, `135:4835`, `135:5001`, `135:5077`, `135:5143`, `135:5417` | CONFIRMED mock UI; no persisted audit/history |
 | WEB-REG-R01 | `/admin/regulations` | `src/features/regulations` | `231:6742` | List/search/filter |
 | WEB-REG-R02 | `/admin/regulations/:regulationId` | `src/features/regulations` | `231:6827` | Detail/status actions |
 | WEB-REG-R03/R04 | `/admin/regulations/new`, `/admin/regulations/:regulationId/edit` | `src/features/regulations` | `231:6883`, `232:6798` | Create/edit/validation/value lock |

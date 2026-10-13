@@ -370,6 +370,7 @@ function AssignmentPage({ type }: { type: HostType }) {
                 <option value="ACTIVE">Đang hoạt động</option>
                 <option value="DRAFT">Bản nháp</option>
                 <option value="INACTIVE">Ngừng hoạt động</option>
+                <option value="EXPIRED">Hết hạn</option>
               </select>
             </Field>
           </div>

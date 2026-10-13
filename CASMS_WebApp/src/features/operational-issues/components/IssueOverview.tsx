@@ -8,9 +8,13 @@ export function IssueOverview({ issue }: { issue: OperationalIssue }) {
       <p className={styles.overviewText}>{issue.description}</p>
       <h3>Phạm vi impact</h3>
       <ul className={styles.bulletList}>
-        {issue.impactSummary.map((impact) => (
-          <li key={impact}>{impact}</li>
-        ))}
+        <li>Ship: {issue.ship.name}</li>
+        <li>
+          Cruise:{' '}
+          {issue.cruise ? `${issue.cruise.code} · ${issue.cruise.name}` : 'Không áp dụng'}
+        </li>
+        <li>Cabin: {issue.cabin ?? 'Không áp dụng'}</li>
+        <li>Không có link CruiseStop/Excursion/ServiceRequest trong SQL</li>
       </ul>
     </section>
   )

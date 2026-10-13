@@ -1,16 +1,31 @@
 import type { IssueQuery } from '../model/issue-query'
-import type { OperationalIssue, PersonReference } from '../model/issue'
-import { initialIssues, mockCruises, mockHandlers, mockShips } from './fixtures'
+import type {
+  IssueStatus,
+  OperationalIssue,
+  OperationalIssueRecord,
+  PersonReference,
+} from '../model/issue'
+import {
+  initialIssueRecords,
+  mockCabins,
+  mockCruises,
+  mockHandlers,
+  mockPeople,
+  mockShips,
+} from './fixtures'
+
+export type IssueStatusTotals = Record<IssueStatus, number> & { review: number }
 
 export type IssueListResult = {
   items: OperationalIssue[]
   total: number
   page: number
   pageSize: number
+  statusTotals: IssueStatusTotals
 }
 
-const actor: PersonReference = { id: 'ops-user', name: 'Nhân viên vận hành' }
-const issues = initialIssues.map(cloneIssue)
+const currentActorId = 'ops-user'
+const records = initialIssueRecords.map((record) => ({ ...record }))
 
 export class IssueAdapterError extends Error {
   readonly code: 'FORBIDDEN' | 'NOT_FOUND'
@@ -22,48 +37,73 @@ export class IssueAdapterError extends Error {
   }
 }
 
-function cloneIssue(issue: OperationalIssue): OperationalIssue {
-  return {
-    ...issue,
-    ship: { ...issue.ship },
-    cruise: issue.cruise ? { ...issue.cruise } : null,
-    assignedTo: issue.assignedTo ? { ...issue.assignedTo } : null,
-    resolution: issue.resolution
-      ? { ...issue.resolution, resolvedBy: { ...issue.resolution.resolvedBy } }
-      : null,
-    impactSummary: [...issue.impactSummary],
-    events: issue.events.map((event) => ({ ...event, actor: { ...event.actor } })),
-  }
-}
-
 function delay(ms = 260) {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
 
-function findIssue(id: string) {
-  const issue = issues.find((candidate) => candidate.id === id)
-  if (!issue) throw new IssueAdapterError('NOT_FOUND', 'Không tìm thấy sự cố.')
-  return issue
+function person(id: string | null): PersonReference | null {
+  if (!id) return null
+  return mockPeople.find((item) => item.id === id) ?? { id, name: id }
 }
 
-function nextMockTimestamp(issue: OperationalIssue) {
-  const eventTimes = issue.events.map((event) => new Date(event.occurredAt).getTime())
-  const latestKnownTime = Math.max(new Date(issue.reportedAt).getTime(), ...eventTimes)
-  return new Date(Math.max(Date.now(), latestKnownTime + 60_000)).toISOString()
+function titleFromDescription(description: string) {
+  return description.split('.')[0]?.trim() || description
 }
 
-function addEvent(
-  issue: OperationalIssue,
-  event: Omit<OperationalIssue['events'][number], 'id' | 'actor' | 'occurredAt'>,
-) {
-  const createdEvent: OperationalIssue['events'][number] = {
-    ...event,
-    id: `evt-${issue.id}-${Date.now()}`,
-    actor,
-    occurredAt: nextMockTimestamp(issue),
+function toView(record: OperationalIssueRecord): OperationalIssue {
+  const ship = mockShips.find((item) => item.id === record.shipId)
+  if (!ship) throw new Error(`Không tìm thấy ship lookup ${record.shipId}.`)
+  const reportedBy = person(record.reportedBy)
+  if (!reportedBy) throw new Error(`Không tìm thấy reporter lookup ${record.reportedBy}.`)
+
+  return {
+    id: record.issueId,
+    code: record.issueCode,
+    displayTitle: titleFromDescription(record.description),
+    ship: { ...ship },
+    cruise: record.cruiseId
+      ? { ...(mockCruises.find((item) => item.id === record.cruiseId) ?? {
+          id: record.cruiseId,
+          code: record.cruiseId,
+          name: record.cruiseId,
+          shipId: record.shipId,
+        }) }
+      : null,
+    cabin: record.cabinId ? (mockCabins[record.cabinId] ?? record.cabinId) : null,
+    type: record.issueType,
+    severity: record.severity,
+    status: record.status,
+    description: record.description,
+    reportedBy,
+    reportedAt: record.reportedAt,
+    assignedTo: person(record.assignedTo),
+    resolution: record.resolution,
+    resolvedBy: person(record.resolvedBy),
+    resolvedAt: record.resolvedAt,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
   }
-  issue.events.push(createdEvent)
-  return createdEvent
+}
+
+function findRecord(id: string) {
+  const record = records.find((candidate) => candidate.issueId === id)
+  if (!record) throw new IssueAdapterError('NOT_FOUND', 'Không tìm thấy sự cố.')
+  return record
+}
+
+function nextTimestamp(record: OperationalIssueRecord) {
+  const latest = Math.max(
+    new Date(record.reportedAt).getTime(),
+    new Date(record.updatedAt).getTime(),
+    record.resolvedAt ? new Date(record.resolvedAt).getTime() : 0,
+  )
+  return new Date(Math.max(Date.now(), latest + 60_000)).toISOString()
+}
+
+function assertResolvedFields(record: OperationalIssueRecord) {
+  if (!record.resolution?.trim() || !record.resolvedBy || !record.resolvedAt) {
+    throw new Error('Resolution, resolved_by và resolved_at phải đầy đủ trước khi đóng.')
+  }
 }
 
 export const mockOperationalIssues = {
@@ -75,18 +115,12 @@ export const mockOperationalIssues = {
   async list(query: IssueQuery): Promise<IssueListResult> {
     await delay()
     const term = query.search.toLocaleLowerCase('vi')
-    const filtered = issues.filter((issue) => {
+    const views = records.map(toView)
+    const filtered = views.filter((issue) => {
       const searchable = [
-        issue.code,
-        issue.displayTitle,
-        issue.description,
-        issue.ship.name,
-        issue.cruise?.code ?? '',
-        issue.cruise?.name ?? '',
-      ]
-        .join(' ')
-        .toLocaleLowerCase('vi')
-
+        issue.code, issue.displayTitle, issue.description, issue.ship.name,
+        issue.cruise?.code ?? '', issue.cruise?.name ?? '',
+      ].join(' ').toLocaleLowerCase('vi')
       return (
         (!term || searchable.includes(term)) &&
         (!query.severity || issue.severity === query.severity) &&
@@ -97,11 +131,19 @@ export const mockOperationalIssues = {
       )
     })
     const start = (query.page - 1) * query.pageSize
+    const statusTotals: IssueStatusTotals = {
+      OPEN: filtered.filter((issue) => issue.status === 'OPEN').length,
+      IN_PROGRESS: filtered.filter((issue) => issue.status === 'IN_PROGRESS').length,
+      RESOLVED: filtered.filter((issue) => issue.status === 'RESOLVED').length,
+      CLOSED: filtered.filter((issue) => issue.status === 'CLOSED').length,
+      review: filtered.filter((issue) => issue.severity === 'CRITICAL').length,
+    }
     return {
-      items: filtered.slice(start, start + query.pageSize).map(cloneIssue),
+      items: filtered.slice(start, start + query.pageSize),
       total: filtered.length,
       page: query.page,
       pageSize: query.pageSize,
+      statusTotals,
     }
   },
 
@@ -110,36 +152,70 @@ export const mockOperationalIssues = {
     if (id === 'forbidden') {
       throw new IssueAdapterError('FORBIDDEN', 'Không đủ quyền xem sự cố này.')
     }
-    return cloneIssue(findIssue(id))
+    return toView(findRecord(id))
   },
 
-  async assign(id: string, handlerId: string, note: string) {
+  async assign(id: string, handlerId: string) {
     await delay()
-    const issue = findIssue(id)
-    if (issue.status !== 'OPEN') throw new Error('Chỉ phân công issue OPEN trong mock này.')
-    const handler = mockHandlers.find((candidate) => candidate.id === handlerId)
-    if (!handler) throw new Error('Người xử lý không hợp lệ.')
-    issue.assignedTo = handler
-    addEvent(issue, {
-      kind: 'ASSIGNED',
-      description: note.trim() || `Phân công cho ${handler.name}.`,
-    })
-    return cloneIssue(issue)
+    const record = findRecord(id)
+    if (record.status !== 'OPEN') throw new Error('Chỉ phân công issue OPEN trong mock này.')
+    if (!mockHandlers.some((candidate) => candidate.id === handlerId)) {
+      throw new Error('Người xử lý không hợp lệ.')
+    }
+    record.assignedTo = handlerId
+    record.updatedAt = nextTimestamp(record)
+    return toView(record)
   },
 
   async start(id: string) {
     await delay()
-    const issue = findIssue(id)
-    if (issue.status !== 'OPEN') throw new Error('Issue không còn ở trạng thái OPEN.')
-    if (!issue.assignedTo) throw new Error('BR-OI-08: cần assigned_to trước khi bắt đầu.')
-    issue.status = 'IN_PROGRESS'
-    addEvent(issue, {
-      kind: 'STARTED',
-      description: `${issue.assignedTo.name} bắt đầu xử lý.`,
-      fromStatus: 'OPEN',
-      toStatus: 'IN_PROGRESS',
-    })
-    return cloneIssue(issue)
+    const record = findRecord(id)
+    if (record.status !== 'OPEN') throw new Error('Issue không còn ở trạng thái OPEN.')
+    if (!record.assignedTo) throw new Error('Cần assigned_to trước khi bắt đầu xử lý.')
+    record.status = 'IN_PROGRESS'
+    record.updatedAt = nextTimestamp(record)
+    return toView(record)
   },
 
+  async recordResolution(id: string, resolution: string) {
+    await delay()
+    const record = findRecord(id)
+    if (record.status !== 'IN_PROGRESS') throw new Error('Chỉ issue IN_PROGRESS mới được resolve.')
+    const normalized = resolution.trim()
+    if (!normalized) throw new Error('Resolution không được để trống.')
+    const timestamp = nextTimestamp(record)
+    record.resolution = normalized
+    record.resolvedBy = currentActorId
+    record.resolvedAt = timestamp
+    record.status = 'RESOLVED'
+    record.updatedAt = timestamp
+    return toView(record)
+  },
+
+  async verifyResolution(id: string) {
+    await delay(220)
+    const record = findRecord(id)
+    if (record.status !== 'RESOLVED') throw new Error('Chỉ issue RESOLVED mới có thể xác minh.')
+    assertResolvedFields(record)
+    return { verified: true as const }
+  },
+
+  async close(id: string) {
+    await delay()
+    const record = findRecord(id)
+    if (record.status !== 'RESOLVED') throw new Error('Chỉ issue RESOLVED mới có thể đóng.')
+    assertResolvedFields(record)
+    record.status = 'CLOSED'
+    record.updatedAt = nextTimestamp(record)
+    return toView(record)
+  },
+
+  async reopen(id: string) {
+    await delay()
+    const record = findRecord(id)
+    if (record.status !== 'RESOLVED') throw new Error('Chỉ issue RESOLVED mới có thể mở lại.')
+    record.status = 'IN_PROGRESS'
+    record.updatedAt = nextTimestamp(record)
+    return toView(record)
+  },
 }

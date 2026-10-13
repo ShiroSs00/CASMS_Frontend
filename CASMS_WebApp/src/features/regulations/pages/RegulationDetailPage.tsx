@@ -4,9 +4,10 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { mockRegulationAdapter } from '../mocks/mock-regulation-adapter'
 import type {
   ConflictResult,
-  Regulation,
+  MockRegulation,
   RegulationCapabilities,
   RegulationStatus,
+  RegulationTargetAssignment,
 } from '../model/regulation'
 import {
   formatDateTime,
@@ -28,8 +29,9 @@ import {
 import styles from '../components/Regulations.module.css'
 
 type DetailData = {
-  regulation: Regulation
+  regulation: MockRegulation
   capabilities: RegulationCapabilities
+  targets: RegulationTargetAssignment[]
 }
 
 export function RegulationDetailPage() {
@@ -180,21 +182,27 @@ export function RegulationDetailPage() {
               <table className={styles.table}>
                 <thead><tr><th>ĐỐI TƯỢNG</th><th>NGUỒN GÁN</th><th>THAO TÁC</th></tr></thead>
                 <tbody>
-                  {data.regulation.scope === 'GLOBAL' ? (
-                    <tr><td>Toàn hệ thống</td><td>GLOBAL</td><td>Chỉ đọc</td></tr>
-                  ) : data.regulation.scope === 'SHIP' ? (
-                    <tr>
-                      <td>CASMS Aurora · CAS-AUR-01</td>
-                      <td>Trực tiếp · Ship regulation</td>
-                      <td><Link className={styles.linkButton} to="/admin/ships/CAS-AUR-01/regulations">Xem tại hồ sơ tàu</Link></td>
+                  {data.targets.map((target) => (
+                    <tr key={`${target.type}:${target.id}`}>
+                      <td>{target.name} · {target.id}</td>
+                      <td>{target.sourceLabel}</td>
+                      <td>
+                        {target.type === 'global' ? (
+                          'Chỉ đọc'
+                        ) : (
+                          <Link
+                            className={styles.linkButton}
+                            to={`/admin/${target.type === 'ship' ? 'ships' : 'cruises'}/${target.id}/regulations`}
+                          >
+                            {target.type === 'ship' ? 'Xem tại hồ sơ tàu' : 'Xem tại chuyến'}
+                          </Link>
+                        )}
+                      </td>
                     </tr>
-                  ) : (
-                    <tr>
-                      <td>CR-261120-01 · Hạ Long — Lan Hạ</td>
-                      <td>Trực tiếp · Cruise regulation</td>
-                      <td><Link className={styles.linkButton} to="/admin/cruises/CR-261120-01/regulations">Xem tại chuyến</Link></td>
-                    </tr>
-                  )}
+                  ))}
+                  {data.targets.length === 0 ? (
+                    <tr><td colSpan={3}>Chưa có liên kết trực tiếp trong mock join table.</td></tr>
+                  ) : null}
                 </tbody>
               </table>
             </TableScroll>

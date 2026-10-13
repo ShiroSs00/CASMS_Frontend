@@ -27,6 +27,9 @@ export function IssueDetailPage() {
   const location = useLocation()
   const { state, reload } = useIssueDetail(issueId)
   const returnTo = (location.state as DetailLocationState | null)?.returnTo ?? '/admin/issues'
+  const directSqlLinks = state.status === 'ready'
+    ? 1 + Number(Boolean(state.issue.cruise)) + Number(Boolean(state.issue.cabin))
+    : 0
 
   return (
     <AdminFrame>
@@ -88,8 +91,8 @@ export function IssueDetailPage() {
               </span>
             </article>
             <article className={styles.metricCard}>
-              <span className={styles.eyebrow}>Linked requests</span>
-              <span className={styles.metricValue}>{state.issue.linkedRequestCount}</span>
+              <span className={styles.eyebrow}>Direct SQL links</span>
+              <span className={styles.metricValue}>{directSqlLinks}</span>
             </article>
           </section>
 
@@ -106,7 +109,7 @@ export function IssueDetailPage() {
 
           <div className={styles.sectionGrid}>
             <IssueTimeline issue={state.issue} />
-            <IssueHistory issue={state.issue} />
+            <IssueHistory />
             <IssueResolution issue={state.issue} />
           </div>
         </>

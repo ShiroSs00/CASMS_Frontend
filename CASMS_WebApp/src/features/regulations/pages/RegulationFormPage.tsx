@@ -3,10 +3,11 @@ import { useNavigate, useParams } from 'react-router'
 
 import { mockRegulationAdapter } from '../mocks/mock-regulation-adapter'
 import type {
-  Regulation,
+  MockRegulation,
   RegulationDraft,
   RegulationScope,
   RegulationType,
+  RegulationUnit,
   RegulationUpdate,
 } from '../model/regulation'
 import {
@@ -31,7 +32,7 @@ const initialDraft: RegulationDraft = {
   value: '',
   unit: 'KNOT',
   effectiveFrom: '2026-11-20T08:00',
-  effectiveTo: '',
+  effectiveTo: null,
 }
 
 function validate(draft: RegulationDraft) {
@@ -39,7 +40,6 @@ function validate(draft: RegulationDraft) {
   if (!draft.code.trim()) errors.code = 'Vui lòng nhập mã quy định.'
   if (!draft.name.trim()) errors.name = 'Vui lòng nhập tên quy định.'
   if (!draft.value.trim()) errors.value = 'Vui lòng nhập giá trị.'
-  if (!draft.unit.trim()) errors.unit = 'Vui lòng nhập đơn vị.'
   if (!draft.effectiveFrom) errors.effectiveFrom = 'Vui lòng chọn thời điểm bắt đầu.'
   if (
     draft.effectiveTo &&
@@ -50,7 +50,7 @@ function validate(draft: RegulationDraft) {
   return errors
 }
 
-function toDraft(regulation: Regulation): RegulationDraft {
+function toDraft(regulation: MockRegulation): RegulationDraft {
   return {
     code: regulation.code,
     name: regulation.name,
@@ -69,7 +69,7 @@ export function RegulationFormPage() {
   const isEdit = Boolean(regulationId)
   const navigate = useNavigate()
   const [draft, setDraft] = useState<RegulationDraft>(initialDraft)
-  const [source, setSource] = useState<Regulation | null>(null)
+  const [source, setSource] = useState<MockRegulation | null>(null)
   const [errors, setErrors] = useState<FormErrors>({})
   const [loading, setLoading] = useState(isEdit)
   const [notFound, setNotFound] = useState(false)
@@ -114,7 +114,7 @@ export function RegulationFormPage() {
     setSubmitting(true)
     setSubmitError('')
     try {
-      let saved: Regulation
+      let saved: MockRegulation
       if (source) {
         const update: RegulationUpdate = { ...draft, version: source.version }
         if (source.hasBeenActive) delete update.value
@@ -208,7 +208,9 @@ export function RegulationFormPage() {
                 <option value="SPEED">Tốc độ</option>
                 <option value="CAPACITY">Sức chứa</option>
                 <option value="SAFETY">An toàn</option>
-                <option value="SERVICE">Dịch vụ</option>
+                <option value="WEATHER">Thời tiết</option>
+                <option value="ENVIRONMENT">Môi trường</option>
+                <option value="HEALTH">Sức khỏe</option>
               </select>
             </Field>
             <Field htmlFor="scope" label="Phạm vi">
@@ -240,14 +242,23 @@ export function RegulationFormPage() {
                 />
               )}
             </Field>
-            <Field error={errors.unit} htmlFor="unit" label="Đơn vị">
-              <input
-                aria-invalid={Boolean(errors.unit)}
-                data-form-error={Boolean(errors.unit)}
+            <Field htmlFor="unit" label="Đơn vị">
+              <select
                 id="unit"
-                onChange={(event) => setValue('unit', event.target.value.toUpperCase())}
-                value={draft.unit}
-              />
+                onChange={(event) =>
+                  setValue('unit', (event.target.value || null) as RegulationUnit | null)
+                }
+                value={draft.unit ?? ''}
+              >
+                <option value="">Không áp dụng</option>
+                <option value="KNOT">KNOT</option>
+                <option value="KM">KM</option>
+                <option value="METER">METER</option>
+                <option value="PERCENT">PERCENT</option>
+                <option value="PERSON">PERSON</option>
+                <option value="CELSIUS">CELSIUS</option>
+                <option value="NONE">NONE</option>
+              </select>
             </Field>
             <Field error={errors.effectiveFrom} htmlFor="effective-from" label="Bắt đầu hiệu lực">
               <input
@@ -264,9 +275,9 @@ export function RegulationFormPage() {
                 aria-invalid={Boolean(errors.effectiveTo)}
                 data-form-error={Boolean(errors.effectiveTo)}
                 id="effective-to"
-                onChange={(event) => setValue('effectiveTo', event.target.value)}
+                onChange={(event) => setValue('effectiveTo', event.target.value || null)}
                 type="datetime-local"
-                value={draft.effectiveTo}
+                value={draft.effectiveTo ?? ''}
               />
             </Field>
             <div className={styles.fullWidth}>

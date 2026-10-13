@@ -1,40 +1,42 @@
-import { useState } from 'react'
-
 import { ActionDialog } from '../ActionDialog'
 import styles from '../OperationalIssues.module.css'
 
 type Props = {
   open: boolean
+  pending: boolean
   onClose: () => void
-  onBlocked: () => Promise<boolean>
+  onSubmit: () => Promise<boolean>
 }
 
-export function VerifyResolutionForm({ open, onClose, onBlocked }: Props) {
-  const [notes, setNotes] = useState('')
+export function VerifyResolutionForm({ open, pending, onClose, onSubmit }: Props) {
   return (
     <ActionDialog
       open={open}
       title="Xác minh resolution"
-      description="UI form theo yêu cầu contract; transition, payload và quyền vẫn chưa được xác nhận."
+      description="Precheck mock; không tạo status hoặc cột VERIFIED ngoài schema."
       onClose={onClose}
       footer={
         <>
-          <button className={styles.secondaryButton} onClick={onClose} type="button">
+          <button className={styles.secondaryButton} disabled={pending} onClick={onClose} type="button">
             Hủy
           </button>
-          <button className={styles.primaryButton} onClick={() => void onBlocked()} type="button">
-            Kiểm tra điều kiện
+          <button
+            className={styles.primaryButton}
+            disabled={pending}
+            onClick={() => void onSubmit().then((ok) => ok && onClose())}
+            type="button"
+          >
+            {pending ? 'Đang kiểm tra…' : 'Kiểm tra điều kiện'}
           </button>
         </>
       }
     >
-      <label className={styles.field}>
-        Kết quả xác minh
-        <textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
-      </label>
-      <div className={styles.warningBanner}>
-        Chưa có nguồn xác nhận Verify giữ status, tạo event hay chuyển trạng thái. Form không gửi mutation.
-      </div>
+      <ul className={styles.checklist}>
+        <li>resolution có dữ liệu</li>
+        <li>resolved_by có dữ liệu</li>
+        <li>resolved_at có dữ liệu</li>
+      </ul>
+      <div className={styles.infoBanner}>Kết quả xác minh không persisted trong FOREP.sql.</div>
     </ActionDialog>
   )
 }

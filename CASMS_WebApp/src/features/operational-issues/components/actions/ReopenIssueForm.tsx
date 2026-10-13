@@ -1,43 +1,39 @@
-import { useState } from 'react'
-
 import { ActionDialog } from '../ActionDialog'
 import styles from '../OperationalIssues.module.css'
 
 type Props = {
   open: boolean
+  pending: boolean
   onClose: () => void
-  onBlocked: () => Promise<boolean>
+  onSubmit: () => Promise<boolean>
 }
 
-export function ReopenIssueForm({ open, onClose, onBlocked }: Props) {
-  const [reason, setReason] = useState('')
-
+export function ReopenIssueForm({ open, pending, onClose, onSubmit }: Props) {
   return (
     <ActionDialog
       open={open}
       title="Mở lại sự cố"
-      description="UI form theo design; transition, reason và quyền Reopen vẫn chưa được xác nhận."
+      description="RESOLVED → IN_PROGRESS chỉ cập nhật current status."
       onClose={onClose}
       footer={
         <>
-          <button className={styles.secondaryButton} onClick={onClose} type="button">
+          <button className={styles.secondaryButton} disabled={pending} onClick={onClose} type="button">
             Hủy
           </button>
-          <button className={styles.primaryButton} onClick={() => void onBlocked()} type="button">
-            Kiểm tra contract
+          <button
+            className={styles.primaryButton}
+            disabled={pending}
+            onClick={() => void onSubmit().then((ok) => ok && onClose())}
+            type="button"
+          >
+            {pending ? 'Đang mở lại…' : 'Reopen & tiếp tục xử lý'}
           </button>
         </>
       }
     >
-      <label className={styles.field}>
-        Lý do reopen (chưa xác nhận bắt buộc)
-        <textarea
-          value={reason}
-          onChange={(event) => setReason(event.target.value)}
-        />
-      </label>
+      <p>Không có reopen_reason, reopen_count hoặc transition history trong FOREP.sql.</p>
       <div className={styles.warningBanner}>
-        RESOLVED → IN_PROGRESS mới là đề xuất; form không gửi mutation hoặc tạo event giả.
+        Mock giữ resolution hiện tại và không tạo event/history giả.
       </div>
     </ActionDialog>
   )

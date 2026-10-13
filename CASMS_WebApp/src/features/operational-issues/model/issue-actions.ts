@@ -46,12 +46,17 @@ export function getIssueActionAvailability(
     VERIFY_RESOLUTION: {
       visible: issue.status === 'RESOLVED',
       enabled: issue.status === 'RESOLVED',
-      reason: 'Action contract chưa xác nhận transition/payload.',
     },
     CLOSE: {
       visible: issue.status === 'RESOLVED',
-      enabled: issue.status === 'RESOLVED',
-      reason: 'Close criteria và bằng chứng verification chưa được backend xác nhận.',
+      enabled:
+        issue.status === 'RESOLVED' &&
+        Boolean(issue.resolution && issue.resolvedBy && issue.resolvedAt),
+      reason:
+        issue.status === 'RESOLVED' &&
+        !(issue.resolution && issue.resolvedBy && issue.resolvedAt)
+          ? 'Cần đủ resolution, resolved_by và resolved_at.'
+          : undefined,
     },
     REOPEN: {
       visible: issue.status === 'RESOLVED',

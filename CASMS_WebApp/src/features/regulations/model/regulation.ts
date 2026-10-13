@@ -1,6 +1,20 @@
-export type RegulationType = 'SPEED' | 'CAPACITY' | 'SAFETY' | 'SERVICE'
+export type RegulationType =
+  | 'SAFETY'
+  | 'CAPACITY'
+  | 'SPEED'
+  | 'WEATHER'
+  | 'ENVIRONMENT'
+  | 'HEALTH'
 export type RegulationScope = 'GLOBAL' | 'SHIP' | 'CRUISE'
-export type RegulationStatus = 'DRAFT' | 'ACTIVE' | 'INACTIVE'
+export type RegulationUnit =
+  | 'KNOT'
+  | 'KM'
+  | 'METER'
+  | 'PERCENT'
+  | 'PERSON'
+  | 'CELSIUS'
+  | 'NONE'
+export type RegulationStatus = 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'EXPIRED'
 export type EffectiveStatus = 'EFFECTIVE' | 'UPCOMING' | 'EXPIRED' | 'NOT_ACTIVE'
 export type HostType = 'ship' | 'cruise'
 export type ConflictSeverity = 'clear' | 'warning' | 'blocking' | 'unavailable'
@@ -13,17 +27,18 @@ export type Regulation = {
   type: RegulationType
   scope: RegulationScope
   value: string
-  unit: string
+  unit: RegulationUnit | null
   effectiveFrom: string
-  effectiveTo: string
+  effectiveTo: string | null
   status: RegulationStatus
+}
+
+/** Adapter-only metadata; these fields are not columns in FOREP.sql. */
+export type MockRegulation = Regulation & {
   hasBeenActive: boolean
   version: number
 }
-export type RegulationDraft = Omit<
-  Regulation,
-  'id' | 'status' | 'hasBeenActive' | 'version'
->
+export type RegulationDraft = Omit<Regulation, 'id' | 'status'>
 
 export type RegulationUpdate = Partial<RegulationDraft> & { version: number }
 
@@ -48,7 +63,7 @@ export type RegulationListQuery = {
   effectiveAt: string
 }
 
-export type RegulationListItem = Regulation & {
+export type RegulationListItem = MockRegulation & {
   effectiveStatus: EffectiveStatus
 }
 
@@ -59,8 +74,15 @@ export type HostContext = {
   description: string
 }
 
+export type RegulationTargetAssignment = {
+  type: HostType | 'global'
+  id: string
+  name: string
+  sourceLabel: string
+}
+
 export type AssignedRegulation = {
-  regulation: Regulation
+  regulation: MockRegulation
   source: RegulationScope
   sourceLabel: string
   direct: boolean
@@ -75,7 +97,7 @@ export type AssignmentSnapshot = {
 }
 
 export type CandidateRegulation = {
-  regulation: Regulation
+  regulation: MockRegulation
   capabilities: RegulationCapabilities
 }
 
@@ -99,7 +121,9 @@ export const typeLabels: Record<RegulationType, string> = {
   SPEED: 'Tốc độ',
   CAPACITY: 'Sức chứa',
   SAFETY: 'An toàn',
-  SERVICE: 'Dịch vụ',
+  WEATHER: 'Thời tiết',
+  ENVIRONMENT: 'Môi trường',
+  HEALTH: 'Sức khỏe',
 }
 
 export const scopeLabels: Record<RegulationScope, string> = {
@@ -112,6 +136,7 @@ export const statusLabels: Record<RegulationStatus, string> = {
   DRAFT: 'Bản nháp',
   ACTIVE: 'Đang hoạt động',
   INACTIVE: 'Ngừng hoạt động',
+  EXPIRED: 'Hết hạn',
 }
 
 export const effectiveLabels: Record<EffectiveStatus, string> = {
@@ -138,7 +163,7 @@ export function getEffectiveStatus(
   return 'EFFECTIVE'
 }
 
-export function formatDateTime(value: string) {
+export function formatDateTime(value: string | null) {
   if (!value) return 'Không giới hạn'
   return new Intl.DateTimeFormat('vi-VN', {
     dateStyle: 'short',

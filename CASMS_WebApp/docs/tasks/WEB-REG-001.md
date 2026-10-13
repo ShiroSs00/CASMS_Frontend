@@ -224,3 +224,17 @@ Report:
 | REG-UI-09 | PASS | Cruise route rendered two direct and two inherited SHIP/GLOBAL mock rows in separate sections. |
 | REG-UI-10 | PASS | Clear-result Cruise candidate assigned successfully; blocking candidate left Assign disabled; mutations are keyed by current `cruiseId`. |
 | REG-UI-11 | PASS | Clear, warning, blocking and unavailable result variants render explicit status, related regulation/source/content and permitted action. |
+
+## Post-merge compatibility correction — 2026-10-13
+
+Branch: `codex/fix-web-oim-reg-completion`
+
+- Regulation type options now match `FOREP.sql`: `SAFETY`, `CAPACITY`, `SPEED`, `WEATHER`,
+  `ENVIRONMENT`, `HEALTH`.
+- Unit options now match SQL: `KNOT`, `KM`, `METER`, `PERCENT`, `PERSON`, `CELSIUS`, `NONE`,
+  plus nullable unit.
+- Status now includes `EXPIRED`; invalid mock-only enum values were removed from fixtures.
+- Regulation Detail obtains Ship/Cruise targets from direct assignment joins. Scope no longer
+  creates a false assignment.
+- List, detail, Ship Regulation and Cruise Regulation routes render successfully at 1440 px.
+- Lint, typecheck and production build pass after the correction.

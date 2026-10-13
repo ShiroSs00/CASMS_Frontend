@@ -94,23 +94,27 @@ export function IssueActions({ issue, onChanged }: Props) {
       />
       <RecordResolutionForm
         open={activeAction === 'RECORD_RESOLUTION'}
-        onBlocked={() => actions.blockUnconfirmed('RECORD_RESOLUTION')}
+        pending={actions.pendingAction === 'RECORD_RESOLUTION'}
         onClose={() => setActiveAction(null)}
+        onSubmit={actions.recordResolution}
       />
       <VerifyResolutionForm
         open={activeAction === 'VERIFY_RESOLUTION'}
-        onBlocked={() => actions.blockUnconfirmed('VERIFY_RESOLUTION')}
+        pending={actions.pendingAction === 'VERIFY_RESOLUTION'}
         onClose={() => setActiveAction(null)}
+        onSubmit={actions.verifyResolution}
       />
       <CloseIssueAction
         open={activeAction === 'CLOSE'}
-        onBlocked={() => actions.blockUnconfirmed('CLOSE')}
+        pending={actions.pendingAction === 'CLOSE'}
         onClose={() => setActiveAction(null)}
+        onSubmit={actions.close}
       />
       <ReopenIssueForm
         open={activeAction === 'REOPEN'}
-        onBlocked={() => actions.blockUnconfirmed('REOPEN')}
+        pending={actions.pendingAction === 'REOPEN'}
         onClose={() => setActiveAction(null)}
+        onSubmit={actions.reopen}
       />
     </section>
   )

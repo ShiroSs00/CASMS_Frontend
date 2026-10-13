@@ -29,13 +29,24 @@ export function IssueListPage() {
         <div>
           <h1 className={styles.pageTitle}>Sự cố vận hành</h1>
           <p className={styles.pageDescription}>
-            Quản lý issue có ảnh hưởng rộng tới vận hành. ServiceRequest vẫn là workflow riêng.
+            Quản lý OperationalIssue theo đúng FOREP.sql; không suy diễn quan hệ với
+            ServiceRequest hoặc thực thể impact khác.
           </p>
           <span className={styles.mockBadge}>Dữ liệu minh họa · mock adapter</span>
         </div>
       </header>
 
-      <IssueMetrics issues={state.data?.items ?? []} />
+      <IssueMetrics
+        totals={
+          state.data?.statusTotals ?? {
+            OPEN: 0,
+            IN_PROGRESS: 0,
+            RESOLVED: 0,
+            CLOSED: 0,
+            review: 0,
+          }
+        }
+      />
       <IssueSearchFilters
         cruises={cruises}
         handlers={handlers}
@@ -76,8 +87,8 @@ export function IssueListPage() {
 
       <aside className={styles.infoBanner}>
         <strong className={styles.bannerTitle}>OperationalIssue ≠ ServiceRequest</strong>
-        Issue dùng cho sự cố vận hành rộng/impact. Room service, laundry, Wi-Fi support… vẫn thuộc
-        ServiceRequest trừ khi được link/escalate thành Issue riêng.
+        FOREP.sql không có quan hệ ServiceRequest ↔ OperationalIssue. UI mock không hiển thị hoặc
+        thay đổi liên kết này.
       </aside>
     </AdminFrame>
   )
