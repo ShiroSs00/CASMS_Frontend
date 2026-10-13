@@ -2,8 +2,7 @@ export type ShipStatus = 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE'
 export type CabinStatus = 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE' | 'OUT_OF_SERVICE'
 export type CabinType = 'INTERIOR' | 'OCEAN_VIEW' | 'BALCONY' | 'SUITE'
 export type EntityKind = 'ships' | 'decks' | 'cabins'
-export type Capability = { allowed: boolean; reason?: string }
-export type RecordBase = { id: string; version: number; createdAt: string; updatedAt: string }
+export type RecordBase = { id: string; createdAt?: string; updatedAt?: string }
 export type Ship = RecordBase & {
   code: string; name: string; status: ShipStatus
   capacity: number; totalDecks: number; commissionDate: string
@@ -23,8 +22,11 @@ export type CheckResult = {
   tone: 'success' | 'warning' | 'error'
   title: string; message: string; allowed: boolean
 }
-export type CruisePreview = { code: string; name: string; period: string; status: string }
-export type HistoryEntry = { date: string; cruise: string; action: string; actor: string }
+export type CruisePreview = { id: string; code: string; name: string; departure: string; returnAt: string; status: string }
+export type HistoryEntry = { id: string; passengerId: string; from: string; to: string | null; actorId: string; reason: string }
+export type ShipCapacity = { configuredTotalCapacity: number; configuredTotalDecks: number; actualCabinCount: number; availableCabinCount: number; actualDeckCount: number }
+export type DeckCapacity = { totalCabins: number; availableCabins: number; totalPassengerCapacity: number }
+export type AvailableCabinQuery = { shipId?: string; deckId?: string; cabinType?: CabinType; minCapacity?: number; isAccessible?: boolean }
 
 export const shipStatuses: Record<ShipStatus, string> = {
   ACTIVE: 'Hoạt động', MAINTENANCE: 'Bảo trì', INACTIVE: 'Ngừng hoạt động',
@@ -42,6 +44,6 @@ export function entityName(entity: Entity) {
   return 'code' in entity ? `${entity.code} · ${entity.name}`
     : 'deckId' in entity ? `Cabin ${entity.number}` : `Boong ${entity.number} · ${entity.name || 'Chưa đặt tên'}`
 }
-export function formatDate(value: string) {
-  return value ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short' }).format(new Date(value)) : 'Chưa cập nhật'
+export function formatDate(value?: string | null) {
+  return value && !Number.isNaN(new Date(value).getTime()) ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short' }).format(new Date(value)) : 'Chưa cập nhật'
 }

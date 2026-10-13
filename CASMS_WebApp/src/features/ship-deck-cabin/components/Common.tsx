@@ -30,5 +30,5 @@ export function DataState({ loading, error, retry }: { loading: boolean; error: 
   return null
 }
 export function NotFound({ back }: { back: string }) {
-  return <Notice title="Không tìm thấy dữ liệu" tone="error"><p>Đối tượng không tồn tại hoặc đã được xóa trong phiên demo này.</p><Link to={back} className={styles.link}>Về danh sách</Link></Notice>
+  return <Notice title="Không tìm thấy dữ liệu" tone="error"><p>Đối tượng không tồn tại hoặc đã được xóa khỏi hệ thống.</p><Link to={back} className={styles.link}>Về danh sách</Link></Notice>
 }
