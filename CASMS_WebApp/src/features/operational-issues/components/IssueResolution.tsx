@@ -16,24 +16,13 @@ export function IssueResolution({ issue }: { issue: OperationalIssue }) {
         <dl className={styles.resolutionList}>
           <div>
             <dt>Nội dung giải quyết</dt>
-            <dd>{issue.resolution.summary}</dd>
-          </div>
-          <div>
-            <dt>Root cause</dt>
-            <dd>{issue.resolution.rootCauseStatus}</dd>
-          </div>
-          <div>
-            <dt>Residual impact</dt>
-            <dd>{issue.resolution.residualImpact}</dd>
-          </div>
-          <div>
-            <dt>Evidence</dt>
-            <dd>{issue.resolution.evidenceReference}</dd>
+            <dd>{issue.resolution}</dd>
           </div>
           <div>
             <dt>Người / thời điểm</dt>
             <dd>
-              {issue.resolution.resolvedBy.name} · {formatDate(issue.resolution.resolvedAt)}
+              {issue.resolvedBy?.name ?? 'Không xác định'} ·{' '}
+              {issue.resolvedAt ? formatDate(issue.resolvedAt) : 'Không xác định'}
             </dd>
           </div>
         </dl>

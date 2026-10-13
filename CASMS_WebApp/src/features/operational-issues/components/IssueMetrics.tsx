@@ -1,17 +1,14 @@
-import type { OperationalIssue } from '../model/issue'
+import type { IssueStatusTotals } from '../mocks/mock-operational-issues'
 import styles from './OperationalIssues.module.css'
 
-export function IssueMetrics({ issues }: { issues: OperationalIssue[] }) {
-  const count = (status: OperationalIssue['status']) =>
-    issues.filter((issue) => issue.status === status).length
-
+export function IssueMetrics({ totals }: { totals: IssueStatusTotals }) {
   const metrics = [
-    { label: 'OPEN', value: count('OPEN'), className: styles.statusOpen },
-    { label: 'IN PROGRESS', value: count('IN_PROGRESS'), className: styles.statusProgress },
-    { label: 'RESOLVED', value: count('RESOLVED'), className: styles.statusResolved },
+    { label: 'OPEN', value: totals.OPEN, className: styles.statusOpen },
+    { label: 'IN PROGRESS', value: totals.IN_PROGRESS, className: styles.statusProgress },
+    { label: 'RESOLVED', value: totals.RESOLVED, className: styles.statusResolved },
     {
       label: 'CẦN RÀ SOÁT',
-      value: issues.filter((issue) => issue.severity === 'CRITICAL').length,
+      value: totals.review,
       className: styles.statusReview,
     },
   ]

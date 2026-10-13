@@ -5,12 +5,14 @@ import type {
   CandidateRegulation,
   ConflictResult,
   HostType,
+  MockRegulation,
   MutationResult,
   Regulation,
   RegulationDraft,
   RegulationListItem,
   RegulationListQuery,
   RegulationStatus,
+  RegulationTargetAssignment,
   RegulationUpdate,
 } from '../model/regulation'
 import { getEffectiveStatus } from '../model/regulation'
@@ -51,6 +53,25 @@ function getRegulation(id: string) {
 
 function copy<T>(value: T): T {
   return structuredClone(value)
+}
+
+function targetsFor(regulation: Regulation): RegulationTargetAssignment[] {
+  if (regulation.scope === 'GLOBAL') {
+    return [{ type: 'global', id: 'global', name: 'Toàn hệ thống', sourceLabel: 'GLOBAL' }]
+  }
+
+  return Object.entries(directAssignments)
+    .filter(([, ids]) => ids.includes(regulation.id))
+    .map(([key]) => {
+      const [type, id] = key.split(':') as [HostType, string]
+      const host = hostContext(type, id)
+      return {
+        type,
+        id,
+        name: host.name,
+        sourceLabel: `Trực tiếp · ${type === 'ship' ? 'Ship regulation' : 'Cruise regulation'}`,
+      }
+    })
 }
 
 function capabilitiesFor(
@@ -128,6 +149,7 @@ export const mockRegulationAdapter = {
       ? {
           regulation: copy(regulation),
           capabilities: capabilitiesFor(regulation),
+          targets: copy(targetsFor(regulation)),
         }
       : null
   },
@@ -142,7 +164,7 @@ export const mockRegulationAdapter = {
       throw new Error('DUPLICATE_CODE')
     }
     const id = draft.code.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
-    const regulation: Regulation = {
+    const regulation: MockRegulation = {
       ...draft,
       id,
       status: 'DRAFT',
@@ -232,7 +254,7 @@ export const mockRegulationAdapter = {
     const host = hostContext(type, hostId)
     const direct = assignmentIds(type, hostId)
       .map(getRegulation)
-      .filter((item): item is Regulation => Boolean(item))
+      .filter((item): item is MockRegulation => Boolean(item))
       .map<AssignedRegulation>((regulation) => ({
         regulation: copy(regulation),
         source: regulation.scope,

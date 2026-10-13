@@ -23,31 +23,25 @@ export type CruiseReference = {
   shipId: string
 }
 
-export type IssueResolution = {
-  summary: string
-  rootCauseStatus: string
-  residualImpact: string
-  evidenceReference: string
-  resolvedBy: PersonReference
-  resolvedAt: string
-}
-
-export type IssueEventKind =
-  | 'CREATED'
-  | 'ASSIGNED'
-  | 'STARTED'
-  | 'RESOLVED'
-  | 'REOPENED'
-  | 'CLOSED'
-
-export type IssueEvent = {
-  id: string
-  kind: IssueEventKind
-  actor: PersonReference
-  occurredAt: string
+/** SQL-shaped boundary matching FOREP.sql OperationalIssue. */
+export type OperationalIssueRecord = {
+  issueId: string
+  issueCode: string
+  cruiseId: string | null
+  shipId: string
+  cabinId: string | null
+  issueType: IssueType
+  severity: IssueSeverity
   description: string
-  fromStatus?: IssueStatus
-  toStatus?: IssueStatus
+  reportedAt: string
+  resolvedAt: string | null
+  status: IssueStatus
+  reportedBy: string
+  resolvedBy: string | null
+  resolution: string | null
+  assignedTo: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export type OperationalIssue = {
@@ -61,14 +55,14 @@ export type OperationalIssue = {
   severity: IssueSeverity
   status: IssueStatus
   description: string
-  impactSummary: string[]
-  linkedRequestCount: number
   reportedBy: PersonReference
   reportedAt: string
   assignedTo: PersonReference | null
-  resolution: IssueResolution | null
-  reopenCount: number
-  events: IssueEvent[]
+  resolution: string | null
+  resolvedBy: PersonReference | null
+  resolvedAt: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export const issueStatusLabels: Record<IssueStatus, string> = {
@@ -83,13 +77,4 @@ export const issueSeverityLabels: Record<IssueSeverity, string> = {
   MEDIUM: 'Trung bình',
   HIGH: 'Cao',
   CRITICAL: 'Nghiêm trọng',
-}
-
-export const issueEventLabels: Record<IssueEventKind, string> = {
-  CREATED: 'Tạo sự cố',
-  ASSIGNED: 'Phân công xử lý',
-  STARTED: 'Bắt đầu xử lý',
-  RESOLVED: 'Ghi nhận giải quyết',
-  REOPENED: 'Mở lại sự cố',
-  CLOSED: 'Đóng sự cố',
 }

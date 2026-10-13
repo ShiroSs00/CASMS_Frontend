@@ -112,7 +112,9 @@ export function RegulationListPage() {
               <option value="SPEED">Tốc độ</option>
               <option value="CAPACITY">Sức chứa</option>
               <option value="SAFETY">An toàn</option>
-              <option value="SERVICE">Dịch vụ</option>
+              <option value="WEATHER">Thời tiết</option>
+              <option value="ENVIRONMENT">Môi trường</option>
+              <option value="HEALTH">Sức khỏe</option>
             </select>
           </Field>
           <Field htmlFor="reg-scope" label="Phạm vi">
@@ -147,6 +149,7 @@ export function RegulationListPage() {
               <option value="DRAFT">Bản nháp</option>
               <option value="ACTIVE">Đang hoạt động</option>
               <option value="INACTIVE">Ngừng hoạt động</option>
+              <option value="EXPIRED">Hết hạn</option>
             </select>
           </Field>
           <Field htmlFor="reg-effective-at" label="Hiệu lực tại thời điểm">

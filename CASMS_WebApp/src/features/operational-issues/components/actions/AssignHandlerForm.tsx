@@ -9,12 +9,11 @@ type Props = {
   handlers: PersonReference[]
   pending: boolean
   onClose: () => void
-  onSubmit: (handlerId: string, note: string) => Promise<boolean>
+  onSubmit: (handlerId: string) => Promise<boolean>
 }
 
 export function AssignHandlerForm({ open, handlers, pending, onClose, onSubmit }: Props) {
   const [handlerId, setHandlerId] = useState(handlers[0]?.id ?? '')
-  const [note, setNote] = useState('')
 
   return (
     <ActionDialog
@@ -30,7 +29,7 @@ export function AssignHandlerForm({ open, handlers, pending, onClose, onSubmit }
           <button
             className={styles.primaryButton}
             disabled={pending || !handlerId}
-            onClick={() => void onSubmit(handlerId, note).then((ok) => ok && onClose())}
+            onClick={() => void onSubmit(handlerId).then((ok) => ok && onClose())}
             type="button"
           >
             {pending ? 'Đang cập nhật…' : 'Chỉ cập nhật assignee'}
@@ -48,11 +47,7 @@ export function AssignHandlerForm({ open, handlers, pending, onClose, onSubmit }
           ))}
         </select>
       </label>
-      <label className={styles.field}>
-        Ghi chú bàn giao
-        <textarea value={note} onChange={(event) => setNote(event.target.value)} />
-      </label>
-      <p>Không hard-code SLA; priority/escalation phải đến từ policy đã xác nhận.</p>
+      <p>Mock chỉ cập nhật assigned_to. FOREP.sql không có ghi chú bàn giao, priority hoặc SLA.</p>
     </ActionDialog>
   )
 }

@@ -35,12 +35,11 @@ export function useIssueActions(issueId: string, onChanged: () => void) {
   return {
     pendingAction,
     feedback,
-    clearFeedback: () => setFeedback(null),
-    assign: (handlerId: string, note: string) =>
+    assign: (handlerId: string) =>
       run(
         'ASSIGN_HANDLER',
-        () => mockOperationalIssues.assign(issueId, handlerId, note),
-        'Đã cập nhật assignee trong mock adapter.',
+        () => mockOperationalIssues.assign(issueId, handlerId),
+        'Đã cập nhật assigned_to trong mock adapter.',
       ),
     start: () =>
       run(
@@ -48,26 +47,25 @@ export function useIssueActions(issueId: string, onChanged: () => void) {
         () => mockOperationalIssues.start(issueId),
         'Đã chuyển sang IN_PROGRESS trong mock adapter.',
       ),
-    blockUnconfirmed: (
-      action: 'RECORD_RESOLUTION' | 'VERIFY_RESOLUTION' | 'CLOSE' | 'REOPEN',
-    ) => {
-      const messages = {
-        RECORD_RESOLUTION:
-          'Chưa gửi: field bắt buộc và status sau Record Resolution chưa được backend hoặc product xác nhận.',
-        VERIFY_RESOLUTION:
-          'Chưa gửi: transition/payload Verify Resolution chưa được backend hoặc product xác nhận.',
-        CLOSE: 'Chưa gửi: Close criteria và bằng chứng verification chưa được xác nhận.',
-        REOPEN:
-          'Chưa gửi: trạng thái nguồn/đích, reason, permission và cách giữ resolution của Reopen chưa được xác nhận.',
-      } satisfies Record<
-        'RECORD_RESOLUTION' | 'VERIFY_RESOLUTION' | 'CLOSE' | 'REOPEN',
-        string
-      >
-      setFeedback({
-        tone: 'warning',
-        message: messages[action],
-      })
-      return Promise.resolve(false)
-    },
+    recordResolution: (resolution: string) =>
+      run(
+        'RECORD_RESOLUTION',
+        () => mockOperationalIssues.recordResolution(issueId, resolution),
+        'Đã ghi resolution và chuyển sang RESOLVED.',
+      ),
+    verifyResolution: () =>
+      run(
+        'VERIFY_RESOLUTION',
+        () => mockOperationalIssues.verifyResolution(issueId),
+        'Đã kiểm tra đủ resolution, resolved_by và resolved_at. Kết quả không persisted.',
+      ),
+    close: () =>
+      run('CLOSE', () => mockOperationalIssues.close(issueId), 'Đã chuyển current status sang CLOSED.'),
+    reopen: () =>
+      run(
+        'REOPEN',
+        () => mockOperationalIssues.reopen(issueId),
+        'Đã chuyển current status sang IN_PROGRESS.',
+      ),
   }
 }

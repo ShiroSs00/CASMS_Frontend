@@ -3,38 +3,42 @@ import styles from '../OperationalIssues.module.css'
 
 type Props = {
   open: boolean
+  pending: boolean
   onClose: () => void
-  onBlocked: () => Promise<boolean>
+  onSubmit: () => Promise<boolean>
 }
 
-export function CloseIssueAction({ open, onClose, onBlocked }: Props) {
+export function CloseIssueAction({ open, pending, onClose, onSubmit }: Props) {
   return (
     <ActionDialog
       open={open}
       title="Đóng sự cố"
-      description="RESOLVED → CLOSED chỉ sau khi verification/criteria theo policy đạt."
+      description="RESOLVED → CLOSED chỉ cập nhật current status sau khi đủ trường resolution."
       onClose={onClose}
       footer={
         <>
-          <button className={styles.secondaryButton} onClick={onClose} type="button">
-            Hủy
+          <button className={styles.secondaryButton} disabled={pending} onClick={onClose} type="button">
+            Mở lại để xử lý
           </button>
-          <button className={styles.primaryButton} onClick={() => void onBlocked()} type="button">
-            Đóng sự cố
+          <button
+            className={styles.primaryButton}
+            disabled={pending}
+            onClick={() => void onSubmit().then((ok) => ok && onClose())}
+            type="button"
+          >
+            {pending ? 'Đang đóng…' : 'Đóng sự cố'}
           </button>
         </>
       }
     >
       <h3>Checklist trước khi đóng</h3>
       <ul className={styles.checklist}>
-        <li>Resolution được ghi nhận</li>
-        <li>Impact đã được rà soát</li>
-        <li>Không còn action bắt buộc theo policy</li>
-        <li>Audit trail đầy đủ</li>
+        <li>resolution có dữ liệu</li>
+        <li>resolved_by có dữ liệu</li>
+        <li>resolved_at có dữ liệu</li>
+        <li>status chuyển sang CLOSED</li>
       </ul>
-      <div className={styles.warningBanner}>
-        Close criteria và bằng chứng verified chưa được xác nhận; UI không báo thành công giả.
-      </div>
+      <div className={styles.infoBanner}>CLOSED là current status; không giả audit snapshot.</div>
     </ActionDialog>
   )
 }

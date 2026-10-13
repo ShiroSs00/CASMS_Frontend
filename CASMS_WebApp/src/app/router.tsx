@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 
 import { HomePage } from '@/features/home'
+import { IssueDetailPage, IssueListPage } from '@/features/operational-issues'
 import {
   CruiseRegulationsPage,
   RegulationDetailPage,
@@ -30,6 +31,8 @@ export const router = createBrowserRouter([
   { path: '/admin/cabins/new', Component: CabinFormPage },
   { path: '/admin/cabins/:id', Component: CabinDetailPage },
   { path: '/admin/cabins/:id/edit', Component: CabinFormPage },
+  { path: '/admin/issues', Component: IssueListPage },
+  { path: '/admin/issues/:issueId', Component: IssueDetailPage },
   {
     path: '/',
     Component: PublicLayout,

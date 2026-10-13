@@ -5,64 +5,47 @@ import styles from '../OperationalIssues.module.css'
 
 type Props = {
   open: boolean
+  pending: boolean
   onClose: () => void
-  onBlocked: () => Promise<boolean>
+  onSubmit: (resolution: string) => Promise<boolean>
 }
 
-type ResolutionDraft = {
-  summary: string
-  rootCauseStatus: string
-  residualImpact: string
-  evidenceReference: string
-}
-
-const initialValue: ResolutionDraft = {
-  summary: '',
-  rootCauseStatus: '',
-  residualImpact: '',
-  evidenceReference: '',
-}
-
-export function RecordResolutionForm({ open, onClose, onBlocked }: Props) {
-  const [value, setValue] = useState(initialValue)
+export function RecordResolutionForm({ open, pending, onClose, onSubmit }: Props) {
+  const [resolution, setResolution] = useState('')
+  const invalid = !resolution.trim()
 
   return (
     <ActionDialog
       open={open}
       title="Đánh dấu đã giải quyết"
-      description="UI form theo design; field bắt buộc và status sau thành công vẫn chưa được xác nhận."
+      description="IN_PROGRESS → RESOLVED; mock cập nhật đúng resolution, resolved_by và resolved_at."
       onClose={onClose}
       footer={
         <>
-          <button className={styles.secondaryButton} onClick={onClose} type="button">
+          <button className={styles.secondaryButton} disabled={pending} onClick={onClose} type="button">
             Quay lại issue
           </button>
-          <button className={styles.primaryButton} onClick={() => void onBlocked()} type="button">
-            Kiểm tra contract
+          <button
+            className={styles.primaryButton}
+            disabled={pending || invalid}
+            onClick={() => void onSubmit(resolution).then((ok) => ok && onClose())}
+            type="button"
+          >
+            {pending ? 'Đang cập nhật…' : 'Mark Resolved'}
           </button>
         </>
       }
     >
-      {(
-        [
-          ['summary', 'Resolution summary'],
-          ['rootCauseStatus', 'Root cause status'],
-          ['residualImpact', 'Residual impact'],
-          ['evidenceReference', 'Evidence / reference'],
-        ] as const
-      ).map(([key, label]) => (
-        <label className={styles.field} key={key}>
-          {label}
-          <textarea
-            value={value[key]}
-            onChange={(event) => setValue((current) => ({ ...current, [key]: event.target.value }))}
-          />
-        </label>
-      ))}
-      <div className={styles.warningBanner}>
-        Contract chưa chốt Record Resolution là lưu nháp hay chuyển RESOLVED. Form không gửi mutation.
-      </div>
-      <p>Resolve không xóa issue, linked ServiceRequest hoặc tự trigger refund/payment.</p>
+      <label className={styles.field}>
+        Resolution summary
+        <textarea
+          required
+          value={resolution}
+          onChange={(event) => setResolution(event.target.value)}
+        />
+      </label>
+      {invalid ? <p className={styles.actionHint}>Resolution không được để trống.</p> : null}
+      <p>Không tạo evidence, root cause, linked request hoặc impact record ngoài FOREP.sql.</p>
     </ActionDialog>
   )
 }
