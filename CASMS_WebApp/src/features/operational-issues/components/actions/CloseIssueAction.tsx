@@ -13,7 +13,7 @@ export function CloseIssueAction({ open, pending, onClose, onSubmit }: Props) {
     <ActionDialog
       open={open}
       title="Đóng sự cố"
-      description="RESOLVED → CLOSED chỉ cập nhật current status sau khi đủ trường resolution."
+      description="RESOLVED → CLOSED sau khi resolution đã được ghi và xác minh."
       onClose={onClose}
       footer={
         <>
@@ -36,6 +36,7 @@ export function CloseIssueAction({ open, pending, onClose, onSubmit }: Props) {
         <li>resolution có dữ liệu</li>
         <li>resolved_by có dữ liệu</li>
         <li>resolved_at có dữ liệu</li>
+        <li>verified_by và verified_at có dữ liệu</li>
         <li>status chuyển sang CLOSED</li>
       </ul>
       <div className={styles.infoBanner}>CLOSED là current status; không giả audit snapshot.</div>

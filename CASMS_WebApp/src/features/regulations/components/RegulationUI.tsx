@@ -14,6 +14,7 @@ import {
   effectiveLabels,
   statusLabels,
 } from '../model/regulation'
+import { buildPaginationRange } from '../../../shared/pagination.ts'
 import styles from './Regulations.module.css'
 import { AdminFrame as SharedAdminFrame } from '@/shared/ui'
 
@@ -150,6 +151,90 @@ export function LoadingPanel({ label = 'Đang tải quy định…' }: { label?:
       <strong>{label}</strong>
       <span>Vui lòng chờ trong giây lát.</span>
     </div>
+  )
+}
+
+export function Pagination({
+  page,
+  pageSize,
+  total,
+  totalPages,
+  start,
+  end,
+  pageSizeOptions,
+  itemLabel,
+  onPageChange,
+  onPageSizeChange,
+}: {
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
+  start: number
+  end: number
+  pageSizeOptions?: readonly number[]
+  itemLabel: string
+  onPageChange: (page: number) => void
+  onPageSizeChange?: (pageSize: number) => void
+}) {
+  const pageRange = buildPaginationRange(page, totalPages)
+
+  return (
+    <nav className={styles.pagination} aria-label={`Phân trang ${itemLabel}`}>
+      <span aria-live="polite" className={styles.paginationSummary}>
+        {start}–{end} / {total} {itemLabel} · Trang {page}/{totalPages}
+      </span>
+      <div className={styles.paginationControls}>
+        {pageSizeOptions && onPageSizeChange ? (
+          <label className={styles.pageSizeControl}>
+            <span>Số dòng</span>
+            <select
+              aria-label={`Số ${itemLabel} mỗi trang`}
+              onChange={(event) => onPageSizeChange(Number(event.target.value))}
+              value={pageSize}
+            >
+              {pageSizeOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        <button
+          aria-label="Trang trước"
+          className={styles.paginationButton}
+          disabled={page <= 1}
+          onClick={() => onPageChange(page - 1)}
+          type="button"
+        >
+          Trước
+        </button>
+        <div className={styles.pageNumbers} aria-label="Chọn trang">
+          {pageRange.map((item, index) => item === 'ellipsis' ? (
+            <span aria-hidden="true" className={styles.pageEllipsis} key={`ellipsis-${index}`}>…</span>
+          ) : (
+            <button
+              aria-current={item === page ? 'page' : undefined}
+              aria-label={`Trang ${item}`}
+              className={`${styles.pageNumberButton} ${item === page ? styles.pageNumberActive : ''}`}
+              key={item}
+              onClick={() => onPageChange(item)}
+              type="button"
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+        <button
+          aria-label="Trang sau"
+          className={styles.paginationButton}
+          disabled={page >= totalPages}
+          onClick={() => onPageChange(page + 1)}
+          type="button"
+        >
+          Sau
+        </button>
+      </div>
+    </nav>
   )
 }
 

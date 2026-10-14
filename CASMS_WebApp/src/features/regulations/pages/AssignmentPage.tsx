@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router'
 
-import { mockRegulationAdapter } from '../mocks/mock-regulation-adapter'
+import { paginateItems } from '../../../shared/pagination.ts'
+import { regulationAdapter } from '../api/regulation-adapter'
 import type {
   AssignedRegulation,
   AssignmentSnapshot,
@@ -23,6 +24,7 @@ import {
   LoadingPanel,
   Modal,
   Notice,
+  Pagination,
   PageHeader,
   Panel,
   StatusBadge,
@@ -30,30 +32,7 @@ import {
 } from '../components/RegulationUI'
 import styles from '../components/Regulations.module.css'
 
-const currentConflicts: Record<HostType, ConflictResult> = {
-  ship: {
-    severity: 'warning',
-    title: 'Cảnh báo: có hai giới hạn tốc độ cùng hiệu lực',
-    message:
-      'REG-SPD-004 được gán trực tiếp cho tàu và cùng hiệu lực với REG-SPD-001 từ GLOBAL. Không tự suy luận ưu tiên.',
-    canProceed: true,
-    comparedWith: [
-      { code: 'REG-SPD-004', source: 'SHIP · CASMS Aurora', content: '8 KNOT' },
-      { code: 'REG-SPD-001', source: 'GLOBAL', content: '12 KNOT' },
-    ],
-  },
-  cruise: {
-    severity: 'warning',
-    title: 'Cảnh báo: kiểm tra các nguồn áp dụng',
-    message:
-      'Quy định trực tiếp và quy định kế thừa được hiển thị riêng. Không tự đặt ưu tiên GLOBAL < SHIP < CRUISE.',
-    canProceed: true,
-    comparedWith: [
-      { code: 'REG-CAP-003', source: 'CRUISE · CR-261120-01', content: '100 PERSON' },
-      { code: 'REG-SPD-004', source: 'SHIP · CASMS Aurora', content: '8 KNOT' },
-    ],
-  },
-}
+const ASSIGNMENT_PAGE_SIZE_OPTIONS = [5, 10, 20] as const
 
 function AssignmentTable({
   rows,
@@ -64,20 +43,28 @@ function AssignmentTable({
   direct: boolean
   onRemove: (item: AssignedRegulation) => void
 }) {
+  const [requestedPage, setRequestedPage] = useState(1)
+  const [pageSize, setPageSize] = useState<number>(ASSIGNMENT_PAGE_SIZE_OPTIONS[0])
+  const page = useMemo(
+    () => paginateItems(rows, requestedPage, pageSize),
+    [pageSize, requestedPage, rows],
+  )
+
   if (!rows.length) {
     return (
       <div className={styles.emptyState}>
-        <strong>Chưa có quy định được gán</strong>
+        <strong>Không có quy định đang hiệu lực</strong>
         <p>
-          Đối tượng chưa có liên kết {direct ? 'trực tiếp' : 'kế thừa'} trong dữ liệu mock.
+          Snapshot không chứa quy định {direct ? 'trực tiếp' : 'kế thừa'} đang hiệu lực tại thời điểm kiểm tra.
         </p>
       </div>
     )
   }
 
   return (
-    <TableScroll>
-      <table className={styles.table}>
+    <>
+      <TableScroll>
+        <table className={styles.table}>
         <thead>
           <tr>
             <th>MÃ / TÊN QUY ĐỊNH</th>
@@ -88,7 +75,7 @@ function AssignmentTable({
           </tr>
         </thead>
         <tbody>
-          {rows.map((item) => (
+          {page.items.map((item) => (
             <tr key={`${item.sourceLabel}-${item.regulation.id}`}>
               <td><strong>{item.regulation.code}</strong><br />{item.regulation.name}</td>
               <td>{typeLabels[item.regulation.type]}</td>
@@ -112,8 +99,26 @@ function AssignmentTable({
             </tr>
           ))}
         </tbody>
-      </table>
-    </TableScroll>
+        </table>
+      </TableScroll>
+      {rows.length > ASSIGNMENT_PAGE_SIZE_OPTIONS[0] ? (
+        <Pagination
+          end={page.end}
+          itemLabel={direct ? 'liên kết trực tiếp' : 'quy định kế thừa'}
+          onPageChange={setRequestedPage}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize as typeof pageSize)
+            setRequestedPage(1)
+          }}
+          page={page.page}
+          pageSize={page.pageSize}
+          pageSizeOptions={ASSIGNMENT_PAGE_SIZE_OPTIONS}
+          start={page.start}
+          total={page.total}
+          totalPages={page.totalPages}
+        />
+      ) : null}
+    </>
   )
 }
 
@@ -128,6 +133,8 @@ function AssignmentPage({ type }: { type: HostType }) {
   const [candidateLoading, setCandidateLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<RegulationStatus | 'ALL'>('ALL')
+  const [candidatePage, setCandidatePage] = useState(1)
+  const [candidatePageSize, setCandidatePageSize] = useState<number>(ASSIGNMENT_PAGE_SIZE_OPTIONS[0])
   const [selectedId, setSelectedId] = useState('')
   const [conflict, setConflict] = useState<ConflictResult | null>(null)
   const [checking, setChecking] = useState(false)
@@ -139,9 +146,12 @@ function AssignmentPage({ type }: { type: HostType }) {
 
   const load = useCallback(async () => {
     try {
-      setSnapshot(await mockRegulationAdapter.getAssignments(type, routeId ?? ''))
-    } catch {
-      setLoadError('Không tải được danh sách quy định đã gán.')
+      const nextSnapshot = await regulationAdapter.getAssignments(type, routeId ?? '')
+      setSnapshot(nextSnapshot)
+      setLoadError('')
+    } catch (error) {
+      setSnapshot(null)
+      setLoadError(error instanceof Error ? error.message : 'Không tải được danh sách quy định đã gán.')
     } finally {
       setLoading(false)
     }
@@ -149,13 +159,13 @@ function AssignmentPage({ type }: { type: HostType }) {
 
   useEffect(() => {
     let active = true
-    void mockRegulationAdapter
+    void regulationAdapter
       .getAssignments(type, routeId ?? '')
       .then((data) => {
         if (active) setSnapshot(data)
       })
-      .catch(() => {
-        if (active) setLoadError('Không tải được danh sách quy định đã gán.')
+      .catch((error: unknown) => {
+        if (active) setLoadError(error instanceof Error ? error.message : 'Không tải được danh sách quy định đã gán.')
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -176,13 +186,19 @@ function AssignmentPage({ type }: { type: HostType }) {
     setCandidateLoading(true)
     setSelectedId('')
     setConflict(null)
+    setChecking(false)
     setActionError('')
     setSearch('')
     setStatus('ALL')
+    setCandidatePage(1)
     try {
-      setCandidates(await mockRegulationAdapter.getCandidates(type, routeId ?? ''))
-    } catch {
-      setActionError('Không tải được danh sách ứng viên.')
+      setCandidates(await regulationAdapter.getCandidates(
+        type,
+        routeId ?? '',
+      ))
+    } catch (error) {
+      setCandidates([])
+      setActionError(error instanceof Error ? error.message : 'Không tải được danh sách ứng viên.')
     } finally {
       setCandidateLoading(false)
     }
@@ -199,6 +215,19 @@ function AssignmentPage({ type }: { type: HostType }) {
     })
   }, [candidates, search, status])
 
+  const candidatePagination = useMemo(
+    () => paginateItems(filteredCandidates, candidatePage, candidatePageSize),
+    [candidatePage, candidatePageSize, filteredCandidates],
+  )
+
+  const changeCandidatePage = (page: number) => {
+    requestSequence.current += 1
+    setCandidatePage(page)
+    setSelectedId('')
+    setConflict(null)
+    setChecking(false)
+  }
+
   const selectCandidate = async (candidate: CandidateRegulation) => {
     const sequence = ++requestSequence.current
     setSelectedId(candidate.regulation.id)
@@ -207,8 +236,9 @@ function AssignmentPage({ type }: { type: HostType }) {
     if (!candidate.capabilities.canAssign.allowed) return
     setChecking(true)
     try {
-      const result = await mockRegulationAdapter.checkConflict(
+      const result = await regulationAdapter.checkConflict(
         type,
+        routeId ?? '',
         candidate.regulation.id,
       )
       if (requestSequence.current === sequence) setConflict(result)
@@ -236,7 +266,7 @@ function AssignmentPage({ type }: { type: HostType }) {
     setSubmitting(true)
     setActionError('')
     try {
-      const result = await mockRegulationAdapter.assign(
+      const result = await regulationAdapter.assign(
         type,
         routeId ?? '',
         selected.regulation.id,
@@ -244,8 +274,8 @@ function AssignmentPage({ type }: { type: HostType }) {
       setAssignOpen(false)
       setSuccess(result.message)
       await load()
-    } catch {
-      setActionError('Không thể gán quy định. Danh sách cũ vẫn được giữ nguyên.')
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Không thể gán quy định.')
     } finally {
       setSubmitting(false)
     }
@@ -256,7 +286,7 @@ function AssignmentPage({ type }: { type: HostType }) {
     setSubmitting(true)
     setActionError('')
     try {
-      const result = await mockRegulationAdapter.remove(
+      const result = await regulationAdapter.remove(
         type,
         routeId ?? '',
         removeItem.regulation.id,
@@ -275,23 +305,33 @@ function AssignmentPage({ type }: { type: HostType }) {
     }
   }
 
-  const title = type === 'ship' ? 'CASMS Aurora · Quy định' : 'CR-261120-01 · Quy định'
+  const title = snapshot?.host.name
+    ? `${snapshot.host.name} · Quy định`
+    : type === 'ship'
+      ? 'Quy định của tàu'
+      : 'Quy định của chuyến'
 
   return (
     <AdminFrame>
       <PageHeader
         title={title}
-        description={`${snapshot?.host.description ?? routeId ?? ''} · Dữ liệu mock`}
-        actions={<Button onClick={() => void openAssign()}>Gán quy định</Button>}
+        description={`${snapshot?.host.description ?? routeId ?? ''} · Backend`}
+        actions={<Button disabled={loading || !snapshot || Boolean(loadError)} onClick={() => void openAssign()}>Gán quy định</Button>}
       />
       <div className={styles.twoColumn}>
         <Field label={type === 'ship' ? 'Hiệu lực tại thời điểm' : 'Thời điểm kiểm tra'}>
-          <div className={styles.protectedValue}>{formatDateTime(snapshot?.checkedAt ?? '2026-11-20T08:00')}</div>
+          <div className={styles.protectedValue}>{snapshot ? formatDateTime(snapshot.checkedAt) : 'Chưa có dữ liệu'}</div>
         </Field>
         <Field label="Múi giờ">
           <div className={styles.protectedValue}>Asia/Ho_Chi_Minh</div>
         </Field>
       </div>
+
+      {snapshot?.sourceNotice ? (
+        <Notice title="Backend Regulation chưa khả dụng" tone="warning" role="status">
+          {snapshot.sourceNotice}
+        </Notice>
+      ) : null}
 
       {loading ? <LoadingPanel label="Đang tải quy định được gán…" /> : null}
       {!loading && loadError ? (
@@ -309,9 +349,9 @@ function AssignmentPage({ type }: { type: HostType }) {
           </Button>
         </Notice>
       ) : null}
-      {!loading && snapshot ? (
+      {!loading && !loadError && snapshot ? (
         <>
-          <Panel title={`Gán trực tiếp cho ${type === 'ship' ? 'tàu' : 'chuyến'} · ${snapshot.direct.length}`}>
+          <Panel title={`Gán trực tiếp cho ${type === 'ship' ? 'tàu' : 'chuyến'} · ${snapshot.direct.length}`} subtitle="Snapshot BE chỉ gồm quy định đang hiệu lực tại thời điểm kiểm tra; không phải toàn bộ liên kết đã gán.">
             <AssignmentTable direct onRemove={setRemoveItem} rows={snapshot.direct} />
           </Panel>
           <Panel
@@ -319,9 +359,6 @@ function AssignmentPage({ type }: { type: HostType }) {
             subtitle="Quy định kế thừa chỉ đọc; không thể gỡ tại màn hình này."
           >
             <AssignmentTable direct={false} onRemove={setRemoveItem} rows={snapshot.inherited} />
-          </Panel>
-          <Panel title="Kết quả kiểm tra quy định">
-            <ConflictCard result={currentConflicts[type]} />
           </Panel>
           <Notice title="Không suy luận ưu tiên" tone="info">
             Có quy định trực tiếp không đồng nghĩa ghi đè quy định từ nguồn khác. Kết quả hiển thị phải đến từ dịch vụ kiểm tra.
@@ -331,7 +368,7 @@ function AssignmentPage({ type }: { type: HostType }) {
 
       {assignOpen ? (
         <Modal
-          description={`${snapshot?.host.name ?? routeId} · Dữ liệu ứng viên minh họa`}
+          description={`${snapshot?.host.name ?? routeId} · ${snapshot?.source === 'backend' ? 'Ứng viên từ backend' : 'Ứng viên demo'}`}
           onClose={() => {
             if (!submitting) {
               requestSequence.current += 1
@@ -348,8 +385,10 @@ function AssignmentPage({ type }: { type: HostType }) {
                 onChange={(event) => {
                   requestSequence.current += 1
                   setSearch(event.target.value)
+                  setCandidatePage(1)
                   setSelectedId('')
                   setConflict(null)
+                  setChecking(false)
                 }}
                 placeholder="Nhập mã hoặc tên"
                 value={search}
@@ -361,8 +400,10 @@ function AssignmentPage({ type }: { type: HostType }) {
                 onChange={(event) => {
                   requestSequence.current += 1
                   setStatus(event.target.value as RegulationStatus | 'ALL')
+                  setCandidatePage(1)
                   setSelectedId('')
                   setConflict(null)
+                  setChecking(false)
                 }}
                 value={status}
               >
@@ -387,7 +428,7 @@ function AssignmentPage({ type }: { type: HostType }) {
           ) : null}
           {!candidateLoading && filteredCandidates.length ? (
             <div className={styles.candidateList} role="radiogroup" aria-label="Ứng viên quy định">
-              {filteredCandidates.map((candidate) => (
+              {candidatePagination.items.map((candidate) => (
                 <label className={styles.candidateRow} key={candidate.regulation.id}>
                   <input
                     checked={selectedId === candidate.regulation.id}
@@ -405,6 +446,23 @@ function AssignmentPage({ type }: { type: HostType }) {
                 </label>
               ))}
             </div>
+          ) : null}
+          {!candidateLoading && !actionError && filteredCandidates.length ? (
+            <Pagination
+              end={candidatePagination.end}
+              itemLabel="ứng viên"
+              onPageChange={changeCandidatePage}
+              onPageSizeChange={(pageSize) => {
+                setCandidatePageSize(pageSize)
+                changeCandidatePage(1)
+              }}
+              page={candidatePagination.page}
+              pageSize={candidatePagination.pageSize}
+              pageSizeOptions={ASSIGNMENT_PAGE_SIZE_OPTIONS}
+              start={candidatePagination.start}
+              total={candidatePagination.total}
+              totalPages={candidatePagination.totalPages}
+            />
           ) : null}
           {selected && !selected.capabilities.canAssign.allowed ? (
             <Notice title="Không thể gán ứng viên này" tone="warning">
@@ -472,9 +530,11 @@ function AssignmentPage({ type }: { type: HostType }) {
 }
 
 export function ShipRegulationsPage() {
-  return <AssignmentPage type="ship" />
+  const { shipId } = useParams()
+  return <AssignmentPage key={shipId} type="ship" />
 }
 
 export function CruiseRegulationsPage() {
-  return <AssignmentPage type="cruise" />
+  const { cruiseId } = useParams()
+  return <AssignmentPage key={cruiseId} type="cruise" />
 }

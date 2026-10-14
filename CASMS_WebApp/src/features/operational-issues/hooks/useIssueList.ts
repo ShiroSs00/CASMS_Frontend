@@ -1,88 +1,58 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
-
-import { mockOperationalIssues, type IssueListResult } from '../mocks/mock-operational-issues'
-import {
-  DEFAULT_ISSUE_QUERY,
-  parseIssueQuery,
-  serializeIssueQuery,
-  type IssueQuery,
-} from '../model/issue-query'
+import { operationalIssuesAdapter } from '../api/operational-issues-adapter'
+import type { IssueListResult } from '../model/issue-adapter'
+import { selectIssuePage } from '../model/issue-list'
+import { DEFAULT_ISSUE_QUERY, parseIssueQuery, serializeIssueQuery, type IssueQuery } from '../model/issue-query'
 
 type ListState =
   | { status: 'loading'; data: IssueListResult | null; error: null }
-  | { status: 'ready'; data: IssueListResult; error: null; queryKey: string }
-  | { status: 'error'; data: IssueListResult | null; error: string }
+  | { status: 'ready'; data: IssueListResult; error: null }
+  | { status: 'error'; data: null; error: string }
 
 export function useIssueList() {
   const [searchParams, setSearchParams] = useSearchParams()
   const query = useMemo(() => parseIssueQuery(searchParams), [searchParams])
-  const queryKey = useMemo(() => serializeIssueQuery(query).toString(), [query])
   const [state, setState] = useState<ListState>({ status: 'loading', data: null, error: null })
-  const requestSequence = useRef(0)
-
+  const sequence = useRef(0)
   const request = useCallback(() => {
-    const sequence = ++requestSequence.current
-    void mockOperationalIssues
-      .list(query)
+    const current = ++sequence.current
+    void operationalIssuesAdapter.list({ ...DEFAULT_ISSUE_QUERY, pageSize: Number.MAX_SAFE_INTEGER })
       .then((data) => {
-        if (requestSequence.current !== sequence) return
-        if (data.total > 0 && data.items.length === 0 && query.page > 1) {
-          setSearchParams(serializeIssueQuery({ ...query, page: 1 }), { replace: true })
-          return
-        }
-        setState({ status: 'ready', data, error: null, queryKey })
+        if (sequence.current === current) setState({ status: 'ready', data, error: null })
       })
       .catch((error: unknown) => {
-        if (requestSequence.current !== sequence) return
-        setState({
-          status: 'error',
-          data: null,
+        if (sequence.current === current) setState({
+          status: 'error', data: null,
           error: error instanceof Error ? error.message : 'Không tải được danh sách sự cố.',
         })
       })
-  }, [query, queryKey, setSearchParams])
-
-  const load = useCallback(() => {
-    setState((current) => ({ status: 'loading', data: current.data, error: null }))
-    request()
-  }, [request])
-
+  }, [])
   useEffect(() => {
     request()
+    return () => { sequence.current += 1 }
   }, [request])
+
+  const visibleState = useMemo(() => state.status === 'ready'
+    ? { ...state, data: selectIssuePage(state.data, query) } : state, [query, state])
+  useEffect(() => {
+    if (visibleState.status !== 'ready' || visibleState.data.page === query.page) return
+    setSearchParams(serializeIssueQuery({ ...query, page: visibleState.data.page }), { replace: true })
+  }, [query, setSearchParams, visibleState])
 
   function updateQuery(patch: Partial<IssueQuery>) {
     const changesFiltering = Object.keys(patch).some((key) => key !== 'page')
-    const next = {
-      ...query,
-      ...patch,
-      page: changesFiltering ? 1 : (patch.page ?? query.page),
-    }
-
+    const next = { ...query, ...patch, page: changesFiltering ? 1 : (patch.page ?? query.page) }
     if (patch.shipId !== undefined && patch.shipId !== query.shipId) {
-      const cruise = mockOperationalIssues.cruises.find(
-        (candidate) => candidate.id === next.cruiseId,
-      )
+      const cruise = state.data?.cruises.find((item) => item.id === next.cruiseId)
       if (cruise && cruise.shipId !== patch.shipId) next.cruiseId = ''
     }
-
     setSearchParams(serializeIssueQuery(next))
   }
-
-  const visibleState =
-    state.status === 'ready' && state.queryKey !== queryKey
-      ? ({ status: 'loading', data: null, error: null } as const)
-      : state
-
   return {
-    query,
-    state: visibleState,
-    updateQuery,
-    resetQuery: () => setSearchParams(serializeIssueQuery(DEFAULT_ISSUE_QUERY)),
-    retry: load,
-    handlers: mockOperationalIssues.handlers,
-    ships: mockOperationalIssues.ships,
-    cruises: mockOperationalIssues.cruises,
+    query, state: visibleState, updateQuery,
+    resetQuery: () => setSearchParams(serializeIssueQuery({ ...DEFAULT_ISSUE_QUERY, pageSize: query.pageSize })),
+    retry: () => { setState({ status: 'loading', data: null, error: null }); request() },
+    handlers: state.data?.handlers ?? [], ships: state.data?.ships ?? [], cruises: state.data?.cruises ?? [],
   }
 }

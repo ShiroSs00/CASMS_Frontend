@@ -17,6 +17,7 @@ export type RegulationUnit =
 export type RegulationStatus = 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'EXPIRED'
 export type EffectiveStatus = 'EFFECTIVE' | 'UPCOMING' | 'EXPIRED' | 'NOT_ACTIVE'
 export type HostType = 'ship' | 'cruise'
+export type RegulationDataSource = 'backend' | 'demo-fallback'
 export type ConflictSeverity = 'clear' | 'warning' | 'blocking' | 'unavailable'
 
 export type Regulation = {
@@ -37,6 +38,7 @@ export type Regulation = {
 export type MockRegulation = Regulation & {
   hasBeenActive: boolean
   version: number
+  source?: RegulationDataSource
 }
 export type RegulationDraft = Omit<Regulation, 'id' | 'status'>
 
@@ -94,6 +96,8 @@ export type AssignmentSnapshot = {
   checkedAt: string
   direct: AssignedRegulation[]
   inherited: AssignedRegulation[]
+  source?: RegulationDataSource
+  sourceNotice?: string
 }
 
 export type CandidateRegulation = {

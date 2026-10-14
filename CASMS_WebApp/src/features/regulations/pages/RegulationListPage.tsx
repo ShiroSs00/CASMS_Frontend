@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router'
 
-import { DEFAULT_EFFECTIVE_AT } from '../mocks/fixtures'
-import { mockRegulationAdapter } from '../mocks/mock-regulation-adapter'
+import { paginateItems } from '../../../shared/pagination.ts'
+import { regulationAdapter } from '../api/regulation-adapter'
 import type {
   RegulationListItem,
   RegulationListQuery,
@@ -18,56 +18,110 @@ import {
   Field,
   LoadingPanel,
   Notice,
+  Pagination,
   PageHeader,
   Panel,
   StatusBadge,
   TableScroll,
 } from '../components/RegulationUI'
+import {
+  DEFAULT_REGULATION_LIST_QUERY,
+  parseRegulationListQuery,
+  REGULATION_PAGE_SIZE_OPTIONS,
+  serializeRegulationListQuery,
+} from '../model/regulation-query'
 import styles from '../components/Regulations.module.css'
 
-const emptyQuery: RegulationListQuery = {
-  search: '',
-  type: 'ALL',
-  scope: 'ALL',
-  status: 'ALL',
-  effectiveAt: DEFAULT_EFFECTIVE_AT,
-}
 export function RegulationListPage() {
   const navigate = useNavigate()
-  const [query, setQuery] = useState(emptyQuery)
-  const [appliedQuery, setAppliedQuery] = useState(emptyQuery)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const appliedQuery = useMemo(
+    () => parseRegulationListQuery(searchParams),
+    [searchParams],
+  )
+  const adapterQuery = useMemo(
+    () => ({
+      search: appliedQuery.search,
+      type: appliedQuery.type,
+      scope: appliedQuery.scope,
+      status: appliedQuery.status,
+      effectiveAt: appliedQuery.effectiveAt,
+    }),
+    [
+      appliedQuery.effectiveAt,
+      appliedQuery.scope,
+      appliedQuery.search,
+      appliedQuery.status,
+      appliedQuery.type,
+    ],
+  )
+  const adapterKey = JSON.stringify(adapterQuery)
+  const [draft, setDraft] = useState(() => ({
+    baseKey: adapterKey,
+    value: adapterQuery,
+  }))
+  const query = draft.baseKey === adapterKey ? draft.value : adapterQuery
+  const setQuery = (
+    update: (current: RegulationListQuery) => RegulationListQuery,
+  ) => {
+    setDraft({ baseKey: adapterKey, value: update(query) })
+  }
   const [items, setItems] = useState<RegulationListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [reloadToken, setReloadToken] = useState(0)
+  const [loadedKey, setLoadedKey] = useState('')
+  const visibleLoading = loading || loadedKey !== adapterKey
 
   useEffect(() => {
     let active = true
-    void mockRegulationAdapter
-      .list(appliedQuery)
+    void regulationAdapter
+      .list(adapterQuery)
       .then((data) => {
-        if (active) setItems(data)
+        if (!active) return
+        setItems(data)
+        setError('')
       })
-      .catch(() => {
-        if (active) setError('Không tải được danh sách quy định.')
+      .catch((failure: unknown) => {
+        if (active) setError(failure instanceof Error ? failure.message : 'Không tải được danh sách quy định.')
       })
       .finally(() => {
-        if (active) setLoading(false)
+        if (!active) return
+        setLoadedKey(adapterKey)
+        setLoading(false)
       })
     return () => {
       active = false
     }
-  }, [appliedQuery])
+  }, [adapterKey, adapterQuery, reloadToken])
+
+  const page = useMemo(
+    () => paginateItems(items, appliedQuery.page, appliedQuery.pageSize),
+    [appliedQuery.page, appliedQuery.pageSize, items],
+  )
+
+  useEffect(() => {
+    if (visibleLoading || error || page.page === appliedQuery.page) return
+    setSearchParams(
+      serializeRegulationListQuery({ ...appliedQuery, page: page.page }),
+      { replace: true },
+    )
+  }, [appliedQuery, error, page.page, setSearchParams, visibleLoading])
 
   const applyFilters = () => {
-    setLoading(true)
-    setError('')
-    setAppliedQuery({ ...query })
+    setSearchParams(serializeRegulationListQuery({
+      ...appliedQuery,
+      ...query,
+      page: 1,
+    }))
   }
   const resetFilters = () => {
-    setLoading(true)
-    setError('')
-    setQuery(emptyQuery)
-    setAppliedQuery(emptyQuery)
+    const reset = {
+      ...DEFAULT_REGULATION_LIST_QUERY,
+      pageSize: appliedQuery.pageSize,
+    }
+    setDraft({ baseKey: adapterKey, value: reset })
+    setSearchParams(serializeRegulationListQuery(reset))
   }
 
   return (
@@ -81,6 +135,14 @@ export function RegulationListPage() {
           </Button>
         }
       />
+
+      <Notice
+        title={regulationAdapter.sourceLabel}
+        tone={regulationAdapter.source === 'backend' ? 'success' : 'warning'}
+        role="status"
+      >
+        {regulationAdapter.sourceNotice || 'Các thao tác trên màn hình này đang sử dụng API Regulation.'}
+      </Notice>
 
       <Panel title="Tìm kiếm & bộ lọc">
         <div className={styles.filters}>
@@ -179,15 +241,15 @@ export function RegulationListPage() {
       </Panel>
 
       <Panel title={`Danh sách quy định · ${items.length}`}>
-        {loading ? <LoadingPanel /> : null}
-        {!loading && error ? (
+        {visibleLoading ? <LoadingPanel /> : null}
+        {!visibleLoading && error ? (
           <Notice title="Không tải được dữ liệu" tone="error" role="alert">
             <p>{error}</p>
             <Button
               onClick={() => {
                 setLoading(true)
                 setError('')
-                setAppliedQuery({ ...appliedQuery })
+                setReloadToken((current) => current + 1)
               }}
               tone="secondary"
             >
@@ -195,7 +257,7 @@ export function RegulationListPage() {
             </Button>
           </Notice>
         ) : null}
-        {!loading && !error && items.length === 0 ? (
+        {!visibleLoading && !error && items.length === 0 ? (
           <div className={styles.emptyState}>
             <strong>Không có kết quả phù hợp</strong>
             <p>Thử mã/tên khác hoặc xóa bộ lọc.</p>
@@ -204,10 +266,11 @@ export function RegulationListPage() {
             </Button>
           </div>
         ) : null}
-        {!loading && !error && items.length ? (
+        {!visibleLoading && !error && items.length ? (
           <>
             <p className={styles.resultsMeta}>
-              Kết quả tính hiệu lực tại {formatDateTime(appliedQuery.effectiveAt)}.
+              Hiển thị {page.start}–{page.end} trong {page.total} kết quả · Hiệu lực tại{' '}
+              {appliedQuery.effectiveAt ? formatDateTime(appliedQuery.effectiveAt) : 'hiện tại'}.
             </p>
             <TableScroll>
               <table className={styles.table}>
@@ -222,7 +285,7 @@ export function RegulationListPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item) => (
+                  {page.items.map((item) => (
                     <tr key={item.id}>
                       <td>
                         <strong>{item.code}</strong>
@@ -247,6 +310,29 @@ export function RegulationListPage() {
                 </tbody>
               </table>
             </TableScroll>
+            <Pagination
+              end={page.end}
+              itemLabel="quy định"
+              onPageChange={(nextPage) => {
+                setSearchParams(serializeRegulationListQuery({
+                  ...appliedQuery,
+                  page: nextPage,
+                }))
+              }}
+              onPageSizeChange={(pageSize) => {
+                setSearchParams(serializeRegulationListQuery({
+                  ...appliedQuery,
+                  page: 1,
+                  pageSize,
+                }))
+              }}
+              page={page.page}
+              pageSize={page.pageSize}
+              pageSizeOptions={REGULATION_PAGE_SIZE_OPTIONS}
+              start={page.start}
+              total={page.total}
+              totalPages={page.totalPages}
+            />
           </>
         ) : null}
       </Panel>

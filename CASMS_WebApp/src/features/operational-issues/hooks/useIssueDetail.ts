@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { IssueAdapterError, mockOperationalIssues } from '../mocks/mock-operational-issues'
-import type { OperationalIssue } from '../model/issue'
+import { operationalIssuesAdapter } from '../api/operational-issues-adapter'
+import { IssueAdapterError, type IssueDetailResult } from '../model/issue-adapter'
 
 type DetailState =
   | { status: 'loading'; issue: null; error: null }
-  | { status: 'ready'; issue: OperationalIssue; error: null }
+  | ({ status: 'ready'; error: null } & IssueDetailResult)
   | { status: 'forbidden'; issue: null; error: string }
   | { status: 'not-found'; issue: null; error: string }
   | { status: 'error'; issue: null; error: string }
@@ -19,11 +19,11 @@ export function useIssueDetail(issueId: string | undefined) {
     if (!issueId) {
       return
     }
-    void mockOperationalIssues
+    void operationalIssuesAdapter
       .detail(issueId)
-      .then((issue) => {
+      .then((result) => {
         if (requestSequence.current !== sequence) return
-        setState({ status: 'ready', issue, error: null })
+        setState({ status: 'ready', error: null, ...result })
       })
       .catch((error: unknown) => {
         if (requestSequence.current !== sequence) return

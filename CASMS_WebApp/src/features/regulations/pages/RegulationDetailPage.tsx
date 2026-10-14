@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 
-import { mockRegulationAdapter } from '../mocks/mock-regulation-adapter'
+import { regulationAdapter } from '../api/regulation-adapter'
 import type {
   ConflictResult,
   MockRegulation,
@@ -40,6 +40,7 @@ export function RegulationDetailPage() {
   const [data, setData] = useState<DetailData | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [loadError, setLoadError] = useState('')
   const [nextStatus, setNextStatus] = useState<RegulationStatus | null>(null)
   const [precheck, setPrecheck] = useState<ConflictResult | null>(null)
   const [checking, setChecking] = useState(false)
@@ -47,20 +48,38 @@ export function RegulationDetailPage() {
   const [mutationError, setMutationError] = useState('')
 
   const load = useCallback(async () => {
-    const result = await mockRegulationAdapter.get(regulationId)
-    setData(result)
-    setNotFound(!result)
-    setLoading(false)
+    setLoading(true)
+    setLoadError('')
+    try {
+      const result = await regulationAdapter.get(regulationId)
+      setData(result)
+      setNotFound(!result)
+    } catch (error) {
+      setData(null)
+      setNotFound(false)
+      setLoadError(error instanceof Error ? error.message : 'Không thể tải chi tiết quy định.')
+    } finally {
+      setLoading(false)
+    }
   }, [regulationId])
 
   useEffect(() => {
     let active = true
-    void mockRegulationAdapter.get(regulationId).then((result) => {
-      if (!active) return
-      setData(result)
-      setNotFound(!result)
-      setLoading(false)
-    })
+    void regulationAdapter.get(regulationId)
+      .then((result) => {
+        if (!active) return
+        setData(result)
+        setNotFound(!result)
+      })
+      .catch((error: unknown) => {
+        if (!active) return
+        setData(null)
+        setNotFound(false)
+        setLoadError(error instanceof Error ? error.message : 'Không thể tải chi tiết quy định.')
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
     return () => {
       active = false
     }
@@ -73,7 +92,10 @@ export function RegulationDetailPage() {
     if (status === 'ACTIVE') {
       setChecking(true)
       try {
-        setPrecheck(await mockRegulationAdapter.precheckStatus(regulationId, status))
+        setPrecheck(await regulationAdapter.precheckStatus(
+          regulationId,
+          status,
+        ))
       } catch {
         setPrecheck({
           severity: 'unavailable',
@@ -93,11 +115,14 @@ export function RegulationDetailPage() {
     setSubmitting(true)
     setMutationError('')
     try {
-      await mockRegulationAdapter.changeStatus(regulationId, nextStatus)
+      await regulationAdapter.changeStatus(
+        regulationId,
+        nextStatus,
+      )
       setNextStatus(null)
       await load()
-    } catch {
-      setMutationError('Không thể cập nhật trạng thái. Dữ liệu cũ vẫn được giữ nguyên.')
+    } catch (error) {
+      setMutationError(error instanceof Error ? error.message : 'Không thể cập nhật trạng thái.')
     } finally {
       setSubmitting(false)
     }
@@ -106,6 +131,18 @@ export function RegulationDetailPage() {
   return (
     <AdminFrame>
       {loading ? <LoadingPanel /> : null}
+      {!loading && loadError ? (
+        <>
+          <PageHeader title="Không tải được quy định" description="Backend đã từ chối hoặc không trả được dữ liệu." />
+          <Notice title="Không thể tải dữ liệu" tone="error" role="alert">
+            {loadError}
+            <div className={styles.modalActions}>
+              <Button onClick={() => void load()}>Thử lại</Button>
+              <Button onClick={() => navigate('/admin/regulations')} tone="secondary">Về danh sách</Button>
+            </div>
+          </Notice>
+        </>
+      ) : null}
       {!loading && notFound ? (
         <>
           <PageHeader
@@ -123,7 +160,7 @@ export function RegulationDetailPage() {
         <>
           <PageHeader
             title={data.regulation.name}
-            description={`${data.regulation.code} · Quy định vận hành / Chi tiết · Dữ liệu mock`}
+            description={`${data.regulation.code} · Quy định vận hành / Chi tiết · ${data.regulation.source === 'backend' ? 'Backend' : 'Demo fallback'}`}
             actions={
               <>
                 <Button
@@ -201,15 +238,15 @@ export function RegulationDetailPage() {
                     </tr>
                   ))}
                   {data.targets.length === 0 ? (
-                    <tr><td colSpan={3}>Chưa có liên kết trực tiếp trong mock join table.</td></tr>
+                    <tr><td colSpan={3}>BE chưa cung cấp tra cứu ngược tàu/chuyến đã gán theo quy định. Chưa thể xác nhận danh sách tại đây.</td></tr>
                   ) : null}
                 </tbody>
               </table>
             </TableScroll>
           </Panel>
           {data.regulation.hasBeenActive ? (
-            <Notice title="Quy định đã từng ACTIVE" tone="info">
-              Giá trị được khóa. Muốn đổi giá trị, hãy tạo quy định mới.
+            <Notice title="Chính sách bảo vệ giá trị tại FE" tone="info">
+              FE đang khóa giá trị với quy định không còn DRAFT. BE chưa cung cấp lịch sử ACTIVE hoặc quyền sửa từng trường để xác nhận chính sách này.
             </Notice>
           ) : null}
         </>

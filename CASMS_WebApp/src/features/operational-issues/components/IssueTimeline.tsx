@@ -14,6 +14,7 @@ export function IssueTimeline({ issue }: { issue: OperationalIssue }) {
     ['Created at', issue.createdAt],
     ['Updated at', issue.updatedAt],
     ...(issue.resolvedAt ? [['Resolved at', issue.resolvedAt]] : []),
+    ...(issue.verifiedAt ? [['Verified at', issue.verifiedAt]] : []),
   ]
 
   return (

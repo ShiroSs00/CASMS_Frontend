@@ -1,14 +1,19 @@
 import { useState } from 'react'
 
-import { mockOperationalIssues } from '../mocks/mock-operational-issues'
+import { operationalIssuesAdapter } from '../api/operational-issues-adapter'
 import type { IssueAction } from '../model/issue-actions'
+import type { IssueDataSource } from '../model/issue-adapter'
 
 export type ActionFeedback = {
   tone: 'success' | 'warning' | 'error'
   message: string
 } | null
 
-export function useIssueActions(issueId: string, onChanged: () => void) {
+export function useIssueActions(
+  issueId: string,
+  source: IssueDataSource,
+  onChanged: () => void,
+) {
   const [pendingAction, setPendingAction] = useState<IssueAction | null>(null)
   const [feedback, setFeedback] = useState<ActionFeedback>(null)
 
@@ -38,34 +43,34 @@ export function useIssueActions(issueId: string, onChanged: () => void) {
     assign: (handlerId: string) =>
       run(
         'ASSIGN_HANDLER',
-        () => mockOperationalIssues.assign(issueId, handlerId),
-        'Đã cập nhật assigned_to trong mock adapter.',
+        () => operationalIssuesAdapter.assign(issueId, handlerId, source),
+        source === 'backend' ? 'Đã cập nhật người xử lý trên backend.' : 'Đã cập nhật người xử lý trong dữ liệu demo.',
       ),
     start: () =>
       run(
         'START_HANDLING',
-        () => mockOperationalIssues.start(issueId),
-        'Đã chuyển sang IN_PROGRESS trong mock adapter.',
+        () => operationalIssuesAdapter.start(issueId, source),
+        source === 'backend' ? 'Backend đã chuyển issue sang IN_PROGRESS.' : 'Đã chuyển dữ liệu demo sang IN_PROGRESS.',
       ),
     recordResolution: (resolution: string) =>
       run(
         'RECORD_RESOLUTION',
-        () => mockOperationalIssues.recordResolution(issueId, resolution),
-        'Đã ghi resolution và chuyển sang RESOLVED.',
+        () => operationalIssuesAdapter.recordResolution(issueId, resolution, source),
+        'Đã ghi resolution; issue vẫn ở IN_PROGRESS cho đến khi được xác minh.',
       ),
     verifyResolution: () =>
       run(
         'VERIFY_RESOLUTION',
-        () => mockOperationalIssues.verifyResolution(issueId),
-        'Đã kiểm tra đủ resolution, resolved_by và resolved_at. Kết quả không persisted.',
+        () => operationalIssuesAdapter.verifyResolution(issueId, source),
+        'Đã xác minh resolution và chuyển issue sang RESOLVED.',
       ),
     close: () =>
-      run('CLOSE', () => mockOperationalIssues.close(issueId), 'Đã chuyển current status sang CLOSED.'),
+      run('CLOSE', () => operationalIssuesAdapter.close(issueId, source), 'Đã chuyển issue sang CLOSED.'),
     reopen: () =>
       run(
         'REOPEN',
-        () => mockOperationalIssues.reopen(issueId),
-        'Đã chuyển current status sang IN_PROGRESS.',
+        () => operationalIssuesAdapter.reopen(issueId, source),
+        'Đã mở lại issue ở trạng thái OPEN và xóa resolution/verification cũ.',
       ),
   }
 }

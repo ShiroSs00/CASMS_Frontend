@@ -25,6 +25,13 @@ export function IssueResolution({ issue }: { issue: OperationalIssue }) {
               {issue.resolvedAt ? formatDate(issue.resolvedAt) : 'Không xác định'}
             </dd>
           </div>
+          <div>
+            <dt>Xác minh</dt>
+            <dd>
+              {issue.verifiedBy?.name ?? 'Chưa xác minh'} ·{' '}
+              {issue.verifiedAt ? formatDate(issue.verifiedAt) : 'Chưa có thời điểm'}
+            </dd>
+          </div>
         </dl>
       ) : (
         <p>Chưa có resolution được ghi nhận.</p>

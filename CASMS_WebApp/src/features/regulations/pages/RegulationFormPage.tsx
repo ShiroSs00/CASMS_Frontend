@@ -1,7 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
+import { ApiError } from '@/shared/api'
 
-import { mockRegulationAdapter } from '../mocks/mock-regulation-adapter'
+import { regulationAdapter } from '../api/regulation-adapter'
+import { mapRegulationFieldErrors } from '../api/contract'
 import type {
   MockRegulation,
   RegulationDraft,
@@ -73,22 +75,30 @@ export function RegulationFormPage() {
   const [errors, setErrors] = useState<FormErrors>({})
   const [loading, setLoading] = useState(isEdit)
   const [notFound, setNotFound] = useState(false)
+  const [loadError, setLoadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
 
   useEffect(() => {
     if (!regulationId) return
     let active = true
-    void mockRegulationAdapter.get(regulationId).then((result) => {
-      if (!active) return
-      if (!result) {
-        setNotFound(true)
-      } else {
-        setSource(result.regulation)
-        setDraft(toDraft(result.regulation))
-      }
-      setLoading(false)
-    })
+    void regulationAdapter.get(regulationId)
+      .then((result) => {
+        if (!active) return
+        if (!result) {
+          setNotFound(true)
+        } else {
+          setSource(result.regulation)
+          setDraft(toDraft(result.regulation))
+        }
+      })
+      .catch((error: unknown) => {
+        if (!active) return
+        setLoadError(error instanceof Error ? error.message : 'Không thể tải dữ liệu quy định.')
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
     return () => {
       active = false
     }
@@ -118,19 +128,20 @@ export function RegulationFormPage() {
       if (source) {
         const update: RegulationUpdate = { ...draft, version: source.version }
         if (source.hasBeenActive) delete update.value
-        saved = await mockRegulationAdapter.update(source.id, update)
+        saved = await regulationAdapter.update(source.id, update)
       } else {
-        saved = await mockRegulationAdapter.create(draft)
+        saved = await regulationAdapter.create(draft)
       }
       navigate(`/admin/regulations/${saved.id}`)
     } catch (error) {
-      if (error instanceof Error && error.message === 'DUPLICATE_CODE') {
+      if (error instanceof ApiError && error.code === 'DUPLICATE_CODE') {
         setErrors((current) => ({ ...current, code: 'Mã quy định đã tồn tại.' }))
       } else {
+        if (error instanceof ApiError) setErrors(mapRegulationFieldErrors(error.details))
         setSubmitError(
-          error instanceof Error && error.message === 'STALE_DATA'
+          error instanceof ApiError && error.code === 'STALE_DATA'
             ? 'Dữ liệu đã thay đổi. Hãy tải lại bản mới và đối chiếu trước khi lưu.'
-            : 'Không thể lưu quy định. Dữ liệu bạn nhập vẫn được giữ nguyên.',
+            : error instanceof Error ? error.message : 'Không thể lưu quy định. Dữ liệu bạn nhập vẫn được giữ nguyên.',
         )
       }
     } finally {
@@ -148,6 +159,21 @@ export function RegulationFormPage() {
         <PageHeader title="Không tìm thấy quy định" description="Không thể mở biểu mẫu chỉnh sửa." />
         <Notice title="Dữ liệu không tồn tại" tone="error">
           <Button onClick={() => navigate('/admin/regulations')} tone="secondary">Về danh sách</Button>
+        </Notice>
+      </AdminFrame>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <AdminFrame>
+        <PageHeader title="Không tải được biểu mẫu" description="Backend đã từ chối hoặc không trả được dữ liệu." />
+        <Notice title="Không thể tải dữ liệu" tone="error" role="alert">
+          {loadError}
+          <div className={styles.formActions}>
+            <Button onClick={() => navigate(0)}>Thử lại</Button>
+            <Button onClick={() => navigate('/admin/regulations')} tone="secondary">Về danh sách</Button>
+          </div>
         </Notice>
       </AdminFrame>
     )
@@ -171,7 +197,7 @@ export function RegulationFormPage() {
       {source?.hasBeenActive ? (
         <Notice title="Giá trị đã được bảo vệ" tone="warning">
           <span id="protected-value-note">
-            Quy định từng ACTIVE nên giá trị không thể sửa và sẽ không được gửi trong payload cập nhật.
+            FE giữ nguyên giá trị theo chính sách giao diện hiện tại. API PUT vẫn nhận đầy đủ bản ghi; BE chưa trả lịch sử ACTIVE hoặc quyền sửa từng trường.
           </span>
         </Notice>
       ) : null}

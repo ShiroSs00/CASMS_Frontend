@@ -1,4 +1,4 @@
-import type { IssueStatusTotals } from '../mocks/mock-operational-issues'
+import type { IssueStatusTotals } from '../model/issue-adapter'
 import styles from './OperationalIssues.module.css'
 
 export function IssueMetrics({ totals }: { totals: IssueStatusTotals }) {
@@ -14,7 +14,7 @@ export function IssueMetrics({ totals }: { totals: IssueStatusTotals }) {
   ]
 
   return (
-    <section className={styles.metricsGrid} aria-label="Tóm tắt trạng thái trong dữ liệu mock">
+    <section className={styles.metricsGrid} aria-label="Tóm tắt trạng thái sự cố">
       {metrics.map((metric) => (
         <article className={styles.metricCard} key={metric.label}>
           <span className={styles.eyebrow}>{metric.label}</span>

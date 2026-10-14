@@ -13,7 +13,7 @@ export function VerifyResolutionForm({ open, pending, onClose, onSubmit }: Props
     <ActionDialog
       open={open}
       title="Xác minh resolution"
-      description="Precheck mock; không tạo status hoặc cột VERIFIED ngoài schema."
+      description="Backend ghi verified_by, verified_at và chuyển IN_PROGRESS → RESOLVED."
       onClose={onClose}
       footer={
         <>
@@ -26,7 +26,7 @@ export function VerifyResolutionForm({ open, pending, onClose, onSubmit }: Props
             onClick={() => void onSubmit().then((ok) => ok && onClose())}
             type="button"
           >
-            {pending ? 'Đang kiểm tra…' : 'Kiểm tra điều kiện'}
+            {pending ? 'Đang xác minh…' : 'Xác minh resolution'}
           </button>
         </>
       }
@@ -36,7 +36,7 @@ export function VerifyResolutionForm({ open, pending, onClose, onSubmit }: Props
         <li>resolved_by có dữ liệu</li>
         <li>resolved_at có dữ liệu</li>
       </ul>
-      <div className={styles.infoBanner}>Kết quả xác minh không persisted trong FOREP.sql.</div>
+      <div className={styles.infoBanner}>Kết quả xác minh được lưu bởi backend.</div>
     </ActionDialog>
   )
 }

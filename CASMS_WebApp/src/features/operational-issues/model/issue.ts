@@ -23,7 +23,7 @@ export type CruiseReference = {
   shipId: string
 }
 
-/** SQL-shaped boundary matching FOREP.sql OperationalIssue. */
+/** Persistence-shaped record used by the local demo fallback. */
 export type OperationalIssueRecord = {
   issueId: string
   issueCode: string
@@ -40,6 +40,8 @@ export type OperationalIssueRecord = {
   resolvedBy: string | null
   resolution: string | null
   assignedTo: string | null
+  verifiedBy?: string | null
+  verifiedAt?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -61,6 +63,8 @@ export type OperationalIssue = {
   resolution: string | null
   resolvedBy: PersonReference | null
   resolvedAt: string | null
+  verifiedBy: PersonReference | null
+  verifiedAt: string | null
   createdAt: string
   updatedAt: string
 }

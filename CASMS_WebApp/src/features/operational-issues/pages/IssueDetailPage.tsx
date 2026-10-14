@@ -71,9 +71,18 @@ export function IssueDetailPage() {
                   : state.issue.ship.name}{' '}
                 · tạo {formatDate(state.issue.reportedAt)}
               </p>
-              <span className={styles.mockBadge}>Dữ liệu minh họa · mock adapter</span>
+              <span className={styles.mockBadge}>
+                {state.source === 'backend' ? 'Dữ liệu trực tiếp từ backend' : 'Demo fallback · chưa ghi vào backend'}
+              </span>
             </div>
           </header>
+
+          {state.sourceNotice ? (
+            <aside className={styles.warningBanner} role="status">
+              <strong className={styles.bannerTitle}>Một phần dữ liệu tham chiếu chưa tải được</strong>
+              {state.sourceNotice}
+            </aside>
+          ) : null}
 
           <section className={styles.metricsGrid} aria-label="Trạng thái sự cố">
             <article className={styles.metricCard}>
@@ -98,7 +107,12 @@ export function IssueDetailPage() {
 
           <div className={styles.detailGrid}>
             <IssueOverview issue={state.issue} />
-            <IssueActions issue={state.issue} onChanged={reload} />
+            <IssueActions
+              handlers={state.handlers}
+              issue={state.issue}
+              source={state.source}
+              onChanged={reload}
+            />
           </div>
 
           <aside className={styles.warningBanner}>

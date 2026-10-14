@@ -17,8 +17,8 @@ export function RecordResolutionForm({ open, pending, onClose, onSubmit }: Props
   return (
     <ActionDialog
       open={open}
-      title="Đánh dấu đã giải quyết"
-      description="IN_PROGRESS → RESOLVED; mock cập nhật đúng resolution, resolved_by và resolved_at."
+      title="Ghi nhận resolution"
+      description="Ghi resolution, resolved_by và resolved_at; issue vẫn IN_PROGRESS cho đến bước xác minh."
       onClose={onClose}
       footer={
         <>
@@ -31,7 +31,7 @@ export function RecordResolutionForm({ open, pending, onClose, onSubmit }: Props
             onClick={() => void onSubmit(resolution).then((ok) => ok && onClose())}
             type="button"
           >
-            {pending ? 'Đang cập nhật…' : 'Mark Resolved'}
+            {pending ? 'Đang cập nhật…' : 'Lưu resolution'}
           </button>
         </>
       }
@@ -45,7 +45,7 @@ export function RecordResolutionForm({ open, pending, onClose, onSubmit }: Props
         />
       </label>
       {invalid ? <p className={styles.actionHint}>Resolution không được để trống.</p> : null}
-      <p>Không tạo evidence, root cause, linked request hoặc impact record ngoài FOREP.sql.</p>
+      <p>Không tạo evidence, root cause, linked request hoặc impact record ngoài contract backend.</p>
     </ActionDialog>
   )
 }

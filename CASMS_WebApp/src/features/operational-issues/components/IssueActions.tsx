@@ -1,10 +1,10 @@
 import { useState } from 'react'
 
 import { useIssueActions } from '../hooks/useIssueActions'
-import { mockHandlers } from '../mocks/fixtures'
 import type { IssueAction } from '../model/issue-actions'
 import { getIssueActionAvailability } from '../model/issue-actions'
-import type { OperationalIssue } from '../model/issue'
+import type { OperationalIssue, PersonReference } from '../model/issue'
+import type { IssueDataSource } from '../model/issue-adapter'
 import { AssignHandlerForm } from './actions/AssignHandlerForm'
 import { CloseIssueAction } from './actions/CloseIssueAction'
 import { RecordResolutionForm } from './actions/RecordResolutionForm'
@@ -24,12 +24,14 @@ const labels: Record<IssueAction, string> = {
 
 type Props = {
   issue: OperationalIssue
+  handlers: PersonReference[]
+  source: IssueDataSource
   onChanged: () => void
 }
 
-export function IssueActions({ issue, onChanged }: Props) {
+export function IssueActions({ issue, handlers, source, onChanged }: Props) {
   const [activeAction, setActiveAction] = useState<IssueAction | null>(null)
-  const actions = useIssueActions(issue.id, onChanged)
+  const actions = useIssueActions(issue.id, source, onChanged)
   const availability = getIssueActionAvailability(issue)
   const availableActions = (Object.keys(availability) as IssueAction[]).filter(
     (action) => availability[action].visible,
@@ -38,9 +40,7 @@ export function IssueActions({ issue, onChanged }: Props) {
   return (
     <section className={styles.panel}>
       <h2>Thao tác</h2>
-      {issue.status === 'CLOSED' ? (
-        <div className={styles.infoBanner}>CLOSED là read-only trong normal operations.</div>
-      ) : availableActions.length ? (
+      {availableActions.length ? (
         <div className={styles.actionStack}>
           {availableActions.map((action, index) => (
             <div key={action}>
@@ -79,7 +79,7 @@ export function IssueActions({ issue, onChanged }: Props) {
       ) : null}
 
       <AssignHandlerForm
-        handlers={mockHandlers}
+        handlers={handlers}
         open={activeAction === 'ASSIGN_HANDLER'}
         pending={actions.pendingAction === 'ASSIGN_HANDLER'}
         onClose={() => setActiveAction(null)}

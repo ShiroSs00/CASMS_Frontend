@@ -17,22 +17,16 @@ export type IssueActionAvailability = {
   reason?: string
 }
 
-const hidden: IssueActionAvailability = { visible: false, enabled: false }
-
 export function getIssueActionAvailability(
   issue: OperationalIssue,
 ): Record<IssueAction, IssueActionAvailability> {
-  if (issue.status === 'CLOSED') {
-    return Object.fromEntries(ISSUE_ACTIONS.map((action) => [action, hidden])) as Record<
-      IssueAction,
-      IssueActionAvailability
-    >
-  }
+  const hasResolution = Boolean(issue.resolution && issue.resolvedBy && issue.resolvedAt)
+  const hasVerification = Boolean(issue.verifiedBy && issue.verifiedAt)
 
   return {
     ASSIGN_HANDLER: {
-      visible: issue.status === 'OPEN',
-      enabled: issue.status === 'OPEN',
+      visible: issue.status === 'OPEN' || issue.status === 'IN_PROGRESS',
+      enabled: issue.status === 'OPEN' || issue.status === 'IN_PROGRESS',
     },
     START_HANDLING: {
       visible: issue.status === 'OPEN',
@@ -44,23 +38,24 @@ export function getIssueActionAvailability(
       enabled: issue.status === 'IN_PROGRESS',
     },
     VERIFY_RESOLUTION: {
-      visible: issue.status === 'RESOLVED',
-      enabled: issue.status === 'RESOLVED',
+      visible: issue.status === 'IN_PROGRESS' && hasResolution,
+      enabled: issue.status === 'IN_PROGRESS' && hasResolution,
+      reason:
+        issue.status === 'IN_PROGRESS' && !hasResolution
+          ? 'Cần ghi nhận resolution trước khi xác minh.'
+          : undefined,
     },
     CLOSE: {
       visible: issue.status === 'RESOLVED',
-      enabled:
-        issue.status === 'RESOLVED' &&
-        Boolean(issue.resolution && issue.resolvedBy && issue.resolvedAt),
+      enabled: issue.status === 'RESOLVED' && hasResolution && hasVerification,
       reason:
-        issue.status === 'RESOLVED' &&
-        !(issue.resolution && issue.resolvedBy && issue.resolvedAt)
-          ? 'Cần đủ resolution, resolved_by và resolved_at.'
+        issue.status === 'RESOLVED' && !(hasResolution && hasVerification)
+          ? 'Cần đủ resolution và thông tin xác minh trước khi đóng.'
           : undefined,
     },
     REOPEN: {
-      visible: issue.status === 'RESOLVED',
-      enabled: issue.status === 'RESOLVED',
+      visible: issue.status === 'RESOLVED' || issue.status === 'CLOSED',
+      enabled: issue.status === 'RESOLVED' || issue.status === 'CLOSED',
     },
   }
 }

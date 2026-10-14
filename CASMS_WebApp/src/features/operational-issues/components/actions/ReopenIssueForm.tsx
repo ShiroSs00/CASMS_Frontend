@@ -13,7 +13,7 @@ export function ReopenIssueForm({ open, pending, onClose, onSubmit }: Props) {
     <ActionDialog
       open={open}
       title="Mở lại sự cố"
-      description="RESOLVED → IN_PROGRESS chỉ cập nhật current status."
+      description="RESOLVED/CLOSED → OPEN và xóa kết quả resolution/verification cũ."
       onClose={onClose}
       footer={
         <>
@@ -26,14 +26,14 @@ export function ReopenIssueForm({ open, pending, onClose, onSubmit }: Props) {
             onClick={() => void onSubmit().then((ok) => ok && onClose())}
             type="button"
           >
-            {pending ? 'Đang mở lại…' : 'Reopen & tiếp tục xử lý'}
+            {pending ? 'Đang mở lại…' : 'Mở lại ở trạng thái OPEN'}
           </button>
         </>
       }
     >
       <p>Không có reopen_reason, reopen_count hoặc transition history trong FOREP.sql.</p>
       <div className={styles.warningBanner}>
-        Mock giữ resolution hiện tại và không tạo event/history giả.
+        Resolution, resolver, resolved_at, verifier và verified_at hiện tại sẽ bị xóa.
       </div>
     </ActionDialog>
   )

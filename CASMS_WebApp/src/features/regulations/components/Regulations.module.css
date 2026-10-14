@@ -182,6 +182,17 @@
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
 .toolbarEnd { margin-left: auto; }
 .resultsMeta { color: var(--reg-muted); font-size: 13px; line-height: 20px; }
+.pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-top: 16px; border-top: 1px solid var(--reg-border); color: var(--reg-muted); font-size: 13px; }
+.paginationSummary { min-width: max-content; }
+.paginationControls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pageSizeControl { display: inline-flex; align-items: center; gap: 8px; }
+.pageSizeControl select { min-width: 68px; min-height: 40px; padding: 6px 28px 6px 10px; border: 1px solid var(--reg-border); border-radius: 4px; background: #fff; color: var(--reg-text); font: inherit; }
+.paginationButton,
+.pageNumberButton { min-width: 40px; min-height: 40px; padding: 6px 10px; border: 1px solid var(--reg-border); border-radius: 4px; background: #fff; color: var(--reg-primary); font: inherit; cursor: pointer; }
+.paginationButton:disabled { color: var(--reg-control); cursor: not-allowed; }
+.pageNumbers { display: flex; align-items: center; gap: 4px; }
+.pageNumberActive { border-color: var(--reg-primary); background: var(--reg-primary); color: #fff; font-weight: 600; }
+.pageEllipsis { min-width: 24px; text-align: center; }
 .emptyState,
 .loadingPanel { display: flex; min-height: 180px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 32px; text-align: center; }
 .emptyState p,
@@ -239,6 +250,10 @@
   .wideDetail { grid-column: span 1; }
   .button { width: 100%; }
   .toolbarEnd { width: 100%; margin-left: 0; }
+  .pagination { align-items: stretch; flex-direction: column; }
+  .paginationControls { width: 100%; }
+  .pageSizeControl { width: 100%; justify-content: space-between; }
+  .pageNumbers { max-width: 100%; overflow-x: auto; }
   .candidateRow { grid-template-columns: 28px minmax(0, 1fr); }
   .candidateRow > :last-child { grid-column: 2; }
   .modalBackdrop { padding: 12px; }

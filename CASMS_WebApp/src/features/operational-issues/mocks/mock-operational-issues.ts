@@ -1,6 +1,10 @@
 import type { IssueQuery } from '../model/issue-query'
+import {
+  IssueAdapterError,
+  type IssueListResult,
+  type IssueStatusTotals,
+} from '../model/issue-adapter'
 import type {
-  IssueStatus,
   OperationalIssue,
   OperationalIssueRecord,
   PersonReference,
@@ -14,28 +18,8 @@ import {
   mockShips,
 } from './fixtures'
 
-export type IssueStatusTotals = Record<IssueStatus, number> & { review: number }
-
-export type IssueListResult = {
-  items: OperationalIssue[]
-  total: number
-  page: number
-  pageSize: number
-  statusTotals: IssueStatusTotals
-}
-
 const currentActorId = 'ops-user'
 const records = initialIssueRecords.map((record) => ({ ...record }))
-
-export class IssueAdapterError extends Error {
-  readonly code: 'FORBIDDEN' | 'NOT_FOUND'
-
-  constructor(code: 'FORBIDDEN' | 'NOT_FOUND', message: string) {
-    super(message)
-    this.name = 'IssueAdapterError'
-    this.code = code
-  }
-}
 
 function delay(ms = 260) {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
@@ -80,6 +64,8 @@ function toView(record: OperationalIssueRecord): OperationalIssue {
     resolution: record.resolution,
     resolvedBy: person(record.resolvedBy),
     resolvedAt: record.resolvedAt,
+    verifiedBy: person(record.verifiedBy ?? null),
+    verifiedAt: record.verifiedAt ?? null,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   }
@@ -144,6 +130,10 @@ export const mockOperationalIssues = {
       page: query.page,
       pageSize: query.pageSize,
       statusTotals,
+      handlers: mockHandlers,
+      ships: mockShips,
+      cruises: mockCruises,
+      source: 'demo-fallback',
     }
   },
 
@@ -158,7 +148,9 @@ export const mockOperationalIssues = {
   async assign(id: string, handlerId: string) {
     await delay()
     const record = findRecord(id)
-    if (record.status !== 'OPEN') throw new Error('Chỉ phân công issue OPEN trong mock này.')
+    if (record.status !== 'OPEN' && record.status !== 'IN_PROGRESS') {
+      throw new Error('Chỉ phân công issue OPEN hoặc IN_PROGRESS.')
+    }
     if (!mockHandlers.some((candidate) => candidate.id === handlerId)) {
       throw new Error('Người xử lý không hợp lệ.')
     }
@@ -187,7 +179,8 @@ export const mockOperationalIssues = {
     record.resolution = normalized
     record.resolvedBy = currentActorId
     record.resolvedAt = timestamp
-    record.status = 'RESOLVED'
+    record.verifiedBy = null
+    record.verifiedAt = null
     record.updatedAt = timestamp
     return toView(record)
   },
@@ -195,9 +188,14 @@ export const mockOperationalIssues = {
   async verifyResolution(id: string) {
     await delay(220)
     const record = findRecord(id)
-    if (record.status !== 'RESOLVED') throw new Error('Chỉ issue RESOLVED mới có thể xác minh.')
+    if (record.status !== 'IN_PROGRESS') throw new Error('Chỉ issue IN_PROGRESS mới có thể xác minh.')
     assertResolvedFields(record)
-    return { verified: true as const }
+    const timestamp = nextTimestamp(record)
+    record.verifiedBy = currentActorId
+    record.verifiedAt = timestamp
+    record.status = 'RESOLVED'
+    record.updatedAt = timestamp
+    return toView(record)
   },
 
   async close(id: string) {
@@ -213,9 +211,19 @@ export const mockOperationalIssues = {
   async reopen(id: string) {
     await delay()
     const record = findRecord(id)
-    if (record.status !== 'RESOLVED') throw new Error('Chỉ issue RESOLVED mới có thể mở lại.')
-    record.status = 'IN_PROGRESS'
+    if (record.status !== 'RESOLVED' && record.status !== 'CLOSED') {
+      throw new Error('Chỉ issue RESOLVED hoặc CLOSED mới có thể mở lại.')
+    }
+    record.status = 'OPEN'
+    record.resolution = null
+    record.resolvedBy = null
+    record.resolvedAt = null
+    record.verifiedBy = null
+    record.verifiedAt = null
     record.updatedAt = nextTimestamp(record)
     return toView(record)
   },
 }
+
+export { IssueAdapterError }
+export type { IssueListResult }

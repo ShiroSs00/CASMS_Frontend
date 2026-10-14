@@ -19,7 +19,7 @@ export function AssignHandlerForm({ open, handlers, pending, onClose, onSubmit }
     <ActionDialog
       open={open}
       title="Phân công người xử lý"
-      description="Issue vẫn OPEN; backend phải kiểm tra capability và người xử lý đủ điều kiện."
+      description="Có thể phân công hoặc đổi người xử lý khi issue đang OPEN hoặc IN_PROGRESS."
       onClose={onClose}
       footer={
         <>
@@ -28,7 +28,7 @@ export function AssignHandlerForm({ open, handlers, pending, onClose, onSubmit }
           </button>
           <button
             className={styles.primaryButton}
-            disabled={pending || !handlerId}
+            disabled={pending || !handlers.some((handler) => handler.id === handlerId)}
             onClick={() => void onSubmit(handlerId).then((ok) => ok && onClose())}
             type="button"
           >
@@ -47,7 +47,8 @@ export function AssignHandlerForm({ open, handlers, pending, onClose, onSubmit }
           ))}
         </select>
       </label>
-      <p>Mock chỉ cập nhật assigned_to. FOREP.sql không có ghi chú bàn giao, priority hoặc SLA.</p>
+      {handlers.length === 0 ? <p role="status">Chưa có người xử lý ACTIVE từ API. Không thể phân công.</p> : null}
+      <p>Thao tác chỉ cập nhật assigned_to; không tạo ghi chú bàn giao, priority hoặc SLA.</p>
     </ActionDialog>
   )
 }

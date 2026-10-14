@@ -32,7 +32,9 @@ export function IssueListPage() {
             Quản lý OperationalIssue theo đúng FOREP.sql; không suy diễn quan hệ với
             ServiceRequest hoặc thực thể impact khác.
           </p>
-          <span className={styles.mockBadge}>Dữ liệu minh họa · mock adapter</span>
+          <span className={styles.mockBadge}>
+            Chế độ API backend · không dùng dữ liệu demo
+          </span>
         </div>
       </header>
 
@@ -47,6 +49,12 @@ export function IssueListPage() {
           }
         }
       />
+      {state.data?.sourceNotice ? (
+        <aside className={styles.warningBanner} role="status">
+          <strong className={styles.bannerTitle}>Một phần dữ liệu tham chiếu chưa tải được</strong>
+          {state.data.sourceNotice}
+        </aside>
+      ) : null}
       <IssueSearchFilters
         cruises={cruises}
         handlers={handlers}
@@ -81,14 +89,15 @@ export function IssueListPage() {
             query={query}
             total={total}
             onPageChange={(page) => updateQuery({ page })}
+            onPageSizeChange={(pageSize) => updateQuery({ pageSize })}
           />
         </>
       ) : null}
 
       <aside className={styles.infoBanner}>
         <strong className={styles.bannerTitle}>OperationalIssue ≠ ServiceRequest</strong>
-        FOREP.sql không có quan hệ ServiceRequest ↔ OperationalIssue. UI mock không hiển thị hoặc
-        thay đổi liên kết này.
+        Backend không công bố quan hệ ServiceRequest ↔ OperationalIssue. UI không hiển thị hoặc
+        thay đổi liên kết không có trong contract.
       </aside>
     </AdminFrame>
   )

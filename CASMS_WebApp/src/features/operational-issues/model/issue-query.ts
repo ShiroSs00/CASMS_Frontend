@@ -1,4 +1,5 @@
-import { ISSUE_SEVERITIES, ISSUE_STATUSES } from './issue'
+import { sanitizePageSize } from '../../../shared/pagination.ts'
+import { ISSUE_SEVERITIES, ISSUE_STATUSES } from './issue.ts'
 import type { IssueSeverity, IssueStatus } from './issue'
 
 export type IssueQuery = {
@@ -23,6 +24,8 @@ export const DEFAULT_ISSUE_QUERY: IssueQuery = {
   pageSize: 4,
 }
 
+export const ISSUE_PAGE_SIZE_OPTIONS = [4, 10, 20, 50] as const
+
 function isOneOf<T extends string>(value: string | null, values: readonly T[]): value is T {
   return value !== null && values.includes(value as T)
 }
@@ -44,7 +47,11 @@ export function parseIssueQuery(params: URLSearchParams): IssueQuery {
     cruiseId: params.get('cruise') ?? '',
     handlerId: params.get('handler') ?? '',
     page: positiveInteger(params.get('page'), DEFAULT_ISSUE_QUERY.page),
-    pageSize: positiveInteger(params.get('pageSize'), DEFAULT_ISSUE_QUERY.pageSize),
+    pageSize: sanitizePageSize(
+      Number(params.get('pageSize')),
+      ISSUE_PAGE_SIZE_OPTIONS,
+      DEFAULT_ISSUE_QUERY.pageSize,
+    ),
   }
 }
 

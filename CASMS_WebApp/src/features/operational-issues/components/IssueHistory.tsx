@@ -5,8 +5,8 @@ export function IssueHistory() {
     <section className={styles.panel}>
       <h2>History</h2>
       <div className={styles.warningBanner}>
-        FOREP.sql chưa có bảng audit/event/history cho OperationalIssue. UI không dựng lịch sử giả
-        từ status hoặc updated_at.
+        Backend hiện chưa công bố endpoint audit/event/history cho OperationalIssue. UI không dựng
+        lịch sử giả từ status hoặc updated_at.
       </div>
     </section>
   )

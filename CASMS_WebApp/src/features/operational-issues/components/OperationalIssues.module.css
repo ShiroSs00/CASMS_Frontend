@@ -373,7 +373,69 @@
 
 .paginationActions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+}
+
+.paginationSummary {
+  min-width: max-content;
+}
+
+.paginationButton {
+  min-height: 40px;
+  padding-inline: 14px;
+}
+
+.pageSizeControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--oim-muted);
+  font-size: 13px;
+}
+
+.pageSizeControl select {
+  min-width: 68px;
+  min-height: 40px;
+  padding: 6px 28px 6px 10px;
+  border: 1px solid var(--oim-border);
+  border-radius: 4px;
+  background: var(--oim-surface);
+  color: var(--oim-text);
+  font: inherit;
+}
+
+.pageNumbers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pageNumberButton {
+  display: inline-grid;
+  min-width: 40px;
+  min-height: 40px;
+  place-items: center;
+  padding: 6px;
+  border: 1px solid var(--oim-border);
+  border-radius: 4px;
+  background: var(--oim-surface);
+  color: var(--oim-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pageNumberActive {
+  border-color: var(--oim-primary);
+  background: var(--oim-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+.pageEllipsis {
+  min-width: 24px;
+  text-align: center;
 }
 
 .infoBanner,
