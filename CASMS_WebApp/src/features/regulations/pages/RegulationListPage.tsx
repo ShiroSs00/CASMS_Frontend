@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 
-import { DEFAULT_EFFECTIVE_AT } from '../mocks/fixtures'
-import { mockRegulationAdapter } from '../mocks/mock-regulation-adapter'
+import { regulationsApi } from '../api/regulations-api'
 import type {
   RegulationListItem,
   RegulationListQuery,
@@ -30,7 +29,7 @@ const emptyQuery: RegulationListQuery = {
   type: 'ALL',
   scope: 'ALL',
   status: 'ALL',
-  effectiveAt: DEFAULT_EFFECTIVE_AT,
+  effectiveAt: new Date().toISOString().slice(0, 16),
 }
 export function RegulationListPage() {
   const navigate = useNavigate()
@@ -42,7 +41,7 @@ export function RegulationListPage() {
 
   useEffect(() => {
     let active = true
-    void mockRegulationAdapter
+    void regulationsApi
       .list(appliedQuery)
       .then((data) => {
         if (active) setItems(data)
@@ -176,6 +175,7 @@ export function RegulationListPage() {
           Trạng thái cấu hình cho biết quy định đang DRAFT, ACTIVE hay INACTIVE.
           Hiệu lực tại thời điểm được tính riêng từ trạng thái và khoảng thời gian áp dụng.
         </Notice>
+        <Notice title="Lọc trên danh sách đã tải" tone="info">Bộ lọc áp dụng cho dữ liệu hiện có. Tìm kiếm và phân trang trên máy chủ chưa khả dụng.</Notice>
       </Panel>
 
       <Panel title={`Danh sách quy định · ${items.length}`}>

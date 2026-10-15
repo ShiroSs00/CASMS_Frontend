@@ -32,6 +32,7 @@ export type ItinerarySummary = {
 }
 
 export type CruiseListItem = {
+  readinessSummary?: { ready: boolean; issues: string[] }
   cruise: CruiseRecord
   ship: ShipRecord | null
   departurePort: PortRecord
@@ -46,6 +47,7 @@ export type CruiseListResult = {
   pageSize: number
   pageCount: number
   metrics: {
+    conflict?: number
     draft: number
     pendingApproval: number
     openForSale: number
@@ -55,12 +57,12 @@ export type CruiseListResult = {
 
 export type CapacitySummary = {
   shipTotalCapacity: number | null
-  activePassengerCount: number
+  activePassengerCount: number | null
   remainingPassengerHeadroom: number | null
 }
 
 export type ReadinessCheck = {
-  key: 'SHIP' | 'SCHEDULE' | 'ITINERARY' | 'CAPACITY'
+  key: 'SHIP' | 'SCHEDULE' | 'ITINERARY' | 'CAPACITY' | 'CONFIGURATION' | 'PORTS'
   label: string
   state: 'PASS' | 'BLOCKED' | 'UNKNOWN'
   reason: string
@@ -87,10 +89,11 @@ export type CruiseDetailView = CruiseListItem & {
   readiness: {
     state: 'READY' | 'BLOCKED' | 'UNKNOWN'
     checks: ReadinessCheck[]
+    issues?: string[]
   }
   regulations: RegulationSummary[]
   issues: IssueSummary[]
-  bookingHasData: boolean
+  bookingHasData: boolean | null
   assignmentCapabilities: AssignmentCapabilities
 }
 

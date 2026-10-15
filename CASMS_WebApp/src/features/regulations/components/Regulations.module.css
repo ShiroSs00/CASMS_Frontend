@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap');
+
 .appShell {
   --reg-bg: #f5f7f9;
   --reg-surface: #fff;
@@ -247,4 +249,58 @@
 
 @media (prefers-reduced-motion: reduce) {
   .spinner { animation: none; }
+}
+
+/* AURORA V3 — nodes 51:54, 95:748 and 95:809 */
+.regulationColumns { display:grid; grid-template-columns:minmax(0,760fr) minmax(300px,392fr); gap:16px; align-items:start; max-width:1168px; margin:auto; }
+.regulationColumns > section { width:100%; }
+.regulationFacts { display:flex; flex-direction:column; gap:10px; margin:0; }
+.regulationFacts dt { font-size:13px; line-height:18px; font-weight:600; }
+.regulationFacts dd { margin:0 0 4px; color:#51616f; font-size:16px; line-height:24px; }
+.summaryBadges { display:flex; flex-wrap:wrap; gap:8px; max-width:1168px; margin:0 auto 18px; }
+.scopeBadge,.valueBadge { display:inline-flex; align-items:center; padding:6px 10px; border:1px solid currentColor; border-radius:999px; color:#4b8af1; font-size:12px; }
+.valueBadge { color:#51616f; }
+.validationRail { display:flex; flex-direction:column; gap:10px; padding:18px; border:1px solid #d6dee4; border-radius:14px; }
+.validationRail button { width:100%; }
+.appShell { --reg-primary:#4b8af1; --reg-bg:#faf8f2; --reg-border:#d6dee4; --reg-text:#111820; --reg-muted:#51616f; min-height:100vh; background:#fff; color:var(--reg-text); font-family:Inter,ui-sans-serif,system-ui,sans-serif; }
+.skipLink { position:fixed; z-index:100; top:8px; left:8px; transform:translateY(-180%); padding:8px; background:#fff; color:#111820; }
+.skipLink:focus { transform:none; }
+.sidebar { position:fixed; inset:0 auto 0 0; z-index:10; display:flex; width:216px; flex-direction:column; gap:5px; padding:14px; overflow:auto; background:#123042; color:#fff; }
+.brand { font-size:24px; line-height:32px; letter-spacing:-.2px; }
+.brandCaption { margin-bottom:10px; color:#d4a84f; font-size:12px; line-height:18px; }
+.navLink { display:flex; width:188px; min-height:40px; align-items:center; padding:10px; border-radius:8px; color:#fff; font-size:14px; line-height:20px; text-decoration:none; }
+.navActive,.navLink:hover { background:#4b8af1; }
+.topbar { position:fixed; z-index:8; top:0; right:0; left:216px; display:flex; height:66px; align-items:center; justify-content:space-between; padding:14px; background:#fff; }
+.topbar > span { width:520px; padding:10px; border-radius:10px; background:#f5f2e9; color:#51616f; font-size:13px; }
+.topbar > b { min-width:110px; padding:6px 10px; border:1px solid #2f7d5c; border-radius:999px; color:#2f7d5c; font-size:12px; font-weight:400; text-align:center; }
+.main { min-width:0; margin-left:216px; padding:94px 28px 56px; }
+.pageHeader { position:relative; max-width:1168px; gap:4px; margin:0 auto 18px; }
+.pageHeader h1 { margin:0; max-width:830px; font-family:"DM Serif Display",Georgia,serif; font-size:48px; font-weight:400; line-height:56px; letter-spacing:-.2px; }
+.pageHeader p { max-width:830px; color:#51616f; font-size:14px; line-height:20px; }
+.headerActions { position:absolute; top:0; right:0; }
+.button { min-height:42px; padding:10px 18px; border-radius:8px; border-color:#d6dee4; font-size:13px; font-weight:600; }
+.button_primary { border-color:#4b8af1; background:#4b8af1; }
+.panel { max-width:1168px; margin:0 auto 14px; padding:18px; border-radius:14px; }
+.panel h2 { font-size:24px; line-height:32px; letter-spacing:-.2px; }
+.filters { gap:12px; }
+.field input,.field select,.field textarea,.protectedValue { min-height:42px; border-color:#d6dee4; border-radius:8px; }
+.tableScroll { border:1px solid #d6dee4; border-radius:14px; }
+.table th { padding:10px; background:#f5f2e9; font-size:12px; font-weight:400; }
+.table td { padding:12px; border:0; }
+.table tbody tr:nth-child(even) { background:#f5f2e9; }
+.badge { min-width:94px; justify-content:center; border:1px solid currentColor; background:#fff; font-weight:400; }
+.detailGrid { border:1px solid #d6dee4; border-radius:14px; overflow:hidden; }
+.detailItem { border-color:#d6dee4; }
+.notice { border-radius:14px; background:#fff; }
+.modal { border-radius:14px; }
+.modalHeader h2 { font-family:"DM Serif Display",Georgia,serif; font-size:36px; font-weight:400; line-height:44px; }
+
+@media(max-width:760px) {
+  .regulationColumns { grid-template-columns:1fr; }
+  .sidebar { position:static; width:100%; }
+  .navLink { width:auto; }
+  .topbar { display:none; }
+  .main { margin-left:0; padding:24px 16px 48px; }
+  .pageHeader h1 { font-size:38px; line-height:46px; }
+  .headerActions { position:static; }
 }

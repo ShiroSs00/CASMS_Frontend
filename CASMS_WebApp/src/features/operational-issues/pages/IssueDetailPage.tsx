@@ -27,15 +27,8 @@ export function IssueDetailPage() {
   const location = useLocation()
   const { state, reload } = useIssueDetail(issueId)
   const returnTo = (location.state as DetailLocationState | null)?.returnTo ?? '/admin/issues'
-  const directSqlLinks = state.status === 'ready'
-    ? 1 + Number(Boolean(state.issue.cruise)) + Number(Boolean(state.issue.cabin))
-    : 0
-
   return (
     <AdminFrame>
-      <Link className={styles.backLink} to={returnTo}>
-        ← Quay lại danh sách sự cố
-      </Link>
       {state.status === 'loading' ? <IssueListState kind="loading" /> : null}
       {state.status === 'not-found' ? (
         <section className={styles.statePanel}>
@@ -71,46 +64,21 @@ export function IssueDetailPage() {
                   : state.issue.ship.name}{' '}
                 · tạo {formatDate(state.issue.reportedAt)}
               </p>
-              <span className={styles.mockBadge}>Dữ liệu minh họa · mock adapter</span>
             </div>
+            <Link className={styles.primaryButton} to={returnTo}>Quay lại issue list</Link>
           </header>
-
-          <section className={styles.metricsGrid} aria-label="Trạng thái sự cố">
-            <article className={styles.metricCard}>
-              <span className={styles.eyebrow}>Trạng thái</span>
-              <IssueStatusBadge status={state.issue.status} />
-            </article>
-            <article className={styles.metricCard}>
-              <span className={styles.eyebrow}>Ảnh hưởng</span>
-              <IssueSeverityBadge severity={state.issue.severity} />
-            </article>
-            <article className={styles.metricCard}>
-              <span className={styles.eyebrow}>Assignee</span>
-              <span className={`${styles.metricValue} ${styles.statusProgress}`}>
-                {state.issue.assignedTo?.name ?? 'Chưa phân công'}
-              </span>
-            </article>
-            <article className={styles.metricCard}>
-              <span className={styles.eyebrow}>Direct SQL links</span>
-              <span className={styles.metricValue}>{directSqlLinks}</span>
-            </article>
-          </section>
-
           <div className={styles.detailGrid}>
-            <IssueOverview issue={state.issue} />
-            <IssueActions issue={state.issue} onChanged={reload} />
-          </div>
-
-          <aside className={styles.warningBanner}>
-            <strong className={styles.bannerTitle}>CASMS không có authority điều khiển tàu</strong>
-            UI chỉ ghi nhận và điều phối issue; không cho phép ra lệnh rời cảng, điều khiển propulsion
-            hoặc thay thế quyết định an toàn hàng hải.
-          </aside>
-
-          <div className={styles.sectionGrid}>
-            <IssueTimeline issue={state.issue} />
-            <IssueHistory />
-            <IssueResolution issue={state.issue} />
+            <div className={styles.detailMain}>
+              <IssueTimeline issue={state.issue} />
+              <IssueOverview issue={state.issue} />
+              <IssueResolution issue={state.issue} />
+              <IssueHistory />
+            </div>
+            <div className={styles.actionRail}>
+              <IssueStatusBadge status={state.issue.status} />
+              <IssueSeverityBadge severity={state.issue.severity} />
+              <IssueActions issue={state.issue} onChanged={reload} />
+            </div>
           </div>
         </>
       ) : null}

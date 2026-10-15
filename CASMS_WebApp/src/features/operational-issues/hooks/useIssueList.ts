@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 
-import { mockOperationalIssues, type IssueListResult } from '../mocks/mock-operational-issues'
+import { operationalIssuesApi, type IssueListResult } from '../api/operational-issues-api'
 import {
   DEFAULT_ISSUE_QUERY,
   parseIssueQuery,
@@ -23,14 +23,10 @@ export function useIssueList() {
 
   const request = useCallback(() => {
     const sequence = ++requestSequence.current
-    void mockOperationalIssues
+    void operationalIssuesApi
       .list(query)
       .then((data) => {
         if (requestSequence.current !== sequence) return
-        if (data.total > 0 && data.items.length === 0 && query.page > 1) {
-          setSearchParams(serializeIssueQuery({ ...query, page: 1 }), { replace: true })
-          return
-        }
         setState({ status: 'ready', data, error: null, queryKey })
       })
       .catch((error: unknown) => {
@@ -41,7 +37,7 @@ export function useIssueList() {
           error: error instanceof Error ? error.message : 'Không tải được danh sách sự cố.',
         })
       })
-  }, [query, queryKey, setSearchParams])
+  }, [query, queryKey])
 
   const load = useCallback(() => {
     setState((current) => ({ status: 'loading', data: current.data, error: null }))
@@ -60,13 +56,6 @@ export function useIssueList() {
       page: changesFiltering ? 1 : (patch.page ?? query.page),
     }
 
-    if (patch.shipId !== undefined && patch.shipId !== query.shipId) {
-      const cruise = mockOperationalIssues.cruises.find(
-        (candidate) => candidate.id === next.cruiseId,
-      )
-      if (cruise && cruise.shipId !== patch.shipId) next.cruiseId = ''
-    }
-
     setSearchParams(serializeIssueQuery(next))
   }
 
@@ -81,8 +70,8 @@ export function useIssueList() {
     updateQuery,
     resetQuery: () => setSearchParams(serializeIssueQuery(DEFAULT_ISSUE_QUERY)),
     retry: load,
-    handlers: mockOperationalIssues.handlers,
-    ships: mockOperationalIssues.ships,
-    cruises: mockOperationalIssues.cruises,
+    handlers: [...new Map((state.data?.items.flatMap((item) => item.assignedTo ? [item.assignedTo] : []) ?? []).map((item) => [item.id, item])).values()],
+    ships: [...new Map((state.data?.items.map((item) => item.ship) ?? []).map((item) => [item.id, item])).values()],
+    cruises: [...new Map((state.data?.items.flatMap((item) => item.cruise ? [item.cruise] : []) ?? []).map((item) => [item.id, item])).values()],
   }
 }

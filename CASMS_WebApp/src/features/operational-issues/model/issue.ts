@@ -61,6 +61,8 @@ export type OperationalIssue = {
   resolution: string | null
   resolvedBy: PersonReference | null
   resolvedAt: string | null
+  verifiedBy?: PersonReference | null
+  verifiedAt?: string | null
   createdAt: string
   updatedAt: string
 }

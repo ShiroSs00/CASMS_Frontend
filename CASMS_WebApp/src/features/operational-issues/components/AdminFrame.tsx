@@ -4,11 +4,18 @@ import { NavLink } from 'react-router'
 import styles from './OperationalIssues.module.css'
 
 const navigation = [
-  { section: 'Booking', items: ['Tổng quan', 'Booking', 'Check-in'] },
-  { section: 'Operations', items: ['Yêu cầu dịch vụ', 'Hoạt động', 'Sự cố'] },
-  { section: 'Master data', items: ['Tàu & cabin', 'Hải trình', 'Package'] },
-  { section: 'Finance', items: ['Thanh toán', 'Refund', 'Báo cáo'] },
-  { section: 'System', items: ['Người dùng & quyền'] },
+  { label: 'Tổng quan' },
+  { label: 'Bookings' },
+  { label: 'Check-in' },
+  { label: 'Yêu cầu dịch vụ' },
+  { label: 'Tài khoản' },
+  { label: 'Tàu', to: '/admin/ships' },
+  { label: 'Chuyến', to: '/admin/cruises' },
+  { label: 'Hải trình', to: '/admin/itineraries' },
+  { label: 'Quy định', to: '/admin/regulations' },
+  { label: 'Sự cố', to: '/admin/issues' },
+  { label: 'Người dùng' },
+  { label: 'Báo cáo' },
 ]
 
 export function AdminFrame({ children }: { children: ReactNode }) {
@@ -18,36 +25,19 @@ export function AdminFrame({ children }: { children: ReactNode }) {
         Chuyển đến nội dung chính
       </a>
       <aside className={styles.sidebar} aria-label="Điều hướng quản trị">
-        <div className={styles.brand}>CASMS Admin</div>
-        {navigation.map((group) => (
-          <div key={group.section}>
-            <div className={styles.navSection}>{group.section}</div>
-            {group.items.map((item) =>
-              item === 'Sự cố' ? (
-                <NavLink
-                  className={({ isActive }) =>
-                    `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
-                  }
-                  key={item}
-                  to="/admin/issues"
-                >
-                  {item}
-                </NavLink>
-              ) : (
-                <span className={styles.navLink} key={item} aria-disabled="true">
-                  {item}
-                </span>
-              ),
-            )}
-          </div>
-        ))}
+        <div className={styles.brand}>AURORA</div>
+        <div className={styles.brandCaption}>Trung tâm vận hành</div>
+        {navigation.map((item) => item.to ? (
+          <NavLink
+            className={({ isActive }) => `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`}
+            key={item.label}
+            to={item.to}
+          >{item.label}</NavLink>
+        ) : <span className={styles.navLink} key={item.label} aria-disabled="true">{item.label}</span>)}
       </aside>
       <header className={styles.topbar}>
-        <span>Chuyến được phân công: CASMS Aurora · 20/11/2026</span>
-        <span className={styles.account}>
-          <span>Nhân viên vận hành</span>
-          <span>Tài khoản ▾</span>
-        </span>
+        <span className={styles.globalSearch}>Tìm kiếm hoặc chạy lệnh…</span>
+        <span className={styles.signedIn}>Đã đăng nhập</span>
       </header>
       <main className={styles.main} id="oim-main" tabIndex={-1}>
         <div className={styles.content}>{children}</div>

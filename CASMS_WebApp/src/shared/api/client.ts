@@ -1,6 +1,6 @@
 type ApiEnvelope<T> = { success: boolean; message?: string; error?: string; data?: T }
 type RequestOptions = {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   query?: Record<string, string | number | boolean | undefined>
   body?: unknown
   signal?: AbortSignal

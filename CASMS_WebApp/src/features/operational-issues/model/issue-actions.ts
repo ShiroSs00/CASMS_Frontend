@@ -17,22 +17,13 @@ export type IssueActionAvailability = {
   reason?: string
 }
 
-const hidden: IssueActionAvailability = { visible: false, enabled: false }
-
 export function getIssueActionAvailability(
   issue: OperationalIssue,
 ): Record<IssueAction, IssueActionAvailability> {
-  if (issue.status === 'CLOSED') {
-    return Object.fromEntries(ISSUE_ACTIONS.map((action) => [action, hidden])) as Record<
-      IssueAction,
-      IssueActionAvailability
-    >
-  }
-
   return {
     ASSIGN_HANDLER: {
-      visible: issue.status === 'OPEN',
-      enabled: issue.status === 'OPEN',
+      visible: issue.status === 'OPEN' || issue.status === 'IN_PROGRESS',
+      enabled: issue.status === 'OPEN' || issue.status === 'IN_PROGRESS',
     },
     START_HANDLING: {
       visible: issue.status === 'OPEN',
@@ -44,23 +35,26 @@ export function getIssueActionAvailability(
       enabled: issue.status === 'IN_PROGRESS',
     },
     VERIFY_RESOLUTION: {
-      visible: issue.status === 'RESOLVED',
-      enabled: issue.status === 'RESOLVED',
+      visible: issue.status === 'IN_PROGRESS',
+      enabled: issue.status === 'IN_PROGRESS' && Boolean(issue.resolution?.trim()),
+      reason: issue.status === 'IN_PROGRESS' && !issue.resolution?.trim()
+        ? 'Cần ghi resolution trước khi xác minh.'
+        : undefined,
     },
     CLOSE: {
       visible: issue.status === 'RESOLVED',
       enabled:
         issue.status === 'RESOLVED' &&
-        Boolean(issue.resolution && issue.resolvedBy && issue.resolvedAt),
+        Boolean(issue.resolution && issue.resolvedBy && issue.resolvedAt && issue.verifiedAt),
       reason:
         issue.status === 'RESOLVED' &&
-        !(issue.resolution && issue.resolvedBy && issue.resolvedAt)
-          ? 'Cần đủ resolution, resolved_by và resolved_at.'
+        !(issue.resolution && issue.resolvedBy && issue.resolvedAt && issue.verifiedAt)
+          ? 'Cần resolution và xác minh thành công trước khi đóng.'
           : undefined,
     },
     REOPEN: {
-      visible: issue.status === 'RESOLVED',
-      enabled: issue.status === 'RESOLVED',
+      visible: issue.status === 'RESOLVED' || issue.status === 'CLOSED',
+      enabled: issue.status === 'RESOLVED' || issue.status === 'CLOSED',
     },
   }
 }

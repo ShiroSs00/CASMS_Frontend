@@ -47,18 +47,22 @@ export function IssueSearchFilters({
   return (
     <section className={styles.filters} aria-label="Bộ lọc sự cố">
       <label className={styles.field}>
-        Tìm sự cố
+        Tìm kiếm
         <input
           value={draft.search}
           onChange={(event) => updateDraft({ search: event.target.value })}
-          placeholder="Mã / mô tả / cruise"
+          placeholder="Mã sự cố / mô tả"
+          disabled
+          title="Backend chưa hỗ trợ search"
           type="search"
         />
       </label>
       <label className={styles.field}>
-        Mức ảnh hưởng
+        Mức độ
         <select
           value={draft.severity}
+          disabled
+          title="Backend chưa hỗ trợ severity filter"
           onChange={(event) =>
             updateDraft({ severity: event.target.value as IssueQuery['severity'] })
           }
@@ -114,6 +118,8 @@ export function IssueSearchFilters({
         Người xử lý
         <select
           value={draft.handlerId}
+          disabled
+          title="Backend chưa hỗ trợ handler filter"
           onChange={(event) => updateDraft({ handlerId: event.target.value })}
         >
           <option value="">Tất cả</option>
@@ -132,6 +138,7 @@ export function IssueSearchFilters({
           Đặt lại
         </button>
       </div>
+      <p className={styles.filterGap}>Tìm kiếm, lọc mức độ/người xử lý và phân trang chưa khả dụng.</p>
     </section>
   )
 }

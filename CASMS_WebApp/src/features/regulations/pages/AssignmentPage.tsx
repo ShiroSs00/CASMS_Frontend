@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router'
 
-import { mockRegulationAdapter } from '../mocks/mock-regulation-adapter'
+import { regulationsApi } from '../api/regulations-api'
 import type {
   AssignedRegulation,
   AssignmentSnapshot,
@@ -30,31 +30,6 @@ import {
 } from '../components/RegulationUI'
 import styles from '../components/Regulations.module.css'
 
-const currentConflicts: Record<HostType, ConflictResult> = {
-  ship: {
-    severity: 'warning',
-    title: 'Cảnh báo: có hai giới hạn tốc độ cùng hiệu lực',
-    message:
-      'REG-SPD-004 được gán trực tiếp cho tàu và cùng hiệu lực với REG-SPD-001 từ GLOBAL. Không tự suy luận ưu tiên.',
-    canProceed: true,
-    comparedWith: [
-      { code: 'REG-SPD-004', source: 'SHIP · CASMS Aurora', content: '8 KNOT' },
-      { code: 'REG-SPD-001', source: 'GLOBAL', content: '12 KNOT' },
-    ],
-  },
-  cruise: {
-    severity: 'warning',
-    title: 'Cảnh báo: kiểm tra các nguồn áp dụng',
-    message:
-      'Quy định trực tiếp và quy định kế thừa được hiển thị riêng. Không tự đặt ưu tiên GLOBAL < SHIP < CRUISE.',
-    canProceed: true,
-    comparedWith: [
-      { code: 'REG-CAP-003', source: 'CRUISE · CR-261120-01', content: '100 PERSON' },
-      { code: 'REG-SPD-004', source: 'SHIP · CASMS Aurora', content: '8 KNOT' },
-    ],
-  },
-}
-
 function AssignmentTable({
   rows,
   direct,
@@ -69,7 +44,7 @@ function AssignmentTable({
       <div className={styles.emptyState}>
         <strong>Chưa có quy định được gán</strong>
         <p>
-          Đối tượng chưa có liên kết {direct ? 'trực tiếp' : 'kế thừa'} trong dữ liệu mock.
+          Đối tượng chưa có liên kết {direct ? 'trực tiếp' : 'kế thừa'}.
         </p>
       </div>
     )
@@ -136,10 +111,11 @@ function AssignmentPage({ type }: { type: HostType }) {
   const [actionError, setActionError] = useState('')
   const [success, setSuccess] = useState('')
   const requestSequence = useRef(0)
+  const mutationLock = useRef(false)
 
   const load = useCallback(async () => {
     try {
-      setSnapshot(await mockRegulationAdapter.getAssignments(type, routeId ?? ''))
+      setSnapshot(await regulationsApi.getAssignments(type, routeId ?? ''))
     } catch {
       setLoadError('Không tải được danh sách quy định đã gán.')
     } finally {
@@ -149,7 +125,7 @@ function AssignmentPage({ type }: { type: HostType }) {
 
   useEffect(() => {
     let active = true
-    void mockRegulationAdapter
+    void regulationsApi
       .getAssignments(type, routeId ?? '')
       .then((data) => {
         if (active) setSnapshot(data)
@@ -172,7 +148,9 @@ function AssignmentPage({ type }: { type: HostType }) {
   }, [success])
 
   const openAssign = async () => {
+    requestSequence.current += 1
     setAssignOpen(true)
+    setChecking(false)
     setCandidateLoading(true)
     setSelectedId('')
     setConflict(null)
@@ -180,7 +158,7 @@ function AssignmentPage({ type }: { type: HostType }) {
     setSearch('')
     setStatus('ALL')
     try {
-      setCandidates(await mockRegulationAdapter.getCandidates(type, routeId ?? ''))
+      setCandidates(await regulationsApi.getCandidates(type, routeId ?? ''))
     } catch {
       setActionError('Không tải được danh sách ứng viên.')
     } finally {
@@ -204,20 +182,17 @@ function AssignmentPage({ type }: { type: HostType }) {
     setSelectedId(candidate.regulation.id)
     setConflict(null)
     setActionError('')
-    if (!candidate.capabilities.canAssign.allowed) return
+    if (!candidate.capabilities.canAssign.allowed) { setChecking(false); return }
     setChecking(true)
     try {
-      const result = await mockRegulationAdapter.checkConflict(
-        type,
-        candidate.regulation.id,
-      )
+      const result = await regulationsApi.checkConflict(type, routeId ?? '', candidate.regulation.id)
       if (requestSequence.current === sequence) setConflict(result)
     } catch {
       if (requestSequence.current === sequence) {
         setConflict({
           severity: 'unavailable',
           title: 'Chưa xác định / kiểm tra thất bại',
-          message: 'Không biến lỗi kiểm tra thành “Không có xung đột”.',
+          message: 'Chưa kiểm tra được xung đột. Vui lòng thử lại.',
           canProceed: false,
           comparedWith: [],
         })
@@ -232,11 +207,12 @@ function AssignmentPage({ type }: { type: HostType }) {
   )
 
   const assign = async () => {
-    if (!selected || !conflict?.canProceed || submitting) return
+    if (!selected || !conflict?.canProceed || mutationLock.current) return
+    mutationLock.current = true
     setSubmitting(true)
     setActionError('')
     try {
-      const result = await mockRegulationAdapter.assign(
+      const result = await regulationsApi.assign(
         type,
         routeId ?? '',
         selected.regulation.id,
@@ -247,16 +223,18 @@ function AssignmentPage({ type }: { type: HostType }) {
     } catch {
       setActionError('Không thể gán quy định. Danh sách cũ vẫn được giữ nguyên.')
     } finally {
+      mutationLock.current = false
       setSubmitting(false)
     }
   }
 
   const remove = async () => {
-    if (!removeItem || !removeItem.capabilities.canRemove.allowed || submitting) return
+    if (!removeItem || !removeItem.capabilities.canRemove.allowed || mutationLock.current) return
+    mutationLock.current = true
     setSubmitting(true)
     setActionError('')
     try {
-      const result = await mockRegulationAdapter.remove(
+      const result = await regulationsApi.remove(
         type,
         routeId ?? '',
         removeItem.regulation.id,
@@ -271,25 +249,26 @@ function AssignmentPage({ type }: { type: HostType }) {
           : 'Không thể gỡ liên kết. Danh sách cũ vẫn được giữ nguyên.',
       )
     } finally {
+      mutationLock.current = false
       setSubmitting(false)
     }
   }
 
-  const title = type === 'ship' ? 'CASMS Aurora · Quy định' : 'CR-261120-01 · Quy định'
+  const title = `${snapshot?.host.name ?? routeId ?? (type === 'ship' ? 'Tàu' : 'Chuyến')} · Quy định`
 
   return (
     <AdminFrame>
       <PageHeader
         title={title}
-        description={`${snapshot?.host.description ?? routeId ?? ''} · Dữ liệu mock`}
-        actions={<Button onClick={() => void openAssign()}>Gán quy định</Button>}
+        description={snapshot?.host.description ?? routeId ?? ''}
+        actions={<Button disabled={loading || !snapshot} onClick={() => void openAssign()}>Gán quy định</Button>}
       />
       <div className={styles.twoColumn}>
         <Field label={type === 'ship' ? 'Hiệu lực tại thời điểm' : 'Thời điểm kiểm tra'}>
-          <div className={styles.protectedValue}>{formatDateTime(snapshot?.checkedAt ?? '2026-11-20T08:00')}</div>
+          <div className={styles.protectedValue}>{snapshot?.checkedAt ? formatDateTime(snapshot.checkedAt) : '—'}</div>
         </Field>
         <Field label="Múi giờ">
-          <div className={styles.protectedValue}>Asia/Ho_Chi_Minh</div>
+          <div className={styles.protectedValue}>{Intl.DateTimeFormat().resolvedOptions().timeZone}</div>
         </Field>
       </div>
 
@@ -321,7 +300,7 @@ function AssignmentPage({ type }: { type: HostType }) {
             <AssignmentTable direct={false} onRemove={setRemoveItem} rows={snapshot.inherited} />
           </Panel>
           <Panel title="Kết quả kiểm tra quy định">
-            <ConflictCard result={currentConflicts[type]} />
+            <Notice title="Precheck theo thao tác" tone="info">Kết quả conflict có thẩm quyền được tải khi chọn regulation trong luồng gán.</Notice>
           </Panel>
           <Notice title="Không suy luận ưu tiên" tone="info">
             Có quy định trực tiếp không đồng nghĩa ghi đè quy định từ nguồn khác. Kết quả hiển thị phải đến từ dịch vụ kiểm tra.
@@ -331,7 +310,7 @@ function AssignmentPage({ type }: { type: HostType }) {
 
       {assignOpen ? (
         <Modal
-          description={`${snapshot?.host.name ?? routeId} · Dữ liệu ứng viên minh họa`}
+          description={snapshot?.host.name ?? routeId}
           onClose={() => {
             if (!submitting) {
               requestSequence.current += 1
@@ -350,6 +329,7 @@ function AssignmentPage({ type }: { type: HostType }) {
                   setSearch(event.target.value)
                   setSelectedId('')
                   setConflict(null)
+                  setChecking(false)
                 }}
                 placeholder="Nhập mã hoặc tên"
                 value={search}
@@ -363,6 +343,7 @@ function AssignmentPage({ type }: { type: HostType }) {
                   setStatus(event.target.value as RegulationStatus | 'ALL')
                   setSelectedId('')
                   setConflict(null)
+                  setChecking(false)
                 }}
                 value={status}
               >

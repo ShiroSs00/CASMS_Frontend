@@ -8,18 +8,21 @@ type Props = {
   open: boolean
   handlers: PersonReference[]
   pending: boolean
+  error?: string
   onClose: () => void
   onSubmit: (handlerId: string) => Promise<boolean>
 }
 
-export function AssignHandlerForm({ open, handlers, pending, onClose, onSubmit }: Props) {
+export function AssignHandlerForm({ open, handlers, pending, error, onClose, onSubmit }: Props) {
   const [handlerId, setHandlerId] = useState(handlers[0]?.id ?? '')
 
   return (
     <ActionDialog
       open={open}
+      pending={pending}
+      error={error}
       title="Phân công người xử lý"
-      description="Issue vẫn OPEN; backend phải kiểm tra capability và người xử lý đủ điều kiện."
+      description="Phân công người chịu trách nhiệm; trạng thái xử lý hiện tại được giữ nguyên."
       onClose={onClose}
       footer={
         <>
@@ -32,22 +35,16 @@ export function AssignHandlerForm({ open, handlers, pending, onClose, onSubmit }
             onClick={() => void onSubmit(handlerId).then((ok) => ok && onClose())}
             type="button"
           >
-            {pending ? 'Đang cập nhật…' : 'Chỉ cập nhật assignee'}
+            {pending ? 'Đang cập nhật…' : 'Assign handler'}
           </button>
         </>
       }
     >
       <label className={styles.field}>
         Team / người phụ trách
-        <select value={handlerId} onChange={(event) => setHandlerId(event.target.value)}>
-          {handlers.map((handler) => (
-            <option key={handler.id} value={handler.id}>
-              {handler.name}
-            </option>
-          ))}
-        </select>
+        <input value={handlerId} onChange={(event) => setHandlerId(event.target.value)} placeholder="User UUID" />
       </label>
-      <p>Mock chỉ cập nhật assigned_to. FOREP.sql không có ghi chú bàn giao, priority hoặc SLA.</p>
+      <p>Nhập mã người phụ trách được cung cấp bởi bộ phận vận hành.</p>
     </ActionDialog>
   )
 }

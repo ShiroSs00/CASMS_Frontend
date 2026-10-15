@@ -1,24 +1,21 @@
-import type { IssueStatusTotals } from '../mocks/mock-operational-issues'
+import type { IssueStatusTotals } from '../api/operational-issues-api'
 import styles from './OperationalIssues.module.css'
 
-export function IssueMetrics({ totals }: { totals: IssueStatusTotals }) {
+export function IssueMetrics({ totals }: { totals: IssueStatusTotals | null }) {
   const metrics = [
-    { label: 'OPEN', value: totals.OPEN, className: styles.statusOpen },
-    { label: 'IN PROGRESS', value: totals.IN_PROGRESS, className: styles.statusProgress },
-    { label: 'RESOLVED', value: totals.RESOLVED, className: styles.statusResolved },
-    {
-      label: 'CẦN RÀ SOÁT',
-      value: totals.review,
-      className: styles.statusReview,
-    },
+    { label: 'Đang mở', value: totals?.OPEN, hint: 'Cần xử lý', className: styles.statusOpen },
+    { label: 'Đang xử lý', value: totals?.IN_PROGRESS, hint: 'Đang xử lý', className: styles.statusProgress },
+    { label: 'Đã xử lý', value: totals?.RESOLVED, hint: 'Chờ đóng', className: styles.statusResolved },
+    { label: 'Nghiêm trọng', value: totals?.critical, hint: 'Ưu tiên cao nhất', className: styles.statusReview },
   ]
 
   return (
-    <section className={styles.metricsGrid} aria-label="Tóm tắt trạng thái trong dữ liệu mock">
+    <section className={styles.metricsGrid} aria-label="Tóm tắt trạng thái sự cố">
       {metrics.map((metric) => (
         <article className={styles.metricCard} key={metric.label}>
           <span className={styles.eyebrow}>{metric.label}</span>
-          <span className={`${styles.metricValue} ${metric.className}`}>{metric.value}</span>
+          <span className={`${styles.metricValue} ${metric.className}`}>{metric.value === undefined ? '—' : String(metric.value).padStart(2, '0')}</span>
+          <span className={styles.metricHint}>{metric.hint}</span>
         </article>
       ))}
     </section>

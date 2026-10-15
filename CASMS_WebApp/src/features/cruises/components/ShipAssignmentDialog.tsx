@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Badge, Button, Loading, Modal, Notice } from '@/shared/ui'
 
-import { mockCruiseAdapter } from '../mocks/mock-cruise-adapter'
+import { cruiseApi } from '../api/cruise-api'
 import type { CruiseDetailView } from '../model/cruise-view'
 import type { ShipCandidate } from '../model/ship-assignment'
 import styles from './Cruises.module.css'
@@ -31,10 +31,11 @@ export function ShipAssignmentDialog({ detail, mode, onClose, onChanged }: {
   const [selectedId, setSelectedId] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const lock = useRef(false)
 
   useEffect(() => {
     if (mode === 'unassign') return
-    void mockCruiseAdapter.getShipCandidates(detail.cruise.cruiseId).then((items) => {
+    void cruiseApi.getShipCandidates(detail.cruise.cruiseId).then((items) => {
       setCandidates(items.filter((item) => item.ship.shipId !== detail.cruise.shipId))
     }).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Không tải được danh sách tàu.'))
   }, [detail.cruise.cruiseId, detail.cruise.shipId, mode])
@@ -42,13 +43,15 @@ export function ShipAssignmentDialog({ detail, mode, onClose, onChanged }: {
   const selected = useMemo(() => candidates?.find((candidate) => candidate.ship.shipId === selectedId) ?? null, [candidates, selectedId])
 
   async function confirm() {
+    if (lock.current) return
+    lock.current = true
     setBusy(true)
     setError('')
     try {
       if (mode === 'unassign') {
-        await mockCruiseAdapter.unassignShip(detail.cruise.cruiseId)
+        await cruiseApi.unassignShip(detail.cruise.cruiseId)
       } else if (selected?.state === 'AVAILABLE') {
-        const operation = mode === 'assign' ? mockCruiseAdapter.assignShip : mockCruiseAdapter.changeShip
+        const operation = mode === 'assign' ? cruiseApi.assignShip : cruiseApi.changeShip
         await operation(detail.cruise.cruiseId, selected.ship.shipId)
       } else {
         return
@@ -58,13 +61,14 @@ export function ShipAssignmentDialog({ detail, mode, onClose, onChanged }: {
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Không cập nhật được phân công tàu.')
     } finally {
+      lock.current = false
       setBusy(false)
     }
   }
 
   if (mode === 'unassign') {
     return <Modal title="Gỡ tàu khỏi cruise" onClose={onClose} busy={busy}>
-      <Notice title={`${detail.cruise.cruiseCode} · ${detail.ship?.shipName ?? 'Chưa phân công'}`} tone="warning"><p>Sau xác nhận, Cruise.ship_id trở về NULL. Tác vụ chỉ được gửi khi capability từ adapter cho phép.</p></Notice>
+      <Notice title={`${detail.cruise.cruiseCode} · ${detail.ship?.shipName ?? 'Chưa phân công'}`} tone="warning"><p>Sau xác nhận, cruise sẽ chưa có tàu được phân công. Hệ thống sẽ kiểm tra các đặt chỗ trước khi gỡ tàu.</p></Notice>
       {error && <Notice title="Không thể gỡ tàu" tone="error"><p>{error}</p></Notice>}
       <div className={styles.dialogActions}><Button tone="secondary" disabled={busy} onClick={onClose}>Hủy</Button><Button tone="danger" disabled={busy} onClick={() => void confirm()}>{busy ? 'Đang xử lý…' : 'Xác nhận gỡ tàu'}</Button></div>
     </Modal>

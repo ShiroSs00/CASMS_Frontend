@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { IssueAdapterError, mockOperationalIssues } from '../mocks/mock-operational-issues'
+import { ApiError } from '@/shared/api'
+import { operationalIssuesApi } from '../api/operational-issues-api'
 import type { OperationalIssue } from '../model/issue'
 
 type DetailState =
@@ -19,7 +20,7 @@ export function useIssueDetail(issueId: string | undefined) {
     if (!issueId) {
       return
     }
-    void mockOperationalIssues
+    void operationalIssuesApi
       .detail(issueId)
       .then((issue) => {
         if (requestSequence.current !== sequence) return
@@ -29,9 +30,9 @@ export function useIssueDetail(issueId: string | undefined) {
         if (requestSequence.current !== sequence) return
         const message = error instanceof Error ? error.message : 'Không tải được sự cố.'
         setState({
-          status: error instanceof IssueAdapterError && error.code === 'FORBIDDEN'
+          status: error instanceof ApiError && error.status === 403
             ? 'forbidden'
-            : error instanceof IssueAdapterError && error.code === 'NOT_FOUND'
+            : error instanceof ApiError && error.status === 404
               ? 'not-found'
               : 'error',
           issue: null,

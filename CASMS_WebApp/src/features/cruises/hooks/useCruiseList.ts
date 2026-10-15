@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 
-import { mockCruiseAdapter } from '../mocks/mock-cruise-adapter'
+import { cruiseApi } from '../api/cruise-api'
+import type { ShipRecord } from '../model/cruise-record'
 import {
   DEFAULT_CRUISE_QUERY,
   parseCruiseQuery,
@@ -21,10 +22,11 @@ export function useCruiseList() {
   const queryKey = useMemo(() => serializeCruiseQuery(query).toString(), [query])
   const sequence = useRef(0)
   const [state, setState] = useState<CruiseListState>({ status: 'loading', data: null, error: null })
+  const [ships, setShips] = useState<ShipRecord[]>([])
 
   const request = useCallback(() => {
     const current = ++sequence.current
-    void mockCruiseAdapter.list(query).then((data) => {
+    void cruiseApi.list(query).then((data) => {
       if (current !== sequence.current) return
       if (data.total > 0 && data.items.length === 0 && query.page > 1) {
         setSearchParams(serializeCruiseQuery({ ...query, page: 1 }), { replace: true })
@@ -47,6 +49,11 @@ export function useCruiseList() {
   }, [request])
 
   useEffect(() => { request() }, [request])
+  useEffect(() => {
+    const controller = new AbortController()
+    void cruiseApi.listShips(controller.signal).then(setShips).catch(() => undefined)
+    return () => controller.abort()
+  }, [])
 
   function updateQuery(patch: Partial<CruiseQuery>) {
     const changesFilter = Object.keys(patch).some((key) => key !== 'page')
@@ -67,6 +74,6 @@ export function useCruiseList() {
     updateQuery,
     resetQuery: () => setSearchParams(serializeCruiseQuery(DEFAULT_CRUISE_QUERY)),
     retry: load,
-    ships: mockCruiseAdapter.ships,
+    ships,
   }
 }

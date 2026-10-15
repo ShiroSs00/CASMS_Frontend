@@ -4,16 +4,19 @@ import styles from '../OperationalIssues.module.css'
 type Props = {
   open: boolean
   pending: boolean
+  error?: string
   onClose: () => void
   onSubmit: () => Promise<boolean>
 }
 
-export function ReopenIssueForm({ open, pending, onClose, onSubmit }: Props) {
+export function ReopenIssueForm({ open, pending, error, onClose, onSubmit }: Props) {
   return (
     <ActionDialog
       open={open}
+      pending={pending}
+      error={error}
       title="Mở lại sự cố"
-      description="RESOLVED → IN_PROGRESS chỉ cập nhật current status."
+      description="Mở lại sự cố để tiếp tục xử lý. Kết quả xử lý và xác minh cũ sẽ được xóa."
       onClose={onClose}
       footer={
         <>
@@ -26,14 +29,14 @@ export function ReopenIssueForm({ open, pending, onClose, onSubmit }: Props) {
             onClick={() => void onSubmit().then((ok) => ok && onClose())}
             type="button"
           >
-            {pending ? 'Đang mở lại…' : 'Reopen & tiếp tục xử lý'}
+            {pending ? 'Đang mở lại…' : 'Reopen issue'}
           </button>
         </>
       }
     >
-      <p>Không có reopen_reason, reopen_count hoặc transition history trong FOREP.sql.</p>
+      <p>Sự cố sẽ trở về trạng thái OPEN.</p>
       <div className={styles.warningBanner}>
-        Mock giữ resolution hiện tại và không tạo event/history giả.
+        Kết quả xử lý, thông tin người xử lý và xác minh trước đó sẽ bị xóa.
       </div>
     </ActionDialog>
   )

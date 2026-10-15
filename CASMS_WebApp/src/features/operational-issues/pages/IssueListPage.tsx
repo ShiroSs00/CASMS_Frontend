@@ -1,14 +1,17 @@
+import { useState } from 'react'
+
 import { AdminFrame } from '../components/AdminFrame'
 import { IssueListState } from '../components/IssueListState'
 import { IssueMetrics } from '../components/IssueMetrics'
-import { IssuePagination } from '../components/IssuePagination'
 import { IssueSearchFilters } from '../components/IssueSearchFilters'
 import { IssueTable } from '../components/IssueTable'
+import { ReportIssueDialog } from '../components/ReportIssueDialog'
 import styles from '../components/OperationalIssues.module.css'
 import { useIssueList } from '../hooks/useIssueList'
 import { hasActiveIssueFilters } from '../model/issue-query'
 
 export function IssueListPage() {
+  const [reportOpen, setReportOpen] = useState(false)
   const {
     query,
     state,
@@ -28,25 +31,12 @@ export function IssueListPage() {
       <header className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>Sự cố vận hành</h1>
-          <p className={styles.pageDescription}>
-            Quản lý OperationalIssue theo đúng FOREP.sql; không suy diễn quan hệ với
-            ServiceRequest hoặc thực thể impact khác.
-          </p>
-          <span className={styles.mockBadge}>Dữ liệu minh họa · mock adapter</span>
+          <p className={styles.pageDescription}>Triage nhanh theo mức độ, trạng thái và ngữ cảnh tàu/chuyến.</p>
         </div>
+        <button className={styles.primaryButton} onClick={() => setReportOpen(true)}>Báo cáo sự cố</button>
       </header>
 
-      <IssueMetrics
-        totals={
-          state.data?.statusTotals ?? {
-            OPEN: 0,
-            IN_PROGRESS: 0,
-            RESOLVED: 0,
-            CLOSED: 0,
-            review: 0,
-          }
-        }
-      />
+      <IssueMetrics totals={state.data?.statusTotals ?? null} />
       <IssueSearchFilters
         cruises={cruises}
         handlers={handlers}
@@ -77,19 +67,11 @@ export function IssueListPage() {
       {items.length ? (
         <>
           <IssueTable issues={items} />
-          <IssuePagination
-            query={query}
-            total={total}
-            onPageChange={(page) => updateQuery({ page })}
-          />
+          <div className={styles.pagination}><span>{total} kết quả · phân trang chưa khả dụng</span></div>
         </>
       ) : null}
 
-      <aside className={styles.infoBanner}>
-        <strong className={styles.bannerTitle}>OperationalIssue ≠ ServiceRequest</strong>
-        FOREP.sql không có quan hệ ServiceRequest ↔ OperationalIssue. UI mock không hiển thị hoặc
-        thay đổi liên kết này.
-      </aside>
+      <ReportIssueDialog open={reportOpen} onClose={() => setReportOpen(false)} onCreated={retry} />
     </AdminFrame>
   )
 }

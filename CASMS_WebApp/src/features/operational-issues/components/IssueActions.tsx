@@ -1,7 +1,6 @@
 import { useState } from 'react'
 
 import { useIssueActions } from '../hooks/useIssueActions'
-import { mockHandlers } from '../mocks/fixtures'
 import type { IssueAction } from '../model/issue-actions'
 import { getIssueActionAvailability } from '../model/issue-actions'
 import type { OperationalIssue } from '../model/issue'
@@ -38,16 +37,14 @@ export function IssueActions({ issue, onChanged }: Props) {
   return (
     <section className={styles.panel}>
       <h2>Thao tác</h2>
-      {issue.status === 'CLOSED' ? (
-        <div className={styles.infoBanner}>CLOSED là read-only trong normal operations.</div>
-      ) : availableActions.length ? (
+      {availableActions.length ? (
         <div className={styles.actionStack}>
           {availableActions.map((action, index) => (
             <div key={action}>
               <button
                 className={index === 0 ? styles.primaryButton : styles.secondaryButton}
                 disabled={!availability[action].enabled || actions.pendingAction !== null}
-                onClick={() => setActiveAction(action)}
+                onClick={() => { actions.clearFeedback(); setActiveAction(action) }}
                 title={availability[action].reason}
                 type="button"
               >
@@ -60,7 +57,7 @@ export function IssueActions({ issue, onChanged }: Props) {
           ))}
         </div>
       ) : (
-        <p>Không có action phù hợp state hiện tại.</p>
+        <p>Không có thao tác phù hợp với trạng thái hiện tại.</p>
       )}
 
       {actions.feedback ? (
@@ -79,9 +76,10 @@ export function IssueActions({ issue, onChanged }: Props) {
       ) : null}
 
       <AssignHandlerForm
-        handlers={mockHandlers}
+        handlers={issue.assignedTo ? [issue.assignedTo] : []}
         open={activeAction === 'ASSIGN_HANDLER'}
         pending={actions.pendingAction === 'ASSIGN_HANDLER'}
+        error={actions.feedback?.tone === 'error' ? actions.feedback.message : undefined}
         onClose={() => setActiveAction(null)}
         onSubmit={actions.assign}
       />
@@ -89,30 +87,35 @@ export function IssueActions({ issue, onChanged }: Props) {
         assigneeName={issue.assignedTo?.name ?? null}
         open={activeAction === 'START_HANDLING'}
         pending={actions.pendingAction === 'START_HANDLING'}
+        error={actions.feedback?.tone === 'error' ? actions.feedback.message : undefined}
         onClose={() => setActiveAction(null)}
         onSubmit={actions.start}
       />
       <RecordResolutionForm
         open={activeAction === 'RECORD_RESOLUTION'}
         pending={actions.pendingAction === 'RECORD_RESOLUTION'}
+        error={actions.feedback?.tone === 'error' ? actions.feedback.message : undefined}
         onClose={() => setActiveAction(null)}
         onSubmit={actions.recordResolution}
       />
       <VerifyResolutionForm
         open={activeAction === 'VERIFY_RESOLUTION'}
         pending={actions.pendingAction === 'VERIFY_RESOLUTION'}
+        error={actions.feedback?.tone === 'error' ? actions.feedback.message : undefined}
         onClose={() => setActiveAction(null)}
         onSubmit={actions.verifyResolution}
       />
       <CloseIssueAction
         open={activeAction === 'CLOSE'}
         pending={actions.pendingAction === 'CLOSE'}
+        error={actions.feedback?.tone === 'error' ? actions.feedback.message : undefined}
         onClose={() => setActiveAction(null)}
         onSubmit={actions.close}
       />
       <ReopenIssueForm
         open={activeAction === 'REOPEN'}
         pending={actions.pendingAction === 'REOPEN'}
+        error={actions.feedback?.tone === 'error' ? actions.feedback.message : undefined}
         onClose={() => setActiveAction(null)}
         onSubmit={actions.reopen}
       />

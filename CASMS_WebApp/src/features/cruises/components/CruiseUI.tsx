@@ -1,4 +1,5 @@
-import { Link } from 'react-router'
+import type { ReactNode } from 'react'
+import { Link, NavLink } from 'react-router'
 
 import { Badge, Button, DataTable, Empty, Field, Loading, Notice } from '@/shared/ui'
 
@@ -8,14 +9,29 @@ import type { CruiseListState } from '../hooks/useCruiseList'
 import {
   cruiseStatusLabels,
   cruiseTypeLabels,
-  itineraryStatusLabels,
   type CruiseListItem,
   type CruiseListResult,
 } from '../model/cruise-view'
 import styles from './Cruises.module.css'
 
-export function CruiseTopbar() {
-  return <><span>Chuyến được phân công: CASMS Aurora · 20/11/2026</span><span>Nhân viên vận hành &nbsp;&nbsp; Tài khoản ▾</span></>
+const navigation = [
+  ['Tổng quan', ''], ['Bookings', ''], ['Check-in', ''], ['Yêu cầu dịch vụ', ''],
+  ['Tài khoản', ''], ['Tàu', '/admin/ships'], ['Chuyến', '/admin/cruises'],
+  ['Hải trình', '/admin/itineraries'], ['Cảng', '/admin/ports'], ['Điểm đến', '/admin/destinations'],
+  ['Quy định', '/admin/regulations'], ['Sự cố', '/admin/issues'], ['Người dùng', ''], ['Báo cáo', ''],
+] as const
+
+export function CruiseFrame({ children }: { children: ReactNode }) {
+  return <div className={styles.auroraShell}>
+    <aside className={styles.auroraSidebar}>
+      <Link className={styles.auroraBrand} to="/admin/cruises"><strong>AURORA</strong></Link>
+      <span className={styles.brandCaption}>Trung tâm vận hành</span><nav aria-label="Điều hướng quản trị">{navigation.map(([label, href]) => href ? <NavLink className={({ isActive }) => isActive ? styles.auroraNavActive : styles.auroraNav} key={label} to={href}>{label}</NavLink> : <span key={label} className={styles.auroraNav} aria-disabled="true">{label}</span>)}</nav>
+    </aside>
+    <main className={styles.auroraMain}>
+      <header className={styles.auroraTopbar}><span>Tìm kiếm hoặc chạy lệnh…</span><b>Đã đăng nhập</b></header>
+      <div className={styles.auroraCanvas}>{children}</div>
+    </main>
+  </div>
 }
 
 function statusTone(status: CruiseStatus) {
@@ -29,16 +45,16 @@ export function CruiseStatusBadge({ status }: { status: CruiseStatus }) {
   return <Badge label={cruiseStatusLabels[status]} tone={statusTone(status)} />
 }
 
-export function CruiseMetrics({ result }: { result: CruiseListResult }) {
+export function CruiseMetrics({ result }: { result: CruiseListResult | null }) {
   const metrics = [
-    ['CHUYẾN NHÁP', result.metrics.draft, 'neutral'],
-    ['CHỜ DUYỆT', result.metrics.pendingApproval, 'warning'],
-    ['MỞ BÁN', result.metrics.openForSale, 'success'],
-    ['ĐANG VẬN HÀNH', result.metrics.inProgress, 'info'],
+    ['DRAFT', result?.metrics.draft, 'chưa publish'],
+    ['PUBLISHED', result?.metrics.pendingApproval, 'đang mở'],
+    ['IN PROGRESS', result?.metrics.inProgress, 'đang chạy'],
+    ['Conflict', result?.metrics.conflict, 'schedule / config'],
   ] as const
-  return <section className={styles.metrics} aria-label="Tổng quan cruise">
-    {metrics.map(([label, value, tone]) => <div className={styles.metric} key={label}><span>{label}</span><Badge label={String(value)} tone={tone} /></div>)}
-  </section>
+  return <div className={styles.metrics} aria-label="Tổng quan cruise trong trang hiện tại">
+    {metrics.map(([label, value, hint]) => <div className={styles.metric} key={label}><span>{label}</span><strong className={styles.metricValue}>{value === undefined ? '—' : String(value).padStart(2, '0')}</strong><span>{hint}</span></div>)}
+  </div>
 }
 
 export function CruiseFilters({ query, ships, onChange, onReset }: {
@@ -48,11 +64,11 @@ export function CruiseFilters({ query, ships, onChange, onReset }: {
   onReset: () => void
 }) {
   return <section className={styles.filters} aria-label="Bộ lọc cruise">
-    <Field htmlFor="cruise-search" label="Tìm chuyến"><input id="cruise-search" value={query.search} placeholder="Mã hoặc tên cruise" onChange={(event) => onChange({ search: event.target.value })} /></Field>
+    <Field htmlFor="cruise-search" label="Tìm chuyến"><input id="cruise-search" value={query.search} placeholder="Mã / route" disabled title="API danh sách cruise chưa có tham số search" onChange={(event) => onChange({ search: event.target.value })} /></Field>
     <Field htmlFor="cruise-status" label="Trạng thái"><select id="cruise-status" value={query.status} onChange={(event) => onChange({ status: event.target.value as CruiseStatus | '' })}><option value="">Tất cả</option>{Object.entries(cruiseStatusLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></Field>
     <Field htmlFor="cruise-type" label="Loại chuyến"><select id="cruise-type" value={query.cruiseType} onChange={(event) => onChange({ cruiseType: event.target.value as CruiseType | '' })}><option value="">Tất cả</option>{Object.entries(cruiseTypeLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></Field>
-    <Field htmlFor="cruise-ship" label="Tàu"><select id="cruise-ship" value={query.shipId} onChange={(event) => onChange({ shipId: event.target.value })}><option value="">Tất cả</option><option value="UNASSIGNED">Chưa phân công</option>{ships.map((ship) => <option value={ship.shipId} key={ship.shipId}>{ship.shipName}</option>)}</select></Field>
-    <Field htmlFor="departure-date" label="Ngày khởi hành"><input id="departure-date" type="date" value={query.departureDate} onChange={(event) => onChange({ departureDate: event.target.value })} /></Field>
+    <Field htmlFor="cruise-ship" label="Tàu"><select id="cruise-ship" value={query.shipId} onChange={(event) => onChange({ shipId: event.target.value })}><option value="">Tất cả</option>{ships.map((ship) => <option value={ship.shipId} key={ship.shipId}>{ship.shipName}</option>)}</select></Field>
+    <Field htmlFor="departure-date" label="Ngày khởi hành"><input id="departure-date" type="date" value={query.departureDate} disabled title="API danh sách cruise chưa có bộ lọc ngày" onChange={(event) => onChange({ departureDate: event.target.value })} /></Field>
     <div className={styles.filterActions}><Button onClick={() => onChange({ ...query })}>Áp dụng</Button><Button tone="secondary" onClick={onReset}>Xóa lọc</Button></div>
   </section>
 }
@@ -62,16 +78,14 @@ function formatDate(value: string) {
 }
 
 export function CruiseTable({ items }: { items: CruiseListItem[] }) {
-  return <DataTable label="Danh sách cruise" headers={['Cruise', 'Ngày', 'Loại', 'Tàu', 'Hải trình', 'Trạng thái', 'Bán', '']}>
+  return <DataTable label="Danh sách cruise" headers={['Cruise', 'Route', 'Ship', 'Departure', 'Status', 'Readiness']}>
     {items.map((item) => <tr key={item.cruise.cruiseId}>
-      <td><strong>{item.cruise.cruiseCode}</strong><div className={styles.muted}>{item.cruise.cruiseName}</div></td>
-      <td>{formatDate(item.cruise.departureDatetime)}–{formatDate(item.cruise.returnDatetime)}</td>
-      <td>{cruiseTypeLabels[item.cruise.cruiseType]}</td>
+      <td><Link className={styles.rowLink} to={`/admin/cruises/${item.cruise.cruiseId}`}>{item.cruise.cruiseCode}</Link></td>
+      <td>{item.cruise.cruiseName}</td>
       <td>{item.ship?.shipName ?? 'Chưa phân công'}</td>
-      <td>{item.itinerary?.itineraryName ?? 'Chưa có'} </td>
+      <td>{formatDate(item.cruise.departureDatetime)}</td>
       <td><CruiseStatusBadge status={item.cruise.status} /></td>
-      <td>{item.itinerary ? <Badge label={itineraryStatusLabels[item.itinerary.status]} tone={item.itinerary.status === 'OPEN_FOR_SALE' ? 'success' : 'neutral'} /> : '—'}</td>
-      <td><Link className={styles.rowLink} to={`/admin/cruises/${item.cruise.cruiseId}`}>Mở →</Link></td>
+      <td>{item.readinessSummary ? <span title={item.readinessSummary.issues.join(' · ')}>{item.readinessSummary.ready ? 'READY' : `${item.readinessSummary.issues.length} CẦN KIỂM TRA`}</span> : 'Chưa kiểm tra'}</td>
     </tr>)}
   </DataTable>
 }

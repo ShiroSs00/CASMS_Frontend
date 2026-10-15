@@ -14,14 +14,13 @@ export function IssueTable({ issues }: { issues: OperationalIssue[] }) {
         <caption className={styles.visuallyHidden}>Danh sách sự cố vận hành</caption>
         <thead>
           <tr>
+            <th scope="col">Mã sự cố</th>
             <th scope="col">Sự cố</th>
-            <th scope="col">Cruise / khu vực</th>
-            <th scope="col">Ảnh hưởng</th>
-            <th scope="col">Assignee</th>
+            <th scope="col">Mức độ</th>
             <th scope="col">Trạng thái</th>
-            <th scope="col">
-              <span className={styles.visuallyHidden}>Thao tác</span>
-            </th>
+            <th scope="col">Tàu / Chuyến</th>
+            <th scope="col">Người xử lý</th>
+            <th scope="col">Báo lúc</th>
           </tr>
         </thead>
         <tbody>
@@ -33,29 +32,19 @@ export function IssueTable({ issues }: { issues: OperationalIssue[] }) {
                   state={{ returnTo }}
                   to={`/admin/issues/${issue.id}`}
                 >
-                  {issue.code} · {issue.displayTitle}
+                  {issue.code}
                 </Link>
               </td>
-              <td>
-                {issue.cruise ? `${issue.cruise.code} · ${issue.cruise.name}` : issue.ship.name}
-                {issue.cabin ? ` · ${issue.cabin}` : ''}
-              </td>
+              <td><Link className={styles.issueName} state={{ returnTo }} to={`/admin/issues/${issue.id}`}>{issue.displayTitle}</Link></td>
               <td>
                 <IssueSeverityBadge severity={issue.severity} />
               </td>
-              <td>{issue.assignedTo?.name ?? 'Chưa phân công'}</td>
               <td>
                 <IssueStatusBadge status={issue.status} />
               </td>
-              <td>
-                <Link
-                  className={styles.issueLink}
-                  state={{ returnTo }}
-                  to={`/admin/issues/${issue.id}`}
-                >
-                  Mở →
-                </Link>
-              </td>
+              <td>{issue.ship.name}{issue.cruise ? ` · ${issue.cruise.code}` : ''}</td>
+              <td>{issue.assignedTo?.name ?? 'Chưa gán'}</td>
+              <td>{new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(issue.reportedAt))}</td>
             </tr>
           ))}
         </tbody>

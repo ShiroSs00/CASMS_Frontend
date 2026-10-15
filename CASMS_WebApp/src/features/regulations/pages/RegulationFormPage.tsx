@@ -1,7 +1,7 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
 
-import { mockRegulationAdapter } from '../mocks/mock-regulation-adapter'
+import { regulationsApi } from '../api/regulations-api'
 import type {
   MockRegulation,
   RegulationDraft,
@@ -31,7 +31,7 @@ const initialDraft: RegulationDraft = {
   scope: 'GLOBAL',
   value: '',
   unit: 'KNOT',
-  effectiveFrom: '2026-11-20T08:00',
+  effectiveFrom: '',
   effectiveTo: null,
 }
 
@@ -51,6 +51,10 @@ function validate(draft: RegulationDraft) {
 }
 
 function toDraft(regulation: MockRegulation): RegulationDraft {
+  const localTime = (value: string) => {
+    const date = new Date(value)
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+  }
   return {
     code: regulation.code,
     name: regulation.name,
@@ -59,8 +63,8 @@ function toDraft(regulation: MockRegulation): RegulationDraft {
     scope: regulation.scope,
     value: regulation.value,
     unit: regulation.unit,
-    effectiveFrom: regulation.effectiveFrom,
-    effectiveTo: regulation.effectiveTo,
+    effectiveFrom: localTime(regulation.effectiveFrom),
+    effectiveTo: regulation.effectiveTo ? localTime(regulation.effectiveTo) : null,
   }
 }
 
@@ -75,11 +79,12 @@ export function RegulationFormPage() {
   const [notFound, setNotFound] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const submitLock = useRef(false)
 
   useEffect(() => {
     if (!regulationId) return
     let active = true
-    void mockRegulationAdapter.get(regulationId).then((result) => {
+    void regulationsApi.get(regulationId).then((result) => {
       if (!active) return
       if (!result) {
         setNotFound(true)
@@ -87,6 +92,10 @@ export function RegulationFormPage() {
         setSource(result.regulation)
         setDraft(toDraft(result.regulation))
       }
+      setLoading(false)
+    }).catch((error: unknown) => {
+      if (!active) return
+      setSubmitError(error instanceof Error ? error.message : 'Không tải được quy định.')
       setLoading(false)
     })
     return () => {
@@ -104,13 +113,14 @@ export function RegulationFormPage() {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
-    if (submitting) return
+    if (submitLock.current || (isEdit && !source)) return
     const nextErrors = validate(draft)
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) {
       document.querySelector<HTMLElement>('[data-form-error="true"]')?.focus()
       return
     }
+    submitLock.current = true
     setSubmitting(true)
     setSubmitError('')
     try {
@@ -118,9 +128,9 @@ export function RegulationFormPage() {
       if (source) {
         const update: RegulationUpdate = { ...draft, version: source.version }
         if (source.hasBeenActive) delete update.value
-        saved = await mockRegulationAdapter.update(source.id, update)
+        saved = await regulationsApi.update(source.id, update)
       } else {
-        saved = await mockRegulationAdapter.create(draft)
+        saved = await regulationsApi.create(draft)
       }
       navigate(`/admin/regulations/${saved.id}`)
     } catch (error) {
@@ -134,6 +144,7 @@ export function RegulationFormPage() {
         )
       }
     } finally {
+      submitLock.current = false
       setSubmitting(false)
     }
   }
@@ -159,7 +170,7 @@ export function RegulationFormPage() {
         title={isEdit ? 'Chỉnh sửa quy định' : 'Tạo quy định'}
         description={
           isEdit
-            ? `${source?.code} · Chỉ các trường được phép mới có thể cập nhật.`
+            ? `${source?.code ?? 'Chưa tải được quy định'} · Chỉ các trường được phép mới có thể cập nhật.`
             : 'Quy định mới được lưu ở trạng thái DRAFT.'
         }
       />
@@ -171,7 +182,7 @@ export function RegulationFormPage() {
       {source?.hasBeenActive ? (
         <Notice title="Giá trị đã được bảo vệ" tone="warning">
           <span id="protected-value-note">
-            Quy định từng ACTIVE nên giá trị không thể sửa và sẽ không được gửi trong payload cập nhật.
+            Quy định từng ACTIVE nên giá trị được giữ nguyên khi cập nhật.
           </span>
         </Notice>
       ) : null}
@@ -185,6 +196,7 @@ export function RegulationFormPage() {
                 aria-invalid={Boolean(errors.code)}
                 data-form-error={Boolean(errors.code)}
                 id="code"
+                maxLength={30}
                 onChange={(event) => setValue('code', event.target.value.toUpperCase())}
                 placeholder="VD: REG-SPD-010"
                 value={draft.code}
@@ -195,6 +207,7 @@ export function RegulationFormPage() {
                 aria-invalid={Boolean(errors.name)}
                 data-form-error={Boolean(errors.name)}
                 id="name"
+                maxLength={150}
                 onChange={(event) => setValue('name', event.target.value)}
                 value={draft.name}
               />
@@ -238,6 +251,7 @@ export function RegulationFormPage() {
                   data-form-error={Boolean(errors.value)}
                   id="value"
                   onChange={(event) => setValue('value', event.target.value)}
+                  maxLength={100}
                   value={draft.value}
                 />
               )}
@@ -291,7 +305,7 @@ export function RegulationFormPage() {
             </div>
           </div>
           <div className={styles.formActions}>
-            <Button disabled={submitting} type="submit">
+            <Button disabled={submitting || (isEdit && !source)} type="submit">
               {submitting ? 'Đang lưu…' : 'Lưu quy định'}
             </Button>
             <Button

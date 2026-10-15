@@ -4,6 +4,17 @@ import { HomePage } from '@/features/home'
 import { CruiseDetailPage, CruiseFormPage, CruiseListPage } from '@/features/cruises'
 import { IssueDetailPage, IssueListPage } from '@/features/operational-issues'
 import {
+  DestinationDetailPage,
+  DestinationFormPage,
+  DestinationListPage,
+  ItineraryDetailPage,
+  ItineraryFormPage,
+  ItineraryListPage,
+  PortDetailPage,
+  PortFormPage,
+  PortListPage,
+} from '@/features/itineraries'
+import {
   CruiseRegulationsPage,
   RegulationDetailPage,
   RegulationFormPage,
@@ -36,6 +47,18 @@ export const router = createBrowserRouter([
   { path: '/admin/cruises/new', Component: CruiseFormPage },
   { path: '/admin/cruises/:cruiseId', Component: CruiseDetailPage },
   { path: '/admin/cruises/:cruiseId/edit', Component: CruiseFormPage },
+  { path: '/admin/itineraries', Component: ItineraryListPage },
+  { path: '/admin/itineraries/new', Component: ItineraryFormPage },
+  { path: '/admin/itineraries/:itineraryId', Component: ItineraryDetailPage },
+  { path: '/admin/itineraries/:itineraryId/edit', Component: ItineraryFormPage },
+  { path: '/admin/ports', Component: PortListPage },
+  { path: '/admin/ports/new', Component: PortFormPage },
+  { path: '/admin/ports/:portId', Component: PortDetailPage },
+  { path: '/admin/ports/:portId/edit', Component: PortFormPage },
+  { path: '/admin/destinations', Component: DestinationListPage },
+  { path: '/admin/destinations/new', Component: DestinationFormPage },
+  { path: '/admin/destinations/:destinationId', Component: DestinationDetailPage },
+  { path: '/admin/destinations/:destinationId/edit', Component: DestinationFormPage },
   { path: '/admin/issues', Component: IssueListPage },
   { path: '/admin/issues/:issueId', Component: IssueDetailPage },
   {

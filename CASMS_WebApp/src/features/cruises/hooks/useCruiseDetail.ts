@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { mockCruiseAdapter } from '../mocks/mock-cruise-adapter'
+import { cruiseApi } from '../api/cruise-api'
 import type { CruiseDetailView } from '../model/cruise-view'
 
 type DetailState =
@@ -15,7 +15,7 @@ export function useCruiseDetail(cruiseId: string | undefined) {
     if (!cruiseId) {
       return
     }
-    void mockCruiseAdapter.getDetail(cruiseId).then((data) => {
+    return cruiseApi.getDetail(cruiseId).then((data) => {
       setState({ status: 'ready', data, error: null })
     }).catch((error: unknown) => {
       setState({ status: 'error', data: null, error: error instanceof Error ? error.message : 'Không tải được cruise.' })
@@ -24,7 +24,7 @@ export function useCruiseDetail(cruiseId: string | undefined) {
 
   const load = useCallback(() => {
     setState((previous) => ({ status: 'loading', data: previous.data, error: null }))
-    request()
+    return request()
   }, [request])
 
   useEffect(() => { request() }, [request])

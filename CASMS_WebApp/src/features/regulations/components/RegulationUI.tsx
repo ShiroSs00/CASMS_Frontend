@@ -4,6 +4,7 @@ import {
   type ButtonHTMLAttributes,
   type ReactNode,
 } from 'react'
+import { NavLink } from 'react-router'
 
 import type {
   ConflictResult,
@@ -15,10 +16,25 @@ import {
   statusLabels,
 } from '../model/regulation'
 import styles from './Regulations.module.css'
-import { AdminFrame as SharedAdminFrame } from '@/shared/ui'
-
 export function AdminFrame({ children }: { children: ReactNode }) {
-  return <SharedAdminFrame className={styles.appShell}>{children}</SharedAdminFrame>
+  const links = [
+    ['Tổng quan', ''], ['Bookings', ''], ['Check-in', ''], ['Yêu cầu dịch vụ', ''],
+    ['Tài khoản', ''], ['Tàu', '/admin/ships'], ['Chuyến', '/admin/cruises'],
+    ['Hải trình', '/admin/itineraries'], ['Quy định', '/admin/regulations'],
+    ['Sự cố', '/admin/issues'], ['Người dùng', ''], ['Báo cáo', ''],
+  ] as const
+  return <div className={styles.appShell}>
+    <a className={styles.skipLink} href="#regulation-main">Chuyển đến nội dung chính</a>
+    <aside className={styles.sidebar}>
+      <strong className={styles.brand}>AURORA</strong>
+      <span className={styles.brandCaption}>Trung tâm vận hành</span>
+      {links.map(([label, to]) => to
+        ? <NavLink key={label} to={to} className={({ isActive }) => `${styles.navLink} ${isActive ? styles.navActive : ''}`}>{label}</NavLink>
+        : <span key={label} className={styles.navLink}>{label}</span>)}
+    </aside>
+    <header className={styles.topbar}><span>Tìm kiếm hoặc chạy lệnh…</span><b>Đã đăng nhập</b></header>
+    <main className={styles.main} id="regulation-main">{children}</main>
+  </div>
 }
 export function PageHeader({
   title,
@@ -31,7 +47,6 @@ export function PageHeader({
 }) {
   return (
     <header className={styles.pageHeader}>
-      <div className={styles.breadcrumb}>VẬN HÀNH&nbsp;&nbsp; / &nbsp;&nbsp;QUY ĐỊNH</div>
       <h1>{title}</h1>
       <p>{description}</p>
       {actions ? <div className={styles.headerActions}>{actions}</div> : null}

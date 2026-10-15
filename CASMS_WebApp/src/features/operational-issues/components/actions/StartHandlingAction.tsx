@@ -4,6 +4,7 @@ import styles from '../OperationalIssues.module.css'
 type Props = {
   open: boolean
   pending: boolean
+  error?: string
   assigneeName: string | null
   onClose: () => void
   onSubmit: () => Promise<boolean>
@@ -12,6 +13,7 @@ type Props = {
 export function StartHandlingAction({
   open,
   pending,
+  error,
   assigneeName,
   onClose,
   onSubmit,
@@ -19,8 +21,10 @@ export function StartHandlingAction({
   return (
     <ActionDialog
       open={open}
+      pending={pending}
+      error={error}
       title="Bắt đầu xử lý"
-      description="OPEN → IN_PROGRESS chỉ khi issue đã có assigned_to."
+      description="Bắt đầu xử lý sự cố sau khi đã phân công người phụ trách."
       onClose={onClose}
       footer={
         <>
@@ -39,9 +43,9 @@ export function StartHandlingAction({
       }
     >
       <div className={styles.infoBanner}>
-        Assignee hiện tại: <strong>{assigneeName ?? 'Chưa phân công'}</strong>
+        Người phụ trách: <strong>{assigneeName ?? 'Chưa phân công'}</strong>
       </div>
-      <p>Transition sẽ được backend kiểm tra capability và current state trước khi commit.</p>
+      <p>Hệ thống sẽ kiểm tra người được phân công và trạng thái hiện tại trước khi bắt đầu.</p>
     </ActionDialog>
   )
 }
