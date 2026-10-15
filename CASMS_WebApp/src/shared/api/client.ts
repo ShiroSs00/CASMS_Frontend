@@ -1,20 +1,27 @@
-type ApiEnvelope<T> = { success: boolean; message?: string; error?: string; data?: T }
+type ApiEnvelope<T> = { success: boolean; message?: string; error?: string; code?: string; data?: T }
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   query?: Record<string, string | number | boolean | undefined>
   body?: unknown
   signal?: AbortSignal
+  authenticated?: boolean
 }
 export class ApiError extends Error {
   status: number
-  constructor(message: string, status: number) {
-    super(message); this.name = 'ApiError'; this.status = status
+  code?: string
+  constructor(message: string, status: number, code?: string) {
+    super(message); this.name = 'ApiError'; this.status = status; this.code = code
   }
 }
 
 // A login provider may supply JWT in memory. Never store it in public VITE_* vars.
 let accessToken: string | null = null
 export function setApiAccessToken(token: string | null) { accessToken = token }
+const unauthorizedListeners = new Set<() => void>()
+export function subscribeApiUnauthorized(listener: () => void) {
+  unauthorizedListeners.add(listener)
+  return () => { unauthorizedListeners.delete(listener) }
+}
 const baseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -24,7 +31,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (options.body !== undefined) headers['Content-Type'] = 'application/json'
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`
+  const requestToken = options.authenticated === false ? null : accessToken
+  if (requestToken) headers.Authorization = `Bearer ${requestToken}`
   const controller = new AbortController()
   const abort = () => controller.abort()
   options.signal?.addEventListener('abort', abort, { once: true })
@@ -41,12 +49,16 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     const message = typeof payload?.message === 'string' ? payload.message
       : typeof payload?.error === 'string' ? payload.error : ''
     if (!response.ok) {
+      // Ignore late 401s from an older session and unauthenticated login requests.
+      if (response.status === 401 && requestToken && requestToken === accessToken) {
+        unauthorizedListeners.forEach((listener) => listener())
+      }
       throw new ApiError(response.status === 401 ? 'Cần đăng nhập với JWT hợp lệ hoặc phiên đăng nhập đã hết hạn.'
         : response.status === 403 ? 'Bạn không có quyền thực hiện thao tác này.'
-          : message || `Không thể thực hiện yêu cầu (HTTP ${response.status}).`, response.status)
+          : message || `Không thể thực hiện yêu cầu (HTTP ${response.status}).`, response.status, payload?.code ?? payload?.error)
     }
     if (!payload || typeof payload.success !== 'boolean') throw new ApiError('Response API không đúng định dạng đã công bố.', response.status)
-    if (!payload.success) throw new ApiError(message || 'Backend từ chối thao tác.', response.status)
+    if (!payload.success) throw new ApiError(message || 'Backend từ chối thao tác.', response.status, payload.code ?? payload.error)
     return payload.data as T
   } catch (error) {
     if (error instanceof ApiError || options.signal?.aborted) throw error

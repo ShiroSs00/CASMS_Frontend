@@ -1,20 +1,22 @@
 import { useState } from 'react'
 
-import type { PersonReference } from '../../model/issue'
+import { useAssignableHandlers } from '../../hooks/useAssignableHandlers'
 import { ActionDialog } from '../ActionDialog'
 import styles from '../OperationalIssues.module.css'
 
 type Props = {
   open: boolean
-  handlers: PersonReference[]
+  currentHandlerId?: string
   pending: boolean
   error?: string
   onClose: () => void
   onSubmit: (handlerId: string) => Promise<boolean>
 }
 
-export function AssignHandlerForm({ open, handlers, pending, error, onClose, onSubmit }: Props) {
-  const [handlerId, setHandlerId] = useState(handlers[0]?.id ?? '')
+export function AssignHandlerForm({ open, currentHandlerId, pending, error, onClose, onSubmit }: Props) {
+  const [handlerId, setHandlerId] = useState(currentHandlerId ?? '')
+  const handlers = useAssignableHandlers()
+  const selected = handlers.options.find((handler) => handler.id === handlerId)
 
   return (
     <ActionDialog
@@ -31,7 +33,7 @@ export function AssignHandlerForm({ open, handlers, pending, error, onClose, onS
           </button>
           <button
             className={styles.primaryButton}
-            disabled={pending || !handlerId}
+            disabled={pending || handlers.loading || !selected}
             onClick={() => void onSubmit(handlerId).then((ok) => ok && onClose())}
             type="button"
           >
@@ -42,9 +44,13 @@ export function AssignHandlerForm({ open, handlers, pending, error, onClose, onS
     >
       <label className={styles.field}>
         Team / người phụ trách
-        <input value={handlerId} onChange={(event) => setHandlerId(event.target.value)} placeholder="User UUID" />
+        <select value={selected ? handlerId : ''} disabled={pending || handlers.loading || !!handlers.error} onChange={(event) => setHandlerId(event.target.value)}>
+          <option value="">{handlers.loading ? 'Đang tải người xử lý…' : 'Chọn người xử lý'}</option>
+          {handlers.options.map((handler) => <option key={handler.id} value={handler.id}>{handler.label}{handler.capability ? ` — ${handler.capability}` : ''}</option>)}
+        </select>
       </label>
-      <p>Nhập mã người phụ trách được cung cấp bởi bộ phận vận hành.</p>
+      {handlers.error ? <div role="alert"><p>{handlers.error}</p><button className={styles.secondaryButton} onClick={handlers.retry} disabled={pending} type="button">Thử lại</button></div> : null}
+      {!handlers.loading && !handlers.error && !handlers.options.length ? <p role="status">Chưa có tài khoản đang hoạt động có thể được phân công.</p> : null}
     </ActionDialog>
   )
 }

@@ -75,14 +75,14 @@ export function IssueActions({ issue, onChanged }: Props) {
         </div>
       ) : null}
 
-      <AssignHandlerForm
-        handlers={issue.assignedTo ? [issue.assignedTo] : []}
-        open={activeAction === 'ASSIGN_HANDLER'}
+      {activeAction === 'ASSIGN_HANDLER' && <AssignHandlerForm
+        currentHandlerId={issue.assignedTo?.id}
+        open
         pending={actions.pendingAction === 'ASSIGN_HANDLER'}
         error={actions.feedback?.tone === 'error' ? actions.feedback.message : undefined}
         onClose={() => setActiveAction(null)}
         onSubmit={actions.assign}
-      />
+      />}
       <StartHandlingAction
         assigneeName={issue.assignedTo?.name ?? null}
         open={activeAction === 'START_HANDLING'}
