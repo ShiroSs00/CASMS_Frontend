@@ -1,5 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 
+import { AccessDeniedPage, AdminGuard, LoginPage, SessionBoundary } from '@/features/auth'
+
 import { HomePage } from '@/features/home'
 import { CruiseDetailPage, CruiseFormPage, CruiseListPage } from '@/features/cruises'
 import { IssueDetailPage, IssueListPage } from '@/features/operational-issues'
@@ -29,7 +31,7 @@ import {
 
 import { PublicLayout } from './layouts/PublicLayout'
 
-export const router = createBrowserRouter([
+const adminRoutes = [
   { path: '/admin', element: <Navigate to="/admin/ships" replace /> },
   { path: '/admin/ships', Component: ShipListPage },
   { path: '/admin/ships/new', Component: ShipFormPage },
@@ -61,16 +63,7 @@ export const router = createBrowserRouter([
   { path: '/admin/destinations/:destinationId/edit', Component: DestinationFormPage },
   { path: '/admin/issues', Component: IssueListPage },
   { path: '/admin/issues/:issueId', Component: IssueDetailPage },
-  {
-    path: '/',
-    Component: PublicLayout,
-    children: [
-      {
-        index: true,
-        Component: HomePage,
-      },
-    ],
-  },
+
   {
     path: '/admin/regulations',
     Component: RegulationListPage,
@@ -95,4 +88,11 @@ export const router = createBrowserRouter([
     path: '/admin/cruises/:cruiseId/regulations',
     Component: CruiseRegulationsPage,
   },
-])
+]
+
+export const router = createBrowserRouter([{ Component: SessionBoundary, children: [
+  { Component: AdminGuard, children: [...adminRoutes, { path: '/admin/*', element: <Navigate to="/admin" replace /> }] },
+  { path: '/', Component: PublicLayout, children: [{ index: true, Component: HomePage }] },
+  { path: '/login', Component: LoginPage },
+  { path: '/403', Component: AccessDeniedPage },
+] }])

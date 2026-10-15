@@ -1,36 +1,15 @@
-import { NavLink, Outlet } from 'react-router'
-
+import { useState } from 'react'
+import { Link, Outlet } from 'react-router'
+import { AuthAccountMenu } from '@/features/auth'
+import { pendingBookingMessage } from '@/features/home'
 import styles from './PublicLayout.module.css'
 
 export function PublicLayout() {
-  return (
-    <div className={styles.pageShell}>
-      <a className={styles.skipLink} href="#main-content">
-        Chuyển đến nội dung chính
-      </a>
-
-      <header className={styles.header}>
-        <NavLink className={styles.brand} to="/" aria-label="CASMS Web — Trang nền tảng">
-          <span className={styles.brandMark} aria-hidden="true">
-            C
-          </span>
-          <span>
-            <strong>CASMS</strong>
-            <small>Web foundation</small>
-          </span>
-        </NavLink>
-
-        <span className={styles.setupBadge}>WEB-001 · SETUP</span>
-      </header>
-
-      <main id="main-content" className={styles.main} tabIndex={-1}>
-        <Outlet />
-      </main>
-
-      <footer className={styles.footer}>
-        <span>CASMS Web</span>
-        <span>Technical foundation · Product UI chưa được xác nhận</span>
-      </footer>
-    </div>
-  )
+  const [notice, setNotice] = useState('')
+  return <div className={styles.pageShell}>
+    <a className={styles.skipLink} href="#main-content">Chuyển đến nội dung chính</a>
+    <header className={styles.header}><div className={styles.brandNav}><Link className={styles.brand} to="/">AURORA</Link><nav aria-label="Điều hướng chính"><a href="/#voyages">Chuyến du thuyền</a><a href="/#destinations">Điểm đến</a><a href="/#experience">Trải nghiệm</a></nav></div><div className={styles.accountNav}><button onClick={() => setNotice(pendingBookingMessage('my-bookings'))}>Booking của tôi</button><AuthAccountMenu /></div></header>
+    {notice && <div className={styles.notice} role="status">{notice}<button onClick={() => setNotice('')} aria-label="Đóng thông báo">×</button></div>}
+    <main id="main-content" tabIndex={-1}><Outlet /></main>
+  </div>
 }

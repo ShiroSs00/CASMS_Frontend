@@ -6,7 +6,12 @@ Source: `docs/tasks/WEB-REG-001.md` and Figma file `BKLkzpHzVteitEbRhx3oKg`, pag
 
 | Technical ID | Route | Implementation | Figma | Status |
 | --- | --- | --- | --- | --- |
-| TECH-WEB-001 | `/` | `src/features/home` | UNCONFIRMED | CONFIRMED technical shell; not a product screen |
+| AURORA-HOME-V3 | `/` | `src/features/home` | `k754hHXohOrGHSgjtuSRnw / 111:93` | V3 public landing; replaces technical shell |
+| AURORA-LOGIN-V3 | `/login` | `src/features/auth` | `k754hHXohOrGHSgjtuSRnw / 78:2` | Username/password authentication |
+| AURORA-SESSION-V3 | `/login?reason=expired` | `src/features/auth` | `k754hHXohOrGHSgjtuSRnw / 112:112` | Session expired |
+| AURORA-ACCOUNT-V3 | Public header | `src/features/auth` via app layout | `k754hHXohOrGHSgjtuSRnw / 112:93` | Username, staff entry, logout |
+| AURORA-403-V3 | `/403` | `src/features/auth` | `k754hHXohOrGHSgjtuSRnw / 98:626` | Coarse admin access-denied UX |
+| AURORA-OIM-HANDLER | Existing issue assignment dialog | `src/features/operational-issues` | `k754hHXohOrGHSgjtuSRnw / 98:503` | Identity handler lookup only; existing workflow preserved |
 | WEB-OIM-LIST | `/admin/issues` | `src/features/operational-issues` | `135:4588`, `135:5293`, `135:5361` | CONFIRMED mock UI; FOREP.sql current-state boundary |
 | WEB-OIM-DETAIL | `/admin/issues/:issueId` | `src/features/operational-issues` | `135:4689`, `135:4835`, `135:5001`, `135:5077`, `135:5143`, `135:5417` | CONFIRMED mock UI; no persisted audit/history |
 | WEB-REG-R01 | `/admin/regulations` | `src/features/regulations` | `231:6742` | List/search/filter |

@@ -1,1 +1,1 @@
-export { apiRequest, ApiError, setApiAccessToken } from './client'
+export { apiRequest, ApiError, setApiAccessToken, subscribeApiUnauthorized } from './client'
