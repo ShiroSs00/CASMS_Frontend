@@ -13,3 +13,7 @@ export type ActionState = 'idle'|'pending'|'validation'|'conflict'|'error'|'unkn
 export type ActionResult = { state:Exclude<ActionState,'idle'|'pending'>; message:string; reference?:string }
 export type MissingCapability = 'cruise-search'|'cruise-detail'|'availability'|'booking-create'|'my-bookings'|'booking-detail'|'traveller-save'|'checkin-save'|'arrival-save'|'boarding-pass'|'payment-start'|'payment-status'|'contract-read'|'contract-accept'|'change-request'
 
+export type CruiseSearchQuery = { destination:string;port:string;month:string;quick:string[];sort:string }
+export type CruiseSearchResult = { items:Cruise[];totalResults:number;certainty:'fixture' }
+export type ArrivalSlot = { id:string;label:string;availability:'available'|'unavailable' }
+
