@@ -50,6 +50,11 @@ export function RegulationDetailPage() {
     if (!nextStatus || lock.current || (nextStatus === 'ACTIVE' && !precheck?.canProceed)) return
     lock.current = true; setBusy(true); setError('')
     try {
+      if (nextStatus === 'ACTIVE') {
+        const latestPrecheck = await regulationsApi.precheckStatus(regulationId, nextStatus)
+        setPrecheck(latestPrecheck)
+        if (!latestPrecheck.canProceed) return
+      }
       await regulationsApi.changeStatus(regulationId, nextStatus)
       setData(await regulationsApi.get(regulationId)); setNextStatus(null)
       setSuccess('Đã cập nhật trạng thái quy định.')
@@ -80,6 +85,7 @@ export function RegulationDetailPage() {
           {data.regulation.status === 'ACTIVE'
             ? <Button disabled={busy || !data.capabilities.canDeactivate.allowed} onClick={() => void openStatus('INACTIVE')}>Deactivate</Button>
             : <Button disabled={busy || !data.capabilities.canActivate.allowed} onClick={() => void openStatus('ACTIVE')}>Activate</Button>}
+          {data.regulation.status !== 'ACTIVE' && !data.capabilities.canActivate.allowed && <Notice title="Chưa thể kích hoạt" tone="warning">{data.capabilities.canActivate.reason}</Notice>}
           {busy && <p role="status">Đang kiểm tra…</p>}
           {precheck && !nextStatus && <ConflictCard result={precheck} />}
         </aside>

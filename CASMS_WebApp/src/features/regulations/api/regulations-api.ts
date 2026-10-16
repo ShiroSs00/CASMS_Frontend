@@ -29,7 +29,7 @@ function toRegulation(dto: RegulationDto): MockRegulation {
     description: dto.description ?? '',
     type: dto.regulationType,
     scope: dto.scope,
-    value: String(dto.ruleValue ?? dto.value ?? ''),
+    value: dto.value,
     unit: dto.unit ?? null,
     effectiveFrom: dto.effectiveFrom,
     effectiveTo: dto.effectiveTo ?? null,
@@ -55,8 +55,16 @@ function body(draft: RegulationDraft) {
 
 const capability = (allowed: boolean, reason?: string) => ({ allowed, ...(reason ? { reason } : {}) })
 function capabilitiesFor(regulation: MockRegulation): RegulationCapabilities {
+  const now = Date.now()
+  const activationBlockedReason = regulation.status !== 'DRAFT' && regulation.status !== 'INACTIVE'
+    ? 'Chỉ quy định DRAFT hoặc INACTIVE mới có thể kích hoạt.'
+    : new Date(regulation.effectiveFrom).getTime() > now
+      ? 'Chưa đến thời điểm bắt đầu hiệu lực. Hãy chờ đến thời điểm đó hoặc chỉnh lại thời gian hiệu lực.'
+      : regulation.effectiveTo && new Date(regulation.effectiveTo).getTime() < now
+        ? 'Quy định đã hết thời gian hiệu lực. Hãy chỉnh thời điểm kết thúc hiệu lực trước khi kích hoạt.'
+        : undefined
   return {
-    canActivate: capability(regulation.status === 'DRAFT' || regulation.status === 'INACTIVE', 'Chỉ DRAFT/INACTIVE có thể activate.'),
+    canActivate: capability(!activationBlockedReason, activationBlockedReason),
     canDeactivate: capability(regulation.status === 'ACTIVE', 'Chỉ ACTIVE có thể deactivate.'),
     canAssign: capability(regulation.status === 'ACTIVE', 'Chỉ regulation ACTIVE mới có hiệu lực để gán.'),
     canRemove: capability(true),
@@ -64,21 +72,15 @@ function capabilitiesFor(regulation: MockRegulation): RegulationCapabilities {
   }
 }
 
-function normalizeConflict(value: ConflictDto | ConflictDto[]): ConflictResult {
-  const dto = Array.isArray(value) ? value[0] ?? {} : value
-  const items = Array.isArray(value) ? value : dto.conflicts ?? []
-  const blocking = dto.blocking ?? (dto.canProceed === false)
-  const hasConflict = dto.hasConflict ?? (dto.severity?.toLowerCase() === 'warning' || items.length > 0)
+function normalizeConflict(dto: ConflictDto): ConflictResult {
+  const blocking = dto.canProceed !== true || dto.severity === 'BLOCKING'
+  const hasConflict = dto.severity === 'WARNING'
   return {
     severity: blocking ? 'blocking' : hasConflict ? 'warning' : 'clear',
     title: blocking ? 'Xung đột chặn thao tác' : hasConflict ? 'Cảnh báo xung đột' : 'Không phát hiện xung đột',
-    message: dto.message ?? (blocking ? 'Backend không cho phép tiếp tục.' : hasConflict ? 'Backend yêu cầu rà soát trước khi tiếp tục.' : 'Backend cho phép tiếp tục.'),
-    canProceed: dto.canProceed ?? !blocking,
-    comparedWith: dto.comparedWith ? dto.comparedWith.map((item) => ({ code: item.code, source: item.scope, content: `${item.value} ${item.unit ?? ''}` })) : items.map((item) => ({
-      code: item.regulationCode ?? item.code ?? 'REGULATION',
-      source: item.source ?? 'Backend conflict check',
-      content: item.message ?? item.content ?? 'Xung đột được backend trả về.',
-    })),
+    message: `${dto.message} (${dto.context} · ${dto.code})`,
+    canProceed: !blocking,
+    comparedWith: dto.comparedWith.map((item) => ({ code: item.code, source: item.scope, content: `${item.value} ${item.unit ?? ''}`.trim() })),
   }
 }
 
@@ -105,7 +107,7 @@ function assigned(regulation: MockRegulation, direct: boolean, sourceLabel: stri
 
 export const regulationsApi = {
   validate: (id: string) => apiRequest<void>(`${byId(id)}/validate`, { method: 'POST' }),
-  async conflicts(id: string) { return normalizeConflict(await apiRequest<ConflictDto>(`${byId(id)}/conflicts`)) },
+  async conflicts(id: string) { return normalizeConflict(await apiRequest<ConflictDto>(`${byId(id)}/conflicts`, { query: { context: 'ACTIVATE' } })) },
   async list(query: RegulationListQuery): Promise<RegulationListItem[]> {
     const rows = await listRaw()
     const term = query.search.trim().toLocaleLowerCase('vi')
@@ -135,9 +137,14 @@ export const regulationsApi = {
     return toRegulation(await apiRequest<RegulationDto>(byId(id), { method: 'PUT', body: body(merged) }))
   },
   async precheckStatus(id: string, nextStatus: RegulationStatus) {
-    if (nextStatus !== 'ACTIVE') return normalizeConflict({ hasConflict: false, canProceed: true })
+    if (nextStatus !== 'ACTIVE') return { severity: 'clear', title: 'Không cần kiểm tra kích hoạt', message: 'Xác nhận thay đổi trạng thái.', canProceed: true, comparedWith: [] } satisfies ConflictResult
     await apiRequest<void>(`${byId(id)}/validate`, { method: 'POST' })
-    return normalizeConflict(await apiRequest<ConflictDto | ConflictDto[]>(`${byId(id)}/conflicts`))
+    const current = toRegulation(await apiRequest<RegulationDto>(byId(id)))
+    const activation = capabilitiesFor(current).canActivate
+    if (!activation.allowed) {
+      return { severity: 'blocking', title: 'Chưa thể kích hoạt', message: activation.reason!, canProceed: false, comparedWith: [] } satisfies ConflictResult
+    }
+    return normalizeConflict(await apiRequest<ConflictDto>(`${byId(id)}/conflicts`, { query: { context: 'ACTIVATE' } }))
   },
   async changeStatus(id: string, nextStatus: RegulationStatus) {
     const action = nextStatus === 'ACTIVE' ? 'activate' : 'deactivate'
@@ -179,7 +186,7 @@ export const regulationsApi = {
     const id = regulationId ?? hostId
     const base = assignmentPath(type, regulationId ? hostId : '')
     if (!regulationId) {
-      return normalizeConflict({ hasConflict: true, canProceed: false, message: 'Thiếu host ID cho precheck.' })
+      return { severity: 'blocking', title: 'Xung đột chặn thao tác', message: 'Thiếu host ID cho precheck.', canProceed: false, comparedWith: [] } satisfies ConflictResult
     }
     return normalizeConflict(await apiRequest<ConflictDto>(`${base}/precheck`, { method: 'POST', body: { regulationId: id } }))
   },

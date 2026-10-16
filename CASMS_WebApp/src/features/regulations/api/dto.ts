@@ -7,8 +7,7 @@ export type RegulationDto = {
   description?: string | null
   regulationType: RegulationType
   scope: RegulationScope
-  ruleValue?: string | number | null
-  value?: string | number | null
+  value: string
   unit?: RegulationUnit | null
   effectiveFrom: string
   effectiveTo?: string | null
@@ -18,23 +17,12 @@ export type RegulationDto = {
 }
 
 export type ConflictDto = {
-  severity?: string
-  comparedWith?: Array<{ regulationId: string; code: string; scope: string; value: string; unit?: string }>
-  regulationCode?: string
-  code?: string
-  source?: string
-  content?: string
-  hasConflict?: boolean
-  blocking?: boolean
-  canProceed?: boolean
-  message?: string
-  conflicts?: Array<{
-    regulationCode?: string
-    code?: string
-    source?: string
-    message?: string
-    content?: string
-  }>
+  context: string
+  severity: 'CLEAR' | 'WARNING' | 'BLOCKING'
+  canProceed: boolean
+  code: string
+  message: string
+  comparedWith: Array<{ regulationId: string; code: string; scope: RegulationScope; value: string; unit: string | null }>
 }
 
 export type AssignmentDto = { regulationId: string }
