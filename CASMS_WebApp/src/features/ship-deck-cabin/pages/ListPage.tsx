@@ -4,8 +4,9 @@ import { AdminFrame, Button, ButtonLink, DataTable, Empty, Modal, Notice, PageHe
 import { useAdminData, useAvailableCabins, useMutation } from '../hooks/useAdminData'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { cabinStatuses, cabinTypes, entityName, kindLabels, sectionLabels, shipStatuses } from '../model/types'
-import type { CabinType, Entity, EntityKind } from '../model/types'
+import type { CabinType, Deck, Entity, EntityKind } from '../model/types'
 import { DataState, InputField, SelectField, StatusBadge } from '../components/Common'
+import { BulkCabinDialog } from '../components/BulkCabinDialog'
 import styles from '../components/Management.module.css'
 
 type Filters = { ship: string; deck: string; search: string; status: string; type: string; accessible: string; minCapacity: string; available: string }
@@ -22,6 +23,7 @@ function ListPage({ kind }: { kind: EntityKind }) {
   const [filters, setFilters] = useState(initial)
   const [page, setPage] = useState(1)
   const [deleting, setDeleting] = useState<Entity | null>(null)
+  const [bulkDeck, setBulkDeck] = useState<Deck | null>(null)
   const snapshot = useAdminData()
   const { data } = snapshot
   const searchAvailable = kind === 'cabins' && initial.available === '1'
@@ -99,7 +101,10 @@ function ListPage({ kind }: { kind: EntityKind }) {
               <Link className={styles.link} to={`/admin/${kind}/${row.id}`}>Xem chi tiết</Link>
               <Link className={styles.link} to={`/admin/${kind}/${row.id}/edit`}>Chỉnh sửa</Link>
               {'code' in row && <><Link className={styles.link} to={`/admin/decks?ship=${row.id}`}>Boong</Link><Link className={styles.link} to={`/admin/cabins?ship=${row.id}`}>Cabin</Link></>}
-              {kind === 'decks' && 'shipId' in row && <Link className={styles.link} to={`/admin/cabins?ship=${row.shipId}&deck=${row.id}`}>Xem cabin</Link>}
+              {kind === 'decks' && 'shipId' in row && <>
+                <Link className={styles.link} to={`/admin/cabins?ship=${row.shipId}&deck=${row.id}`}>Xem cabin</Link>
+                <button type="button" className={styles.link} onClick={() => setBulkDeck(row as Deck)}>Tự động tạo cabin</button>
+              </>}
               <button className={`${styles.link} ${styles.danger}`} onClick={() => { mutation.clear(); setDeleting(row) }}>Xóa chưa sử dụng</button>
             </div></td>
           </tr>)}
@@ -107,6 +112,17 @@ function ListPage({ kind }: { kind: EntityKind }) {
         {rows.length > 10 && <div className={styles.pagination}><span className={styles.muted}>Trang {currentPage}/{pageCount} · {rows.length} kết quả</span><div className={styles.actions}><Button tone="secondary" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Trang trước</Button><Button tone="secondary" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>Trang sau</Button></div></div>}
       </> : <Empty><p>Thử tìm kiếm khác hoặc xóa bộ lọc.</p><Button tone="secondary" onClick={() => { setFilters(empty); apply(empty) }}>Xóa bộ lọc</Button></Empty>)}
     </Panel>
+    {bulkDeck && data && (
+      <BulkCabinDialog
+        deck={bulkDeck}
+        ship={data.ships.find((s) => s.id === bulkDeck.shipId) ?? { id: bulkDeck.shipId, code: 'SHIP', name: 'Tàu', status: 'ACTIVE', capacity: 0, totalDecks: 0, commissionDate: '' }}
+        existingCabins={data.cabins}
+        onClose={() => setBulkDeck(null)}
+        onSuccess={(count) => {
+          mutation.setSuccess(`Đã tự động tạo thành công ${count} cabin cho Boong ${bulkDeck.number}.`)
+        }}
+      />
+    )}
     {deleting && <Modal title={`Xóa ${kindLabels[kind]} chưa sử dụng?`} busy={mutation.busy} onClose={() => setDeleting(null)}>
       <div className={styles.stack}>
         <Notice title={entityName(deleting)} tone="warning">Xóa đối tượng khỏi hệ thống. Backend sẽ kiểm tra điều kiện chưa sử dụng; thao tác có thể bị từ chối khi còn dữ liệu liên quan.</Notice>

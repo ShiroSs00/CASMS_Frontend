@@ -19,3 +19,12 @@
 .list { margin:0; padding-left:20px; font-size:14px; line-height:24px; }
 @media(max-width:1100px) { .grid,.definition { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:760px) { .grid,.twoColumns,.definition { grid-template-columns:1fr; } .actions { align-items:stretch; } .pagination { align-items:stretch; flex-direction:column; } }
+.previewBox { border: 1px solid #d9e0e4; border-radius: 4px; max-height: 280px; overflow-y: auto; background: #fff; }
+.previewTable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.previewTable th { position: sticky; top: 0; background: #f4f6f8; padding: 8px 10px; border-bottom: 1px solid #d9e0e4; text-align: left; font-weight: 600; font-size: 12px; z-index: 1; }
+.previewTable td { padding: 6px 10px; border-bottom: 1px solid #edf1f3; vertical-align: middle; }
+.previewTable select, .previewTable input[type="number"] { padding: 4px 6px; font-size: 13px; border: 1px solid #ccd5db; border-radius: 4px; }
+.existingTag { color: #af2637; font-size: 12px; font-weight: 500; }
+.validTag { color: #1e7e34; font-size: 12px; font-weight: 500; }
+.progressBar { height: 6px; width: 100%; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin-top: 8px; }
+.progressFill { height: 100%; background: #123042; transition: width 0.2s ease; }

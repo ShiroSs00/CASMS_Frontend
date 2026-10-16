@@ -52,5 +52,5 @@ export function useMutation() {
     catch (failure) { setError(failure instanceof Error ? failure.message : 'Thao tác thất bại.'); return false }
     finally { inFlight.current = false; setBusy(false) }
   }, [])
-  return { busy, error, success, run, clear: () => { setError(''); setSuccess('') } }
+  return { busy, error, success, run, setSuccess, clear: () => { setError(''); setSuccess('') } }
 }

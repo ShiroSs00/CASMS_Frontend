@@ -51,7 +51,7 @@ function toItem(dto: CruiseDto): CruiseListItem {
 
 async function getShip(id: string | null, signal?: AbortSignal) {
   if (!id) return null
-  return apiRequest<ShipRecord>(`/ship/${encodeURIComponent(id)}`, { signal })
+  return apiRequest<ShipRecord>(`/ships/${encodeURIComponent(id)}`, { signal })
 }
 
 async function getPort(id: string, signal?: AbortSignal) {
@@ -59,7 +59,7 @@ async function getPort(id: string, signal?: AbortSignal) {
 }
 
 async function listShips(signal?: AbortSignal) {
-  const page = await apiRequest<PageDto<ShipRecord>>('/ship', { query: { page: 0, size: 100 }, signal })
+  const page = await apiRequest<PageDto<ShipRecord>>('/ships', { query: { page: 0, size: 100 }, signal })
   return page.content
 }
 

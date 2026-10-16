@@ -32,20 +32,25 @@
 .candidate:hover { border-color:#7a8992; }
 .candidateSelected { border:2px solid var(--cruise-navy); padding:13px 15px; background:#f8fbfd; }
 .candidateHeading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
-.auroraShell { display:grid; min-height:100vh; grid-template-columns:216px minmax(0,1fr); background:#faf8f2; color:#172b36; }
-.auroraSidebar { position:sticky; top:0; display:flex; height:100vh; flex-direction:column; padding:30px 20px 22px; background:#123042; color:#f8f1df; }
-.auroraBrand { display:flex; align-items:center; gap:12px; margin:0 8px 42px; color:inherit; letter-spacing:.16em; text-decoration:none; }
+.auroraShell { display:grid; min-height:100vh; grid-template-columns:240px minmax(0,1fr); background:#faf8f2; color:#172b36; }
+.auroraSidebar { position:sticky; top:0; display:flex; height:100vh; width:240px; box-sizing:border-box; flex-direction:column; padding:18px 14px; overflow-y:auto; overflow-x:hidden; scrollbar-gutter:stable; scrollbar-width:thin; background:#123042; color:#fff; }
+.auroraBrand { display:flex; align-items:center; gap:12px; margin:0 0 2px; color:inherit; text-decoration:none; font-size:24px; font-weight:700; line-height:32px; letter-spacing:-.2px; }
 .auroraBrand > span { display:grid; width:34px; height:34px; place-items:center; border:1px solid #d4a84f; border-radius:50%; color:#d4a84f; font-family:Georgia,serif; font-size:22px; }
-.auroraSidebar nav { display:flex; flex-direction:column; gap:6px; }
-.auroraNav,.auroraNavActive { padding:12px 14px; border-radius:9px; color:#c4d0d5; font-size:13px; font-weight:600; text-decoration:none; }
-.auroraNav:hover,.auroraNavActive { background:#294858; color:#fff; }
-.auroraNavActive { box-shadow:inset 3px 0 #d4a84f; }
+.brandCaption { margin-bottom:16px; color:#d4a84f; font-size:12px; font-weight:500; line-height:18px; }
+.auroraSidebar nav { display:flex; flex-direction:column; gap:4px; }
+.auroraNav,.auroraNavActive { display:flex; width:100%; box-sizing:border-box; min-height:38px; align-items:center; padding:8px 12px; border-radius:8px; color:#fff; font-size:14px; font-weight:500; line-height:20px; text-decoration:none; }
+a.auroraNav:hover { background:rgba(75,138,241,0.25); color:#fff; }
+.auroraNavActive { background:#4b8af1; color:#fff; font-weight:600; box-shadow:none; }
+.auroraNavDisabled { display:flex; width:100%; box-sizing:border-box; min-height:38px; align-items:center; padding:8px 12px; border-radius:8px; color:rgba(255,255,255,0.4); font-size:14px; font-weight:400; line-height:20px; cursor:not-allowed; user-select:none; }
+.auroraNavDisabled:hover { background:transparent; }
 .auroraSidebarFooter { display:flex; align-items:center; gap:10px; margin-top:auto; padding-top:18px; border-top:1px solid #355364; font-size:11px; }
 .auroraSidebarFooter div { display:flex; min-width:0; flex-direction:column; gap:2px; }
 .auroraSidebarFooter span:last-child { color:#9fb0b8; overflow:hidden; text-overflow:ellipsis; }
 .userMark { display:grid; width:32px; height:32px; flex:0 0 auto; place-items:center; border-radius:50%; background:#d4a84f; color:#123042; font-weight:800; }
 .auroraMain { min-width:0; }
-.auroraTopbar { display:flex; height:14px; align-items:center; justify-content:space-between; padding:14px 28px; border-bottom:1px solid #e7e0d3; background:#fff; color:#66757d; font-size:11px; }
+.auroraTopbar { display:flex; height:66px; align-items:center; justify-content:space-between; gap:20px; padding:0 28px; border-bottom:1px solid #d9e0e4; background:#fff; color:#66757d; font-size:14px; box-sizing:border-box; }
+.auroraTopbar > span { display:inline-flex; align-items:center; width:480px; max-width:50%; height:38px; padding:0 16px; border-radius:10px; background:#f5f2e9; font-size:13px; box-sizing:border-box; color:#51616f; }
+.auroraTopbar > b { display:inline-flex; align-items:center; justify-content:center; height:28px; padding:0 12px; border:1px solid #2f7d5c; border-radius:999px; color:#2f7d5c; font-size:12px; font-weight:500; }
 .auroraCanvas { padding:32px 28px 48px; }
 .auroraCanvas h1 { color:#123042; font-family:Georgia,'Times New Roman',serif; font-size:48px; font-weight:400; line-height:1.15; }
 .auroraCanvas section { border-color:#e0d8ca; border-radius:14px; box-shadow:none; }

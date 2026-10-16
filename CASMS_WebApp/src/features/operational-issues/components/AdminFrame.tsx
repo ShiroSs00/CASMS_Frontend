@@ -6,12 +6,14 @@ import styles from './OperationalIssues.module.css'
 const navigation = [
   { label: 'Tổng quan' },
   { label: 'Bookings' },
-  { label: 'Check-in' },
+  { label: 'Check-In' },
   { label: 'Yêu cầu dịch vụ' },
   { label: 'Tài khoản' },
   { label: 'Tàu', to: '/admin/ships' },
   { label: 'Chuyến', to: '/admin/cruises' },
   { label: 'Hải trình', to: '/admin/itineraries' },
+  { label: 'Cảng', to: '/admin/ports' },
+  { label: 'Điểm đến', to: '/admin/destinations' },
   { label: 'Quy định', to: '/admin/regulations' },
   { label: 'Sự cố', to: '/admin/issues' },
   { label: 'Người dùng' },
@@ -33,7 +35,16 @@ export function AdminFrame({ children }: { children: ReactNode }) {
             key={item.label}
             to={item.to}
           >{item.label}</NavLink>
-        ) : <span className={styles.navLink} key={item.label} aria-disabled="true">{item.label}</span>)}
+        ) : (
+          <span
+            className={styles.navDisabled}
+            key={item.label}
+            title="Chức năng đang phát triển"
+            aria-disabled="true"
+          >
+            {item.label}
+          </span>
+        ))}
       </aside>
       <header className={styles.topbar}>
         <span className={styles.globalSearch}>Tìm kiếm hoặc chạy lệnh…</span>

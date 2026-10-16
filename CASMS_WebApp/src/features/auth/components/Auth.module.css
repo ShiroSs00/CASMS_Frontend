@@ -40,12 +40,12 @@
 .accountMenu .logout { color:#b43434; font-weight:600; }
 .loading { display:grid; place-items:center; }
 .deniedShell { display:flex; background:#fff; min-height:1000px; }
-.deniedSidebar { width:216px; flex:none; padding:14px; background:#123042; color:#fff; }
-.deniedBrand { font-size:24px; line-height:32px; font-weight:600; letter-spacing:-.2px; }
-.deniedSidebar p { margin:5px 0; color:#d4a84f; font-size:12px; line-height:18px; }
-.deniedSidebar nav { display:flex; flex-direction:column; gap:5px; }
-.deniedSidebar nav span { padding:10px; border-radius:8px; font-size:14px; line-height:20px; }
-.navActive { background:#4b8af1; }
+.deniedSidebar { width:240px; box-sizing:border-box; flex:none; padding:18px 14px; background:#123042; color:#fff; }
+.deniedBrand { font-size:24px; font-weight:700; line-height:32px; letter-spacing:-.2px; text-decoration:none; color:#fff; }
+.deniedSidebar p { margin:0 0 16px; color:#d4a84f; font-size:12px; font-weight:500; line-height:18px; }
+.deniedSidebar nav { display:flex; flex-direction:column; gap:4px; }
+.deniedSidebar nav span { display:flex; width:100%; box-sizing:border-box; min-height:38px; align-items:center; padding:8px 12px; border-radius:8px; font-size:14px; font-weight:500; line-height:20px; }
+.navActive { background:#4b8af1; color:#fff; font-weight:600; }
 .deniedMain { flex:1; min-width:0; }
 .deniedTopbar { min-height:66px; padding:14px; display:flex; justify-content:space-between; align-items:flex-start; gap:16px; font-size:14px; line-height:20px; color:#51616f; }
 .deniedTopbar > span { width:520px; max-width:70%; padding:10px; border-radius:10px; background:#f5f2e9; }

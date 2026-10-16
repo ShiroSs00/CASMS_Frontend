@@ -18,7 +18,7 @@ export function ItineraryFrame({ children }: { children: ReactNode }) {
   return <div className={styles.shell}>
     <aside className={styles.sidebar}>
       <Link className={styles.brand} to="/admin/itineraries"><strong>AURORA</strong></Link>
-      <span className={styles.brandCaption}>Trung tâm vận hành</span><nav aria-label="Điều hướng quản trị">{navigation.map(([label, href]) => href ? <NavLink className={({ isActive }) => isActive ? styles.navActive : styles.nav} key={label} to={href}>{label}</NavLink> : <span key={label} className={styles.nav} aria-disabled="true">{label}</span>)}</nav>
+      <span className={styles.brandCaption}>Trung tâm vận hành</span><nav aria-label="Điều hướng quản trị">{navigation.map(([label, href]) => href ? <NavLink className={({ isActive }) => isActive ? styles.navActive : styles.nav} key={label} to={href}>{label}</NavLink> : <span key={label} className={styles.navDisabled} title="Chức năng đang phát triển" aria-disabled="true">{label}</span>)}</nav>
     </aside>
     <main className={styles.main}><header className={styles.topbar}><span>Tìm kiếm hoặc chạy lệnh…</span><b>Đã đăng nhập</b></header><div className={styles.canvas}>{children}</div></main>
   </div>

@@ -9,7 +9,7 @@ import type { AssignmentDto, CabinDto, CruiseDto, DeckDto, PageDto, ShipDto } fr
 let revision = 0
 const listeners = new Set<() => void>()
 const notify = () => { revision += 1; listeners.forEach((listener) => listener()) }
-const paths: Record<EntityKind, string> = { ships: '/ship', decks: '/deck', cabins: '/cabin' }
+const paths: Record<EntityKind, string> = { ships: '/ships', decks: '/decks', cabins: '/cabins' }
 const idPath = (kind: EntityKind, id: string) => `${paths[kind]}/${encodeURIComponent(id)}`
 const ship = (dto: ShipDto): Ship => ({
   id: dto.shipId, code: dto.shipCode, name: dto.shipName, status: dto.status,
@@ -53,9 +53,9 @@ export const shipDeckCabinApi = {
   getRevision: () => revision,
   async listSnapshot(signal?: AbortSignal): Promise<DataSnapshot> {
     const [ships, decks, cabins] = await Promise.all([
-      allPages<ShipDto>('/ship', signal),
-      allPages<DeckDto>('/deck', signal),
-      allPages<CabinDto>('/cabin', signal),
+      allPages<ShipDto>('/ships', signal),
+      allPages<DeckDto>('/decks', signal),
+      allPages<CabinDto>('/cabins', signal),
     ])
     return { ships: ships.map(ship), decks: decks.map(deck), cabins: cabins.map(cabin) }
   },
@@ -70,18 +70,18 @@ export const shipDeckCabinApi = {
       ...(draft.commissionDate ? { commissionDate: draft.commissionDate } : {}),
       ...(!id ? { shipCode: draft.code.trim(), status: draft.status } : {}),
     }
-    const saved = ship(await apiRequest<ShipDto>(id ? idPath('ships', id) : '/ship', { method: id ? 'PATCH' : 'POST', body }))
+    const saved = ship(await apiRequest<ShipDto>(id ? idPath('ships', id) : '/ships', { method: id ? 'PATCH' : 'POST', body }))
     notify(); return saved
   },
   async saveDeck(draft: DeckDraft, id?: string) {
     const body = { deckNumber: draft.number, deckName: draft.name.trim(), ...(!id ? { shipId: draft.shipId } : {}) }
-    const saved = deck(await apiRequest<DeckDto>(id ? idPath('decks', id) : '/deck', { method: id ? 'PATCH' : 'POST', body }))
+    const saved = deck(await apiRequest<DeckDto>(id ? idPath('decks', id) : '/decks', { method: id ? 'PATCH' : 'POST', body }))
     notify(); return saved
   },
   async saveCabin(draft: CabinDraft, id?: string) {
     const body = { cabinType: draft.type, capacity: draft.capacity, isAccessible: draft.accessible,
       ...(!id ? { shipId: draft.shipId, deckId: draft.deckId, cabinNumber: draft.number.trim(), status: draft.status } : {}) }
-    const saved = cabin(await apiRequest<CabinDto>(id ? idPath('cabins', id) : '/cabin', { method: id ? 'PATCH' : 'POST', body }))
+    const saved = cabin(await apiRequest<CabinDto>(id ? idPath('cabins', id) : '/cabins', { method: id ? 'PATCH' : 'POST', body }))
     notify(); return saved
   },
   async deleteUnused(kind: EntityKind, id: string) {
@@ -131,7 +131,7 @@ export const shipDeckCabinApi = {
     }))
   },
   async searchAvailable(query: AvailableCabinQuery, signal?: AbortSignal) {
-    return (await apiRequest<CabinDto[]>('/cabin/search', { method: 'POST', body: query, signal })).map(cabin)
+    return (await apiRequest<CabinDto[]>('/cabins/search', { method: 'POST', body: query, signal })).map(cabin)
   },
   async inspectReadiness(id: string) {
     return booleanResult(await apiRequest<boolean>(`${idPath('ships', id)}/readiness`), 'Sẵn sàng vận hành')

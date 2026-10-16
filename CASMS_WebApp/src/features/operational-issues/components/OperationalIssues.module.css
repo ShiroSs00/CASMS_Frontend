@@ -84,6 +84,22 @@
   background: var(--oim-navy-950);
 }
 
+.navDisabled {
+  display: block;
+  min-height: 36px;
+  padding: 8px 12px;
+  overflow: hidden;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: not-allowed;
+  user-select: none;
+}
+
 .topbar {
   position: fixed;
   z-index: 8;
@@ -740,15 +756,18 @@
   background: var(--oim-bg);
 }
 
-.sidebar { width: 216px; padding: 14px; background: #123042; }
-.brand { margin: 0; font-size: 24px; line-height: 32px; letter-spacing: -.2px; }
-.brandCaption { margin-bottom: 10px; color: #d4a84f; font-size: 12px; line-height: 18px; }
-.navLink { width: 188px; min-height: 40px; padding: 10px; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 400; line-height: 20px; }
-.navLink:hover,.navLinkActive { background: #4b8af1; }
-.topbar { left: 216px; height: 66px; padding: 14px; border: 0; }
-.globalSearch { display: block; width: 520px; padding: 10px; border-radius: 10px; background: #f5f2e9; }
-.signedIn { min-width: 110px; padding: 6px 10px; border: 1px solid #2f7d5c; border-radius: 999px; color: #2f7d5c; text-align: center; }
-.main { min-height:100vh; margin-left: 216px; padding: 94px 28px 56px; background: #fff; }
+.sidebar { position: fixed; inset: 0 auto 0 0; z-index: 10; width: 240px; box-sizing: border-box; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; scrollbar-width: thin; padding: 18px 14px; background: #123042; color: #fff; }
+.brand { margin: 0 0 2px; font-size: 24px; font-weight: 700; line-height: 32px; letter-spacing: -.2px; }
+.brandCaption { margin-bottom: 16px; color: #d4a84f; font-size: 12px; font-weight: 500; line-height: 18px; }
+.navLink,.navDisabled { display: flex; align-items: center; width: 100%; box-sizing: border-box; min-height: 38px; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; line-height: 20px; text-decoration: none; }
+.navLink { color: #fff; }
+.navLink:hover,.navLinkActive { background: #4b8af1; color: #fff; }
+.navDisabled { color: rgba(255, 255, 255, 0.4); cursor: not-allowed; user-select: none; }
+.navDisabled:hover { background: transparent; }
+.topbar { position: fixed; z-index: 8; top: 0; right: 0; left: 240px; display: flex; height: 66px; align-items: center; justify-content: space-between; gap: 20px; padding: 0 28px; border-bottom: 1px solid #d9e0e4; background: #fff; color: #52616b; font-size: 14px; line-height: 20px; box-sizing: border-box; }
+.globalSearch { display: inline-flex; align-items: center; width: 480px; max-width: 50%; height: 38px; padding: 0 16px; border-radius: 10px; background: #f5f2e9; color: #51616f; font-size: 13px; box-sizing: border-box; }
+.signedIn { display: inline-flex; align-items: center; justify-content: center; height: 28px; padding: 0 12px; border: 1px solid #2f7d5c; border-radius: 999px; color: #2f7d5c; font-size: 12px; font-weight: 500; text-align: center; }
+.main { min-height: 100vh; min-width: 0; margin-left: 240px; padding: 94px 28px 56px; background: #fff; }
 .content { max-width: 1168px; }
 .pageHeader { margin-bottom: 18px; }
 .pageTitle { font-family: "DM Serif Display", Georgia, serif; font-size: 48px; font-weight: 400; line-height: 56px; letter-spacing: -.2px; }

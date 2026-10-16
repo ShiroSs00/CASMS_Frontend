@@ -7,6 +7,7 @@ import { validateShip, validateDeck, validateCabin } from '../model/validation'
 import { cabinStatuses, cabinTypes, kindLabels, sectionLabels, shipStatuses } from '../model/types'
 import type { Cabin, CabinDraft, CabinStatus, CabinType, DataSnapshot, Deck, DeckDraft, EntityKind, FieldErrors, Ship, ShipDraft, ShipStatus } from '../model/types'
 import { DataState, InputField, NotFound, SelectField } from '../components/Common'
+import { BulkCabinDialog } from '../components/BulkCabinDialog'
 import styles from '../components/Management.module.css'
 
 function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
@@ -17,12 +18,29 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
   const [deckDraft, setDeck] = useState<DeckDraft>(deck ?? { shipId: hostId, number: 0, name: '' })
   const [cabinDraft, setCabin] = useState<CabinDraft>(cabin ?? { shipId: hostId, deckId, number: '', type: 'INTERIOR', capacity: 0, status: 'AVAILABLE', accessible: false })
   const [errors, setErrors] = useState<FieldErrors>({})
+  const [bulkOpen, setBulkOpen] = useState(false)
   const mutation = useMutation()
   const form = useRef<HTMLFormElement>(null)
   const clearError = (key: string) => setErrors((current) => ({ ...current, [key]: '' }))
   const changeShip = <K extends keyof ShipDraft>(key: K, value: ShipDraft[K]) => { setShip((current) => ({ ...current, [key]: value })); clearError(key) }
   const changeDeck = <K extends keyof DeckDraft>(key: K, value: DeckDraft[K]) => { setDeck((current) => ({ ...current, [key]: value })); clearError(key) }
-  const changeCabin = <K extends keyof CabinDraft>(key: K, value: CabinDraft[K]) => { setCabin((current) => ({ ...current, [key]: value, ...(key === 'shipId' ? { deckId: '' } : {}) })); clearError(key) }
+  const changeCabin = <K extends keyof CabinDraft>(key: K, value: CabinDraft[K]) => {
+    setCabin((current) => {
+      const next = { ...current, [key]: value, ...(key === 'shipId' ? { deckId: '' } : {}) }
+      if (key === 'deckId' && typeof value === 'string' && value && !current.number) {
+        const targetDeck = data.decks.find((d) => d.id === value)
+        if (targetDeck) {
+          const deckCabins = data.cabins.filter((c) => c.deckId === targetDeck.id)
+          const padLen = targetDeck.number >= 10 ? 3 : 2
+          const nextIndex = deckCabins.length + 1
+          next.number = `${targetDeck.number}${String(nextIndex).padStart(padLen, '0')}`
+          if (!next.capacity) next.capacity = 2
+        }
+      }
+      return next
+    })
+    clearError(key)
+  }
   const focusError = () => requestAnimationFrame(() => form.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus())
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -64,6 +82,13 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
               <SelectField label="Tàu *" value={cabinDraft.shipId} disabled={mutation.busy || Boolean(cabin)} error={errors.shipId} onChange={(value) => changeCabin('shipId', value)}>{hostOptions}</SelectField>
               <SelectField label="Boong *" value={cabinDraft.deckId} disabled={mutation.busy || Boolean(cabin)} error={errors.deckId} onChange={(value) => changeCabin('deckId', value)}><option value="">Chọn boong</option>{data.decks.filter((row) => row.shipId === cabinDraft.shipId).map((row) => <option value={row.id} key={row.id}>Boong {row.number} · {row.name || 'Chưa đặt tên'}</option>)}</SelectField>
               <InputField label="Số cabin *" maxLength={10} value={cabinDraft.number} readOnly={Boolean(cabin)} disabled={mutation.busy} error={errors.number} onChange={(event) => changeCabin('number', event.target.value)} hint="Duy nhất trong cùng tàu." />
+              {!cabin && cabinDraft.deckId && (
+                <div className={styles.full} style={{ marginTop: '-4px' }}>
+                  <button type="button" className={styles.link} onClick={() => setBulkOpen(true)}>
+                    ✨ Hoặc tự động tạo dải cabin (ví dụ: {data.decks.find((d) => d.id === cabinDraft.deckId)?.number}00 &rarr; {data.decks.find((d) => d.id === cabinDraft.deckId)?.number}20) cho boong này
+                  </button>
+                </div>
+              )}
               <SelectField label="Loại cabin *" value={cabinDraft.type} disabled={mutation.busy} error={errors.type} onChange={(value) => changeCabin('type', value as CabinType)}>{Object.entries(cabinTypes).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</SelectField>
               <InputField label="Sức chứa *" type="number" min={1} step={1} value={cabinDraft.capacity || ''} disabled={mutation.busy} error={errors.capacity} onChange={(event) => changeCabin('capacity', Number(event.target.value))} />
               <SelectField label="Trạng thái *" value={cabinDraft.status} disabled={mutation.busy || Boolean(cabin)} error={errors.status} onChange={(value) => changeCabin('status', value as CabinStatus)}>{Object.entries(cabinStatuses).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</SelectField>
@@ -74,6 +99,17 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
           <div className={styles.actions}><Button type="submit" disabled={mutation.busy}>{mutation.busy ? 'Đang lưu…' : `Lưu ${kindLabels[kind]}`}</Button><Button tone="secondary" disabled={mutation.busy} onClick={() => navigate(source ? `/admin/${kind}/${source.id}` : `/admin/${kind}${hostId && kind !== 'ships' ? `?ship=${hostId}` : ''}`)}>Hủy</Button></div>
         </Panel>
       </form>
+      {bulkOpen && cabinDraft.deckId && data.decks.find((d) => d.id === cabinDraft.deckId) && (
+        <BulkCabinDialog
+          deck={data.decks.find((d) => d.id === cabinDraft.deckId)!}
+          ship={data.ships.find((s) => s.id === cabinDraft.shipId) ?? { id: cabinDraft.shipId, code: 'SHIP', name: 'Tàu', status: 'ACTIVE', capacity: 0, totalDecks: 0, commissionDate: '' }}
+          existingCabins={data.cabins}
+          onClose={() => setBulkOpen(false)}
+          onSuccess={() => {
+            navigate(`/admin/cabins?ship=${cabinDraft.shipId}&deck=${cabinDraft.deckId}`)
+          }}
+        />
+      )}
     </div>
   </>
 }

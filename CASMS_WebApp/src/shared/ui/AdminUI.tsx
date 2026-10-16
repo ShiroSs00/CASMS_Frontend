@@ -1,34 +1,105 @@
-import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
 import styles from './AdminUI.module.css'
 
-// The existing Regulations AdminFrame is shared here without changing page APIs.
+const navigation = [
+  { label: 'Tổng quan' },
+  { label: 'Bookings' },
+  { label: 'Check-In' },
+  { label: 'Yêu cầu dịch vụ' },
+  { label: 'Tài khoản' },
+  {
+    label: 'Tàu',
+    to: '/admin/ships',
+    subItems: [
+      { label: 'Tàu', to: '/admin/ships' },
+      { label: 'Boong (Deck)', to: '/admin/decks' },
+      { label: 'Cabin (Phòng)', to: '/admin/cabins' },
+    ],
+  },
+  { label: 'Chuyến', to: '/admin/cruises' },
+  { label: 'Hải trình', to: '/admin/itineraries' },
+  { label: 'Cảng', to: '/admin/ports' },
+  { label: 'Điểm đến', to: '/admin/destinations' },
+  { label: 'Quy định', to: '/admin/regulations' },
+  { label: 'Sự cố', to: '/admin/issues' },
+  { label: 'Người dùng' },
+  { label: 'Báo cáo' },
+]
+
 export function AdminFrame({ children, className = '', topbar }: { children: ReactNode; className?: string; topbar?: ReactNode }) {
   const { pathname } = useLocation()
-  const isRegulation = pathname.includes('/regulations')
-  const isCruise = pathname.startsWith('/admin/cruises') && !isRegulation
-  const [expanded, setExpanded] = useState(!isRegulation)
-  return <div className={`${styles.appShell} ${className}`}>
-    <a className={styles.skipLink} href="#regulation-main">Chuyển đến nội dung chính</a>
-    <aside className={styles.sidebar} aria-label="Điều hướng quản trị">
-      <div className={styles.brand}>CASMS</div>
-      <div className={styles.navHeading}>QUẢN TRỊ VẬN HÀNH</div>
-      <nav className={styles.navList}>
-        <span className={styles.navItem} aria-disabled="true">Tổng quan</span>
-        <div>
-          <button className={styles.navParent} aria-expanded={expanded} aria-controls="ship-deck-cabin-menu" onClick={() => setExpanded((value) => !value)}><span>Tàu & đội tàu</span><span aria-hidden="true">{expanded ? '⌄' : '›'}</span></button>
-          <div id="ship-deck-cabin-menu" className={styles.children} hidden={!expanded}>
-            {([['ships', 'Ship'], ['decks', 'Deck'], ['cabins', 'Cabin']] as const).map(([path, label]) => <NavLink key={path} to={`/admin/${path}`} className={({ isActive }) => `${styles.child} ${isActive && !isRegulation ? styles.childActive : ''}`}>{label}</NavLink>)}
-          </div>
-        </div>
-        <NavLink className={isCruise ? styles.navActive : styles.navItem} to="/admin/cruises">Chuyến hải trình</NavLink>
-        <NavLink className={isRegulation ? styles.navActive : styles.navItem} to="/admin/regulations">Quy định vận hành</NavLink>
-        <span className={styles.navItem} aria-disabled="true">Sự cố vận hành</span>
-      </nav>
-    </aside>
-    {topbar && <div className={styles.topbar}>{topbar}</div>}
-    <main className={`${styles.main} ${topbar ? styles.mainWithTopbar : ''}`} id="regulation-main" tabIndex={-1}>{children}</main>
-  </div>
+  const isShipArea = pathname.startsWith('/admin/ships') || pathname.startsWith('/admin/decks') || pathname.startsWith('/admin/cabins')
+
+  return (
+    <div className={`${styles.appShell} ${className}`}>
+      <a className={styles.skipLink} href="#regulation-main">Chuyển đến nội dung chính</a>
+      <aside className={styles.sidebar} aria-label="Điều hướng quản trị">
+        <Link to="/admin/ships" className={styles.brandLink}>
+          <div className={styles.brand}>AURORA</div>
+        </Link>
+        <div className={styles.brandCaption}>Trung tâm vận hành</div>
+        <nav className={styles.navList}>
+          {navigation.map((item) => {
+            if (!item.to) {
+              return (
+                <span
+                  key={item.label}
+                  className={styles.navDisabled}
+                  title="Chức năng đang phát triển"
+                  aria-disabled="true"
+                >
+                  {item.label}
+                </span>
+              )
+            }
+            if (item.subItems) {
+              return (
+                <div key={item.label} className={styles.navGroup}>
+                  <NavLink
+                    to={item.to}
+                    className={() => `${styles.navLink} ${isShipArea ? styles.navActive : ''}`}
+                  >
+                    {item.label}
+                  </NavLink>
+                  {isShipArea && (
+                    <div className={styles.subList}>
+                      {item.subItems.map((sub) => (
+                        <NavLink
+                          key={sub.to}
+                          to={sub.to}
+                          className={({ isActive }) => `${styles.subItem} ${isActive ? styles.subActive : ''}`}
+                        >
+                          {sub.label}
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+            return (
+              <NavLink
+                key={item.label}
+                to={item.to}
+                className={({ isActive }) => `${styles.navLink} ${isActive ? styles.navActive : ''}`}
+              >
+                {item.label}
+              </NavLink>
+            )
+          })}
+        </nav>
+      </aside>
+      <header className={styles.topbar}>
+        <span className={styles.globalSearch}>Tìm kiếm hoặc chạy lệnh…</span>
+        <span className={styles.signedIn}>Đã đăng nhập</span>
+      </header>
+      <main className={`${styles.main} ${styles.mainWithTopbar}`} id="regulation-main" tabIndex={-1}>
+        {topbar && <div className={styles.customTopbar}>{topbar}</div>}
+        {children}
+      </main>
+    </div>
+  )
 }
 
 export function Button({ tone = 'primary', className = '', type = 'button', ...props }:

@@ -20,8 +20,8 @@ export function AdminFrame({ children }: { children: ReactNode }) {
   const links = [
     ['Tổng quan', ''], ['Bookings', ''], ['Check-in', ''], ['Yêu cầu dịch vụ', ''],
     ['Tài khoản', ''], ['Tàu', '/admin/ships'], ['Chuyến', '/admin/cruises'],
-    ['Hải trình', '/admin/itineraries'], ['Quy định', '/admin/regulations'],
-    ['Sự cố', '/admin/issues'], ['Người dùng', ''], ['Báo cáo', ''],
+    ['Hải trình', '/admin/itineraries'], ['Cảng', '/admin/ports'], ['Điểm đến', '/admin/destinations'],
+    ['Quy định', '/admin/regulations'], ['Sự cố', '/admin/issues'], ['Người dùng', ''], ['Báo cáo', ''],
   ] as const
   return <div className={styles.appShell}>
     <a className={styles.skipLink} href="#regulation-main">Chuyển đến nội dung chính</a>
@@ -30,7 +30,7 @@ export function AdminFrame({ children }: { children: ReactNode }) {
       <span className={styles.brandCaption}>Trung tâm vận hành</span>
       {links.map(([label, to]) => to
         ? <NavLink key={label} to={to} className={({ isActive }) => `${styles.navLink} ${isActive ? styles.navActive : ''}`}>{label}</NavLink>
-        : <span key={label} className={styles.navLink}>{label}</span>)}
+        : <span key={label} className={styles.navDisabled} title="Chức năng đang phát triển" aria-disabled="true">{label}</span>)}
     </aside>
     <header className={styles.topbar}><span>Tìm kiếm hoặc chạy lệnh…</span><b>Đã đăng nhập</b></header>
     <main className={styles.main} id="regulation-main">{children}</main>
