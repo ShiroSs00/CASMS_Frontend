@@ -19,3 +19,13 @@ export function safeAdminReturnTo(value: string | null): string | null {
     return `${parsed.pathname}${parsed.search}${parsed.hash}`
   } catch { return null }
 }
+
+// Only known local customer routes may be restored after authentication.
+export function safeCustomerReturnTo(value: string | null): string | null {
+  if (!value || value.includes('\\') || [...value].some(c => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127)) return null
+  try {
+    const parsed = new URL(value, 'https://aurora.invalid')
+    if (parsed.origin !== 'https://aurora.invalid' || !/^\/(?:cruises|booking|my-bookings)(?:\/|$)/.test(parsed.pathname)) return null
+    return parsed.pathname + parsed.search + parsed.hash
+  } catch { return null }
+}
