@@ -12,7 +12,7 @@ export function MaterialIcon({ name, color, size = 24 }: {
 }) {
   return (
     <Svg width={size} height={size} viewBox="0 -960 960 960" pointerEvents="none"
-      accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      aria-hidden={true}>
       <Path d={symbols[name]} fill={color} />
     </Svg>
   );

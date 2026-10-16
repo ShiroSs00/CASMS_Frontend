@@ -12,7 +12,7 @@ import { PassengerNavigation, type PassengerTab } from './PassengerNavigation';
 
 export type { PassengerTab } from './PassengerNavigation';
 
-export function PassengerScaffold({ children, selected = 'home', title = 'CASMS', detail = false, locked = false }: {
+export function PassengerScaffold({ children, selected = 'home', title = 'aurora', detail = false, locked = false }: {
   children: ReactNode;
   selected?: PassengerTab;
   title?: string;
@@ -31,7 +31,7 @@ export function PassengerScaffold({ children, selected = 'home', title = 'CASMS'
               else router.replace('/home');
             } else router.push('/cruise');
           }} />
-        <Text style={styles.appTitle} accessibilityRole="header">{title}</Text>
+        <Text style={styles.appTitle} accessibilityRole="header">{title}{title === 'aurora' && <Text style={{ color: colors.tertiaryContainer }}>.</Text>}</Text>
         <IconAction icon="notifications" label="Thông báo" disabled={locked}
           onPress={() => router.push('/notifications')} />
       </View>
@@ -56,8 +56,8 @@ function IconAction({ icon, label, onPress, disabled }: {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
   body: { flex: 1 },
-  appBar: { minHeight: 64, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  appTitle: { flex: 1, fontSize: 22, lineHeight: 30, fontWeight: '600', color: colors.onSurface },
+  appBar: { minHeight: 70, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 0 },
+  appTitle: { flex: 1, fontSize: 27, lineHeight: 36, letterSpacing: -1.3, fontWeight: '700', color: colors.onSurface },
   iconAction: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   pressed: { transform: [{ scale: 0.96 }], backgroundColor: colors.secondaryContainer },
 });

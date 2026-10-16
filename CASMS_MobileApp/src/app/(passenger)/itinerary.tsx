@@ -1,2 +1,2 @@
-import { PassengerDestinationScreen } from '@/features/home/PassengerDestinationScreen';
-export default function ItineraryRoute() { return <PassengerDestinationScreen view="itinerary" />; }
+import { PassengerItineraryScreen } from '@/features/itinerary/PassengerItineraryScreen';
+export default function ItineraryRoute() { return <PassengerItineraryScreen />; }

@@ -28,16 +28,16 @@ export function LaunchIndicator() {
   useEffect(() => {
     function updateAnimation(state: string) {
       cancelAnimation(phase);
-      phase.value = 0;
+      phase.set(0);
       if (state === 'active' && !reduceMotion) {
-        phase.value = withRepeat(
+        phase.set(withRepeat(
           withTiming(LOOP_STEPS, {
             duration: LOOP_STEPS * SHAPE_DURATION_MS,
             easing: Easing.linear,
           }),
           -1,
           false,
-        );
+        ));
       }
     }
 
@@ -50,7 +50,7 @@ export function LaunchIndicator() {
   }, [phase, reduceMotion]);
 
   const animatedProps = useAnimatedProps(() => ({
-    d: indicatorPath(shapes, phase.value),
+    d: indicatorPath(shapes, phase.get()),
   }));
 
   return (

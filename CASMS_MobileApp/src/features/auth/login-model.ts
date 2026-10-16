@@ -1,11 +1,10 @@
 export type LoginStatus = 'default' | 'loading' | 'error' | 'offline' | 'expired';
 export type LoginResult = 'success' | 'incorrect-credentials' | 'offline';
-export type LoginCredentials = { email: string; password: string };
+export type LoginCredentials = { username: string; password: string };
 
-export function validateLogin({ email, password }: LoginCredentials) {
+export function validateLogin({ username, password }: LoginCredentials) {
   return {
-    email: !email.trim() ? 'Vui lòng nhập email.'
-      : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? 'Email chưa đúng định dạng.' : undefined,
+    username: !username.trim() ? 'Vui lòng nhập tên đăng nhập.' : undefined,
     password: !password.length ? 'Vui lòng nhập mật khẩu.' : undefined,
   };
 }

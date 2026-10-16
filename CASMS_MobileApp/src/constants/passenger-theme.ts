@@ -1,13 +1,13 @@
-/** CASMS Passenger — Material 3 light scheme, Navy + Ocean splash. */
+/** Aurora launch palette. */
 export const passengerColors = {
-  primary: '#14B8C4', onPrimary: '#0B2545',
-  primaryContainer: '#0B2545', onPrimaryContainer: '#FFFFFF',
-  secondary: '#46636C', secondaryContainer: '#DDF5F7', onSecondaryContainer: '#0B1E20',
+  primary: '#4B8AF1', onPrimary: '#123042',
+  primaryContainer: '#123042', onPrimaryContainer: '#F5F2E9',
+  secondary: '#46636C', secondaryContainer: '#E2EAFA', onSecondaryContainer: '#0B1E20',
   tertiaryContainer: '#CDEFF3', onTertiaryContainer: '#001F23',
-  surface: '#0B2545', surfaceContainerLow: '#0F2E50',
-  surfaceContainer: '#163B60', surfaceContainerHigh: '#1E466B',
-  surfaceContainerHighest: '#285A80', onSurface: '#FFFFFF',
+  surface: '#123042', surfaceContainerLow: '#183C50',
+  surfaceContainer: '#20475C', surfaceContainerHigh: '#28556B',
+  surfaceContainerHighest: '#35677D', onSurface: '#F5F2E9',
   onSurfaceVariant: '#C6DEE8', outline: '#697A80', outlineVariant: '#B8C9D0',
-  inverseSurface: '#0B2545', inverseOnSurface: '#FFFFFF', inversePrimary: '#14B8C4',
-  error: '#B3261E', onError: '#FFFFFF', errorContainer: '#F9DEDC', onErrorContainer: '#410E0B',
+  inverseSurface: '#123042', inverseOnSurface: '#F5F2E9', inversePrimary: '#4B8AF1',
+  error: '#B3261E', onError: '#F5F2E9', errorContainer: '#F9DEDC', onErrorContainer: '#410E0B',
 } as const;
