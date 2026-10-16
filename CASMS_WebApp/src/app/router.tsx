@@ -1,6 +1,8 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 
-import { AccessDeniedPage, AdminGuard, LoginPage, SessionBoundary } from '@/features/auth'
+import { AccessDeniedPage, AdminGuard, CustomerGuard, AuthConceptPage, LoginPage, SessionBoundary } from '@/features/auth'
+
+import { BookingProvider, CruiseSearchPage, CustomerCruiseDetailPage, TravellerDetailsPage, CabinExperiencePage, ReviewBookingPage, MyBookingsPage, BookingDetailPage, ManageBookingPage, TravellerDocumentsPage, OnlineCheckinPage, ArrivalTimePage, BoardingPassPage, PaymentContractPage, ChangeRequestPage } from '@/features/booking'
 
 import { HomePage } from '@/features/home'
 import { CruiseDetailPage, CruiseFormPage, CruiseListPage } from '@/features/cruises'
@@ -90,9 +92,28 @@ const adminRoutes = [
   },
 ]
 
-export const router = createBrowserRouter([{ Component: SessionBoundary, children: [
+export const router = createBrowserRouter([{ Component: BookingProvider, children: [{ Component: SessionBoundary, children: [
   { Component: AdminGuard, children: [...adminRoutes, { path: '/admin/*', element: <Navigate to="/admin" replace /> }] },
-  { path: '/', Component: PublicLayout, children: [{ index: true, Component: HomePage }] },
+    { path: '/', Component: PublicLayout, children: [
+    { index: true, Component: HomePage },
+    { path: 'cruises', Component: CruiseSearchPage },
+    { path: 'cruises/:cruiseId', Component: CustomerCruiseDetailPage },
+    { path: 'booking/travellers', Component: TravellerDetailsPage },
+    { path: 'booking/cabin-experience', Component: CabinExperiencePage },
+    { path: 'booking/review', Component: ReviewBookingPage },
+    { Component: CustomerGuard, children: [
+      { path: 'my-bookings', Component: MyBookingsPage },
+      { path: 'my-bookings/:bookingId', Component: BookingDetailPage },
+      { path: 'my-bookings/:bookingId/manage', Component: ManageBookingPage },
+      { path: 'my-bookings/:bookingId/travellers', Component: TravellerDocumentsPage },
+      { path: 'my-bookings/:bookingId/check-in', Component: OnlineCheckinPage },
+      { path: 'my-bookings/:bookingId/arrival-time', Component: ArrivalTimePage },
+      { path: 'my-bookings/:bookingId/boarding-pass', Component: BoardingPassPage },
+      { path: 'my-bookings/:bookingId/payment', Component: PaymentContractPage },
+      { path: 'my-bookings/:bookingId/change-request', Component: ChangeRequestPage },
+    ] },
+  ] },
   { path: '/login', Component: LoginPage },
-  { path: '/403', Component: AccessDeniedPage },
-] }])
+    { path: '/403', Component: AccessDeniedPage },
+  ...(['register', 'verify-email', 'forgot-password', 'reset-password', 'reservation-lookup', 'account-locked'] as const).map(kind => ({ path: '/' + kind, element: <AuthConceptPage key={kind} kind={kind} /> })),
+] }] }])
