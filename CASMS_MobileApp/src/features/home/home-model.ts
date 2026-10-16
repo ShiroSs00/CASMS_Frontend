@@ -9,7 +9,7 @@ export function homeStatusFromParam(value: string | string[] | undefined): HomeS
 /** Fictional data supplied in the P02 brief. Never a restored session or API response. */
 export const demoCruise = {
   passengerName: 'Minh Anh', ship: 'Ocean Aurora', location: 'Vịnh Hạ Long',
-  dates: '12–15/10/2026', cabin: '802', package: 'Ocean Comfort',
+  dates: '18–21/10/2026', cabin: '802', package: 'Ocean Comfort',
   spending: '350.000 ₫', lastUpdated: '12/10/2026 · 17:45',
-  event: '18:30 · Tiệc chào đón', eventLocation: 'Nhà hàng Ocean · Tầng 3',
+  event: '09:40 · Tập trung tour Việt Hải', eventLocation: 'Sảnh chính · Tầng 1 · Nhóm G03',
 } as const;

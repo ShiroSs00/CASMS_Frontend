@@ -7,8 +7,12 @@ export const LOOP_STEPS = SHAPE_COUNT * 18;
 /** Interpolate corresponding outline points and rotate without spring overshoot. */
 export function indicatorPath(shapes: Point[][], phase: number): string {
   'worklet';
-  const step = Math.floor(phase);
-  const fraction = phase - step;
+  if (!shapes.length) return '';
+  // A web animation may briefly supply a non-finite value during mount/resume.
+  // Keep the initial shape valid until the animation clock is ready.
+  const safePhase = Number.isFinite(phase) ? Math.max(0, phase) : 0;
+  const step = Math.floor(safePhase);
+  const fraction = safePhase - step;
   const eased = (1 - Math.cos(Math.PI * fraction)) / 2;
   const from = shapes[step % shapes.length];
   const to = shapes[(step + 1) % shapes.length];

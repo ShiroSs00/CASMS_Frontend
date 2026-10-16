@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { passengerLightColors as colors } from '@/constants/passenger-light-theme';
 
@@ -14,9 +14,11 @@ export function PassengerButton({ label, onPress, icon, variant = 'filled', disa
   loading?: boolean;
 }) {
   const scale = useSharedValue(1);
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }));
+  const radius = useSharedValue(28);
+  const reduceMotion = useReducedMotion();
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }], borderRadius: radius.get(), overflow: 'hidden' as const }));
   const blocked = disabled || loading;
-  const textColor = disabled ? colors.onSurfaceVariant : variant === 'filled' ? colors.onPrimary : colors.primary;
+  const textColor = disabled ? colors.onSurfaceVariant : variant === 'filled' ? colors.onPrimary : colors.onSurface;
 
   return (
     <Animated.View style={animatedStyle}>
@@ -26,8 +28,8 @@ export function PassengerButton({ label, onPress, icon, variant = 'filled', disa
       accessibilityState={{ disabled: blocked, busy: loading }}
       disabled={blocked}
       onPress={onPress}
-      onPressIn={() => { scale.set(withTiming(0.98, { duration: 100 })); }}
-      onPressOut={() => { scale.set(withTiming(1, { duration: 140 })); }}
+      onPressIn={() => { scale.set(withTiming(reduceMotion ? 1 : .97, { duration: 100 })); radius.set(withTiming(16, { duration: reduceMotion ? 0 : 180, easing: Easing.bezier(.2, 0, 0, 1) })); }}
+      onPressOut={() => { scale.set(withTiming(1, { duration: 160 })); radius.set(withTiming(28, { duration: reduceMotion ? 0 : 220 })); }}
       android_ripple={{ color: colors.secondaryContainer }}
       style={({ pressed }) => [
         styles.base,

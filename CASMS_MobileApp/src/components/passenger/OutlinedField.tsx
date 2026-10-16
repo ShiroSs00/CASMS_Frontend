@@ -5,13 +5,14 @@ import { passengerLightColors as colors } from '@/constants/passenger-light-them
 
 import { MaterialIcon } from './MaterialIcon';
 
-export function OutlinedField({ label, value, onChangeText, helper, error, password = false, disabled = false, onBlur, onSubmitEditing, inputRef }: {
+export function OutlinedField({ label, value, onChangeText, helper, error, password = false, username = false, disabled = false, onBlur, onSubmitEditing, inputRef }: {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
   helper: string;
   error?: string;
   password?: boolean;
+  username?: boolean;
   disabled?: boolean;
   onBlur: () => void;
   onSubmitEditing: () => void;
@@ -25,7 +26,7 @@ export function OutlinedField({ label, value, onChangeText, helper, error, passw
   return (
     <View style={styles.group}>
       <View style={[styles.field, { borderColor: accent, borderWidth: focused ? 2 : 1 }]}>
-        <MaterialIcon name={password ? 'lock' : 'mail'} color={colors.onSurfaceVariant} />
+        <MaterialIcon name={password ? 'lock' : username ? 'assignment_ind' : 'mail'} color={colors.onSurfaceVariant} />
         <TextInput
           ref={inputRef}
           style={styles.input}
@@ -39,9 +40,9 @@ export function OutlinedField({ label, value, onChangeText, helper, error, passw
           accessibilityHint={error || helper}
           autoCapitalize="none"
           autoCorrect={false}
-          keyboardType={password ? 'default' : 'email-address'}
-          autoComplete={password ? 'current-password' : 'email'}
-          textContentType={password ? 'password' : 'emailAddress'}
+          keyboardType={password || username ? 'default' : 'email-address'}
+          autoComplete={password ? 'current-password' : username ? 'username' : 'email'}
+          textContentType={password ? 'password' : username ? 'username' : 'emailAddress'}
           secureTextEntry={password && !visible}
           returnKeyType={password ? 'go' : 'next'}
           submitBehavior={password ? 'blurAndSubmit' : 'submit'}

@@ -1,16 +1,18 @@
-import { Tabs, useGlobalSearchParams, usePathname } from 'expo-router';
-import { Easing } from 'react-native';
-import { useReducedMotion } from 'react-native-reanimated';
+import { Redirect, Tabs, useGlobalSearchParams, usePathname } from 'expo-router';
+import { ActivityIndicator, View } from 'react-native';
 
 import { PassengerTabBar } from '@/components/passenger/PassengerNavigation';
 import { passengerLightColors as colors } from '@/constants/passenger-light-theme';
+import { useAuth } from '@/features/auth/session-store';
 
 export default function PassengerTabsLayout() {
-  const reduceMotion = useReducedMotion();
+  const auth = useAuth();
   const { state } = useGlobalSearchParams<{ state?: string | string[] }>();
   const pathname = usePathname();
   const status = Array.isArray(state) ? state[0] : state;
-  const locked = pathname === '/home' && ['expired', 'empty', 'error', 'loading'].includes(status ?? 'default');
+  const locked = auth.mode === 'demo' && pathname === '/home' && ['expired', 'empty', 'error', 'loading'].includes(status ?? 'default');
+  if (auth.status === 'restoring') return <View style={{ flex: 1, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator accessibilityLabel="Đang khôi phục phiên" /></View>;
+  if (auth.status !== 'authenticated') return <Redirect href={{ pathname: '/login', params: { state: auth.status === 'expired' ? 'expired' : 'default' } }} />;
   return (
     <Tabs initialRouteName="home" backBehavior="history" tabBar={props => <PassengerTabBar {...props} locked={locked} />}
       screenOptions={{
@@ -18,8 +20,7 @@ export default function PassengerTabsLayout() {
         lazy: false,
         popToTopOnBlur: false,
         sceneStyle: { backgroundColor: colors.surface },
-        animation: reduceMotion ? 'none' : 'fade',
-        transitionSpec: { animation: 'timing', config: { duration: 200, easing: Easing.bezier(0.2, 0, 0, 1) } },
+        animation: 'none',
       }}>
       <Tabs.Screen name="home" />
       <Tabs.Screen name="itinerary" />
