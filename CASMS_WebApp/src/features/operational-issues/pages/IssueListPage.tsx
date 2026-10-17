@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 
 import { AdminFrame } from '../components/AdminFrame'
 import { IssueListState } from '../components/IssueListState'
@@ -33,7 +34,10 @@ export function IssueListPage() {
           <h1 className={styles.pageTitle}>Sự cố vận hành</h1>
           <p className={styles.pageDescription}>Triage nhanh theo mức độ, trạng thái và ngữ cảnh tàu/chuyến.</p>
         </div>
-        <button className={styles.primaryButton} onClick={() => setReportOpen(true)}>Báo cáo sự cố</button>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button className={styles.secondaryButton} onClick={() => setReportOpen(true)}>Báo cáo nhanh</button>
+          <Link className={styles.primaryButton} to="/admin/issues/new">Báo cáo sự cố</Link>
+        </div>
       </header>
 
       <IssueMetrics totals={state.data?.statusTotals ?? null} />

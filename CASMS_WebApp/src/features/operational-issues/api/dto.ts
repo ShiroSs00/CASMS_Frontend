@@ -36,9 +36,19 @@ export type OperationalIssueDto = {
 }
 
 export type CreateOperationalIssueRequest = {
+  issueCode: string
   shipId: string
-  cruiseId?: string
-  cabinId?: string
+  cruiseId?: string | null
+  cabinId?: string | null
+  issueType: IssueType
+  severity: IssueSeverity
+  description: string
+}
+
+export type UpdateOperationalIssueRequest = {
+  shipId: string
+  cruiseId?: string | null
+  cabinId?: string | null
   issueType: IssueType
   severity: IssueSeverity
   description: string

@@ -109,7 +109,9 @@ export const regulationsApi = {
   validate: (id: string) => apiRequest<void>(`${byId(id)}/validate`, { method: 'POST' }),
   async conflicts(id: string) { return normalizeConflict(await apiRequest<ConflictDto>(`${byId(id)}/conflicts`, { query: { context: 'ACTIVATE' } })) },
   async list(query: RegulationListQuery): Promise<RegulationListItem[]> {
-    const rows = await listRaw()
+    const rows = query.effectiveOnly
+      ? (await apiRequest<RegulationDto[]>(`${root}/effective`)).map(toRegulation)
+      : await listRaw()
     const term = query.search.trim().toLocaleLowerCase('vi')
     return rows.filter((item) =>
       (!term || `${item.code} ${item.name}`.toLocaleLowerCase('vi').includes(term)) &&
@@ -117,6 +119,13 @@ export const regulationsApi = {
       (query.scope === 'ALL' || item.scope === query.scope) &&
       (query.status === 'ALL' || item.status === query.status),
     ).map((item) => ({ ...item, effectiveStatus: getEffectiveStatus(item, query.effectiveAt || new Date().toISOString()) }))
+  },
+  async listEffective(): Promise<RegulationListItem[]> {
+    const rows = (await apiRequest<RegulationDto[]>(`${root}/effective`)).map(toRegulation)
+    return rows.map((item) => ({ ...item, effectiveStatus: 'EFFECTIVE' }))
+  },
+  async deleteUnused(id: string): Promise<void> {
+    await apiRequest<void>(byId(id), { method: 'DELETE' })
   },
   async get(id: string) {
     try {

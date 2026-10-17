@@ -10,6 +10,7 @@ export function ReportIssueDialog({ open, onClose, onCreated }: {
   onClose: () => void
   onCreated: () => void
 }) {
+  const [issueCode, setIssueCode] = useState('')
   const [shipId, setShipId] = useState('')
   const [cruiseId, setCruiseId] = useState('')
   const [cabinId, setCabinId] = useState('')
@@ -19,7 +20,7 @@ export function ReportIssueDialog({ open, onClose, onCreated }: {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const lock = useRef(false)
-  const invalid = !shipId.trim() || !description.trim()
+  const invalid = !issueCode.trim() || !shipId.trim() || !description.trim()
 
   async function submit() {
     if (invalid || lock.current) return
@@ -27,6 +28,7 @@ export function ReportIssueDialog({ open, onClose, onCreated }: {
     setPending(true); setError('')
     try {
       await operationalIssuesApi.create({
+        issueCode: issueCode.trim(),
         shipId: shipId.trim(),
         ...(cruiseId.trim() ? { cruiseId: cruiseId.trim() } : {}),
         ...(cabinId.trim() ? { cabinId: cabinId.trim() } : {}),
@@ -54,9 +56,10 @@ export function ReportIssueDialog({ open, onClose, onCreated }: {
     </>}
   >
     <div className={styles.formGrid}>
+      <label className={styles.field}>Mã sự cố *<input value={issueCode} onChange={(event) => setIssueCode(event.target.value)} placeholder="Mã sự cố (VD: ISS-101)" required /></label>
       <label className={styles.field}>Issue type<select value={issueType} onChange={(event) => setIssueType(event.target.value as IssueType)}>{ISSUE_TYPES.map((value) => <option key={value}>{value}</option>)}</select></label>
       <label className={styles.field}>Severity<select value={severity} onChange={(event) => setSeverity(event.target.value as IssueSeverity)}>{ISSUE_SEVERITIES.map((value) => <option key={value}>{value}</option>)}</select></label>
-      <label className={styles.field}>Ship ID<input value={shipId} onChange={(event) => setShipId(event.target.value)} placeholder="Ship UUID" /></label>
+      <label className={styles.field}>Ship ID *<input value={shipId} onChange={(event) => setShipId(event.target.value)} placeholder="Ship UUID" required /></label>
       <label className={styles.field}>Cruise ID<input value={cruiseId} onChange={(event) => setCruiseId(event.target.value)} placeholder="Không bắt buộc" /></label>
       <label className={styles.field}>Cabin ID<input value={cabinId} onChange={(event) => setCabinId(event.target.value)} placeholder="Không bắt buộc" /></label>
       <label className={`${styles.field} ${styles.fullWidth}`}>Description<textarea value={description} onChange={(event) => setDescription(event.target.value)} /></label>

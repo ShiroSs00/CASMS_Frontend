@@ -4,7 +4,6 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { Button, ButtonLink, DataTable, Empty, Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
 
 import { itineraryApi } from '../api/itinerary-api'
-import { useAuth } from '@/features/auth'
 import { ItineraryFrame, ItineraryStatusBadge } from '../components/ItineraryUI'
 import styles from '../components/Itineraries.module.css'
 import type { ItineraryDraft, ItineraryType } from '../model/itinerary'
@@ -53,7 +52,6 @@ export function ItineraryFormPage() {
   const { itineraryId } = useParams()
   const editing = Boolean(itineraryId)
   const navigate = useNavigate()
-  const { user } = useAuth()
   const [draft, setDraft] = useState<ItineraryDraft>(EMPTY_DRAFT)
   const [editableId, setEditableId] = useState<string | null>(null)
   const submitLock = useRef(false)
@@ -84,7 +82,7 @@ export function ItineraryFormPage() {
     try {
       const payload: ItineraryDraft = {
         ...draft,
-        createdByUserId: draft.createdByUserId?.trim() || user?.id || undefined,
+        createdByUserId: draft.createdByUserId?.trim() || undefined,
       }
       const saved = editing && itineraryId ? await itineraryApi.update(itineraryId, draft) : await itineraryApi.create(payload)
       navigate(`/admin/itineraries/${saved.itineraryId}`)
@@ -100,7 +98,7 @@ export function ItineraryFormPage() {
         <Field htmlFor="itinerary-start" label="Ngày bắt đầu"><input id="itinerary-start" type="date" value={draft.startDate} onChange={(event) => update('startDate', event.target.value)} required /></Field>
         <Field htmlFor="itinerary-end" label="Ngày kết thúc"><input id="itinerary-end" type="date" value={draft.endDate} onChange={(event) => update('endDate', event.target.value)} required /></Field>
         <Field htmlFor="itinerary-type" label="Loại hành trình"><select id="itinerary-type" value={draft.itineraryType} onChange={(event) => update('itineraryType', event.target.value as ItineraryType)}><option value="ROUND_TRIP">Khứ hồi</option><option value="ONE_WAY">Một chiều</option></select></Field>
-        <Field htmlFor="itinerary-author" label="Người tạo (UUID)"><input id="itinerary-author" disabled={editing} value={draft.createdByUserId ?? user?.id ?? ''} onChange={(event) => update('createdByUserId', event.target.value || undefined)} placeholder={user?.id ? `Mặc định: ${user.id}` : 'Nhập UUID người tạo'} /></Field>
+        <Field htmlFor="itinerary-author" label="Người tạo (UUID)"><input id="itinerary-author" disabled={editing} value={draft.createdByUserId ?? ''} onChange={(event) => update('createdByUserId', event.target.value || undefined)} placeholder="Nhập UUID người tạo (tùy chọn)" /></Field>
       </div>
       {error && <Notice title="Chưa thể lưu" tone="error"><p>{error}</p></Notice>}
       <div className={styles.actions}><Button tone="secondary" disabled={busy} onClick={() => navigate(editing && itineraryId ? `/admin/itineraries/${itineraryId}` : '/admin/itineraries')}>Hủy</Button><Button type="submit" disabled={busy || !canSave}>{busy ? 'Đang lưu…' : 'Lưu lịch trình'}</Button></div>

@@ -61,6 +61,7 @@ export type RegulationListQuery = {
   scope: RegulationScope | 'ALL'
   status: RegulationStatus | 'ALL'
   effectiveAt: string
+  effectiveOnly?: boolean
 }
 
 export type RegulationListItem = MockRegulation & {

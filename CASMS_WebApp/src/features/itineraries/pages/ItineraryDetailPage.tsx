@@ -58,7 +58,18 @@ export function ItineraryDetailPage() {
         {editable && <div className={styles.actions}><Button tone="secondary" disabled={busy} onClick={() => setAddingStop(true)}>Thêm điểm dừng</Button><Button tone="secondary" disabled={busy} onClick={() => setDayEditor({ day: null })}>Thêm ngày</Button></div>}
         <Panel title={`Ngày trong hành trình · ${days.length}`}>
           {!days.length && <Empty title="Thêm ngày trước khi cấu hình điểm dừng" />}
-          {days.map((day) => <div className={styles.dayHeading} key={day.itineraryDayId}><div><strong>Ngày {day.dayNumber} · {day.date}</strong><div className={styles.muted}>{day.dayType} · {day.shipTimeZoneId ?? 'Chưa đặt múi giờ'}</div></div>{editable && <div className={styles.inlineActions}><Button tone="text" disabled={busy} onClick={() => setDayEditor({ day })}>Sửa</Button><Button tone="text" disabled={busy} onClick={() => setDeletion({ kind: 'day', id: day.itineraryDayId })}>Xóa</Button></div>}</div>)}
+          {days.length > 0 && (
+            <div style={{ marginBottom: '0.75rem' }}>
+              <Button
+                tone="secondary"
+                disabled={busy}
+                onClick={() => void run(() => itineraryApi.validateDaySequence(itineraryId), 'Backend xác nhận thứ tự ngày trong hành trình hợp lệ.')}
+              >
+                Kiểm tra thứ tự ngày
+              </Button>
+            </div>
+          )}
+          {days.map((day) => <div className={styles.dayHeading} key={day.itineraryDayId}><div><strong>Ngày {day.dayNumber} · {day.date}</strong><div className={styles.muted}>{day.dayType} · {day.shipTimeZoneId ?? 'Chưa đặt múi giờ'}</div></div>{editable && <div className={styles.inlineActions}><Button tone="text" disabled={busy} onClick={() => void run(() => itineraryApi.validateDay(day.itineraryDayId), `Backend xác nhận ngày ${day.dayNumber} hợp lệ.`)}>Validate</Button><Button tone="text" disabled={busy} onClick={() => setDayEditor({ day })}>Sửa</Button><Button tone="text" disabled={busy} onClick={() => setDeletion({ kind: 'day', id: day.itineraryDayId })}>Xóa</Button></div>}</div>)}
         </Panel>
       </div>
       <aside>

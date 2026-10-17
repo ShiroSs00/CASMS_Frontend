@@ -175,4 +175,5 @@ export const cruiseApi = {
   start: (id: string) => apiRequest<CruiseDto>(`${byId(id)}/start`, { method: 'POST' }),
   complete: (id: string) => apiRequest<CruiseDto>(`${byId(id)}/complete`, { method: 'POST' }),
   cancel: (id: string, reason: string) => apiRequest<CruiseDto>(`${byId(id)}/cancel`, { method: 'POST', body: { reason } }),
+  deleteDraft: (id: string) => apiRequest<void>(`${byId(id)}/draft`, { method: 'DELETE' }),
 }

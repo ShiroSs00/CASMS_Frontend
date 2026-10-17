@@ -16,6 +16,7 @@ export function RegulationDetailPage() {
   const [busy, setBusy] = useState(false)
   const [nextStatus, setNextStatus] = useState<RegulationStatus | null>(null)
   const [precheck, setPrecheck] = useState<ConflictResult | null>(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const lock = useRef(false)
 
   useEffect(() => {
@@ -62,13 +63,27 @@ export function RegulationDetailPage() {
     finally { lock.current = false; setBusy(false) }
   }
 
+  async function handleDelete() {
+    if (lock.current) return
+    lock.current = true; setBusy(true); setError('')
+    try {
+      await regulationsApi.deleteUnused(regulationId)
+      navigate('/admin/regulations')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Không thể xóa quy định.')
+      setDeleteOpen(false)
+    } finally {
+      lock.current = false; setBusy(false)
+    }
+  }
+
   return <AdminFrame>
     {loading && <LoadingPanel />}
     {!loading && !data && <><PageHeader title={error ? 'Không tải được quy định' : 'Không tìm thấy quy định'} description={error || 'Quy định không tồn tại hoặc đã được xóa.'} /><Button tone="secondary" onClick={() => navigate('/admin/regulations')}>Về danh sách</Button></>}
     {data && <>
       <PageHeader title={`${data.regulation.code} · ${data.regulation.name}`} description={`${data.regulation.type} · ${data.regulation.scope} scope · ${data.regulation.status}`} actions={<Button onClick={() => navigate(`/admin/regulations/${regulationId}/edit`)}>Chỉnh regulation</Button>} />
       <div className={styles.summaryBadges}><StatusBadge status={data.regulation.status} /><span className={styles.scopeBadge}>{data.regulation.scope} SCOPE</span><span className={styles.valueBadge}>{data.regulation.value} {data.regulation.unit}</span></div>
-      {error && !nextStatus && <Notice title="Chưa thể thực hiện" tone="error">{error}</Notice>}
+      {error && !nextStatus && !deleteOpen && <Notice title="Chưa thể thực hiện" tone="error">{error}</Notice>}
       {success && <Notice title="Đã cập nhật" tone="success">{success}</Notice>}
       <div className={styles.regulationColumns}>
         <Panel title="Thông tin quy định">
@@ -86,6 +101,7 @@ export function RegulationDetailPage() {
             ? <Button disabled={busy || !data.capabilities.canDeactivate.allowed} onClick={() => void openStatus('INACTIVE')}>Deactivate</Button>
             : <Button disabled={busy || !data.capabilities.canActivate.allowed} onClick={() => void openStatus('ACTIVE')}>Activate</Button>}
           {data.regulation.status !== 'ACTIVE' && !data.capabilities.canActivate.allowed && <Notice title="Chưa thể kích hoạt" tone="warning">{data.capabilities.canActivate.reason}</Notice>}
+          <Button tone="danger" disabled={busy} onClick={() => { setError(''); setDeleteOpen(true) }}>Xóa khi chưa sử dụng</Button>
           {busy && <p role="status">Đang kiểm tra…</p>}
           {precheck && !nextStatus && <ConflictCard result={precheck} />}
         </aside>
@@ -96,6 +112,14 @@ export function RegulationDetailPage() {
       {precheck && <ConflictCard result={precheck} />}
       {error && <Notice title="Không thể cập nhật" tone="error">{error}</Notice>}
       <div className={styles.modalActions}><Button tone="secondary" disabled={busy} onClick={() => setNextStatus(null)}>Quay lại</Button><Button disabled={busy || (nextStatus === 'ACTIVE' && !precheck?.canProceed)} onClick={() => void confirmStatus()}>Xác nhận</Button></div>
+    </Modal>}
+    {deleteOpen && data && <Modal title="Xóa quy định?" description={`${data.regulation.code} · ${data.regulation.name}`} onClose={() => { if (!busy) setDeleteOpen(false) }}>
+      <p>Backend chỉ cho phép xóa quy định khi chưa được gán cho bất kỳ tàu hoặc chuyến đi nào.</p>
+      {error && <Notice title="Không thể xóa" tone="error">{error}</Notice>}
+      <div className={styles.modalActions}>
+        <Button tone="secondary" disabled={busy} onClick={() => setDeleteOpen(false)}>Quay lại</Button>
+        <Button tone="danger" disabled={busy} onClick={() => void handleDelete()}>{busy ? 'Đang xóa…' : 'Xác nhận xóa'}</Button>
+      </div>
     </Modal>}
   </AdminFrame>
 }
