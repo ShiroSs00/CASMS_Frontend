@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
 
+import { ApiError } from '@/shared/api'
+
 import { regulationsApi } from '../api/regulations-api'
 import type {
   MockRegulation,
@@ -134,13 +136,13 @@ export function RegulationFormPage() {
       }
       navigate(`/admin/regulations/${saved.id}`)
     } catch (error) {
-      if (error instanceof Error && error.message === 'DUPLICATE_CODE') {
+      if (error instanceof ApiError && error.code === 'DUPLICATE_CODE') {
         setErrors((current) => ({ ...current, code: 'Mã quy định đã tồn tại.' }))
       } else {
         setSubmitError(
-          error instanceof Error && error.message === 'STALE_DATA'
+          error instanceof ApiError && error.code === 'STALE_DATA'
             ? 'Dữ liệu đã thay đổi. Hãy tải lại bản mới và đối chiếu trước khi lưu.'
-            : 'Không thể lưu quy định. Dữ liệu bạn nhập vẫn được giữ nguyên.',
+            : `${error instanceof ApiError ? error.message : 'Không thể lưu quy định.'} Dữ liệu bạn nhập vẫn được giữ nguyên.`,
         )
       }
     } finally {

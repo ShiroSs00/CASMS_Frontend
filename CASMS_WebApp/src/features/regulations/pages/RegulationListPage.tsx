@@ -46,8 +46,8 @@ export function RegulationListPage() {
       .then((data) => {
         if (active) setItems(data)
       })
-      .catch(() => {
-        if (active) setError('Không tải được danh sách quy định.')
+      .catch((reason: unknown) => {
+        if (active) setError(reason instanceof Error ? reason.message : 'Không tải được danh sách quy định.')
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -66,7 +66,7 @@ export function RegulationListPage() {
     setLoading(true)
     setError('')
     setQuery(emptyQuery)
-    setAppliedQuery(emptyQuery)
+    setAppliedQuery({ ...emptyQuery })
   }
 
   return (

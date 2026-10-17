@@ -76,8 +76,11 @@ export const itineraryApi = {
   },
   activePorts: (signal?: AbortSignal) => apiRequest<Port[]>('/ports/active', { signal }),
   getPort: (id: string, signal?: AbortSignal) => apiRequest<Port>(portPath(id), { signal }),
-  createPort: (draft: PortDraft) => apiRequest<Port>('/ports', { method: 'POST', body: draft }),
-  updatePort: (id: string, draft: PortDraft) => apiRequest<Port>(portPath(id), { method: 'PATCH', body: draft }),
+  createPort: (draft: PortDraft) => {
+    const { description: _description, ...body } = draft
+    return apiRequest<Port>('/ports', { method: 'POST', body })
+  },
+  updatePort: (id: string, draft: PortDraft) => apiRequest<Port>(portPath(id), { method: 'PATCH', body: { portName: draft.portName, description: draft.description ?? undefined, latitude: draft.latitude ?? undefined, longitude: draft.longitude ?? undefined, timeZoneId: draft.timeZoneId } }),
   removePort: (id: string) => apiRequest<void>(`${portPath(id)}/unused`, { method: 'DELETE' }),
   activatePort: (id: string) => apiRequest<Port>(`${portPath(id)}/activate`, { method: 'POST' }),
   deactivatePort: (id: string) => apiRequest<Port>(`${portPath(id)}/deactivate`, { method: 'POST' }),
@@ -90,7 +93,7 @@ export const itineraryApi = {
   getDestination: (id: string, signal?: AbortSignal) => apiRequest<Destination>(destinationPath(id), { signal }),
   destinationPorts: (id: string, signal?: AbortSignal) => apiRequest<Port[]>(`${destinationPath(id)}/ports`, { signal }),
   createDestination: (draft: DestinationDraft) => apiRequest<Destination>('/destinations', { method: 'POST', body: draft }),
-  updateDestination: (id: string, draft: DestinationDraft) => apiRequest<Destination>(destinationPath(id), { method: 'PATCH', body: draft }),
+  updateDestination: (id: string, draft: DestinationDraft) => apiRequest<Destination>(destinationPath(id), { method: 'PATCH', body: { destinationName: draft.destinationName, description: draft.description ?? undefined } }),
   removeDestination: (id: string) => apiRequest<void>(`${destinationPath(id)}/unused`, { method: 'DELETE' }),
   validateDestination: (id: string) => apiRequest<unknown>(`${destinationPath(id)}/validate`, { method: 'POST' }),
 }

@@ -1,0 +1,44 @@
+.content { display: flex; flex-direction: column; gap: 16px; }
+.titleRow { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.titleRow h1 { font-size: 32px; font-weight: 600; line-height: 40px; }
+.titleRow p { margin-top: 4px; color: var(--text-secondary); font-size: 14px; line-height: 21px; }
+.createButton, .content .button { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 180px; min-height: 44px; padding: 0 16px; border: 1px solid var(--surface-brand); border-radius: 6px; background: var(--surface-brand); color: var(--text-inverse); font-size: 14px; font-weight: 600; line-height: 17px; letter-spacing: .14px; text-decoration: none; }
+.createButton:hover { filter: brightness(1.15); }
+.metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 280px)); gap: 12px; }
+.metric { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--border-default); border-radius: 16px; }
+.metric dt, .metricNote { color: var(--text-secondary); font-size: 12px; font-weight: 500; line-height: 17px; letter-spacing: .12px; }
+.metricValue { font-size: 32px; font-weight: 600; line-height: 40px; }
+.success { color: var(--status-success); }
+.warning { color: var(--status-warning); }
+.brand { color: var(--surface-brand); }
+.danger { color: var(--status-danger); }
+.filters { display: flex; align-items: flex-end; gap: 12px; }
+.field { display: flex; flex: 0 1 220px; min-width: 0; flex-direction: column; gap: 8px; color: var(--text-secondary); font-size: 12px; font-weight: 500; line-height: 17px; letter-spacing: .12px; }
+.search { flex-basis: 300px; }
+.field input, .field select { width: 100%; height: 44px; padding: 0 16px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--surface-default); color: var(--text-primary); font-size: 16px; font-weight: 400; line-height: 26px; letter-spacing: normal; }
+.field input::placeholder { color: var(--text-primary); opacity: 1; }
+.field input:disabled, .field select:disabled { opacity: .65; }
+.content .filterButton { width: 120px; }
+.content .resetButton { width: auto; border-color: transparent; background: transparent; color: var(--surface-brand); }
+.content .button:disabled { background: var(--surface-subtle); border-color: var(--border-default); color: var(--text-secondary); cursor: not-allowed; }
+.tableContainer { overflow: hidden; border: 1px solid var(--border-default); border-radius: 16px; }
+.table { width: 100%; border-collapse: collapse; table-layout: fixed; text-align: left; }
+.column_name { width: 192px; }
+.column_code { width: 100px; }
+.column_status { width: 140px; }
+.column_deck { width: 80px; }
+.column_cabin { width: 90px; }
+.column_readiness { width: 160px; }
+.table th { padding: 8px 0; background: var(--surface-subtle); color: var(--text-secondary); font-size: 12px; font-weight: 500; line-height: 17px; letter-spacing: .12px; }
+.table th:first-child { padding-left: 8px; }
+.table th:not(:first-child) { text-indent: -4px; }
+.table td { height: 45px; padding: 12px 0; color: var(--text-secondary); font-size: 14px; line-height: 21px; }
+.table td:first-child { padding-left: 12px; color: var(--text-primary); }
+.table tbody tr:nth-child(even) { background: var(--surface-subtle); }
+.shipLink { display: flex; align-items: center; min-height: 45px; margin: -12px 0; color: var(--text-primary); text-decoration: none; }
+.shipLink:hover { text-decoration: underline; text-underline-offset: 3px; }
+.shipLink:focus-visible { outline-offset: -3px; }
+.statePanel { display: flex; min-height: 170px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; border: 1px solid var(--border-default); border-radius: 16px; color: var(--text-secondary); text-align: center; }
+.tableContainer .statePanel { border: 0; }
+.error { border-color: var(--status-danger); color: var(--text-primary); }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

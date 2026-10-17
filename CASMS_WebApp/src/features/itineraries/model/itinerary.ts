@@ -73,6 +73,7 @@ export type Port = {
   timeZoneId: string
   latitude?: number | null
   longitude?: number | null
+  description?: string | null
   status: PortStatus
 }
 
