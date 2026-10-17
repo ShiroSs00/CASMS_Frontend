@@ -5,11 +5,12 @@ import type {
   Ship, ShipCapacity, ShipDraft, ShipStatus,
 } from '../model/types'
 import type { AssignmentDto, CabinDto, CruiseDto, DeckDto, PageDto, ShipDto } from './dto'
+import type { ShipListState } from '../model/ship-list-types'
 
 let revision = 0
 const listeners = new Set<() => void>()
 const notify = () => { revision += 1; listeners.forEach((listener) => listener()) }
-const paths: Record<EntityKind, string> = { ships: '/ship', decks: '/deck', cabins: '/cabin' }
+const paths: Record<EntityKind, string> = { ships: '/ships', decks: '/decks', cabins: '/cabins' }
 const idPath = (kind: EntityKind, id: string) => `${paths[kind]}/${encodeURIComponent(id)}`
 const ship = (dto: ShipDto): Ship => ({
   id: dto.shipId, code: dto.shipCode, name: dto.shipName, status: dto.status,
@@ -51,11 +52,33 @@ async function allPages<T>(path: string, signal?: AbortSignal): Promise<T[]> {
 export const shipDeckCabinApi = {
   subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
   getRevision: () => revision,
+  async loadShipList(signal: AbortSignal): Promise<ShipListState> {
+    const ships = await allPages<ShipDto>(paths.ships, signal)
+    const items = await Promise.all(ships.map(async (dto) => {
+      const [capacity, ready, currentCruise] = await Promise.all([
+        shipDeckCabinApi.getShipCapacity(dto.shipId, signal),
+        apiRequest<boolean>(`${idPath('ships', dto.shipId)}/readiness`, { signal }),
+        shipDeckCabinApi.getCurrentCruise(dto.shipId, signal),
+      ])
+      return {
+        id: dto.shipId, name: dto.shipName, code: dto.shipCode, status: dto.status,
+        deckCount: capacity.actualDeckCount, cabinCount: capacity.actualCabinCount,
+        readiness: checkedBoolean(ready) ? 'READY' as const : 'ATTENTION' as const,
+        currentCruise,
+      }
+    }))
+    return { items, metrics: {
+      activeCount: items.filter((item) => item.status === 'ACTIVE').length,
+      maintenanceCount: items.filter((item) => item.status === 'MAINTENANCE').length,
+      configuredCabinCount: items.reduce((total, item) => total + item.cabinCount, 0),
+      attentionCount: items.filter((item) => item.readiness !== 'READY').length,
+    } }
+  },
   async listSnapshot(signal?: AbortSignal): Promise<DataSnapshot> {
     const [ships, decks, cabins] = await Promise.all([
-      allPages<ShipDto>('/ship', signal),
-      allPages<DeckDto>('/deck', signal),
-      allPages<CabinDto>('/cabin', signal),
+      allPages<ShipDto>(paths.ships, signal),
+      allPages<DeckDto>(paths.decks, signal),
+      allPages<CabinDto>(paths.cabins, signal),
     ])
     return { ships: ships.map(ship), decks: decks.map(deck), cabins: cabins.map(cabin) }
   },
@@ -70,18 +93,18 @@ export const shipDeckCabinApi = {
       ...(draft.commissionDate ? { commissionDate: draft.commissionDate } : {}),
       ...(!id ? { shipCode: draft.code.trim(), status: draft.status } : {}),
     }
-    const saved = ship(await apiRequest<ShipDto>(id ? idPath('ships', id) : '/ship', { method: id ? 'PATCH' : 'POST', body }))
+    const saved = ship(await apiRequest<ShipDto>(id ? idPath('ships', id) : paths.ships, { method: id ? 'PATCH' : 'POST', body }))
     notify(); return saved
   },
   async saveDeck(draft: DeckDraft, id?: string) {
     const body = { deckNumber: draft.number, deckName: draft.name.trim(), ...(!id ? { shipId: draft.shipId } : {}) }
-    const saved = deck(await apiRequest<DeckDto>(id ? idPath('decks', id) : '/deck', { method: id ? 'PATCH' : 'POST', body }))
+    const saved = deck(await apiRequest<DeckDto>(id ? idPath('decks', id) : paths.decks, { method: id ? 'PATCH' : 'POST', body }))
     notify(); return saved
   },
   async saveCabin(draft: CabinDraft, id?: string) {
     const body = { cabinType: draft.type, capacity: draft.capacity, isAccessible: draft.accessible,
       ...(!id ? { shipId: draft.shipId, deckId: draft.deckId, cabinNumber: draft.number.trim(), status: draft.status } : {}) }
-    const saved = cabin(await apiRequest<CabinDto>(id ? idPath('cabins', id) : '/cabin', { method: id ? 'PATCH' : 'POST', body }))
+    const saved = cabin(await apiRequest<CabinDto>(id ? idPath('cabins', id) : paths.cabins, { method: id ? 'PATCH' : 'POST', body }))
     notify(); return saved
   },
   async deleteUnused(kind: EntityKind, id: string) {
@@ -131,7 +154,22 @@ export const shipDeckCabinApi = {
     }))
   },
   async searchAvailable(query: AvailableCabinQuery, signal?: AbortSignal) {
-    return (await apiRequest<CabinDto[]>('/cabin/search', { method: 'POST', body: query, signal })).map(cabin)
+    try {
+      return (await apiRequest<CabinDto[]>(`${paths.cabins}/search`, { method: 'POST', body: query, signal })).map(cabin)
+    } catch (error) {
+      if (error instanceof ApiError && error.status >= 500) {
+        const allCabins = await allPages<CabinDto>(paths.cabins, signal)
+        return allCabins
+          .filter((item) => item.status === 'AVAILABLE')
+          .filter((item) => !query.shipId || item.shipId === query.shipId)
+          .filter((item) => !query.deckId || item.deckId === query.deckId)
+          .filter((item) => !query.cabinType || item.cabinType === query.cabinType)
+          .filter((item) => query.minCapacity === undefined || item.capacity >= query.minCapacity)
+          .filter((item) => query.isAccessible === undefined || item.isAccessible === query.isAccessible)
+          .map(cabin)
+      }
+      throw error
+    }
   },
   async inspectReadiness(id: string) {
     return booleanResult(await apiRequest<boolean>(`${idPath('ships', id)}/readiness`), 'Sẵn sàng vận hành')

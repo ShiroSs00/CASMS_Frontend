@@ -5,18 +5,14 @@ import { AdminShell } from '@/shared/ui/admin-v3'
 import { ShipListMetrics } from '../components/ShipListMetrics'
 import { ShipListFilters } from '../components/ShipListFilters'
 import { ShipListTable } from '../components/ShipListTable'
-import { createShipListRepository, type ShipListScenario } from '../mocks/ship-list-repository'
+import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { emptyShipFilters, filterShips } from '../model/ship-list-types'
 import { useShipList } from '../model/useShipList'
 import styles from '../components/ShipList.module.css'
 
+const repository = { load: shipDeckCabinApi.loadShipList }
+
 export function ShipListPage() {
-  const [repository] = useState(() => {
-    // Development QA states never change authentication or enable a live API.
-    const requested = import.meta.env.DEV ? new URLSearchParams(window.location.search).get('shipListState') : null
-    const scenario: ShipListScenario = requested === 'empty' || requested === 'error' || requested === 'loading' ? requested : 'data'
-    return createShipListRepository(scenario)
-  })
   const { state, retry } = useShipList(repository)
   const [pending, setPending] = useState(emptyShipFilters)
   const [applied, setApplied] = useState(emptyShipFilters)
