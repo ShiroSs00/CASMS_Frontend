@@ -170,7 +170,23 @@ export function RegulationListPage() {
           <Button onClick={resetFilters} tone="secondary">
             Xóa bộ lọc
           </Button>
+          <Button
+            onClick={() => {
+              setLoading(true)
+              setError('')
+              setQuery((curr) => ({ ...curr, effectiveOnly: !curr.effectiveOnly }))
+              setAppliedQuery((curr) => ({ ...curr, effectiveOnly: !curr.effectiveOnly }))
+            }}
+            tone={appliedQuery.effectiveOnly ? 'primary' : 'secondary'}
+          >
+            {appliedQuery.effectiveOnly ? 'Đang lọc: Chỉ quy định hiệu lực (BE)' : 'Xem quy định hiệu lực (BE)'}
+          </Button>
         </div>
+        {appliedQuery.effectiveOnly ? (
+          <Notice title="Nguồn dữ liệu hiệu lực" tone="success">
+            Danh sách được lấy trực tiếp từ máy chủ qua endpoint GET /operational-regulations/effective.
+          </Notice>
+        ) : null}
         <Notice title="Hai trạng thái khác nhau" tone="info">
           Trạng thái cấu hình cho biết quy định đang DRAFT, ACTIVE hay INACTIVE.
           Hiệu lực tại thời điểm được tính riêng từ trạng thái và khoảng thời gian áp dụng.

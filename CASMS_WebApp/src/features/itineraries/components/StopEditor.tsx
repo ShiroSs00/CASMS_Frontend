@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { Button, Field, Notice, Panel } from '@/shared/ui'
 
 import type { CruiseStop, CruiseStopDraft, Destination, ItineraryDay, Port } from '../model/itinerary'
+import { itineraryApi } from '../api/itinerary-api'
 import styles from './Itineraries.module.css'
 
 function localDateTime(value: string) {
@@ -30,7 +31,28 @@ export function StopEditor({ itineraryId, stop, days, ports, destinations, busy,
     callType: stop?.callType ?? 'NORMAL', arrivalMethod: stop?.arrivalMethod ?? 'BERTH',
   })
   const [error, setError] = useState('')
+  const [stopInfo, setStopInfo] = useState('')
   function update<K extends keyof CruiseStopDraft>(key: K, value: CruiseStopDraft[K]) { setDraft((current) => ({ ...current, [key]: value })) }
+  async function checkDuration() {
+    if (!stop) return
+    setError(''); setStopInfo('')
+    try {
+      const mins = await itineraryApi.getStopDuration(stop.cruiseStopId)
+      setStopInfo(`Thời lượng dừng dự kiến: ${mins} phút (${Math.floor(mins / 60)}h ${mins % 60}m).`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không tính được thời lượng.')
+    }
+  }
+  async function checkAvailability() {
+    if (!stop) return
+    setError(''); setStopInfo('')
+    try {
+      const ok = await itineraryApi.checkStopPortAvailability(stop.cruiseStopId)
+      setStopInfo(ok ? 'Backend xác nhận cảng khả dụng cho điểm dừng này.' : 'Backend báo cảng không khả dụng.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không kiểm tra được cảng.')
+    }
+  }
   function submit(event: FormEvent) {
     event.preventDefault()
     if (new Date(draft.plannedDeparture) <= new Date(draft.plannedArrival)) { setError('ETD phải sau ETA.'); return }
@@ -49,9 +71,16 @@ export function StopEditor({ itineraryId, stop, days, ports, destinations, busy,
       <Field htmlFor="stop-call-type" label="Loại ghé"><select id="stop-call-type" disabled={!editable || busy} value={draft.callType} onChange={(event) => update('callType', event.target.value as CruiseStopDraft['callType'])}><option value="NORMAL">NORMAL</option><option value="LATE_NIGHT">LATE_NIGHT</option><option value="OVERNIGHT">OVERNIGHT</option></select></Field>
       <Field htmlFor="stop-arrival-method" label="Cách cập cảng"><select id="stop-arrival-method" disabled={!editable || busy} value={draft.arrivalMethod ?? 'BERTH'} onChange={(event) => update('arrivalMethod', event.target.value as CruiseStopDraft['arrivalMethod'])}><option value="BERTH">BERTH</option><option value="TENDER">TENDER</option></select></Field>
       {error && <Notice title="Kiểm tra thời gian" tone="error">{error}</Notice>}
-      {stop && <Button tone="secondary" disabled={busy} onClick={onValidate}>Validate stop</Button>}
+      {stopInfo && <Notice title="Thông tin điểm dừng" tone="info">{stopInfo}</Notice>}
+      {stop && (
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <Button type="button" tone="secondary" disabled={busy} onClick={() => void checkDuration()}>Thời lượng dừng</Button>
+          <Button type="button" tone="secondary" disabled={busy} onClick={() => void checkAvailability()}>Khả dụng cảng</Button>
+          <Button type="button" tone="secondary" disabled={busy} onClick={onValidate}>Validate stop</Button>
+        </div>
+      )}
       {editable && <Button type="submit" disabled={busy}>{busy ? 'Đang lưu…' : stop ? 'Cập nhật stop' : 'Thêm điểm dừng'}</Button>}
-      {stop && editable && <Button tone="danger" disabled={busy} onClick={onRemove}>Xóa điểm dừng</Button>}
+      {stop && editable && <Button type="button" tone="danger" disabled={busy} onClick={onRemove}>Xóa điểm dừng</Button>}
     </form>
   </Panel>
 }

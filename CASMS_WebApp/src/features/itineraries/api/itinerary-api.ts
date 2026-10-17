@@ -8,6 +8,7 @@ import type {
   Itinerary,
   ItineraryDay,
   ItineraryDayDraft,
+  ItineraryDayType,
   ItineraryDraft,
   PageResult,
   Port,
@@ -60,15 +61,31 @@ export const itineraryApi = {
   cancel: (id: string) => apiRequest<Itinerary>(`${itineraryPath(id)}/cancel`, { method: 'POST' }),
 
   listDays: (id: string, signal?: AbortSignal) => apiRequest<ItineraryDay[]>(`${itineraryPath(id)}/days`, { signal }),
+  listDaysByItinerary: (itineraryId: string, signal?: AbortSignal) => apiRequest<ItineraryDay[]>(`/itinerary-days/by-itinerary/${encodeURIComponent(itineraryId)}`, { signal }),
+  getDay: (id: string, signal?: AbortSignal) => apiRequest<ItineraryDay>(dayPath(id), { signal }),
   createDay: (draft: ItineraryDayDraft) => apiRequest<ItineraryDay>('/itinerary-days', { method: 'POST', body: draft }),
   updateDay: (id: string, draft: Partial<ItineraryDayDraft>) => apiRequest<ItineraryDay>(dayPath(id), { method: 'PATCH', body: draft }),
+  setDayType: (id: string, dayType: ItineraryDayType) => apiRequest<ItineraryDay>(`${dayPath(id)}/day-type`, { method: 'POST', query: { dayType } }),
+  setShipTimeZone: (id: string, shipTimeZoneId: string) => apiRequest<ItineraryDay>(`${dayPath(id)}/ship-timezone`, { method: 'POST', query: { shipTimeZoneId } }),
   removeDay: (id: string) => apiRequest<void>(`${dayPath(id)}/unused`, { method: 'DELETE' }),
   validateDay: (id: string) => apiRequest<unknown>(`${dayPath(id)}/validate`, { method: 'POST' }),
+  validateDaySequence: (itineraryId: string) => apiRequest<unknown>(`/itinerary-days/by-itinerary/${encodeURIComponent(itineraryId)}/validate-sequence`, { method: 'POST' }),
 
   listStops: (id: string, signal?: AbortSignal) => apiRequest<CruiseStop[]>(`/cruise-stops/by-itinerary/${encodeURIComponent(id)}`, { signal }),
+  getStop: (id: string, signal?: AbortSignal) => apiRequest<CruiseStop>(stopPath(id), { signal }),
   createStop: (draft: CruiseStopDraft) => apiRequest<CruiseStop>('/cruise-stops', { method: 'POST', body: stopBody(draft) }),
   updateStop: (id: string, draft: Partial<CruiseStopDraft>) => apiRequest<CruiseStop>(stopPath(id), { method: 'PATCH', body: stopBody(draft) }),
   removeStop: (id: string) => apiRequest<void>(`${stopPath(id)}/draft`, { method: 'DELETE' }),
+  reorderStop: (id: string, newStopOrder: number) => apiRequest<CruiseStop>(`${stopPath(id)}/reorder`, { method: 'POST', query: { newStopOrder } }),
+  setAllAboardTime: (id: string, allAboardTime: string) => apiRequest<CruiseStop>(`${stopPath(id)}/all-aboard-time`, { method: 'POST', query: { allAboardTime: new Date(allAboardTime).toISOString() } }),
+  recordActualArrival: (id: string, actualArrival: string) => apiRequest<CruiseStop>(`${stopPath(id)}/actual-arrival`, { method: 'POST', query: { actualArrival: new Date(actualArrival).toISOString() } }),
+  recordActualDeparture: (id: string, actualDeparture: string) => apiRequest<CruiseStop>(`${stopPath(id)}/actual-departure`, { method: 'POST', query: { actualDeparture: new Date(actualDeparture).toISOString() } }),
+  omitStop: (id: string, reason: string) => apiRequest<CruiseStop>(`${stopPath(id)}/omit`, { method: 'POST', query: { reason } }),
+  substituteStop: (id: string, newStopId: string) => apiRequest<CruiseStop>(`${stopPath(id)}/substitute`, { method: 'POST', query: { newStopId } }),
+  setPlannedArrival: (id: string, plannedArrival: string) => apiRequest<CruiseStop>(`${stopPath(id)}/planned-arrival`, { method: 'POST', query: { plannedArrival: new Date(plannedArrival).toISOString() } }),
+  setPlannedDeparture: (id: string, plannedDeparture: string) => apiRequest<CruiseStop>(`${stopPath(id)}/planned-departure`, { method: 'POST', query: { plannedDeparture: new Date(plannedDeparture).toISOString() } }),
+  getStopDuration: (id: string, signal?: AbortSignal) => apiRequest<number>(`${stopPath(id)}/duration`, { signal }),
+  checkStopPortAvailability: (id: string, signal?: AbortSignal) => apiRequest<boolean>(`${stopPath(id)}/port-availability`, { signal }),
   validateStop: (id: string) => apiRequest<unknown>(`${stopPath(id)}/validate`, { method: 'POST' }),
 
   async listPorts(pageNumber = 1, signal?: AbortSignal) {
@@ -77,14 +94,15 @@ export const itineraryApi = {
   activePorts: (signal?: AbortSignal) => apiRequest<Port[]>('/ports/active', { signal }),
   getPort: (id: string, signal?: AbortSignal) => apiRequest<Port>(portPath(id), { signal }),
   createPort: (draft: PortDraft) => {
-    const { description: _description, ...body } = draft
-    return apiRequest<Port>('/ports', { method: 'POST', body })
+    const { portName, latitude, longitude, timeZoneId } = draft
+    return apiRequest<Port>('/ports', { method: 'POST', body: { portName, latitude, longitude, timeZoneId } })
   },
   updatePort: (id: string, draft: PortDraft) => apiRequest<Port>(portPath(id), { method: 'PATCH', body: { portName: draft.portName, description: draft.description ?? undefined, latitude: draft.latitude ?? undefined, longitude: draft.longitude ?? undefined, timeZoneId: draft.timeZoneId } }),
   removePort: (id: string) => apiRequest<void>(`${portPath(id)}/unused`, { method: 'DELETE' }),
   activatePort: (id: string) => apiRequest<Port>(`${portPath(id)}/activate`, { method: 'POST' }),
   deactivatePort: (id: string) => apiRequest<Port>(`${portPath(id)}/deactivate`, { method: 'POST' }),
   validatePort: (id: string) => apiRequest<unknown>(`${portPath(id)}/validate`, { method: 'POST' }),
+  checkPortAvailability: (id: string, signal?: AbortSignal) => apiRequest<boolean>(`${portPath(id)}/availability`, { signal }),
 
   async listDestinations(pageNumber = 1, signal?: AbortSignal) {
     return page(await apiRequest<PageDto<Destination>>('/destinations', { query: { page: pageNumber - 1, size: 20, sort: 'destinationName,asc' }, signal }))

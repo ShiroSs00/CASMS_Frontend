@@ -2,7 +2,7 @@ import { apiRequest } from '@/shared/api'
 
 import type { IssueQuery } from '../model/issue-query'
 import type { IssueStatus, OperationalIssue, PersonReference } from '../model/issue'
-import type { CreateOperationalIssueRequest, OperationalIssueDto } from './dto'
+import type { CreateOperationalIssueRequest, OperationalIssueDto, UpdateOperationalIssueRequest } from './dto'
 
 export type IssueStatusTotals = Record<IssueStatus, number> & { critical: number }
 export type IssueListResult = {
@@ -85,6 +85,10 @@ export const operationalIssuesApi = {
   },
   async create(body: CreateOperationalIssueRequest) {
     const result = toIssue(await apiRequest<OperationalIssueDto>('/operational-issues', { method: 'POST', body }))
+    notify(); return result
+  },
+  async update(id: string, body: UpdateOperationalIssueRequest) {
+    const result = toIssue(await apiRequest<OperationalIssueDto>(path(id), { method: 'PUT', body }))
     notify(); return result
   },
   async assign(id: string, assignedToId: string) {

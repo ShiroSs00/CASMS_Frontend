@@ -6,7 +6,7 @@ import { BookingProvider, CruiseSearchPage, CustomerCruiseDetailPage, TravellerD
 
 import { HomePage } from '@/features/home'
 import { CruiseDetailPage, CruiseFormPage, CruiseListPage } from '@/features/cruises'
-import { IssueDetailPage, IssueListPage } from '@/features/operational-issues'
+import { IssueDetailPage, IssueFormPage, IssueListPage } from '@/features/operational-issues'
 import {
   DestinationDetailPage,
   DestinationFormPage,
@@ -64,7 +64,9 @@ const adminRoutes = [
   { path: '/admin/destinations/:destinationId', Component: DestinationDetailPage },
   { path: '/admin/destinations/:destinationId/edit', Component: DestinationFormPage },
   { path: '/admin/issues', Component: IssueListPage },
+  { path: '/admin/issues/new', Component: IssueFormPage },
   { path: '/admin/issues/:issueId', Component: IssueDetailPage },
+  { path: '/admin/issues/:issueId/edit', Component: IssueFormPage },
 
   {
     path: '/admin/regulations',

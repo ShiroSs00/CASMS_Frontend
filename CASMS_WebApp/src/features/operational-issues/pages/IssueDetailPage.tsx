@@ -65,7 +65,14 @@ export function IssueDetailPage() {
                 · tạo {formatDate(state.issue.reportedAt)}
               </p>
             </div>
-            <Link className={styles.primaryButton} to={returnTo}>Quay lại issue list</Link>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              {state.issue.status === 'OPEN' && (
+                <Link className={styles.secondaryButton} to={`/admin/issues/${state.issue.id}/edit`}>
+                  Chỉnh sửa sự cố
+                </Link>
+              )}
+              <Link className={styles.primaryButton} to={returnTo}>Quay lại issue list</Link>
+            </div>
           </header>
           <div className={styles.detailGrid}>
             <div className={styles.detailMain}>

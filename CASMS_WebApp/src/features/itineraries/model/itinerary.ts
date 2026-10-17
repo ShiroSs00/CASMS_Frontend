@@ -61,6 +61,12 @@ export type CruiseStop = {
   status: CruiseStopStatus
   portName?: string
   destinationName?: string | null
+  actualArrival?: string | null
+  actualDeparture?: string | null
+  allAboardTime?: string | null
+  tenderTransferMinutes?: number | null
+  cancellationReason?: string | null
+  substitutedByStopId?: string | null
 }
 
 export type CruiseStopDraft = Omit<CruiseStop, 'cruiseStopId' | 'status' | 'portName' | 'destinationName'>

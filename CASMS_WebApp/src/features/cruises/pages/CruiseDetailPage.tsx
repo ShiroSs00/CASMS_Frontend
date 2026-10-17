@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useNavigate, useParams } from 'react-router'
 
 import { Badge, Button, ButtonLink, Empty, Field, Loading, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
 
@@ -22,9 +22,10 @@ function checkTone(state: ReadinessCheck['state']) {
 
 export function CruiseDetailPage() {
   const { cruiseId } = useParams()
+  const navigate = useNavigate()
   const { state, refresh } = useCruiseDetail(cruiseId)
   const [assignmentMode, setAssignmentMode] = useState<AssignmentMode | null>(null)
-  const [lifecycleAction, setLifecycleAction] = useState<'publish' | 'start' | 'complete' | 'cancel' | null>(null)
+  const [lifecycleAction, setLifecycleAction] = useState<'publish' | 'start' | 'complete' | 'cancel' | 'deleteDraft' | null>(null)
   const [cancelReason, setCancelReason] = useState('')
   const [lifecycleError, setLifecycleError] = useState('')
   const [lifecycleBusy, setLifecycleBusy] = useState(false)
@@ -38,6 +39,12 @@ export function CruiseDetailPage() {
     setLifecycleBusy(true)
     setLifecycleError('')
     try {
+      if (lifecycleAction === 'deleteDraft') {
+        await cruiseApi.deleteDraft(cruiseId)
+        setLifecycleAction(null)
+        navigate('/admin/cruises')
+        return
+      }
       if (lifecycleAction === 'publish') {
         const readiness = await cruiseApi.readiness(cruiseId)
         if (!readiness.ready) throw new Error(readiness.issues?.join(' · ') || 'Cruise chưa sẵn sàng phát hành.')
@@ -87,6 +94,7 @@ export function CruiseDetailPage() {
                   {cruise.status === 'PUBLISHED' && <Button disabled={lifecycleBusy || detail.ship?.status !== 'ACTIVE'} onClick={() => setLifecycleAction('start')}>Bắt đầu vận hành</Button>}
                   {cruise.status === 'IN_PROGRESS' && <Button onClick={() => setLifecycleAction('complete')}>Hoàn thành cruise</Button>}
                   {!['COMPLETED', 'CANCELLED'].includes(cruise.status) && <Button tone="danger" onClick={() => setLifecycleAction('cancel')}>Hủy cruise</Button>}
+                  {cruise.status === 'DRAFT' && <Button tone="danger" disabled={lifecycleBusy} onClick={() => setLifecycleAction('deleteDraft')}>Xóa bản nháp</Button>}
                   {['COMPLETED', 'CANCELLED'].includes(cruise.status) && <p className={styles.muted}>Cruise đã ở trạng thái kết thúc, không còn thao tác vòng đời.</p>}
                 </div>
               </Panel>
@@ -103,11 +111,11 @@ export function CruiseDetailPage() {
             <Link className={styles.inlineLink} to={`/admin/issues?cruise=${cruise.cruiseId}`}>Xem danh sách sự cố →</Link>
           </Panel>
           {assignmentMode && <ShipAssignmentDialog detail={detail} mode={assignmentMode} onClose={() => setAssignmentMode(null)} onChanged={() => { void refresh(); setLifecycleSuccess('Đã cập nhật phân công tàu.') }} />}
-          {lifecycleAction && <Modal busy={lifecycleBusy} title="Xác nhận chuyển trạng thái" onClose={() => { if (!lifecycleBusy) setLifecycleAction(null) }}>
-            <p>{cruise.cruiseCode} · thao tác {lifecycleAction.toUpperCase()}</p>
+          {lifecycleAction && <Modal busy={lifecycleBusy} title={lifecycleAction === 'deleteDraft' ? 'Xác nhận xóa bản nháp' : 'Xác nhận chuyển trạng thái'} onClose={() => { if (!lifecycleBusy) setLifecycleAction(null) }}>
+            <p>{cruise.cruiseCode} · {lifecycleAction === 'deleteDraft' ? 'Xóa bản nháp cruise khỏi hệ thống. Thao tác này không thể hoàn tác.' : `thao tác ${lifecycleAction.toUpperCase()}`}</p>
             {lifecycleAction === 'cancel' && <Field htmlFor="cancel-reason" label="Lý do hủy"><textarea id="cancel-reason" value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} rows={3} /></Field>}
             {lifecycleError && <Notice title="Không thể cập nhật" tone="error"><p>{lifecycleError}</p></Notice>}
-            <div className={styles.dialogActions}><Button tone={lifecycleAction === 'cancel' ? 'danger' : 'primary'} disabled={lifecycleBusy || (lifecycleAction === 'cancel' && !cancelReason.trim())} onClick={() => void confirmLifecycle()}>{lifecycleBusy ? 'Đang xử lý…' : 'Xác nhận'}</Button><Button tone="secondary" disabled={lifecycleBusy} onClick={() => setLifecycleAction(null)}>Quay lại</Button></div>
+            <div className={styles.dialogActions}><Button tone={['cancel', 'deleteDraft'].includes(lifecycleAction) ? 'danger' : 'primary'} disabled={lifecycleBusy || (lifecycleAction === 'cancel' && !cancelReason.trim())} onClick={() => void confirmLifecycle()}>{lifecycleBusy ? 'Đang xử lý…' : 'Xác nhận'}</Button><Button tone="secondary" disabled={lifecycleBusy} onClick={() => setLifecycleAction(null)}>Quay lại</Button></div>
           </Modal>}
         </>
       })()}
