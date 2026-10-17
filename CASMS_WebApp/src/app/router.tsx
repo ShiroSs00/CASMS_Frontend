@@ -5,6 +5,7 @@ import { AccessDeniedPage, AdminGuard, CustomerGuard, AuthConceptPage, LoginPage
 import { BookingProvider, CruiseSearchPage, CustomerCruiseDetailPage, TravellerDetailsPage, CabinExperiencePage, ReviewBookingPage, MyBookingsPage, BookingDetailPage, ManageBookingPage, TravellerDocumentsPage, OnlineCheckinPage, ArrivalTimePage, BoardingPassPage, PaymentContractPage, ChangeRequestPage } from '@/features/booking'
 
 import { HomePage } from '@/features/home'
+import { SupplierDetailPage, SupplierFormPage, SupplierListPage } from '@/features/suppliers'
 import { CruiseDetailPage, CruiseFormPage, CruiseListPage } from '@/features/cruises'
 import { IssueDetailPage, IssueFormPage, IssueListPage } from '@/features/operational-issues'
 import {
@@ -35,6 +36,10 @@ import { PublicLayout } from './layouts/PublicLayout'
 
 const adminRoutes = [
   { path: '/admin', element: <Navigate to="/admin/ships" replace /> },
+  { path: '/admin/suppliers', Component: SupplierListPage },
+  { path: '/admin/suppliers/new', Component: SupplierFormPage },
+  { path: '/admin/suppliers/:supplierId', Component: SupplierDetailPage },
+  { path: '/admin/suppliers/:supplierId/edit', Component: SupplierFormPage },
   { path: '/admin/ships', Component: ShipListPage },
   { path: '/admin/ships/new', Component: ShipFormPage },
   { path: '/admin/ships/:id', Component: ShipDetailPage },

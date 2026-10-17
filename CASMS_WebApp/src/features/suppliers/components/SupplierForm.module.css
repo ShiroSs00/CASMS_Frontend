@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400&display=swap');
+
+.content { min-width: 0; }
+.header { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.content h1 { margin: 0; font-family: var(--font-heading); font-size: 32px; font-weight: 600; line-height: 38px; }
+.header p, .notFound p { color: var(--text-secondary); font-size: 16px; line-height: 24px; }
+.form { display: flex; flex-direction: column; align-items: stretch; gap: 20px; padding: 20px; border: 1px solid var(--border-default); border-radius: 12px; background: var(--surface-default); }
+.form h2 { margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 400; line-height: 27px; }
+.fieldRow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px; width: min(100%, 1080px); min-height: 88px; }
+.form input { height: 48px; min-height: 0; padding: 0 14px; border-color: var(--border-default); background: var(--surface-default); color: var(--text-primary); }
+.form input::placeholder, .form textarea::placeholder { color: var(--text-secondary); opacity: 1; }
+.form input[aria-invalid='true'], .form textarea[aria-invalid='true'] { border-color: var(--status-danger); }
+.form [role='alert'] { color: var(--status-danger); }
+.context { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 6px; background: var(--surface-subtle); color: var(--text-secondary); margin-top: 26px; }
+.context p:first-child { font-size: 12px; line-height: 17px; }
+.context p:last-child { font-size: 14px; line-height: 21px; }
+.notes > div { gap: 20px; }
+.form textarea { display: block; height: 120px; min-height: 120px; padding: 12px; resize: vertical; border-color: var(--border-default); border-radius: 12px; background: var(--surface-default); color: var(--text-primary); font-size: 14px; line-height: 21px; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.actions .cancelButton, .actions .submitButton, .returnLink, .listCreateLink.listCreateLink { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 20px; border: 1px solid var(--surface-brand); border-radius: 8px; font-size: 14px; font-weight: 500; line-height: 20px; text-decoration: none; cursor: pointer; }
+.actions .cancelButton { width: 140px; background: var(--surface-default); color: var(--action-secondary); }
+.actions .submitButton, .returnLink, .listCreateLink.listCreateLink { width: 200px; background: var(--surface-brand); color: var(--text-inverse); }
+.returnLink:hover, .listCreateLink:hover { filter: brightness(.92); }
+.notFound { display: flex; flex-direction: column; align-items: flex-start; gap: 20px; padding: 24px; border: 1px solid var(--border-default); border-radius: 12px; background: var(--surface-default); }
+
+@media (max-width: 1000px) {
+  .fieldRow { grid-template-columns: minmax(0, 1fr); }
+}
+
+.apiErrorBanner {
+  padding: 14px 18px;
+  border-radius: 8px;
+  background: var(--status-danger-bg);
+  border: 1px solid var(--status-danger-border, #fca5a5);
+  color: var(--status-danger);
+  font-size: 14px;
+  line-height: 20px;
+}
