@@ -1,16 +1,19 @@
 import { Link } from 'react-router'
 import { Button } from '@/shared/ui'
 import type { ShipListItem } from '../model/ship-list-types'
+import { shipStatuses } from '../model/types'
 import styles from './ShipList.module.css'
 
+const readinessLabels: Record<ShipListItem['readiness'], string> = { READY: 'Sẵn sàng', ATTENTION: 'Cần chú ý', BLOCKED: 'Chưa sẵn sàng' }
+
 export function ShipListTable({ items, filtered, onReset }: { items: ShipListItem[]; filtered: boolean; onReset: () => void }) {
-  return <div className={styles.tableContainer}>
+  return <div className={styles.tableContainer} role="region" aria-label="Bảng thông tin đội tàu" tabIndex={0}>
     <table className={styles.table} aria-label="Danh sách tàu">
       <colgroup>{['name', 'code', 'status', 'deck', 'cabin', 'readiness', 'cruise'].map(column => <col key={column} className={styles[`column_${column}`]} />)}</colgroup>
-      <thead><tr>{['Tàu', 'Mã', 'Trạng thái', 'Deck', 'Cabin', 'Sẵn sàng', 'Chuyến hiện tại'].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
+      <thead><tr>{['Tàu', 'Mã', 'Trạng thái', 'Boong', 'Phòng', 'Sẵn sàng', 'Chuyến hiện tại'].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
       <tbody>{items.map(item => <tr key={item.id}>
         <td><Link className={styles.shipLink} to={`/admin/ships/${item.id}`} aria-label={`Xem tàu ${item.name}`}>{item.name}</Link></td>
-        <td>{item.code}</td><td>{item.status}</td><td>{item.deckCount}</td><td>{item.cabinCount}</td><td>{item.readiness}</td><td>{item.currentCruise?.code ?? '—'}</td>
+        <td>{item.code}</td><td>{shipStatuses[item.status]}</td><td>{item.deckCount}</td><td>{item.cabinCount}</td><td>{readinessLabels[item.readiness]}</td><td>{item.currentCruise?.code ?? '—'}</td>
       </tr>)}</tbody>
     </table>
     {!items.length && <div className={styles.statePanel} role="status">

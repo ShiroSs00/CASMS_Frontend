@@ -64,10 +64,15 @@ export function ItineraryFormPage() {
     if (!itineraryId) return
     const controller = new AbortController()
     void itineraryApi.get(itineraryId, controller.signal).then((item) => {
+      if (controller.signal.aborted) return
       setDraft({ cruiseId: item.cruiseId, itineraryName: item.itineraryName, startDate: item.startDate, endDate: item.endDate, itineraryType: item.itineraryType, createdByUserId: item.createdByUserId ?? undefined })
       if (item.status === 'DRAFT') setEditableId(item.itineraryId)
       else setError('Chỉ lịch trình ở trạng thái DRAFT mới được chỉnh sửa thông tin.')
-    }).catch((reason: unknown) => setError(errorMessage(reason, 'Không tải được lịch trình.'))).finally(() => setLoading(false))
+    }).catch((reason: unknown) => {
+      if (!controller.signal.aborted) setError(errorMessage(reason, 'Không tải được lịch trình.'))
+    }).finally(() => {
+      if (!controller.signal.aborted) setLoading(false)
+    })
     return () => controller.abort()
   }, [itineraryId])
 

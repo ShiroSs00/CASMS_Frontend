@@ -21,14 +21,15 @@
 .content .filterButton { width: 120px; }
 .content .resetButton { width: auto; border-color: transparent; background: transparent; color: var(--surface-brand); }
 .content .button:disabled { background: var(--surface-subtle); border-color: var(--border-default); color: var(--text-secondary); cursor: not-allowed; }
-.tableContainer { overflow: hidden; border: 1px solid var(--border-default); border-radius: 16px; }
-.table { width: 100%; border-collapse: collapse; table-layout: fixed; text-align: left; }
+.tableContainer { overflow-x: auto; border: 1px solid var(--border-default); border-radius: 16px; }
+.table { width: 100%; min-width: 960px; border-collapse: collapse; table-layout: fixed; text-align: left; }
 .column_name { width: 192px; }
 .column_code { width: 100px; }
 .column_status { width: 140px; }
 .column_deck { width: 80px; }
 .column_cabin { width: 90px; }
 .column_readiness { width: 160px; }
+.column_cruise { width: 180px; }
 .table th { padding: 8px 0; background: var(--surface-subtle); color: var(--text-secondary); font-size: 12px; font-weight: 500; line-height: 17px; letter-spacing: .12px; }
 .table th:first-child { padding-left: 8px; }
 .table th:not(:first-child) { text-indent: -4px; }

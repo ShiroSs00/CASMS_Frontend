@@ -42,9 +42,9 @@ export function CruiseFormPage() {
 
   useEffect(() => {
     if (!cruiseId) return
-    let active = true
-    void cruiseApi.getDetail(cruiseId).then((detail) => {
-      if (!active) return
+    const controller = new AbortController()
+    void cruiseApi.getDetail(cruiseId, controller.signal).then((detail) => {
+      if (controller.signal.aborted) return
       setDraft({
         cruiseCode: detail.cruise.cruiseCode,
         cruiseName: detail.cruise.cruiseName,
@@ -59,17 +59,19 @@ export function CruiseFormPage() {
       setCurrentShip(detail.ship?.shipName ?? 'Chưa phân công')
       setLoading(false)
     }).catch((error: unknown) => {
-      if (!active) return
+      if (controller.signal.aborted) return
       setSubmitError(error instanceof Error ? error.message : 'Không tải được cruise.')
       setLoading(false)
     })
-    return () => { active = false }
+    return () => controller.abort()
   }, [cruiseId])
 
   useEffect(() => {
     const controller = new AbortController()
-    void cruiseApi.listPorts(controller.signal).then(setPorts).catch((error: unknown) => {
-      setSubmitError(error instanceof Error ? error.message : 'Không tải được danh mục cảng.')
+    void cruiseApi.listPorts(controller.signal).then((result) => {
+      if (!controller.signal.aborted) setPorts(result)
+    }).catch((error: unknown) => {
+      if (!controller.signal.aborted) setSubmitError(error instanceof Error ? error.message : 'Không tải được danh mục cảng.')
     })
     return () => controller.abort()
   }, [])
