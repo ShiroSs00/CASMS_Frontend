@@ -1,34 +1,10 @@
-import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
-import { Link, NavLink, useLocation } from 'react-router'
+import { useEffect, useId, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { Link } from 'react-router'
+import { AdminShell } from './admin-v3'
 import styles from './AdminUI.module.css'
 
-// The existing Regulations AdminFrame is shared here without changing page APIs.
 export function AdminFrame({ children, className = '', topbar }: { children: ReactNode; className?: string; topbar?: ReactNode }) {
-  const { pathname } = useLocation()
-  const isRegulation = pathname.includes('/regulations')
-  const isCruise = pathname.startsWith('/admin/cruises') && !isRegulation
-  const [expanded, setExpanded] = useState(!isRegulation)
-  return <div className={`${styles.appShell} ${className}`}>
-    <a className={styles.skipLink} href="#regulation-main">Chuyển đến nội dung chính</a>
-    <aside className={styles.sidebar} aria-label="Điều hướng quản trị">
-      <div className={styles.brand}>CASMS</div>
-      <div className={styles.navHeading}>QUẢN TRỊ VẬN HÀNH</div>
-      <nav className={styles.navList}>
-        <span className={styles.navItem} aria-disabled="true">Tổng quan</span>
-        <div>
-          <button className={styles.navParent} aria-expanded={expanded} aria-controls="ship-deck-cabin-menu" onClick={() => setExpanded((value) => !value)}><span>Tàu & đội tàu</span><span aria-hidden="true">{expanded ? '⌄' : '›'}</span></button>
-          <div id="ship-deck-cabin-menu" className={styles.children} hidden={!expanded}>
-            {([['ships', 'Ship'], ['decks', 'Deck'], ['cabins', 'Cabin']] as const).map(([path, label]) => <NavLink key={path} to={`/admin/${path}`} className={({ isActive }) => `${styles.child} ${isActive && !isRegulation ? styles.childActive : ''}`}>{label}</NavLink>)}
-          </div>
-        </div>
-        <NavLink className={isCruise ? styles.navActive : styles.navItem} to="/admin/cruises">Chuyến hải trình</NavLink>
-        <NavLink className={isRegulation ? styles.navActive : styles.navItem} to="/admin/regulations">Quy định vận hành</NavLink>
-        <span className={styles.navItem} aria-disabled="true">Sự cố vận hành</span>
-      </nav>
-    </aside>
-    {topbar && <div className={styles.topbar}>{topbar}</div>}
-    <main className={`${styles.main} ${topbar ? styles.mainWithTopbar : ''}`} id="regulation-main" tabIndex={-1}>{children}</main>
-  </div>
+  return <AdminShell className={className} topbar={topbar}>{children}</AdminShell>
 }
 
 export function Button({ tone = 'primary', className = '', type = 'button', ...props }:

@@ -1,4 +1,26 @@
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=Sora:wght@600&display=swap');
+@font-face {
+  font-family: 'OceVie Inter';
+  src: url('./fonts/Inter-Regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OceVie Inter';
+  src: url('./fonts/Inter-Medium.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OceVie Inter';
+  src: url('./fonts/Inter-SemiBold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
 
 .shell {
   --surface-brand: #0b2a4a;
@@ -15,42 +37,42 @@
   --status-warning-bg: #fff4dd;
   --status-danger: #b42318;
   --status-danger-bg: #fff0ef;
-  --font-heading: 'Sora', Arial, sans-serif;
+  --font-body: 'OceVie Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-heading: var(--font-body);
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);
   min-height: 100vh;
   background: var(--surface-subtle);
   color: var(--text-primary);
   color-scheme: light;
-  font-family: 'Be Vietnam Pro', Arial, sans-serif;
+  font-family: var(--font-body);
   font-size: 14px;
   line-height: 21px;
 }
 
 .shell :global(:focus-visible) { outline: 3px solid var(--action-secondary); outline-offset: 3px; }
 .shell :where(h1, h2, h3) { font-family: var(--font-heading); }
-.sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 24px 16px; background: var(--surface-brand); color: var(--text-inverse); scrollbar-width: none; }
+.sidebar { position: sticky; top: 0; align-self: start; min-height: 0; height: 100dvh; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; padding: 20px 12px; background: var(--surface-brand); color: var(--text-inverse); font-family: var(--font-body); scrollbar-width: thin; scrollbar-color: #688397 transparent; scrollbar-gutter: stable; }
 .sidebar :global(:focus-visible) { outline-color: var(--text-inverse); }
-.brand { display: flex; align-items: center; height: 42px; font-family: var(--font-heading); font-size: 30px; font-weight: 600; line-height: 38px; }
+.brand { display: flex; align-items: center; min-height: 42px; padding-inline: 12px; font-family: var(--font-heading); font-size: 30px; font-weight: 600; line-height: 38px; }
 .subtitle, .groupLabel { font-size: 12px; font-weight: 400; line-height: 17px; }
-.subtitle { margin-top: 12px; }
-.navigation, .navGroup { display: flex; flex-direction: column; gap: 12px; }
-.navigation { margin-top: 12px; }
-.navItem { display: flex; align-items: center; min-height: 40px; padding: 10px 12px; border-radius: 8px; color: var(--text-inverse); font-weight: 500; line-height: 20px; text-decoration: none; }
+.subtitle { margin: 8px 0 0; padding-inline: 12px; }
+.navigation, .navGroup { display: flex; flex-direction: column; }
+.navigation { gap: 20px; margin-top: 24px; }
+.navGroup { gap: 4px; }
+.groupLabel { margin: 0; padding: 0 12px 4px; }
+.navItem { display: flex; align-items: center; min-height: 40px; padding: 8px 12px; border-radius: 8px; color: var(--text-inverse); font-weight: 500; line-height: 20px; text-decoration: none; overflow-wrap: anywhere; }
 a.navItem:hover { background: rgb(255 255 255 / 10%); }
 .navItem.active, a.navItem.active:hover { background: var(--action-secondary); }
 .navItem[aria-disabled='true'] { cursor: default; }
 .mainColumn { min-width: 0; }
-.topbar { display: flex; align-items: center; justify-content: space-between; gap: 24px; height: 68px; padding: 0 32px; border-bottom: 1px solid var(--border-default); background: var(--surface-default); }
-.assignment { color: var(--text-secondary); }
-.account { display: flex; align-items: center; gap: 16px; flex-shrink: 0; font-weight: 500; line-height: 20px; }
-.role { width: 180px; }
-.accountLabel { width: 100px; color: var(--text-secondary); }
-.main { padding: 24px 32px; }
+.topbar { display: flex; min-width: 0; min-height: 68px; align-items: center; gap: 16px; padding: 16px 32px; border-bottom: 1px solid var(--border-default); background: var(--surface-default); font-family: var(--font-body); }
+.context { margin: 0; color: var(--text-secondary); font-weight: 500; line-height: 20px; overflow-wrap: anywhere; }
+.main { min-width: 0; padding: 24px 32px; font-family: var(--font-body); }
 .skipLink { position: fixed; top: 8px; left: 8px; z-index: 100; transform: translateY(-180%); padding: 12px; background: var(--surface-default); color: var(--text-primary); }
 .skipLink:focus { transform: translateY(0); }
 
 @media (max-width: 1100px) {
-  .topbar { gap: 16px; }
-  .role { width: auto; }
+  .topbar { padding-inline: 24px; }
+  .main { padding-inline: 24px; }
 }

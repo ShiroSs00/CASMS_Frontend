@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
-import { Link, NavLink } from 'react-router'
+import { Link } from 'react-router'
 
 import { Badge, Button, DataTable, Empty, Field, Loading, Notice } from '@/shared/ui'
+import { AdminShell } from '@/shared/ui/admin-v3'
 
 import type { CruiseQuery } from '../model/cruise-query'
 import type { CruiseStatus, CruiseType, ShipRecord } from '../model/cruise-record'
@@ -14,24 +15,8 @@ import {
 } from '../model/cruise-view'
 import styles from './Cruises.module.css'
 
-const navigation = [
-  ['Tổng quan', ''], ['Bookings', ''], ['Check-in', ''], ['Yêu cầu dịch vụ', ''],
-  ['Tài khoản', ''], ['Tàu', '/admin/ships'], ['Chuyến', '/admin/cruises'],
-  ['Hải trình', '/admin/itineraries'], ['Cảng', '/admin/ports'], ['Điểm đến', '/admin/destinations'],
-  ['Quy định', '/admin/regulations'], ['Sự cố', '/admin/issues'], ['Người dùng', ''], ['Báo cáo', ''],
-] as const
-
 export function CruiseFrame({ children }: { children: ReactNode }) {
-  return <div className={styles.auroraShell}>
-    <aside className={styles.auroraSidebar}>
-      <Link className={styles.auroraBrand} to="/admin/cruises"><strong>AURORA</strong></Link>
-      <span className={styles.brandCaption}>Trung tâm vận hành</span><nav aria-label="Điều hướng quản trị">{navigation.map(([label, href]) => href ? <NavLink className={({ isActive }) => isActive ? styles.auroraNavActive : styles.auroraNav} key={label} to={href}>{label}</NavLink> : <span key={label} className={styles.auroraNav} aria-disabled="true">{label}</span>)}</nav>
-    </aside>
-    <main className={styles.auroraMain}>
-      <header className={styles.auroraTopbar}><span>Tìm kiếm hoặc chạy lệnh…</span><b>Đã đăng nhập</b></header>
-      <div className={styles.auroraCanvas}>{children}</div>
-    </main>
-  </div>
+  return <AdminShell><div className={styles.cruiseShell}>{children}</div></AdminShell>
 }
 
 function statusTone(status: CruiseStatus) {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router'
-import { AdminFrame, Button, ButtonLink, DataTable, Empty, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Button, ButtonLink, DataTable, Empty, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
+import { AdminShell } from '@/shared/ui/admin-v3'
 import { useAdminData, useAvailableCabins, useMutation } from '../hooks/useAdminData'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { cabinStatuses, cabinTypes, entityName, kindLabels, sectionLabels, shipStatuses } from '../model/types'
@@ -116,6 +117,6 @@ function ListPage({ kind }: { kind: EntityKind }) {
     </Modal>}
   </>
 }
-export function ShipListPage() { const location = useLocation(); return <AdminFrame><ListPage key={location.key} kind="ships" /></AdminFrame> }
-export function DeckListPage() { const location = useLocation(); return <AdminFrame><ListPage key={location.key} kind="decks" /></AdminFrame> }
-export function CabinListPage() { const location = useLocation(); return <AdminFrame><ListPage key={location.key} kind="cabins" /></AdminFrame> }
+export function ShipListPage() { const location = useLocation(); return <AdminShell><ListPage key={location.key} kind="ships" /></AdminShell> }
+export function DeckListPage() { const location = useLocation(); return <AdminShell><ListPage key={location.key} kind="decks" /></AdminShell> }
+export function CabinListPage() { const location = useLocation(); return <AdminShell><ListPage key={location.key} kind="cabins" /></AdminShell> }
