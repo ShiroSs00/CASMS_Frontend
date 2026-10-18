@@ -4,7 +4,7 @@ import {
   type ButtonHTMLAttributes,
   type ReactNode,
 } from 'react'
-import { NavLink } from 'react-router'
+import { AdminShell } from '@/shared/ui/admin-v3'
 
 import type {
   ConflictResult,
@@ -17,24 +17,7 @@ import {
 } from '../model/regulation'
 import styles from './Regulations.module.css'
 export function AdminFrame({ children }: { children: ReactNode }) {
-  const links = [
-    ['Tổng quan', ''], ['Bookings', ''], ['Check-in', ''], ['Yêu cầu dịch vụ', ''],
-    ['Tài khoản', ''], ['Tàu', '/admin/ships'], ['Chuyến', '/admin/cruises'],
-    ['Hải trình', '/admin/itineraries'], ['Quy định', '/admin/regulations'],
-    ['Sự cố', '/admin/issues'], ['Người dùng', ''], ['Báo cáo', ''],
-  ] as const
-  return <div className={styles.appShell}>
-    <a className={styles.skipLink} href="#regulation-main">Chuyển đến nội dung chính</a>
-    <aside className={styles.sidebar}>
-      <strong className={styles.brand}>AURORA</strong>
-      <span className={styles.brandCaption}>Trung tâm vận hành</span>
-      {links.map(([label, to]) => to
-        ? <NavLink key={label} to={to} className={({ isActive }) => `${styles.navLink} ${isActive ? styles.navActive : ''}`}>{label}</NavLink>
-        : <span key={label} className={styles.navLink}>{label}</span>)}
-    </aside>
-    <header className={styles.topbar}><span>Tìm kiếm hoặc chạy lệnh…</span><b>Đã đăng nhập</b></header>
-    <main className={styles.main} id="regulation-main">{children}</main>
-  </div>
+  return <AdminShell className={styles.appShell}>{children}</AdminShell>
 }
 export function PageHeader({
   title,

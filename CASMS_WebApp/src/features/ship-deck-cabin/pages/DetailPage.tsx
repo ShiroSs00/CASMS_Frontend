@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
-import { AdminFrame, Button, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Button, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
+import { AdminShell } from '@/shared/ui/admin-v3'
 import { useAdminData, useEntity, useMutation } from '../hooks/useAdminData'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { entityName, kindLabels, sectionLabels } from '../model/types'
@@ -54,6 +55,6 @@ function DetailPage({ kind }: { kind: EntityKind }) {
     </Modal>}
   </>
 }
-export function ShipDetailPage() { const { id } = useParams(); return <AdminFrame><DetailPage key={id} kind="ships" /></AdminFrame> }
-export function DeckDetailPage() { const { id } = useParams(); return <AdminFrame><DetailPage key={id} kind="decks" /></AdminFrame> }
-export function CabinDetailPage() { const { id } = useParams(); return <AdminFrame><DetailPage key={id} kind="cabins" /></AdminFrame> }
+export function ShipDetailPage() { const { id } = useParams(); return <AdminShell><DetailPage key={id} kind="ships" /></AdminShell> }
+export function DeckDetailPage() { const { id } = useParams(); return <AdminShell><DetailPage key={id} kind="decks" /></AdminShell> }
+export function CabinDetailPage() { const { id } = useParams(); return <AdminShell><DetailPage key={id} kind="cabins" /></AdminShell> }

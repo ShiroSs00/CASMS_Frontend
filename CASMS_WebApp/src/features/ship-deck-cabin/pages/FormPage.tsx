@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
-import { AdminFrame, Button, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Button, Notice, PageHeader, Panel } from '@/shared/ui'
+import { AdminShell } from '@/shared/ui/admin-v3'
 import { useAdminData, useEntity, useMutation } from '../hooks/useAdminData'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { validateShip, validateDeck, validateCabin } from '../model/validation'
@@ -91,6 +92,6 @@ function FormPage({ kind }: { kind: EntityKind }) {
     deck={item && !('code' in item) && !('deckId' in item) ? item : undefined}
     cabin={item && 'deckId' in item ? item : undefined} />
 }
-export function ShipFormPage() { return <AdminFrame><FormPage kind="ships" /></AdminFrame> }
-export function DeckFormPage() { return <AdminFrame><FormPage kind="decks" /></AdminFrame> }
-export function CabinFormPage() { return <AdminFrame><FormPage kind="cabins" /></AdminFrame> }
+export function ShipFormPage() { return <AdminShell><FormPage kind="ships" /></AdminShell> }
+export function DeckFormPage() { return <AdminShell><FormPage kind="decks" /></AdminShell> }
+export function CabinFormPage() { return <AdminShell><FormPage kind="cabins" /></AdminShell> }
