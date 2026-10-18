@@ -12,7 +12,7 @@ const navigation: { label: string; items: { label: string; to?: string }[] }[] =
     { label: 'Gói dịch vụ' }, { label: 'Chuyến', to: '/admin/cruises' },
   ] },
   { label: 'DỊCH VỤ BỜ', items: [
-    { label: 'Nhà cung cấp', to: '/admin/suppliers' }, { label: 'Chuyến tham quan bờ' }, { label: 'Nhóm tour' },
+    { label: 'Nhà cung cấp', to: '/admin/suppliers' }, { label: 'Chuyến tham quan bờ', to: '/admin/shore-excursions' }, { label: 'Nhóm tour', to: '/admin/tour-groups' },
   ] },
   { label: 'TÀI CHÍNH', items: [{ label: 'Thanh toán' }, { label: 'Hoàn tiền' }, { label: 'Báo cáo' }] },
   { label: 'HỆ THỐNG', items: [

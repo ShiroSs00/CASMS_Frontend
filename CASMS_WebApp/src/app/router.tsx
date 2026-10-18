@@ -6,6 +6,8 @@ import { BookingProvider, CruiseSearchPage, CustomerCruiseDetailPage, TravellerD
 
 import { HomePage } from '@/features/home'
 import { SupplierDetailPage, SupplierFormPage, SupplierListPage } from '@/features/suppliers'
+import { ShoreExcursionDetailPage, ShoreExcursionFormPage, ShoreExcursionListPage } from '@/features/shore-excursions'
+import { TourGroupDetailPage, TourGroupFormPage, TourGroupListPage } from '@/features/tour-groups'
 import { CruiseDetailPage, CruiseFormPage, CruiseListPage } from '@/features/cruises'
 import { IssueDetailPage, IssueFormPage, IssueListPage } from '@/features/operational-issues'
 import {
@@ -35,6 +37,14 @@ import {
 import { PublicLayout } from './layouts/PublicLayout'
 
 const adminRoutes = [
+  { path: '/admin/tour-groups', Component: TourGroupListPage },
+  { path: '/admin/tour-groups/new', Component: TourGroupFormPage },
+  { path: '/admin/tour-groups/:groupId', Component: TourGroupDetailPage },
+  { path: '/admin/tour-groups/:groupId/edit', Component: TourGroupFormPage },
+  { path: '/admin/shore-excursions', Component: ShoreExcursionListPage },
+  { path: '/admin/shore-excursions/new', Component: ShoreExcursionFormPage },
+  { path: '/admin/shore-excursions/:excursionId', Component: ShoreExcursionDetailPage },
+  { path: '/admin/shore-excursions/:excursionId/edit', Component: ShoreExcursionFormPage },
   { path: '/admin', element: <Navigate to="/admin/ships" replace /> },
   { path: '/admin/suppliers', Component: SupplierListPage },
   { path: '/admin/suppliers/new', Component: SupplierFormPage },

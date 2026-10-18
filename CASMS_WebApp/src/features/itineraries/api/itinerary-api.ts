@@ -1,4 +1,4 @@
-import { apiRequest } from '@/shared/api'
+import { ApiError, apiRequest, apiRequestRaw } from '@/shared/api'
 
 import type {
   CruiseStop,
@@ -36,10 +36,48 @@ function stopBody(draft: Partial<CruiseStopDraft>) {
   }
 }
 
-// BE_CONTRACT_TO_NORMALIZE: the history controller does not yet return ApiResponse.
+const historyChangeTypes = ['TIME_CHANGE', 'PORT_OMITTED', 'PORT_SUBSTITUTED', 'STOP_REORDERED', 'EXCURSION_IMPACT', 'OTHER'] as const
+export type ItineraryHistoryEntry = {
+  changeHistoryId: string
+  itineraryId: string
+  changeSummary: string | null
+  reason: string | null
+  changeType: typeof historyChangeTypes[number] | null
+  changedAt: string | null
+  changedByUserId: string | null
+}
+
+function decodeHistory(payload: unknown, status: number): ItineraryHistoryEntry[] {
+  const invalid = () => new ApiError('Dữ liệu lịch sử thay đổi không đúng định dạng.', status)
+  if (!Array.isArray(payload)) throw invalid()
+  return payload.map((value: unknown) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw invalid()
+    const row = value as Record<string, unknown>
+    if (typeof row.changeHistoryId !== 'string' || !row.changeHistoryId || typeof row.itineraryId !== 'string' || !row.itineraryId) throw invalid()
+    function text(field: string): string | null {
+      if (row[field] == null) return null
+      if (typeof row[field] !== 'string') throw invalid()
+      return row[field]
+    }
+    const rawChangeType = text('changeType')
+    const changeType = historyChangeTypes.find((type) => type === rawChangeType)
+    if (rawChangeType !== null && changeType === undefined) throw invalid()
+    return {
+      changeHistoryId: row.changeHistoryId,
+      itineraryId: row.itineraryId,
+      changeSummary: text('changeSummary'),
+      reason: text('reason'),
+      changeType: changeType ?? null,
+      changedAt: text('changedAt'),
+      changedByUserId: text('changedByUserId'),
+    }
+  })
+}
+
 export const itineraryHistoryApi = {
-  availability: 'pending' as const,
-  list: async (): Promise<readonly { id: string; description: string; createdAt: string }[]> => [],
+  list: (itineraryId: string, signal?: AbortSignal): Promise<ItineraryHistoryEntry[]> => apiRequestRaw(
+    `/itinerary-change-history/itineraries/${encodeURIComponent(itineraryId)}`, decodeHistory, { signal },
+  ),
 }
 
 export const itineraryApi = {

@@ -24,7 +24,7 @@ export function subscribeApiUnauthorized(listener: () => void) {
 }
 const baseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 
-export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function request<T>(path: string, options: RequestOptions, decode: (payload: unknown, status: number) => T): Promise<T> {
   const query = new URLSearchParams()
   for (const [key, value] of Object.entries(options.query ?? {})) {
     if (value !== undefined) query.set(key, String(value))
@@ -43,7 +43,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       method: options.method ?? 'GET', headers, signal: controller.signal,
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     })
-    if (response.status === 204 && response.ok) return undefined as T
+    if (response.status === 204 && response.ok) return decode(undefined, response.status)
     let payload: ApiEnvelope<T> | null = null
     try { payload = await response.json() as ApiEnvelope<T> } catch { /* Do not render HTML error pages. */ }
     const message = typeof payload?.message === 'string' ? payload.message
@@ -57,9 +57,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
         : response.status === 403 ? 'Bạn không có quyền thực hiện thao tác này.'
           : message || `Không thể thực hiện yêu cầu (HTTP ${response.status}).`, response.status, payload?.code ?? payload?.error)
     }
-    if (!payload || typeof payload.success !== 'boolean') throw new ApiError('Response API không đúng định dạng đã công bố.', response.status)
-    if (!payload.success) throw new ApiError(message || 'Backend từ chối thao tác.', response.status, payload.code ?? payload.error)
-    return payload.data as T
+    return decode(payload, response.status)
   } catch (error) {
     if (error instanceof ApiError || options.signal?.aborted) throw error
     if (controller.signal.aborted) throw new ApiError('Yêu cầu quá thời gian. Hãy thử lại.', 0)
@@ -68,4 +66,21 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     clearTimeout(timeout)
     options.signal?.removeEventListener('abort', abort)
   }
+}
+
+export function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return request(path, options, (value, status) => {
+    if (status === 204) return undefined as T
+    const payload = value as ApiEnvelope<T> | null
+    if (!payload || typeof payload.success !== 'boolean') throw new ApiError('Response API không đúng định dạng đã công bố.', status)
+    const message = typeof payload.message === 'string' ? payload.message
+      : typeof payload.error === 'string' ? payload.error : ''
+    if (!payload.success) throw new ApiError(message || 'Backend từ chối thao tác.', status, payload.code ?? payload.error)
+    return payload.data as T
+  })
+}
+
+// Raw endpoints must supply their own runtime decoder; JWT handling stays here.
+export function apiRequestRaw<T>(path: string, decode: (payload: unknown, status: number) => T, options: RequestOptions = {}): Promise<T> {
+  return request(path, options, decode)
 }

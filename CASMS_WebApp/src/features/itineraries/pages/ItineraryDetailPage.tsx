@@ -1,18 +1,73 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 
+import { ApiError } from '@/shared/api'
 import { Badge, Button, ButtonLink, Empty, Field, Loading, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
 
-import { itineraryApi, itineraryHistoryApi } from '../api/itinerary-api'
+import { itineraryApi, itineraryHistoryApi, type ItineraryHistoryEntry } from '../api/itinerary-api'
 import { DayEditor } from '../components/DayEditor'
 import { ItineraryFrame, ItineraryStatusBadge } from '../components/ItineraryUI'
 import { StopEditor } from '../components/StopEditor'
 import styles from '../components/Itineraries.module.css'
 import { useItineraryEditor } from '../hooks/useItineraryEditor'
-import type { ItineraryDay } from '../model/itinerary'
+import type { CruiseStop, Itinerary, ItineraryDay } from '../model/itinerary'
 
 type Action = 'submit' | 'approve' | 'reject' | 'publish' | 'cancel' | 'applyChange' | 'validate' | 'remove'
 const actionLabels: Record<Action, string> = { submit: 'Gửi duyệt', approve: 'Phê duyệt', reject: 'Từ chối', publish: 'Mở bán', cancel: 'Hủy lịch trình', applyChange: 'Ghi nhận thay đổi', validate: 'Kiểm tra lịch trình', remove: 'Xóa bản nháp' }
+const callTypeLabels: Record<CruiseStop['callType'], string> = { NORMAL: 'Thông thường', LATE_NIGHT: 'Đến khuya', OVERNIGHT: 'Qua đêm' }
+const dayTypeLabels: Record<ItineraryDay['dayType'], string> = { SEA_DAY: 'Ngày trên biển', PORT_DAY: 'Ngày ghé cảng' }
+
+const historyTypeLabels: Record<NonNullable<ItineraryHistoryEntry['changeType']>, string> = {
+  TIME_CHANGE: 'Thay đổi thời gian', PORT_OMITTED: 'Bỏ cảng', PORT_SUBSTITUTED: 'Thay thế cảng',
+  STOP_REORDERED: 'Sắp xếp lại điểm dừng', EXCURSION_IMPACT: 'Ảnh hưởng chuyến tham quan', OTHER: 'Khác',
+}
+
+function historyTime(value: string | null) {
+  if (!value) return 'Chưa có thời gian'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? 'Thời gian không hợp lệ' : date.toLocaleString('vi-VN')
+}
+
+type HistoryResult = { entries: ItineraryHistoryEntry[]; error?: never; forbidden?: never }
+  | { entries?: never; error: string; forbidden: boolean }
+
+function HistoryContent({ result, onRetry }: { result: HistoryResult | null; onRetry: () => void }) {
+  if (!result) return <Loading label="Đang tải lịch sử thay đổi…" />
+  if (result.error !== undefined) return <>
+    <Notice tone="error" title={result.forbidden ? 'Không có quyền xem lịch sử' : 'Không tải được lịch sử thay đổi'}>{result.error}</Notice>
+    <Button tone="secondary" onClick={onRetry}>Thử lại</Button>
+  </>
+  if (!result.entries.length) return <Empty title="Chưa có lịch sử thay đổi" />
+  return <ol className={styles.timeline} aria-label="Lịch sử thay đổi lịch trình" style={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>
+    {result.entries.map((entry) => <li key={entry.changeHistoryId}>
+      <strong>{entry.changeSummary?.trim() || 'Chưa có mô tả thay đổi'}</strong>
+      <div>Loại thay đổi: {entry.changeType ? historyTypeLabels[entry.changeType] : 'Chưa có loại thay đổi'}</div>
+      <div>Lý do: {entry.reason?.trim() || 'Chưa có lý do'}</div>
+      <div>Thời gian: {historyTime(entry.changedAt)}</div>
+      <div>ID người thay đổi: {entry.changedByUserId?.trim() || 'Chưa có ID người thay đổi'}</div>
+    </li>)}
+  </ol>
+}
+
+function ItineraryHistory({ itinerary }: { itinerary: Itinerary }) {
+  const [attempt, setAttempt] = useState(0)
+  const [result, setResult] = useState<(HistoryResult & { itinerary: Itinerary; attempt: number }) | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void itineraryHistoryApi.list(itinerary.itineraryId, controller.signal).then((entries) => {
+      if (!controller.signal.aborted) setResult({ itinerary, attempt, entries })
+    }).catch((error: unknown) => {
+      if (!controller.signal.aborted) setResult({ itinerary, attempt,
+        error: error instanceof Error ? error.message : 'Không tải được lịch sử thay đổi.',
+        forbidden: error instanceof ApiError && error.status === 403,
+      })
+    })
+    return () => controller.abort()
+  }, [itinerary, attempt])
+
+  return <HistoryContent result={result?.itinerary === itinerary && result.attempt === attempt ? result : null} onRetry={() => setAttempt((value) => value + 1)} />
+}
 
 export function ItineraryDetailPage() {
   const { itineraryId = '' } = useParams()
@@ -46,14 +101,14 @@ export function ItineraryDetailPage() {
   }
 
   return <ItineraryFrame>
-    <PageHeader breadcrumb="" title="Itinerary editor" description={`${itinerary.itineraryName} · ${itinerary.startDate} → ${itinerary.endDate} · stop order, ETA/ETD, sea-day và timezone.`} actions={<><ItineraryStatusBadge status={itinerary.status} />{itinerary.status === 'DRAFT' && <ButtonLink to={`/admin/itineraries/${itineraryId}/edit`}>Sửa bản nháp</ButtonLink>}</>} />
+    <PageHeader breadcrumb="" title="Biên tập lịch trình" description={`${itinerary.itineraryName} · ${itinerary.startDate} → ${itinerary.endDate} · thứ tự điểm dừng, giờ đến/đi dự kiến, ngày trên biển và múi giờ.`} actions={<><ItineraryStatusBadge status={itinerary.status} />{itinerary.status === 'DRAFT' && <ButtonLink to={`/admin/itineraries/${itineraryId}/edit`}>Sửa bản nháp</ButtonLink>}</>} />
     {error && <Notice title="Chưa thể thực hiện" tone="error">{error}</Notice>}
     {success && <Notice title="Đã cập nhật" tone="success">{success}</Notice>}
     <div className={styles.editorGrid}>
       <div>
         <div className={styles.stopList}>
           {!stops.length && <Empty title="Chưa có điểm dừng" />}
-          {orderedStops.map((stop) => <button className={`${styles.stopCard} ${selected?.cruiseStopId === stop.cruiseStopId ? styles.selectedStop : ''}`} key={stop.cruiseStopId} onClick={() => { setSelectedId(stop.cruiseStopId); setAddingStop(false) }}><strong className={styles.stopNumber}>{String(stop.stopOrder).padStart(2, '0')}</strong><span className={styles.stopCopy}><strong>{stop.portName ?? stop.portId}</strong><span>{new Date(stop.plannedArrival).toLocaleString('vi-VN')}</span></span><Badge label={stop.callType} tone={stop.callType === 'OVERNIGHT' ? 'info' : 'neutral'} /></button>)}
+          {orderedStops.map((stop) => <button className={`${styles.stopCard} ${selected?.cruiseStopId === stop.cruiseStopId ? styles.selectedStop : ''}`} key={stop.cruiseStopId} onClick={() => { setSelectedId(stop.cruiseStopId); setAddingStop(false) }}><strong className={styles.stopNumber}>{String(stop.stopOrder).padStart(2, '0')}</strong><span className={styles.stopCopy}><strong>{stop.portName ?? stop.portId}</strong><span>{new Date(stop.plannedArrival).toLocaleString('vi-VN')}</span></span><Badge label={callTypeLabels[stop.callType]} tone={stop.callType === 'OVERNIGHT' ? 'info' : 'neutral'} /></button>)}
         </div>
         {editable && <div className={styles.actions}><Button tone="secondary" disabled={busy} onClick={() => setAddingStop(true)}>Thêm điểm dừng</Button><Button tone="secondary" disabled={busy} onClick={() => setDayEditor({ day: null })}>Thêm ngày</Button></div>}
         <Panel title={`Ngày trong hành trình · ${days.length}`}>
@@ -63,13 +118,13 @@ export function ItineraryDetailPage() {
               <Button
                 tone="secondary"
                 disabled={busy}
-                onClick={() => void run(() => itineraryApi.validateDaySequence(itineraryId), 'Backend xác nhận thứ tự ngày trong hành trình hợp lệ.')}
+                onClick={() => void run(() => itineraryApi.validateDaySequence(itineraryId), 'Hệ thống xác nhận thứ tự ngày trong hành trình hợp lệ.')}
               >
                 Kiểm tra thứ tự ngày
               </Button>
             </div>
           )}
-          {days.map((day) => <div className={styles.dayHeading} key={day.itineraryDayId}><div><strong>Ngày {day.dayNumber} · {day.date}</strong><div className={styles.muted}>{day.dayType} · {day.shipTimeZoneId ?? 'Chưa đặt múi giờ'}</div></div>{editable && <div className={styles.inlineActions}><Button tone="text" disabled={busy} onClick={() => void run(() => itineraryApi.validateDay(day.itineraryDayId), `Backend xác nhận ngày ${day.dayNumber} hợp lệ.`)}>Validate</Button><Button tone="text" disabled={busy} onClick={() => setDayEditor({ day })}>Sửa</Button><Button tone="text" disabled={busy} onClick={() => setDeletion({ kind: 'day', id: day.itineraryDayId })}>Xóa</Button></div>}</div>)}
+          {days.map((day) => <div className={styles.dayHeading} key={day.itineraryDayId}><div><strong>Ngày {day.dayNumber} · {day.date}</strong><div className={styles.muted}>{dayTypeLabels[day.dayType]} · {day.shipTimeZoneId ?? 'Chưa đặt múi giờ'}</div></div>{editable && <div className={styles.inlineActions}><Button tone="text" disabled={busy} onClick={() => void run(() => itineraryApi.validateDay(day.itineraryDayId), `Hệ thống xác nhận ngày ${day.dayNumber} hợp lệ.`)}>Kiểm tra</Button><Button tone="text" disabled={busy} onClick={() => setDayEditor({ day })}>Sửa</Button><Button tone="text" disabled={busy} onClick={() => setDeletion({ kind: 'day', id: day.itineraryDayId })}>Xóa</Button></div>}</div>)}
         </Panel>
       </div>
       <aside>
@@ -83,7 +138,7 @@ export function ItineraryDetailPage() {
           {!['COMPLETED', 'CANCELLED'].includes(itinerary.status) && <Button tone="danger" disabled={busy} onClick={() => setAction('cancel')}>Hủy lịch trình</Button>}
           {itinerary.status === 'DRAFT' && <Button tone="danger" disabled={busy || days.length > 0} onClick={() => setAction('remove')}>Xóa bản nháp</Button>}
         </div></Panel>
-        <Panel title="Lịch sử trạng thái"><ItineraryStatusBadge status={itinerary.status} />{itineraryHistoryApi.availability === 'pending' && <p className={styles.muted}>Lịch sử thay đổi chưa khả dụng. Trạng thái hiện tại đã được cập nhật từ hệ thống.</p>}</Panel>
+        <Panel title="Lịch sử thay đổi"><ItineraryStatusBadge status={itinerary.status} /><ItineraryHistory key={itineraryId} itinerary={itinerary} /></Panel>
       </aside>
     </div>
     {dayEditor && <Modal title={dayEditor.day ? 'Chỉnh sửa ngày' : 'Thêm ngày'} busy={busy} onClose={() => setDayEditor(null)}><DayEditor itineraryId={itineraryId} day={dayEditor.day} busy={busy} onSave={(draft) => { void run(() => dayEditor.day ? itineraryApi.updateDay(dayEditor.day.itineraryDayId, draft) : itineraryApi.createDay(draft), 'Đã lưu ngày hành trình.').then((ok) => { if (ok) setDayEditor(null) }) }} /></Modal>}

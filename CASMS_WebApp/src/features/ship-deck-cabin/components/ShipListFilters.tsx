@@ -1,6 +1,7 @@
 import { useId } from 'react'
 import { Button } from '@/shared/ui'
 import type { ShipListFilters as Filters } from '../model/ship-list-types'
+import { shipStatuses } from '../model/types'
 import styles from './ShipList.module.css'
 
 export function ShipListFilters({ value, onChange, onApply, onReset, disabled, canReset }: {
@@ -13,12 +14,12 @@ export function ShipListFilters({ value, onChange, onApply, onReset, disabled, c
     </label>
     <label className={styles.field}><span id={`${id}-status`}>Trạng thái</span>
       <select aria-labelledby={`${id}-status`} value={value.status} disabled={disabled} onChange={event => onChange({ ...value, status: event.target.value as Filters['status'] })}>
-        <option value="ALL">Tất cả</option><option value="ACTIVE">ACTIVE</option><option value="MAINTENANCE">MAINTENANCE</option><option value="INACTIVE">INACTIVE</option>
+        <option value="ALL">Tất cả</option><option value="ACTIVE">{shipStatuses.ACTIVE}</option><option value="MAINTENANCE">{shipStatuses.MAINTENANCE}</option><option value="INACTIVE">{shipStatuses.INACTIVE}</option>
       </select>
     </label>
     <label className={styles.field}><span id={`${id}-readiness`}>Sẵn sàng</span>
       <select aria-labelledby={`${id}-readiness`} value={value.readiness} disabled={disabled} onChange={event => onChange({ ...value, readiness: event.target.value as Filters['readiness'] })}>
-        <option value="ALL">Tất cả</option><option value="READY">READY</option><option value="ATTENTION">ATTENTION</option><option value="BLOCKED">BLOCKED</option>
+        <option value="ALL">Tất cả</option><option value="READY">Sẵn sàng</option><option value="ATTENTION">Cần chú ý</option><option value="BLOCKED">Chưa sẵn sàng</option>
       </select>
     </label>
     <Button className={`${styles.button} ${styles.filterButton}`} type="submit" disabled={disabled}>Lọc</Button>

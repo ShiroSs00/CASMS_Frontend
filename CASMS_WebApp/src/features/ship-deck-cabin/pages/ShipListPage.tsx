@@ -22,7 +22,7 @@ export function ShipListPage() {
   return <AdminShell>
     <div className={styles.content}>
       <header className={styles.titleRow}>
-        <div><h1>Fleet &amp; ships</h1><p>Theo dõi trạng thái tàu, deck/cabin và mức sẵn sàng vận hành.</p></div>
+        <div><h1>Đội tàu</h1><p>Theo dõi trạng thái tàu, boong, phòng và mức sẵn sàng vận hành.</p></div>
         <Link to="/admin/ships/new" className={styles.createButton}>Tạo tàu</Link>
       </header>
       <ShipListMetrics metrics={state.status === 'data' ? state.data.metrics : undefined} />

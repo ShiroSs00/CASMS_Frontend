@@ -1,0 +1,98 @@
+import { useCallback, type FormEvent } from 'react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { ApiError } from '@/shared/api'
+import { Button, ButtonLink, DataTable, Empty, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
+import { shoreExcursionApi } from '../api/shore-excursion-api'
+import { ExcursionActions } from '../components/ExcursionActions'
+import { ExcursionForm } from '../components/ExcursionForm'
+import { ExcursionBadge, ShoreError, ShoreLayout } from '../components/ShoreUI'
+import styles from '../components/ShoreExcursions.module.css'
+import { useShoreMutation, useShoreRequest } from '../hooks/useShoreRequest'
+import { canEditExcursion, displayTime, excursionStatuses, isUuid, statusLabels, type ExcursionRequest, type ShoreExcursion } from '../model/shore-excursion'
+
+const root = '/admin/shore-excursions'
+export function ShoreExcursionListPage() {
+  const [search, setSearch] = useSearchParams()
+  const cruiseStopId = search.get('cruiseStopId')?.trim() || undefined
+  const supplierId = search.get('supplierId')?.trim() || undefined
+  const rawStatus = search.get('status') || undefined
+  const load = useCallback((signal: AbortSignal) => {
+    const status = excursionStatuses.find((item) => item === rawStatus)
+    if ((rawStatus && !status) || (supplierId && !isUuid(supplierId)) || (cruiseStopId && !isUuid(cruiseStopId))) throw new ApiError('Kiểm tra trạng thái và ID UUID trong bộ lọc.', 0)
+    return shoreExcursionApi.list({ cruiseStopId, supplierId, status }, signal)
+  }, [cruiseStopId, supplierId, rawStatus])
+  const query = useShoreRequest(load)
+  function filter(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const values = new FormData(event.currentTarget), next = new URLSearchParams()
+    for (const key of ['cruiseStopId', 'supplierId', 'status']) { const value = String(values.get(key) ?? '').trim(); if (value) next.set(key, value) }
+    setSearch(next)
+  }
+  return <ShoreLayout>
+    <PageHeader breadcrumb="Dịch vụ bờ" title="Chuyến tham quan bờ" description="Quản lý chuyến tham quan theo điểm dừng, nhà cung cấp và trạng thái." actions={<ButtonLink to={`${root}/new`}>Tạo chuyến tham quan</ButtonLink>} />
+    <Panel title="Bộ lọc">
+      <form key={search.toString()} onSubmit={filter}>
+        <div className={styles.filters}>
+          <label>ID điểm dừng<input name="cruiseStopId" defaultValue={cruiseStopId} /></label>
+          <label>ID nhà cung cấp<input name="supplierId" defaultValue={supplierId} /></label>
+          <label>Trạng thái<select name="status" defaultValue={rawStatus ?? ''}><option value="">Tất cả</option>{excursionStatuses.map((value) => <option key={value} value={value}>{statusLabels[value]}</option>)}</select></label>
+        </div>
+        <div className={styles.actions}><Button type="submit">Áp dụng bộ lọc</Button><Button tone="secondary" onClick={() => setSearch({})}>Xóa bộ lọc</Button><Button tone="secondary" onClick={query.reload}>Tải lại</Button></div>
+      </form>
+    </Panel>
+    {query.loading ? <Loading label="Đang tải chuyến tham quan…" /> : query.error != null ? <ShoreError error={query.error} onRetry={query.reload} /> : query.data && <Panel title={`Danh sách · ${query.data.length}`}>
+      {!query.data.length ? <Empty title="Chưa có chuyến tham quan phù hợp" /> : <DataTable label="Danh sách chuyến tham quan bờ" headers={['Mã / tên', 'Nhà cung cấp', 'Bắt đầu', 'Trở về dự kiến', 'Chỗ còn lại', 'Trạng thái']}>
+        {query.data.map((item) => <tr key={item.shoreExcursionId}><td><Link className={styles.link} to={`${root}/${item.shoreExcursionId}`}>{item.excursionName}</Link><div>{item.excursionCode ?? '—'}</div></td><td>{item.supplierName}</td><td>{displayTime(item.startTime)}</td><td>{displayTime(item.plannedReturnTime)}</td><td>{item.availableCapacity} / {item.maximumCapacity}</td><td><ExcursionBadge status={item.status} /></td></tr>)}
+      </DataTable>}
+    </Panel>}
+  </ShoreLayout>
+}
+
+export function ShoreExcursionDetailPage() {
+  const { excursionId = '' } = useParams()
+  return <ExcursionDetail key={excursionId} id={excursionId} />
+}
+function ExcursionDetail({ id }: { id: string }) {
+  const load = useCallback((signal: AbortSignal) => shoreExcursionApi.get(id, signal), [id])
+  const query = useShoreRequest(load), item = query.data
+  return <ShoreLayout>
+    <Link className={styles.link} to={root}>← Chuyến tham quan bờ</Link>
+    {query.loading ? <Loading label="Đang tải chi tiết…" /> : query.error != null ? <ShoreError error={query.error} onRetry={query.reload} /> : item && <>
+      <PageHeader breadcrumb="Dịch vụ bờ / Chuyến tham quan" title={item.excursionName} description={item.excursionCode ?? 'Chưa có mã chuyến tham quan'} actions={<><ExcursionBadge status={item.status} />{canEditExcursion(item.status) && <ButtonLink to={`${root}/${id}/edit`}>Chỉnh sửa</ButtonLink>}<Button tone="secondary" onClick={query.reload}>Tải lại</Button></>} />
+      <ExcursionFacts item={item} />
+      <ExcursionActions excursion={item} onRefresh={query.reload} />
+    </>}
+  </ShoreLayout>
+}
+function ExcursionFacts({ item }: { item: ShoreExcursion }) {
+  const facts: [string, string | number][] = [
+    ['ID chuyến tham quan', item.shoreExcursionId], ['ID điểm dừng', item.cruiseStopId], ['Nhà cung cấp', item.supplierName], ['ID nhà cung cấp', item.supplierId],
+    ['Bắt đầu', displayTime(item.startTime)], ['Trở về dự kiến', displayTime(item.plannedReturnTime)], ['Điểm tập trung', item.meetingPoint],
+    ['Số khách tối thiểu', item.minimumParticipants ?? 'Chưa đặt'], ['Sức chứa tối đa', item.maximumCapacity], ['Đã đăng ký', item.registeredParticipants], ['Chỗ còn lại', item.availableCapacity],
+    ['Giá', item.price === null ? 'Chưa đặt' : `${item.price.toLocaleString('vi-VN')}${item.currencyCode ? ` ${item.currencyCode}` : ''}`],
+    ['Lý do hủy', item.cancellationReason ?? '—'], ['Ngày tạo', displayTime(item.createdAt)], ['Cập nhật', displayTime(item.updatedAt)],
+  ]
+  return <Panel title="Thông tin chuyến tham quan"><dl className={styles.facts}>{facts.map(([label, value]) => <div key={label} style={{ display: 'contents' }}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></Panel>
+}
+
+export function ShoreExcursionFormPage() {
+  const { excursionId } = useParams()
+  return <ShoreLayout><Link className={styles.link} to={root}>← Chuyến tham quan bờ</Link><PageHeader breadcrumb="Dịch vụ bờ / Chuyến tham quan" title={excursionId ? 'Chỉnh sửa chuyến tham quan' : 'Tạo chuyến tham quan'} description="Lưu thông tin chuyến tham quan và kiểm tra điều kiện từ hệ thống." />{excursionId ? <EditExcursion key={excursionId} id={excursionId} /> : <SaveExcursion />}</ShoreLayout>
+}
+function EditExcursion({ id }: { id: string }) {
+  const load = useCallback((signal: AbortSignal) => shoreExcursionApi.get(id, signal), [id])
+  const query = useShoreRequest(load)
+  if (query.loading) return <Loading label="Đang tải biểu mẫu…" />
+  if (query.error != null) return <ShoreError error={query.error} onRetry={query.reload} />
+  if (!query.data) return null
+  if (!canEditExcursion(query.data.status)) return <Notice title="Không thể chỉnh sửa">Chuyến tham quan ở trạng thái {statusLabels[query.data.status]}. <Link to={`${root}/${id}`}>Xem chi tiết</Link></Notice>
+  return <SaveExcursion initial={query.data} />
+}
+function SaveExcursion({ initial }: { initial?: ShoreExcursion }) {
+  const navigate = useNavigate(), mutation = useShoreMutation()
+  async function save(request: ExcursionRequest) {
+    const result = await mutation.run((signal) => initial ? shoreExcursionApi.update(initial.shoreExcursionId, request, signal) : shoreExcursionApi.create(request, signal))
+    if (result.ok) navigate(`${root}/${result.value.shoreExcursionId}`)
+  }
+  return <Panel title="Thông tin chuyến tham quan">{mutation.error != null && <ShoreError error={mutation.error} />}<ExcursionForm initial={initial} busy={mutation.busy} onSave={save} /></Panel>
+}
