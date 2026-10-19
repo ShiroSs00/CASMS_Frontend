@@ -21,7 +21,7 @@ export const tourStatusLabels: Record<TourStatus, string> = {
 };
 const tour: Excursion = { title: 'Khám phá làng Việt Hải', meeting: 'Sảnh chính · Tầng 1', meetingTime: '09:40', departure: '10:00', returnTime: '13:30', group: 'G03', guide: 'Minh Anh', passengers: 12, status: 'confirmed' };
 const days: ItineraryDay[] = [
-  { date: 18, destination: 'Hạ Long', port: 'Cảng tàu khách Hạ Long', arrival: '12:00', departure: '15:00', allAboard: '14:30', actualArrival: null, sea: false, tour: { ...tour, title: 'Khám phá tàu Ocean Aurora', meetingTime: '12:00', departure: '12:30', returnTime: '14:00', group: null, guide: null, passengers: null } },
+  { date: 18, destination: 'Hạ Long', port: 'Cảng tàu khách Hạ Long', arrival: '12:00', departure: '15:00', allAboard: '14:30', actualArrival: null, sea: false, tour: { ...tour, title: 'Khám phá tàu Ocean OceVie', meetingTime: '12:00', departure: '12:30', returnTime: '14:00', group: null, guide: null, passengers: null } },
   { date: 19, destination: 'Vịnh Lan Hạ', port: 'Bến Việt Hải', arrival: '09:00', departure: '17:00', allAboard: '16:30', actualArrival: '09:05', sea: false, tour },
   { date: 20, destination: 'Cát Bà', port: 'Bến Bèo', arrival: '08:00', departure: '16:00', allAboard: '15:30', actualArrival: null, sea: false, tour: { ...tour, title: 'Một buổi sáng tại Cát Bà', meetingTime: '08:40', departure: '09:00', returnTime: '12:00' } },
   { date: 21, destination: 'Hạ Long', port: 'Cảng tàu khách Hạ Long', arrival: '08:00', departure: '10:00', allAboard: null, actualArrival: null, sea: false, tour: null },

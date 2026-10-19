@@ -1,2 +1,2 @@
-import { PassengerDestinationScreen } from '@/features/home/PassengerDestinationScreen';
-export default function NotificationsRoute() { return <PassengerDestinationScreen view="notifications" />; }
+import { PassengerNotificationsScreen } from '@/features/notifications/PassengerNotificationsScreen';
+export default function NotificationsRoute() { return <PassengerNotificationsScreen />; }

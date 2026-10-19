@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { passengerColors as colors } from '@/constants/passenger-theme';
 import { voyage } from '@/constants/voyage';
+import { OceVieBrand } from '@/components/passenger/OceVieBrand';
 import { VoyageEntrance } from '@/components/passenger/VoyageEntrance';
 
 import { LaunchIndicator } from './LaunchIndicator';
@@ -32,7 +33,7 @@ export function PassengerLoadingScreen() {
   const moving = useAnimatedStyle(() => ({ transform: [{ translateX: reduceMotion ? 35 : progress.get() }] }));
   return <SafeAreaView style={styles.screen} onLayout={() => { void SplashScreen.hideAsync().catch(console.warn); }}>
     <ScrollView contentContainerStyle={styles.content} bounces={false}>
-      <Text style={styles.brand}>aurora<Text style={styles.gold}>.</Text></Text>
+      <View style={{ alignItems: 'center' }}><OceVieBrand variant="symbol" /></View>
       <View style={styles.center}>
         <VoyageEntrance><View style={styles.orbit} accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <View style={styles.indicator}><LaunchIndicator /></View><View style={styles.dot} />
@@ -51,16 +52,14 @@ export function PassengerLoadingScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
   content: { flexGrow: 1, padding: 28 },
-  brand: { fontSize: 30, fontWeight: '700', letterSpacing: -1, color: colors.onSurface },
-  gold: { color: voyage.gold },
-  kicker: { color: voyage.gold, fontSize: 11, lineHeight: 18, letterSpacing: 2, marginBottom: 14 },
+  kicker: { color: voyage.gold, fontSize: 12, lineHeight: 18, letterSpacing: 2, marginBottom: 14 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 60 },
-  orbit: { width: 160, height: 160, borderRadius: 80, borderWidth: 1, borderColor: '#47616B', justifyContent: 'center', alignItems: 'center', marginBottom: 40 },
+  orbit: { width: 160, height: 160, borderRadius: 80, borderWidth: 1, borderColor: colors.outlineVariant, justifyContent: 'center', alignItems: 'center', marginBottom: 40 },
   indicator: { transform: [{ scale: 1.8 }] },
   dot: { width: 16, height: 16, borderRadius: 8, backgroundColor: voyage.gold, position: 'absolute', top: 14, right: 18 },
-  title: { fontFamily: voyage.serif, fontSize: 38, lineHeight: 47, letterSpacing: -1, color: colors.onSurface, textAlign: 'center', marginBottom: 16 },
+  title: { fontFamily: voyage.heading, fontWeight: '600', fontSize: 38, lineHeight: 47, letterSpacing: -1, color: colors.onSurface, textAlign: 'center', marginBottom: 16 },
   description: { fontSize: 15, lineHeight: 24, color: colors.onSurfaceVariant, textAlign: 'center' },
   track: { width: 145, height: 3, backgroundColor: colors.surfaceContainerHigh, borderRadius: 4, overflow: 'hidden', marginTop: 32, marginBottom: 16 },
-  segment: { width: 60, height: 3, borderRadius: 4, backgroundColor: voyage.gold },
+  segment: { width: 60, height: 3, borderRadius: 4, backgroundColor: colors.primary },
   caption: { fontSize: 12, lineHeight: 18, color: colors.onSurfaceVariant },
 });

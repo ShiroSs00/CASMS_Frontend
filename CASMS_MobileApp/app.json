@@ -1,34 +1,36 @@
 {
   "expo": {
-    "name": "Aurora",
+    "name": "OceVie Cruises",
     "slug": "CASMS_MobileApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/ocevie/ios-app-icon-1024.png",
     "scheme": "casmsmobileapp",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/ocevie/ios-app-icon-1024.png"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#F5F2E9",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#061A2B",
+        "foregroundImage": "./assets/ocevie/android-adaptive-foreground-432.png",
+        "backgroundImage": "./assets/ocevie/android-adaptive-background-432.png",
+        "monochromeImage": "./assets/ocevie/android-monochrome-432.png"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/ocevie/favicon-64.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#123042"
+          "backgroundColor": "#061A2B",
+          "image": "./assets/ocevie/ios-app-icon-1024.png",
+          "imageWidth": 120
         }
       ],
       "expo-secure-store"

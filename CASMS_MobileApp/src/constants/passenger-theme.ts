@@ -1,13 +1,14 @@
-/** Aurora launch palette. */
+import { brand, darkTheme, statusColors } from './ocevie';
 export const passengerColors = {
-  primary: '#4B8AF1', onPrimary: '#123042',
-  primaryContainer: '#123042', onPrimaryContainer: '#F5F2E9',
-  secondary: '#46636C', secondaryContainer: '#E2EAFA', onSecondaryContainer: '#0B1E20',
-  tertiaryContainer: '#CDEFF3', onTertiaryContainer: '#001F23',
-  surface: '#123042', surfaceContainerLow: '#183C50',
-  surfaceContainer: '#20475C', surfaceContainerHigh: '#28556B',
-  surfaceContainerHighest: '#35677D', onSurface: '#F5F2E9',
-  onSurfaceVariant: '#C6DEE8', outline: '#697A80', outlineVariant: '#B8C9D0',
-  inverseSurface: '#123042', inverseOnSurface: '#F5F2E9', inversePrimary: '#4B8AF1',
-  error: '#B3261E', onError: '#F5F2E9', errorContainer: '#F9DEDC', onErrorContainer: '#410E0B',
+  primary: brand.tealLight, onPrimary: brand.midnight,
+  primaryContainer: brand.midnight, onPrimaryContainer: brand.pearl,
+  secondary: brand.tealLight, secondaryContainer: darkTheme.selected, onSecondaryContainer: brand.pearl,
+  tertiaryContainer: brand.gold, onTertiaryContainer: brand.navy,
+  surface: darkTheme.background, surfaceContainerLow: darkTheme.surface,
+  surfaceContainer: darkTheme.surface, surfaceContainerHigh: darkTheme.surfaceHover,
+  surfaceContainerHighest: darkTheme.selected, onSurface: darkTheme.text,
+  onSurfaceVariant: darkTheme.textSecondary, outline: darkTheme.border, outlineVariant: darkTheme.border,
+  inverseSurface: brand.pearl, inverseOnSurface: brand.navy, inversePrimary: brand.teal,
+  error: statusColors.error.foreground, onError: brand.white,
+  errorContainer: statusColors.error.background, onErrorContainer: statusColors.error.foreground,
 } as const;
