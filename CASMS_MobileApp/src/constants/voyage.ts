@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
-
-/** Native serif keeps Vietnamese text available offline, including in Expo Go. */
+import { brand } from './ocevie';
 export const voyage = {
-  serif: Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, serif' }),
-  ink: '#123042', cream: '#F5F2E9', paper: '#FFFCF5', blue: '#4B8AF1', gold: '#D4A84F',
+  // Guideline-approved system fallback supports Vietnamese offline.
+  heading: Platform.select({ ios: 'System', android: 'sans-serif', default: 'system-ui' }),
+  ink: brand.navy, cream: brand.pearl, paper: brand.white, blue: brand.teal, gold: brand.gold,
 };

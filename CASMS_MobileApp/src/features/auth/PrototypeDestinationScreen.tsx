@@ -20,7 +20,7 @@ export function PrototypeDestinationScreen({ title, description, home = false }:
           <PassengerButton label={home ? 'Về màn hình đăng nhập' : 'Quay lại'} icon="arrow_back" variant="text" onPress={back} />
         </View>
         <View style={styles.main}>
-          <Text style={styles.brand}>Aurora</Text>
+          <Text style={styles.brand}>OceVie</Text>
           <Text style={styles.title} accessibilityRole="header">{title}</Text>
           <Text style={styles.description}>{description}</Text>
           <View style={styles.note}><Text style={styles.noteText}>Bản xem trước giao diện · Chưa kết nối dịch vụ</Text></View>
@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   back: { alignItems: 'flex-start' },
   main: { flex: 1, justifyContent: 'center', gap: 16 },
   brand: { fontSize: 24, lineHeight: 32, fontWeight: '700', letterSpacing: -1, color: colors.onSurface },
-  title: { fontFamily: voyage.serif, fontSize: 36, lineHeight: 44, color: colors.onSurface },
+  title: { fontFamily: voyage.heading, fontWeight: '600', fontSize: 28, lineHeight: 36, color: colors.onSurface },
   description: { fontSize: 16, lineHeight: 24, color: colors.onSurfaceVariant },
   note: { backgroundColor: colors.secondaryContainer, borderRadius: 20, padding: 16 },
   noteText: { fontSize: 14, lineHeight: 20, color: colors.onSecondaryContainer },

@@ -9,47 +9,51 @@ export function PassengerButton({ label, onPress, icon, variant = 'filled', disa
   label: string;
   onPress: () => void;
   icon?: MaterialIconName;
-  variant?: 'filled' | 'text';
+  variant?: 'filled' | 'text' | 'secondary' | 'premium';
   disabled?: boolean;
   loading?: boolean;
 }) {
   const scale = useSharedValue(1);
-  const radius = useSharedValue(28);
+  const radius = useSharedValue(14);
   const reduceMotion = useReducedMotion();
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }], borderRadius: radius.get(), overflow: 'hidden' as const }));
   const blocked = disabled || loading;
-  const textColor = disabled ? colors.onSurfaceVariant : variant === 'filled' ? colors.onPrimary : colors.onSurface;
+  const textColor = disabled ? colors.onSurfaceVariant : variant === 'text' ? colors.secondary : variant === 'premium' ? colors.onTertiaryContainer : colors.onPrimary;
 
   return (
     <Animated.View style={animatedStyle}>
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={loading ? 'Đang đăng nhập' : label}
+      accessibilityLabel={loading ? `${label}, đang xử lý` : label}
       accessibilityState={{ disabled: blocked, busy: loading }}
       disabled={blocked}
       onPress={onPress}
-      onPressIn={() => { scale.set(withTiming(reduceMotion ? 1 : .97, { duration: 100 })); radius.set(withTiming(16, { duration: reduceMotion ? 0 : 180, easing: Easing.bezier(.2, 0, 0, 1) })); }}
-      onPressOut={() => { scale.set(withTiming(1, { duration: 160 })); radius.set(withTiming(28, { duration: reduceMotion ? 0 : 220 })); }}
+      onPressIn={() => { scale.set(withTiming(reduceMotion ? 1 : .97, { duration: 100 })); radius.set(withTiming(12, { duration: reduceMotion ? 0 : 180, easing: Easing.bezier(.2, 0, 0, 1) })); }}
+      onPressOut={() => { scale.set(withTiming(1, { duration: 160 })); radius.set(withTiming(14, { duration: reduceMotion ? 0 : 220 })); }}
       android_ripple={{ color: colors.secondaryContainer }}
       style={({ pressed }) => [
         styles.base,
-        variant === 'filled' ? styles.filled : styles.text,
-        disabled && variant === 'filled' && styles.disabled,
+        variant === 'text' ? styles.text : styles.filled,
+        variant === 'secondary' && styles.secondary,
+        variant === 'premium' && styles.premium,
+        disabled && variant !== 'text' && styles.disabled,
         pressed && variant === 'text' && styles.pressed,
       ]}>
       {loading && <ActivityIndicator color={textColor} />}
       {icon && variant === 'text' && !loading && <MaterialIcon name={icon} color={textColor} size={20} />}
-      <Text style={[styles.label, { color: textColor }]}>{loading ? 'Đang đăng nhập…' : label}</Text>
-      {icon && variant === 'filled' && !loading && <MaterialIcon name={icon} color={textColor} />}
+      <Text style={[styles.label, { color: textColor }]}>{loading ? 'Đang xử lý…' : label}</Text>
+      {icon && variant !== 'text' && !loading && <MaterialIcon name={icon} color={textColor} />}
     </Pressable>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  base: { borderRadius: 999, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, overflow: 'hidden' },
+  base: { borderRadius: 14, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, overflow: 'hidden' },
   filled: { minHeight: 56, paddingVertical: 14, backgroundColor: colors.primary },
-  text: { minHeight: 40, paddingVertical: 8 },
+  secondary: { backgroundColor: colors.secondary },
+  premium: { backgroundColor: colors.tertiaryContainer },
+  text: { minHeight: 44, paddingVertical: 8 },
   disabled: { backgroundColor: colors.surfaceContainerHighest },
   pressed: { backgroundColor: colors.secondaryContainer },
   label: { fontSize: 14, lineHeight: 20, fontWeight: '600', flexShrink: 1, textAlign: 'center' },

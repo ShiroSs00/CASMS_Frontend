@@ -20,7 +20,7 @@ export function PassengerListItem({ title, supporting, icon, onPress, disabled =
       style={({ pressed }) => [styles.row, connected === 'first' && styles.first,
         connected === 'last' && styles.last, pressed && styles.pressed]}>
       <View style={[styles.icon, disabled && styles.disabledIcon]}>
-        <MaterialIcon name={icon} color={disabled ? colors.onSurfaceVariant : colors.onPrimaryContainer} />
+        <MaterialIcon name={icon} color={disabled ? colors.onSurfaceVariant : colors.onSecondaryContainer} />
       </View>
       <View style={styles.copy}>
         <Text style={styles.title}>{title}</Text>
@@ -32,13 +32,13 @@ export function PassengerListItem({ title, supporting, icon, onPress, disabled =
 }
 
 const styles = StyleSheet.create({
-  row: { minHeight: 72, padding: 16, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surfaceContainerLow, overflow: 'hidden' },
-  first: { borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 8, borderBottomRightRadius: 8 },
-  last: { borderTopLeftRadius: 8, borderTopRightRadius: 8, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+  row: { minHeight: 72, padding: 16, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surfaceContainerLow, borderWidth: 1, borderColor: colors.divider, overflow: 'hidden' },
+  first: { borderTopLeftRadius: 20, borderTopRightRadius: 20, borderBottomLeftRadius: 8, borderBottomRightRadius: 8 },
+  last: { borderTopLeftRadius: 8, borderTopRightRadius: 8, borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
   pressed: { backgroundColor: colors.secondaryContainer, transform: [{ scale: 0.985 }] },
-  icon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primaryContainer, alignItems: 'center', justifyContent: 'center' },
+  icon: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.secondaryContainer, alignItems: 'center', justifyContent: 'center' },
   disabledIcon: { backgroundColor: colors.surfaceContainerHigh },
   copy: { flex: 1, gap: 4 },
-  title: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: colors.onSurface },
-  supporting: { fontSize: 14, lineHeight: 20, color: colors.onSurfaceVariant },
+  title: { fontSize: 15, lineHeight: 23, fontWeight: '600', color: colors.onSurface },
+  supporting: { fontSize: 12, lineHeight: 20, color: colors.onSurfaceVariant },
 });

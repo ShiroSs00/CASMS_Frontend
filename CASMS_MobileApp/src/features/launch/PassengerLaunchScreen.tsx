@@ -9,7 +9,7 @@ import { passengerColors } from '@/constants/passenger-theme';
 import { LaunchIndicator } from './LaunchIndicator';
 import { useAuth } from '@/features/auth/session-store';
 import { VoyageEntrance } from '@/components/passenger/VoyageEntrance';
-import { MaterialIcon } from '@/components/passenger/MaterialIcon';
+import { OceVieBrand } from '@/components/passenger/OceVieBrand';
 import { voyage } from '@/constants/voyage';
 
 export function PassengerLaunchScreen() {
@@ -28,10 +28,9 @@ export function PassengerLaunchScreen() {
       }}>
       <ScrollView contentContainerStyle={styles.content} bounces={false}>
         <View style={styles.center}>
-          <VoyageEntrance><View style={styles.emblem}><MaterialIcon name="sailing" size={32} color={voyage.gold} /></View></VoyageEntrance>
+          <VoyageEntrance><OceVieBrand variant="stacked" /></VoyageEntrance>
           <View style={styles.brand}>
-            <Text style={styles.wordmark} accessibilityRole="header">aurora<Text style={{ color: '#D4A84F' }}>.</Text></Text>
-            <Text style={styles.kicker}>THE ART OF VOYAGING</Text>
+            <Text style={styles.kicker}>VIETNAMESE HERITAGE · OCEAN LUXURY</Text>
             <Text style={styles.headline}>Mỗi chân trời,{'\n'}một khởi đầu.</Text>
           </View>
           <View style={styles.loading}>
@@ -60,14 +59,12 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: passengerColors.primaryContainer },
   content: { flexGrow: 1, paddingHorizontal: 16, paddingVertical: 24 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 28, paddingVertical: 32 },
-  emblem: { width: 72, height: 72, borderRadius: 36, borderWidth: 1, borderColor: '#547078', alignItems: 'center', justifyContent: 'center' },
-  kicker: { fontSize: 11, lineHeight: 18, letterSpacing: 2.8, color: voyage.gold },
-  headline: { fontFamily: voyage.serif, fontSize: 36, lineHeight: 46, textAlign: 'center', color: voyage.cream, marginTop: 18 },
-  horizon: { height: 1, backgroundColor: '#365563', width: '75%', alignSelf: 'center', marginBottom: 20 },
+  kicker: { fontSize: 12, lineHeight: 18, letterSpacing: 2.8, color: voyage.gold },
+  headline: { fontFamily: voyage.heading, fontWeight: '600', fontSize: 36, lineHeight: 46, textAlign: 'center', color: voyage.cream, marginTop: 18 },
+  horizon: { height: 1, backgroundColor: passengerColors.outlineVariant, width: '75%', alignSelf: 'center', marginBottom: 20 },
   brand: { alignItems: 'center', gap: 12 },
-  wordmark: { fontSize: 54, lineHeight: 68, letterSpacing: -3, fontWeight: '700', color: passengerColors.onSurface, textAlign: 'center' },
   description: { fontSize: 13, lineHeight: 22, fontWeight: '400', color: passengerColors.onSurfaceVariant, textAlign: 'center' },
   loading: { alignItems: 'center', gap: 16 },
   indicator: { width: 80, height: 80, alignItems: 'center', justifyContent: 'center' },
-  passenger: { fontSize: 11, lineHeight: 18, fontWeight: '500', letterSpacing: 1.6, color: passengerColors.onSurfaceVariant, textAlign: 'center' },
+  passenger: { fontSize: 12, lineHeight: 18, fontWeight: '500', letterSpacing: 1.6, color: passengerColors.onSurfaceVariant, textAlign: 'center' },
 });

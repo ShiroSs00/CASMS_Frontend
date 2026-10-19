@@ -82,7 +82,7 @@ export function PassengerItineraryDemoScreen() {
       </>;
       case 'supplier': return <>
         <SheetHeading title="Đơn vị tổ chức" subtitle="Dịch vụ tham quan bờ" />
-        <InfoRow icon="room_service" title="Đội tour Ocean Aurora" subtitle="Nhà cung cấp minh họa · Đã xác nhận phục vụ" />
+        <InfoRow icon="room_service" title="Đội tour Ocean OceVie" subtitle="Nhà cung cấp minh họa · Đã xác nhận phục vụ" />
         <Notice text="Cần hỗ trợ về tour hoặc điểm tập trung? Vui lòng gặp quầy dịch vụ trên tàu." />
       </>;
       case 'participation': return tour && <>
@@ -120,9 +120,9 @@ export function PassengerItineraryDemoScreen() {
   const blocked = ['loading', 'error', 'cancelled'].includes(scenario);
   return <PassengerScaffold selected="itinerary">
     <ScrollView contentContainerStyle={styles.content} bounces={false}>
-      <View style={styles.heading}><Text style={styles.title} accessibilityRole="header">Hải trình</Text><Text style={styles.chip}>Dữ liệu mẫu</Text></View>
+      <View style={styles.heading}><Text style={styles.title} accessibilityRole="header">Mỗi ngày, một điểm đến</Text><Text style={styles.chip}>Dữ liệu mẫu</Text></View>
       <View style={styles.cruise}>
-        <Text style={styles.ship}>Ocean Aurora</Text><Text style={styles.cruiseText}>18–21/10/2026 · 4 ngày 3 đêm</Text>
+        <Text style={styles.ship}>Ocean OceVie</Text><Text style={styles.cruiseText}>18–21/10/2026 · 4 ngày 3 đêm</Text>
         <Text style={styles.route}>Hạ Long → {scenario === 'substitute' ? 'Bái Tử Long' : 'Lan Hạ'} → Cát Bà</Text>
       </View>
       <View style={styles.tools}>
@@ -130,7 +130,7 @@ export function PassengerItineraryDemoScreen() {
         <SmallButton label="Giờ tàu · UTC+7" icon="explore" onPress={() => setSheet('clock')} />
       </View>
       <View style={styles.segmented} accessibilityRole="tablist">
-        {([['daily', 'Theo ngày'], ['ports', 'Điểm dừng']] as const).map(([key, label]) => <Pressable key={key} accessibilityRole="tab" aria-selected={layout === key} accessibilityState={{ selected: layout === key }} onPress={() => setLayout(key)} style={[styles.segment, layout === key && styles.selectedSegment]}><Text style={[styles.segmentText, layout === key && { color: colors.onPrimary }]}>{label}</Text></Pressable>)}
+        {([['daily', 'Theo ngày'], ['ports', 'Điểm dừng']] as const).map(([key, label]) => <Pressable key={key} accessibilityRole="tab" aria-selected={layout === key} accessibilityState={{ selected: layout === key }} onPress={() => setLayout(key)} style={[styles.segment, layout === key && styles.selectedSegment]}><Text style={[styles.segmentText, layout === key && { color: colors.onSecondaryContainer }]}>{label}</Text></Pressable>)}
       </View>
       {scenario === 'offline' && <Notice text="Ngoại tuyến · Đang xem bản lưu minh họa lúc 09:00, 19/10/2026. Kiểm tra lại giờ với nhân sự trên tàu." />}
       {['changed', 'substitute', 'tour-cancelled', 'sea'].includes(scenario) && <InfoRow title={changes[0].title} subtitle="Xem chi tiết thay đổi đã công bố" icon="notifications" onPress={() => setSheet('history')} />}
@@ -161,13 +161,13 @@ export function PassengerItineraryDemoScreen() {
             </>}
       {__DEV__ && <View style={styles.demo}>
         <SmallButton label={showDemo ? 'Ẩn tình huống mẫu' : 'Dữ liệu minh họa · Đổi tình huống'} icon="explore" onPress={() => setShowDemo(value => !value)} />
-        {showDemo && <View style={styles.tools}>{scenarios.map(([key, label]) => <Pressable key={key} accessibilityRole="button" accessibilityState={{ selected: scenario === key }} onPress={() => { setScenario(key); setDayIndex(1); }} style={[styles.demoChip, scenario === key && styles.selectedSegment]}><Text style={styles.small}>{label}</Text></Pressable>)}</View>}
+        {showDemo && <View style={styles.tools}>{scenarios.map(([key, label]) => <Pressable key={key} accessibilityRole="button" accessibilityState={{ selected: scenario === key }} onPress={() => { setScenario(key); setDayIndex(1); }} style={[styles.demoChip, scenario === key && styles.selectedSegment]}><Text style={[styles.small, scenario === key && { color: colors.onSecondaryContainer }]}>{label}</Text></Pressable>)}</View>}
       </View>}
     </ScrollView>
     <Modal visible={!!sheet} transparent animationType={reduceMotion ? 'none' : 'fade'} onRequestClose={close}>
       <View style={styles.modal}>
         <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel="Đóng chi tiết" onPress={close} />
-        <Animated.View entering={reduceMotion ? undefined : FadeInDown.duration(320).easing(Easing.bezier(.2, 0, 0, 1))} style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 20) }]} accessibilityViewIsModal>
+        <Animated.View entering={reduceMotion ? undefined : FadeInDown.duration(260).easing(Easing.bezier(.2, 0, 0, 1))} style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 20) }]} accessibilityViewIsModal>
           <View style={styles.handle} />
           <View style={styles.sheetBar}><Text style={styles.chip}>Thông tin minh họa</Text><Pressable accessibilityRole="button" accessibilityLabel="Đóng bảng chi tiết" onPress={close} style={styles.close}><MaterialIcon name="arrow_back" color={colors.onSurface} /></Pressable></View>
           <ScrollView contentContainerStyle={styles.sheetContent} bounces={false}>
@@ -183,6 +183,6 @@ export function PassengerItineraryDemoScreen() {
 
 function DayButton({ index, selected, onPress }: { index: number; selected: boolean; onPress: () => void }) {
   const reduceMotion = useReducedMotion();
-  const animated = useAnimatedStyle(() => ({ borderRadius: withTiming(selected ? 26 : 18, { duration: reduceMotion ? 0 : 220 }), backgroundColor: withTiming(selected ? colors.primary : colors.surfaceContainerLow, { duration: reduceMotion ? 0 : 220 }) }));
-  return <Animated.View style={[styles.day, animated]}><Pressable accessibilityRole="tab" aria-selected={selected} accessibilityLabel={`Ngày ${index + 1}, ${18 + index} tháng 10`} accessibilityState={{ selected }} onPress={onPress} style={({ pressed }) => [styles.dayInner, pressed && styles.pressed]}><Text style={[styles.small, selected && { color: colors.onPrimary }]}>Ngày {index + 1}</Text><Text style={styles.dayNumber}>{18 + index}</Text><Text style={[styles.small, selected && { color: colors.onPrimary }]}>Tháng 10</Text></Pressable></Animated.View>;
+  const animated = useAnimatedStyle(() => ({ borderRadius: withTiming(selected ? 14 : 16, { duration: reduceMotion ? 0 : 220 }), backgroundColor: withTiming(selected ? colors.secondaryContainer : colors.surfaceContainerLow, { duration: reduceMotion ? 0 : 220 }) }));
+  return <Animated.View style={[styles.day, animated]}><Pressable accessibilityRole="tab" aria-selected={selected} accessibilityLabel={`Ngày ${index + 1}, ${18 + index} tháng 10`} accessibilityState={{ selected }} onPress={onPress} style={({ pressed }) => [styles.dayInner, pressed && styles.pressed]}><Text style={[styles.small, selected && { color: colors.onSecondaryContainer }]}>Ngày {index + 1}</Text><Text style={[styles.dayNumber, selected && { color: colors.onSecondaryContainer }]}>{18 + index}</Text><Text style={[styles.small, selected && { color: colors.onSecondaryContainer }]}>Tháng 10</Text></Pressable></Animated.View>;
 }
