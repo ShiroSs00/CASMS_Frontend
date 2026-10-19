@@ -2,8 +2,10 @@ import { bookingFixtures, cabinFixtures, cruiseFixtures, packageFixtures, arriva
 import type { ActionResult, Booking, Cruise, MissingCapability, CruiseSearchQuery, CruiseSearchResult } from '../model/booking-types'
 import { searchCruiseFixtures } from '../model/cruise-search'
 import { mockActionResult, type MockAction } from '../model/booking-scenarios'
-// UI view models only. No HTTP DTO is claimed until a controller contract exists.
-// Confirmed auth continues to use shared/api/apiRequest in features/auth.
+import { apiRequest } from '@/shared/api'
+import { toPublishedCruise, toPublishedPage, type LiveCruiseDto, type LiveCruisePageDto } from './live-cruise-contract'
+import { lookupItinerary, toLiveDays, toLivePortCalls, toLiveShip } from './live-itinerary-contract'
+// Booking and checkout remain fixture adapters; only the DEV catalog below reads the cruise API.
 export interface BookingAdapter {
  readonly mode:'UI_WITH_TYPED_ADAPTER'
  listCruises(signal?:AbortSignal):Promise<Cruise[]>
@@ -24,3 +26,32 @@ export const bookingApi:BookingAdapter = {
  },
 }
 export const bookingCatalog = { cabins:cabinFixtures, packages:packageFixtures, arrivalSlots:arrivalFixtures, itinerary:itineraryFixtures }
+
+export const liveCruiseCatalogApi = {
+ async list(page:number, signal?:AbortSignal) {
+  const data = await apiRequest<LiveCruisePageDto>('/cruise', {
+   query: { status:'PUBLISHED', page:page-1, size:6, sort:'departureDatetime,asc' }, signal,
+  })
+  return toPublishedPage(data)
+ },
+ async detail(id:string, signal?:AbortSignal) {
+  const data = await apiRequest<LiveCruiseDto>(`/cruise/${encodeURIComponent(id)}`, { signal })
+  return toPublishedCruise(data)
+ },
+ async ship(id:string, signal?:AbortSignal) {
+  const ship=toLiveShip(await apiRequest<unknown>(`/ships/${encodeURIComponent(id)}`, {signal}))
+  if (ship.id!==id) throw new Error('Thông tin tàu trả về không khớp shipId của chuyến đi.')
+  return ship
+ },
+ async itinerary(cruiseId:string, signal?:AbortSignal) {
+  return lookupItinerary(cruiseId,page=>apiRequest<unknown>('/itineraries',{
+   query:{page,size:50,sort:'itineraryId,asc'},signal,
+  }))
+ },
+ async days(itineraryId:string, signal?:AbortSignal) {
+  return toLiveDays(await apiRequest<unknown>(`/itineraries/${encodeURIComponent(itineraryId)}/days`,{signal}),itineraryId)
+ },
+ async stops(itineraryId:string, signal?:AbortSignal) {
+  return toLivePortCalls(await apiRequest<unknown>(`/cruise-stops/by-itinerary/${encodeURIComponent(itineraryId)}`,{signal}),itineraryId)
+ },
+}
