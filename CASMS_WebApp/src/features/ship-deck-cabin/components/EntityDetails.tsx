@@ -38,8 +38,13 @@ export function ShipInfo({ ship }: { ship: Ship }) {
     ]} /> : <Empty title="Tàu chưa có chuyến đang vận hành" />}</ServicePanel>
   </>
 }
-export function DeckInfo({ deck, data }: { deck: Deck; data: DataSnapshot }) {
-  const ship = data.ships.find((row) => row.id === deck.shipId)
+export function DeckInfo({ deck }: { deck: Deck }) {
+  const loadShip = useCallback(async (signal: AbortSignal) => {
+    const value = await shipDeckCabinApi.get('ships', deck.shipId, signal)
+    if (!('code' in value)) throw new Error('Không nhận được thông tin tàu hợp lệ.')
+    return value
+  }, [deck.shipId])
+  const parent = useApiQuery(`deck-parent:${deck.shipId}`, loadShip)
   const loadCapacity = useCallback((signal: AbortSignal) => shipDeckCabinApi.getDeckCapacity(deck.id, signal), [deck.id])
   const loadCabins = useCallback((signal: AbortSignal) => shipDeckCabinApi.getDeckCabins(deck.id, signal), [deck.id])
   const capacity = useApiQuery(`deck-capacity:${deck.id}`, loadCapacity)
@@ -47,7 +52,10 @@ export function DeckInfo({ deck, data }: { deck: Deck; data: DataSnapshot }) {
   return <>
     <Panel title="Thông tin boong"><Definition rows={[
       ['Số boong', deck.number], ['Tên boong', deck.name || 'Chưa đặt tên'],
-      ['Tàu', <Link className={styles.link} to={`/admin/ships/${deck.shipId}`}>{ship ? `${ship.code} · ${ship.name}` : deck.shipId}</Link>],
+      ['Tàu', <>
+        <Link className={styles.link} to={`/admin/ships/${deck.shipId}`}>{parent.data ? `${parent.data.code} · ${parent.data.name}` : deck.shipId}</Link>
+        <DataState loading={parent.loading} error={parent.error} retry={parent.retry} />
+      </>],
       ['Ngày tạo', formatDate(deck.createdAt)], ['Cập nhật gần nhất', formatDate(deck.updatedAt)],
     ]} /></Panel>
     <ServicePanel title="Sức chứa boong" query={capacity}>{(value) => value ? <Definition rows={[

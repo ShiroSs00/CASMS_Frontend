@@ -5,7 +5,7 @@ import type {
   Ship, ShipCapacity, ShipDraft, ShipStatus,
 } from '../model/types'
 import type { AssignmentDto, CabinDto, CruiseDto, DeckDto, PageDto, ShipDto } from './dto'
-import type { ShipListState } from '../model/ship-list-types'
+import type { ShipListState, ShipSupplements, SupplementField } from '../model/ship-list-types'
 
 let revision = 0
 const listeners = new Set<() => void>()
@@ -52,27 +52,33 @@ async function allPages<T>(path: string, signal?: AbortSignal): Promise<T[]> {
 export const shipDeckCabinApi = {
   subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
   getRevision: () => revision,
+  async listShips(signal: AbortSignal): Promise<Ship[]> {
+    return (await allPages<ShipDto>(paths.ships, signal)).map(ship)
+  },
   async loadShipList(signal: AbortSignal): Promise<ShipListState> {
     const ships = await allPages<ShipDto>(paths.ships, signal)
-    const items = await Promise.all(ships.map(async (dto) => {
-      const [capacity, ready, currentCruise] = await Promise.all([
-        shipDeckCabinApi.getShipCapacity(dto.shipId, signal),
-        apiRequest<boolean>(`${idPath('ships', dto.shipId)}/readiness`, { signal }),
-        shipDeckCabinApi.getCurrentCruise(dto.shipId, signal),
-      ])
-      return {
-        id: dto.shipId, name: dto.shipName, code: dto.shipCode, status: dto.status,
-        deckCount: capacity.actualDeckCount, cabinCount: capacity.actualCabinCount,
-        readiness: checkedBoolean(ready) ? 'READY' as const : 'ATTENTION' as const,
-        currentCruise,
-      }
-    }))
-    return { items, metrics: {
-      activeCount: items.filter((item) => item.status === 'ACTIVE').length,
-      maintenanceCount: items.filter((item) => item.status === 'MAINTENANCE').length,
-      configuredCabinCount: items.reduce((total, item) => total + item.cabinCount, 0),
-      attentionCount: items.filter((item) => item.readiness !== 'READY').length,
+    return { items: ships.map(dto => ({
+      id: dto.shipId, name: dto.shipName, code: dto.shipCode, status: dto.status,
+      capacity: { status: 'loading' }, readiness: { status: 'loading' }, currentCruise: { status: 'loading' },
+    })), metrics: {
+      activeCount: ships.filter(dto => dto.status === 'ACTIVE').length,
+      maintenanceCount: ships.filter(dto => dto.status === 'MAINTENANCE').length,
+      configuredCabinCount: ships.length ? null : 0, attentionCount: ships.length ? null : 0,
     } }
+  },
+  async loadShipListField<K extends SupplementField>(id: string, field: K, signal: AbortSignal): Promise<ShipSupplements[K]> {
+    const loaders: { [P in SupplementField]: () => Promise<ShipSupplements[P]> } = {
+      capacity: async () => {
+        const summary = await shipDeckCabinApi.getShipCapacity(id, signal)
+        if (!summary || ![summary.actualDeckCount, summary.actualCabinCount].every(value => Number.isInteger(value) && value >= 0)) {
+          throw new ApiError('Backend trả số boong/phòng không hợp lệ.', 200)
+        }
+        return { deckCount: summary.actualDeckCount, cabinCount: summary.actualCabinCount }
+      },
+      readiness: async () => checkedBoolean(await apiRequest<boolean>(`${idPath('ships', id)}/readiness`, { signal })) ? 'READY' : 'ATTENTION',
+      currentCruise: () => shipDeckCabinApi.getCurrentCruise(id, signal),
+    }
+    return loaders[field]()
   },
   async listSnapshot(signal?: AbortSignal): Promise<DataSnapshot> {
     const [ships, decks, cabins] = await Promise.all([

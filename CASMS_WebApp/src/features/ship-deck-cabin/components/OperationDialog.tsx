@@ -4,7 +4,7 @@ import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { useMutation } from '../hooks/useAdminData'
 import { cabinStatuses, shipStatuses } from '../model/types'
 import type { CabinStatus, CheckResult, CruisePreview, Entity, EntityKind, Ship, ShipStatus } from '../model/types'
-import { InputField, SelectField } from './Common'
+import { DataState, InputField, SelectField } from './Common'
 import { CruiseTable } from './CruiseTable'
 import styles from './Management.module.css'
 
@@ -14,7 +14,10 @@ const titles: Record<Operation, string> = {
   schedule: 'Kiểm tra lịch trống', ready: 'Kiểm tra sẵn sàng vận hành', availability: 'Kiểm tra cabin',
   affected: 'Các chuyến bị ảnh hưởng', validate: 'Kiểm tra cấu hình', ownership: 'Kiểm tra boong thuộc tàu',
 }
-export function OperationDialog({ item, kind, ships, operation, onClose }: { item: Entity; kind: EntityKind; ships: Ship[]; operation: Operation; onClose: () => void }) {
+export function OperationDialog({ item, kind, ships, shipChoicesState, operation, onClose }: {
+  item: Entity; kind: EntityKind; ships: Ship[]; operation: Operation; onClose: () => void
+  shipChoicesState?: { loading: boolean; error: string; retry: () => void }
+}) {
   const isShip = 'code' in item
   const isCheck = ['schedule', 'ready', 'availability', 'affected', 'validate', 'ownership'].includes(operation)
   const [status, setStatus] = useState<string>('status' in item ? item.status : '')
@@ -28,9 +31,10 @@ export function OperationDialog({ item, kind, ships, operation, onClose }: { ite
   const [cruises, setCruises] = useState<CruisePreview[] | null>(null)
   const [validation, setValidation] = useState('')
   const mutation = useMutation()
+  const shipChoicesUnavailable = operation === 'ownership' && Boolean(shipChoicesState?.loading || shipChoicesState?.error)
   const clear = () => { setResults([]); setCruises(null); setValidation(''); mutation.clear() }
   const check = async () => {
-    if (mutation.busy) return
+    if (mutation.busy || shipChoicesUnavailable) return
     clear()
     const startTime = new Date(start).getTime()
     const endTime = new Date(end).getTime()
@@ -70,7 +74,10 @@ export function OperationDialog({ item, kind, ships, operation, onClose }: { ite
           <InputField label="Bắt đầu *" type="datetime-local" value={start} disabled={mutation.busy} onChange={(event) => { setStart(event.target.value); clear() }} />
           <InputField label="Kết thúc *" type="datetime-local" value={end} disabled={mutation.busy} onChange={(event) => { setEnd(event.target.value); clear() }} />
         </div>}
-        {operation === 'ownership' && <SelectField label="Tàu cần kiểm tra *" value={shipId} disabled={mutation.busy} onChange={(value) => { setShipId(value); clear() }}><option value="">Chọn tàu</option>{ships.map((ship) => <option key={ship.id} value={ship.id}>{ship.code} · {ship.name}</option>)}</SelectField>}
+        {operation === 'ownership' && <>
+          {shipChoicesState && <DataState loading={shipChoicesState.loading} error={shipChoicesState.error} retry={shipChoicesState.retry} />}
+          <SelectField label="Tàu cần kiểm tra *" value={shipId} disabled={mutation.busy || shipChoicesUnavailable} onChange={(value) => { setShipId(value); clear() }}><option value="">Chọn tàu</option>{ships.map((ship) => <option key={ship.id} value={ship.id}>{ship.code} · {ship.name}</option>)}</SelectField>
+        </>}
         {operation === 'availability' && <div className={styles.twoColumns}>
           <InputField label="Số khách *" type="number" min={1} step={1} value={guests} disabled={mutation.busy} onChange={(event) => { setGuests(Number(event.target.value)); clear() }} />
           <label className={styles.check}><input type="checkbox" checked={accessible} disabled={mutation.busy} onChange={(event) => { setAccessible(event.target.checked); clear() }} />Yêu cầu hỗ trợ tiếp cận</label>
@@ -88,7 +95,7 @@ export function OperationDialog({ item, kind, ships, operation, onClose }: { ite
       </>}
       {mutation.error && <Notice title="Thao tác chưa hoàn tất" tone="error">{mutation.error}</Notice>}
       <div className={styles.actions}>
-        <Button disabled={mutation.busy || (operation === 'status' && 'status' in item && status === item.status)} onClick={() => isCheck ? void check() : confirm()}>
+        <Button disabled={mutation.busy || shipChoicesUnavailable || (operation === 'status' && 'status' in item && status === item.status)} onClick={() => isCheck ? void check() : confirm()}>
           {mutation.busy ? 'Đang xử lý…' : isCheck ? results.length || cruises || mutation.error ? 'Kiểm tra lại' : 'Kiểm tra' : 'Xác nhận'}
         </Button>
         <Button tone="secondary" disabled={mutation.busy} onClick={onClose}>{isCheck ? 'Đóng' : 'Hủy'}</Button>
