@@ -14,7 +14,7 @@ function load(relative, imports) {
   const source = ts.transpileModule(readFileSync(new URL(relative, root), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 },
   }).outputText
-  vm.runInNewContext(source, { module, exports: module.exports, require(id) {
+  vm.runInNewContext(source, { module, exports: module.exports, require(id) { if(id === '@/shared/auth') return {useSessionAccess:()=>({status:'ready',userId:'test-user',has:()=>true})}; if(id === '../model/permissions') return {entityPermission:(kind,action)=>({ships:'SHIP',decks:'DECK',cabins:'CABIN'})[kind]+'_'+action,operationPermission:()=> 'TEST_PERMISSION'};
     if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
     if (id.endsWith('.module.css')) return { default: {} }
     assert.ok(Object.hasOwn(imports, id), 'Unexpected import: ' + id)
@@ -113,12 +113,12 @@ test('Legitimate Ship loading, error/retry and missing-record states remain auth
   assert.ok(nodes(missing.view()).some(node => node.type === 'NotFound'))
 })
 
-test('Cabin detail retains its existing snapshot error gate and entity request', () => {
+test('Cabin detail also uses its entity without the obsolete shared snapshot gate', () => {
   const app = setup({ snapshotError: 'Existing snapshot error' })
   const tree = render(jsx(app.page.CabinDetailPage, {}))
-  assert.equal(app.calls.snapshot, 1)
+  assert.equal(app.calls.snapshot, 0)
   assert.equal(app.calls.entity.length, 1)
-  assert.ok(nodes(tree).some(node => node.type === 'DataState' && node.props.error === 'Existing snapshot error'))
+  assert.ok(!nodes(tree).some(node => node.type === 'DataState' && node.props.error === 'Existing snapshot error'))
 })
 
 test('Only the recognized no-active-cruise 404 becomes the existing empty state', async () => {

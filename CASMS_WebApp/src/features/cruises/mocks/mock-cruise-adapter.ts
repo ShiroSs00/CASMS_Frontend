@@ -63,8 +63,8 @@ export function createMockCruiseAdapter() {
       pageCount,
       metrics: {
         draft: cruises.filter((cruise) => cruise.status === 'DRAFT').length,
-        pendingApproval: cruises.filter((cruise) => itineraryFixtures[cruise.cruiseId]?.status === 'PENDING_APPROVAL').length,
-        openForSale: cruises.filter((cruise) => itineraryFixtures[cruise.cruiseId]?.status === 'OPEN_FOR_SALE').length,
+        published: cruises.filter((cruise) => cruise.status === 'PUBLISHED').length,
+        completed: cruises.filter((cruise) => cruise.status === 'COMPLETED').length,
         inProgress: cruises.filter((cruise) => cruise.status === 'IN_PROGRESS').length,
       },
     }

@@ -179,7 +179,7 @@ export function RegulationListPage() {
             }}
             tone={appliedQuery.effectiveOnly ? 'primary' : 'secondary'}
           >
-            {appliedQuery.effectiveOnly ? 'Đang lọc: Chỉ quy định hiệu lực (BE)' : 'Xem quy định hiệu lực (BE)'}
+            {appliedQuery.effectiveOnly ? 'Đang lọc: Quy định hiện có hiệu lực' : 'Xem quy định hiện có hiệu lực'}
           </Button>
         </div>
         {appliedQuery.effectiveOnly ? (

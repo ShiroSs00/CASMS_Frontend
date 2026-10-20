@@ -33,7 +33,7 @@ export function CruiseStatusBadge({ status }: { status: CruiseStatus }) {
 export function CruiseMetrics({ result }: { result: CruiseListResult | null }) {
   const metrics = [
     [cruiseStatusLabels.DRAFT, result?.metrics.draft, 'chưa phát hành'],
-    [cruiseStatusLabels.PUBLISHED, result?.metrics.pendingApproval, 'đang mở'],
+    [cruiseStatusLabels.PUBLISHED, result?.metrics.published, 'đang mở'],
     [cruiseStatusLabels.IN_PROGRESS, result?.metrics.inProgress, 'đang chạy'],
     ['Xung đột', result?.metrics.conflict, 'lịch trình / cấu hình'],
   ] as const

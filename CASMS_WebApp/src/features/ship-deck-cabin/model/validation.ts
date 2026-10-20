@@ -1,4 +1,5 @@
 import type { CabinDraft, DataSnapshot, DeckDraft, FieldErrors, ShipDraft } from './types'
+import { cabinStatuses, cabinTypes } from './types.ts'
 const positive = (value: number) => Number.isSafeInteger(value) && value > 0
 
 // Form-level shape/required validation. Backend remains authoritative for business rules.
@@ -39,11 +40,35 @@ export function validateDeck(draft: DeckDraft, data: DataSnapshot | null | undef
   }
   return errors
 }
-export function validateCabin(draft: CabinDraft, data: DataSnapshot): FieldErrors {
+export function cabinValidationContextError(data: DataSnapshot | null | undefined): string {
+  const unavailable = 'Chưa có đủ dữ liệu tàu, boong và cabin để kiểm tra. Vui lòng tải lại dữ liệu.'
+  if (!data || !Array.isArray(data.ships) || !Array.isArray(data.decks) || !Array.isArray(data.cabins)) return unavailable
+  if (!data.ships.every(row => row && typeof row.id === 'string' && row.id.length > 0)
+    || !data.decks.every(row => row && typeof row.id === 'string' && row.id.length > 0 && typeof row.shipId === 'string' && row.shipId.length > 0)
+    || !data.cabins.every(row => row && typeof row.id === 'string' && row.id.length > 0 && typeof row.shipId === 'string' && row.shipId.length > 0 && typeof row.deckId === 'string' && row.deckId.length > 0 && typeof row.number === 'string' && row.number.length > 0)) return unavailable
+  if ([data.ships, data.decks, data.cabins].some(rows => new Set(rows.map(row => row.id)).size !== rows.length)) return unavailable
+  return ''
+}
+
+export function validateCabin(draft: CabinDraft, data: DataSnapshot | null | undefined, currentCabinId?: string): FieldErrors {
   const errors: FieldErrors = {}
+  const number = typeof draft.number === 'string' ? draft.number.trim() : ''
+  if (!number) errors.number = 'Vui lòng nhập số cabin.'
+  else if (number.length > 10) errors.number = 'Số cabin không được vượt quá 10 ký tự.'
+  if (!positive(draft.capacity) || draft.capacity > 2147483647) errors.capacity = 'Sức chứa phải là số nguyên dương trong giới hạn cho phép.'
+  if (!Object.hasOwn(cabinTypes, draft.type)) errors.type = 'Vui lòng chọn loại cabin hợp lệ.'
+  if (!Object.hasOwn(cabinStatuses, draft.status)) errors.status = 'Vui lòng chọn trạng thái cabin hợp lệ.'
+  if (typeof draft.accessible !== 'boolean') errors.accessible = 'Vui lòng xác nhận thông tin hỗ trợ tiếp cận.'
+  const contextError = cabinValidationContextError(data)
+  if (!data || contextError) return { ...errors, shipId: contextError }
   if (!data.ships.some((row) => row.id === draft.shipId)) errors.shipId = 'Vui lòng chọn tàu.'
   if (!data.decks.some((row) => row.id === draft.deckId && row.shipId === draft.shipId)) errors.deckId = 'Chọn boong thuộc đúng tàu.'
-  if (!draft.number.trim()) errors.number = 'Vui lòng nhập số cabin.'
-  if (!positive(draft.capacity)) errors.capacity = 'Sức chứa phải là số nguyên dương.'
+  if (number && data.cabins.some(row => row.shipId === draft.shipId && row.number === number && row.id !== currentCabinId)) errors.number = 'Số cabin này đã tồn tại trên tàu đã chọn.'
+  if (currentCabinId !== undefined) {
+    const current = data.cabins.find(row => row.id === currentCabinId)
+    if (!current || current.shipId !== draft.shipId || current.deckId !== draft.deckId || current.number !== draft.number) {
+      errors.shipId = 'Không xác thực được cabin đang chỉnh sửa. Vui lòng tải lại dữ liệu.'
+    }
+  }
   return errors
 }

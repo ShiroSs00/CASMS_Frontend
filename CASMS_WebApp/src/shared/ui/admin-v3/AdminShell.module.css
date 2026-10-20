@@ -63,7 +63,7 @@
 .groupLabel { margin: 0; padding: 0 12px 4px; }
 .navItem { display: flex; align-items: center; min-height: 40px; padding: 8px 12px; border-radius: 8px; color: var(--text-inverse); font-weight: 500; line-height: 20px; text-decoration: none; overflow-wrap: anywhere; }
 a.navItem:hover { background: rgb(255 255 255 / 10%); }
-.navItem.active, a.navItem.active:hover { background: var(--action-secondary); }
+.navItem.active, a.navItem.active:hover { background: var(--action-secondary); box-shadow: inset 3px 0 #d8bc80; }
 .navItem[aria-disabled='true'] { cursor: default; }
 .mainColumn { min-width: 0; }
 .topbar { display: flex; min-width: 0; min-height: 68px; align-items: center; gap: 16px; padding: 16px 32px; border-bottom: 1px solid var(--border-default); background: var(--surface-default); font-family: var(--font-body); }

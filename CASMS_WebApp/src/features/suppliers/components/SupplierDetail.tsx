@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
+import { useSessionAccess } from '@/shared/auth'
 import {
   supplierDateTime,
   supplierStatusLabels,
@@ -49,6 +50,7 @@ export function SupplierDetail({
   onVerify,
   onDelete,
 }: Props) {
+  const access = useSessionAccess()
   const [showVerifyModal, setShowVerifyModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedVerification, setSelectedVerification] = useState<SupplierVerification>('VERIFIED')
@@ -58,11 +60,11 @@ export function SupplierDetail({
   const isStatusBusy = actionInProgress === 'activate' || actionInProgress === 'deactivate'
 
   async function handleConfirmVerify() {
-    if (!onVerify) return
-    await onVerify({
+    if (!onVerify || !access.has('SUPPLIER_VERIFY')) return
+    try { await onVerify({
       verificationStatus: selectedVerification,
       verificationNotes: verificationNotes.trim() || null,
-    })
+    }) } catch { return }
     setShowVerifyModal(false)
     setVerificationNotes('')
   }
@@ -107,19 +109,19 @@ export function SupplierDetail({
             type="button"
             className={styles.validateButton}
             onClick={onValidate}
-            disabled={actionInProgress !== null}
+            disabled={actionInProgress !== null || !access.has('SUPPLIER_VALIDATE')}
             title="Kiểm tra tính hợp lệ dữ liệu hồ sơ đối tác"
           >
             {actionInProgress === 'validate' ? 'Đang kiểm tra...' : 'Kiểm tra hợp lệ'}
           </button>
-          <Link to={`/admin/suppliers/${supplier.id}/edit`} className={styles.editButton}>
+          {access.has('SUPPLIER_UPDATE') && <Link to={`/admin/suppliers/${supplier.id}/edit`} className={styles.editButton}>
             Chỉnh sửa
-          </Link>
+          </Link>}
           <button
             type="button"
             className={styles.statusButton}
             onClick={onToggleStatus}
-            disabled={isStatusBusy || (supplier.status === 'INACTIVE' && !canActivate)}
+            disabled={isStatusBusy || !access.has('SUPPLIER_STATUS_CHANGE') || (supplier.status === 'INACTIVE' && !canActivate)}
             title={
               supplier.status === 'INACTIVE' && !canActivate
                 ? 'Nhà cung cấp cần được xác minh (VERIFIED) trước khi kích hoạt'
@@ -140,7 +142,7 @@ export function SupplierDetail({
             type="button"
             className={styles.deleteButton}
             onClick={() => setShowDeleteModal(true)}
-            disabled={actionInProgress !== null}
+            disabled={actionInProgress !== null || !access.has('SUPPLIER_DELETE')}
             title="Xóa nhà cung cấp nếu chưa được sử dụng"
           >
             {actionInProgress === 'delete' ? 'Đang xóa...' : 'Xóa'}
@@ -175,7 +177,7 @@ export function SupplierDetail({
             type="button"
             className={styles.verifyActiveBtn}
             onClick={() => setShowVerifyModal(true)}
-            disabled={actionInProgress !== null}
+            disabled={actionInProgress !== null || !access.has('SUPPLIER_VERIFY')}
           >
             {actionInProgress === 'verify' ? 'Đang xác minh...' : 'Xác minh nhà cung cấp'}
           </button>
@@ -331,7 +333,7 @@ export function SupplierDetail({
                   setShowVerifyModal(false)
                   setVerificationNotes('')
                 }}
-                disabled={actionInProgress === 'verify'}
+                disabled={actionInProgress === 'verify' || !access.has('SUPPLIER_VERIFY')}
               >
                 Hủy
               </button>
@@ -339,7 +341,7 @@ export function SupplierDetail({
                 type="button"
                 className={styles.editButton}
                 onClick={handleConfirmVerify}
-                disabled={actionInProgress === 'verify'}
+                disabled={actionInProgress === 'verify' || !access.has('SUPPLIER_VERIFY')}
               >
                 {actionInProgress === 'verify' ? 'Đang xác minh...' : 'Xác nhận'}
               </button>
@@ -372,7 +374,7 @@ export function SupplierDetail({
                 type="button"
                 className={styles.statusButton}
                 onClick={() => setShowDeleteModal(false)}
-                disabled={actionInProgress === 'delete'}
+                disabled={actionInProgress === 'delete' || !access.has('SUPPLIER_DELETE')}
               >
                 Hủy
               </button>
@@ -383,7 +385,7 @@ export function SupplierDetail({
                   setShowDeleteModal(false)
                   onDelete?.()
                 }}
-                disabled={actionInProgress === 'delete'}
+                disabled={actionInProgress === 'delete' || !access.has('SUPPLIER_DELETE')}
               >
                 {actionInProgress === 'delete' ? 'Đang xóa...' : 'Xác nhận xóa'}
               </button>

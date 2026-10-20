@@ -50,5 +50,5 @@ export type PortRecord = {
   portName: string
   countryCode: string
   timeZoneId: string
-  status: 'ACTIVE' | 'INACTIVE'
+  status: 'ACTIVE' | 'INACTIVE' | 'UNKNOWN'
 }

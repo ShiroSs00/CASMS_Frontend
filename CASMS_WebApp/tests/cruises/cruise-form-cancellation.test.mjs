@@ -38,7 +38,8 @@ function mount(cruiseId) {
     if (id.endsWith('/cruise-api')) return { cruiseApi: { getDetail: (...args) => request('getDetail', args), listPorts: (...args) => request('listPorts', args) } }
     if (id.endsWith('.module.css')) return { default: {} }
     if (id.endsWith('/cruise-validation')) return {}
-    throw new Error('Unexpected import: ' + id)
+      if (id === '@/shared/auth') return { useSessionAccess: () => ({ has: () => true }) }
+      throw new Error('Unexpected import: ' + id)
   } })
   const render = () => { stateIndex = 0; effectIndex = 0; return module.exports.CruiseFormPage() }
   const run = () => { for (const index of pending) { effects[index].cleanup?.(); effects[index].cleanup = effects[index].setup() } pending.clear() }

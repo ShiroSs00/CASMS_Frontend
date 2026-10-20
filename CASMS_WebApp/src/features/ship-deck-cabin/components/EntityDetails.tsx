@@ -4,7 +4,7 @@ import { DataTable, Empty, Notice, Panel } from '@/shared/ui'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { useApiQuery } from '../hooks/useAdminData'
 import { cabinTypes, formatDate } from '../model/types'
-import type { Cabin, DataSnapshot, Deck, Ship } from '../model/types'
+import type { Cabin, Deck, Ship } from '../model/types'
 import { DataState, Definition, StatusBadge } from './Common'
 import styles from './Management.module.css'
 
@@ -66,16 +66,28 @@ export function DeckInfo({ deck }: { deck: Deck }) {
     </DataTable> : <Empty title="Boong chưa có cabin"><Link className={styles.link} to={`/admin/cabins/new?ship=${deck.shipId}&deck=${deck.id}`}>Thêm cabin</Link></Empty>}</ServicePanel>
   </>
 }
-export function CabinInfo({ cabin, data }: { cabin: Cabin; data: DataSnapshot }) {
-  const ship = data.ships.find((row) => row.id === cabin.shipId)
-  const deck = data.decks.find((row) => row.id === cabin.deckId)
+export function CabinInfo({ cabin }: { cabin: Cabin }) {
+  const loadShip = useCallback(async (signal: AbortSignal) => {
+    const value = await shipDeckCabinApi.get('ships', cabin.shipId, signal)
+    if (!('code' in value)) throw new Error('Không nhận được thông tin tàu hợp lệ.')
+    return value
+  }, [cabin.shipId])
+  const loadDeck = useCallback(async (signal: AbortSignal) => {
+    const value = await shipDeckCabinApi.get('decks', cabin.deckId, signal)
+    if ('code' in value || 'deckId' in value || value.shipId !== cabin.shipId) throw new Error('Thông tin boong không khớp với tàu của cabin.')
+    return value
+  }, [cabin.deckId, cabin.shipId])
+  const parentShip = useApiQuery(`cabin-ship:${cabin.shipId}`, loadShip)
+  const parentDeck = useApiQuery(`cabin-deck:${cabin.deckId}`, loadDeck)
   const load = useCallback((signal: AbortSignal) => shipDeckCabinApi.getHistory(cabin.id, signal), [cabin.id])
   const history = useApiQuery(`assignments:${cabin.id}`, load)
   return <>
     <Panel title="Thông tin cabin"><Definition rows={[
       ['Số cabin', cabin.number], ['Loại cabin', cabinTypes[cabin.type]], ['Trạng thái', <StatusBadge status={cabin.status} />],
-      ['Tàu', <Link className={styles.link} to={`/admin/ships/${cabin.shipId}`}>{ship ? `${ship.code} · ${ship.name}` : cabin.shipId}</Link>],
-      ['Boong', <Link className={styles.link} to={`/admin/decks/${cabin.deckId}`}>{deck ? `Boong ${deck.number} · ${deck.name}` : cabin.deckId}</Link>],
+      ['Tàu', <><Link className={styles.link} to={`/admin/ships/${cabin.shipId}`}>{parentShip.data ? `${parentShip.data.code} · ${parentShip.data.name}` : cabin.shipId}</Link>
+        <DataState loading={parentShip.loading} error={parentShip.error} retry={parentShip.retry} /></>],
+      ['Boong', <><Link className={styles.link} to={`/admin/decks/${cabin.deckId}`}>{parentDeck.data ? `Boong ${parentDeck.data.number} · ${parentDeck.data.name || 'Chưa đặt tên'}` : cabin.deckId}</Link>
+        <DataState loading={parentDeck.loading} error={parentDeck.error} retry={parentDeck.retry} /></>],
       ['Sức chứa', `${cabin.capacity} khách`], ['Hỗ trợ tiếp cận', cabin.accessible ? 'Có' : 'Không'],
     ]} /></Panel>
     <ServicePanel title="Lịch sử gán cabin" query={history}>{(rows) => rows?.length ? <DataTable label="Lịch sử gán cabin" headers={['HÀNH KHÁCH ĐẶT CHỖ', 'BẮT ĐẦU', 'KẾT THÚC', 'NGƯỜI GÁN', 'LÝ DO']}>

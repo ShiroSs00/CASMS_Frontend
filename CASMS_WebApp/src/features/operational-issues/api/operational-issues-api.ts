@@ -12,7 +12,7 @@ export type IssueListResult = {
 }
 
 const person = (id: string | null | undefined, name?: string | null): PersonReference | null =>
-  id ? { id, name: name?.trim() || id } : null
+  id ? { id, name: name?.trim() || 'Chưa tải được tên người dùng' } : null
 
 function toIssue(dto: OperationalIssueDto): OperationalIssue {
   const reporterId = dto.reportedById ?? dto.reportedBy ?? dto.reporterId ?? 'unknown'
@@ -23,16 +23,16 @@ function toIssue(dto: OperationalIssueDto): OperationalIssue {
     id: dto.issueId,
     code: dto.issueCode,
     displayTitle: dto.description.split('.')[0]?.trim() || dto.description,
-    ship: { id: dto.shipId, name: dto.shipName?.trim() || dto.shipId },
+    ship: { id: dto.shipId, name: dto.shipName?.trim() || 'Chưa tải được tên tàu' },
     cruise: dto.cruiseId
       ? {
           id: dto.cruiseId,
-          code: dto.cruiseCode?.trim() || dto.cruiseId,
-          name: dto.cruiseName?.trim() || dto.cruiseCode?.trim() || dto.cruiseId,
+          code: dto.cruiseCode?.trim() || 'Chưa có mã chuyến',
+          name: dto.cruiseName?.trim() || dto.cruiseCode?.trim() || 'Chưa tải được tên chuyến',
           shipId: dto.shipId,
         }
       : null,
-    cabin: dto.cabinNumber ?? dto.cabinId ?? null,
+    cabin: dto.cabinNumber ?? (dto.cabinId ? 'Đã gắn cabin, chưa tải được số phòng' : null),
     type: dto.issueType,
     severity: dto.severity,
     status: dto.status,
@@ -88,7 +88,7 @@ export const operationalIssuesApi = {
     notify(); return result
   },
   async update(id: string, body: UpdateOperationalIssueRequest) {
-    const result = toIssue(await apiRequest<OperationalIssueDto>(path(id), { method: 'PUT', body }))
+    const result = toIssue(await apiRequest<OperationalIssueDto>(path(id), { method: 'PUT', body: { severity: body.severity, description: body.description.trim() } }))
     notify(); return result
   },
   async assign(id: string, assignedToId: string) {

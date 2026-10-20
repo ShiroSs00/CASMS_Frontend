@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react'
+import { useSessionAccess } from '@/shared/auth'
 
 import { operationalIssuesApi } from '../api/operational-issues-api'
 import type { IssueAction } from '../model/issue-actions'
+import { issueActionPermissions } from '../model/issue-actions'
 
 export type ActionFeedback = {
   tone: 'success' | 'warning' | 'error'
@@ -9,12 +11,13 @@ export type ActionFeedback = {
 } | null
 
 export function useIssueActions(issueId: string, onChanged: () => void) {
+  const access = useSessionAccess()
   const [pendingAction, setPendingAction] = useState<IssueAction | null>(null)
   const [feedback, setFeedback] = useState<ActionFeedback>(null)
   const lock = useRef(false)
 
   async function run(action: IssueAction, operation: () => Promise<unknown>, success: string) {
-    if (lock.current) return false
+    if (lock.current || !access.has(issueActionPermissions[action])) return false
     lock.current = true
     setPendingAction(action)
     setFeedback(null)
@@ -55,13 +58,13 @@ export function useIssueActions(issueId: string, onChanged: () => void) {
       run(
         'RECORD_RESOLUTION',
         () => operationalIssuesApi.recordResolution(issueId, resolution),
-        'Đã ghi nhận resolution; sự cố vẫn IN_PROGRESS cho tới khi xác minh.',
+        'Đã ghi nhận phương án xử lý; cần xác minh trước khi đóng sự cố.',
       ),
     verifyResolution: () =>
       run(
         'VERIFY_RESOLUTION',
         () => operationalIssuesApi.verify(issueId),
-        'Đã xác minh resolution và chuyển sang RESOLVED.',
+        'Đã xác minh phương án và xác nhận sự cố đã được xử lý.',
       ),
     close: () =>
       run('CLOSE', () => operationalIssuesApi.close(issueId), 'Đã đóng sự cố.'),
