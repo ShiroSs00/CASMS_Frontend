@@ -9,7 +9,7 @@ export function AccessDeniedPage() {
   const auth = useAuth()
   const navigate = useNavigate()
   return <div className={styles.deniedShell}>
-    <aside className={styles.deniedSidebar}><Link to="/" className={styles.deniedBrand}>AURORA</Link><p>Trung tâm vận hành</p><nav aria-label="Điều hướng quản trị">{navigation.map((label) => <span className={label === 'Người dùng' ? styles.navActive : ''} aria-disabled="true" key={label}>{label}</span>)}</nav></aside>
+    <aside className={styles.deniedSidebar}><Link to="/" className={styles.deniedBrand}>OcvViet</Link><p>Trung tâm vận hành</p><nav aria-label="Điều hướng quản trị">{navigation.map((label) => <span className={label === 'Người dùng' ? styles.navActive : ''} aria-disabled="true" key={label}>{label}</span>)}</nav></aside>
     <div className={styles.deniedMain}>
       <header className={styles.deniedTopbar}><span>Tìm kiếm hoặc chạy lệnh…</span><b>{auth.user ? 'Đã đăng nhập' : 'Chưa đăng nhập'}</b></header>
       <main className={styles.deniedContent}>
