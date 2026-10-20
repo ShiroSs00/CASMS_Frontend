@@ -27,6 +27,8 @@ export const bookingApi:BookingAdapter = {
 }
 export const bookingCatalog = { cabins:cabinFixtures, packages:packageFixtures, arrivalSlots:arrivalFixtures, itinerary:itineraryFixtures }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export const liveCruiseCatalogApi = {
  async list(page:number, signal?:AbortSignal) {
   const data = await apiRequest<LiveCruisePageDto>('/cruise', {
@@ -35,10 +37,12 @@ export const liveCruiseCatalogApi = {
   return toPublishedPage(data)
  },
  async detail(id:string, signal?:AbortSignal) {
+  if (!UUID_REGEX.test(id)) return null
   const data = await apiRequest<LiveCruiseDto>(`/cruise/${encodeURIComponent(id)}`, { signal })
   return toPublishedCruise(data)
  },
  async ship(id:string, signal?:AbortSignal) {
+  if (!UUID_REGEX.test(id)) return null
   const ship=toLiveShip(await apiRequest<unknown>(`/ships/${encodeURIComponent(id)}`, {signal}))
   if (ship.id!==id) throw new Error('Thông tin tàu trả về không khớp shipId của chuyến đi.')
   return ship

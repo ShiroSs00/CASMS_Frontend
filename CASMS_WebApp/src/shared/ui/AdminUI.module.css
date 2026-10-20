@@ -1,8 +1,11 @@
-.button { display:inline-flex; width:180px; min-height:48px; align-items:center; justify-content:center; padding:10px 20px; border:1px solid #123042; border-radius:4px; font:inherit; font-size:14px; font-weight:500; line-height:20px; cursor:pointer; }
+.button { display:inline-flex; min-width:140px; width:auto; min-height:48px; align-items:center; justify-content:center; padding:10px 20px; border:1px solid #123042; border-radius:4px; font:inherit; font-size:14px; font-weight:500; line-height:20px; cursor:pointer; }
+.compact { min-width:0; min-height:36px; padding:6px 14px; font-size:13px; }
+.autoWidth { width:auto; min-width:0; }
+.fullWidth { width:100%; }
 .primary { background:#123042; color:#fff; }
 .secondary { background:#fff; color:#123042; }
 .danger { background:#af2637; border-color:#af2637; color:#fff; }
-.text { width:auto; min-height:36px; border-color:transparent; background:transparent; color:#123042; }
+.text { width:auto; min-width:0; min-height:36px; border-color:transparent; background:transparent; color:#123042; }
 .button:hover:not(:disabled) { filter:brightness(.92); }
 .button:disabled { background:#d9e0e4; border-color:#d9e0e4; color:#52616b; cursor:not-allowed; }
 .header { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }

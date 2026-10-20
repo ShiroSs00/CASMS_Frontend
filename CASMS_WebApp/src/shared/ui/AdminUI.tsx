@@ -7,12 +7,29 @@ export function AdminFrame({ children, className = '', topbar }: { children: Rea
   return <AdminShell className={className} topbar={topbar}>{children}</AdminShell>
 }
 
-export function Button({ tone = 'primary', className = '', type = 'button', ...props }:
-  ButtonHTMLAttributes<HTMLButtonElement> & { tone?: 'primary' | 'secondary' | 'danger' | 'text' }) {
-  return <button type={type} className={`${styles.button} ${styles[tone]} ${className}`} {...props} />
+export function Button({ tone = 'primary', size = 'regular', autoWidth = false, fullWidth = false, className = '', type = 'button', ...props }:
+  ButtonHTMLAttributes<HTMLButtonElement> & {
+    tone?: 'primary' | 'secondary' | 'danger' | 'text'
+    size?: 'regular' | 'compact'
+    autoWidth?: boolean
+    fullWidth?: boolean
+  }) {
+  const sizeClass = size === 'compact' ? styles.compact : ''
+  const widthClass = fullWidth ? styles.fullWidth : autoWidth ? styles.autoWidth : ''
+  return <button type={type} className={`${styles.button} ${styles[tone]} ${sizeClass} ${widthClass} ${className}`.trim()} {...props} />
 }
-export function ButtonLink({ to, children, tone = 'primary' }: { to: string; children: ReactNode; tone?: 'primary' | 'secondary' }) {
-  return <Link to={to} className={`${styles.button} ${styles[tone]} ${styles.buttonLink}`}>{children}</Link>
+export function ButtonLink({ to, children, tone = 'primary', size = 'regular', autoWidth = false, fullWidth = false, className = '' }: {
+  to: string
+  children: ReactNode
+  tone?: 'primary' | 'secondary' | 'danger'
+  size?: 'regular' | 'compact'
+  autoWidth?: boolean
+  fullWidth?: boolean
+  className?: string
+}) {
+  const sizeClass = size === 'compact' ? styles.compact : ''
+  const widthClass = fullWidth ? styles.fullWidth : autoWidth ? styles.autoWidth : ''
+  return <Link to={to} className={`${styles.button} ${styles[tone]} ${styles.buttonLink} ${sizeClass} ${widthClass} ${className}`.trim()}>{children}</Link>
 }
 export function PageHeader({ title, description, breadcrumb, actions }:
   { title: string; description: string; breadcrumb: string; actions?: ReactNode }) {

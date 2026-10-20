@@ -4,9 +4,9 @@ import styles from './PublicLayout.module.css'
 
 export function PublicLayout() {
   return <div className={styles.pageShell}>
-    <title>AURORA — Hành trình trên vịnh</title>
+    <title>OcvViet — Hành trình trên vịnh</title>
     <a className={styles.skipLink} href="#main-content">Chuyển đến nội dung chính</a>
-    <header className={styles.header}><div className={styles.brandNav}><Link className={styles.brand} to="/">AURORA</Link><nav aria-label="Điều hướng chính"><Link to="/cruises">Chuyến du thuyền</Link><a href="/#destinations">Điểm đến</a><a href="/#experience">Trải nghiệm</a></nav></div><div className={styles.accountNav}><Link to="/my-bookings">Booking của tôi</Link><AuthAccountMenu /></div></header>
+    <header className={styles.header}><div className={styles.brandNav}><Link className={styles.brand} to="/">OcvViet</Link><nav aria-label="Điều hướng chính"><Link to="/cruises">Chuyến du thuyền</Link><a href="/#destinations">Điểm đến</a><a href="/#experience">Trải nghiệm</a></nav></div><div className={styles.accountNav}><Link to="/my-bookings">Booking của tôi</Link><AuthAccountMenu /></div></header>
     <main id="main-content" tabIndex={-1}><Outlet /></main>
   </div>
 }

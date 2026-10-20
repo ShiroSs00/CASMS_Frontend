@@ -31,16 +31,22 @@ const navigation: { label: string; items: { label: string; to?: string }[] }[] =
 export function AdminShell({ children, className = '', topbar }: { children: ReactNode; className?: string; topbar?: ReactNode }) {
   const { pathname } = useLocation()
   const section = pathname.split('/')[2] ?? ''
-  const activeTo = /\/regulations(?:\/|$)/.test(pathname) ? '/admin/regulations'
-    : `/admin/${section}`
+  let activeTo = `/admin/${section}`
+  if (pathname.includes('/regulations')) {
+    activeTo = '/admin/regulations'
+  } else if (pathname.startsWith('/admin/itinerary-history')) {
+    activeTo = '/admin/itineraries'
+  } else if (pathname.startsWith('/admin/activity-registrations')) {
+    activeTo = '/admin/activities'
+  }
   const sidebar = useRef<HTMLElement>(null)
   useEffect(() => { sidebar.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest' }) }, [activeTo])
 
   return <div className={className ? `${styles.shell} ${className}` : styles.shell}>
     <a href="#admin-v3-main" className={styles.skipLink}>Chuyển đến nội dung chính</a>
     <aside ref={sidebar} className={styles.sidebar} aria-label="Điều hướng quản trị">
-      {/* ASSET_PENDING: replace this text fallback when the official OceVie logo is supplied. */}
-      <div className={styles.brand}>OceVie</div>
+      {/* Official brand text for Admin Web */}
+      <div className={styles.brand}>OcvViet</div>
       <p className={styles.subtitle}>ĐIỀU PHỐI &amp; VẬN HÀNH</p>
       <nav aria-label="Vận hành" className={styles.navigation}>
         {navigation.map(group => <div key={group.label} className={styles.navGroup}>
