@@ -7,6 +7,7 @@ export type ShipDto = {
 }
 export type DeckDto = {
   deckId: string; shipId: string; deckNumber: number; deckName: string | null
+  priceMultiplier?: number
   createdAt: string; updatedAt: string
 }
 export type CabinDto = {

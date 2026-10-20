@@ -18,7 +18,7 @@ const ship = (dto: ShipDto): Ship => ({
   createdAt: dto.createdAt, updatedAt: dto.updatedAt,
 })
 const deck = (dto: DeckDto): Deck => ({ id: dto.deckId, shipId: dto.shipId, number: dto.deckNumber,
-  name: dto.deckName ?? '', createdAt: dto.createdAt, updatedAt: dto.updatedAt })
+  name: dto.deckName ?? '', priceMultiplier: dto.priceMultiplier ?? 1.0, createdAt: dto.createdAt, updatedAt: dto.updatedAt })
 const cabin = (dto: CabinDto): Cabin => ({ id: dto.cabinId, shipId: dto.shipId, deckId: dto.deckId,
   number: dto.cabinNumber, type: dto.cabinType, capacity: dto.capacity, status: dto.status, accessible: dto.isAccessible })
 const cruise = (dto: CruiseDto): CruisePreview => ({ id: dto.cruiseId, code: dto.cruiseCode,
@@ -103,7 +103,7 @@ export const shipDeckCabinApi = {
     notify(); return saved
   },
   async saveDeck(draft: DeckDraft, id?: string) {
-    const body = { deckNumber: draft.number, deckName: draft.name.trim(), ...(!id ? { shipId: draft.shipId } : {}) }
+    const body = { deckNumber: draft.number, deckName: draft.name.trim(), priceMultiplier: draft.priceMultiplier ?? 1.0, ...(!id ? { shipId: draft.shipId } : {}) }
     const saved = deck(await apiRequest<DeckDto>(id ? idPath('decks', id) : paths.decks, { method: id ? 'PATCH' : 'POST', body }))
     notify(); return saved
   },

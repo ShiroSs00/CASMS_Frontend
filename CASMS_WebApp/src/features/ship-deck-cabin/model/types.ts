@@ -7,7 +7,7 @@ export type Ship = RecordBase & {
   code: string; name: string; status: ShipStatus
   capacity: number; totalDecks: number; commissionDate: string
 }
-export type Deck = RecordBase & { shipId: string; number: number; name: string }
+export type Deck = RecordBase & { shipId: string; number: number; name: string; priceMultiplier?: number }
 export type Cabin = RecordBase & {
   shipId: string; deckId: string; number: string; type: CabinType
   capacity: number; status: CabinStatus; accessible: boolean
