@@ -22,6 +22,10 @@ function assignmentResponse(expected: Partial<Pick<GroupPassenger, 'tourGroupPas
 }
 const resultingStatus: Record<Exclude<PassengerAction, 'move'>, AssignmentStatus> = { remove: 'CANCELLED', departure: 'CHECKED_IN', return: 'COMPLETED' }
 export const groupPassengerApi = {
+  eligible: (groupId: string, signal?: AbortSignal): Promise<{ passengerId: string; fullName: string }[]> => apiRequestRaw(`${base}/groups/${encodeURIComponent(uuid(groupId))}/eligible-passengers`, decode(value => {
+    if (!Array.isArray(value) || value.some(row => !row || typeof row.passengerId !== 'string' || !isUuid(row.passengerId) || typeof row.fullName !== 'string' || !row.fullName.trim())) throw new Error('Danh sách hành khách đủ điều kiện không đầy đủ.')
+    return value.map(row => ({ passengerId: row.passengerId, fullName: row.fullName }))
+  }), { signal }),
   list: (groupId: string, signal?: AbortSignal) => apiRequestRaw(base, decode((value) => {
     const rows = normalizePassengers(value)
     if (rows.some((row) => row.tourGroupId.toLowerCase() !== groupId.toLowerCase())) throw new Error('Danh sách phân công không thuộc nhóm đang xem.')

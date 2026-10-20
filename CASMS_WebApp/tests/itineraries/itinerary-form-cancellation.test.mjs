@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 import ts from 'typescript'
 
-const source = ts.transpileModule(readFileSync(new URL('../../src/features/itineraries/pages/ItineraryPages.tsx', import.meta.url), 'utf8'), {
+const source = ts.transpileModule(readFileSync(new URL('../../src/features/itineraries/pages/ItineraryFormPage.tsx', import.meta.url), 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 },
 }).outputText
 const flush = () => new Promise(setImmediate)
@@ -24,11 +24,14 @@ function mount(itineraryId) {
   const jsx = (type, props) => ({ type, props })
   vm.runInNewContext(source, { module, exports: module.exports, AbortController, Error, Date, require(id) {
     if (id === 'react') return hooks
-    if (id === 'react-router') return { useParams: () => params, useNavigate: () => () => {} }
+    if (id === '@/shared/api') return { ApiError: Error }
+    if (id === '@/shared/auth') return { useSessionAccess: () => ({ has: () => true }) }
+    if (id === 'react-router') return { useParams: () => params, useSearchParams: () => [{ get: () => null }], useNavigate: () => () => {} }
     if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
     if (id === '@/shared/ui') return Object.fromEntries(['Button', 'ButtonLink', 'DataTable', 'Empty', 'Field', 'Loading', 'Notice', 'PageHeader', 'Panel'].map((name) => [name, name]))
     if (id.endsWith('/ItineraryUI')) return { ItineraryFrame: 'ItineraryFrame' }
-    if (id.endsWith('/itinerary-api')) return { itineraryApi: { get(id, signal) { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no }); requests.push({ id, signal, resolve, reject }); return promise } } }
+    if (id.endsWith('/itinerary-api')) return { itineraryApi: { formContext: async () => ({ cruises: ['old', 'current'].map(id => ({ cruiseId: 'cruise-' + id, cruiseCode: id, cruiseName: id, departureDatetime: '2026-10-18T00:00:00Z', returnDatetime: '2026-10-20T00:00:00Z' })), itineraries: [] }), get(id, signal) { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no }); requests.push({ id, signal, resolve, reject }); return promise } } }
+    if (id.endsWith('/model/itinerary')) return {}
     if (id.endsWith('.module.css')) return { default: {} }
     if (id === './ItineraryDetailPage') return {}
     throw new Error('Unexpected import: ' + id)
@@ -42,7 +45,7 @@ function mount(itineraryId) {
     replay() { for (const effect of effects) effect.cleanup?.(); for (const effect of effects) effect.cleanup = effect.setup() },
     unmount() { for (const effect of effects) effect.cleanup?.() },
     errors() { return nodes(render()).filter((node) => node.type === 'Notice' && node.props.tone === 'error').map(text) },
-    name() { return nodes(render()).find((node) => node.props?.id === 'itinerary-name')?.props.value },
+    name() { return nodes(render()).find((node) => node.props?.name === 'itineraryName')?.props.value },
     loading() { return nodes(render()).some((node) => node.type === 'Loading') },
     saveDisabled() { return nodes(render()).find((node) => node.type === 'Button' && node.props.type === 'submit')?.props.disabled },
   }
@@ -118,6 +121,6 @@ test('Itinerary remount retries with a fresh signal and preserves non-DRAFT edit
   request.resolve({ ...item('current'), status: 'APPROVED' }); await flush()
   assert.equal(retry.name(), 'current')
   assert.equal(retry.saveDisabled(), true)
-  assert.deepEqual(retry.errors(), ['Chỉ lịch trình ở trạng thái DRAFT mới được chỉnh sửa thông tin.'])
+  assert.deepEqual(retry.errors(), ['Chỉ lịch trình ở trạng thái Nháp mới được chỉnh sửa.'])
   retry.unmount()
 })

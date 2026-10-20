@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSessionAccess } from '@/shared/auth'
 
 import { Badge, Button, Loading, Modal, Notice } from '@/shared/ui'
 
@@ -27,6 +28,8 @@ export function ShipAssignmentDialog({ detail, mode, onClose, onChanged }: {
   onClose: () => void
   onChanged: () => void
 }) {
+  const access = useSessionAccess()
+  const allowed = access.has({ assign: 'CRUISE_ASSIGN_SHIP', change: 'CRUISE_CHANGE_SHIP', unassign: 'CRUISE_UNASSIGN_SHIP' }[mode])
   const [candidates, setCandidates] = useState<ShipCandidate[] | null>(null)
   const [selectedId, setSelectedId] = useState('')
   const [busy, setBusy] = useState(false)
@@ -43,7 +46,7 @@ export function ShipAssignmentDialog({ detail, mode, onClose, onChanged }: {
   const selected = useMemo(() => candidates?.find((candidate) => candidate.ship.shipId === selectedId) ?? null, [candidates, selectedId])
 
   async function confirm() {
-    if (lock.current) return
+    if (lock.current || !allowed) return
     lock.current = true
     setBusy(true)
     setError('')
@@ -70,7 +73,7 @@ export function ShipAssignmentDialog({ detail, mode, onClose, onChanged }: {
     return <Modal title="Gỡ tàu khỏi cruise" onClose={onClose} busy={busy}>
       <Notice title={`${detail.cruise.cruiseCode} · ${detail.ship?.shipName ?? 'Chưa phân công'}`} tone="warning"><p>Sau xác nhận, cruise sẽ chưa có tàu được phân công. Hệ thống sẽ kiểm tra các đặt chỗ trước khi gỡ tàu.</p></Notice>
       {error && <Notice title="Không thể gỡ tàu" tone="error"><p>{error}</p></Notice>}
-      <div className={styles.dialogActions}><Button tone="secondary" disabled={busy} onClick={onClose}>Hủy</Button><Button tone="danger" disabled={busy} onClick={() => void confirm()}>{busy ? 'Đang xử lý…' : 'Xác nhận gỡ tàu'}</Button></div>
+      <div className={styles.dialogActions}><Button tone="secondary" disabled={busy} onClick={onClose}>Hủy</Button><Button tone="danger" disabled={busy || !allowed} onClick={() => void confirm()}>{busy ? 'Đang xử lý…' : 'Xác nhận gỡ tàu'}</Button></div>
     </Modal>
   }
 
@@ -85,6 +88,6 @@ export function ShipAssignmentDialog({ detail, mode, onClose, onChanged }: {
       </button>)}
     </div>}
     {selected && <Notice title={`Precheck · ${stateLabel(selected.state)}`} tone={candidateTone(selected.state)}><p>{selected.reasons.join(' ')}</p></Notice>}
-    <div className={styles.dialogActions}><Button tone="secondary" disabled={busy} onClick={onClose}>Hủy</Button><Button disabled={busy || selected?.state !== 'AVAILABLE'} onClick={() => void confirm()}>{busy ? 'Đang xử lý…' : mode === 'assign' ? 'Xác nhận phân công' : 'Xác nhận đổi tàu'}</Button></div>
+    <div className={styles.dialogActions}><Button tone="secondary" disabled={busy} onClick={onClose}>Hủy</Button><Button disabled={busy || !allowed || selected?.state !== 'AVAILABLE'} onClick={() => void confirm()}>{busy ? 'Đang xử lý…' : mode === 'assign' ? 'Xác nhận phân công' : 'Xác nhận đổi tàu'}</Button></div>
   </Modal>
 }

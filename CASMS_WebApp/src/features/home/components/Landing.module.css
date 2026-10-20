@@ -1,6 +1,6 @@
 .home { background:#faf8f2;color:#172b36;font-family:Inter,Arial,sans-serif; }
 .home h1,.home h2,.home h3,.home p { margin:0; }
-.home h1,.home h2,.home h3 { font-family:Georgia,"Times New Roman",serif;font-weight:400; }
+.home h1,.home h2,.home h3 { font-family:"Times New Roman",Georgia,serif;font-weight:400; }
 .home h2 { font-size:36px;line-height:41px;letter-spacing:-.36px; }
 .home a { text-decoration:none; }
 .container { max-width:1200px;margin:auto; }

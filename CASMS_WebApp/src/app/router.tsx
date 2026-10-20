@@ -17,6 +17,7 @@ import {
   ItineraryDetailPage,
   ItineraryFormPage,
   ItineraryListPage,
+  ItineraryHistoryPage,
   PortDetailPage,
   PortFormPage,
   PortListPage,
@@ -35,8 +36,41 @@ import {
 } from '@/features/ship-deck-cabin'
 
 import { PublicLayout } from './layouts/PublicLayout'
+import { ActivityListPage, ActivityDetailPage, ActivityFormPage, ActivityRegistrationPage } from '@/features/activities'
+import { ServiceListPage, ProductListPage, PackageListPage, ServiceRequestListPage, ServiceDetailPage, ProductDetailPage, PackageDetailPage, ServiceRequestDetailPage, ServiceFormPage, ProductFormPage, PackageFormPage, ServiceRequestFormPage, PackageAssignmentPage } from '@/features/service-packages'
+import { AdminWorkflowPage } from './pages/AdminWorkflowPage'
+import { AdminBookingListPage, AdminBookingDetailPage, AdminBookingCreatePage, AdminBookingLookupPage } from './pages/AdminBookingPages'
+import { BookingLookupPage } from '@/features/booking'
 
 const adminRoutes = [
+  { path: '/admin/bookings', Component: AdminBookingListPage },
+  { path: '/admin/bookings/lookup', Component: AdminBookingLookupPage },
+  { path: '/admin/bookings/new', Component: AdminBookingCreatePage },
+  { path: '/admin/bookings/:bookingId', Component: AdminBookingDetailPage },
+  { path: '/admin/activity-registrations', Component: ActivityRegistrationPage },
+  { path: '/admin/package-assignments', Component: PackageAssignmentPage },
+  { path: '/admin/service-requests/new', Component: ServiceRequestFormPage },
+  { path: '/admin/service-requests/:id/edit', Component: ServiceRequestFormPage },
+  { path: '/admin/services/new', Component: ServiceFormPage },
+  { path: '/admin/services/:id/edit', Component: ServiceFormPage },
+  { path: '/admin/products/new', Component: ProductFormPage },
+  { path: '/admin/products/:id/edit', Component: ProductFormPage },
+  { path: '/admin/service-packages/new', Component: PackageFormPage },
+  { path: '/admin/service-packages/:id/edit', Component: PackageFormPage },
+  { path: '/admin/itinerary-history', Component: ItineraryHistoryPage },
+  { path: '/admin/activities', Component: ActivityListPage },
+  { path: '/admin/activities/new', Component: ActivityFormPage },
+  { path: '/admin/activities/:activityId', Component: ActivityDetailPage },
+  { path: '/admin/activities/:activityId/edit', Component: ActivityFormPage },
+  { path: '/admin/services', Component: ServiceListPage },
+  { path: '/admin/services/:id', Component: ServiceDetailPage },
+  { path: '/admin/products', Component: ProductListPage },
+  { path: '/admin/products/:id', Component: ProductDetailPage },
+  { path: '/admin/service-packages', Component: PackageListPage },
+  { path: '/admin/service-packages/:id', Component: PackageDetailPage },
+  { path: '/admin/service-requests', Component: ServiceRequestListPage },
+  { path: '/admin/service-requests/:id', Component: ServiceRequestDetailPage },
+  { path: '/admin/workflow', Component: AdminWorkflowPage },
   { path: '/admin/tour-groups', Component: TourGroupListPage },
   { path: '/admin/tour-groups/new', Component: TourGroupFormPage },
   { path: '/admin/tour-groups/:groupId', Component: TourGroupDetailPage },
@@ -115,6 +149,7 @@ export const router = createBrowserRouter([{ Component: BookingProvider, childre
     { index: true, Component: HomePage },
     { path: 'cruises', Component: CruiseSearchPage },
     { path: 'cruises/:cruiseId', Component: CustomerCruiseDetailPage },
+    { path: 'booking/lookup', Component: BookingLookupPage },
     { path: 'booking/travellers', Component: TravellerDetailsPage },
     { path: 'booking/cabin-experience', Component: CabinExperiencePage },
     { path: 'booking/review', Component: ReviewBookingPage },

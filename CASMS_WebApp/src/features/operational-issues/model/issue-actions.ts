@@ -10,6 +10,10 @@ export const ISSUE_ACTIONS = [
 ] as const
 
 export type IssueAction = (typeof ISSUE_ACTIONS)[number]
+export const issueActionPermissions: Record<IssueAction, string> = {
+  ASSIGN_HANDLER: 'OPERATIONAL_ISSUE_ASSIGN', START_HANDLING: 'OPERATIONAL_ISSUE_UPDATE', RECORD_RESOLUTION: 'OPERATIONAL_ISSUE_RESOLVE',
+  VERIFY_RESOLUTION: 'OPERATIONAL_ISSUE_RESOLVE', CLOSE: 'OPERATIONAL_ISSUE_RESOLVE', REOPEN: 'OPERATIONAL_ISSUE_UPDATE',
+}
 
 export type IssueActionAvailability = {
   visible: boolean

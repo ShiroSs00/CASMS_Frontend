@@ -1,0 +1,11 @@
+.content { max-width: 1260px; margin-inline: auto; }
+.navigation, .filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-block: 0 22px; }
+.navigation a { padding: 10px 14px; border-radius: 8px; color: var(--text-primary); background: #f8f6ec; text-underline-offset: 4px; }
+.navigation a[aria-current='page'] { background: var(--surface-brand); color: var(--text-inverse); box-shadow: inset 0 -3px #b49860; }
+.filters label { display: grid; gap: 6px; min-width: 220px; }
+.filters input, .filters select { min-height: 42px; padding: 10px 12px; border: 1px solid var(--border-default); border-radius: 8px; background: white; color: var(--text-primary); font: inherit; }
+.definition { display: grid; grid-template-columns: minmax(140px, 1fr) 2fr; gap: 12px; }
+.definition dt { font-weight: 600; }
+.definition dd { margin: 0; overflow-wrap: anywhere; }
+.benefits { display: grid; gap: 12px; padding-left: 22px; }
+.benefits a { color: var(--text-primary); text-underline-offset: 4px; }

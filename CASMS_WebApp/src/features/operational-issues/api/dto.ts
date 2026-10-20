@@ -46,10 +46,6 @@ export type CreateOperationalIssueRequest = {
 }
 
 export type UpdateOperationalIssueRequest = {
-  shipId: string
-  cruiseId?: string | null
-  cabinId?: string | null
-  issueType: IssueType
   severity: IssueSeverity
   description: string
 }

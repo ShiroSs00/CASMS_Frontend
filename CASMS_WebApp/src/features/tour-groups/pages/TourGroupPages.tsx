@@ -1,8 +1,10 @@
 import { useCallback, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
-import { ApiError } from '@/shared/api'
+import { ApiError, useReadQuery } from '@/shared/api'
+import { useSessionAccess } from '@/shared/auth'
 import { Button, ButtonLink, DataTable, Empty, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
 import { tourGroupApi } from '../api/tour-group-api'
+import { listExcursionOptions } from '../api/group-context-api'
 import { GroupCapacity } from '../components/GroupCapacity'
 import { GroupControls } from '../components/GroupControls'
 import { GroupForm } from '../components/GroupForm'
@@ -14,6 +16,8 @@ import { canPrepareGroup, displayTime, groupStatuses, groupStatusLabels, isUuid,
 
 const root = '/admin/tour-groups'
 export function TourGroupListPage() {
+  const access = useSessionAccess()
+  const excursions = useReadQuery('group-filter-excursions', listExcursionOptions)
   const [search, setSearch] = useSearchParams()
   const excursionId = search.get('excursionId')?.trim() || undefined, guideId = search.get('guideId')?.trim() || undefined, rawStatus = search.get('status') || undefined
   const load = useCallback((signal: AbortSignal) => {
@@ -29,14 +33,15 @@ export function TourGroupListPage() {
     setSearch(next)
   }
   return <TourLayout>
-    <PageHeader breadcrumb="Dịch vụ bờ" title="Nhóm tour" description="Quản lý nhóm tham quan, phân công hướng dẫn viên và sức chứa." actions={<ButtonLink to={`${root}/new`}>Tạo nhóm tour</ButtonLink>} />
+    <PageHeader breadcrumb="Dịch vụ bờ" title="Nhóm tour" description="Quản lý nhóm tham quan, phân công hướng dẫn viên và sức chứa." actions={access.has("TOUR_GROUP_CREATE") && <ButtonLink to={`${root}/new`}>Tạo nhóm tour</ButtonLink>} />
     <Panel title="Bộ lọc"><form key={search.toString()} onSubmit={filter}>
-      <div className={styles.filters}><label>ID chuyến tham quan<input name="excursionId" defaultValue={excursionId} /></label><label>ID hướng dẫn viên<input name="guideId" defaultValue={guideId} /></label><label>Trạng thái<select name="status" defaultValue={rawStatus ?? ''}><option value="">Tất cả</option>{groupStatuses.map((value) => <option key={value} value={value}>{groupStatusLabels[value]}</option>)}</select></label></div>
+      <div className={styles.filters}><label>Chuyến tham quan<select key={`${excursionId}:${excursions.data?.length}`} name="excursionId" defaultValue={excursionId} disabled={excursions.loading || Boolean(excursions.error)}><option value="">Tất cả chuyến tham quan</option>{excursions.data?.map(item => <option key={item.shoreExcursionId} value={item.shoreExcursionId}>{item.excursionName}</option>)}</select></label><label>Hướng dẫn viên<select disabled><option>Chưa có danh mục hướng dẫn viên</option></select></label><label>Trạng thái<select name="status" defaultValue={rawStatus ?? ''}><option value="">Tất cả</option>{groupStatuses.map((value) => <option key={value} value={value}>{groupStatusLabels[value]}</option>)}</select></label></div>
       <div className={styles.actions}><Button type="submit">Áp dụng bộ lọc</Button><Button tone="secondary" onClick={() => setSearch({})}>Xóa bộ lọc</Button><Button tone="secondary" onClick={query.reload}>Tải lại</Button></div>
     </form></Panel>
+    {excursions.error && <Notice title="Không tải được danh mục chuyến tham quan" tone="warning">{excursions.error.message}<Button onClick={excursions.retry}>Thử lại</Button></Notice>}
     {query.loading ? <Loading label="Đang tải nhóm tour…" /> : query.error != null ? <TourError error={query.error} onRetry={query.reload} /> : query.data && <Panel title={`Danh sách · ${query.data.length}`}>
-      {!query.data.length ? <Empty title="Chưa có nhóm tour phù hợp" /> : <DataTable label="Danh sách nhóm tour" headers={['Mã nhóm', 'Chuyến tham quan', 'ID hướng dẫn viên', 'Đã phân công / tối đa', 'Chỗ còn lại', 'Trạng thái']}>
-        {query.data.map((group) => <tr key={group.tourGroupId}><td><Link className={styles.link} to={`${root}/${group.tourGroupId}`}>{group.groupCode}</Link></td><td>{group.excursionName}</td><td className={styles.text}>{group.guideId ?? 'Chưa phân công'}</td><td>{group.assignedPassengers} / {group.maximumCapacity}</td><td>{group.availableCapacity}</td><td><GroupBadge status={group.status} /></td></tr>)}
+      {!query.data.length ? <Empty title="Chưa có nhóm tour phù hợp" /> : <DataTable label="Danh sách nhóm tour" headers={['Mã nhóm', 'Chuyến tham quan', 'Hướng dẫn viên', 'Đã phân công / tối đa', 'Chỗ còn lại', 'Trạng thái']}>
+        {query.data.map((group) => <tr key={group.tourGroupId}><td><Link className={styles.link} to={`${root}/${group.tourGroupId}`}>{group.groupCode}</Link></td><td>{group.excursionName}</td><td className={styles.text}>{group.guideId ? 'Đã phân công · chưa có tên' : 'Chưa phân công'}</td><td>{group.assignedPassengers} / {group.maximumCapacity}</td><td>{group.availableCapacity}</td><td><GroupBadge status={group.status} /></td></tr>)}
       </DataTable>}
     </Panel>}
   </TourLayout>
@@ -46,21 +51,23 @@ export function TourGroupDetailPage() {
   return <GroupDetail key={groupId} id={groupId} />
 }
 function GroupDetail({ id }: { id: string }) {
+  const access = useSessionAccess()
   const load = useCallback((signal: AbortSignal) => tourGroupApi.get(id, signal), [id])
   const query = useTourResource(load), group = query.data
   const [receipt, setReceipt] = useState<PassengerReceipt | null>(null)
   return <TourLayout><Link className={styles.link} to={root}>← Nhóm tour</Link>
     {receipt && <Notice title="Đã cập nhật phân công"><p>{receipt.message}</p>{receipt.targetId && <Link className={styles.link} to={`${root}/${receipt.targetId}`}>Xem nhóm đích {receipt.targetCode}</Link>}</Notice>}
     {query.loading ? <Loading label="Đang tải chi tiết nhóm…" /> : query.error != null ? <TourError error={query.error} onRetry={query.reload} /> : group && <>
-      <PageHeader breadcrumb="Dịch vụ bờ / Nhóm tour" title={`Nhóm ${group.groupCode}`} description={group.excursionName} actions={<><GroupBadge status={group.status} />{canPrepareGroup(group.status) && <ButtonLink to={`${root}/${id}/edit`}>Chỉnh sửa</ButtonLink>}<Button tone="secondary" onClick={query.reload}>Tải lại</Button></>} />
+      <PageHeader breadcrumb="Dịch vụ bờ / Nhóm tour" title={`Nhóm ${group.groupCode}`} description={group.excursionName} actions={<><GroupBadge status={group.status} />{canPrepareGroup(group.status) && access.has("TOUR_GROUP_UPDATE") && <ButtonLink to={`${root}/${id}/edit`}>Chỉnh sửa</ButtonLink>}<Button tone="secondary" onClick={query.reload}>Tải lại</Button></>} />
       <GroupFacts group={group} /><GroupCapacity group={group} /><GroupControls group={group} onRefresh={query.reload} />
+      <ButtonLink tone="secondary" to={`/admin/shore-excursions/${group.shoreExcursionId}`}>Chuyến tham quan {group.excursionName}</ButtonLink>
       <GroupPassengers group={group} onChanged={(result) => { setReceipt(result); query.reload() }} />
     </>}
   </TourLayout>
 }
 function GroupFacts({ group }: { group: TourGroup }) {
   const facts: [string, string][] = [
-    ['ID nhóm tour', group.tourGroupId], ['ID chuyến tham quan', group.shoreExcursionId], ['ID hướng dẫn viên', group.guideId ?? 'Chưa phân công'], ['ID phương tiện', group.vehicleId ?? 'Chưa đặt'],
+    ['ID nhóm tour', group.tourGroupId], ['ID chuyến tham quan', group.shoreExcursionId], ['Hướng dẫn viên', group.guideId ?? 'Chưa phân công'], ['ID phương tiện', group.vehicleId ?? 'Chưa đặt'],
     ['Điểm tập trung', group.meetingPoint ?? 'Chưa đặt'], ['Giờ tập trung', displayTime(group.assemblyTime)], ['Khởi hành dự kiến', displayTime(group.plannedDepartureTime)],
     ['Trở về dự kiến', displayTime(group.plannedReturnTime)], ['Khởi hành thực tế', displayTime(group.actualDepartureTime)], ['Trở về thực tế', displayTime(group.actualReturnTime)], ['Ghi chú', group.notes ?? '—'],
   ]
@@ -80,8 +87,10 @@ function EditGroup({ id }: { id: string }) {
   return <SaveGroup initial={query.data} />
 }
 function SaveGroup({ initial }: { initial?: TourGroup }) {
+  const access = useSessionAccess()
   const navigate = useNavigate(), mutation = useTourMutation()
   async function save(request: GroupRequest) {
+    if (!access.has(initial ? 'TOUR_GROUP_UPDATE' : 'TOUR_GROUP_CREATE')) return
     const result = await mutation.run((signal) => initial ? tourGroupApi.update(initial.tourGroupId, request, signal) : tourGroupApi.create(request, signal))
     if (result.ok) navigate(`${root}/${result.value.tourGroupId}`)
   }

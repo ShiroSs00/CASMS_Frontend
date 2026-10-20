@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
+import { useSessionAccess } from '@/shared/auth'
 
 import { Button, Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
 
@@ -25,6 +26,7 @@ function localInputValue(value: string) {
 }
 
 export function CruiseFormPage() {
+  const access = useSessionAccess()
   const { cruiseId } = useParams()
   const editing = Boolean(cruiseId)
   const navigate = useNavigate()
@@ -38,7 +40,7 @@ export function CruiseFormPage() {
   const [ports, setPorts] = useState<PortRecord[]>([])
   const [loadedId, setLoadedId] = useState<string | null>(null)
   const submitLock = useRef(false)
-  const canSave = !editing || (loadedId === cruiseId && currentStatus === 'DRAFT')
+  const canSave = access.has(editing ? 'CRUISE_UPDATE_DRAFT' : 'CRUISE_CREATE') && (!editing || (loadedId === cruiseId && currentStatus === 'DRAFT'))
 
   useEffect(() => {
     if (!cruiseId) return

@@ -1,3 +1,5 @@
+import { useSessionAccess } from '@/shared/auth'
+import { operationPermission } from '../model/permissions'
 import { useState } from 'react'
 import { Button, Modal, Notice } from '@/shared/ui'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
@@ -18,6 +20,8 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
   item: Entity; kind: EntityKind; ships: Ship[]; operation: Operation; onClose: () => void
   shipChoicesState?: { loading: boolean; error: string; retry: () => void }
 }) {
+  const access = useSessionAccess()
+  const permitted = access.has(operationPermission(kind, operation)) && (operation !== 'availability' || access.has('CABIN_READ'))
   const isShip = 'code' in item
   const isCheck = ['schedule', 'ready', 'availability', 'affected', 'validate', 'ownership'].includes(operation)
   const [status, setStatus] = useState<string>('status' in item ? item.status : '')
@@ -34,7 +38,7 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
   const shipChoicesUnavailable = operation === 'ownership' && Boolean(shipChoicesState?.loading || shipChoicesState?.error)
   const clear = () => { setResults([]); setCruises(null); setValidation(''); mutation.clear() }
   const check = async () => {
-    if (mutation.busy || shipChoicesUnavailable) return
+    if (!permitted || mutation.busy || shipChoicesUnavailable) return
     clear()
     const startTime = new Date(start).getTime()
     const endTime = new Date(end).getTime()
@@ -55,7 +59,7 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
     }, '')
   }
   const confirm = () => {
-    if (mutation.busy) return
+    if (!permitted || mutation.busy) return
     void mutation.run(async () => {
       if (operation === 'block') await shipDeckCabinApi.blockCabin(item.id, reasonStatus)
       else if (operation === 'release') await shipDeckCabinApi.releaseCabin(item.id)
@@ -95,7 +99,7 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
       </>}
       {mutation.error && <Notice title="Thao tác chưa hoàn tất" tone="error">{mutation.error}</Notice>}
       <div className={styles.actions}>
-        <Button disabled={mutation.busy || shipChoicesUnavailable || (operation === 'status' && 'status' in item && status === item.status)} onClick={() => isCheck ? void check() : confirm()}>
+        <Button disabled={!permitted || mutation.busy || shipChoicesUnavailable || (operation === 'status' && 'status' in item && status === item.status)} onClick={() => isCheck ? void check() : confirm()}>
           {mutation.busy ? 'Đang xử lý…' : isCheck ? results.length || cruises || mutation.error ? 'Kiểm tra lại' : 'Kiểm tra' : 'Xác nhận'}
         </Button>
         <Button tone="secondary" disabled={mutation.busy} onClick={onClose}>{isCheck ? 'Đóng' : 'Hủy'}</Button>

@@ -92,7 +92,7 @@ function formHarness({ data = snapshot, editing, loading = false, error = '' } =
   }
   const module = { exports: {} }
   const code = ts.transpileModule(readFileSync(new URL('../../src/features/ship-deck-cabin/pages/FormPage.tsx', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 } }).outputText
-  vm.runInNewContext(code, { module, exports: module.exports, requestAnimationFrame: callback => callback(), require(id) { assert.ok(Object.hasOwn(imports, id), 'Unexpected import ' + id); return imports[id] } })
+  vm.runInNewContext(code, { module, exports: module.exports, requestAnimationFrame: callback => callback(), require(id) { if(id === '@/shared/auth') return {useSessionAccess:()=>({status:'ready',userId:'test-user',has:()=>true})}; if(id === '../model/permissions') return {entityPermission:(kind,action)=>({ships:'SHIP',decks:'DECK',cabins:'CABIN'})[kind]+'_'+action,operationPermission:()=> 'TEST_PERMISSION'}; assert.ok(Object.hasOwn(imports, id), 'Unexpected import ' + id); return imports[id] } })
   function flatten(tree) {
     if (Array.isArray(tree)) return tree.flatMap(flatten)
     if (tree == null || typeof tree !== 'object') return []

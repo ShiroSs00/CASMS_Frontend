@@ -13,7 +13,7 @@ const loaded = data => ({ data, loading: false, error: '', retry() {} })
 function load(file, imports) {
   const module = { exports: {} }
   const code = ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 } }).outputText
-  vm.runInNewContext(code, { module, exports: module.exports, AbortController, Error, require(id) {
+  vm.runInNewContext(code, { module, exports: module.exports, AbortController, Error, require(id) { if(id === '@/shared/auth') return {useSessionAccess:()=>({status:'ready',userId:'test-user',has:()=>true})}; if(id === '../model/permissions') return {entityPermission:(kind,action)=>({ships:'SHIP',decks:'DECK',cabins:'CABIN'})[kind]+'_'+action,operationPermission:()=> 'TEST_PERMISSION'};
     if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
     if (id.endsWith('.module.css')) return { default: {} }
     assert.ok(Object.hasOwn(imports, id), 'Unexpected import ' + id); return imports[id]

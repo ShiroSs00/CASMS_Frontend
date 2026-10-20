@@ -1,0 +1,11 @@
+.content { max-width: 1260px; margin-inline: auto; }
+.filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-block: 16px; }
+.filters input, .filters select, .form input, .form select, .form textarea { width: 100%; min-height: 42px; padding: 10px 12px; border: 1px solid var(--border-default); border-radius: 8px; background: white; color: var(--text-primary); font: inherit; }
+.filters label { display: grid; gap: 6px; min-width: 220px; }
+.form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-block: 18px; }
+.definition { display: grid; grid-template-columns: minmax(140px, 1fr) 2fr; gap: 12px; }
+.definition dt { font-weight: 600; }
+.definition dd { margin: 0; overflow-wrap: anywhere; }
+.content a { text-underline-offset: 4px; }
+@media (max-width: 1000px) { .form { grid-template-columns: minmax(0, 1fr); } }

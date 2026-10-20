@@ -12,14 +12,14 @@ function formatDate(value: string) {
 
 export function IssueTimeline({ issue }: { issue: OperationalIssue }) {
   const timestamps = [
-    ['Reported', issue.reportedAt, issue.reportedBy.name],
-    ...(issue.resolvedAt ? [['Resolution recorded', issue.resolvedAt, issue.resolvedBy?.name ?? 'Authenticated actor']] : []),
-    ...(issue.verifiedAt ? [['Verified', issue.verifiedAt, issue.verifiedBy?.name ?? 'Authenticated actor']] : []),
+    ['Báo cáo', issue.reportedAt, issue.reportedBy.name],
+    ...(issue.resolvedAt ? [['Ghi nhận xử lý', issue.resolvedAt, issue.resolvedBy?.name ?? 'Chưa có tên người thực hiện']] : []),
+    ...(issue.verifiedAt ? [['Xác minh', issue.verifiedAt, issue.verifiedBy?.name ?? 'Chưa có tên người thực hiện']] : []),
   ]
 
   return (
     <section className={styles.panel}>
-      <h2>Timeline</h2>
+      <h2>Tiến trình xử lý</h2>
       <p className={styles.actionHint}>
         Các mốc báo cáo, xử lý và xác minh được ghi nhận trên sự cố.
       </p>

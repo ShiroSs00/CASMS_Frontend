@@ -30,7 +30,7 @@ const checkedBoolean = (value: boolean): boolean => {
 const booleanResult = (value: boolean, title: string): CheckResult => ({
   allowed: checkedBoolean(value), tone: value ? 'success' : 'warning',
   title: `${title}: ${value ? 'Đáp ứng' : 'Chưa đáp ứng'}`,
-  message: value ? 'Backend xác nhận điều kiện kiểm tra được đáp ứng.' : 'Backend xác nhận điều kiện kiểm tra chưa được đáp ứng.',
+  message: value ? 'Điều kiện kiểm tra được đáp ứng.' : 'Điều kiện kiểm tra chưa được đáp ứng.',
 })
 
 // List endpoints expose pageable only. Retrieve every page before local UI filtering.
@@ -130,7 +130,7 @@ export const shipDeckCabinApi = {
   },
   async validate(kind: EntityKind, id: string) {
     await apiRequest<void>(`${idPath(kind, id)}/validate`, { method: 'POST' })
-    return { tone: 'success', allowed: true, title: 'Cấu hình hợp lệ', message: 'Backend đã kiểm tra cấu hình thành công.' } satisfies CheckResult
+    return { tone: 'success', allowed: true, title: 'Cấu hình hợp lệ', message: kind === 'cabins' ? 'Cabin thuộc đúng boong và tàu đã đăng ký.' : 'Cấu hình đã được kiểm tra hợp lệ.' } satisfies CheckResult
   },
   async validateDeckShip(id: string, shipId: string) {
     return booleanResult(await apiRequest<boolean>(`${idPath('decks', id)}/validate-ship`, { query: { shipId } }), 'Boong thuộc tàu')
@@ -164,15 +164,7 @@ export const shipDeckCabinApi = {
       return (await apiRequest<CabinDto[]>(`${paths.cabins}/search`, { method: 'POST', body: query, signal })).map(cabin)
     } catch (error) {
       if (error instanceof ApiError && error.status >= 500) {
-        const allCabins = await allPages<CabinDto>(paths.cabins, signal)
-        return allCabins
-          .filter((item) => item.status === 'AVAILABLE')
-          .filter((item) => !query.shipId || item.shipId === query.shipId)
-          .filter((item) => !query.deckId || item.deckId === query.deckId)
-          .filter((item) => !query.cabinType || item.cabinType === query.cabinType)
-          .filter((item) => query.minCapacity === undefined || item.capacity >= query.minCapacity)
-          .filter((item) => query.isAccessible === undefined || item.isAccessible === query.isAccessible)
-          .map(cabin)
+        throw new ApiError('Chưa thể xác nhận danh sách cabin sẵn sàng. Vui lòng thử lại.', error.status, error.code)
       }
       throw error
     }
@@ -190,6 +182,11 @@ export const shipDeckCabinApi = {
       apiRequest<boolean>(`${base}/capacity-check`, { query: { requiredCapacity } }),
       apiRequest<boolean>(`${base}/compatibility-check`, { query: { requireAccessible } }),
     ])
-    return results.map((value, index) => booleanResult(value, ['Cabin khả dụng', 'Sức chứa', 'Hỗ trợ tiếp cận'][index]))
+    return results.map((value, index) => ({
+      ...booleanResult(value, ['Trạng thái sẵn sàng', 'Sức chứa', 'Hỗ trợ tiếp cận'][index]),
+      message: index === 0
+        ? `${value ? 'Cabin đang ở trạng thái Sẵn sàng.' : 'Cabin chưa ở trạng thái Sẵn sàng.'} Kết quả này không xác nhận chỗ cho một đặt chỗ hoặc chuyến đi cụ thể.`
+        : value ? 'Cabin đáp ứng yêu cầu đã chọn.' : 'Cabin chưa đáp ứng yêu cầu đã chọn. Vui lòng chọn cabin phù hợp hơn.',
+    }))
   },
 }
