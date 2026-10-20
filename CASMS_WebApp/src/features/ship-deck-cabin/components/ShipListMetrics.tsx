@@ -12,7 +12,7 @@ export function ShipListMetrics({ metrics }: { metrics?: Metrics }) {
   return <dl className={styles.metrics} aria-label="Tổng hợp đội tàu">
     {cards.map(card => <div key={card.key} className={styles.metric}>
       <dt>{card.label}</dt>
-      <dd className={`${styles.metricValue} ${styles[card.tone]}`}>{metrics ? String(metrics[card.key]).padStart(2, '0') : <span aria-label="Chưa có dữ liệu">—</span>}</dd>
+      <dd className={`${styles.metricValue} ${styles[card.tone]}`}>{metrics && metrics[card.key] !== null ? String(metrics[card.key]).padStart(2, '0') : <span aria-label="Chưa có dữ liệu">—</span>}</dd>
       <dd className={styles.metricNote}>{card.note}</dd>
     </div>)}
   </dl>

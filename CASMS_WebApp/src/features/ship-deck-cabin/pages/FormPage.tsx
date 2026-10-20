@@ -4,7 +4,7 @@ import { Button, Notice, PageHeader, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { useAdminData, useEntity, useMutation } from '../hooks/useAdminData'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
-import { validateShip, validateDeck, validateCabin } from '../model/validation'
+import { validateShip, validateDeck, validateCabin, deckValidationContextError } from '../model/validation'
 import { cabinStatuses, cabinTypes, kindLabels, sectionLabels, shipStatuses } from '../model/types'
 import type { Cabin, CabinDraft, CabinStatus, CabinType, DataSnapshot, Deck, DeckDraft, EntityKind, FieldErrors, Ship, ShipDraft, ShipStatus } from '../model/types'
 import { DataState, InputField, NotFound, SelectField } from '../components/Common'
@@ -29,7 +29,7 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
     event.preventDefault()
     if (mutation.busy) return
     const validation = kind === 'ships' ? validateShip(shipDraft)
-      : kind === 'decks' ? validateDeck(deckDraft, data) : validateCabin(cabinDraft, data)
+      : kind === 'decks' ? validateDeck(deckDraft, data, deck?.id) : validateCabin(cabinDraft, data)
     setErrors(validation)
     if (Object.keys(validation).length) { focusError(); return }
     void mutation.run(async () => {
@@ -83,7 +83,9 @@ function FormPage({ kind }: { kind: EntityKind }) {
   const [params] = useSearchParams()
   const { data, loading, error, retry } = useAdminData()
   const entity = useEntity(kind, id)
-  if (loading || error || !data) return <DataState loading={loading} error={error} retry={retry} />
+  if (loading || error || !data) return <DataState loading={loading} error={error || (!loading && kind === 'decks' ? deckValidationContextError(data) : '')} retry={retry} />
+  const contextError = kind === 'decks' ? deckValidationContextError(data) : ''
+  if (contextError) return <DataState loading={false} error={contextError} retry={retry} />
   if (entity.loading || entity.error) return <DataState loading={entity.loading} error={entity.error} retry={entity.retry} />
   if (id && !entity.data) return <NotFound back={`/admin/${kind}`} />
   const item = entity.data

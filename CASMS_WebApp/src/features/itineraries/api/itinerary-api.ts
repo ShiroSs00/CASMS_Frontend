@@ -132,8 +132,8 @@ export const itineraryApi = {
   activePorts: (signal?: AbortSignal) => apiRequest<Port[]>('/ports/active', { signal }),
   getPort: (id: string, signal?: AbortSignal) => apiRequest<Port>(portPath(id), { signal }),
   createPort: (draft: PortDraft) => {
-    const { portName, latitude, longitude, timeZoneId } = draft
-    return apiRequest<Port>('/ports', { method: 'POST', body: { portName, latitude, longitude, timeZoneId } })
+    const { portCode, portName, countryCode, timeZoneId, latitude, longitude, status } = draft
+    return apiRequest<Port>('/ports', { method: 'POST', body: { portCode, portName, countryCode, timeZoneId, latitude, longitude, status } })
   },
   updatePort: (id: string, draft: PortDraft) => apiRequest<Port>(portPath(id), { method: 'PATCH', body: { portName: draft.portName, description: draft.description ?? undefined, latitude: draft.latitude ?? undefined, longitude: draft.longitude ?? undefined, timeZoneId: draft.timeZoneId } }),
   removePort: (id: string) => apiRequest<void>(`${portPath(id)}/unused`, { method: 'DELETE' }),

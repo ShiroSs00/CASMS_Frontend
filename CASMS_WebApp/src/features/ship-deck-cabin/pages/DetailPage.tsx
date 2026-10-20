@@ -2,25 +2,32 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { Button, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
-import { useAdminData, useEntity, useMutation } from '../hooks/useAdminData'
+import { useAdminData, useApiQuery, useEntity, useMutation } from '../hooks/useAdminData'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { entityName, kindLabels, sectionLabels } from '../model/types'
-import type { EntityKind } from '../model/types'
+import type { Entity } from '../model/types'
 import { DataState, NotFound } from '../components/Common'
 import { ShipInfo, DeckInfo, CabinInfo } from '../components/EntityDetails'
 import { OperationDialog, type Operation } from '../components/OperationDialog'
 import styles from '../components/Management.module.css'
 
-function DetailPage({ kind }: { kind: EntityKind }) {
+type DetailProps = { kind: 'ships' | 'decks'; snapshot?: never } | { kind: 'cabins'; snapshot: ReturnType<typeof useAdminData> }
+
+function DeckOwnershipDialog({ item, onClose }: { item: Entity; onClose: () => void }) {
+  const ships = useApiQuery('deck-ownership-ships', shipDeckCabinApi.listShips)
+  return <OperationDialog item={item} kind="decks" operation="ownership" ships={ships.data ?? []} shipChoicesState={ships} onClose={onClose} />
+}
+
+function DetailPage({ kind, snapshot }: DetailProps) {
   const { id = '' } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
-  const { data, loading, error, retry } = useAdminData()
+  const data = snapshot?.data
   const entity = useEntity(kind, id)
   const [operation, setOperation] = useState<Operation | null>(null)
   const [deleting, setDeleting] = useState(false)
   const mutation = useMutation()
-  if (loading || error || !data) return <DataState loading={loading} error={error} retry={retry} />
+  if (snapshot && (snapshot.loading || snapshot.error || !data)) return <DataState loading={snapshot.loading} error={snapshot.error} retry={snapshot.retry} />
   if (entity.loading || entity.error) return <DataState loading={entity.loading} error={entity.error} retry={entity.retry} />
   const item = entity.data
   if (!item) return <NotFound back={`/admin/${kind}`} />
@@ -41,12 +48,14 @@ function DetailPage({ kind }: { kind: EntityKind }) {
         <Button tone="secondary" onClick={() => navigate(`/admin/${kind}${hostId ? `?ship=${hostId}` : ''}`)}>Về danh sách</Button>
       </>} />
     {(location.state as { saved?: boolean } | null)?.saved && <Panel title="Kết quả lưu"><Notice title="Đã lưu thành công" tone="success">Thông tin đã được cập nhật trong hệ thống.</Notice></Panel>}
-    {'code' in item ? <ShipInfo ship={item} /> : 'deckId' in item ? <CabinInfo cabin={item} data={data} /> : <DeckInfo deck={item} data={data} />}
+    {'code' in item ? <ShipInfo ship={item} /> : 'deckId' in item ? data && <CabinInfo cabin={item} data={data} /> : <DeckInfo deck={item} />}
     <Panel title={`Xóa ${kindLabels[kind]} chưa sử dụng`}>
       <p className={styles.muted}>Chỉ xóa đối tượng chưa sử dụng. Hệ thống sẽ kiểm tra các dữ liệu liên quan trước khi xóa.</p>
       <Button tone="danger" onClick={() => { mutation.clear(); setDeleting(true) }}>Xóa chưa sử dụng</Button>
     </Panel>
-    {operation && <OperationDialog item={item} kind={kind} ships={data.ships} operation={operation} onClose={() => setOperation(null)} />}
+    {operation && (kind === 'decks' && operation === 'ownership'
+      ? <DeckOwnershipDialog item={item} onClose={() => setOperation(null)} />
+      : <OperationDialog item={item} kind={kind} ships={'code' in item ? [item] : data?.ships ?? []} operation={operation} onClose={() => setOperation(null)} />)}
     {deleting && <Modal title={`Xóa ${kindLabels[kind]} chưa sử dụng?`} busy={mutation.busy} onClose={() => setDeleting(false)}>
       <div className={styles.stack}><Notice title={entityName(item)} tone="warning">Xác nhận xóa đối tượng này khỏi hệ thống. Thao tác có thể bị từ chối khi còn dữ liệu liên quan.</Notice>
         {mutation.error && <Notice title="Xóa thất bại" tone="error">{mutation.error}</Notice>}
@@ -55,6 +64,10 @@ function DetailPage({ kind }: { kind: EntityKind }) {
     </Modal>}
   </>
 }
+function RelatedDetailPage({ kind }: { kind: 'cabins' }) {
+  const snapshot = useAdminData()
+  return <DetailPage kind={kind} snapshot={snapshot} />
+}
 export function ShipDetailPage() { const { id } = useParams(); return <AdminShell><DetailPage key={id} kind="ships" /></AdminShell> }
 export function DeckDetailPage() { const { id } = useParams(); return <AdminShell><DetailPage key={id} kind="decks" /></AdminShell> }
-export function CabinDetailPage() { const { id } = useParams(); return <AdminShell><DetailPage key={id} kind="cabins" /></AdminShell> }
+export function CabinDetailPage() { const { id } = useParams(); return <AdminShell><RelatedDetailPage key={id} kind="cabins" /></AdminShell> }
