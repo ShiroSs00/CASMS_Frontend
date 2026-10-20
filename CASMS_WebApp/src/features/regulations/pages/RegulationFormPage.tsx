@@ -40,15 +40,36 @@ const initialDraft: RegulationDraft = {
 
 function validate(draft: RegulationDraft) {
   const errors: FormErrors = {}
-  if (!draft.code.trim()) errors.code = 'Vui lòng nhập mã quy định.'
-  if (!draft.name.trim()) errors.name = 'Vui lòng nhập tên quy định.'
-  if (!draft.value.trim()) errors.value = 'Vui lòng nhập giá trị.'
-  if (!draft.effectiveFrom) errors.effectiveFrom = 'Vui lòng chọn thời điểm bắt đầu.'
-  if (
-    draft.effectiveTo &&
-    new Date(draft.effectiveTo).getTime() <= new Date(draft.effectiveFrom).getTime()
-  ) {
-    errors.effectiveTo = 'Thời điểm kết thúc phải sau thời điểm bắt đầu.'
+  const code = draft.code.trim().toUpperCase()
+  if (!code) errors.code = 'Vui lòng nhập mã quy định.'
+  else if (!/^[A-Z0-9_-]{3,30}$/.test(code)) errors.code = 'Mã quy định từ 3 đến 30 ký tự (chữ in hoa, số, gạch nối hoặc gạch dưới, VD: REG-SPD-01).'
+
+  const name = draft.name.trim()
+  if (!name) errors.name = 'Vui lòng nhập tên quy định.'
+  else if (name.length < 3 || name.length > 150) errors.name = 'Tên quy định phải từ 3 đến 150 ký tự.'
+
+  const val = draft.value.trim()
+  if (!val) errors.value = 'Vui lòng nhập giá trị quy định.'
+  else if (val.length > 100) errors.value = 'Giá trị quy định không được vượt quá 100 ký tự.'
+  else if (draft.type === 'SPEED') {
+    const num = Number(val)
+    if (isNaN(num) || num <= 0 || num > 100) errors.value = 'Tốc độ phải là số dương hợp lệ từ 0.1 đến 100 hải lý/h.'
+  } else if (draft.type === 'CAPACITY') {
+    const num = Number(val)
+    if (!Number.isSafeInteger(num) || num <= 0 || num > 100000) errors.value = 'Sức chứa phải là số nguyên dương hợp lệ.'
+  } else if (draft.unit === 'PERCENT') {
+    const num = Number(val)
+    if (isNaN(num) || num < 0 || num > 100) errors.value = 'Tỷ lệ phần trăm phải từ 0 đến 100.'
+  }
+
+  if (!draft.effectiveFrom) errors.effectiveFrom = 'Vui lòng chọn thời điểm bắt đầu hiệu lực.'
+  else if (Number.isNaN(Date.parse(draft.effectiveFrom))) errors.effectiveFrom = 'Thời điểm bắt đầu không hợp lệ.'
+
+  if (draft.effectiveTo) {
+    if (Number.isNaN(Date.parse(draft.effectiveTo))) errors.effectiveTo = 'Thời điểm kết thúc không hợp lệ.'
+    else if (new Date(draft.effectiveTo).getTime() <= new Date(draft.effectiveFrom).getTime()) {
+      errors.effectiveTo = 'Thời điểm kết thúc phải sau thời điểm bắt đầu.'
+    }
   }
   return errors
 }

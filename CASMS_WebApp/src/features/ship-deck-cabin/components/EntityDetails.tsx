@@ -52,6 +52,7 @@ export function DeckInfo({ deck }: { deck: Deck }) {
   return <>
     <Panel title="Thông tin boong"><Definition rows={[
       ['Số boong', deck.number], ['Tên boong', deck.name || 'Chưa đặt tên'],
+      ['Hệ số giá tầng', `${deck.priceMultiplier ?? 1.0}x (${(deck.priceMultiplier ?? 1.0) > 1 ? '+' + Math.round(((deck.priceMultiplier ?? 1.0) - 1) * 100) + '%' : 'Giá gốc'})`],
       ['Tàu', <>
         <Link className={styles.link} to={`/admin/ships/${deck.shipId}`}>{parent.data ? `${parent.data.code} · ${parent.data.name}` : deck.shipId}</Link>
         <DataState loading={parent.loading} error={parent.error} retry={parent.retry} />
