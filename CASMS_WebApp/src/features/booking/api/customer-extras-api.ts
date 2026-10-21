@@ -25,11 +25,11 @@ export function decodeCustomerActivity(value: unknown): CustomerActivity {
   const v = row(value)
   return { id: text(v.id), cruiseId: text(v.cruiseId), name: text(v.name), description: optional(v.description), startTime: time(v.startTime), endTime: time(v.endTime), location: optional(v.location), capacity: count(v.capacity, 1), price: money(v.price), currency: currency(v.currencyCode), status: state(v.status, ['PLANNED', 'OPEN', 'FULL', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']) }
 }
-export type CustomerRegistration = { id: string; passengerId: string; bookingPassengerId: string; activityId: string | null; excursionId: string | null; quantity: number; status: string; registeredAt: string }
+export type CustomerRegistration = { id: string; passengerId: string; bookingPassengerId: string; activityId: string | null; excursionId: string | null; quantity: number; status: string; notes?: string | null; registeredAt: string }
 export function decodeCustomerRegistration(value: unknown): CustomerRegistration {
   const v = row(value), activityId = optional(v.activityId), excursionId = optional(v.excursionId)
   if (Boolean(activityId) === Boolean(excursionId)) throw new Error('Đăng ký cần đúng một hoạt động hoặc tour tham quan.')
-  return { id: text(v.id), passengerId: text(v.passengerId), bookingPassengerId: text(v.bookingPassengerId), activityId, excursionId, quantity: count(v.quantity, 1), status: state(v.status, ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED']), registeredAt: time(v.registeredAt) }
+  return { id: text(v.id), passengerId: text(v.passengerId), bookingPassengerId: text(v.bookingPassengerId), activityId, excursionId, quantity: count(v.quantity, 1), status: state(v.status, ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED']), notes: optional(v.notes), registeredAt: time(v.registeredAt) }
 }
 export type CustomerService = { id: string; name: string; description: string | null; type: string; price: number | null; currency: string | null; capacity: number | null; status: string }
 export function decodeCustomerService(value: unknown): CustomerService {
