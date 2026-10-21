@@ -2,7 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router'
 
 import { AccessDeniedPage, AdminGuard, CustomerGuard, AuthConceptPage, LoginPage, SessionBoundary } from '@/features/auth'
 
-import { BookingProvider, CruiseSearchPage, CustomerCruiseDetailPage, TravellerDetailsPage, CabinExperiencePage, ReviewBookingPage, MyBookingsPage, BookingDetailPage, ManageBookingPage, TravellerDocumentsPage, OnlineCheckinPage, ArrivalTimePage, BoardingPassPage, PaymentContractPage, ChangeRequestPage } from '@/features/booking'
+import { CruiseSearchPage, CustomerCruiseDetailPage, TravellerDetailsPage, CabinExperiencePage, ReviewBookingPage, MyBookingsPage, BookingDetailPage, ManageBookingPage, TravellerDocumentsPage, OnlineCheckinPage, ArrivalTimePage, BoardingPassPage, PaymentContractPage, ChangeRequestPage, CustomerExperiencesPage } from '@/features/booking'
 
 import { HomePage } from '@/features/home'
 import { SupplierDetailPage, SupplierFormPage, SupplierListPage } from '@/features/suppliers'
@@ -36,6 +36,8 @@ import {
 } from '@/features/ship-deck-cabin'
 
 import { PublicLayout } from './layouts/PublicLayout'
+import { AdminAccountLayout } from './layouts/AdminAccountLayout'
+import { BookingSessionLayout } from './layouts/BookingSessionLayout'
 import { ActivityListPage, ActivityDetailPage, ActivityFormPage, ActivityRegistrationPage } from '@/features/activities'
 import { ServiceListPage, ProductListPage, PackageListPage, ServiceRequestListPage, ServiceDetailPage, ProductDetailPage, PackageDetailPage, ServiceRequestDetailPage, ServiceFormPage, ProductFormPage, PackageFormPage, ServiceRequestFormPage, PackageAssignmentPage } from '@/features/service-packages'
 import { AdminWorkflowPage } from './pages/AdminWorkflowPage'
@@ -143,7 +145,7 @@ const adminRoutes = [
   },
 ]
 
-export const router = createBrowserRouter([{ Component: BookingProvider, children: [{ Component: SessionBoundary, children: [
+export const router = createBrowserRouter([{ Component: BookingSessionLayout, children: [{ Component: AdminAccountLayout, children: [{ Component: SessionBoundary, children: [
   { Component: AdminGuard, children: [...adminRoutes, { path: '/admin/*', element: <Navigate to="/admin" replace /> }] },
     { path: '/', Component: PublicLayout, children: [
     { index: true, Component: HomePage },
@@ -157,6 +159,7 @@ export const router = createBrowserRouter([{ Component: BookingProvider, childre
       { path: 'my-bookings', Component: MyBookingsPage },
       { path: 'my-bookings/:bookingId', Component: BookingDetailPage },
       { path: 'my-bookings/:bookingId/manage', Component: ManageBookingPage },
+      { path: 'my-bookings/:bookingId/experiences', Component: CustomerExperiencesPage },
       { path: 'my-bookings/:bookingId/travellers', Component: TravellerDocumentsPage },
       { path: 'my-bookings/:bookingId/check-in', Component: OnlineCheckinPage },
       { path: 'my-bookings/:bookingId/arrival-time', Component: ArrivalTimePage },
@@ -168,4 +171,4 @@ export const router = createBrowserRouter([{ Component: BookingProvider, childre
   { path: '/login', Component: LoginPage },
     { path: '/403', Component: AccessDeniedPage },
   ...(['register', 'verify-email', 'forgot-password', 'reset-password', 'reservation-lookup', 'account-locked'] as const).map(kind => ({ path: '/' + kind, element: <AuthConceptPage key={kind} kind={kind} /> })),
-] }] }])
+] }] }] }])

@@ -517,3 +517,16 @@
 .liveInfoPanel dd { margin:0;color:#123042;font-weight:700;text-align:right; }
 @media(max-width:1384px) { .liveDetailHero { margin-left:32px;margin-right:32px; } }
 @media(max-width:800px) { .liveDetailHero,.liveDetailGrid { grid-template-columns:1fr; } .liveDetailHero img { height:260px; } .liveCard .liveImage { height:230px;min-height:0; } .liveInfoPanel dl > div { flex-wrap:wrap; } }
+
+
+.liveFilter { display: grid; gap: 8px; max-width: 320px; font-weight: 600; }
+.liveFilterBar { display: flex; flex-wrap: wrap; align-items: end; gap: 20px; padding: 20px 24px; background: white; border: 1px solid #ded8cc; border-radius: var(--radius-sm); }
+.liveFilterBar .liveFilter { width: 280px; }
+.liveFilterBar > p { flex: 1; min-width: 200px; padding-bottom: 12px; color: #52616b; }
+.liveAnchors { display: flex; flex-wrap: wrap; gap: 24px; padding: 16px 0; border-bottom: 1px solid #ded8cc; }
+.liveAnchors a { color: var(--color-navy-900); text-decoration: underline; text-underline-offset: 5px; min-height: 32px; }
+.liveSurface :where(a,button,select):focus-visible { outline: 3px solid var(--color-navy-800); outline-offset: 4px; }
+.liveSurface [id] { scroll-margin-top: 28px; }
+.liveCard h2 a { color: inherit; }
+.liveCard h2 a:hover { text-decoration: underline; text-underline-offset: 5px; }
+.liveSurface .searchCardBody, .liveSurface .liveCardAside, .liveSurface .liveInfoPanel { min-width: 0; overflow-wrap: anywhere; }

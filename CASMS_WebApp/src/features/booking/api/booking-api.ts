@@ -1,45 +1,21 @@
-import { bookingFixtures, cabinFixtures, cruiseFixtures, packageFixtures, arrivalFixtures, itineraryFixtures } from '../model/booking-fixtures'
-import type { ActionResult, Booking, Cruise, MissingCapability, CruiseSearchQuery, CruiseSearchResult } from '../model/booking-types'
-import { searchCruiseFixtures } from '../model/cruise-search'
-import { mockActionResult, type MockAction } from '../model/booking-scenarios'
 import { apiRequest } from '@/shared/api'
 import { toPublishedCruise, toPublishedPage, type LiveCruiseDto, type LiveCruisePageDto } from './live-cruise-contract'
 import { lookupItinerary, toLiveDays, toLivePortCalls, toLiveShip } from './live-itinerary-contract'
-// Booking and checkout remain fixture adapters; only the DEV catalog below reads the cruise API.
-export interface BookingAdapter {
- readonly mode:'UI_WITH_TYPED_ADAPTER'
- listCruises(signal?:AbortSignal):Promise<Cruise[]>
- searchCruises(query:CruiseSearchQuery,signal?:AbortSignal):Promise<CruiseSearchResult>
- listBookings(signal?:AbortSignal):Promise<Booking[]>
- perform(capability:MissingCapability, input?:unknown, scenario?:MockAction):Promise<ActionResult>
-}
-export const bookingApi:BookingAdapter = {
- mode:'UI_WITH_TYPED_ADAPTER',
- async listCruises(signal) { signal?.throwIfAborted(); return structuredClone(cruiseFixtures) },
- async searchCruises(query,signal) { signal?.throwIfAborted();return searchCruiseFixtures(structuredClone(cruiseFixtures),query) },
- async listBookings(signal) { signal?.throwIfAborted(); return structuredClone(bookingFixtures) },
- async perform(capability, input, scenario='missing') {
-  void input
-  const active=import.meta.env.DEV?scenario:'missing'
-  await new Promise(resolve=>setTimeout(resolve,650))
-  return mockActionResult(capability,active)
- },
-}
-export const bookingCatalog = { cabins:cabinFixtures, packages:packageFixtures, arrivalSlots:arrivalFixtures, itinerary:itineraryFixtures }
-
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export const liveCruiseCatalogApi = {
- async list(page:number, signal?:AbortSignal) {
+ async list(page:number, signal?:AbortSignal, cruiseType?: 'ONE_DAY' | 'MULTI_DAYS') {
   const data = await apiRequest<LiveCruisePageDto>('/cruise', {
-   query: { status:'PUBLISHED', page:page-1, size:6, sort:'departureDatetime,asc' }, signal,
+   query: { status:'PUBLISHED', page:page-1, size:6, sort:'departureDatetime,asc', cruiseType }, signal,
   })
   return toPublishedPage(data)
  },
  async detail(id:string, signal?:AbortSignal) {
   if (!UUID_REGEX.test(id)) return null
   const data = await apiRequest<LiveCruiseDto>(`/cruise/${encodeURIComponent(id)}`, { signal })
-  return toPublishedCruise(data)
+  const cruise = toPublishedCruise(data)
+  if (cruise && cruise.id !== id) throw new Error('Chuyến đi trả về không khớp mã yêu cầu.')
+  return cruise
  },
  async ship(id:string, signal?:AbortSignal) {
   if (!UUID_REGEX.test(id)) return null

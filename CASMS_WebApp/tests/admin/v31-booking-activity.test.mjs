@@ -49,7 +49,7 @@ test('Booking real API preserves page structure, filters, response identity, gue
   const calls = []; let value = { content: [], totalPages: 0, totalElements: 0 }
   const api = load('features/booking/api/real-booking-api.ts', { '@/domain/booking-context': context, '@/shared/api': { apiRequest: async (path, options) => { calls.push({ path, options }); return value } } }).realBookingApi
   assert.equal((await api.list(0, 'Draft', 'cr')).content.length, 0); assert.equal(calls.at(-1).options.query.cruiseId, 'cr')
-  value = { bookingId: 'b', bookingReference: 'BK-QA', bookingStatus: 'Draft', cruiseId: 'cr', cruiseName: 'Cruise QA', passengers: [], agreedFareAmount: 100, currency: 'USD', requiredDepositAmount: 30, installments: [] }
+  value = { bookingId: 'b', bookingReference: 'BK-QA', bookingStatus: 'Draft', cruiseId: 'cr', cruiseName: 'Cruise QA', passengers: [], agreedFareAmount: 100, currency: 'USD', paymentPlan: 'DEPOSIT', requiredDepositAmount: 30, installments: [] }
   assert.equal((await api.get('b')).bookingId, 'b'); await assert.rejects(api.get('wrong'), /Không đúng/)
   await api.lookup(' BK-QA ', 'qa@example.test', ''); assert.equal(calls.at(-1).options.query.reference, 'BK-QA'); assert.equal(calls.at(-1).options.query.phoneNumber, undefined)
   await api.create(draft); assert.equal(calls.at(-1).options.method, 'POST'); assert.equal(calls.at(-1).path, '/booking')

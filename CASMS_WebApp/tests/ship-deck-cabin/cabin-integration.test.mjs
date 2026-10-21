@@ -28,17 +28,17 @@ function load(file, imports) {
 }
 const plain = value => JSON.parse(JSON.stringify(value))
 
-test('Cabin validation accepts supported enums, positive int32 capacity and unused number', () => {
+test('Cabin validation accepts supported enums, FE capacity boundaries 1 and 20, and unused number', () => {
   for (const type of Object.keys(model.cabinTypes)) for (const status of Object.keys(model.cabinStatuses)) {
     assert.deepEqual(validateCabin({ ...draft, number: '102', type, status }, snapshot), {})
   }
-  assert.deepEqual(validateCabin({ ...draft, number: '102', capacity: 2147483647 }, snapshot), {})
+  for (const capacity of [1, 20]) assert.deepEqual(validateCabin({ ...draft, number: '102', capacity }, snapshot), {})
 })
 test('Cabin validates Ship and matching Deck, number presence/length and capacity boundaries', () => {
   assert.ok(validateCabin({ ...draft, shipId: 'missing' }, snapshot).shipId)
   assert.ok(validateCabin({ ...draft, deckId: 'deck-2' }, snapshot).deckId)
   for (const number of ['', '   ', undefined, '1'.repeat(11)]) assert.ok(validateCabin({ ...draft, number }, snapshot).number)
-  for (const capacity of [0, -1, 1.5, NaN, Infinity, undefined, 2147483648]) assert.ok(validateCabin({ ...draft, capacity }, snapshot).capacity)
+  for (const capacity of [0, -1, 1.5, NaN, Infinity, undefined, 21, 2147483647, 2147483648]) assert.ok(validateCabin({ ...draft, capacity }, snapshot).capacity)
   for (const type of ['', 'UNKNOWN', 'toString', undefined]) assert.ok(validateCabin({ ...draft, type }, snapshot).type)
   for (const status of ['', 'ACTIVE', 'toString', undefined]) assert.ok(validateCabin({ ...draft, status }, snapshot).status)
   assert.ok(validateCabin({ ...draft, accessible: undefined }, snapshot).accessible)
