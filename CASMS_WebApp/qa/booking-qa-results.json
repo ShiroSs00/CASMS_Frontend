@@ -1,7 +1,7 @@
 {
   "kind": "OCV_BOOKING_QA_HANDOFF",
   "schemaVersion": 1,
-  "exportedAt": "2026-10-21T11:26:05.574Z",
+  "exportedAt": "2026-10-21T12:31:50.857Z",
   "sourceSnapshot": {
     "revision": "e6978f7f7267b388fa844644b88e2b60aef076bd",
     "generatedAt": "2026-10-21T11:25:51.923100+00:00",
@@ -143,81 +143,81 @@
       "method": "GET",
       "path": "/api/cruise?status=PUBLISHED",
       "authentication": "ANONYMOUS_NO_BEARER_NO_COOKIE",
-      "startedAt": "2026-10-21T11:26:05.422Z",
-      "httpStatus": 502,
+      "startedAt": "2026-10-21T12:31:50.561Z",
+      "httpStatus": 200,
       "applicationCode": null,
       "traceId": null,
-      "outcome": "RUNTIME_BLOCKED"
+      "outcome": "HTTP_OK_DTO_NOT_VERIFIED"
     },
     {
       "method": "GET",
       "path": "/api/servicepackage/packages",
       "authentication": "ANONYMOUS_NO_BEARER_NO_COOKIE",
-      "startedAt": "2026-10-21T11:26:05.446Z",
-      "httpStatus": 502,
+      "startedAt": "2026-10-21T12:31:50.748Z",
+      "httpStatus": 200,
       "applicationCode": null,
       "traceId": null,
-      "outcome": "RUNTIME_BLOCKED"
+      "outcome": "HTTP_OK_DTO_NOT_VERIFIED"
     },
     {
       "method": "GET",
       "path": "/api/activities",
       "authentication": "ANONYMOUS_NO_BEARER_NO_COOKIE",
-      "startedAt": "2026-10-21T11:26:05.481Z",
-      "httpStatus": 502,
+      "startedAt": "2026-10-21T12:31:50.771Z",
+      "httpStatus": 403,
       "applicationCode": null,
       "traceId": null,
-      "outcome": "RUNTIME_BLOCKED"
+      "outcome": "EXPECTED_ANONYMOUS_DENIAL_ONLY"
     },
     {
       "method": "GET",
       "path": "/api/activities/registrations",
       "authentication": "ANONYMOUS_NO_BEARER_NO_COOKIE",
-      "startedAt": "2026-10-21T11:26:05.494Z",
-      "httpStatus": 502,
+      "startedAt": "2026-10-21T12:31:50.784Z",
+      "httpStatus": 403,
       "applicationCode": null,
       "traceId": null,
-      "outcome": "RUNTIME_BLOCKED"
+      "outcome": "EXPECTED_ANONYMOUS_DENIAL_ONLY"
     },
     {
       "method": "GET",
       "path": "/api/servicepackage/services",
       "authentication": "ANONYMOUS_NO_BEARER_NO_COOKIE",
-      "startedAt": "2026-10-21T11:26:05.516Z",
-      "httpStatus": 502,
+      "startedAt": "2026-10-21T12:31:50.798Z",
+      "httpStatus": 403,
       "applicationCode": null,
       "traceId": null,
-      "outcome": "RUNTIME_BLOCKED"
+      "outcome": "EXPECTED_ANONYMOUS_DENIAL_ONLY"
     },
     {
       "method": "GET",
       "path": "/api/servicepackage/requests",
       "authentication": "ANONYMOUS_NO_BEARER_NO_COOKIE",
-      "startedAt": "2026-10-21T11:26:05.534Z",
-      "httpStatus": 502,
+      "startedAt": "2026-10-21T12:31:50.813Z",
+      "httpStatus": 403,
       "applicationCode": null,
       "traceId": null,
-      "outcome": "RUNTIME_BLOCKED"
+      "outcome": "EXPECTED_ANONYMOUS_DENIAL_ONLY"
     },
     {
       "method": "GET",
       "path": "/api/shore-excursions",
       "authentication": "ANONYMOUS_NO_BEARER_NO_COOKIE",
-      "startedAt": "2026-10-21T11:26:05.549Z",
-      "httpStatus": 502,
+      "startedAt": "2026-10-21T12:31:50.827Z",
+      "httpStatus": 403,
       "applicationCode": null,
       "traceId": null,
-      "outcome": "RUNTIME_BLOCKED"
+      "outcome": "EXPECTED_ANONYMOUS_DENIAL_ONLY"
     },
     {
       "method": "GET",
       "path": "/api/auth/me",
       "authentication": "ANONYMOUS_NO_BEARER_NO_COOKIE",
-      "startedAt": "2026-10-21T11:26:05.561Z",
-      "httpStatus": 502,
-      "applicationCode": null,
+      "startedAt": "2026-10-21T12:31:50.841Z",
+      "httpStatus": 401,
+      "applicationCode": "AUTH_REQUIRED",
       "traceId": null,
-      "outcome": "RUNTIME_BLOCKED"
+      "outcome": "EXPECTED_ANONYMOUS_DENIAL_ONLY"
     }
   ],
   "limits": [
