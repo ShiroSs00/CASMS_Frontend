@@ -132,7 +132,7 @@ function RecordDetails({ kind, id, booking, refresh }: { kind: 'activity' | 'ser
   const pending = item?.status === (kind === 'activity' ? 'PENDING' : 'REQUESTED')
   function after() { query.retry(); refresh() }
   return <div className={styles.stack}><BookingReadState {...query} publicResource="chi tiết yêu cầu" />{item && !belongs && <Notice title="Dữ liệu không thuộc đặt chỗ này" tone="error">Không hiển thị chi tiết hoặc cho phép thao tác.</Notice>}
-    {item && belongs && <><p role="status">Trạng thái hiện tại: {statusName[item.status]} · {item.quantity} chỗ / đơn vị</p><p>Mã {kind === 'activity' ? 'hoạt động / tour' : 'dịch vụ'}: {'serviceId' in item ? item.serviceId : item.activityId || item.excursionId}</p>{'note' in item && item.note && <p>Ghi chú đã lưu: {item.note}</p>}
+    {item && belongs && <><p role="status">Trạng thái hiện tại: {statusName[item.status]} · {item.quantity} chỗ / đơn vị</p><p>Mã {kind === 'activity' ? 'hoạt động / tour' : 'dịch vụ'}: {'serviceId' in item ? item.serviceId : item.activityId || item.excursionId}</p>{'note' in item && item.note && <p>Ghi chú đã lưu: {item.note}</p>}{'notes' in item && item.notes && <p>Ghi chú đã lưu: {item.notes}</p>}
       {canWrite && <fieldset disabled={write.busy || write.uncertain || query.loading} className={styles.stack}>
         {pending && <PendingEdit key={item.id + ':' + item.quantity} kind={kind} item={item} write={write} after={after} />}
         {pending && kind === 'activity' && <Button onClick={() => void write.run(() => api.confirmRegistration(id), 'Đã xác nhận đăng ký theo phản hồi API. Chưa xác nhận thanh toán hoặc điểm danh.', after)}>Xác nhận đăng ký</Button>}
@@ -141,12 +141,12 @@ function RecordDetails({ kind, id, booking, refresh }: { kind: 'activity' | 'ser
     </>}<Feedback write={write} /><Button tone="secondary" onClick={query.retry}>Tải lại chi tiết</Button></div>
 }
 function PendingEdit({ kind, item, write, after }: { kind: 'activity' | 'service'; item: CustomerRegistration | CustomerServiceRequest; write: Write; after: () => void }) {
-  const [quantity, setQuantity] = useState(item.quantity), [note, setNote] = useState('note' in item ? item.note || '' : '')
+  const [quantity, setQuantity] = useState(item.quantity), [note, setNote] = useState(('notes' in item && item.notes) ? item.notes : (('note' in item && item.note) ? item.note : ''))
   const id = item.id
   function save(event: FormEvent) {
     event.preventDefault()
     if (!Number.isSafeInteger(quantity) || quantity < 1) return
     void write.run(() => kind === 'activity' ? api.updateRegistration(id, quantity, note) : api.updateRequest(id, quantity, note), 'Đã cập nhật từ phản hồi API.', after)
   }
-  return <form onSubmit={save} className={styles.stack}><p>Số lượng hiện tại {item.quantity}. Nhập số lượng mới; ghi chú gửi lần này sẽ thay thế ghi chú cũ.{kind === 'activity' && ' Dịch vụ chưa trả lại ghi chú đã lưu của đăng ký.'}</p><Quantity id={kind + '-edit-' + id} value={quantity} change={setQuantity} /><Field htmlFor={kind + '-note-' + id} label="Ghi chú mới (tùy chọn)"><textarea id={kind + '-note-' + id} maxLength={500} value={note} onChange={event => setNote(event.target.value)} /></Field><Button type="submit" disabled={!Number.isSafeInteger(quantity) || quantity < 1}>Lưu thay đổi</Button></form>
+  return <form onSubmit={save} className={styles.stack}><p>Số lượng hiện tại {item.quantity}. Nhập số lượng mới; ghi chú gửi lần này sẽ thay thế ghi chú cũ.{kind === 'activity' && !('notes' in item && item.notes) && ' Dịch vụ chưa trả lại ghi chú đã lưu của đăng ký.'}</p><Quantity id={kind + '-edit-' + id} value={quantity} change={setQuantity} /><Field htmlFor={kind + '-note-' + id} label="Ghi chú mới (tùy chọn)"><textarea id={kind + '-note-' + id} maxLength={500} value={note} onChange={event => setNote(event.target.value)} /></Field><Button type="submit" disabled={!Number.isSafeInteger(quantity) || quantity < 1}>Lưu thay đổi</Button></form>
 }
