@@ -25,10 +25,17 @@ function nodes(tree) {
   return [tree, ...nodes(tree.props?.children)]
 }
 const modules = ['destinations', 'ports', 'ships', 'decks', 'cabins', 'cruises', 'itineraries', 'regulations', 'issues', 'suppliers', 'shore-excursions', 'tour-groups', 'activities', 'services', 'products', 'service-packages', 'service-requests', 'package-assignments', 'bookings']
-function shell(pathname) {
-  const { AdminShell } = load('shared/ui/admin-v3/AdminShell.tsx', { react: { useEffect() {}, useRef: () => ({ current: null }) }, 'react-router': { Link: 'Link', useLocation: () => ({ pathname }) } })
-  return nodes(AdminShell({ children: 'Content' }))
+function shell(pathname, topbar, account = null) {
+  const { AdminShell } = load('shared/ui/admin-v3/AdminShell.tsx', { react: { useContext: () => account, useEffect() {}, useRef: () => ({ current: null }) }, './admin-account-context': { AdminAccountContext: {} }, 'react-router': { Link: 'Link', useLocation: () => ({ pathname }) } })
+  return nodes(AdminShell({ children: 'Content', topbar }))
 }
+
+test('injected account action remains visible with a custom Admin topbar', () => {
+  const account = jsx('AccountAction', {})
+  const tree = shell('/admin/bookings', jsx('CustomTopbar', {}), account)
+  assert.ok(tree.some(node => node.type === 'CustomTopbar'))
+  assert.ok(tree.includes(account))
+})
 
 test('all functions remain visible in business groups, with unique links to existing screens', () => {
   const tree = shell('/admin/workflow')
@@ -73,6 +80,8 @@ const { router } = load('app/router.tsx', {
   ...imports,
   'react-router': { createBrowserRouter: routes => routes, Navigate: 'Navigate' },
   './layouts/PublicLayout': { PublicLayout: 'PublicLayout' },
+  './layouts/AdminAccountLayout': { AdminAccountLayout: 'AdminAccountLayout' },
+  './layouts/BookingSessionLayout': { BookingSessionLayout: 'BookingSessionLayout' },
   './pages/AdminBookingPages': { AdminBookingListPage: 'AdminBookingListPage', AdminBookingDetailPage: 'AdminBookingDetailPage', AdminBookingCreatePage: 'AdminBookingCreatePage', AdminBookingLookupPage:'AdminBookingLookupPage' },
   './pages/AdminWorkflowPage': { AdminWorkflowPage: 'AdminWorkflowPage' },
 })

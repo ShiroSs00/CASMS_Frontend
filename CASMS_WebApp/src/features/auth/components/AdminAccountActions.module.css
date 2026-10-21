@@ -1,0 +1,5 @@
+.account { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; margin-left: auto; min-width: 0; }
+.username { overflow-wrap: anywhere; }
+.account button { min-height: 40px; padding: 8px 16px; border: 1px solid var(--border-default); border-radius: 8px; background: var(--surface-default); color: var(--text-primary); font: inherit; cursor: pointer; }
+.account button:hover { background: var(--surface-subtle); }
+.account button:disabled { cursor: wait; opacity: .65; }

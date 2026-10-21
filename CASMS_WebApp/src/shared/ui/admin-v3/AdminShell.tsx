@@ -1,6 +1,7 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useContext, useEffect, useRef, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router'
 import styles from './AdminShell.module.css'
+import { AdminAccountContext } from './admin-account-context'
 
 const navigation: { label: string; items: { label: string; to?: string }[] }[] = [
   { label: 'TỔNG QUAN', items: [{ label: 'Tổng quan' }, { label: 'Quy trình vận hành', to: '/admin/workflow' }] },
@@ -30,6 +31,7 @@ const navigation: { label: string; items: { label: string; to?: string }[] }[] =
 
 export function AdminShell({ children, className = '', topbar }: { children: ReactNode; className?: string; topbar?: ReactNode }) {
   const { pathname } = useLocation()
+  const account = useContext(AdminAccountContext)
   const section = pathname.split('/')[2] ?? ''
   let activeTo = `/admin/${section}`
   if (pathname.includes('/regulations')) {
@@ -58,9 +60,10 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
       </nav>
     </aside>
     <div className={styles.mainColumn}>
-      {topbar ?? <header className={styles.topbar}>
-        <p className={styles.context}>Khu vực quản trị</p>
-      </header>}
+      <header className={styles.topbar}>
+        {topbar ?? <p className={styles.context}>Khu vực quản trị</p>}
+        {account}
+      </header>
       <main id="admin-v3-main" tabIndex={-1} className={styles.main}>{children}</main>
     </div>
   </div>

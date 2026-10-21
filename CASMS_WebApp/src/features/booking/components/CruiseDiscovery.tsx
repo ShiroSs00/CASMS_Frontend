@@ -1,7 +1,7 @@
 import { date, money } from '../model/booking-format'
 import { useCallback, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
-import { bookingApi, bookingCatalog } from '../api/booking-api'
+import { bookingApi, bookingCatalog } from '../api/booking-preview-api'
 import { useAdapterData } from '../model/booking-state'
 import { useBookingDraft } from '../model/booking-context'
 import { blankTraveller, parseGuestCount } from '../model/booking-draft'
@@ -13,11 +13,11 @@ import cabin from '../assets/cabin.png'
 import kayak from '../assets/detail-kayak.png'
 import dining from '../assets/dining.png'
 import s from './Booking.module.css'
-import { LiveCatalogUnavailable, LiveCruiseDetail, LiveCruiseSearch } from './LiveCruiseCatalog'
+import { LiveCruiseDetail, LiveCruiseSearch } from './LiveCruiseCatalog'
 const loadCruises=(signal:AbortSignal)=>bookingApi.listCruises(signal)
 export function CruiseSearch() {
  const [params]=useSearchParams()
- if (params.get('catalog')==='live') return import.meta.env.DEV?<LiveCruiseSearch/>:<LiveCatalogUnavailable/>
+ if (params.get('catalog')==='live') return <LiveCruiseSearch/>
  return <FixtureCruiseSearch/>
 }
 function FixtureCruiseSearch() {
@@ -43,7 +43,7 @@ function CruiseCard({cruise:c,guests}:{cruise:Cruise;guests:string}) {
 }
 export function CruiseDetail() {
  const [params]=useSearchParams()
- if (params.get('catalog')==='live') return import.meta.env.DEV?<LiveCruiseDetail/>:<LiveCatalogUnavailable/>
+ if (params.get('catalog')==='live') return <LiveCruiseDetail/>
  return <FixtureCruiseDetail/>
 }
 function FixtureCruiseDetail() {

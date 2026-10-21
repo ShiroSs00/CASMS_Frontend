@@ -5,3 +5,4 @@ export { MyBookingsPage, BookingDetailPage, ManageBookingPage, TravellerDocument
 
 export { RealBookingList, RealBookingDetail, BookingLookupPage } from './pages/RealBookingPages'
 export { RealBookingCreatePage } from './pages/RealBookingCreatePage'
+export { CustomerExperiencesPage } from './pages/CustomerExperiencesPage'

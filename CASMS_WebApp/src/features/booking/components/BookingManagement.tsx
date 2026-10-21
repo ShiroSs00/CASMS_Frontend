@@ -1,7 +1,7 @@
 import { date, money } from '../model/booking-format'
 import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
-import { bookingApi } from '../api/booking-api'
+import { bookingApi } from '../api/booking-preview-api'
 import { useAdapterData } from '../model/booking-state'
 import { useBookingDraft } from '../model/booking-context'
 import { defaultScenario, previewBooking } from '../model/booking-scenarios'
