@@ -9,10 +9,10 @@ import { brand, lightTheme, statusColors } from '@/constants/ocevie';
 import { useAuth } from '@/features/auth/session-store';
 
 const questions = [
-  { id: 'ticket', title: 'Tôi tìm thẻ lên tàu ở đâu?', answer: 'Chọn Thẻ lên tàu ở giữa thanh điều hướng. Mã QR chỉ xuất hiện sau khi thông tin hành khách được xác nhận. Nếu chưa có thẻ, vui lòng kiểm tra với quầy dịch vụ.' },
+  { id: 'booking', title: 'Tôi xem đặt chỗ ở đâu?', answer: 'Chọn Đặt chỗ ở giữa thanh điều hướng để xem phòng, hành khách và chi phí của từng đơn.' },
   { id: 'time', title: 'Giờ tập trung và giờ tàu ở đâu?', answer: 'Vào Hải trình, chọn ngày rồi mở thông tin điểm dừng hoặc tour. Kiểm tra múi giờ, giờ tập trung và hạn có mặt trên tàu. Thông báo trực tiếp của thủy thủ đoàn luôn cần được tuân thủ.' },
   { id: 'connection', title: 'Tôi phải làm gì khi mất kết nối?', answer: 'Kiểm tra Wi-Fi hoặc kết nối dữ liệu rồi thử tải lại. Dữ liệu cũ có thể không phản ánh thay đổi mới nhất. Hỏi nhân sự trên tàu trước khi rời tàu hoặc tham gia hoạt động.' },
-  { id: 'services', title: 'Làm sao để đặt dịch vụ trên tàu?', answer: 'Mục Khám phá giới thiệu các loại trải nghiệm. Vui lòng liên hệ quầy dịch vụ để xác nhận giá, lịch phục vụ và chỗ trống. Ứng dụng hiện chưa hỗ trợ đặt dịch vụ trực tiếp.' },
+  { id: 'services', title: 'Làm sao để đặt dịch vụ trên tàu?', answer: 'Vào Khám phá, chọn dịch vụ và gửi yêu cầu. Theo dõi trạng thái trong Yêu cầu của tôi; đội ngũ trên tàu sẽ xác nhận khả năng phục vụ.' },
 ];
 export function PassengerSupportScreen({ recovery = false }: { recovery?: boolean }) {
   const { topic } = useLocalSearchParams<{ topic?: string }>();
@@ -24,12 +24,12 @@ export function PassengerSupportScreen({ recovery = false }: { recovery?: boolea
         <Text style={ui.eyebrow}>OCEVIE LUÔN BÊN BẠN</Text><Text accessibilityRole="header" style={ui.title}>{recovery ? 'Cùng bạn trở lại hành trình.' : 'Bạn cần chúng tôi giúp gì?'}</Text>
         <Text style={ui.body}>{recovery ? 'Liên hệ đơn vị đã cấp tài khoản OceVie để được hướng dẫn khôi phục quyền truy cập.' : 'Tìm câu trả lời nhanh hoặc trao đổi trực tiếp với đội ngũ trên tàu.'}</Text>
       </View>
-      {recovery && <View style={ui.card}><Text style={ui.sectionTitle}>Khôi phục mật khẩu</Text><Text style={ui.body}>Chuẩn bị tên đăng nhập và thông tin chuyến đi khi liên hệ. Không gửi mật khẩu hay mã xác thực cho người khác.</Text><Text style={ui.caption}>Chức năng tự đặt lại mật khẩu chưa được mở trên ứng dụng.</Text></View>}
+      {recovery && <View style={ui.card}><Text style={ui.sectionTitle}>Khôi phục mật khẩu</Text><Text style={ui.body}>Chuẩn bị tên đăng nhập và thông tin chuyến đi khi liên hệ. Không gửi mật khẩu hay mã xác thực cho người khác.</Text></View>}
       <View style={[styles.safety, topic === 'safety' && styles.focusSafety]}>
         <MaterialIcon name="error" color={statusColors.error.foreground} size={26} />
         <View style={{ flex: 1, gap: 8 }}><Text style={styles.safetyTitle}>Cần trợ giúp khẩn cấp?</Text><Text style={ui.body}>Báo ngay cho nhân sự gần nhất hoặc đến quầy lễ tân. Tuân theo chỉ dẫn của thủy thủ đoàn và sơ đồ an toàn tại cabin.</Text><Text style={ui.caption}>Không chờ phản hồi trong ứng dụng khi có tình huống khẩn cấp.</Text></View>
       </View>
-      <View style={ui.card}><Text style={ui.eyebrow}>HỖ TRỢ TRỰC TIẾP</Text><Text style={ui.sectionTitle}>Quầy dịch vụ hành khách</Text><Text style={ui.body}>Đội ngũ trên tàu có thể hỗ trợ check-in, thẻ hành khách, dịch vụ và thông tin chuyến đi.</Text><Text style={ui.caption}>Số điện thoại và vị trí quầy theo tàu chưa được cập nhật. Vui lòng hỏi nhân sự gần nhất.</Text></View>
+      <View style={ui.card}><Text style={ui.eyebrow}>HỖ TRỢ TRỰC TIẾP</Text><Text style={ui.sectionTitle}>Quầy dịch vụ hành khách</Text><Text style={ui.body}>Đội ngũ trên tàu có thể hỗ trợ check-in, thẻ hành khách, dịch vụ và thông tin chuyến đi.</Text></View>
       <View style={styles.faq}><SectionHeading title="Câu hỏi thường gặp" />
         {questions.map(item => <View key={item.id} style={styles.question}>
           <Pressable accessibilityRole="button" accessibilityState={{ expanded: expanded === item.id }} onPress={() => setExpanded(value => value === item.id ? null : item.id)} style={styles.questionButton}>

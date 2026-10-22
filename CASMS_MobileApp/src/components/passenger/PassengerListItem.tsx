@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   row: { minHeight: 72, padding: 16, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surfaceContainerLow, borderWidth: 1, borderColor: colors.divider, overflow: 'hidden' },
   first: { borderTopLeftRadius: 20, borderTopRightRadius: 20, borderBottomLeftRadius: 8, borderBottomRightRadius: 8 },
   last: { borderTopLeftRadius: 8, borderTopRightRadius: 8, borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  pressed: { backgroundColor: colors.secondaryContainer, transform: [{ scale: 0.985 }] },
+  pressed: { backgroundColor: colors.secondaryContainer },
   icon: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.secondaryContainer, alignItems: 'center', justifyContent: 'center' },
   disabledIcon: { backgroundColor: colors.surfaceContainerHigh },
   copy: { flex: 1, gap: 4 },

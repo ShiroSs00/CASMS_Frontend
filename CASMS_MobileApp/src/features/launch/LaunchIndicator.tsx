@@ -1,10 +1,10 @@
+import { useMotionPreference } from '@/components/passenger/useMotionPreference';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
   useAnimatedProps,
-  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
@@ -23,7 +23,7 @@ const shapes = getShapes();
 /** M3E-style morphing for Expo Go on iOS/web; Android uses its native component. */
 export function LaunchIndicator() {
   const phase = useSharedValue(0);
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useMotionPreference();
 
   useEffect(() => {
     function updateAnimation(state: string) {

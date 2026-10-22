@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getChanges, getItineraryDay, scenarios, stopDuration } from '../src/features/itinerary/itinerary-model.ts';
+import { getChanges, getItineraryDay, scenarios, stopDuration } from './fixtures/legacy-itinerary-data.ts';
 
 const minutes = value => { const [h, m] = value.split(':').map(Number); return h * 60 + m; };
 
@@ -22,19 +22,19 @@ test('operational changes affect the intended day and leave original fixtures in
   assert.equal(getItineraryDay(1).tour.departure, '10:00');
   assert.equal(getItineraryDay(2, 'changed').tour.departure, '09:00');
   const modified = getItineraryDay(1); modified.tour.title = 'Changed by caller';
-  assert.equal(getItineraryDay(1).tour.title, 'Khám phá làng Việt Hải');
+  assert.equal(getItineraryDay(1).tour.title, 'Khám phá Kuala Lumpur');
 });
 test('sea days have no port tour or all-aboard and substitution replaces the tour too', () => {
   const sea = getItineraryDay(1, 'sea');
   assert.equal(sea.port, ''); assert.equal(sea.tour, null); assert.equal(sea.allAboard, null);
   const replacement = getItineraryDay(1, 'substitute');
-  assert.equal(replacement.port, 'Bến Hòn Gai');
-  assert.equal(replacement.tour.title, 'Khám phá Bái Tử Long');
+  assert.equal(replacement.port, 'Điểm đón trả khách Melaka (minh họa)');
+  assert.equal(replacement.tour.title, 'Khám phá di sản Melaka');
 });
 test('normal history excludes unapplied changes and published changes describe the selected scenario', () => {
   assert.equal(getChanges('normal').length, 1);
   assert.match(getChanges('changed')[0].description, /10:00 → 10:30/);
-  assert.match(getChanges('substitute')[0].description, /Bến Hòn Gai/);
+  assert.match(getChanges('substitute')[0].description, /Melaka/);
   assert.equal(getItineraryDay(1, 'tour-cancelled').tour.status, 'cancelled');
 });
 test('port duration handles overnight arrival and departure', () => {

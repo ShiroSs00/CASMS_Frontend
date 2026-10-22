@@ -1,3 +1,4 @@
+import { MotionPreferenceProvider, useMotionPreference } from '@/components/passenger/useMotionPreference';
 import { Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -13,6 +14,10 @@ import { authActions, useAuth } from '@/features/auth/session-store';
 void SplashScreen.preventAutoHideAsync().catch(console.warn);
 
 export default function RootLayout() {
+  return <MotionPreferenceProvider><RootContent /></MotionPreferenceProvider>;
+}
+function RootContent() {
+  const reduced = useMotionPreference();
   useEffect(() => {
     void authActions.restore();
     const subscription = AppState.addEventListener('change', state => {
@@ -29,9 +34,9 @@ export default function RootLayout() {
       <Stack screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: splash ? passengerColors.primaryContainer : passengerLightColors.surface },
-        animation: 'slide_from_right',
+        animation: reduced ? 'none' : 'slide_from_right',
       }}>
-        <Stack.Screen name="(passenger)" options={{ animation: 'fade' }} />
+        <Stack.Screen name="(passenger)" options={{ animation: reduced ? 'none' : 'fade' }} />
       </Stack>
     </QueryClientProvider>
   );

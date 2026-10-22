@@ -1,8 +1,6 @@
-import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcon } from '@/components/passenger/MaterialIcon';
-import { PassengerButton } from '@/components/passenger/PassengerButton';
-import { SectionHeading, ui } from '@/components/passenger/PassengerUI';
+import { ui } from '@/components/passenger/PassengerUI';
 import { brand, darkTheme, lightTheme } from '@/constants/ocevie';
 
 export function VoyageSummaryCard({ title, ship, dates, label, cabin, onPress }: { title: string; ship: string; dates: string; label: string; cabin?: string; onPress: () => void }) {
@@ -14,29 +12,6 @@ export function VoyageSummaryCard({ title, ship, dates, label, cabin, onPress }:
     <Pressable accessibilityRole="button" accessibilityLabel="Xem thông tin chuyến đi" onPress={onPress} style={({ pressed }) => [homeStyles.voyageAction, pressed && { opacity: .7 }]}>
       <Text style={homeStyles.voyageActionText}>Thông tin chuyến đi</Text><MaterialIcon name="arrow_forward" color={brand.pearl} size={20} />
     </Pressable>
-  </View>;
-}
-export function TodayTimeline() {
-  const events: { time: string; title: string; subtitle: string; detail: string }[] = [
-    { time: '09:40', title: 'Khám phá làng Việt Hải', subtitle: 'Sảnh chính · Tầng 1 · Nhóm G03', detail: 'tour' },
-    { time: '16:30', title: 'Có mặt trên tàu', subtitle: 'Hạn lên tàu · Rời bến lúc 17:00', detail: 'boarding' },
-  ];
-  return <View style={homeStyles.section}>
-    <SectionHeading title="Lịch hôm nay" action="Xem tất cả" onPress={() => router.navigate('/itinerary')} />
-    <View style={homeStyles.timeline}>{events.map((event, index) => <Pressable key={event.time} accessibilityRole="button" accessibilityLabel={`${event.time}, ${event.title}. ${event.subtitle}`}
-      onPress={() => router.navigate({ pathname: '/itinerary', params: { detail: event.detail } })} style={({ pressed }) => [homeStyles.event, pressed && { backgroundColor: lightTheme.surfaceHover }]}>
-      <View style={homeStyles.timeColumn}><Text style={homeStyles.time}>{event.time}</Text></View>
-      <View style={homeStyles.track}><View style={[homeStyles.dot, index === 0 && homeStyles.dotActive]} />{index === 0 && <View style={homeStyles.line} />}</View>
-      <View style={homeStyles.eventCopy}><Text style={homeStyles.eventTitle}>{event.title}</Text><Text style={ui.caption}>{event.subtitle}</Text>{index === 0 && <Text style={homeStyles.nextBadge}>Tiếp theo</Text>}</View>
-      <MaterialIcon name="chevron_right" color={lightTheme.textSecondary} size={20} />
-    </Pressable>)}</View><Text style={ui.caption}>Giờ tàu · UTC+7 · Lịch trình minh họa</Text>
-  </View>;
-}
-export function HomeDiscovery() {
-  return <View style={homeStyles.section}><SectionHeading title="Dành thời gian cho bạn" />
-    <View style={homeStyles.discovery}><View style={homeStyles.discoveryIcon}><MaterialIcon name="spa" color={brand.teal} size={34} /></View>
-      <View style={{ flex: 1, gap: 6 }}><Text style={homeStyles.eventTitle}>Tận hưởng hành trình</Text><Text style={ui.caption}>Ẩm thực, thư giãn và trải nghiệm trên tàu.</Text></View></View>
-    <PassengerButton label="Khám phá trải nghiệm" variant="secondary" icon="arrow_forward" onPress={() => router.navigate('/services')} />
   </View>;
 }
 export const homeStyles = StyleSheet.create({

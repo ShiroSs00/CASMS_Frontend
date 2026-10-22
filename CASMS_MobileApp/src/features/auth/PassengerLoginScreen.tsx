@@ -73,7 +73,7 @@ export function PassengerLoginScreen({ initialStatus = 'default', signIn = ({ us
             <VoyageEntrance delay={60}><View style={styles.intro}>
               <Text style={styles.tagline}>CHÀO MỪNG ĐẾN VỚI OCEVIE</Text>
               <Text style={styles.title} accessibilityRole="header">Đăng nhập</Text>
-              <Text style={styles.description}>Truy cập thẻ lên tàu, lịch trình và trải nghiệm của bạn.</Text>
+            <Text style={styles.description}>Đăng nhập tài khoản được OceVie cấp để tiếp tục.</Text>
             </View></VoyageEntrance>
             {message && <View style={[styles.notice, status === 'error' && styles.errorNotice]}>
               <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={[styles.noticeText, status === 'error' && styles.errorText]}>{message}</Text>
@@ -92,7 +92,6 @@ export function PassengerLoginScreen({ initialStatus = 'default', signIn = ({ us
               </View>
               <PassengerButton label={status === 'offline' ? 'Thử lại' : 'Đăng nhập'} icon="arrow_forward"
                 disabled={!valid && !busy} loading={busy} onPress={() => { void submit(); }} />
-              {__DEV__ && <PassengerButton label="Xem riêng giao diện mẫu" variant="text" disabled={busy} onPress={() => { authActions.demo(); router.replace('/loading'); }} />}
             </View>
           <View style={styles.footer}>
             <PassengerButton label="Cần hỗ trợ? Liên hệ OceVie" icon="support_agent" variant="text" disabled={busy} onPress={() => router.push('/support')} />

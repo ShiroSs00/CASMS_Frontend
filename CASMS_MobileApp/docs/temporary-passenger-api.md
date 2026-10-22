@@ -1,4 +1,11 @@
+> Historical handoff only. Current app behavior and PostgreSQL QA setup: [passenger-live-api.md](passenger-live-api.md) and [real-api-qa.md](real-api-qa.md). The app no longer offers demo mode.
+
 # Passenger API permission handoff
+
+Historical snapshot from 15 October 2026. For the integration against BE `ef59dd2`
+on 20 October 2026, see [passenger-live-api.md](passenger-live-api.md). In particular,
+login now supplies effectivePermissions and personal booking/service/registration
+workflows have been added; the notes below describe the earlier read-only version.
 
 Superseded by the official backend permission initializer in commit `042d7bc`
 (`update/ role permession for passenger`), verified locally on 2026-10-15.

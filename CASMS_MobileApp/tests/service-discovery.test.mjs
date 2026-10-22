@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { filterServiceGuides } from '../src/features/services/service-model.ts';
+import { filterServiceGuides } from './fixtures/service-guides.ts';
 
 test('service discovery supports accented and unaccented Vietnamese search', () => {
   for (const query of ['ẩm thực', 'am thuc', '  AM THUC  ']) {
