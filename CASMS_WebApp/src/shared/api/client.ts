@@ -1,3 +1,5 @@
+import { prepareCreateBody } from './create-body'
+
 type ApiEnvelope<T> = { success: boolean; message?: string; error?: string; code?: string; data?: T }
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -41,7 +43,7 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
   try {
     const response = await fetch(`${baseUrl}${path}${query.size ? `?${query}` : ''}`, {
       method: options.method ?? 'GET', headers, signal: controller.signal,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body: options.body === undefined ? undefined : JSON.stringify(prepareCreateBody(path, options.method, options.body)),
     })
     if (response.status === 204 && response.ok) return decode(undefined, response.status)
     let payload: ApiEnvelope<T> | null = null

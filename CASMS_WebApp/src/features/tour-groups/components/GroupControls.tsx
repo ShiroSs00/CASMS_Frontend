@@ -52,7 +52,7 @@ export function GroupControls({ group, onRefresh }: { group: TourGroup; onRefres
     {!preparing && <p>Chỉ có thể chỉnh sửa và phân công hướng dẫn viên khi nhóm đang lên kế hoạch. Điểm danh và điều chuyển hành khách trong danh sách bên dưới.</p>}
     <div className={styles.actions}>{groupActions(group.status).map((action) => <Button key={action} tone={action === 'cancel' ? 'danger' : 'secondary'} disabled={mutation.busy || !access.has(permission(action))} onClick={() => open(action)}>{labels[action]}</Button>)}<Button tone="secondary" disabled={mutation.busy || !access.has(permission('validate'))} onClick={() => open('validate')}>{labels.validate}</Button></div>
     {report && <Notice title="Kết quả kiểm tra">{report}</Notice>}
-    {control && <Modal title={labels[control]} busy={mutation.busy} onClose={() => setControl(null)}>
+    {control && <Modal title={labels[control]} busy={mutation.busy} onClose={() => setControl(null)} footer={<div className={styles.actions}><Button tone="secondary" disabled={mutation.busy} onClick={() => setControl(null)} data-overlay-dismiss>Quay lại</Button><Button tone={control === 'cancel' || control === 'remove-passenger' ? 'danger' : 'primary'} disabled={mutation.busy || !access.has(permission(control)) || (needsId && (options.loading || Boolean(options.error) || !isUuid(idValue.trim()))) || (control === 'cancel' && (!reason.trim() || reason.trim().length > 500))} onClick={() => void execute()}>{mutation.busy ? 'Đang xử lý…' : 'Xác nhận'}</Button></div>}>
       <p className={styles.text}>Nhóm {group.groupCode}</p>
       {needsId && <><Field htmlFor="tour-assignment-id" label={control === 'assign-passenger' ? 'Hành khách đủ điều kiện' : 'Phân công hành khách hiện tại'}><select id="tour-assignment-id" disabled={mutation.busy || options.loading || Boolean(options.error)} value={idValue} onChange={event => setIdValue(event.target.value)}><option value="">Chọn hành khách</option>{options.data?.map(row => <option key={row.id} value={row.id}>{row.label}</option>)}</select></Field>{options.error && <Notice title="Không tải được hành khách" tone="error">{options.error.message}<Button onClick={options.retry}>Thử lại</Button></Notice>}{!options.loading && options.data?.length === 0 && <p>Không có hành khách phù hợp. Không thể tự tạo hành khách thay thế.</p>}</>}
       {control === 'remove-passenger' && <p>Xác nhận gỡ phân công đã chọn khỏi nhóm này.</p>}
@@ -60,7 +60,7 @@ export function GroupControls({ group, onRefresh }: { group: TourGroup; onRefres
       {control === 'confirm' && <p>Hệ thống kiểm tra hướng dẫn viên, điểm tập trung, lịch trình và sức chứa trước khi xác nhận nhóm.</p>}
       {control === 'start' && <p>Nhóm cần có hành khách được phân công và đã đến giờ khởi hành dự kiến. Hệ thống kiểm tra điều kiện trước khi cập nhật.</p>}
       {mutation.error != null && <TourError error={mutation.error} />}
-      <div className={styles.actions}><Button tone="secondary" disabled={mutation.busy} onClick={() => setControl(null)}>Quay lại</Button><Button tone={control === 'cancel' || control === 'remove-passenger' ? 'danger' : 'primary'} disabled={mutation.busy || !access.has(permission(control)) || (needsId && (options.loading || Boolean(options.error) || !isUuid(idValue.trim()))) || (control === 'cancel' && (!reason.trim() || reason.trim().length > 500))} onClick={() => void execute()}>{mutation.busy ? 'Đang xử lý…' : 'Xác nhận'}</Button></div>
+
     </Modal>}
   </Panel>
 }

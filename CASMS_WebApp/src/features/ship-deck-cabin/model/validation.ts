@@ -1,13 +1,12 @@
 import type { CabinDraft, DataSnapshot, DeckDraft, FieldErrors, ShipDraft } from './types'
 import { cabinStatuses, cabinTypes } from './types.ts'
-const positive = (value: number) => Number.isSafeInteger(value) && value > 0
+const positive = (value: number | ''): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value > 0
 
 // Form-level shape/required validation. Backend remains authoritative for business rules.
 export function validateShip(draft: ShipDraft): FieldErrors {
   const errors: FieldErrors = {}
   const code = draft.code.trim()
-  if (!code) errors.code = 'Vui lòng nhập mã tàu.'
-  else if (!/^[A-Z0-9-]{3,20}$/.test(code)) errors.code = 'Mã tàu phải từ 3 đến 20 ký tự (chữ in hoa, số và dấu gạch nối, VD: OCV-GRAND-01).'
+  if (code && !/^[A-Z0-9-]{3,20}$/.test(code)) errors.code = 'Mã tàu phải từ 3 đến 20 ký tự (chữ in hoa, số và dấu gạch nối, VD: OCV-GRAND-01).'
   
   const name = draft.name.trim()
   if (!name) errors.name = 'Vui lòng nhập tên tàu.'
@@ -36,7 +35,7 @@ export function deckValidationContextError(data: DataSnapshot | null | undefined
 
 export function validateDeck(draft: DeckDraft, data: DataSnapshot | null | undefined, currentDeckId?: string): FieldErrors {
   const errors: FieldErrors = {}
-  if (!positive(draft.number)) errors.number = 'Số boong phải là số nguyên dương.'
+  if ((currentDeckId || draft.number !== '') && !positive(draft.number)) errors.number = 'Số boong phải là số nguyên dương.'
   if (typeof draft.name !== 'string') errors.name = 'Tên boong không hợp lệ.'
   else if (draft.name.length > 50) errors.name = 'Tên boong không được vượt quá 50 ký tự.'
   if (draft.priceMultiplier !== undefined) {

@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400&display=swap');
 
 .content { min-width: 0; }
 .header { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
@@ -36,3 +35,16 @@
   font-size: 14px;
   line-height: 20px;
 }
+
+/* P5 reuse local typography and the same form/action rhythm. */
+.form { gap:24px; padding:24px; box-shadow:var(--ui-shadow); }
+.form h2 { font-family:var(--ui-font); font-weight:600; line-height:1.4; }
+.fieldRow { gap:24px; min-height:0; }
+.notes > div { gap:8px; }
+.actions { padding-top:20px; border-top:1px solid var(--ui-border); }
+.actions .cancelButton,.actions .submitButton { min-height:44px; height:auto; max-width:100%; padding:10px 18px; white-space:normal; }
+@media(max-width:700px) { .form { padding:20px 16px; } }
+
+/* OceVie desktop: use shared semantic presentation, retain feature behavior. */
+.content h1 { font:600 clamp(28px,2.2vw,34px)/1.25 var(--ui-font); overflow-wrap:anywhere; }
+.actions .cancelButton,.actions .submitButton,.returnLink,.listCreateLink.listCreateLink { border-radius:var(--ui-radius); }

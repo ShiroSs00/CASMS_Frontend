@@ -49,3 +49,16 @@
   justify-content: space-between;
   gap: 16px;
 }
+
+/* OceVie desktop: use shared semantic presentation, retain feature behavior. */
+
+.titleRow { grid-template-columns:minmax(0,1fr) auto; gap:24px; }
+.titleCopy h1 { font:600 clamp(28px,2.2vw,34px)/1.25 var(--ui-font); overflow-wrap:anywhere; }
+.titleCopy p { font-size:14px; line-height:1.6; }
+.content .createButton,.content .resetButton { min-height:44px; height:auto; padding:10px 18px; border-radius:var(--ui-radius); max-width:100%; white-space:normal; cursor:pointer; }
+.table th { padding:16px; font-size:13px; font-weight:600; }
+.table td { padding:16px; }
+.badge { min-height:28px; padding:4px 10px; font-size:12px; line-height:1.5; white-space:normal; overflow-wrap:anywhere; }
+.rowAction { display:inline-flex; align-items:center; min-height:44px; white-space:normal; }
+.errorBanner { border-radius:12px; flex-wrap:wrap; }
+@media(max-width:1000px) { .titleRow { grid-template-columns:minmax(0,1fr); } .filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .filters .resetButton { grid-column:auto; justify-self:start; } }

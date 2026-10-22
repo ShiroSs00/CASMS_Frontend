@@ -67,7 +67,7 @@ export function IssueDetailPage() {
                 · tạo {formatDate(state.issue.reportedAt)}
               </p>
             </div>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <div className={styles.headerActions}>
               {state.issue.status === 'OPEN' && access.has('OPERATIONAL_ISSUE_UPDATE') && (
                 <Link className={styles.secondaryButton} to={`/admin/issues/${state.issue.id}/edit`}>
                   Chỉnh sửa sự cố

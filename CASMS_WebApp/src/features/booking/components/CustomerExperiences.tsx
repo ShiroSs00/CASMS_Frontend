@@ -1,3 +1,4 @@
+import { TechnicalDetails } from '@/shared/ui'
 import { useCallback, useState, type FormEvent } from 'react'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
@@ -42,7 +43,7 @@ export function CustomerExcursions({ booking }: { booking: BookingDetail }) {
     return lookup.kind === 'found' ? liveCruiseCatalogApi.stops(lookup.itinerary.id, signal) : []
   }, [booking.cruiseId]))
   const [stop, setStop] = useState('')
-  return <Panel title="Tour tham quan trên bờ"><BookingReadState {...query} publicResource="điểm dừng cho tour" />{query.data?.length === 0 && <Empty title="Chưa có điểm dừng liên kết cho chuyến đi" />}{query.data && <Field htmlFor="excursion-stop" label="Điểm dừng của chuyến đi"><select id="excursion-stop" value={stop} onChange={event => setStop(event.target.value)}><option value="">Chọn điểm dừng</option>{query.data.map(item => <option key={item.id} value={item.id}>{item.port || item.destination || 'Điểm dừng ' + (item.order ?? item.id)}</option>)}</select></Field>}{query.data?.filter(item => item.id === stop).map(item => <ExcursionList key={item.id} stop={item} booking={booking} canRegister={access.has('EXCURSION_BOOKING')} />)}</Panel>
+  return <Panel title="Tour tham quan trên bờ"><BookingReadState {...query} publicResource="điểm dừng cho tour" />{query.data?.length === 0 && <Empty title="Chưa có điểm dừng liên kết cho chuyến đi" />}{query.data && <Field htmlFor="excursion-stop" label="Điểm dừng của chuyến đi"><select id="excursion-stop" value={stop} onChange={event => setStop(event.target.value)}><option value="">Chọn điểm dừng</option>{query.data.map(item => <option key={item.id} value={item.id}>{item.port || item.destination || (item.order != null ? 'Điểm dừng ' + item.order : 'Điểm dừng chưa có tên')}</option>)}</select></Field>}{query.data?.filter(item => item.id === stop).map(item => <ExcursionList key={item.id} stop={item} booking={booking} canRegister={access.has('EXCURSION_BOOKING')} />)}</Panel>
 }
 function ExcursionList({ stop, booking, canRegister }: { stop: LivePortCall; booking: BookingDetail; canRegister: boolean }) {
   const query = useReadQuery('customer-excursions:' + stop.id, useCallback(signal => api.excursions(stop.id, signal), [stop.id]))
@@ -119,7 +120,7 @@ export function CustomerRequests({ booking }: { booking: BookingDetail }) {
 function RecordEntry({ kind, item, booking, refresh }: { kind: 'activity' | 'service'; item: CustomerRegistration | CustomerServiceRequest; booking: BookingDetail; refresh: () => void }) {
   const [opened, setOpened] = useState(false)
   const person = booking.passengers.find(person => person.bookingPassengerId === item.bookingPassengerId)
-  return <section className={styles.selection}><p>{person?.fullName} · {statusName[item.status]} · {item.quantity} chỗ / đơn vị</p><p className={styles.helper}>Mã {item.id}</p><Button tone="secondary" aria-expanded={opened} onClick={() => setOpened(value => !value)}>{opened ? 'Đóng' : 'Chi tiết'} {kind === 'activity' ? 'đăng ký' : 'yêu cầu'} {item.id}</Button>{opened && <RecordDetails key={kind + item.id} kind={kind} id={item.id} booking={booking} refresh={refresh} />}</section>
+  return <section className={styles.selection}><p>{person?.fullName} · {statusName[item.status]} · {item.quantity} chỗ / đơn vị</p><TechnicalDetails entries={[[kind === 'activity' ? 'Đăng ký' : 'Yêu cầu', item.id]]} /><Button tone="secondary" aria-expanded={opened} onClick={() => setOpened(value => !value)}>{opened ? 'Đóng' : 'Chi tiết'} {kind === 'activity' ? 'đăng ký' : 'yêu cầu'}</Button>{opened && <RecordDetails key={kind + item.id} kind={kind} id={item.id} booking={booking} refresh={refresh} />}</section>
 }
 function RecordDetails({ kind, id, booking, refresh }: { kind: 'activity' | 'service'; id: string; booking: BookingDetail; refresh: () => void }) {
   const access = useSessionAccess(), write = useExtrasMutation(access.userId + ':' + booking.bookingId + ':' + kind + ':' + id)

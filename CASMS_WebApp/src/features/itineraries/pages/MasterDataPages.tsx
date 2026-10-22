@@ -7,6 +7,7 @@ import { ApiError } from '@/shared/api'
 
 import { itineraryApi } from '../api/itinerary-api'
 import { ItineraryFrame } from '../components/ItineraryUI'
+import { LocationPicker } from '../components/LocationPicker'
 import styles from '../components/Itineraries.module.css'
 import { destinationStatusLabels, validateDestinationDraft } from '../model/itinerary'
 import type { Destination, DestinationDraft, DestinationPortSummary, PageResult, Port, PortDraft } from '../model/itinerary'
@@ -70,8 +71,8 @@ function MasterList({ kind }: { kind: Kind }) {
   </ItineraryFrame>
 }
 
-type MasterDraft = { code: string; name: string; countryCode: string; timeZoneId: string; latitude: string; longitude: string; description: string; status: 'ACTIVE' | 'INACTIVE' }
-const EMPTY: MasterDraft = { code: '', name: '', countryCode: '', timeZoneId: '', latitude: '', longitude: '', description: '', status: 'ACTIVE' }
+type MasterDraft = { code: string; name: string; city: string; countryCode: string; timeZoneId: string; latitude: string; longitude: string; description: string; status: 'ACTIVE' | 'INACTIVE' }
+const EMPTY: MasterDraft = { code: '', name: '', city: '', countryCode: '', timeZoneId: '', latitude: '', longitude: '', description: '', status: 'ACTIVE' }
 
 function MasterForm({ kind }: { kind: Kind }) {
   const access = useSessionAccess()
@@ -83,6 +84,7 @@ function MasterForm({ kind }: { kind: Kind }) {
   const [draft, setDraft] = useState(EMPTY)
   const [loadedId, setLoadedId] = useState<string | null>(null)
   const submitLock = useRef(false)
+  const autoLocationName = useRef('')
   const canSave = !editing || loadedId === id
   const permitted = access.has(`${kind.toUpperCase()}_${editing ? 'UPDATE' : 'CREATE'}`)
   const [loading, setLoading] = useState(editing)
@@ -99,8 +101,8 @@ function MasterForm({ kind }: { kind: Kind }) {
     void request.then((item) => {
       if (kind === 'destination' && controller.signal.aborted) return
       setLoadedId(id)
-      if (kind === 'port') { const port = item as Port; setDraft({ code: port.portCode, name: port.portName, countryCode: port.countryCode, timeZoneId: port.timeZoneId, latitude: port.latitude?.toString() ?? '', longitude: port.longitude?.toString() ?? '', description: '', status: port.status }) }
-      else { const destination = item as Destination; setDraft({ ...EMPTY, name: destination.destinationName, countryCode: destination.countryCode, description: destination.description ?? '', status: destination.status }) }
+      if (kind === 'port') { const port = item as Port; setDraft({ code: port.portCode, name: port.portName, city: '', countryCode: port.countryCode, timeZoneId: port.timeZoneId, latitude: port.latitude?.toString() ?? '', longitude: port.longitude?.toString() ?? '', description: '', status: port.status }) }
+      else { const destination = item as Destination; setDraft({ ...EMPTY, name: destination.destinationName, countryCode: destination.countryCode, latitude: destination.latitude?.toString() ?? '', longitude: destination.longitude?.toString() ?? '', description: destination.description ?? '', status: destination.status }) }
     }).catch((reason: unknown) => { if (kind !== 'destination' || !controller.signal.aborted) setError(kind === 'destination' ? destinationMessage(reason) : message(reason)) }).finally(() => { if (kind !== 'destination' || !controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
   }, [id, kind, loadAttempt])
@@ -110,7 +112,8 @@ function MasterForm({ kind }: { kind: Kind }) {
     event.preventDefault()
     if (!permitted || submitLock.current || !canSave) return
     setError('')
-    const destinationBody: DestinationDraft = { destinationName: draft.name.trim(), countryCode: draft.countryCode.trim().toUpperCase(), description: editing ? draft.description.trim() : draft.description.trim() || null, status: draft.status }
+    if ((draft.latitude === '') !== (draft.longitude === '') || (draft.latitude !== '' && (!Number.isFinite(Number(draft.latitude)) || Math.abs(Number(draft.latitude)) > 90)) || (draft.longitude !== '' && (!Number.isFinite(Number(draft.longitude)) || Math.abs(Number(draft.longitude)) > 180))) { setError('Nhập đủ cặp tọa độ hợp lệ: vĩ độ -90 đến 90, kinh độ -180 đến 180.'); return }
+    const destinationBody: DestinationDraft = { destinationName: draft.name.trim(), countryCode: draft.countryCode.trim().toUpperCase(), description: editing ? draft.description.trim() : draft.description.trim() || null, status: draft.status, latitude: draft.latitude === '' ? null : Number(draft.latitude), longitude: draft.longitude === '' ? null : Number(draft.longitude) }
     if (kind === 'destination') {
       const errors = validateDestinationDraft(destinationBody, editing)
       setFieldErrors(errors)
@@ -138,11 +141,15 @@ function MasterForm({ kind }: { kind: Kind }) {
   const retryDestination = () => { setLoading(true); setError(''); setLoadAttempt(value => value + 1) }
   return <ItineraryFrame><PageHeader breadcrumb="DANH MỤC VẬN HÀNH" title={`${editing ? 'Chỉnh sửa' : 'Thêm'} ${copy.singular}`} description={kind === 'destination' ? 'Điểm đến giúp nhóm các cảng liên kết khi lập lịch trình. Thêm điểm đến không tự tạo cảng.' : 'Dữ liệu này được sử dụng trực tiếp trong trình biên tập lịch trình.'} />{loading ? <Loading label="Đang tải biểu mẫu…" /> : kind === 'destination' && editing && !canSave ? <Notice title="Không tải được điểm đến" tone="error"><p>{error}</p><Button onClick={retryDestination}>Thử lại</Button></Notice> : <form ref={form} noValidate={kind === 'destination'} onSubmit={submit}><Panel title="Thông tin cơ bản">
     {kind === 'destination' && editing && <Notice title="Thông tin được phép chỉnh sửa">Bạn có thể đổi tên và mô tả. Quốc gia được giữ nguyên; trạng thái được quản lý qua thao tác kích hoạt hoặc ngừng kích hoạt.</Notice>}
+    <LocationPicker country={draft.countryCode} city={draft.city} disabled={busy} countryLocked={editing} countryError={fieldErrors.countryCode}
+      onCountry={countryCode => { const previousName = autoLocationName.current; autoLocationName.current = ''; setDraft(current => ({ ...current, countryCode, city: '', latitude: '', longitude: '', timeZoneId: '', name: kind === 'destination' && current.name === previousName ? '' : current.name })); setFieldErrors(current => ({ ...current, countryCode: '' })) }}
+      onCity={city => setDraft(current => ({ ...current, city, latitude: '', longitude: '' }))}
+      onApply={place => { const previousName = autoLocationName.current; autoLocationName.current = place.name; setDraft(current => ({ ...current, latitude: String(place.latitude), longitude: String(place.longitude), timeZoneId: place.timeZoneId, name: kind === 'destination' && (!current.name.trim() || current.name === previousName) ? place.name : current.name })) }} />
     <div className={styles.formGrid}>
     {kind === 'port' && <Field htmlFor="master-code" label="Mã cảng"><input id="master-code" maxLength={50} required value={draft.code} onChange={(event) => update('code', event.target.value)} /></Field>}
     <Field htmlFor="master-name" label={kind === 'port' ? 'Tên cảng' : 'Tên điểm đến'} error={kind === 'destination' ? fieldErrors.destinationName : undefined}><input id="master-name" aria-invalid={kind === 'destination' && Boolean(fieldErrors.destinationName)} disabled={kind === 'destination' && busy} maxLength={200} required value={draft.name} onChange={(event) => update('name', event.target.value)} /></Field>
-    <Field htmlFor="master-country" label="Mã quốc gia" error={kind === 'destination' ? fieldErrors.countryCode : undefined} hint={kind === 'destination' ? 'Mã quốc gia gồm 2 ký tự, ví dụ VN.' : undefined}><input id="master-country" aria-invalid={kind === 'destination' && Boolean(fieldErrors.countryCode)} disabled={kind === 'destination' && (busy || editing)} minLength={2} maxLength={2} required value={draft.countryCode} onChange={(event) => update('countryCode', event.target.value)} /></Field>
-    {kind === 'port' && <><Field htmlFor="master-timezone" label="Múi giờ"><input id="master-timezone" maxLength={100} required value={draft.timeZoneId} onChange={(event) => update('timeZoneId', event.target.value)} /></Field><Field htmlFor="master-latitude" label="Vĩ độ"><input id="master-latitude" type="number" step="any" value={draft.latitude} onChange={(event) => update('latitude', event.target.value)} /></Field><Field htmlFor="master-longitude" label="Kinh độ"><input id="master-longitude" type="number" step="any" value={draft.longitude} onChange={(event) => update('longitude', event.target.value)} /></Field></>}
+    {kind === 'port' && <Field htmlFor="master-timezone" label="Múi giờ"><input id="master-timezone" maxLength={100} required disabled={busy} value={draft.timeZoneId} onChange={(event) => update('timeZoneId', event.target.value)} /></Field>}
+    <Field htmlFor="master-latitude" label="Vĩ độ" hint="Điền từ kết quả tra cứu; có thể chỉnh lại vị trí chính xác."><input id="master-latitude" type="number" min={-90} max={90} step="any" disabled={busy} value={draft.latitude} onChange={(event) => update('latitude', event.target.value)} /></Field><Field htmlFor="master-longitude" label="Kinh độ"><input id="master-longitude" type="number" min={-180} max={180} step="any" disabled={busy} value={draft.longitude} onChange={(event) => update('longitude', event.target.value)} /></Field>
     {kind === 'destination' && <Field htmlFor="master-description" label="Mô tả" error={fieldErrors.description}><textarea id="master-description" aria-invalid={Boolean(fieldErrors.description)} disabled={busy} maxLength={1000} rows={4} value={draft.description} onChange={(event) => update('description', event.target.value)} /></Field>}
     <Field htmlFor="master-status" label="Trạng thái" error={kind === 'destination' ? fieldErrors.status : undefined}><select id="master-status" aria-invalid={kind === 'destination' && Boolean(fieldErrors.status)} disabled={kind === 'destination' && (busy || editing)} value={draft.status} onChange={(event) => update('status', event.target.value)}><option value="ACTIVE">{kind === 'destination' ? destinationStatusLabels.ACTIVE : 'ACTIVE'}</option><option value="INACTIVE">{kind === 'destination' ? destinationStatusLabels.INACTIVE : 'INACTIVE'}</option></select></Field>
   </div>{error && <Notice title="Chưa thể lưu" tone="error"><p>{error}</p></Notice>}<div className={styles.actions}><Button tone="secondary" disabled={busy} onClick={() => navigate(`/admin/${copy.route}`)}>Hủy</Button><Button type="submit" disabled={busy || !canSave || !permitted}>{busy ? 'Đang lưu…' : 'Lưu'}</Button></div></Panel></form>}</ItineraryFrame>
@@ -220,7 +227,7 @@ function MasterDetail({ kind }: { kind: Kind }) {
       </Panel>}
       <Panel title="Thao tác"><div className={styles.actions}><Button tone="secondary" disabled={busy || !can('VALIDATE')} onClick={() => void validate()}>Kiểm tra dữ liệu</Button>{kind === 'port' && <Button tone="secondary" disabled={busy} onClick={() => void checkAvailability()}>Kiểm tra khả dụng</Button>}<Button disabled={busy || !can(kind === 'destination' ? 'UPDATE' : status === 'ACTIVE' ? 'DEACTIVATE' : 'ACTIVATE')} onClick={() => setStatusOpen(true)}>{status === 'ACTIVE' ? 'Ngừng kích hoạt' : 'Kích hoạt'}</Button><Button tone="danger" disabled={busy || !can('DELETE_UNUSED')} onClick={() => setRemoveOpen(true)}>Xóa khi chưa sử dụng</Button></div></Panel></>}
     {statusOpen && <Modal title={status === 'ACTIVE' ? 'Ngừng kích hoạt' : 'Kích hoạt'} busy={busy} onClose={() => setStatusOpen(false)}><p>Xác nhận thay đổi trạng thái của {title}? Các điều kiện đang sử dụng sẽ được kiểm tra trước khi cập nhật.</p>{error && <Notice title="Chưa đổi được trạng thái" tone="error">{error}</Notice>}<Button disabled={busy} onClick={() => void togglePort()}>Xác nhận thay đổi trạng thái</Button></Modal>}
-    {removeOpen && <Modal title={`Xóa ${copy.singular}?`} onClose={() => { if (!busy) setRemoveOpen(false) }}><p>{kind === 'destination' ? 'Chỉ xóa điểm đến khi bạn đã xác nhận không còn được sử dụng. Thao tác này không thể hoàn tác.' : 'Chỉ có thể xóa bản ghi chưa được sử dụng.'}</p><div className={styles.modalActions}><Button tone="secondary" disabled={busy} onClick={() => setRemoveOpen(false)}>Quay lại</Button><Button tone="danger" disabled={busy} onClick={() => void remove()}>{busy ? 'Đang xóa…' : 'Xác nhận xóa'}</Button></div></Modal>}
+    {removeOpen && <Modal title={`Xóa ${copy.singular}?`} onClose={() => { if (!busy) setRemoveOpen(false) }} footer={<div className={styles.modalActions}><Button tone="secondary" disabled={busy} onClick={() => setRemoveOpen(false)} data-overlay-dismiss>Quay lại</Button><Button tone="danger" disabled={busy} onClick={() => void remove()}>{busy ? 'Đang xóa…' : 'Xác nhận xóa'}</Button></div>}><p>{kind === 'destination' ? 'Chỉ xóa điểm đến khi bạn đã xác nhận không còn được sử dụng. Thao tác này không thể hoàn tác.' : 'Chỉ có thể xóa bản ghi chưa được sử dụng.'}</p></Modal>}
   </ItineraryFrame>
 }
 

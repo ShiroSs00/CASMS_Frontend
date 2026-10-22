@@ -1,3 +1,4 @@
+import { TechnicalDetails } from '@/shared/ui'
 import { useCallback, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ApiError, useReadQuery } from '@/shared/api'
@@ -67,11 +68,11 @@ function GroupDetail({ id }: { id: string }) {
 }
 function GroupFacts({ group }: { group: TourGroup }) {
   const facts: [string, string][] = [
-    ['ID nhóm tour', group.tourGroupId], ['ID chuyến tham quan', group.shoreExcursionId], ['Hướng dẫn viên', group.guideId ?? 'Chưa phân công'], ['ID phương tiện', group.vehicleId ?? 'Chưa đặt'],
+    ['Chuyến tham quan', group.excursionName], ['Hướng dẫn viên', group.guideId ? 'Đã phân công · Chưa có thông tin tên' : 'Chưa phân công'], ['Phương tiện', group.vehicleId ? 'Đã phân công · Chưa có thông tin tên' : 'Chưa đặt'],
     ['Điểm tập trung', group.meetingPoint ?? 'Chưa đặt'], ['Giờ tập trung', displayTime(group.assemblyTime)], ['Khởi hành dự kiến', displayTime(group.plannedDepartureTime)],
     ['Trở về dự kiến', displayTime(group.plannedReturnTime)], ['Khởi hành thực tế', displayTime(group.actualDepartureTime)], ['Trở về thực tế', displayTime(group.actualReturnTime)], ['Ghi chú', group.notes ?? '—'],
   ]
-  return <Panel title="Thông tin nhóm tour"><dl className={styles.facts}>{facts.map(([label, value]) => <div key={label} style={{ display: 'contents' }}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></Panel>
+  return <Panel title="Thông tin nhóm tour"><dl className={styles.facts}>{facts.map(([label, value]) => <div key={label} style={{ display: 'contents' }}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><TechnicalDetails entries={[["Nhóm tour", group.tourGroupId], ["Chuyến tham quan", group.shoreExcursionId], ["Hướng dẫn viên", group.guideId], ["Phương tiện", group.vehicleId]]} /></Panel>
 }
 export function TourGroupFormPage() {
   const { groupId } = useParams()

@@ -24,7 +24,7 @@ test('Create rejects existing Deck 2 and numbers beyond the selected Ship limit'
   assert.ok(validateDeck({ ...draft, number: 3 }, snapshot).number)
 })
 test('number must be finite, safe, positive and integral', () => {
-  for (const number of [0, -1, 1.5, NaN, Infinity, -Infinity, undefined, null, '', '1', Number.MAX_SAFE_INTEGER + 1]) {
+  for (const number of [0, -1, 1.5, NaN, Infinity, -Infinity, undefined, null, '1', Number.MAX_SAFE_INTEGER + 1]) {
     assert.ok(validateDeck({ ...draft, number }, snapshot).number, `Must reject ${String(number)}`)
   }
   const missing = { ...draft }; delete missing.number
@@ -106,8 +106,8 @@ function formHarness({ data = snapshot, editing, loading = false, error = '' } =
 }
 
 test('virtual Create handler blocks invalid fields and exposes their Vietnamese errors without queuing any save', () => {
-  for (const [number, name, field] of [[2, 'Deck', 'Số boong *'], [3, 'Deck', 'Số boong *'], [1, 'A'.repeat(51), 'Tên boong']]) {
-    const app = formHarness(); app.change('Số boong *', String(number)); app.change('Tên boong', name)
+  for (const [number, name, field] of [[2, 'Deck', 'Số boong'], [3, 'Deck', 'Số boong'], [1, 'A'.repeat(51), 'Tên boong']]) {
+    const app = formHarness(); app.change('Số boong', String(number)); app.change('Tên boong', name)
     const tree = app.simulateHandler(), input = tree.find(node => node.type === 'InputField' && node.props.label === field)
     assert.ok(input.props.error); assert.match(input.props.error, /boong|ký tự/)
     assert.equal(app.calls.actionQueued, 0); assert.equal(app.calls.api, 0)
@@ -118,14 +118,14 @@ test('virtual Edit handler passes only the current ID: unchanged self passes, ta
   const edit2 = formHarness({ editing: snapshot.decks[0] }); edit2.simulateHandler()
   assert.deepEqual(edit2.calls.validatorIds, [deck2Id]); assert.equal(edit2.calls.actionQueued, 1); assert.equal(edit2.calls.api, 0)
   const deck1 = { id: 'deck-1', shipId: qaId, number: 1, name: 'First Deck' }
-  const edit1 = formHarness({ data: { ...snapshot, decks: [...snapshot.decks, deck1] }, editing: deck1 }); edit1.change('Số boong *', '2')
-  const tree = edit1.simulateHandler(); assert.ok(tree.find(node => node.type === 'InputField' && node.props.label === 'Số boong *').props.error)
+  const edit1 = formHarness({ data: { ...snapshot, decks: [...snapshot.decks, deck1] }, editing: deck1 }); edit1.change('Số boong', '2')
+  const tree = edit1.simulateHandler(); assert.ok(tree.find(node => node.type === 'InputField' && node.props.label === 'Số boong').props.error)
   assert.deepEqual(edit1.calls.validatorIds, ['deck-1']); assert.equal(edit1.calls.actionQueued, 0); assert.equal(edit1.calls.api, 0)
 })
 
 test('virtual Create gate preserves the valid unused number and complete-empty-list behavior', () => {
   for (const data of [snapshot, { ...snapshot, decks: [] }]) {
-    const app = formHarness({ data }); app.change('Số boong *', '1'); app.change('Tên boong', 'A'.repeat(50)); app.simulateHandler()
+    const app = formHarness({ data }); app.change('Số boong', '1'); app.change('Tên boong', 'A'.repeat(50)); app.simulateHandler()
     assert.equal(app.calls.actionQueued, 1); assert.equal(app.calls.api, 0); assert.deepEqual(app.calls.validatorIds, [undefined])
   }
 })
@@ -140,3 +140,5 @@ test('Deck form never renders a saveable form for missing/incomplete context and
     assert.equal(options.loading ? state.props.loading : state.props.error, options.loading || options.error)
   }
 })
+
+test('blank deck number is inferred only during create; edits still require an explicit valid number', () => { assert.equal(validateDeck({ ...draft, number: '' }, snapshot).number, undefined); assert.ok(validateDeck({ ...draft, number: '' }, snapshot, deck2Id).number) })

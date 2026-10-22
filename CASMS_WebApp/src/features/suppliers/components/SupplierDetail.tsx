@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
+import { Modal } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
 import {
   supplierDateTime,
@@ -268,14 +269,27 @@ export function SupplierDetail({
 
       {/* Verification modal dialog */}
       {showVerifyModal && (
-        <div
-          className={styles.dialogOverlay}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="verify-dialog-title"
-        >
-          <div className={styles.dialogModal}>
-            <h3 id="verify-dialog-title">Xác minh nhà cung cấp</h3>
+        <Modal title="Xác minh nhà cung cấp" busy={actionInProgress === 'verify'} onClose={() => { setShowVerifyModal(false); setVerificationNotes('') }} footer={<div className={styles.dialogActions}>
+              <button
+                type="button"
+                className={styles.statusButton}
+                onClick={() => {
+                  setShowVerifyModal(false)
+                  setVerificationNotes('')
+                }}
+                disabled={actionInProgress === 'verify' || !access.has('SUPPLIER_VERIFY')} data-overlay-dismiss
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                className={styles.editButton}
+                onClick={handleConfirmVerify}
+                disabled={actionInProgress === 'verify' || !access.has('SUPPLIER_VERIFY')}
+              >
+                {actionInProgress === 'verify' ? 'Đang xác minh...' : 'Xác nhận'}
+              </button>
+            </div>}>
             <div className={styles.dialogBody}>
               <p>
                 <strong>Nhà cung cấp:</strong> {supplier.supplierName}
@@ -323,58 +337,20 @@ export function SupplierDetail({
                   value={verificationNotes}
                   onChange={(e) => setVerificationNotes(e.target.value)}
                 />
-              </div>
+              </div
+            >
             </div>
-            <div className={styles.dialogActions}>
-              <button
-                type="button"
-                className={styles.statusButton}
-                onClick={() => {
-                  setShowVerifyModal(false)
-                  setVerificationNotes('')
-                }}
-                disabled={actionInProgress === 'verify' || !access.has('SUPPLIER_VERIFY')}
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                className={styles.editButton}
-                onClick={handleConfirmVerify}
-                disabled={actionInProgress === 'verify' || !access.has('SUPPLIER_VERIFY')}
-              >
-                {actionInProgress === 'verify' ? 'Đang xác minh...' : 'Xác nhận'}
-              </button>
-            </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* Delete confirmation modal dialog */}
       {showDeleteModal && (
-        <div
-          className={styles.dialogOverlay}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="delete-dialog-title"
-        >
-          <div className={styles.dialogModal}>
-            <h3 id="delete-dialog-title">Xác nhận xóa nhà cung cấp</h3>
-            <div className={styles.dialogBody}>
-              <p>
-                Bạn có chắc chắn muốn xóa nhà cung cấp <strong>{supplier.supplierName}</strong>?
-              </p>
-              <p>
-                Thao tác này chỉ thực hiện được khi nhà cung cấp chưa được liên kết với bất kỳ tour tham
-                quan hay hợp đồng nào.
-              </p>
-            </div>
-            <div className={styles.dialogActions}>
+        <Modal title="Xác nhận xóa nhà cung cấp" busy={actionInProgress === 'delete'} onClose={() => setShowDeleteModal(false)} footer={<div className={styles.dialogActions}>
               <button
                 type="button"
                 className={styles.statusButton}
                 onClick={() => setShowDeleteModal(false)}
-                disabled={actionInProgress === 'delete' || !access.has('SUPPLIER_DELETE')}
+                disabled={actionInProgress === 'delete' || !access.has('SUPPLIER_DELETE')} data-overlay-dismiss
               >
                 Hủy
               </button>
@@ -389,9 +365,18 @@ export function SupplierDetail({
               >
                 {actionInProgress === 'delete' ? 'Đang xóa...' : 'Xác nhận xóa'}
               </button>
+            </div>}>
+            <div className={styles.dialogBody}>
+              <p>
+                Bạn có chắc chắn muốn xóa nhà cung cấp <strong>{supplier.supplierName}</strong>?
+              </p>
+              <p>
+                Thao tác này chỉ thực hiện được khi nhà cung cấp chưa được liên kết với bất kỳ tour tham
+                quan hay hợp đồng nào.
+              </p
+            >
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   )

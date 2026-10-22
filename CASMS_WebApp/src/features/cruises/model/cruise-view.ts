@@ -108,8 +108,8 @@ export const cruiseStatusLabels: Record<CruiseStatus, string> = {
 }
 
 export const cruiseTypeLabels: Record<CruiseType, string> = {
-  ONE_DAY: 'Một ngày',
-  MULTI_DAYS: 'Nhiều ngày',
+  ONE_DAY: 'Short Day · 1–2 ngày',
+  MULTI_DAYS: 'Long Days · 3–5 ngày',
 }
 
 export const itineraryStatusLabels: Record<ItineraryStatus, string> = {

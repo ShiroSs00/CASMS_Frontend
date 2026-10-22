@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router'
 
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, ButtonLink, Empty, Field, Loading, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Button, ButtonLink, Empty, Field, Loading, Modal, Notice, PageHeader, Panel, TechnicalDetails } from '@/shared/ui'
 
 import { itineraryApi, itineraryHistoryApi, type ItineraryHistoryEntry } from '../api/itinerary-api'
 import { ItineraryFrame } from '../components/ItineraryUI'
@@ -32,12 +32,12 @@ export function ItineraryHistoryPage() {
   const plan = plans.data?.find(item => item.itineraryId === itineraryId)
   async function submit(event: FormEvent) {
     event.preventDefault()
-    if (lock.current || !access.has('ITINERARY_CHANGE_RECORD') || !access.userId) return
+    if (lock.current || !access.has('ITINERARY_CHANGE_RECORD')) return
     if (!plan || stops.loading || stops.error || !changeType || !(changeType in types) || (stopId && !stops.data?.some(stop => stop.cruiseStopId === stopId)) || !summary.trim() || !reason.trim() || summary.trim().length > 1000 || reason.trim().length > 1000) { setError('Chọn lịch trình, loại thay đổi, mô tả và lý do hợp lệ (tối đa 1000 ký tự). Dữ liệu liên quan phải được tải đầy đủ.'); return }
     if (!confirmed) { setConfirmed(true); return }
     lock.current = true; setBusy(true); setError(''); setSuccess('')
     try {
-      await itineraryHistoryApi.append({ itineraryId, cruiseStopId: stopId || undefined, changedEntityType: stopId ? 'CruiseStop' : 'Itinerary', changedEntityId: stopId || itineraryId, changeType: changeType as keyof typeof types, changeSummary: summary, reason, changedByUserId: access.userId })
+      await itineraryHistoryApi.append({ itineraryId, cruiseStopId: stopId || undefined, changedEntityType: stopId ? 'CruiseStop' : 'Itinerary', changedEntityId: stopId || itineraryId, changeType: changeType as keyof typeof types, changeSummary: summary, reason })
       setRecording(false); setConfirmed(false); setSummary(''); setReason(''); setSuccess('Đã ghi vào nhật ký. Thao tác này không sửa dữ liệu lịch trình.'); history.retry()
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không ghi được nhật ký.'); setConfirmed(false) }
     finally { lock.current = false; setBusy(false) }
@@ -72,11 +72,11 @@ export function ItineraryHistoryPage() {
       <Field htmlFor="history-reason" label="Lý do"><textarea id="history-reason" required maxLength={1000} disabled={busy} value={reason} onChange={event => { setReason(event.target.value); setConfirmed(false) }} /></Field>
       {error && <Notice title="Không ghi được nhật ký" tone="error">{error}</Notice>}
       {confirmed && <Notice tone="warning" title="Xác nhận ghi nhật ký">{summary} · {reason}</Notice>}
-      <Button type="submit" disabled={busy || !access.userId || !access.has('ITINERARY_CHANGE_RECORD') || stops.loading || Boolean(stops.error)}>{busy ? 'Đang ghi…' : confirmed ? 'Xác nhận ghi nhật ký' : 'Kiểm tra và tiếp tục'}</Button>
+      <Button type="submit" disabled={busy || !access.has('ITINERARY_CHANGE_RECORD') || stops.loading || Boolean(stops.error)}>{busy ? 'Đang ghi…' : confirmed ? 'Xác nhận ghi nhật ký' : 'Kiểm tra và tiếp tục'}</Button>
     </form></Modal>}
   </ItineraryFrame>
 }
 
 function HistoryDetails({ entry }: { entry: ItineraryHistoryEntry }) {
-  return <dl><dt>Nội dung</dt><dd>{entry.changeSummary || 'Chưa có'}</dd><dt>Lý do</dt><dd>{entry.reason || 'Chưa có'}</dd><dt>Đối tượng</dt><dd>{entry.changedEntityType === 'CruiseStop' ? 'Điểm dừng' : entry.changedEntityType === 'Itinerary' ? 'Lịch trình' : 'Đối tượng khác'}</dd><dt>Thời điểm</dt><dd>{entry.changedAt ? new Date(entry.changedAt).toLocaleString('vi-VN') : 'Chưa có'}</dd><dt>Dữ liệu trước/sau</dt><dd>{entry.beforeData || entry.afterData ? 'Có dữ liệu đối chiếu trong bản ghi.' : 'Bản ghi chưa kèm dữ liệu đối chiếu.'}</dd></dl>
+  return <><dl><dt>Nội dung</dt><dd>{entry.changeSummary || 'Chưa có'}</dd><dt>Lý do</dt><dd>{entry.reason || 'Chưa có'}</dd><dt>Đối tượng</dt><dd>{entry.changedEntityType === 'CruiseStop' ? 'Điểm dừng' : entry.changedEntityType === 'Itinerary' ? 'Lịch trình' : 'Đối tượng khác'}</dd><dt>Thời điểm</dt><dd>{entry.changedAt ? new Date(entry.changedAt).toLocaleString('vi-VN') : 'Chưa có'}</dd><dt>Dữ liệu trước/sau</dt><dd>{entry.beforeData || entry.afterData ? 'Có dữ liệu đối chiếu trong bản ghi.' : 'Bản ghi chưa kèm dữ liệu đối chiếu.'}</dd></dl><TechnicalDetails entries={[["Bản ghi thay đổi", entry.changeHistoryId], ["Lịch trình", entry.itineraryId], ["Điểm dừng", entry.cruiseStopId], ["Người thay đổi", entry.changedByUserId]]} /></>
 }

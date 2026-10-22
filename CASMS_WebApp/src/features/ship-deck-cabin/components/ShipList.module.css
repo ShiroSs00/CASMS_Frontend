@@ -43,3 +43,14 @@
 .tableContainer .statePanel { border: 0; }
 .error { border-color: var(--status-danger); color: var(--text-primary); }
 .srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* OceVie desktop: use shared semantic presentation, retain feature behavior. */
+
+.titleRow { flex-wrap:wrap; }
+.titleRow h1 { font:600 clamp(28px,2.2vw,34px)/1.25 var(--ui-font); }
+.createButton,.content .button { border-radius:var(--ui-radius); max-width:100%; height:auto; padding:10px 18px; line-height:1.5; white-space:normal; }
+.filters { flex-wrap:wrap; }
+.metric { border-radius:var(--ui-panel-radius); padding:20px 24px; }
+.field { font-size:14px; line-height:1.5; }
+.tableContainer { max-width:100%; border-radius:12px; }
+.table th { font-size:13px; font-weight:600; }

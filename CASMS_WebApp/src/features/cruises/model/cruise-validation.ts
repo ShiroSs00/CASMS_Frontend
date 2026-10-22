@@ -6,7 +6,7 @@ const DISPLAY_TIME_ZONE = 'Asia/Ho_Chi_Minh'
 
 function scheduleInstant(value: string) {
   const hasTimeZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)
-  return new Date(hasTimeZone ? value : `${value}:00+07:00`)
+  return new Date(hasTimeZone ? value : `${value.length === 16 ? `${value}:00` : value}+07:00`)
 }
 
 function calendarDate(value: string) {
@@ -20,8 +20,25 @@ function calendarDate(value: string) {
   return `${part('year')}-${part('month')}-${part('day')}`
 }
 
+// Retain legacy transport codes ONE_DAY/MULTI_DAYS while applying the user
+// defined Short Day/Long Days ranges in FE. Include departure and return days.
+export function cruiseDurationDays(departureDatetime: string, returnDatetime: string): number | null {
+  const departure = scheduleInstant(departureDatetime)
+  const returning = scheduleInstant(returnDatetime)
+  if (!Number.isFinite(departure.getTime()) || !Number.isFinite(returning.getTime()) || returning <= departure) return null
+  const startDay = Date.parse(calendarDate(departureDatetime))
+  const endDay = Date.parse(calendarDate(returnDatetime))
+  return (endDay - startDay) / 86400000 + 1
+}
+
+export function inferCruiseType(departureDatetime: string, returnDatetime: string): CruiseType | '' {
+  const days = cruiseDurationDays(departureDatetime, returnDatetime)
+  return days !== null && days >= 1 && days <= 2 ? 'ONE_DAY'
+    : days !== null && days >= 3 && days <= 5 ? 'MULTI_DAYS' : ''
+}
+
 export function validateCruiseSchedule(
-  cruiseType: CruiseType,
+  cruiseType: CruiseType | '',
   departureDatetime: string,
   returnDatetime: string,
 ): CruiseFormErrors {
@@ -42,13 +59,10 @@ export function validateCruiseSchedule(
     return errors
   }
 
-  const sameDate = calendarDate(departureDatetime) === calendarDate(returnDatetime)
-  if (cruiseType === 'ONE_DAY' && !sameDate) {
-    errors.returnDatetime = 'Chuyến một ngày phải kết thúc trong cùng ngày khởi hành.'
-  }
-  if (cruiseType === 'MULTI_DAYS' && sameDate) {
-    errors.returnDatetime = 'Chuyến nhiều ngày phải kết thúc vào ngày sau ngày khởi hành.'
-  }
+  const inferred = inferCruiseType(departureDatetime, returnDatetime)
+  if (!inferred) errors.returnDatetime = 'Chuyến đi phải kéo dài từ 1 đến 5 ngày, tính cả ngày đi và ngày về.'
+  else if (cruiseType && cruiseType !== inferred) errors.cruiseType = inferred === 'ONE_DAY'
+    ? 'Hành trình 1–2 ngày thuộc Short Day.' : 'Hành trình 3–5 ngày thuộc Long Days.'
 
   return errors
 }
@@ -60,7 +74,7 @@ export function validateCruiseDraft(draft: CruiseDraft): CruiseFormErrors {
     draft.returnDatetime,
   )
 
-  if (!draft.cruiseCode.trim()) errors.cruiseCode = 'Mã chuyến là bắt buộc.'
+  if (draft.cruiseCode.trim().length > 20) errors.cruiseCode = 'Mã chuyến tối đa 20 ký tự.'
   if (!draft.cruiseName.trim()) errors.cruiseName = 'Tên hiển thị là bắt buộc.'
   if (!draft.departurePortId) errors.departurePortId = 'Vui lòng chọn cảng khởi hành.'
   if (!draft.returnPortId) errors.returnPortId = 'Vui lòng chọn cảng trở về.'

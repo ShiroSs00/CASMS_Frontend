@@ -110,19 +110,19 @@ export function RegulationDetailPage() {
         </aside>
       </div>
     </>}
-    {nextStatus && data && <Modal title={nextStatus === 'ACTIVE' ? 'Kích hoạt quy định?' : 'Ngừng kích hoạt quy định?'} description={`${data.regulation.code} · ${data.regulation.name}`} onClose={() => { if (!busy) setNextStatus(null) }}>
+    {nextStatus && data && <Modal busy={busy} title={nextStatus === 'ACTIVE' ? 'Kích hoạt quy định?' : 'Ngừng kích hoạt quy định?'} description={`${data.regulation.code} · ${data.regulation.name}`} onClose={() => { if (!busy) setNextStatus(null) }} footer={<div className={styles.modalActions}><Button tone="secondary" disabled={busy} onClick={() => setNextStatus(null)} data-overlay-dismiss>Quay lại</Button><Button disabled={busy || (nextStatus === 'ACTIVE' && !precheck?.canProceed)} onClick={() => void confirmStatus()}>Xác nhận</Button></div>}>
       {busy && <LoadingPanel label="Đang xử lý…" />}
       {precheck && <ConflictCard result={precheck} />}
       {error && <Notice title="Không thể cập nhật" tone="error">{error}</Notice>}
-      <div className={styles.modalActions}><Button tone="secondary" disabled={busy} onClick={() => setNextStatus(null)}>Quay lại</Button><Button disabled={busy || (nextStatus === 'ACTIVE' && !precheck?.canProceed)} onClick={() => void confirmStatus()}>Xác nhận</Button></div>
+
     </Modal>}
-    {deleteOpen && data && <Modal title="Xóa quy định?" description={`${data.regulation.code} · ${data.regulation.name}`} onClose={() => { if (!busy) setDeleteOpen(false) }}>
+    {deleteOpen && data && <Modal busy={busy} title="Xóa quy định?" description={`${data.regulation.code} · ${data.regulation.name}`} onClose={() => { if (!busy) setDeleteOpen(false) }} footer={<div className={styles.modalActions}>
+        <Button tone="secondary" disabled={busy} onClick={() => setDeleteOpen(false)} data-overlay-dismiss>Quay lại</Button>
+        <Button tone="danger" disabled={busy} onClick={() => void handleDelete()}>{busy ? 'Đang xóa…' : 'Xác nhận xóa'}</Button>
+      </div>}>
       <p>Backend chỉ cho phép xóa quy định khi chưa được gán cho bất kỳ tàu hoặc chuyến đi nào.</p>
       {error && <Notice title="Không thể xóa" tone="error">{error}</Notice>}
-      <div className={styles.modalActions}>
-        <Button tone="secondary" disabled={busy} onClick={() => setDeleteOpen(false)}>Quay lại</Button>
-        <Button tone="danger" disabled={busy} onClick={() => void handleDelete()}>{busy ? 'Đang xóa…' : 'Xác nhận xóa'}</Button>
-      </div>
+
     </Modal>}
   </AdminFrame>
 }

@@ -56,14 +56,14 @@ export function ExcursionActions({ excursion, onRefresh }: { excursion: ShoreExc
       <Field htmlFor="excursion-participants" label="Số khách cần kiểm tra"><input id="excursion-participants" type="number" min={1} max={2147483647} step={1} required disabled={mutation.busy} value={participants} onChange={(event) => { setParticipants(event.target.value); setReport('') }} /></Field>
       <Button type="submit" tone="secondary" disabled={mutation.busy || !access.has('EXCURSION_READ')}>Kiểm tra chỗ trống</Button>
     </form>}
-    {action && <Modal title={labels[action]} busy={mutation.busy} onClose={() => setAction(null)}>
+    {action && <Modal title={labels[action]} busy={mutation.busy} onClose={() => setAction(null)} footer={<div className={styles.actions}><Button tone="secondary" disabled={mutation.busy} onClick={() => setAction(null)} data-overlay-dismiss>Quay lại</Button><Button tone={action === 'cancel' || action === 'remove' ? 'danger' : 'primary'} disabled={mutation.busy || !access.has(permission(action)) || (action === 'cancel' && (!reason.trim() || reason.trim().length > 500))} onClick={() => void execute()}>{mutation.busy ? 'Đang xử lý…' : 'Xác nhận'}</Button></div>}>
       <p className={styles.text}>{excursion.excursionName}</p>
       {action === 'remove' ? <p>Chỉ có thể xóa chuyến tham quan đang lên kế hoạch và chưa có đăng ký. Hệ thống sẽ kiểm tra trước khi xóa.</p>
         : action === 'start' ? <p>Chỉ bắt đầu khi thời điểm hiện tại nằm trong khoảng thời gian diễn ra chuyến tham quan. Hệ thống kiểm tra điều kiện trước khi cập nhật.</p>
           : <p>Xác nhận thực hiện thao tác này?</p>}
       {action === 'cancel' && <Field htmlFor="excursion-cancel-reason" label="Lý do hủy (bắt buộc)"><textarea id="excursion-cancel-reason" required maxLength={500} disabled={mutation.busy} value={reason} onChange={(event) => setReason(event.target.value)} /></Field>}
       {mutation.error != null && <ShoreError error={mutation.error} />}
-      <div className={styles.actions}><Button tone="secondary" disabled={mutation.busy} onClick={() => setAction(null)}>Quay lại</Button><Button tone={action === 'cancel' || action === 'remove' ? 'danger' : 'primary'} disabled={mutation.busy || !access.has(permission(action)) || (action === 'cancel' && (!reason.trim() || reason.trim().length > 500))} onClick={() => void execute()}>{mutation.busy ? 'Đang xử lý…' : 'Xác nhận'}</Button></div>
+
     </Modal>}
   </Panel>
 }

@@ -1,3 +1,4 @@
+import { FormErrorSummary } from '@/shared/ui'
 import { useCallback, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useReadQuery } from '@/shared/api'
@@ -25,7 +26,7 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
   const [error, setError] = useState(''), [busy, setBusy] = useState(false)
   const lock = useRef(false), form = useRef<HTMLFormElement>(null)
   const allowed = access.has(catalogPermission(kind, initial ? 'update' : 'create'))
-  const fields: { key: keyof CatalogDraft; label: string; type?: string; maxLength?: number }[] = [{ key: 'code', label: 'Mã *', maxLength: 50 }, { key: 'name', label: 'Tên *', maxLength: 200 }, { key: 'type', label: 'Loại *', maxLength: 50 }, { key: 'price', label: kind === 'services' ? 'Giá (không bắt buộc)' : 'Giá *', type: 'number' }, { key: 'currency', label: kind === 'services' ? 'Mã tiền tệ' : 'Mã tiền tệ *', maxLength: 3 }, ...(kind === 'services' ? [{ key: 'capacity' as const, label: 'Sức chứa cấu hình', type: 'number' }] : []), ...(kind === 'packages' ? [{ key: 'startDate' as const, label: 'Có hiệu lực từ', type: 'date' }, { key: 'endDate' as const, label: 'Đến hết ngày', type: 'date' }] : [])]
+  const fields: { key: keyof CatalogDraft; label: string; type?: string; maxLength?: number }[] = [{ key: 'name', label: 'Tên *', maxLength: 200 }, { key: 'type', label: 'Loại *', maxLength: 50 }, { key: 'price', label: kind === 'services' ? 'Giá (không bắt buộc)' : 'Giá *', type: 'number' }, { key: 'currency', label: 'Mã tiền tệ (mặc định USD)', maxLength: 3 }, ...(kind === 'services' ? [{ key: 'capacity' as const, label: 'Sức chứa cấu hình', type: 'number' }] : []), ...(kind === 'packages' ? [{ key: 'startDate' as const, label: 'Có hiệu lực từ', type: 'date' }, { key: 'endDate' as const, label: 'Đến hết ngày', type: 'date' }] : [])]
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (lock.current || !allowed) return
@@ -37,6 +38,7 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
     finally { lock.current = false; setBusy(false) }
   }
   return <Panel title="Thông tin danh mục"><form ref={form} onSubmit={submit} noValidate className={styles.filters}>
+    <FormErrorSummary errors={errors} />
     {!allowed && <Notice title="Chưa có quyền lưu" tone="warning">{access.error || 'Đang tải quyền hoặc tài khoản chưa được cấp quyền thao tác này.'}</Notice>}
     {fields.map(field => <Field key={field.key} htmlFor={`catalog-${field.key}`} label={field.label} error={errors[field.key]}>
       {kind === 'packages' && field.key === 'type' ? <select id={`catalog-${field.key}`} name={field.key} value={draft.type} disabled={busy} onChange={event => setDraft({ ...draft, type: event.target.value })}><option value="">Chọn loại gói</option><option value="BASIC">Cơ bản</option><option value="PREMIUM">Cao cấp</option><option value="ADVANCED">Nâng cao</option></select>

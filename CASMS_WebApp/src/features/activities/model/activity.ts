@@ -14,7 +14,7 @@ export function activityTime(value: string | null) { return value && Number.isFi
 export function validateActivity(draft: ActivityDraft, cruises: CruiseOption[] | null): Record<string, string> {
   const errors: Record<string, string> = {}, cruise = cruises?.find(item => item.cruiseId === draft.cruiseId)
   if (!cruise) errors.cruiseId = 'Vui lòng chọn chuyến từ danh sách đã tải.'
-  if (!draft.activityCode.trim() || draft.activityCode.trim().length > 50) errors.activityCode = 'Mã hoạt động bắt buộc, tối đa 50 ký tự.'
+  if (draft.activityCode.trim().length > 50) errors.activityCode = 'Mã hoạt động tối đa 50 ký tự.'
   if (!draft.activityName.trim() || draft.activityName.trim().length > 200) errors.activityName = 'Tên hoạt động bắt buộc, tối đa 200 ký tự.'
   if (draft.description.length > 1000) errors.description = 'Mô tả tối đa 1000 ký tự.'
   if (draft.location.length > 250) errors.location = 'Địa điểm tối đa 250 ký tự.'

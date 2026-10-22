@@ -9,7 +9,7 @@ export function IssueTable({ issues }: { issues: OperationalIssue[] }) {
   const returnTo = `${location.pathname}${location.search}`
 
   return (
-    <div className={styles.tableViewport}>
+    <div className={styles.tableViewport} tabIndex={0} role="region" aria-label="Danh sách sự cố vận hành">
       <table className={styles.table}>
         <caption className={styles.visuallyHidden}>Danh sách sự cố vận hành</caption>
         <thead>

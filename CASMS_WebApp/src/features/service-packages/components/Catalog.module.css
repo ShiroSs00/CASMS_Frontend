@@ -9,3 +9,15 @@
 .definition dd { margin: 0; overflow-wrap: anywhere; }
 .benefits { display: grid; gap: 12px; padding-left: 22px; }
 .benefits a { color: var(--text-primary); text-underline-offset: 4px; }
+
+/* Existing catalog forms inherit shared field semantics and desktop spacing. */
+.filters:has(> button[type='submit']) { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.filters:has(> button[type='submit']) > :is(textarea,aside,button) { grid-column:1/-1; }
+@media(max-width:1100px) { .filters:has(> button[type='submit']) { grid-template-columns:minmax(0,1fr); } }
+.filters:has(> button[type='submit']) > section[aria-label='Thông tin cần kiểm tra'] { grid-column:1/-1; }
+.filters:has(> button[type='submit']) > div:has(> textarea) { grid-column:1/-1; }
+
+/* OceVie desktop: use shared semantic presentation, retain feature behavior. */
+.filters label { min-width:0; flex:1 1 220px; font-size:14px; line-height:1.5; }
+.navigation { gap:12px; }
+.navigation a { display:inline-flex; align-items:center; min-height:44px; border-radius:var(--ui-radius); }
