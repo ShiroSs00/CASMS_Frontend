@@ -5,11 +5,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { brand, lightTheme } from '@/constants/ocevie';
 import { MaterialIcon, type MaterialIconName } from './MaterialIcon';
 
-export type PassengerTab = 'home' | 'itinerary' | 'qr' | 'services' | 'account';
+export type PassengerTab = 'home' | 'itinerary' | 'bookings' | 'services' | 'account';
 export const passengerDestinations: { key: PassengerTab; route: string; label: string; icon: MaterialIconName; href: Href }[] = [
   { key: 'home', route: 'home', label: 'Trang chủ', icon: 'home', href: '/home' },
   { key: 'itinerary', route: 'itinerary', label: 'Hải trình', icon: 'sailing', href: '/itinerary' },
-  { key: 'qr', route: 'passenger-qr', label: 'Thẻ lên tàu', icon: 'qr_code_2', href: '/passenger-qr' },
+  { key: 'bookings', route: 'bookings', label: 'Đặt chỗ', icon: 'assignment_ind', href: '/passenger-bookings' },
   { key: 'services', route: 'services', label: 'Khám phá', icon: 'explore', href: '/services' },
   { key: 'account', route: 'account', label: 'Cá nhân', icon: 'person', href: '/account' },
 ];
@@ -34,7 +34,7 @@ export function PassengerNavigation({ selected, onSelect }: {
     <View accessibilityRole="tablist" accessibilityLabel="Điều hướng chính" style={styles.row}>
       {passengerDestinations.map(item => {
         const active = selected === item.key;
-        const pass = item.key === 'qr';
+        const pass = item.key === 'bookings';
         return <Pressable key={item.key} accessibilityRole="tab" accessibilityLabel={item.label}
           aria-selected={active} accessibilityState={{ selected: active }}
           onPress={() => onSelect(item.key, item.href)}

@@ -10,7 +10,7 @@ import { MaterialIcon } from './MaterialIcon';
 import { type PassengerTab } from './PassengerNavigation';
 export type { PassengerTab } from './PassengerNavigation';
 
-const titles: Record<PassengerTab, string> = { home: 'OceVie', itinerary: 'Hải trình', qr: 'Thẻ lên tàu', services: 'Khám phá', account: 'Cá nhân' };
+const titles: Record<PassengerTab, string> = { home: 'OceVie', itinerary: 'Hải trình', bookings: 'Đặt chỗ', services: 'Khám phá', account: 'Cá nhân' };
 export function PassengerScaffold({ children, selected = 'home', title, detail = false }: {
   children: ReactNode; selected?: PassengerTab; title?: string; detail?: boolean;
 }) {

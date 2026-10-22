@@ -1,8 +1,6 @@
-import { type ReactNode, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useReducedMotion } from 'react-native-reanimated';
-import { brand, lightTheme, overlays } from '@/constants/ocevie';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { brand, lightTheme } from '@/constants/ocevie';
 import { MaterialIcon, type MaterialIconName } from './MaterialIcon';
 import { PassengerButton } from './PassengerButton';
 
@@ -33,18 +31,7 @@ export function FilterChips<T extends string>({ items, selected, onSelect }: { i
     </Pressable>)}
   </ScrollView>;
 }
-export function PassengerSheet({ visible, title, children, onClose }: { visible: boolean; title: string; children: ReactNode; onClose: () => void }) {
-  const insets = useSafeAreaInsets(); const reduced = useReducedMotion();
-  return <Modal visible={visible} transparent animationType={reduced ? 'none' : 'fade'} onRequestClose={onClose}>
-    <View style={ui.overlay}><Pressable accessibilityRole="button" accessibilityLabel="Đóng bảng thông tin" onPress={onClose} style={StyleSheet.absoluteFill} />
-      <View accessibilityViewIsModal style={[ui.sheet, { paddingBottom: Math.max(insets.bottom, 20) }]}>
-        <View style={ui.handle} /><View style={ui.sectionHeading}><Text accessibilityRole="header" style={ui.sectionTitle}>{title}</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Đóng" onPress={onClose} style={ui.clear}><MaterialIcon name="close" color={brand.navy} size={22} /></Pressable></View>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={ui.sheetContent}>{children}</ScrollView>
-      </View>
-    </View>
-  </Modal>;
-}
+export { PassengerSheet } from './PassengerSheet';
 export const ui = StyleSheet.create({
   content: { flexGrow: 1, width: '100%', maxWidth: 600, alignSelf: 'center', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 28, gap: 24 },
   card: { backgroundColor: lightTheme.surface, borderRadius: 20, borderWidth: 1, borderColor: lightTheme.divider, padding: 20, gap: 12 },
@@ -68,8 +55,4 @@ export const ui = StyleSheet.create({
   chipSelected: { backgroundColor: brand.tealSoft, borderColor: brand.teal },
   chipText: { fontSize: 13, lineHeight: 20, color: lightTheme.textSecondary },
   chipTextSelected: { color: brand.tealDark, fontWeight: '600' },
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: overlays.modal },
-  sheet: { maxHeight: '88%', backgroundColor: lightTheme.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 10 },
-  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: lightTheme.border, alignSelf: 'center', marginBottom: 8 },
-  sheetContent: { gap: 20, paddingTop: 12, paddingBottom: 12 },
 });

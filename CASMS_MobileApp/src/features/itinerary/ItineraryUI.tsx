@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcon, type MaterialIconName } from '@/components/passenger/MaterialIcon';
 import { passengerLightColors as colors } from '@/constants/passenger-light-theme';
-import { overlays, statusColors } from '@/constants/ocevie';
+import { statusColors } from '@/constants/ocevie';
 import { voyage } from '@/constants/voyage';
 
 export function InfoRow({ title, subtitle, icon, onPress }: { title: string; subtitle: string; icon: MaterialIconName; onPress?: () => void }) {
@@ -54,17 +54,9 @@ export const styles = StyleSheet.create({
   bodyText: { fontSize: 14, lineHeight: 23, color: colors.onSurfaceVariant },
   centerText: { fontSize: 14, lineHeight: 23, color: colors.onSurfaceVariant, textAlign: 'center' },
   notice: { backgroundColor: colors.surfaceContainerHigh, borderRadius: 20, padding: 16 },
-  pressed: { opacity: .8, transform: [{ scale: .97 }], borderRadius: 16 },
+  pressed: { opacity: .8 },
   ports: { gap: 4 },
   empty: { paddingVertical: 50, alignItems: 'center', gap: 20 },
-  demo: { borderTopWidth: 1, borderTopColor: colors.outlineVariant, paddingTop: 12, gap: 12 },
-  demoChip: { borderRadius: 18, backgroundColor: colors.surfaceContainerHigh, padding: 12, minHeight: 44, justifyContent: 'center' },
-  modal: { flex: 1, justifyContent: 'flex-end', backgroundColor: overlays.modal },
-  sheet: { maxHeight: '88%', backgroundColor: colors.surfaceContainerLow, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingTop: 10, paddingHorizontal: 20 },
-  handle: { height: 4, width: 32, borderRadius: 4, backgroundColor: colors.outlineVariant, alignSelf: 'center', marginBottom: 6 },
-  sheetBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  close: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
-  sheetContent: { gap: 16, paddingBottom: 10 },
   sheetTitle: { fontFamily: voyage.heading, fontWeight: '600', fontSize: 25, lineHeight: 34, letterSpacing: -.7, color: colors.onSurface },
   facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 18, padding: 20, borderRadius: 20, backgroundColor: colors.surfaceContainerHigh },
   fact: { flex: 1, minWidth: 110, gap: 5 },

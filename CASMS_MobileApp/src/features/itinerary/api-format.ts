@@ -3,9 +3,22 @@ export function validTimeZone(value: string | null | undefined) {
   if (!value) return null;
   try { new Intl.DateTimeFormat('vi-VN', { timeZone: value }).format(); return value; } catch { return null; }
 }
+export function deviceTimeZone() {
+  try { return validTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone) ?? 'UTC'; }
+  catch { return 'UTC'; }
+}
+export function timeZoneLabel(value: string | null | undefined, at?: string) {
+  const zone = validTimeZone(value);
+  if (!zone) return 'UTC · Chưa có múi giờ tàu';
+  const date = at && Number.isFinite(Date.parse(at)) ? new Date(at) : new Date();
+  try {
+    const offset = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'shortOffset' }).formatToParts(date).find(part => part.type === 'timeZoneName')?.value.replace('GMT', 'UTC');
+    return offset ? `${offset} · ${zone}` : zone;
+  } catch { return zone; }
+}
 export function formatTime(value: string | null | undefined, timeZone: string | null, includeDate = false) {
   if (!value || !Number.isFinite(Date.parse(value))) return 'Chưa cập nhật';
-  return new Intl.DateTimeFormat('vi-VN', { timeZone: timeZone ?? 'UTC', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', ...(includeDate ? { day: '2-digit', month: '2-digit' } as const : {}) }).format(new Date(value));
+  return new Intl.DateTimeFormat('vi-VN', { timeZone: validTimeZone(timeZone) ?? 'UTC', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', ...(includeDate ? { day: '2-digit', month: '2-digit', year: 'numeric' } as const : {}) }).format(new Date(value));
 }
 export function formatDay(value: string) {
   const [year, month, day] = value.split('-');

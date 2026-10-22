@@ -6,7 +6,7 @@ import { api, ApiError } from '@/lib/api';
 import { queryClient } from '@/lib/query-client';
 import { readSession, toSession, type LoginDto, type Session } from './session-model';
 
-type AuthState = { status: 'restoring' | 'anonymous' | 'authenticated' | 'expired'; mode: 'live' | 'demo'; session: Session | null };
+type AuthState = { status: 'restoring' | 'anonymous' | 'authenticated' | 'expired'; mode: 'live'; session: Session | null };
 export const useAuth = create<AuthState>(() => ({ status: 'restoring', mode: 'live', session: null }));
 const KEY = 'aurora.auth.v1';
 let generation = 0;
@@ -91,5 +91,4 @@ export const authActions = {
     clear('anonymous');
     await save(null).catch(() => {});
   },
-  demo() { clear('anonymous'); useAuth.setState({ status: 'authenticated', mode: 'demo', session: null }); },
 };

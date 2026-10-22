@@ -1,8 +1,9 @@
-import { router } from 'expo-router';
+import { useMotionPreference } from '@/components/passenger/useMotionPreference';
+import { Redirect, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { cancelAnimation, Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import { AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { cancelAnimation, Easing, useAnimatedStyle,  useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { passengerColors as colors } from '@/constants/passenger-theme';
@@ -13,23 +14,34 @@ import { VoyageEntrance } from '@/components/passenger/VoyageEntrance';
 import { LaunchIndicator } from './LaunchIndicator';
 import { useAuth } from '@/features/auth/session-store';
 import { useItineraryCatalog } from '@/features/itinerary/itinerary-api';
+import { isOnboardStaff } from '@/features/staff-pos/staff-model';
 
-/** Wait for the live catalog request; demo mode retains an explicit preview delay. */
+/** Wait for authenticated itinerary data. */
 export function PassengerLoadingScreen() {
+  const roles = useAuth(state => state.session?.user.roles);
+  if (isOnboardStaff(roles)) return <Redirect href="/staff-pos" />;
+  return <PassengerJourneyLoading />;
+}
+function PassengerJourneyLoading() {
   const auth = useAuth();
   const catalog = useItineraryCatalog();
   const progress = useSharedValue(-60);
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useMotionPreference();
   useEffect(() => {
-    if (!reduceMotion) progress.set(withRepeat(withTiming(150, { duration: 1400, easing: Easing.bezier(.2, 0, 0, 1) }), -1));
-    return () => { cancelAnimation(progress); };
+    function update(state: string) {
+      cancelAnimation(progress);
+      progress.set(-60);
+      if (!reduceMotion && state === 'active') progress.set(withRepeat(withTiming(150, { duration: 1400, easing: Easing.bezier(.2, 0, 0, 1) }), -1));
+    }
+    update(AppState.currentState);
+    const subscription = AppState.addEventListener('change', update);
+    return () => { subscription.remove(); cancelAnimation(progress); };
   }, [progress, reduceMotion]);
   useEffect(() => {
     if (auth.status === 'restoring') return;
     if (auth.status !== 'authenticated') { router.replace('/login'); return; }
-    if (auth.mode === 'demo') { const timer = setTimeout(() => router.replace('/home'), 1200); return () => clearTimeout(timer); }
     if (catalog.isFetched) router.replace('/home');
-  }, [auth.status, auth.mode, catalog.isFetched]);
+  }, [auth.status, catalog.isFetched]);
   const moving = useAnimatedStyle(() => ({ transform: [{ translateX: reduceMotion ? 35 : progress.get() }] }));
   return <SafeAreaView style={styles.screen} onLayout={() => { void SplashScreen.hideAsync().catch(console.warn); }}>
     <ScrollView contentContainerStyle={styles.content} bounces={false}>
@@ -44,7 +56,7 @@ export function PassengerLoadingScreen() {
         <View style={styles.track} accessibilityRole="progressbar" accessibilityLabel="Đang tải hành trình" accessibilityState={{ busy: true }}><Animated.View style={[styles.segment, moving]} /></View>
         <Text style={styles.caption} accessibilityLiveRegion="polite">Đang tải thông tin chuyến đi…</Text>
       </View>
-      <Text style={[styles.caption, { textAlign: 'center' }]}>{auth.mode === 'demo' ? 'Trải nghiệm với dữ liệu minh họa' : 'YOUR VOYAGE, BEAUTIFULLY CONNECTED'}</Text>
+      <Text style={[styles.caption, { textAlign: 'center' }]}>OCEVIE CRUISES</Text>
     </ScrollView>
   </SafeAreaView>;
 }

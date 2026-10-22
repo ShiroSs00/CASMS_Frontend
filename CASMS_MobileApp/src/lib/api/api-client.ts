@@ -15,7 +15,7 @@ export async function readSection<T>(request: Promise<T>, label: string) {
     return { data: null, error: readErrorMessage(error, label) };
   }
 }
-export type RequestOptions = { method?: 'GET' | 'POST'; body?: unknown; query?: Record<string, string | number | undefined>; signal?: AbortSignal; authenticated?: boolean };
+export type RequestOptions = { method?: 'GET' | 'POST' | 'PUT' | 'DELETE'; body?: unknown; query?: Record<string, string | number | undefined>; signal?: AbortSignal; authenticated?: boolean };
 export function resolveApiUrl(configured: string | undefined, host: string | undefined, development: boolean) {
   if (configured?.trim()) {
     const url = new URL(configured.trim());
@@ -62,11 +62,11 @@ export function createApiClient(config: { baseUrl: () => string; fetch?: typeof 
         }
         // Ship/auth controllers wrap ApiResponse; activity/history controllers return raw JSON.
         if (typeof envelope?.success === 'boolean') return envelope.data as T;
-        if (!response.ok || payload === null || payload === undefined) throw new ApiError('Phản hồi API không hợp lệ.', response.status);
+        if (!response.ok || payload === null || payload === undefined) throw new ApiError('Không tải được dữ liệu. Vui lòng thử lại.', response.status);
         return payload as T;
       } catch (error) {
         if (error instanceof ApiError || options.signal?.aborted) throw error;
-        throw new ApiError(controller.signal.aborted ? 'Yêu cầu quá thời gian. Vui lòng thử lại.' : 'Không kết nối được backend. Kiểm tra server, Wi-Fi và địa chỉ API.', 0);
+        throw new ApiError(controller.signal.aborted ? 'Yêu cầu quá thời gian. Vui lòng thử lại.' : 'Không thể kết nối. Kiểm tra mạng và thử lại.', 0);
       } finally { clearTimeout(timer); options.signal?.removeEventListener('abort', abort); }
     },
   };
