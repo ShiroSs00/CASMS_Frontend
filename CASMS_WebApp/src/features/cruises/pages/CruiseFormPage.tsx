@@ -1,5 +1,7 @@
+import { FormErrorSummary } from '@/shared/ui'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
+import { useSessionAccess } from '@/shared/auth'
 
 import { Button, Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
 
@@ -12,7 +14,7 @@ import { validateCruiseDraft, type CruiseFormErrors } from '../model/cruise-vali
 const EMPTY_DRAFT: CruiseDraft = {
   cruiseCode: '',
   cruiseName: '',
-  cruiseType: 'ONE_DAY',
+  cruiseType: '',
   departureDatetime: '',
   returnDatetime: '',
   departurePortId: '',
@@ -25,6 +27,7 @@ function localInputValue(value: string) {
 }
 
 export function CruiseFormPage() {
+  const access = useSessionAccess()
   const { cruiseId } = useParams()
   const editing = Boolean(cruiseId)
   const navigate = useNavigate()
@@ -38,7 +41,7 @@ export function CruiseFormPage() {
   const [ports, setPorts] = useState<PortRecord[]>([])
   const [loadedId, setLoadedId] = useState<string | null>(null)
   const submitLock = useRef(false)
-  const canSave = !editing || (loadedId === cruiseId && currentStatus === 'DRAFT')
+  const canSave = access.has(editing ? 'CRUISE_UPDATE_DRAFT' : 'CRUISE_CREATE') && (!editing || (loadedId === cruiseId && currentStatus === 'DRAFT'))
 
   useEffect(() => {
     if (!cruiseId) return
@@ -116,10 +119,10 @@ export function CruiseFormPage() {
       <PageHeader breadcrumb="VẬN HÀNH / CRUISE" title={editing ? 'Chỉnh sửa cruise' : 'Tạo cruise'} description={editing ? 'Chỉnh sửa dữ liệu chuyến. Phân công tàu được kiểm tra và xác nhận trong luồng riêng.' : 'Tạo chuyến ở trạng thái DRAFT. Có thể phân công tàu sau khi lưu.'} />
       <form onSubmit={submit} noValidate>
         <Panel title="Thông tin chuyến">
+          <FormErrorSummary errors={errors} />
           <div className={styles.formGrid}>
-            <Field htmlFor="cruise-code" label="Mã chuyến" error={errors.cruiseCode}><input id="cruise-code" value={draft.cruiseCode} disabled={editing} aria-invalid={Boolean(errors.cruiseCode)} aria-describedby={errors.cruiseCode ? 'cruise-code-hint' : undefined} onChange={(event) => update('cruiseCode', event.target.value)} /></Field>
             <Field htmlFor="cruise-name" label="Tên hiển thị" error={errors.cruiseName}><input id="cruise-name" value={draft.cruiseName} aria-invalid={Boolean(errors.cruiseName)} aria-describedby={errors.cruiseName ? 'cruise-name-hint' : undefined} onChange={(event) => update('cruiseName', event.target.value)} /></Field>
-            <Field htmlFor="cruise-type-form" label="Loại chuyến"><select id="cruise-type-form" value={draft.cruiseType} onChange={(event) => update('cruiseType', event.target.value as CruiseType)}><option value="ONE_DAY">ONE_DAY · Một ngày</option><option value="MULTI_DAYS">MULTI_DAYS · Nhiều ngày</option></select></Field>
+            <Field htmlFor="cruise-type-form" label="Loại chuyến" error={errors.cruiseType}><select id="cruise-type-form" value={draft.cruiseType} onChange={(event) => update('cruiseType', event.target.value as CruiseType)}>{!editing && <option value="">Tự xác định theo số ngày chuyến</option>}<option value="ONE_DAY">Short Day · 1–2 ngày</option><option value="MULTI_DAYS">Long Days · 3–5 ngày</option></select></Field>
             <Field htmlFor="departure-time" label="Khởi hành" error={errors.departureDatetime}><input id="departure-time" type="datetime-local" value={draft.departureDatetime} aria-invalid={Boolean(errors.departureDatetime)} aria-describedby={errors.departureDatetime ? 'departure-time-hint' : undefined} onChange={(event) => update('departureDatetime', event.target.value)} /></Field>
             <Field htmlFor="return-time" label="Kết thúc" error={errors.returnDatetime}><input id="return-time" type="datetime-local" value={draft.returnDatetime} aria-invalid={Boolean(errors.returnDatetime)} aria-describedby={errors.returnDatetime ? 'return-time-hint' : undefined} onChange={(event) => update('returnDatetime', event.target.value)} /></Field>
             <Field htmlFor="cruise-form-status" label="Trạng thái"><input id="cruise-form-status" value={currentStatus} disabled /></Field>
@@ -127,7 +130,7 @@ export function CruiseFormPage() {
             <Field htmlFor="return-port" label="Cảng trở về" error={errors.returnPortId}><select id="return-port" value={draft.returnPortId} aria-invalid={Boolean(errors.returnPortId)} aria-describedby={errors.returnPortId ? 'return-port-hint' : undefined} onChange={(event) => update('returnPortId', event.target.value)}><option value="">Chọn cảng trở về</option>{ports.map((port) => <option value={port.portId} key={port.portId}>{port.portName}</option>)}</select></Field>
             <Field htmlFor="current-ship" label="Tàu hiện tại"><input id="current-ship" value={currentShip} disabled /></Field>
           </div>
-          <Notice title="Kiểm tra lịch theo loại chuyến"><p>ONE_DAY phải cùng ngày; MULTI_DAYS phải sang ngày sau; thời gian kết thúc luôn sau khởi hành.</p></Notice>
+          <Notice title="Kiểm tra lịch theo loại chuyến"><p>Short Day: 1–2 ngày. Long Days: 3–5 ngày. Tính cả ngày đi và ngày về theo giờ Việt Nam; thời gian kết thúc phải sau khởi hành.</p></Notice>
           <Notice title="Phân công tàu" tone="warning"><p>Gán, đổi hoặc gỡ tàu qua precheck riêng trên trang chi tiết. Lưu form không tự xác nhận assignment khi có conflict.</p></Notice>
           {editing && loadedId === cruiseId && currentStatus !== 'DRAFT' && <Notice title="Không thể sửa chuyến" tone="warning"><p>Chỉ chuyến ở trạng thái DRAFT mới được chỉnh sửa.</p></Notice>}
           {submitError && <Notice title="Không lưu được cruise" tone="error"><p>{submitError}</p></Notice>}

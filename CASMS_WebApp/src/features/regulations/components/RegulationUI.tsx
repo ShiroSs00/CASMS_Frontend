@@ -1,10 +1,10 @@
 import {
-  useEffect,
-  useRef,
-  type ButtonHTMLAttributes,
+  useId,
   type ReactNode,
 } from 'react'
 import { AdminShell } from '@/shared/ui/admin-v3'
+import { Badge, Button, Loading, Notice, Panel, PageHeader as SharedPageHeader, Field as SharedField, Modal as SharedModal } from '@/shared/ui'
+export { Button, Notice, Panel }
 
 import type {
   ConflictResult,
@@ -28,79 +28,12 @@ export function PageHeader({
   description: string
   actions?: ReactNode
 }) {
-  return (
-    <header className={styles.pageHeader}>
-      <h1>{title}</h1>
-      <p>{description}</p>
-      {actions ? <div className={styles.headerActions}>{actions}</div> : null}
-    </header>
-  )
+  return <SharedPageHeader title={title} description={description} actions={actions} breadcrumb="" />
 }
 
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  tone?: 'primary' | 'secondary' | 'danger' | 'text'
-}
-
-export function Button({
-  tone = 'primary',
-  className = '',
-  type = 'button',
-  ...props
-}: ButtonProps) {
-  return (
-    <button
-      className={`${styles.button} ${styles[`button_${tone}`]} ${className}`}
-      type={type}
-      {...props}
-    />
-  )
-}
-
-export function Field({
-  label,
-  htmlFor,
-  hint,
-  error,
-  children,
-}: {
-  label: string
-  htmlFor?: string
-  hint?: string
-  error?: string
-  children: ReactNode
-}) {
-  return (
-    <div className={styles.field}>
-      <label htmlFor={htmlFor}>{label}</label>
-      {children}
-      {error ? (
-        <span className={styles.fieldError} role="alert">
-          {error}
-        </span>
-      ) : hint ? (
-        <span className={styles.fieldHint}>{hint}</span>
-      ) : null}
-    </div>
-  )
-}
-
-export function Notice({
-  title,
-  children,
-  tone = 'info',
-  role,
-}: {
-  title: string
-  children: ReactNode
-  tone?: 'info' | 'success' | 'warning' | 'error' | 'neutral'
-  role?: 'alert' | 'status'
-}) {
-  return (
-    <div className={`${styles.notice} ${styles[`notice_${tone}`]}`} role={role}>
-      <strong>{title}</strong>
-      <div>{children}</div>
-    </div>
-  )
+export function Field({ htmlFor, ...props }: { label: string; htmlFor?: string; hint?: string; error?: string; children: ReactNode }) {
+  const fallbackId = useId()
+  return <div className={styles.field}><SharedField htmlFor={htmlFor ?? fallbackId} {...props} /></div>
 }
 
 export function StatusBadge({
@@ -112,98 +45,20 @@ export function StatusBadge({
     status in statusLabels
       ? statusLabels[status as RegulationStatus]
       : effectiveLabels[status as EffectiveStatus]
-  return (
-    <span className={`${styles.badge} ${styles[`badge_${status.toLowerCase()}`]}`}>
-      {label}
-    </span>
-  )
-}
-
-export function Panel({
-  title,
-  subtitle,
-  children,
-}: {
-  title?: string
-  subtitle?: string
-  children: ReactNode
-}) {
-  return (
-    <section className={styles.panel}>
-      {title ? <h2>{title}</h2> : null}
-      {subtitle ? <p className={styles.panelSubtitle}>{subtitle}</p> : null}
-      {children}
-    </section>
-  )
+  const tone = status === 'ACTIVE' || status === 'EFFECTIVE' ? 'success'
+    : status === 'DRAFT' || status === 'UPCOMING' ? 'info' : 'neutral'
+  return <Badge label={label} tone={tone} />
 }
 
 export function TableScroll({ children }: { children: ReactNode }) {
-  return <div className={styles.tableScroll}>{children}</div>
+  return <div className={styles.tableScroll} tabIndex={0} role="region" aria-label="Danh sách quy định">{children}</div>
 }
 
 export function LoadingPanel({ label = 'Đang tải quy định…' }: { label?: string }) {
-  return (
-    <div className={styles.loadingPanel} role="status">
-      <span className={styles.spinner} aria-hidden="true" />
-      <strong>{label}</strong>
-      <span>Vui lòng chờ trong giây lát.</span>
-    </div>
-  )
+  return <Loading label={label} />
 }
 
-export function Modal({
-  title,
-  description,
-  onClose,
-  children,
-  wide = false,
-}: {
-  title: string
-  description?: string
-  onClose: () => void
-  children: ReactNode
-  wide?: boolean
-}) {
-  const closeRef = useRef<HTMLButtonElement>(null)
-
-  useEffect(() => {
-    closeRef.current?.focus()
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
-
-  return (
-    <div className={styles.modalBackdrop} role="presentation">
-      <section
-        aria-describedby={description ? 'reg-dialog-description' : undefined}
-        aria-labelledby="reg-dialog-title"
-        aria-modal="true"
-        className={`${styles.modal} ${wide ? styles.modalWide : ''}`}
-        role="dialog"
-      >
-        <div className={styles.modalHeader}>
-          <div>
-            <h2 id="reg-dialog-title">{title}</h2>
-            {description ? <p id="reg-dialog-description">{description}</p> : null}
-          </div>
-          <button
-            aria-label="Đóng hộp thoại"
-            className={styles.closeButton}
-            onClick={onClose}
-            ref={closeRef}
-            type="button"
-          >
-            ×
-          </button>
-        </div>
-        {children}
-      </section>
-    </div>
-  )
-}
+export const Modal = SharedModal
 
 export function ConflictCard({ result }: { result: ConflictResult }) {
   const tone =

@@ -28,7 +28,7 @@ export function AssignHandlerForm({ open, currentHandlerId, pending, error, onCl
       onClose={onClose}
       footer={
         <>
-          <button className={styles.secondaryButton} disabled={pending} onClick={onClose} type="button">
+          <button className={styles.secondaryButton} disabled={pending} onClick={onClose} type="button" data-overlay-dismiss>
             Hủy
           </button>
           <button

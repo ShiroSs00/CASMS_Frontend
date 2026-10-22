@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useBookingDraft } from '../model/booking-context'
 import { bookingStatusLabel } from '../model/booking-scenarios'
 import type { Booking, Cruise } from '../model/booking-types'
-import { useBookingAction } from '../model/booking-state'
+import { useBookingAction } from '../model/booking-preview-state'
 import { Action, Badge, Feedback, Heading, Panel, Steps } from './BookingUI'
 import s from './Booking.module.css'
 export function PaymentContract({booking:b,cruise:c}:{booking:Booking;cruise:Cruise}) {

@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
+import { useReadQuery } from '@/shared/api'
+import { useSessionAccess } from '@/shared/auth'
 
 import { Badge, Button, Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
 
 import { AdminFrame } from '../components/AdminFrame'
 import { operationalIssuesApi } from '../api/operational-issues-api'
+import { issueLocationApi, validateIssueLocation } from '../api/location-lookup-api'
 import { ISSUE_SEVERITIES, ISSUE_TYPES, type IssueSeverity, type IssueType, type OperationalIssue } from '../model/issue'
 import styles from '../components/OperationalIssues.module.css'
 
@@ -29,6 +32,7 @@ const initialForm: FormData = {
 }
 
 export function IssueFormPage() {
+  const access = useSessionAccess()
   const { issueId } = useParams()
   const isEdit = Boolean(issueId)
   const navigate = useNavigate()
@@ -39,6 +43,10 @@ export function IssueFormPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const lock = useRef(false)
+  const ships = useReadQuery('issue-ships', issueLocationApi.ships)
+  const cruises = useReadQuery('issue-cruises', issueLocationApi.cruises)
+  const cabins = useReadQuery('issue-cabins', issueLocationApi.cabins)
+  const contextReady = !ships.loading && !cruises.loading && !cabins.loading && !ships.error && !cruises.error && !cabins.error
 
   useEffect(() => {
     if (!issueId) return
@@ -66,20 +74,19 @@ export function IssueFormPage() {
     return () => { active = false }
   }, [issueId])
 
-  const isBlockedEdit = isEdit && existingIssue && existingIssue.status !== 'OPEN'
+  const isBlockedEdit = isEdit && (!existingIssue || existingIssue.id !== issueId || existingIssue.status !== 'OPEN')
+  const allowed = access.has(isEdit ? 'OPERATIONAL_ISSUE_UPDATE' : 'OPERATIONAL_ISSUE_CREATE')
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    if (lock.current || isBlockedEdit) return
+    if (lock.current || isBlockedEdit || !allowed) return
 
-    if (!isEdit && !form.issueCode.trim()) {
-      setError('Vui lòng nhập mã sự cố.')
+    if (!isEdit && form.issueCode.trim().length > 30) {
+      setError('Mã sự cố tối đa 30 ký tự.')
       return
     }
-    if (!form.shipId.trim()) {
-      setError('Vui lòng nhập Ship ID.')
-      return
-    }
+    const locationError = !isEdit ? validateIssueLocation(form.shipId, form.cruiseId, form.cabinId, contextReady ? { ships: ships.data ?? [], cruises: cruises.data ?? [], cabins: cabins.data ?? [] } : null) : ''
+    if (locationError) { setError(locationError); return }
     if (!form.description.trim()) {
       setError('Vui lòng nhập mô tả sự cố.')
       return
@@ -92,10 +99,6 @@ export function IssueFormPage() {
     try {
       if (isEdit && issueId) {
         const updated = await operationalIssuesApi.update(issueId, {
-          shipId: form.shipId.trim(),
-          cruiseId: form.cruiseId.trim() || null,
-          cabinId: form.cabinId.trim() || null,
-          issueType: form.issueType,
           severity: form.severity,
           description: form.description.trim(),
         })
@@ -135,7 +138,11 @@ export function IssueFormPage() {
 
       {loading && <Loading label="Đang tải dữ liệu sự cố…" />}
 
-      {error && !isBlockedEdit && (
+      {!allowed && <Notice title="Chưa có quyền lưu sự cố" tone="warning">{access.status === 'loading' ? 'Đang tải quyền tài khoản…' : access.error || 'Tài khoản chưa có quyền thực hiện thao tác này.'}</Notice>}
+      {!isEdit && [ships, cruises, cabins].some(query => query.loading) && <Loading label="Đang tải danh mục tàu, chuyến và cabin…" />}
+      {!isEdit && ships.data?.length === 0 && <Notice title="Chưa có tàu để gắn sự cố">Cần có tàu trong danh mục trước khi báo cáo sự cố. <Link to="/admin/ships">Mở danh mục tàu</Link></Notice>}
+      {!isEdit && [ships, cruises, cabins].map((query, index) => query.error && <Notice key={index} title={`Không tải được ${['tàu', 'chuyến', 'cabin'][index]}`} tone="error">{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>)}
+      {error && (
         <Notice title="Lỗi thao tác" tone="error">
           <p>{error}</p>
         </Notice>
@@ -144,7 +151,7 @@ export function IssueFormPage() {
       {isBlockedEdit && (
         <Notice title="Không thể chỉnh sửa sự cố" tone="warning">
           <p>
-            Sự cố đang ở trạng thái <strong>{existingIssue?.status}</strong>. Backend chỉ cho phép chỉnh sửa sự cố khi ở trạng thái <strong>OPEN</strong>.
+            {existingIssue ? <>Sự cố đang ở trạng thái <strong>{existingIssue.status}</strong>. Chỉ có thể chỉnh sửa sự cố đang mở.</> : 'Chưa tải được hồ sơ sự cố để chỉnh sửa.'}
           </p>
           <Link className={styles.primaryButton} to={`/admin/issues/${issueId}`}>Quay lại chi tiết</Link>
         </Notice>
@@ -154,30 +161,18 @@ export function IssueFormPage() {
         <form onSubmit={handleSubmit}>
           <Panel title="Thông tin cơ bản">
             {isEdit && existingIssue && (
-              <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <div className={styles.readonlySummary}>
                 <span>Mã sự cố: <strong>{existingIssue.code}</strong> (chỉ đọc)</span>
                 <span>Trạng thái: <Badge label={existingIssue.status} tone="warning" /></span>
                 <span>Người báo cáo: <strong>{existingIssue.reportedBy.name}</strong></span>
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-              {!isEdit && (
-                <Field htmlFor="issue-code" label="Mã sự cố *">
-                  <input
-                    id="issue-code"
-                    required
-                    maxLength={30}
-                    placeholder="VD: ISS-101"
-                    value={form.issueCode}
-                    onChange={(e) => setForm((curr) => ({ ...curr, issueCode: e.target.value }))}
-                  />
-                </Field>
-              )}
-
+            <div className={styles.formGrid}>
               <Field htmlFor="issue-type" label="Loại sự cố *">
                 <select
                   id="issue-type"
+                  disabled={isEdit || busy}
                   value={form.issueType}
                   onChange={(e) => setForm((curr) => ({ ...curr, issueType: e.target.value as IssueType }))}
                 >
@@ -199,32 +194,16 @@ export function IssueFormPage() {
                 </select>
               </Field>
 
-              <Field htmlFor="ship-id" label="Ship ID *">
-                <input
-                  id="ship-id"
-                  required
-                  placeholder="UUID tàu"
-                  value={form.shipId}
-                  onChange={(e) => setForm((curr) => ({ ...curr, shipId: e.target.value }))}
-                />
+              <Field htmlFor="ship-id" label="Tàu *">
+                {isEdit ? <p>{existingIssue?.ship.name || 'Chưa tải được tên tàu'} (không đổi)</p> : <select id="ship-id" required disabled={busy || ships.loading || Boolean(ships.error)} value={form.shipId} onChange={event => setForm(current => ({ ...current, shipId: event.target.value, cruiseId: '', cabinId: '' }))}><option value="">Chọn tàu</option>{ships.data?.map(ship => <option key={ship.shipId} value={ship.shipId}>{ship.shipName} · {ship.shipCode}</option>)}</select>}
               </Field>
 
-              <Field htmlFor="cruise-id" label="Cruise ID (không bắt buộc)">
-                <input
-                  id="cruise-id"
-                  placeholder="UUID chuyến đi"
-                  value={form.cruiseId}
-                  onChange={(e) => setForm((curr) => ({ ...curr, cruiseId: e.target.value }))}
-                />
+              <Field htmlFor="cruise-id" label="Chuyến liên quan (không bắt buộc)">
+                {isEdit ? <p>{existingIssue?.cruise?.name || 'Không gắn chuyến'} (không đổi)</p> : <select id="cruise-id" disabled={busy || !form.shipId || cruises.loading || Boolean(cruises.error)} value={form.cruiseId} onChange={event => setForm(current => ({ ...current, cruiseId: event.target.value }))}><option value="">Không gắn chuyến</option>{cruises.data?.filter(cruise => cruise.shipId === form.shipId).map(cruise => <option key={cruise.cruiseId} value={cruise.cruiseId}>{cruise.cruiseName} · {cruise.cruiseCode}</option>)}</select>}
               </Field>
 
-              <Field htmlFor="cabin-id" label="Cabin ID (không bắt buộc)">
-                <input
-                  id="cabin-id"
-                  placeholder="UUID phòng / cabin"
-                  value={form.cabinId}
-                  onChange={(e) => setForm((curr) => ({ ...curr, cabinId: e.target.value }))}
-                />
+              <Field htmlFor="cabin-id" label="Cabin liên quan (không bắt buộc)">
+                {isEdit ? <p>{existingIssue?.cabin ? `Cabin ${existingIssue.cabin}` : 'Không gắn cabin'} (không đổi)</p> : <select id="cabin-id" disabled={busy || !form.shipId || cabins.loading || Boolean(cabins.error)} value={form.cabinId} onChange={event => setForm(current => ({ ...current, cabinId: event.target.value }))}><option value="">Không gắn cabin</option>{cabins.data?.filter(cabin => cabin.shipId === form.shipId).map(cabin => <option key={cabin.cabinId} value={cabin.cabinId}>Cabin {cabin.cabinNumber}</option>)}</select>}
               </Field>
             </div>
 
@@ -250,7 +229,7 @@ export function IssueFormPage() {
               >
                 Hủy
               </Button>
-              <Button type="submit" disabled={busy}>
+              <Button type="submit" disabled={busy || !allowed || isBlockedEdit || (!isEdit && (!contextReady || !ships.data?.length))}>
                 {busy ? 'Đang lưu…' : (isEdit ? 'Lưu thay đổi' : 'Tạo sự cố')}
               </Button>
             </div>

@@ -63,8 +63,8 @@ export function createMockCruiseAdapter() {
       pageCount,
       metrics: {
         draft: cruises.filter((cruise) => cruise.status === 'DRAFT').length,
-        pendingApproval: cruises.filter((cruise) => itineraryFixtures[cruise.cruiseId]?.status === 'PENDING_APPROVAL').length,
-        openForSale: cruises.filter((cruise) => itineraryFixtures[cruise.cruiseId]?.status === 'OPEN_FOR_SALE').length,
+        published: cruises.filter((cruise) => cruise.status === 'PUBLISHED').length,
+        completed: cruises.filter((cruise) => cruise.status === 'COMPLETED').length,
         inProgress: cruises.filter((cruise) => cruise.status === 'IN_PROGRESS').length,
       },
     }
@@ -153,7 +153,10 @@ export function createMockCruiseAdapter() {
     if (Object.keys(errors).length) throw new Error(Object.values(errors)[0])
     if (cruises.some((cruise) => cruise.cruiseCode.toLocaleLowerCase() === draft.cruiseCode.trim().toLocaleLowerCase())) throw new Error('Mã chuyến đã tồn tại.')
     const now = new Date().toISOString()
-    const cruise: CruiseRecord = { ...draft, cruiseCode: draft.cruiseCode.trim(), cruiseName: draft.cruiseName.trim(), cruiseId: crypto.randomUUID(), shipId: null, status: 'DRAFT', createdAt: now, updatedAt: now }
+    let sequence = cruises.length + 1
+    while (cruises.some(item => item.cruiseCode === `CRUISE-${String(sequence).padStart(3, '0')}`)) sequence++
+    const cruiseType = draft.cruiseType || (Math.floor((Date.parse(draft.returnDatetime) - Date.parse(draft.departureDatetime)) / 3600000) <= 24 ? 'ONE_DAY' : 'MULTI_DAYS')
+    const cruise: CruiseRecord = { ...draft, cruiseType, cruiseCode: draft.cruiseCode.trim() || `CRUISE-${String(sequence).padStart(3, '0')}`, cruiseName: draft.cruiseName.trim(), cruiseId: crypto.randomUUID(), shipId: null, status: 'DRAFT', createdAt: now, updatedAt: now }
     cruises = [...cruises, cruise]
     return clone(cruise)
   }
@@ -163,7 +166,7 @@ export function createMockCruiseAdapter() {
     const current = requireCruise(cruiseId)
     const errors = validateCruiseDraft(draft)
     if (Object.keys(errors).length) throw new Error(Object.values(errors)[0])
-    Object.assign(current, { ...draft, cruiseCode: current.cruiseCode, shipId: current.shipId, updatedAt: new Date().toISOString() })
+    Object.assign(current, { ...draft, cruiseType: draft.cruiseType || current.cruiseType, cruiseCode: current.cruiseCode, shipId: current.shipId, updatedAt: new Date().toISOString() })
     return clone(current)
   }
 

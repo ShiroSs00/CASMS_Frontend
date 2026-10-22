@@ -2,7 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router'
 
 import { AccessDeniedPage, AdminGuard, CustomerGuard, AuthConceptPage, LoginPage, SessionBoundary } from '@/features/auth'
 
-import { BookingProvider, CruiseSearchPage, CustomerCruiseDetailPage, TravellerDetailsPage, CabinExperiencePage, ReviewBookingPage, MyBookingsPage, BookingDetailPage, ManageBookingPage, TravellerDocumentsPage, OnlineCheckinPage, ArrivalTimePage, BoardingPassPage, PaymentContractPage, ChangeRequestPage } from '@/features/booking'
+import { CruiseSearchPage, CustomerCruiseDetailPage, TravellerDetailsPage, CabinExperiencePage, ReviewBookingPage, MyBookingsPage, BookingDetailPage, ManageBookingPage, TravellerDocumentsPage, OnlineCheckinPage, ArrivalTimePage, BoardingPassPage, PaymentContractPage, ChangeRequestPage, CustomerExperiencesPage } from '@/features/booking'
 
 import { HomePage } from '@/features/home'
 import { SupplierDetailPage, SupplierFormPage, SupplierListPage } from '@/features/suppliers'
@@ -17,6 +17,7 @@ import {
   ItineraryDetailPage,
   ItineraryFormPage,
   ItineraryListPage,
+  ItineraryHistoryPage,
   PortDetailPage,
   PortFormPage,
   PortListPage,
@@ -35,8 +36,43 @@ import {
 } from '@/features/ship-deck-cabin'
 
 import { PublicLayout } from './layouts/PublicLayout'
+import { AdminAccountLayout } from './layouts/AdminAccountLayout'
+import { BookingSessionLayout } from './layouts/BookingSessionLayout'
+import { ActivityListPage, ActivityDetailPage, ActivityFormPage, ActivityRegistrationPage } from '@/features/activities'
+import { ServiceListPage, ProductListPage, PackageListPage, ServiceRequestListPage, ServiceDetailPage, ProductDetailPage, PackageDetailPage, ServiceRequestDetailPage, ServiceFormPage, ProductFormPage, PackageFormPage, ServiceRequestFormPage, PackageAssignmentPage } from '@/features/service-packages'
+import { AdminWorkflowPage } from './pages/AdminWorkflowPage'
+import { AdminBookingListPage, AdminBookingDetailPage, AdminBookingCreatePage, AdminBookingLookupPage } from './pages/AdminBookingPages'
+import { BookingLookupPage } from '@/features/booking'
 
 const adminRoutes = [
+  { path: '/admin/bookings', Component: AdminBookingListPage },
+  { path: '/admin/bookings/lookup', Component: AdminBookingLookupPage },
+  { path: '/admin/bookings/new', Component: AdminBookingCreatePage },
+  { path: '/admin/bookings/:bookingId', Component: AdminBookingDetailPage },
+  { path: '/admin/activity-registrations', Component: ActivityRegistrationPage },
+  { path: '/admin/package-assignments', Component: PackageAssignmentPage },
+  { path: '/admin/service-requests/new', Component: ServiceRequestFormPage },
+  { path: '/admin/service-requests/:id/edit', Component: ServiceRequestFormPage },
+  { path: '/admin/services/new', Component: ServiceFormPage },
+  { path: '/admin/services/:id/edit', Component: ServiceFormPage },
+  { path: '/admin/products/new', Component: ProductFormPage },
+  { path: '/admin/products/:id/edit', Component: ProductFormPage },
+  { path: '/admin/service-packages/new', Component: PackageFormPage },
+  { path: '/admin/service-packages/:id/edit', Component: PackageFormPage },
+  { path: '/admin/itinerary-history', Component: ItineraryHistoryPage },
+  { path: '/admin/activities', Component: ActivityListPage },
+  { path: '/admin/activities/new', Component: ActivityFormPage },
+  { path: '/admin/activities/:activityId', Component: ActivityDetailPage },
+  { path: '/admin/activities/:activityId/edit', Component: ActivityFormPage },
+  { path: '/admin/services', Component: ServiceListPage },
+  { path: '/admin/services/:id', Component: ServiceDetailPage },
+  { path: '/admin/products', Component: ProductListPage },
+  { path: '/admin/products/:id', Component: ProductDetailPage },
+  { path: '/admin/service-packages', Component: PackageListPage },
+  { path: '/admin/service-packages/:id', Component: PackageDetailPage },
+  { path: '/admin/service-requests', Component: ServiceRequestListPage },
+  { path: '/admin/service-requests/:id', Component: ServiceRequestDetailPage },
+  { path: '/admin/workflow', Component: AdminWorkflowPage },
   { path: '/admin/tour-groups', Component: TourGroupListPage },
   { path: '/admin/tour-groups/new', Component: TourGroupFormPage },
   { path: '/admin/tour-groups/:groupId', Component: TourGroupDetailPage },
@@ -109,12 +145,13 @@ const adminRoutes = [
   },
 ]
 
-export const router = createBrowserRouter([{ Component: BookingProvider, children: [{ Component: SessionBoundary, children: [
+export const router = createBrowserRouter([{ Component: BookingSessionLayout, children: [{ Component: AdminAccountLayout, children: [{ Component: SessionBoundary, children: [
   { Component: AdminGuard, children: [...adminRoutes, { path: '/admin/*', element: <Navigate to="/admin" replace /> }] },
     { path: '/', Component: PublicLayout, children: [
     { index: true, Component: HomePage },
     { path: 'cruises', Component: CruiseSearchPage },
     { path: 'cruises/:cruiseId', Component: CustomerCruiseDetailPage },
+    { path: 'booking/lookup', Component: BookingLookupPage },
     { path: 'booking/travellers', Component: TravellerDetailsPage },
     { path: 'booking/cabin-experience', Component: CabinExperiencePage },
     { path: 'booking/review', Component: ReviewBookingPage },
@@ -122,6 +159,7 @@ export const router = createBrowserRouter([{ Component: BookingProvider, childre
       { path: 'my-bookings', Component: MyBookingsPage },
       { path: 'my-bookings/:bookingId', Component: BookingDetailPage },
       { path: 'my-bookings/:bookingId/manage', Component: ManageBookingPage },
+      { path: 'my-bookings/:bookingId/experiences', Component: CustomerExperiencesPage },
       { path: 'my-bookings/:bookingId/travellers', Component: TravellerDocumentsPage },
       { path: 'my-bookings/:bookingId/check-in', Component: OnlineCheckinPage },
       { path: 'my-bookings/:bookingId/arrival-time', Component: ArrivalTimePage },
@@ -133,4 +171,4 @@ export const router = createBrowserRouter([{ Component: BookingProvider, childre
   { path: '/login', Component: LoginPage },
     { path: '/403', Component: AccessDeniedPage },
   ...(['register', 'verify-email', 'forgot-password', 'reset-password', 'reservation-lookup', 'account-locked'] as const).map(kind => ({ path: '/' + kind, element: <AuthConceptPage key={kind} kind={kind} /> })),
-] }] }])
+] }] }] }])

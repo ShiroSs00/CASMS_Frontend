@@ -19,3 +19,12 @@
 .list { margin:0; padding-left:20px; font-size:14px; line-height:24px; }
 @media(max-width:1100px) { .grid,.definition { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:760px) { .grid,.twoColumns,.definition { grid-template-columns:1fr; } .actions { align-items:stretch; } .pagination { align-items:stretch; flex-direction:column; } }
+
+/* CRUD forms use at most two columns, preserving DOM field order. */
+.grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.actions { gap:12px; padding-top:20px; }
+@media(max-width:1000px) { .grid { grid-template-columns:minmax(0,1fr); } }
+
+/* OceVie desktop: use shared semantic presentation, retain feature behavior. */
+.link { display:inline-flex; align-items:center; min-height:44px; padding-block:8px; white-space:normal; overflow-wrap:anywhere; }
+.twoColumns { gap:24px; }

@@ -1,6 +1,5 @@
-import { Link } from 'react-router'
 import haLong from '../assets/ha-long.png'
 import styles from './Landing.module.css'
 export function HeroSection() {
-  return <section className={styles.hero}><img src={haLong} alt="Du thuyền giữa cảnh quan vịnh Hạ Long" /><div className={styles.heroShade} /><div className={styles.heroCopy}><p className={styles.eyebrow}>HÀNH TRÌNH TRÊN VỊNH</p><h1>Đi xa một chút.<br />Nghỉ sâu hơn một nhịp.</h1><p className={styles.heroSubtitle}>Khám phá du thuyền Hạ Long, Lan Hạ và Cát Bà với hành trình, cabin và trải nghiệm được kết nối từ lúc tìm chuyến đến ngày khởi hành.</p><div className={styles.heroActions}><Link className={styles.primary} to="/cruises">Tìm chuyến</Link><a className={styles.secondary} href="#destinations">Khám phá điểm đến</a></div></div></section>
+  return <section className={styles.hero} aria-labelledby="home-title"><img src={haLong} alt="Ảnh minh họa du thuyền giữa cảnh quan vịnh" /><div className={styles.heroShade} /><div className={styles.heroCopy}><p className={styles.eyebrow}>HÀNH TRÌNH OCVVIET</p><h1 id="home-title">Khám phá du thuyền.<br />Tìm nhịp nghỉ của bạn.</h1><p className={styles.heroSubtitle}>Xem hành trình đã công bố, chọn phòng và gửi yêu cầu đặt chỗ. Bắt đầu chuyến đi của bạn mà không cần đăng nhập.</p><div className={styles.heroActions}><a className={styles.primary} href="#cruise-finder">Tìm chuyến</a><a className={styles.secondary} href="#destinations">Cảm hứng điểm đến</a></div><p className={styles.heroCaption}>Ảnh minh họa · Thông tin chuyến đi xem trong danh mục</p></div></section>
 }

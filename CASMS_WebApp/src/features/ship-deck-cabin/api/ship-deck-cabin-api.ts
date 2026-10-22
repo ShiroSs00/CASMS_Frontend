@@ -5,7 +5,7 @@ import type {
   Ship, ShipCapacity, ShipDraft, ShipStatus,
 } from '../model/types'
 import type { AssignmentDto, CabinDto, CruiseDto, DeckDto, PageDto, ShipDto } from './dto'
-import type { ShipListState } from '../model/ship-list-types'
+import type { ShipListState, ShipSupplements, SupplementField } from '../model/ship-list-types'
 
 let revision = 0
 const listeners = new Set<() => void>()
@@ -18,7 +18,7 @@ const ship = (dto: ShipDto): Ship => ({
   createdAt: dto.createdAt, updatedAt: dto.updatedAt,
 })
 const deck = (dto: DeckDto): Deck => ({ id: dto.deckId, shipId: dto.shipId, number: dto.deckNumber,
-  name: dto.deckName ?? '', createdAt: dto.createdAt, updatedAt: dto.updatedAt })
+  name: dto.deckName ?? '', priceMultiplier: dto.priceMultiplier ?? 1.0, createdAt: dto.createdAt, updatedAt: dto.updatedAt })
 const cabin = (dto: CabinDto): Cabin => ({ id: dto.cabinId, shipId: dto.shipId, deckId: dto.deckId,
   number: dto.cabinNumber, type: dto.cabinType, capacity: dto.capacity, status: dto.status, accessible: dto.isAccessible })
 const cruise = (dto: CruiseDto): CruisePreview => ({ id: dto.cruiseId, code: dto.cruiseCode,
@@ -30,7 +30,7 @@ const checkedBoolean = (value: boolean): boolean => {
 const booleanResult = (value: boolean, title: string): CheckResult => ({
   allowed: checkedBoolean(value), tone: value ? 'success' : 'warning',
   title: `${title}: ${value ? 'Đáp ứng' : 'Chưa đáp ứng'}`,
-  message: value ? 'Backend xác nhận điều kiện kiểm tra được đáp ứng.' : 'Backend xác nhận điều kiện kiểm tra chưa được đáp ứng.',
+  message: value ? 'Điều kiện kiểm tra được đáp ứng.' : 'Điều kiện kiểm tra chưa được đáp ứng.',
 })
 
 // List endpoints expose pageable only. Retrieve every page before local UI filtering.
@@ -52,27 +52,33 @@ async function allPages<T>(path: string, signal?: AbortSignal): Promise<T[]> {
 export const shipDeckCabinApi = {
   subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
   getRevision: () => revision,
+  async listShips(signal: AbortSignal): Promise<Ship[]> {
+    return (await allPages<ShipDto>(paths.ships, signal)).map(ship)
+  },
   async loadShipList(signal: AbortSignal): Promise<ShipListState> {
     const ships = await allPages<ShipDto>(paths.ships, signal)
-    const items = await Promise.all(ships.map(async (dto) => {
-      const [capacity, ready, currentCruise] = await Promise.all([
-        shipDeckCabinApi.getShipCapacity(dto.shipId, signal),
-        apiRequest<boolean>(`${idPath('ships', dto.shipId)}/readiness`, { signal }),
-        shipDeckCabinApi.getCurrentCruise(dto.shipId, signal),
-      ])
-      return {
-        id: dto.shipId, name: dto.shipName, code: dto.shipCode, status: dto.status,
-        deckCount: capacity.actualDeckCount, cabinCount: capacity.actualCabinCount,
-        readiness: checkedBoolean(ready) ? 'READY' as const : 'ATTENTION' as const,
-        currentCruise,
-      }
-    }))
-    return { items, metrics: {
-      activeCount: items.filter((item) => item.status === 'ACTIVE').length,
-      maintenanceCount: items.filter((item) => item.status === 'MAINTENANCE').length,
-      configuredCabinCount: items.reduce((total, item) => total + item.cabinCount, 0),
-      attentionCount: items.filter((item) => item.readiness !== 'READY').length,
+    return { items: ships.map(dto => ({
+      id: dto.shipId, name: dto.shipName, code: dto.shipCode, status: dto.status,
+      capacity: { status: 'loading' }, readiness: { status: 'loading' }, currentCruise: { status: 'loading' },
+    })), metrics: {
+      activeCount: ships.filter(dto => dto.status === 'ACTIVE').length,
+      maintenanceCount: ships.filter(dto => dto.status === 'MAINTENANCE').length,
+      configuredCabinCount: ships.length ? null : 0, attentionCount: ships.length ? null : 0,
     } }
+  },
+  async loadShipListField<K extends SupplementField>(id: string, field: K, signal: AbortSignal): Promise<ShipSupplements[K]> {
+    const loaders: { [P in SupplementField]: () => Promise<ShipSupplements[P]> } = {
+      capacity: async () => {
+        const summary = await shipDeckCabinApi.getShipCapacity(id, signal)
+        if (!summary || ![summary.actualDeckCount, summary.actualCabinCount].every(value => Number.isInteger(value) && value >= 0)) {
+          throw new ApiError('Backend trả số boong/phòng không hợp lệ.', 200)
+        }
+        return { deckCount: summary.actualDeckCount, cabinCount: summary.actualCabinCount }
+      },
+      readiness: async () => checkedBoolean(await apiRequest<boolean>(`${idPath('ships', id)}/readiness`, { signal })) ? 'READY' : 'ATTENTION',
+      currentCruise: () => shipDeckCabinApi.getCurrentCruise(id, signal),
+    }
+    return loaders[field]()
   },
   async listSnapshot(signal?: AbortSignal): Promise<DataSnapshot> {
     const [ships, decks, cabins] = await Promise.all([
@@ -97,13 +103,13 @@ export const shipDeckCabinApi = {
     notify(); return saved
   },
   async saveDeck(draft: DeckDraft, id?: string) {
-    const body = { deckNumber: draft.number, deckName: draft.name.trim(), ...(!id ? { shipId: draft.shipId } : {}) }
+    const body = { deckNumber: !id && draft.number === '' ? undefined : draft.number, deckName: draft.name.trim(), priceMultiplier: draft.priceMultiplier ?? 1.0, ...(!id ? { shipId: draft.shipId } : {}) }
     const saved = deck(await apiRequest<DeckDto>(id ? idPath('decks', id) : paths.decks, { method: id ? 'PATCH' : 'POST', body }))
     notify(); return saved
   },
   async saveCabin(draft: CabinDraft, id?: string) {
     const body = { cabinType: draft.type, capacity: draft.capacity, isAccessible: draft.accessible,
-      ...(!id ? { shipId: draft.shipId, deckId: draft.deckId, cabinNumber: draft.number.trim(), status: draft.status } : {}) }
+      ...(!id ? { deckId: draft.deckId, cabinNumber: draft.number.trim(), status: draft.status } : {}) }
     const saved = cabin(await apiRequest<CabinDto>(id ? idPath('cabins', id) : paths.cabins, { method: id ? 'PATCH' : 'POST', body }))
     notify(); return saved
   },
@@ -124,7 +130,7 @@ export const shipDeckCabinApi = {
   },
   async validate(kind: EntityKind, id: string) {
     await apiRequest<void>(`${idPath(kind, id)}/validate`, { method: 'POST' })
-    return { tone: 'success', allowed: true, title: 'Cấu hình hợp lệ', message: 'Backend đã kiểm tra cấu hình thành công.' } satisfies CheckResult
+    return { tone: 'success', allowed: true, title: 'Cấu hình hợp lệ', message: kind === 'cabins' ? 'Cabin thuộc đúng boong và tàu đã đăng ký.' : 'Cấu hình đã được kiểm tra hợp lệ.' } satisfies CheckResult
   },
   async validateDeckShip(id: string, shipId: string) {
     return booleanResult(await apiRequest<boolean>(`${idPath('decks', id)}/validate-ship`, { query: { shipId } }), 'Boong thuộc tàu')
@@ -158,15 +164,7 @@ export const shipDeckCabinApi = {
       return (await apiRequest<CabinDto[]>(`${paths.cabins}/search`, { method: 'POST', body: query, signal })).map(cabin)
     } catch (error) {
       if (error instanceof ApiError && error.status >= 500) {
-        const allCabins = await allPages<CabinDto>(paths.cabins, signal)
-        return allCabins
-          .filter((item) => item.status === 'AVAILABLE')
-          .filter((item) => !query.shipId || item.shipId === query.shipId)
-          .filter((item) => !query.deckId || item.deckId === query.deckId)
-          .filter((item) => !query.cabinType || item.cabinType === query.cabinType)
-          .filter((item) => query.minCapacity === undefined || item.capacity >= query.minCapacity)
-          .filter((item) => query.isAccessible === undefined || item.isAccessible === query.isAccessible)
-          .map(cabin)
+        throw new ApiError('Chưa thể xác nhận danh sách cabin sẵn sàng. Vui lòng thử lại.', error.status, error.code)
       }
       throw error
     }
@@ -184,6 +182,11 @@ export const shipDeckCabinApi = {
       apiRequest<boolean>(`${base}/capacity-check`, { query: { requiredCapacity } }),
       apiRequest<boolean>(`${base}/compatibility-check`, { query: { requireAccessible } }),
     ])
-    return results.map((value, index) => booleanResult(value, ['Cabin khả dụng', 'Sức chứa', 'Hỗ trợ tiếp cận'][index]))
+    return results.map((value, index) => ({
+      ...booleanResult(value, ['Trạng thái sẵn sàng', 'Sức chứa', 'Hỗ trợ tiếp cận'][index]),
+      message: index === 0
+        ? `${value ? 'Cabin đang ở trạng thái Sẵn sàng.' : 'Cabin chưa ở trạng thái Sẵn sàng.'} Kết quả này không xác nhận chỗ cho một đặt chỗ hoặc chuyến đi cụ thể.`
+        : value ? 'Cabin đáp ứng yêu cầu đã chọn.' : 'Cabin chưa đáp ứng yêu cầu đã chọn. Vui lòng chọn cabin phù hợp hơn.',
+    }))
   },
 }

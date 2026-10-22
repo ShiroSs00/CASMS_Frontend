@@ -10,10 +10,10 @@ import { emptyShipFilters, filterShips } from '../model/ship-list-types'
 import { useShipList } from '../model/useShipList'
 import styles from '../components/ShipList.module.css'
 
-const repository = { load: shipDeckCabinApi.loadShipList }
+const repository = { load: shipDeckCabinApi.loadShipList, loadField: shipDeckCabinApi.loadShipListField }
 
 export function ShipListPage() {
-  const { state, retry } = useShipList(repository)
+  const { state, retry, retrySupplement } = useShipList(repository)
   const [pending, setPending] = useState(emptyShipFilters)
   const [applied, setApplied] = useState(emptyShipFilters)
   const reset = () => { setPending(emptyShipFilters); setApplied(emptyShipFilters) }
@@ -29,7 +29,7 @@ export function ShipListPage() {
       <ShipListFilters value={pending} onChange={setPending} onApply={() => setApplied({ ...pending })} onReset={reset} disabled={state.status !== 'data'} canReset={hasFilters(pending) || hasFilters(applied)} />
       {state.status === 'loading' && <div className={styles.statePanel} role="status" aria-live="polite">Đang tải danh sách tàu…</div>}
       {state.status === 'error' && <div className={`${styles.statePanel} ${styles.error}`} role="alert"><p>{state.message}</p><Button className={styles.button} onClick={retry}>Thử lại</Button></div>}
-      {state.status === 'data' && <><ShipListTable items={items} filtered={state.data.items.length > 0 && hasFilters(applied)} onReset={reset} /><p className={styles.srOnly} role="status">{items.length} tàu trong danh sách.</p></>}
+      {state.status === 'data' && <><ShipListTable items={items} filtered={state.data.items.length > 0 && hasFilters(applied)} onReset={reset} onRetry={retrySupplement} /><p className={styles.srOnly} role="status">{items.length} tàu trong danh sách.</p></>}
     </div>
   </AdminShell>
 }

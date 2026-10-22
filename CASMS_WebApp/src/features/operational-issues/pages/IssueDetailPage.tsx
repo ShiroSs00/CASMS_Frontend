@@ -1,4 +1,5 @@
 import { Link, useLocation, useParams } from 'react-router'
+import { useSessionAccess } from '@/shared/auth'
 
 import { AdminFrame } from '../components/AdminFrame'
 import { IssueActions } from '../components/IssueActions'
@@ -23,6 +24,7 @@ function formatDate(value: string) {
 }
 
 export function IssueDetailPage() {
+  const access = useSessionAccess()
   const { issueId } = useParams()
   const location = useLocation()
   const { state, reload } = useIssueDetail(issueId)
@@ -65,13 +67,15 @@ export function IssueDetailPage() {
                 · tạo {formatDate(state.issue.reportedAt)}
               </p>
             </div>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              {state.issue.status === 'OPEN' && (
+            <div className={styles.headerActions}>
+              {state.issue.status === 'OPEN' && access.has('OPERATIONAL_ISSUE_UPDATE') && (
                 <Link className={styles.secondaryButton} to={`/admin/issues/${state.issue.id}/edit`}>
                   Chỉnh sửa sự cố
                 </Link>
               )}
-              <Link className={styles.primaryButton} to={returnTo}>Quay lại issue list</Link>
+              <Link className={styles.secondaryButton} to={`/admin/ships/${state.issue.ship.id}`}>Xem tàu liên quan</Link>
+              {state.issue.cruise && <Link className={styles.secondaryButton} to={`/admin/cruises/${state.issue.cruise.id}`}>Xem chuyến liên quan</Link>}
+              <Link className={styles.primaryButton} to={returnTo}>Quay lại danh sách</Link>
             </div>
           </header>
           <div className={styles.detailGrid}>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSessionAccess } from '@/shared/auth'
 import { Link, useNavigate, useParams } from 'react-router'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { ApiError } from '@/shared/api/client'
@@ -15,6 +16,7 @@ import { SupplierForm } from '../components/SupplierForm'
 import styles from '../components/SupplierForm.module.css'
 
 export function SupplierFormPage() {
+  const access = useSessionAccess()
   const { supplierId } = useParams<{ supplierId: string }>()
   const navigate = useNavigate()
   const mode: SupplierFormMode = supplierId === undefined ? 'create' : 'edit'
@@ -63,6 +65,7 @@ export function SupplierFormPage() {
   }
 
   async function handleSubmit(values: SupplierFormValues) {
+    if (!access.has(mode === 'create' ? 'SUPPLIER_CREATE' : 'SUPPLIER_UPDATE')) { setApiError('Tài khoản chưa có quyền lưu nhà cung cấp.'); return }
     setIsSubmitting(true)
     setApiError(null)
     try {

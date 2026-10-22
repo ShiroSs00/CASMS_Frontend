@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { useSessionAccess } from '@/shared/auth'
+import { Button, Notice } from '@/shared/ui'
+import { operationalIssuesApi } from '../api/operational-issues-api'
 
 import { useIssueActions } from '../hooks/useIssueActions'
 import type { IssueAction } from '../model/issue-actions'
-import { getIssueActionAvailability } from '../model/issue-actions'
+import { getIssueActionAvailability, issueActionPermissions } from '../model/issue-actions'
 import type { OperationalIssue } from '../model/issue'
 import { AssignHandlerForm } from './actions/AssignHandlerForm'
 import { CloseIssueAction } from './actions/CloseIssueAction'
@@ -15,8 +18,8 @@ import styles from './OperationalIssues.module.css'
 const labels: Record<IssueAction, string> = {
   ASSIGN_HANDLER: 'Phân công người xử lý',
   START_HANDLING: 'Bắt đầu xử lý',
-  RECORD_RESOLUTION: 'Ghi nhận resolution',
-  VERIFY_RESOLUTION: 'Xác minh resolution',
+  RECORD_RESOLUTION: 'Ghi nhận phương án xử lý',
+  VERIFY_RESOLUTION: 'Xác minh phương án xử lý',
   CLOSE: 'Đóng sự cố',
   REOPEN: 'Mở lại sự cố',
 }
@@ -27,6 +30,10 @@ type Props = {
 }
 
 export function IssueActions({ issue, onChanged }: Props) {
+  const access = useSessionAccess()
+  const [validation, setValidation] = useState<{ tone: 'success' | 'error'; message: string } | null>(null)
+  const [validating, setValidating] = useState(false)
+  const validationLock = useRef(false)
   const [activeAction, setActiveAction] = useState<IssueAction | null>(null)
   const actions = useIssueActions(issue.id, onChanged)
   const availability = getIssueActionAvailability(issue)
@@ -43,13 +50,14 @@ export function IssueActions({ issue, onChanged }: Props) {
             <div key={action}>
               <button
                 className={index === 0 ? styles.primaryButton : styles.secondaryButton}
-                disabled={!availability[action].enabled || actions.pendingAction !== null}
+                disabled={!availability[action].enabled || actions.pendingAction !== null || !access.has(issueActionPermissions[action])}
                 onClick={() => { actions.clearFeedback(); setActiveAction(action) }}
                 title={availability[action].reason}
                 type="button"
               >
                 {labels[action]}
               </button>
+              {!access.has(issueActionPermissions[action]) && <p className={styles.actionHint}>Chưa có quyền thực hiện thao tác này.</p>}
               {!availability[action].enabled && availability[action].reason ? (
                 <p className={styles.actionHint}>{availability[action].reason}</p>
               ) : null}
@@ -59,6 +67,14 @@ export function IssueActions({ issue, onChanged }: Props) {
       ) : (
         <p>Không có thao tác phù hợp với trạng thái hiện tại.</p>
       )}
+
+      <Button tone="secondary" disabled={validating || !access.has('OPERATIONAL_ISSUE_READ')} onClick={() => {
+        if (validationLock.current || !access.has('OPERATIONAL_ISSUE_READ')) return
+        validationLock.current = true
+        setValidating(true); setValidation(null)
+        void operationalIssuesApi.validate(issue.id).then(() => setValidation({ tone: 'success', message: 'Hồ sơ và trạng thái sự cố hợp lệ.' })).catch((error: unknown) => setValidation({ tone: 'error', message: error instanceof Error ? error.message : 'Không kiểm tra được sự cố.' })).finally(() => { validationLock.current = false; setValidating(false) })
+      }}>{validating ? 'Đang kiểm tra…' : 'Kiểm tra hồ sơ sự cố'}</Button>
+      {validation && <Notice title="Kết quả kiểm tra" tone={validation.tone}>{validation.message}</Notice>}
 
       {actions.feedback ? (
         <div

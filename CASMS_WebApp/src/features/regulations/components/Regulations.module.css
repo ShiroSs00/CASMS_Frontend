@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap');
 
 .appShell {
   --reg-bg: #f5f7f9;
@@ -263,25 +262,14 @@
 .validationRail { display:flex; flex-direction:column; gap:10px; padding:18px; border:1px solid #d6dee4; border-radius:14px; }
 .validationRail button { width:100%; }
 .appShell { --reg-primary:#4b8af1; --reg-bg:#faf8f2; --reg-border:#d6dee4; --reg-text:#111820; --reg-muted:#51616f; min-height:100vh; background:#fff; color:var(--reg-text); font-family:Inter,ui-sans-serif,system-ui,sans-serif; }
-.skipLink { position:fixed; z-index:100; top:8px; left:8px; transform:translateY(-180%); padding:8px; background:#fff; color:#111820; }
-.skipLink:focus { transform:none; }
-.sidebar { position:fixed; inset:0 auto 0 0; z-index:10; display:flex; width:216px; flex-direction:column; gap:5px; padding:14px; overflow:auto; background:#123042; color:#fff; }
-.brand { font-size:24px; line-height:32px; letter-spacing:-.2px; }
-.brandCaption { margin-bottom:10px; color:#d4a84f; font-size:12px; line-height:18px; }
-.navLink { display:flex; width:188px; min-height:40px; align-items:center; padding:10px; border-radius:8px; color:#fff; font-size:14px; line-height:20px; text-decoration:none; }
-.navActive,.navLink:hover { background:#4b8af1; }
-.topbar { position:fixed; z-index:8; top:0; right:0; left:216px; display:flex; height:66px; align-items:center; justify-content:space-between; padding:14px; background:#fff; }
-.topbar > span { width:520px; padding:10px; border-radius:10px; background:#f5f2e9; color:#51616f; font-size:13px; }
-.topbar > b { min-width:110px; padding:6px 10px; border:1px solid #2f7d5c; border-radius:999px; color:#2f7d5c; font-size:12px; font-weight:400; text-align:center; }
-.main { min-width:0; margin-left:216px; padding:94px 28px 56px; }
 .pageHeader { position:relative; max-width:1168px; gap:4px; margin:0 auto 18px; }
-.pageHeader h1 { margin:0; max-width:830px; font-family:"DM Serif Display",Georgia,serif; font-size:48px; font-weight:400; line-height:56px; letter-spacing:-.2px; }
+.pageHeader h1 { margin:0; max-width:830px; font-size:28px; font-weight:700; line-height:36px; letter-spacing:-.2px; }
 .pageHeader p { max-width:830px; color:#51616f; font-size:14px; line-height:20px; }
 .headerActions { position:absolute; top:0; right:0; }
 .button { min-height:42px; padding:10px 18px; border-radius:8px; border-color:#d6dee4; font-size:13px; font-weight:600; }
 .button_primary { border-color:#4b8af1; background:#4b8af1; }
 .panel { max-width:1168px; margin:0 auto 14px; padding:18px; border-radius:14px; }
-.panel h2 { font-size:24px; line-height:32px; letter-spacing:-.2px; }
+.panel h2 { font-size:20px; line-height:28px; letter-spacing:-.2px; font-weight:600; }
 .filters { gap:12px; }
 .field input,.field select,.field textarea,.protectedValue { min-height:42px; border-color:#d6dee4; border-radius:8px; }
 .tableScroll { border:1px solid #d6dee4; border-radius:14px; }
@@ -293,14 +281,41 @@
 .detailItem { border-color:#d6dee4; }
 .notice { border-radius:14px; background:#fff; }
 .modal { border-radius:14px; }
-.modalHeader h2 { font-family:"DM Serif Display",Georgia,serif; font-size:36px; font-weight:400; line-height:44px; }
+.modalHeader h2 { font-size:24px; font-weight:600; line-height:32px; }
 
 @media(max-width:760px) {
   .regulationColumns { grid-template-columns:1fr; }
-  .sidebar { position:static; width:100%; }
-  .navLink { width:auto; }
-  .topbar { display:none; }
-  .main { margin-left:0; padding:24px 16px 48px; }
-  .pageHeader h1 { font-size:38px; line-height:46px; }
+  .pageHeader h1 { font-size:24px; line-height:32px; }
   .headerActions { position:static; }
 }
+
+
+/* Shared field/modal primitives supply interaction semantics. */
+.formGrid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.field { min-width:0; }
+.tableScroll { max-width:100%; overscroll-behavior-inline:contain; }
+.tableScroll th { font-size:13px; }
+.tableScroll td { font-size:14px; line-height:1.5; }
+@media(max-width:1100px) { .formGrid { grid-template-columns:minmax(0,1fr); } }
+
+/* OceVie desktop: use shared semantic presentation, retain feature behavior. */
+
+.appShell { --reg-primary:var(--ui-brand); --reg-bg:var(--ui-subtle); --reg-border:var(--ui-border); --reg-text:var(--ui-ink); --reg-muted:var(--ui-muted); background:var(--ui-subtle); font-family:var(--ui-font); }
+.regulationColumns { grid-template-columns:minmax(0,2fr) minmax(260px,1fr); gap:24px; max-width:none; }
+.summaryBadges { max-width:none; margin-bottom:24px; }
+.tableScroll { border-color:var(--ui-border); border-radius:12px; }
+.table th { padding:16px; background:var(--ui-subtle); color:var(--ui-muted); font-weight:600; }
+.table td { padding:16px; border-bottom:1px solid var(--ui-border); overflow-wrap:anywhere; }
+.table tbody tr:nth-child(even) { background:var(--ui-surface); }
+.table tbody tr:hover { background:var(--ui-subtle); }
+.linkButton { display:inline-flex; align-items:center; min-height:44px; padding:8px; border-radius:var(--ui-radius); }
+.linkButton:hover:not(:disabled) { background:var(--ui-subtle); }
+.candidateRow,.protectedValue { border-radius:var(--ui-radius); }
+.candidateRow { min-width:0; padding:16px; }
+.candidateRow > * { min-width:0; overflow-wrap:anywhere; }
+.validationRail { padding:24px; border-color:var(--ui-border); border-radius:var(--ui-panel-radius); }
+.scopeBadge { color:var(--ui-ink); }
+.formActions { gap:12px; padding-top:20px; border-top:1px solid var(--ui-border); }
+.detailItem dd,.regulationFacts dd { overflow-wrap:anywhere; }
+@media(max-width:1100px) { .regulationColumns { grid-template-columns:minmax(0,1fr); } }
+

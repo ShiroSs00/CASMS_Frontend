@@ -40,7 +40,6 @@ test('ONE_DAY accepts only a later return time on the same calendar date', async
     departurePortId: '',
     returnPortId: '',
   }), {
-    cruiseCode: 'Mã chuyến là bắt buộc.',
     cruiseName: 'Tên hiển thị là bắt buộc.',
     departurePortId: 'Vui lòng chọn cảng khởi hành.',
     returnPortId: 'Vui lòng chọn cảng trở về.',

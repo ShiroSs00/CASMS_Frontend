@@ -19,9 +19,9 @@ export type ItinerarySummary = {
   status: ItineraryStatus
   startDate: string
   endDate: string
-  dayCount: number
-  portCallCount: number
-  seaDayCount: number
+  dayCount: number | null
+  portCallCount: number | null
+  seaDayCount: number | null
   routeLabel: string
   schedule: Array<{
     day: number
@@ -49,8 +49,8 @@ export type CruiseListResult = {
   metrics: {
     conflict?: number
     draft: number
-    pendingApproval: number
-    openForSale: number
+    published: number
+    completed: number
     inProgress: number
   }
 }
@@ -85,6 +85,8 @@ export type IssueSummary = {
 }
 
 export type CruiseDetailView = CruiseListItem & {
+  supplementaryErrors?: Record<string, string>
+  supplementaryLoading?: boolean
   capacity: CapacitySummary
   readiness: {
     state: 'READY' | 'BLOCKED' | 'UNKNOWN'
@@ -106,8 +108,8 @@ export const cruiseStatusLabels: Record<CruiseStatus, string> = {
 }
 
 export const cruiseTypeLabels: Record<CruiseType, string> = {
-  ONE_DAY: 'Một ngày',
-  MULTI_DAYS: 'Nhiều ngày',
+  ONE_DAY: 'Short Day · 1–2 ngày',
+  MULTI_DAYS: 'Long Days · 3–5 ngày',
 }
 
 export const itineraryStatusLabels: Record<ItineraryStatus, string> = {

@@ -1,4 +1,4 @@
-import { CruiseSearch, CruiseDetail } from '../components/CruiseDiscovery'
-export function CruiseSearchPage(){return <CruiseSearch/>}
-export function CustomerCruiseDetailPage(){return <CruiseDetail/>}
+import { LiveCruiseSearch, LiveCruiseDetail } from '../components/LiveCruiseCatalog'
 
+export function CruiseSearchPage() { return <LiveCruiseSearch /> }
+export function CustomerCruiseDetailPage() { return <LiveCruiseDetail /> }

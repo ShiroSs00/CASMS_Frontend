@@ -1,33 +1,13 @@
+import { Badge } from '@/shared/ui'
 import type { IssueSeverity, IssueStatus } from '../model/issue'
 import { issueSeverityLabels, issueStatusLabels } from '../model/issue'
-import styles from './OperationalIssues.module.css'
 
-const statusClasses: Record<IssueStatus, string> = {
-  OPEN: styles.statusOpen,
-  IN_PROGRESS: styles.statusProgress,
-  RESOLVED: styles.statusResolved,
-  CLOSED: styles.statusClosed,
-}
-
-const severityClasses: Record<IssueSeverity, string> = {
-  LOW: styles.severityLow,
-  MEDIUM: styles.severityMedium,
-  HIGH: styles.severityHigh,
-  CRITICAL: styles.severityCritical,
-}
+const statusTones = { OPEN: 'error', IN_PROGRESS: 'info', RESOLVED: 'success', CLOSED: 'success' } as const
+const severityTones = { LOW: 'success', MEDIUM: 'warning', HIGH: 'warning', CRITICAL: 'error' } as const
 
 export function IssueStatusBadge({ status }: { status: IssueStatus }) {
-  return (
-    <span className={`${styles.statusBadge} ${styles.tableBadge} ${statusClasses[status]}`}>
-      {issueStatusLabels[status]}
-    </span>
-  )
+  return <Badge label={issueStatusLabels[status]} tone={statusTones[status]} />
 }
-
 export function IssueSeverityBadge({ severity }: { severity: IssueSeverity }) {
-  return (
-    <span className={`${styles.statusBadge} ${styles.tableBadge} ${severityClasses[severity]}`}>
-      {issueSeverityLabels[severity]}
-    </span>
-  )
+  return <Badge label={issueSeverityLabels[severity]} tone={severityTones[severity]} />
 }

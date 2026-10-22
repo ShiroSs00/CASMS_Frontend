@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Button, ButtonLink, PageHeader } from '@/shared/ui'
 
 import { AdminFrame } from '../components/AdminFrame'
 import { IssueListState } from '../components/IssueListState'
@@ -29,16 +29,10 @@ export function IssueListPage() {
 
   return (
     <AdminFrame>
-      <header className={styles.pageHeader}>
-        <div>
-          <h1 className={styles.pageTitle}>Sự cố vận hành</h1>
-          <p className={styles.pageDescription}>Triage nhanh theo mức độ, trạng thái và ngữ cảnh tàu/chuyến.</p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button className={styles.secondaryButton} onClick={() => setReportOpen(true)}>Báo cáo nhanh</button>
-          <Link className={styles.primaryButton} to="/admin/issues/new">Báo cáo sự cố</Link>
-        </div>
-      </header>
+      <PageHeader title="Sự cố vận hành" breadcrumb="" description="Triage nhanh theo mức độ, trạng thái và ngữ cảnh tàu/chuyến." actions={<>
+        <Button tone="secondary" onClick={() => setReportOpen(true)}>Báo cáo nhanh</Button>
+        <ButtonLink to="/admin/issues/new">Báo cáo sự cố</ButtonLink>
+      </>} />
 
       <IssueMetrics totals={state.data?.statusTotals ?? null} />
       <IssueSearchFilters

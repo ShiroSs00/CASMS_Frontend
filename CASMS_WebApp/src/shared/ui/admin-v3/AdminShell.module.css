@@ -63,7 +63,7 @@
 .groupLabel { margin: 0; padding: 0 12px 4px; }
 .navItem { display: flex; align-items: center; min-height: 40px; padding: 8px 12px; border-radius: 8px; color: var(--text-inverse); font-weight: 500; line-height: 20px; text-decoration: none; overflow-wrap: anywhere; }
 a.navItem:hover { background: rgb(255 255 255 / 10%); }
-.navItem.active, a.navItem.active:hover { background: var(--action-secondary); }
+.navItem.active, a.navItem.active:hover { background: var(--action-secondary); box-shadow: inset 3px 0 #d8bc80; }
 .navItem[aria-disabled='true'] { cursor: default; }
 .mainColumn { min-width: 0; }
 .topbar { display: flex; min-width: 0; min-height: 68px; align-items: center; gap: 16px; padding: 16px 32px; border-bottom: 1px solid var(--border-default); background: var(--surface-default); font-family: var(--font-body); }
@@ -76,3 +76,21 @@ a.navItem:hover { background: rgb(255 255 255 / 10%); }
   .topbar { padding-inline: 24px; }
   .main { padding-inline: 24px; }
 }
+
+/* DESIGN-ONLY: retain the single navigation source and readable desktop density. */
+.shell { grid-template-columns:248px minmax(0,1fr); }
+.mainColumn { display:flex; flex-direction:column; min-height:100dvh; }
+.main { flex:1; padding-block:32px 48px; }
+.topbar { min-height:68px; flex-wrap:wrap; }
+.navItem { min-height:44px; line-height:1.5; }
+.navItem[aria-disabled='true'] { color:#a8bdcc; background:transparent; font-weight:400; }
+.navItem.active { color:#fff; }
+.navItem:active:not([aria-disabled='true']) { background:#144c62; }
+.groupLabel { color:#bed0dc; letter-spacing:.06em; }
+.brand { letter-spacing:-.02em; }
+@media(max-width:1100px) { .shell { grid-template-columns:224px minmax(0,1fr); } }
+@media(max-width:760px) { .shell { grid-template-columns:minmax(0,1fr); } .sidebar { position:relative; height:auto; max-height:40dvh; } .topbar { padding:16px; } .main { padding:24px 16px; } }
+
+.context { display:flex; flex-wrap:wrap; align-items:center; column-gap:8px; }
+.contextSection { color:var(--text-primary); font-weight:600; }
+.navItem:focus-visible { outline-offset:-3px; }

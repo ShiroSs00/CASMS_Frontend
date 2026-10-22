@@ -20,7 +20,7 @@ export function CloseIssueAction({ open, pending, error, onClose, onSubmit }: Pr
       onClose={onClose}
       footer={
         <>
-          <button className={styles.secondaryButton} disabled={pending} onClick={onClose} type="button">
+          <button className={styles.secondaryButton} disabled={pending} onClick={onClose} type="button" data-overlay-dismiss>
             Quay lại
           </button>
           <button

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSessionAccess } from '@/shared/auth'
 import { Link, useNavigate, useParams } from 'react-router'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { ApiError } from '@/shared/api/client'
@@ -8,6 +9,8 @@ import { SupplierDetail } from '../components/SupplierDetail'
 import styles from '../components/SupplierDetail.module.css'
 
 export function SupplierDetailPage() {
+  const access = useSessionAccess()
+  const lock = useRef(false)
   const { supplierId } = useParams<{ supplierId: string }>()
   const navigate = useNavigate()
   const [supplier, setSupplier] = useState<SupplierListItem | null>(null)
@@ -57,7 +60,8 @@ export function SupplierDetailPage() {
   }
 
   async function handleToggleStatus() {
-    if (!supplier) return
+    if (!supplier || lock.current || !access.has('SUPPLIER_STATUS_CHANGE')) return
+    lock.current = true
     const isActivating = supplier.status === 'INACTIVE'
     const actionKey = isActivating ? 'activate' : 'deactivate'
     setActionInProgress(actionKey)
@@ -90,12 +94,13 @@ export function SupplierDetailPage() {
         })
       }
     } finally {
-      setActionInProgress(null)
+      lock.current = false; setActionInProgress(null)
     }
   }
 
   async function handleValidate() {
-    if (!supplier) return
+    if (!supplier || lock.current || !access.has('SUPPLIER_VALIDATE')) return
+    lock.current = true
     setActionInProgress('validate')
     setActionFeedback(null)
     try {
@@ -114,12 +119,13 @@ export function SupplierDetailPage() {
         })
       }
     } finally {
-      setActionInProgress(null)
+      lock.current = false; setActionInProgress(null)
     }
   }
 
   async function handleVerify(request: SupplierVerificationRequest) {
-    if (!supplier) return
+    if (!supplier || lock.current || !access.has('SUPPLIER_VERIFY')) throw new Error('Chưa thể xác minh nhà cung cấp.')
+    lock.current = true
     setActionInProgress('verify')
     setActionFeedback(null)
     try {
@@ -141,13 +147,15 @@ export function SupplierDetailPage() {
           message: 'Không thể ghi nhận kết quả xác minh. Vui lòng thử lại.',
         })
       }
+      throw err
     } finally {
-      setActionInProgress(null)
+      lock.current = false; setActionInProgress(null)
     }
   }
 
   async function handleDelete() {
-    if (!supplier) return
+    if (!supplier || lock.current || !access.has('SUPPLIER_DELETE')) return
+    lock.current = true
     setActionInProgress('delete')
     setActionFeedback(null)
     try {
@@ -167,7 +175,7 @@ export function SupplierDetailPage() {
           message: 'Không thể xóa nhà cung cấp. Vui lòng thử lại.',
         })
       }
-      setActionInProgress(null)
+      lock.current = false; setActionInProgress(null)
     }
   }
 
@@ -191,7 +199,7 @@ export function SupplierDetailPage() {
           </div>
         </section>
       ) : supplier ? (
-        <SupplierDetail
+        <><Link className={styles.statusButton} to={`/admin/shore-excursions?supplierId=${supplier.id}`}>Các chuyến tham quan của nhà cung cấp</Link><SupplierDetail
           supplier={supplier}
           actionInProgress={actionInProgress}
           actionFeedback={actionFeedback}
@@ -200,7 +208,7 @@ export function SupplierDetailPage() {
           onValidate={handleValidate}
           onVerify={handleVerify}
           onDelete={handleDelete}
-        />
+        /></>
       ) : null}
     </AdminShell>
   )

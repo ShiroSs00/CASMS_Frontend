@@ -1,5 +1,4 @@
-import { BookingFlow } from '../components/BookingFlow'
-export function TravellerDetailsPage(){return <BookingFlow step={1}/>}
-export function CabinExperiencePage(){return <BookingFlow step={2}/>}
-export function ReviewBookingPage(){return <BookingFlow step={3}/>}
-
+import { RealBookingCreatePage } from './RealBookingCreatePage'
+export function TravellerDetailsPage(){return <RealBookingCreatePage step={2}/>}
+export function CabinExperiencePage(){return <RealBookingCreatePage step={1}/>}
+export function ReviewBookingPage(){return <RealBookingCreatePage step={3}/>}
