@@ -16,3 +16,15 @@
 .hint { color: var(--text-secondary); }
 @media (max-width: 900px) { .filters, .form { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .facts { grid-template-columns: 1fr; gap: 6px; } .facts dd { margin-bottom: 12px; } }
+
+/* OceVie desktop: use shared semantic presentation, retain feature behavior. */
+
+.form { gap:24px; }
+.filters { gap:16px; }
+.filters label { font-size:14px; line-height:1.5; }
+.actions { gap:12px; }
+.form > .actions { grid-column:1/-1; padding-top:20px; border-top:1px solid var(--ui-border); }
+.link { display:inline-flex; align-items:center; min-height:44px; padding-block:8px; overflow-wrap:anywhere; }
+.hint { font-size:13px; line-height:1.5; }
+@media(max-width:1100px) { .filters { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:760px) { .filters { grid-template-columns:minmax(0,1fr); } }

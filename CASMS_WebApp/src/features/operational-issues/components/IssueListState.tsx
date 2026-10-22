@@ -1,3 +1,4 @@
+import { Button } from '@/shared/ui'
 import styles from './OperationalIssues.module.css'
 
 type Props = {
@@ -21,14 +22,14 @@ export function IssueListState({ kind, message, onRetry, onReset }: Props) {
       <h2>{title}</h2>
       <p>{message === 'Internal server error' ? 'Máy chủ chưa xử lý được yêu cầu. Vui lòng thử lại hoặc liên hệ quản trị viên.' : message ?? description}</p>
       {kind === 'error' && onRetry ? (
-        <button className={styles.secondaryButton} onClick={onRetry} type="button">
+        <Button tone="secondary" onClick={onRetry} type="button">
           Thử lại
-        </button>
+        </Button>
       ) : null}
       {kind === 'no-results' && onReset ? (
-        <button className={styles.secondaryButton} onClick={onReset} type="button">
+        <Button tone="secondary" onClick={onReset} type="button">
           Đặt lại bộ lọc
-        </button>
+        </Button>
       ) : null}
     </section>
   )

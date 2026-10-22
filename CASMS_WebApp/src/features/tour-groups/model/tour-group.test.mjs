@@ -36,9 +36,9 @@ test('form maps only request DTO fields and roundtrips instants and empty option
   for (const key of ['status', 'tourGroupId', 'assignedPassengers', 'availableCapacity', 'excursionName', 'actualDepartureTime', 'actualReturnTime', 'groupName']) assert.equal(key in request, false)
 })
 
-test('form validates request constraints and the service-required meeting point', () => {
+test('form permits inherited group defaults and validates explicit overrides', () => {
   const errors = validateGroupForm(emptyGroupForm)
-  for (const key of ['shoreExcursionId', 'groupCode', 'maximumCapacity', 'meetingPoint']) assert.ok(errors[key])
+  for (const key of ['shoreExcursionId']) assert.ok(errors[key])
   const invalid = validateGroupForm({ ...groupToForm(fixture), maximumCapacity: '1.5', groupCode: 'x'.repeat(51), guideId: 'invalid', notes: 'x'.repeat(501), assemblyTime: 'invalid' })
   for (const key of ['maximumCapacity', 'groupCode', 'guideId', 'notes', 'assemblyTime']) assert.ok(invalid[key])
   assert.throws(() => formToGroupRequest(emptyGroupForm))

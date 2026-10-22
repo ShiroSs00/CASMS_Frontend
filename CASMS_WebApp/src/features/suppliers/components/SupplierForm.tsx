@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Button, Field } from '@/shared/ui'
+import { Button, Field, FormErrorSummary } from '@/shared/ui'
 import {
   supplierFormFieldOrder,
   supplierFormFields,
@@ -86,6 +86,7 @@ export function SupplierForm({
       noValidate
       aria-label={mode === 'create' ? 'Thêm nhà cung cấp' : 'Chỉnh sửa nhà cung cấp'}
     >
+      {submitted && <FormErrorSummary errors={errors} />}
       <h2>Nhà cung cấp</h2>
       <div className={styles.fieldRow}>
         {input('supplierName')}

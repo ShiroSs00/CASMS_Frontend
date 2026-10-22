@@ -1,3 +1,4 @@
+import { TechnicalDetails } from '@/shared/ui'
 import { useCallback, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ApiError, useReadQuery } from '@/shared/api'
@@ -75,13 +76,13 @@ function ExcursionDetail({ id }: { id: string }) {
 }
 function ExcursionFacts({ item }: { item: ShoreExcursion }) {
   const facts: [string, string | number][] = [
-    ['ID chuyến tham quan', item.shoreExcursionId], ['ID điểm dừng', item.cruiseStopId], ['Nhà cung cấp', item.supplierName], ['ID nhà cung cấp', item.supplierId],
+    ['Mã chuyến tham quan', item.excursionCode ?? 'Chưa có mã'], ['Nhà cung cấp', item.supplierName],
     ['Bắt đầu', displayTime(item.startTime)], ['Trở về dự kiến', displayTime(item.plannedReturnTime)], ['Điểm tập trung', item.meetingPoint],
     ['Số khách tối thiểu', item.minimumParticipants ?? 'Chưa đặt'], ['Sức chứa tối đa', item.maximumCapacity], ['Đã đăng ký', item.registeredParticipants], ['Chỗ còn lại', item.availableCapacity],
     ['Giá', item.price === null ? 'Chưa đặt' : `${item.price.toLocaleString('vi-VN')}${item.currencyCode ? ` ${item.currencyCode}` : ''}`],
     ['Lý do hủy', item.cancellationReason ?? '—'], ['Ngày tạo', displayTime(item.createdAt)], ['Cập nhật', displayTime(item.updatedAt)],
   ]
-  return <Panel title="Thông tin chuyến tham quan"><dl className={styles.facts}>{facts.map(([label, value]) => <div key={label} style={{ display: 'contents' }}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></Panel>
+  return <Panel title="Thông tin chuyến tham quan"><dl className={styles.facts}>{facts.map(([label, value]) => <div key={label} style={{ display: 'contents' }}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><TechnicalDetails entries={[["Chuyến tham quan", item.shoreExcursionId], ["Điểm dừng", item.cruiseStopId], ["Nhà cung cấp", item.supplierId]]} /></Panel>
 }
 
 export function ShoreExcursionFormPage() {

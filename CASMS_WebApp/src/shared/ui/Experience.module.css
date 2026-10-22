@@ -1,0 +1,48 @@
+/* Semantic aliases are scoped to the existing web shells and their overlays. */
+.admin, .booking, .overlay {
+  --ui-ink: var(--text-primary, #0b2a4a);
+  --ui-muted: var(--text-secondary, #506777);
+  --ui-surface: var(--surface-default, #fff);
+  --ui-subtle: var(--surface-subtle, #f4f7f8);
+  --ui-border: var(--border-default, #d5e0e4);
+  --ui-brand: var(--surface-brand, #0b2a4a);
+  --ui-accent: #ca9632;
+  --ui-focus: #0e6b7a;
+  --ui-danger: #b42318;
+  --ui-radius: 10px;
+  --ui-panel-radius: 14px;
+  --ui-control-height: 44px;
+  --ui-font: 'OceVie Inter', Inter, 'Segoe UI', system-ui, sans-serif;
+  --ui-shadow: 0 2px 8px rgb(6 23 37 / 4%);
+  font-family: var(--ui-font);
+  line-height: 1.5;
+}
+.booking { --ui-subtle: var(--color-cream-50, #fffaf0); --ui-control-height: 48px; }
+.admin :where(form, fieldset, section), .booking :where(form, fieldset, section) { min-width: 0; }
+.admin :where(input, select, textarea, button), .booking :where(input, select, textarea, button), .overlay :where(input, select, textarea, button) { font-family: var(--ui-font); }
+.admin :where(input, select, textarea), .booking :where(input, select, textarea), .overlay :where(input, select, textarea) { scroll-margin-block: 100px; }
+.admin :where(:focus-visible), .booking :where(:focus-visible), .overlay :where(:focus-visible) { outline: 3px solid var(--ui-focus); outline-offset: 3px; }
+.admin :where(textarea), .booking :where(textarea), .overlay :where(textarea) { resize: vertical; }
+.admin :where(a), .booking :where(a), .overlay :where(a) { text-underline-offset: 4px; }
+.admin :where(details > summary), .booking :where(details > summary), .overlay :where(details > summary) { cursor: pointer; padding-block: 10px; min-height: 44px; }
+.admin :where(button, a), .booking :where(button, a), .overlay :where(button, a) { touch-action: manipulation; }
+@media (prefers-reduced-motion: reduce) {
+  .admin *, .booking *, .overlay * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+/* P5 scoped control normalization, including feature-local legacy fields. */
+.admin :is(form,section,dialog) :is(input:not([type='checkbox']):not([type='radio']):not([type='hidden']),select,textarea),
+.overlay :is(input:not([type='checkbox']):not([type='radio']):not([type='hidden']),select,textarea) { min-width:0; max-width:100%; min-height:44px; border:1px solid #8297a4; border-radius:10px; padding:10px 12px; background:var(--ui-surface); color:var(--ui-ink); font:400 14px/1.5 var(--ui-font); }
+.booking :is(form,section) :is(input:not([type='checkbox']):not([type='radio']):not([type='hidden']),select,textarea) { min-width:0; max-width:100%; min-height:48px; border-radius:10px; font-family:var(--ui-font); font-size:16px; line-height:1.5; }
+.admin :is(form,section,dialog) :is(input,textarea)[readonly], .overlay :is(input,textarea)[readonly] { background:var(--ui-subtle); color:var(--ui-ink); cursor:text; }
+.admin :is(form,section,dialog) :is(input,select,textarea):disabled, .overlay :is(input,select,textarea):disabled { background:#edf1f3; color:#506777; border-color:#c4d0d7; opacity:1; cursor:not-allowed; }
+.admin :is(form,section,dialog) :is(input,select,textarea)[aria-invalid='true'], .overlay :is(input,select,textarea)[aria-invalid='true'] { border:2px solid var(--ui-danger); }
+.admin :is(form,section) label, .overlay label { font-size:14px; line-height:1.5; }
+.admin :is(form,section) :is(input[type='checkbox'],input[type='radio']), .booking :is(input[type='checkbox'],input[type='radio']), .overlay :is(input[type='checkbox'],input[type='radio']) { accent-color:var(--ui-focus); width:20px; height:20px; min-height:20px; flex-shrink:0; }
+.admin :where(button), .overlay :where(button) { min-height:44px; }
+
+/* P1 follow-up: readable secondary content without changing field semantics. */
+.admin :where(input,textarea)::placeholder, .booking :where(input,textarea)::placeholder, .overlay :where(input,textarea)::placeholder { color:var(--ui-muted); opacity:1; }
+.admin :where(select), .booking :where(select), .overlay :where(select) { text-overflow:ellipsis; }
+.admin :where(fieldset), .booking :where(fieldset) { min-inline-size:0; }
+.admin :where(button,a,input,select,textarea), .booking :where(button,a,input,select,textarea), .overlay :where(button,a,input,select,textarea) { -webkit-tap-highlight-color:transparent; }

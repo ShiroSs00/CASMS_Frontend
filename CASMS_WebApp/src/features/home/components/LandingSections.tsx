@@ -9,7 +9,7 @@ export function CruiseFinder() {
   const [params, setParams] = useSearchParams()
   const cruiseType = homeCruiseType(params.get('cruiseType'))
   return <section className={styles.finderWrap} id="cruise-finder" aria-labelledby="finder-title"><div className={styles.finderHeading}><h2 id="finder-title">Tìm chuyến du thuyền</h2><p id="finder-help">Chọn loại hành trình; xem ngày khởi hành và phòng trống ở từng chuyến.</p></div><form className={styles.finder} onSubmit={event => { event.preventDefault(); navigate(homeCruiseSearch(cruiseType)) }}>
-    <label><span id="home-cruise-type-label">Loại hành trình</span><select aria-labelledby="home-cruise-type-label" aria-describedby="finder-help" name="cruiseType" value={cruiseType} onChange={event => { const query = new URLSearchParams(params); if (event.target.value) query.set('cruiseType', event.target.value); else query.delete('cruiseType'); setParams(query, { replace: true, preventScrollReset: true }) }}><option value="">Tất cả hành trình</option><option value="ONE_DAY">Trong ngày</option><option value="MULTI_DAYS">Nhiều ngày</option></select></label>
+    <label><span id="home-cruise-type-label">Loại hành trình</span><select aria-labelledby="home-cruise-type-label" aria-describedby="finder-help" name="cruiseType" value={cruiseType} onChange={event => { const query = new URLSearchParams(params); if (event.target.value) query.set('cruiseType', event.target.value); else query.delete('cruiseType'); setParams(query, { replace: true, preventScrollReset: true }) }}><option value="">Tất cả hành trình</option><option value="ONE_DAY">Short Day · 1–2 ngày</option><option value="MULTI_DAYS">Long Days · 3–5 ngày</option></select></label>
     <button type="submit" className={styles.primary}>Tìm chuyến</button><Link className={styles.textLink} to="/booking/lookup">Đã có mã? Tra cứu đặt chỗ</Link>
   </form></section>
 }
@@ -30,7 +30,4 @@ export function BookingJourney() {
 }
 export function FinalCta() {
   return <section className={styles.final}><div><p className={styles.eyebrow}>BẮT ĐẦU HÀNH TRÌNH</p><h2>Tìm chuyến phù hợp với nhịp nghỉ của bạn.</h2></div><Link className={styles.primary} to="/cruises">Tìm chuyến</Link></section>
-}
-export function HomeFooter() {
-  return <footer className={styles.footer} id="help"><div className={styles.footerInner}><div className={styles.footerAbout}><Link to="/" className={styles.brand}>OcvViet</Link><p>Khám phá hành trình đã công bố và chuẩn bị cho chuyến đi của bạn.</p></div><nav aria-label="Khám phá"><span>KHÁM PHÁ</span><Link to="/cruises">Chuyến du thuyền</Link><a href="#destinations">Cảm hứng điểm đến</a><a href="#experience">Chuẩn bị trải nghiệm</a></nav><nav aria-label="Đặt chỗ"><span>ĐẶT CHỖ</span><Link to="/booking/lookup">Tra cứu đặt chỗ</Link><Link to="/login">Đăng nhập</Link></nav><nav aria-label="Hướng dẫn"><span>HƯỚNG DẪN</span><a href="#cruise-finder">Tìm chuyến phù hợp</a><a href="#journey">Chuẩn bị trước chuyến</a></nav><small>OcvViet · 2026</small></div></footer>
 }

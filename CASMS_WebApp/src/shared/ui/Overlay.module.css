@@ -1,0 +1,34 @@
+.dialog { width:min(560px,calc(100vw - 32px)); max-width:none; max-height:min(90dvh,960px); margin:auto; padding:0; overflow:hidden; border:1px solid var(--ui-border); border-radius:16px; background:var(--ui-surface); color:var(--ui-ink); box-shadow:0 24px 80px rgb(6 23 37 / 24%); color-scheme:light; }
+.wide { width:min(720px,calc(100vw - 32px)); }
+.dialog::backdrop { background:rgb(6 23 37 / 46%); }
+.frame { display:flex; flex-direction:column; max-height:inherit; min-height:0; }
+.header { display:flex; flex:0 0 auto; justify-content:space-between; gap:20px; padding:24px; border-bottom:1px solid var(--ui-border); background:var(--ui-surface); }
+.header > div { min-width:0; }
+.header h2 { margin:0; font:600 20px/1.4 var(--ui-font); overflow-wrap:anywhere; }
+.header p { margin:8px 0 0; color:var(--ui-muted); font-size:14px; line-height:1.6; }
+.close { flex:0 0 44px; width:44px; height:44px; border:1px solid var(--ui-border); border-radius:10px; background:var(--ui-surface); color:var(--ui-ink); font:400 26px/1 var(--ui-font); cursor:pointer; }
+.close:hover:not(:disabled) { background:var(--ui-subtle); }
+.close:disabled { color:var(--ui-muted); cursor:not-allowed; }
+.body { min-height:0; flex:1 1 auto; overflow:auto; overscroll-behavior:contain; padding:24px; display:flex; flex-direction:column; gap:16px; overflow-wrap:anywhere; scrollbar-gutter:stable; }
+.body > :where(p) { margin:0; line-height:1.6; }
+.body :where(form) { min-width:0; }
+.body :where(input,select,textarea) { max-width:100%; }
+.footer { flex:0 0 auto; display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:12px; padding:16px 24px; border-top:1px solid var(--ui-border); background:var(--ui-surface); }
+.discard { flex:0 0 auto; border-top:1px solid #d9bd88; padding:16px 24px; background:#fff8eb; color:#754d00; }
+.discard p { margin:0 0 12px; font-size:14px; line-height:1.5; }
+.discardActions { display:flex; flex-wrap:wrap; gap:12px; }
+.keepEditing,.discardButton { min-height:44px; border:1px solid #8297a4; border-radius:10px; padding:10px 14px; font:500 14px/1.5 var(--ui-font); cursor:pointer; }
+.keepEditing { background:#fff; color:var(--ui-ink); }
+.discardButton { background:var(--ui-danger); border-color:var(--ui-danger); color:#fff; }
+.drawer { width:min(640px,calc(100vw - 24px)); height:100dvh; max-height:100dvh; margin:0 0 0 auto; border-radius:16px 0 0 16px; }
+.drawer .frame { height:100%; }
+@media(max-width:600px) { .header,.body { padding:20px 16px; } .footer,.discard { padding:16px; } .dialog { max-height:92dvh; } .drawer { max-height:100dvh; } }
+.footer > div { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:12px; width:100%; margin:0; }
+.footer :is(button,a)[data-overlay-dismiss] { margin-right:auto; }
+
+/* P4 short/zoomed desktop viewports keep the dismissal decision reachable. */
+.header { max-height:35dvh; overflow:auto; }
+.discard { flex:0 1 auto; min-height:0; overflow:auto; overscroll-behavior:contain; }
+.confirming .footer { display:none; }
+.confirming .body { opacity:.65; }
+.close:focus-visible,.keepEditing:focus-visible,.discardButton:focus-visible { outline:3px solid var(--ui-focus); outline-offset:3px; }

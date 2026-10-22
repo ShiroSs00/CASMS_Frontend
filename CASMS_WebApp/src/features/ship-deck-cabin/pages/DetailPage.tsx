@@ -58,7 +58,7 @@ function DetailPage({ kind }: { kind: EntityKind }) {
     {deleting && <Modal title={`Xóa ${kindLabels[kind]} chưa sử dụng?`} busy={mutation.busy} onClose={() => setDeleting(false)}>
       <div className={styles.stack}><Notice title={entityName(item)} tone="warning">Xác nhận xóa đối tượng này khỏi hệ thống. Thao tác có thể bị từ chối khi còn dữ liệu liên quan.</Notice>
         {mutation.error && <Notice title="Xóa thất bại" tone="error">{mutation.error}</Notice>}
-        <div className={styles.actions}><Button tone="danger" disabled={mutation.busy} onClick={() => void mutation.run(async () => { if (!access.has(entityPermission(kind, 'DELETE'))) return; await shipDeckCabinApi.deleteUnused(kind, id); navigate(`/admin/${kind}${hostId ? `?ship=${hostId}` : ''}`) })}>{mutation.busy ? 'Đang xóa…' : 'Xác nhận xóa'}</Button><Button tone="secondary" disabled={mutation.busy} onClick={() => setDeleting(false)}>Hủy</Button></div>
+        <div className={styles.actions}><Button tone="danger" disabled={mutation.busy} onClick={() => void mutation.run(async () => { if (!access.has(entityPermission(kind, 'DELETE'))) return; await shipDeckCabinApi.deleteUnused(kind, id); navigate(`/admin/${kind}${hostId ? `?ship=${hostId}` : ''}`) })}>{mutation.busy ? 'Đang xóa…' : 'Xác nhận xóa'}</Button><Button tone="secondary" disabled={mutation.busy} onClick={() => setDeleting(false)} data-overlay-dismiss>Hủy</Button></div>
       </div>
     </Modal>}
   </>

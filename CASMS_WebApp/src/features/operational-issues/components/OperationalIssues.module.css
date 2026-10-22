@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap');
 
 .appShell {
   --oim-bg: #f5f7f9;
@@ -796,3 +795,47 @@
   .fullWidth,.filterGap,.filterActions { grid-column: auto; }
 }
 
+
+/* Readable operational density; no status or permission logic changes. */
+.field { gap:8px; font-size:14px; line-height:1.5; }
+.filterGap { font-size:13px; color:#754d00; }
+.formGrid { gap:24px; }
+.table { font-size:14px; }
+.table th { font-size:13px; }
+.statusBadge { font-size:12px; line-height:1.5; }
+.filters { grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; padding:20px; }
+.detailGrid { grid-template-columns:minmax(0,1fr) minmax(260px,320px); gap:24px; }
+@media(max-width:1100px) { .filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .detailGrid { grid-template-columns:minmax(0,1fr); } }
+
+/* OceVie desktop: use shared semantic presentation, retain feature behavior. */
+
+.appShell { --oim-bg:var(--ui-subtle); --oim-surface:var(--ui-surface); --oim-border:var(--ui-border); --oim-primary:var(--ui-brand); --oim-text:var(--ui-ink); --oim-muted:var(--ui-muted); font-family:var(--ui-font); }
+.pageHeader { flex-wrap:wrap; margin-bottom:24px; }
+.pageTitle { font:600 clamp(28px,2.2vw,34px)/1.25 var(--ui-font); overflow-wrap:anywhere; }
+.pageDescription { line-height:1.6; }
+.primaryButton,.secondaryButton,.dangerButton { min-height:44px; max-width:100%; padding:10px 18px; border-radius:var(--ui-radius); font:500 14px/1.5 var(--ui-font); letter-spacing:normal; text-align:center; white-space:normal; overflow-wrap:anywhere; }
+.primaryButton { background:var(--ui-brand); border-color:var(--ui-brand); }
+.secondaryButton { color:var(--ui-ink); border-color:#8b9ca7; background:var(--ui-surface); }
+.dangerButton { background:var(--ui-danger); border-color:var(--ui-danger); }
+:is(.primaryButton,.secondaryButton,.dangerButton):hover:not(:disabled) { filter:brightness(.92); }
+:is(.primaryButton,.secondaryButton,.dangerButton):active:not(:disabled) { filter:brightness(.85); }
+.metricCard,.summaryCard,.panel,.statePanel,.actionRail { border-radius:var(--ui-panel-radius); border-color:var(--ui-border); box-shadow:var(--ui-shadow); }
+.panel,.statePanel,.actionRail { padding:24px; }
+.eyebrow,.metricHint { font-size:13px; line-height:1.5; }
+.field :is(input,select,textarea) { min-height:44px; border-radius:var(--ui-radius); font:400 14px/1.5 var(--ui-font); }
+.tableViewport { max-width:100%; overflow-x:auto; border:1px solid var(--ui-border); border-radius:12px; }
+.table th { padding:16px; background:var(--ui-subtle); color:var(--ui-muted); font-weight:600; }
+.table td { padding:16px; border-bottom:1px solid var(--ui-border); line-height:1.55; overflow-wrap:anywhere; }
+.table tbody tr:nth-child(even) { background:var(--ui-surface); }
+.table tbody tr:hover { background:var(--ui-subtle); }
+.issueLink,.issueName,.backLink { display:inline-flex; align-items:center; min-height:44px; padding-block:8px; color:var(--ui-ink); white-space:normal; }
+.issueLink:hover,.issueName:hover { text-decoration:underline; }
+@media(max-width:760px) { .pageHeader { flex-direction:column; } .panel,.statePanel,.actionRail { padding:20px 16px; } }
+
+
+.headerActions,.readonlySummary { display:flex; flex-wrap:wrap; align-items:center; gap:12px; min-width:0; }
+.readonlySummary { margin-bottom:24px; gap:16px; }
+.readonlySummary > span { min-width:0; overflow-wrap:anywhere; }
+.permissionNote { border-radius:12px; padding:12px 16px; font-size:13px; line-height:1.5; }
+@media(max-width:1100px) { .formGrid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:760px) { .formGrid { grid-template-columns:minmax(0,1fr); } }

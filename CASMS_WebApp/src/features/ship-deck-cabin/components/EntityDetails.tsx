@@ -1,3 +1,4 @@
+import { TechnicalDetails } from '@/shared/ui'
 import { useCallback, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { DataTable, Empty, Notice, Panel } from '@/shared/ui'
@@ -54,7 +55,7 @@ export function DeckInfo({ deck }: { deck: Deck }) {
       ['Số boong', deck.number], ['Tên boong', deck.name || 'Chưa đặt tên'],
       ['Hệ số giá tầng', `${deck.priceMultiplier ?? 1.0}x (${(deck.priceMultiplier ?? 1.0) > 1 ? '+' + Math.round(((deck.priceMultiplier ?? 1.0) - 1) * 100) + '%' : 'Giá gốc'})`],
       ['Tàu', <>
-        <Link className={styles.link} to={`/admin/ships/${deck.shipId}`}>{parent.data ? `${parent.data.code} · ${parent.data.name}` : deck.shipId}</Link>
+        <Link className={styles.link} to={`/admin/ships/${deck.shipId}`}>{parent.data ? `${parent.data.code} · ${parent.data.name}` : 'Xem tàu liên kết'}</Link>
         <DataState loading={parent.loading} error={parent.error} retry={parent.retry} />
       </>],
       ['Ngày tạo', formatDate(deck.createdAt)], ['Cập nhật gần nhất', formatDate(deck.updatedAt)],
@@ -85,14 +86,14 @@ export function CabinInfo({ cabin }: { cabin: Cabin }) {
   return <>
     <Panel title="Thông tin cabin"><Definition rows={[
       ['Số cabin', cabin.number], ['Loại cabin', cabinTypes[cabin.type]], ['Trạng thái', <StatusBadge status={cabin.status} />],
-      ['Tàu', <><Link className={styles.link} to={`/admin/ships/${cabin.shipId}`}>{parentShip.data ? `${parentShip.data.code} · ${parentShip.data.name}` : cabin.shipId}</Link>
+      ['Tàu', <><Link className={styles.link} to={`/admin/ships/${cabin.shipId}`}>{parentShip.data ? `${parentShip.data.code} · ${parentShip.data.name}` : 'Xem tàu liên kết'}</Link>
         <DataState loading={parentShip.loading} error={parentShip.error} retry={parentShip.retry} /></>],
-      ['Boong', <><Link className={styles.link} to={`/admin/decks/${cabin.deckId}`}>{parentDeck.data ? `Boong ${parentDeck.data.number} · ${parentDeck.data.name || 'Chưa đặt tên'}` : cabin.deckId}</Link>
+      ['Boong', <><Link className={styles.link} to={`/admin/decks/${cabin.deckId}`}>{parentDeck.data ? `Boong ${parentDeck.data.number} · ${parentDeck.data.name || 'Chưa đặt tên'}` : 'Xem boong liên kết'}</Link>
         <DataState loading={parentDeck.loading} error={parentDeck.error} retry={parentDeck.retry} /></>],
       ['Sức chứa', `${cabin.capacity} khách`], ['Hỗ trợ tiếp cận', cabin.accessible ? 'Có' : 'Không'],
     ]} /></Panel>
     <ServicePanel title="Lịch sử gán cabin" query={history}>{(rows) => rows?.length ? <DataTable label="Lịch sử gán cabin" headers={['HÀNH KHÁCH ĐẶT CHỖ', 'BẮT ĐẦU', 'KẾT THÚC', 'NGƯỜI GÁN', 'LÝ DO']}>
-      {rows.map((row) => <tr key={row.id}><td>{row.passengerId}</td><td>{formatDate(row.from)}</td><td>{row.to ? formatDate(row.to) : 'Đang hiệu lực'}</td><td>{row.actorId || 'Chưa cập nhật'}</td><td>{row.reason || '—'}</td></tr>)}
+      {rows.map((row) => <tr key={row.id}><td><TechnicalDetails label="Định danh hành khách" entries={[["Hành khách trong đặt chỗ", row.passengerId]]} /></td><td>{formatDate(row.from)}</td><td>{row.to ? formatDate(row.to) : 'Đang hiệu lực'}</td><td>{row.actorId ? <TechnicalDetails label="Định danh người gán" entries={[["Người gán", row.actorId]]} /> : 'Chưa cập nhật'}</td><td>{row.reason || '—'}</td></tr>)}
     </DataTable> : <Empty title="Chưa có lịch sử gán cabin" />}</ServicePanel>
   </>
 }

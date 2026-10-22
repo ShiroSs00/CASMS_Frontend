@@ -8,9 +8,8 @@ import { emptyGroupForm, formToGroupRequest, groupToForm, validateGroupForm, typ
 import styles from './TourGroups.module.css'
 
 const fields: { key: keyof GroupFormValues; label: string; required?: boolean; type?: string; maxLength?: number }[] = [
-  { key: 'groupCode', label: 'Mã nhóm', required: true, maxLength: 50 },
-  { key: 'maximumCapacity', label: 'Sức chứa tối đa', required: true, type: 'number' },
-  { key: 'meetingPoint', label: 'Điểm tập trung', required: true, maxLength: 250 },
+  { key: 'maximumCapacity', label: 'Sức chứa tối đa (để trống để lấy từ chuyến tham quan)', type: 'number' },
+  { key: 'meetingPoint', label: 'Điểm tập trung (mặc định theo chuyến tham quan)', maxLength: 250 },
   { key: 'assemblyTime', label: 'Giờ tập trung', type: 'datetime-local' },
   { key: 'plannedDepartureTime', label: 'Giờ khởi hành dự kiến', type: 'datetime-local' },
   { key: 'plannedReturnTime', label: 'Giờ trở về dự kiến', type: 'datetime-local' },

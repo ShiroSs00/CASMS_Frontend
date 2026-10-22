@@ -81,8 +81,8 @@ export function IssueFormPage() {
     event.preventDefault()
     if (lock.current || isBlockedEdit || !allowed) return
 
-    if (!isEdit && (!form.issueCode.trim() || form.issueCode.trim().length > 30)) {
-      setError('Mã sự cố bắt buộc, tối đa 30 ký tự.')
+    if (!isEdit && form.issueCode.trim().length > 30) {
+      setError('Mã sự cố tối đa 30 ký tự.')
       return
     }
     const locationError = !isEdit ? validateIssueLocation(form.shipId, form.cruiseId, form.cabinId, contextReady ? { ships: ships.data ?? [], cruises: cruises.data ?? [], cabins: cabins.data ?? [] } : null) : ''
@@ -161,27 +161,14 @@ export function IssueFormPage() {
         <form onSubmit={handleSubmit}>
           <Panel title="Thông tin cơ bản">
             {isEdit && existingIssue && (
-              <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <div className={styles.readonlySummary}>
                 <span>Mã sự cố: <strong>{existingIssue.code}</strong> (chỉ đọc)</span>
                 <span>Trạng thái: <Badge label={existingIssue.status} tone="warning" /></span>
                 <span>Người báo cáo: <strong>{existingIssue.reportedBy.name}</strong></span>
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-              {!isEdit && (
-                <Field htmlFor="issue-code" label="Mã sự cố *">
-                  <input
-                    id="issue-code"
-                    required
-                    maxLength={30}
-                    placeholder="VD: ISS-101"
-                    value={form.issueCode}
-                    onChange={(e) => setForm((curr) => ({ ...curr, issueCode: e.target.value }))}
-                  />
-                </Field>
-              )}
-
+            <div className={styles.formGrid}>
               <Field htmlFor="issue-type" label="Loại sự cố *">
                 <select
                   id="issue-type"

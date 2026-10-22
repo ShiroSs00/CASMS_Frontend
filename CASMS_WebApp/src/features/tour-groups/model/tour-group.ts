@@ -12,7 +12,7 @@ export type TourGroup = {
 }
 export type GroupCapacity = { maximumCapacity: number; availableCapacity: number }
 export type GroupRequest = {
-  shoreExcursionId: string; groupCode: string; maximumCapacity: number
+  shoreExcursionId: string; groupCode: string; maximumCapacity?: number
   guideId?: string; vehicleId?: string; meetingPoint?: string
   assemblyTime?: string; plannedDepartureTime?: string; plannedReturnTime?: string; notes?: string
 }
@@ -85,10 +85,10 @@ export function validateGroupForm(values: GroupFormValues): Partial<Record<keyof
   const errors: Partial<Record<keyof GroupFormValues, string>> = {}
   if (!isUuid(values.shoreExcursionId.trim())) errors.shoreExcursionId = 'Nhập ID UUID chuyến tham quan hợp lệ.'
   for (const key of ['guideId', 'vehicleId'] as const) if (values[key].trim() && !isUuid(values[key].trim())) errors[key] = 'Nhập ID UUID hợp lệ.'
-  if (!values.groupCode.trim() || values.groupCode.trim().length > 50) errors.groupCode = 'Mã nhóm bắt buộc, tối đa 50 ký tự.'
-  if (!/^\d+$/.test(values.maximumCapacity) || Number(values.maximumCapacity) < 1 || Number(values.maximumCapacity) > 2147483647) errors.maximumCapacity = 'Nhập số nguyên từ 1 đến 2147483647.'
-  // The service requires a meeting point even though the OpenAPI DTO marks it optional.
-  if (!values.meetingPoint.trim() || values.meetingPoint.trim().length > 250) errors.meetingPoint = 'Điểm tập trung bắt buộc, tối đa 250 ký tự.'
+  if (values.groupCode.trim().length > 50) errors.groupCode = 'Mã nhóm tối đa 50 ký tự.'
+  if (values.maximumCapacity && (!/^\d+$/.test(values.maximumCapacity) || Number(values.maximumCapacity) < 1 || Number(values.maximumCapacity) > 2147483647)) errors.maximumCapacity = 'Nhập số nguyên từ 1 đến 2147483647.'
+  // BE inherits the excursion meeting point when this field is omitted.
+  if (values.meetingPoint.trim().length > 250) errors.meetingPoint = 'Điểm tập trung tối đa 250 ký tự.'
   if (values.notes.length > 500) errors.notes = 'Ghi chú tối đa 500 ký tự.'
   for (const key of ['assemblyTime', 'plannedDepartureTime', 'plannedReturnTime'] as const) if (values[key] && !Number.isFinite(Date.parse(values[key]))) errors[key] = 'Nhập thời gian hợp lệ.'
   return errors
@@ -97,7 +97,7 @@ export function formToGroupRequest(values: GroupFormValues): GroupRequest {
   if (Object.keys(validateGroupForm(values)).length) throw new Error('Vui lòng kiểm tra các trường chưa hợp lệ.')
   const instant = (value: string) => value ? new Date(value).toISOString() : undefined
   return {
-    shoreExcursionId: values.shoreExcursionId.trim(), groupCode: values.groupCode.trim(), maximumCapacity: Number(values.maximumCapacity),
+    shoreExcursionId: values.shoreExcursionId.trim(), groupCode: values.groupCode.trim(), maximumCapacity: values.maximumCapacity ? Number(values.maximumCapacity) : undefined,
     guideId: values.guideId.trim() || undefined, vehicleId: values.vehicleId.trim() || undefined,
     meetingPoint: values.meetingPoint.trim(), notes: values.notes.trim() || undefined,
     assemblyTime: instant(values.assemblyTime), plannedDepartureTime: instant(values.plannedDepartureTime), plannedReturnTime: instant(values.plannedReturnTime),

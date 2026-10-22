@@ -1,6 +1,7 @@
 import { useContext, useEffect, useRef, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router'
 import styles from './AdminShell.module.css'
+import experience from '../Experience.module.css'
 import { AdminAccountContext } from './admin-account-context'
 
 const navigation: { label: string; items: { label: string; to?: string }[] }[] = [
@@ -41,10 +42,11 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
   } else if (pathname.startsWith('/admin/activity-registrations')) {
     activeTo = '/admin/activities'
   }
+  const activeLabel = navigation.flatMap(group => group.items).find(item => item.to === activeTo)?.label
   const sidebar = useRef<HTMLElement>(null)
   useEffect(() => { sidebar.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest' }) }, [activeTo])
 
-  return <div className={className ? `${styles.shell} ${className}` : styles.shell}>
+  return <div className={`${styles.shell} ${experience.admin} ${className}`.trim()}>
     <a href="#admin-v3-main" className={styles.skipLink}>Chuyển đến nội dung chính</a>
     <aside ref={sidebar} className={styles.sidebar} aria-label="Điều hướng quản trị">
       {/* Official brand text for Admin Web */}
@@ -60,8 +62,8 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
       </nav>
     </aside>
     <div className={styles.mainColumn}>
-      <header className={styles.topbar}>
-        {topbar ?? <p className={styles.context}>Khu vực quản trị</p>}
+      <header className={styles.topbar} aria-label="Thanh thông tin quản trị">
+        {topbar ?? <p className={styles.context}>Khu vực quản trị{activeLabel && <><span aria-hidden="true">/</span><span className={styles.contextSection}>{activeLabel}</span></>}</p>}
         {account}
       </header>
       <main id="admin-v3-main" tabIndex={-1} className={styles.main}>{children}</main>

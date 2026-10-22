@@ -72,7 +72,7 @@ export type ItineraryHistoryEntry = {
 }
 export type ItineraryChangeDraft = {
   itineraryId: string; cruiseStopId?: string; changedEntityType: 'Itinerary' | 'CruiseStop'; changedEntityId: string
-  changeType: NonNullable<ItineraryHistoryEntry['changeType']>; changeSummary: string; reason: string; changedByUserId: string
+  changeType: NonNullable<ItineraryHistoryEntry['changeType']>; changeSummary: string; reason: string; changedByUserId?: string
 }
 
 function decodeHistory(payload: unknown, status: number): ItineraryHistoryEntry[] {
@@ -144,7 +144,7 @@ export const itineraryApi = {
   listDays: (id: string, signal?: AbortSignal) => apiRequest<ItineraryDay[]>(`${itineraryPath(id)}/days`, { signal }),
   listDaysByItinerary: (itineraryId: string, signal?: AbortSignal) => apiRequest<ItineraryDay[]>(`/itinerary-days/by-itinerary/${encodeURIComponent(itineraryId)}`, { signal }),
   getDay: (id: string, signal?: AbortSignal) => apiRequest<ItineraryDay>(dayPath(id), { signal }),
-  createDay: (draft: ItineraryDayDraft) => apiRequest<ItineraryDay>('/itinerary-days', { method: 'POST', body: draft }),
+  createDay: (draft: ItineraryDayDraft) => apiRequest<ItineraryDay>('/itinerary-days', { method: 'POST', body: { ...draft, dayNumber: draft.dayNumber === '' ? undefined : draft.dayNumber } }),
   updateDay: (id: string, draft: Partial<ItineraryDayDraft>) => apiRequest<ItineraryDay>(dayPath(id), { method: 'PATCH', body: { dayNumber: draft.dayNumber, date: draft.date, dayType: draft.dayType, shipTimeZoneId: draft.shipTimeZoneId, description: draft.description } }),
   setDayType: (id: string, dayType: ItineraryDayType) => apiRequest<ItineraryDay>(`${dayPath(id)}/day-type`, { method: 'POST', query: { dayType } }),
   setShipTimeZone: (id: string, shipTimeZoneId: string) => apiRequest<ItineraryDay>(`${dayPath(id)}/ship-timezone`, { method: 'POST', query: { shipTimeZoneId } }),
@@ -154,7 +154,7 @@ export const itineraryApi = {
 
   listStops: (id: string, signal?: AbortSignal) => apiRequest<CruiseStop[]>(`/cruise-stops/by-itinerary/${encodeURIComponent(id)}`, { signal }),
   getStop: (id: string, signal?: AbortSignal) => apiRequest<CruiseStop>(stopPath(id), { signal }),
-  createStop: (draft: CruiseStopDraft) => apiRequest<CruiseStop>('/cruise-stops', { method: 'POST', body: stopBody(draft) }),
+  createStop: (draft: CruiseStopDraft) => apiRequest<CruiseStop>('/cruise-stops', { method: 'POST', body: stopBody({ ...draft, stopOrder: draft.stopOrder === '' ? undefined : draft.stopOrder }) }),
   updateStop: (id: string, draft: Partial<CruiseStopDraft>) => apiRequest<CruiseStop>(stopPath(id), { method: 'PATCH', body: stopBody(draft) }),
   removeStop: (id: string) => apiRequest<void>(`${stopPath(id)}/draft`, { method: 'DELETE' }),
   reorderStop: (id: string, newStopOrder: number) => apiRequest<CruiseStop>(`${stopPath(id)}/reorder`, { method: 'POST', query: { newStopOrder } }),
@@ -192,9 +192,9 @@ export const itineraryApi = {
   getDestination: (id: string, signal?: AbortSignal) => apiRequest<Destination>(destinationPath(id), { signal }),
   destinationPorts: (id: string, signal?: AbortSignal) => apiRequest<DestinationPortSummary[]>(`${destinationPath(id)}/ports`, { signal }),
   createDestination: (draft: DestinationDraft) => apiRequest<Destination>('/destinations', { method: 'POST', body: {
-    destinationName: draft.destinationName, countryCode: draft.countryCode, description: draft.description, status: draft.status,
+    destinationName: draft.destinationName, countryCode: draft.countryCode, description: draft.description, status: draft.status, latitude: draft.latitude, longitude: draft.longitude,
   } }),
-  updateDestination: (id: string, draft: DestinationDraft) => apiRequest<Destination>(destinationPath(id), { method: 'PATCH', body: { destinationName: draft.destinationName, description: draft.description ?? undefined } }),
+  updateDestination: (id: string, draft: DestinationDraft) => apiRequest<Destination>(destinationPath(id), { method: 'PATCH', body: { destinationName: draft.destinationName, description: draft.description ?? undefined, latitude: draft.latitude ?? undefined, longitude: draft.longitude ?? undefined } }),
   removeDestination: (id: string) => apiRequest<void>(`${destinationPath(id)}/unused`, { method: 'DELETE' }),
   activateDestination: (id: string) => apiRequest<Destination>(`${destinationPath(id)}/activate`, { method: 'PATCH' }),
   deactivateDestination: (id: string) => apiRequest<Destination>(`${destinationPath(id)}/deactivate`, { method: 'PATCH' }),

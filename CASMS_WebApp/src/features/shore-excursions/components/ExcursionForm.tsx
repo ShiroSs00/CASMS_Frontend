@@ -9,7 +9,6 @@ import styles from './ShoreExcursions.module.css'
 
 const fields: { key: keyof ExcursionFormValues; label: string; type?: string; maxLength?: number; required?: boolean }[] = [
   { key: 'excursionName', label: 'Tên chuyến tham quan', maxLength: 250, required: true },
-  { key: 'excursionCode', label: 'Mã chuyến tham quan', maxLength: 50 },
   { key: 'startTime', label: 'Thời gian bắt đầu', type: 'datetime-local', required: true },
   { key: 'plannedReturnTime', label: 'Thời gian trở về dự kiến', type: 'datetime-local', required: true },
   { key: 'meetingPoint', label: 'Điểm tập trung', maxLength: 250, required: true },

@@ -13,7 +13,7 @@ export type Cabin = RecordBase & {
   capacity: number; status: CabinStatus; accessible: boolean
 }
 export type ShipDraft = Omit<Ship, keyof RecordBase>
-export type DeckDraft = Omit<Deck, keyof RecordBase>
+export type DeckDraft = Omit<Deck, keyof RecordBase | 'number'> & { number: number | '' }
 export type CabinDraft = Omit<Cabin, keyof RecordBase>
 export type Entity = Ship | Deck | Cabin
 export type DataSnapshot = { ships: Ship[]; decks: Deck[]; cabins: Cabin[] }

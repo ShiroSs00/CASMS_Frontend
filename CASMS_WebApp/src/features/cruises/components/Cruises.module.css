@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap');
 
 .cruiseShell { --cruise-navy:#123042; --cruise-text:#172b36; --cruise-muted:#52616b; --cruise-border:#d9e0e4; --cruise-bg:#f5f7f9; }
 .content { max-width:1136px; margin:0 auto; }
@@ -54,4 +53,19 @@
   .filterActions > button,.formActions > button,.dialogActions > button { width:100%; }
   .candidateHeading { align-items:flex-start; flex-direction:column; }
 }
+
+
+/* Standard CRUD forms retain their fields and submission flow. */
+.formGrid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.formActions { gap:12px; padding-top:20px; border-top:1px solid var(--border-default,#d5e0e4); }
+@media(max-width:1100px) { .formGrid { grid-template-columns:minmax(0,1fr); } }
+
+/* OceVie desktop: use shared semantic presentation, retain feature behavior. */
+
+.cruiseShell { --cruise-navy:var(--ui-brand); --cruise-text:var(--ui-ink); --cruise-muted:var(--ui-muted); --cruise-border:var(--ui-border); --cruise-bg:var(--ui-subtle); }
+.metric,.detailMetrics > div { border-radius:var(--ui-panel-radius); box-shadow:var(--ui-shadow); }
+.rowLink,.inlineLink { display:inline-flex; align-items:center; min-height:44px; padding-block:8px; white-space:normal; overflow-wrap:anywhere; }
+.candidate { border-radius:var(--ui-radius); }
+.definitionGrid dd { overflow-wrap:anywhere; }
+.pagination,.pagination > div { flex-wrap:wrap; }
 

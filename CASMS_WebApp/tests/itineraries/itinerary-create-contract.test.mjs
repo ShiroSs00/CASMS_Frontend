@@ -33,7 +33,7 @@ test('selected real cruise, date window, one-to-one and missing context are enfo
   assert.equal(Object.keys(model.validateItineraryDraft(draft, context)).length, 0)
   assert.ok(model.validateItineraryDraft(draft, null).cruiseId)
   assert.ok(model.validateItineraryDraft({ ...draft, cruiseId: 'typed-uuid' }, context).cruiseId)
-  for (const patch of [{ startDate: '2026-10-20' }, { endDate: '2026-10-25' }, { endDate: draft.startDate }, { startDate: '2026-02-30' }, { itineraryName: '' }, { itineraryType: 'INVALID' }]) assert.ok(Object.keys(model.validateItineraryDraft({ ...draft, ...patch }, context)).length)
+  for (const patch of [{ startDate: '2026-10-20' }, { endDate: '2026-10-25' }, { endDate: draft.startDate }, { startDate: '2026-02-30' }, { itineraryName: 'x'.repeat(201) }, { itineraryType: 'INVALID' }]) assert.ok(Object.keys(model.validateItineraryDraft({ ...draft, ...patch }, context)).length)
   const existing = { ...draft, itineraryId: 'itinerary-1' }
   assert.ok(model.validateItineraryDraft(draft, { ...context, itineraries: [existing] }).cruiseId)
   assert.equal(Object.keys(model.validateItineraryDraft(draft, { ...context, itineraries: [existing], editingId: existing.itineraryId })).length, 0)

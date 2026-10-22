@@ -9,3 +9,11 @@
 .definition dd { margin: 0; overflow-wrap: anywhere; }
 .content a { text-underline-offset: 4px; }
 @media (max-width: 1000px) { .form { grid-template-columns: minmax(0, 1fr); } }
+
+/* Short contextual forms share the existing control system. */
+.form { gap:24px; }
+.actions { gap:12px; }
+
+/* OceVie desktop: use shared semantic presentation, retain feature behavior. */
+.filters label { min-width:0; flex:1 1 220px; font-size:14px; line-height:1.5; }
+.actions { gap:12px; }

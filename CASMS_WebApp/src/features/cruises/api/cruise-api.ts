@@ -1,4 +1,5 @@
 import { apiRequest } from '@/shared/api'
+import { inferCruiseType } from '../model/cruise-validation'
 
 import type { CruiseQuery } from '../model/cruise-query'
 import type { CruiseDraft, CruiseRecord, PortRecord, ShipRecord } from '../model/cruise-record'
@@ -15,7 +16,7 @@ type RegulationProjection = {
 }
 
 function cruiseBody(draft: CruiseDraft) {
-  return { ...draft, departureDatetime: new Date(draft.departureDatetime).toISOString(), returnDatetime: new Date(draft.returnDatetime).toISOString() }
+  return { ...draft, cruiseType: draft.cruiseType || inferCruiseType(draft.departureDatetime, draft.returnDatetime), departureDatetime: new Date(draft.departureDatetime).toISOString(), returnDatetime: new Date(draft.returnDatetime).toISOString() }
 }
 
 function toCruise(dto: CruiseDto): CruiseRecord {

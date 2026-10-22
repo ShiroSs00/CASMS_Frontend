@@ -9,12 +9,19 @@ import { validateItineraryDraft, type ItineraryDraft, type ItineraryType } from 
 import styles from '../components/Itineraries.module.css'
 
 type Context = Awaited<ReturnType<typeof itineraryApi.formContext>>
+const cruiseClock = new Intl.DateTimeFormat('vi-VN', {
+  timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+})
+function cruiseTime(value: string) {
+  const date = new Date(value)
+  return Number.isFinite(date.getTime()) ? cruiseClock.format(date) : 'Chưa có thời gian hợp lệ'
+}
 export function ItineraryFormPage() {
   const access = useSessionAccess()
   const { itineraryId } = useParams()
   const [params] = useSearchParams()
   const editing = Boolean(itineraryId), navigate = useNavigate(), lock = useRef(false), form = useRef<HTMLFormElement>(null)
-  const [draft, setDraft] = useState<ItineraryDraft>({ cruiseId: params.get('cruiseId') ?? '', itineraryName: '', startDate: '', endDate: '', itineraryType: 'ROUND_TRIP' })
+  const [draft, setDraft] = useState<ItineraryDraft>({ cruiseId: params.get('cruiseId') ?? '', itineraryName: '', startDate: '', endDate: '', itineraryType: '' })
   const [editableId, setEditableId] = useState<string | null>(null)
   const recordReady = !editing || editableId === itineraryId
   const [context, setContext] = useState<Context | null>(null)
@@ -77,10 +84,16 @@ export function ItineraryFormPage() {
           : <select {...field('cruiseId')} value={draft.cruiseId} disabled={!context || Boolean(contextError)} onChange={event => update('cruiseId', event.target.value)} required><option value="">Chọn chuyến du lịch</option>{options.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}</select>}
       </Field>
       {cruise && <p>Khoảng ngày chuyến (UTC): {cruise.departureDatetime.slice(0, 10)} → {cruise.returnDatetime.slice(0, 10)}. <ButtonLink to={`/admin/cruises/${cruise.cruiseId}`} tone="secondary">Xem chuyến</ButtonLink></p>}
-      <Field htmlFor="itinerary-itineraryName" label="Tên lịch trình *" error={errors.itineraryName}><input {...field('itineraryName')} maxLength={200} value={draft.itineraryName} onChange={event => update('itineraryName', event.target.value)} required /></Field>
-      <Field htmlFor="itinerary-startDate" label="Ngày bắt đầu *" error={errors.startDate}><input {...field('startDate')} type="date" value={draft.startDate} onChange={event => update('startDate', event.target.value)} required /></Field>
-      <Field htmlFor="itinerary-endDate" label="Ngày kết thúc *" error={errors.endDate}><input {...field('endDate')} type="date" value={draft.endDate} onChange={event => update('endDate', event.target.value)} required /></Field>
-      <Field htmlFor="itinerary-itineraryType" label="Loại hành trình *" error={errors.itineraryType}><select {...field('itineraryType')} value={draft.itineraryType} onChange={event => update('itineraryType', event.target.value as ItineraryType)}><option value="ROUND_TRIP">Khứ hồi</option><option value="ONE_WAY">Một chiều</option></select></Field>
+      <Field htmlFor="itinerary-itineraryName" label="Tên lịch trình" hint={editing ? undefined : "Để trống để tạo tên theo chuyến du lịch."} error={errors.itineraryName}><input {...field('itineraryName')} maxLength={200} value={draft.itineraryName} onChange={event => update('itineraryName', event.target.value)} required={editing} /></Field>
+      <Field htmlFor="itinerary-startDate" label="Ngày bắt đầu" hint={[
+        !editing ? 'Để trống để lấy ngày khởi hành của chuyến.' : '',
+        cruise ? `Khởi hành theo Cruise: ${cruiseTime(cruise.departureDatetime)} (giờ Việt Nam). Giờ tham chiếu, không lưu riêng trong lịch trình.` : '',
+      ].filter(Boolean).join(' ') || undefined} error={errors.startDate}><input {...field('startDate')} type="date" value={draft.startDate} onChange={event => update('startDate', event.target.value)} required={editing} /></Field>
+      <Field htmlFor="itinerary-endDate" label="Ngày kết thúc" hint={[
+        !editing ? 'Để trống để lấy ngày kết thúc của chuyến.' : '',
+        cruise ? `Kết thúc theo Cruise: ${cruiseTime(cruise.returnDatetime)} (giờ Việt Nam). Giờ tham chiếu, không lưu riêng trong lịch trình.` : '',
+      ].filter(Boolean).join(' ') || undefined} error={errors.endDate}><input {...field('endDate')} type="date" value={draft.endDate} onChange={event => update('endDate', event.target.value)} required={editing} /></Field>
+      <Field htmlFor="itinerary-itineraryType" label="Loại hành trình" error={errors.itineraryType}><select {...field('itineraryType')} value={draft.itineraryType} onChange={event => update('itineraryType', event.target.value as ItineraryType)}>{!editing && <option value="">Tự xác định theo cảng đi và về</option>}<option value="ROUND_TRIP">Khứ hồi</option><option value="ONE_WAY">Một chiều</option></select></Field>
     </div>{error && <Notice title="Chưa thể lưu" tone="error"><p>{error}</p></Notice>}<div className={styles.actions}><Button tone="secondary" disabled={busy} onClick={() => navigate(editing && itineraryId ? `/admin/itineraries/${itineraryId}` : '/admin/itineraries')}>Hủy</Button><Button type="submit" disabled={busy || !access.has(editing ? 'ITINERARY_UPDATE_DRAFT' : 'ITINERARY_CREATE') || !recordReady || !context || Boolean(contextError) || (!editing && !eligible.length)}>{busy ? 'Đang lưu…' : 'Lưu lịch trình'}</Button></div></Panel></form>
   </ItineraryFrame>
 }

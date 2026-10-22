@@ -1,3 +1,4 @@
+import { TechnicalDetails } from '@/shared/ui'
 import { useCallback, useState } from 'react'
 import { Link } from 'react-router'
 import { useReadQuery } from '@/shared/api'
@@ -50,16 +51,16 @@ export function GroupPassengers({ group, onChanged }: { group: TourGroup; onChan
     </div>
     {group.status === 'PLANNED' && <p>Dùng “Thêm hành khách” trong phần Phân công và vận hành để thêm vào nhóm đang lên kế hoạch.</p>}
     {query.loading ? <Loading label="Đang tải phân công hành khách…" /> : query.error != null ? <TourError error={query.error} onRetry={query.reload} /> : query.data && <PassengerRoster group={group} rows={query.data} busy={mutation.busy} onAction={(action, assignment) => open({ action, assignment })} />}
-    {selection && <Modal title={selection.action === 'assign' ? 'Thêm hành khách' : passengerActionLabels[selection.action]} busy={mutation.busy} onClose={() => setSelection(null)}>
+    {selection && <Modal title={selection.action === 'assign' ? 'Thêm hành khách' : passengerActionLabels[selection.action]} busy={mutation.busy} onClose={() => setSelection(null)} footer={<div className={styles.actions}><Button tone="secondary" disabled={mutation.busy} onClick={() => setSelection(null)} data-overlay-dismiss>Quay lại</Button><Button tone={selection.action === 'remove' ? 'danger' : 'primary'} disabled={mutation.busy || !access.has(permission(selection.action)) || (needsId && (options.loading || Boolean(options.error) || !isUuid(idValue.trim())))} onClick={() => void execute()}>{mutation.busy ? 'Đang kiểm tra và xử lý…' : 'Xác nhận'}</Button></div>}>
       <p className={styles.text}>Nhóm hiện tại: {group.groupCode}</p>
-      {'assignment' in selection && <p className={styles.text}>ID hành khách: {selection.assignment.passengerId}<br />ID phân công: {selection.assignment.tourGroupPassengerId}</p>}
+      {'assignment' in selection && <TechnicalDetails entries={[["Hành khách", selection.assignment.passengerId], ["Phân công", selection.assignment.tourGroupPassengerId]]} />}
       {needsId && <><Field htmlFor="group-passenger-id" label={selection.action === 'move' ? 'Nhóm đích cùng chuyến tham quan' : 'Hành khách đủ điều kiện'}><select id="group-passenger-id" disabled={mutation.busy || options.loading || Boolean(options.error)} value={idValue} onChange={event => setIdValue(event.target.value)}><option value="">{selection.action === 'move' ? 'Chọn nhóm đích' : 'Chọn hành khách'}</option>{options.data?.map(row => <option key={row.id} value={row.id}>{row.label}</option>)}</select></Field>{options.loading && <Loading label="Đang tải lựa chọn…" />}{options.error && <TourError error={options.error} onRetry={options.retry} />}{!options.loading && options.data?.length === 0 && <Empty title={selection.action === 'move' ? 'Không có nhóm đích phù hợp' : 'Không có hành khách đủ điều kiện'} />}</>}
       {selection.action === 'move' && <p>Nhóm đích phải khác nhóm hiện tại, thuộc cùng chuyến tham quan, đang lên kế hoạch hoặc tập trung và còn chỗ. Phân công cũ được hủy; hệ thống tạo phân công mới ở nhóm đích.</p>}
       {selection.action === 'remove' && <p>Xác nhận hủy mềm phân công này. Lịch sử phân công được giữ lại.</p>}
       {selection.action === 'departure' && <p>Ghi nhận hành khách đã có mặt khi nhóm đang tập trung. Thao tác này không khởi hành cả nhóm.</p>}
       {selection.action === 'return' && <p>Xác nhận hành khách đã trở về sau khi nhóm khởi hành.</p>}
       {mutation.error != null && <TourError error={mutation.error} />}
-      <div className={styles.actions}><Button tone="secondary" disabled={mutation.busy} onClick={() => setSelection(null)}>Quay lại</Button><Button tone={selection.action === 'remove' ? 'danger' : 'primary'} disabled={mutation.busy || !access.has(permission(selection.action)) || (needsId && (options.loading || Boolean(options.error) || !isUuid(idValue.trim())))} onClick={() => void execute()}>{mutation.busy ? 'Đang kiểm tra và xử lý…' : 'Xác nhận'}</Button></div>
+
     </Modal>}
   </Panel>
 }
@@ -67,11 +68,11 @@ export function GroupPassengers({ group, onChanged }: { group: TourGroup; onChan
 export function PassengerRoster({ group, rows, busy, onAction }: { group: TourGroup; rows: GroupPassenger[]; busy: boolean; onAction: (action: PassengerAction, assignment: GroupPassenger) => void }) {
   const access = useSessionAccess()
   if (!rows.length) return <Empty title="Chưa có phân công hành khách trong nhóm" />
-  return <DataTable label="Hành khách trong nhóm tour" headers={['ID hành khách / phân công', 'Trạng thái', 'Thời gian', 'Thao tác']}>
+  return <DataTable label="Hành khách trong nhóm tour" headers={['Phân công hành khách', 'Trạng thái', 'Thời gian', 'Thao tác']}>
     {rows.map((assignment, index) => {
       const actions = passengerActions(assignment.assignmentStatus, group.status)
       return <tr key={assignment.tourGroupPassengerId}>
-        <td className={styles.text}><strong>Phân công {index + 1}</strong><p>Phản hồi hiện chưa kèm tên hành khách.</p><details><summary>Định danh phân công</summary>Hành khách: {assignment.passengerId}<br />Phân công: {assignment.tourGroupPassengerId}</details><Link className={styles.link} to={`/admin/tour-groups/${assignment.tourGroupId}`}>Nhóm {assignment.groupCode}</Link></td>
+        <td className={styles.text}><strong>Phân công {index + 1}</strong><p>Phản hồi hiện chưa kèm tên hành khách.</p><TechnicalDetails entries={[["Hành khách", assignment.passengerId], ["Phân công", assignment.tourGroupPassengerId]]} /><Link className={styles.link} to={`/admin/tour-groups/${assignment.tourGroupId}`}>Nhóm {assignment.groupCode}</Link></td>
         <td><Badge label={assignmentLabels[assignment.assignmentStatus]} tone={assignment.assignmentStatus === 'CANCELLED' ? 'error' : assignment.assignmentStatus === 'COMPLETED' ? 'success' : 'neutral'} /></td>
         <td>Phân công: {displayTime(assignment.assignedAt)}<br />Khởi hành: {displayTime(assignment.checkedInAt)}<br />Trở về: {displayTime(assignment.returnedAt)}</td>
         <td><div className={styles.actions}>{actions.map((action) => <Button key={action} tone={action === 'remove' ? 'danger' : 'secondary'} disabled={busy || !access.has(permission(action))} onClick={() => onAction(action, assignment)}>{passengerActionLabels[action]}</Button>)}</div>{!actions.length && 'Không có thao tác phù hợp.'}</td>

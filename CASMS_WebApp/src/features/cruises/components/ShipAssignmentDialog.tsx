@@ -70,14 +70,14 @@ export function ShipAssignmentDialog({ detail, mode, onClose, onChanged }: {
   }
 
   if (mode === 'unassign') {
-    return <Modal title="Gỡ tàu khỏi cruise" onClose={onClose} busy={busy}>
+    return <Modal title="Gỡ tàu khỏi cruise" onClose={onClose} busy={busy} footer={<div className={styles.dialogActions}><Button tone="secondary" disabled={busy} onClick={onClose} data-overlay-dismiss>Hủy</Button><Button tone="danger" disabled={busy || !allowed} onClick={() => void confirm()}>{busy ? 'Đang xử lý…' : 'Xác nhận gỡ tàu'}</Button></div>}>
       <Notice title={`${detail.cruise.cruiseCode} · ${detail.ship?.shipName ?? 'Chưa phân công'}`} tone="warning"><p>Sau xác nhận, cruise sẽ chưa có tàu được phân công. Hệ thống sẽ kiểm tra các đặt chỗ trước khi gỡ tàu.</p></Notice>
       {error && <Notice title="Không thể gỡ tàu" tone="error"><p>{error}</p></Notice>}
-      <div className={styles.dialogActions}><Button tone="secondary" disabled={busy} onClick={onClose}>Hủy</Button><Button tone="danger" disabled={busy || !allowed} onClick={() => void confirm()}>{busy ? 'Đang xử lý…' : 'Xác nhận gỡ tàu'}</Button></div>
+
     </Modal>
   }
 
-  return <Modal wide title={`${mode === 'assign' ? 'Phân công' : 'Đổi'} tàu cho ${detail.cruise.cruiseCode}`} onClose={onClose} busy={busy}>
+  return <Modal wide title={`${mode === 'assign' ? 'Phân công' : 'Đổi'} tàu cho ${detail.cruise.cruiseCode}`} onClose={onClose} busy={busy} footer={<div className={styles.dialogActions}><Button tone="secondary" disabled={busy} onClick={onClose} data-overlay-dismiss>Hủy</Button><Button disabled={busy || !allowed || selected?.state !== 'AVAILABLE'} onClick={() => void confirm()}>{busy ? 'Đang xử lý…' : mode === 'assign' ? 'Xác nhận phân công' : 'Xác nhận đổi tàu'}</Button></div>}>
     <p className={styles.dialogIntro}>Chọn tàu và đọc toàn bộ kết quả precheck trước khi xác nhận.</p>
     {detail.ship && <Notice title={`Tàu hiện tại · ${detail.ship.shipName}`} tone="warning"><p>{detail.ship.status} · {detail.ship.totalCapacity} khách{detail.bookingHasData ? ' · Cruise đã có booking nên thay tàu cần impact check.' : ''}</p></Notice>}
     {error && <Notice title="Không kiểm tra được khả dụng" tone="error"><p>{error}</p></Notice>}
@@ -88,6 +88,6 @@ export function ShipAssignmentDialog({ detail, mode, onClose, onChanged }: {
       </button>)}
     </div>}
     {selected && <Notice title={`Precheck · ${stateLabel(selected.state)}`} tone={candidateTone(selected.state)}><p>{selected.reasons.join(' ')}</p></Notice>}
-    <div className={styles.dialogActions}><Button tone="secondary" disabled={busy} onClick={onClose}>Hủy</Button><Button disabled={busy || !allowed || selected?.state !== 'AVAILABLE'} onClick={() => void confirm()}>{busy ? 'Đang xử lý…' : mode === 'assign' ? 'Xác nhận phân công' : 'Xác nhận đổi tàu'}</Button></div>
+
   </Modal>
 }

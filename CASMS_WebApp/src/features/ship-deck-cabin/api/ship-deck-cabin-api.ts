@@ -103,13 +103,13 @@ export const shipDeckCabinApi = {
     notify(); return saved
   },
   async saveDeck(draft: DeckDraft, id?: string) {
-    const body = { deckNumber: draft.number, deckName: draft.name.trim(), priceMultiplier: draft.priceMultiplier ?? 1.0, ...(!id ? { shipId: draft.shipId } : {}) }
+    const body = { deckNumber: !id && draft.number === '' ? undefined : draft.number, deckName: draft.name.trim(), priceMultiplier: draft.priceMultiplier ?? 1.0, ...(!id ? { shipId: draft.shipId } : {}) }
     const saved = deck(await apiRequest<DeckDto>(id ? idPath('decks', id) : paths.decks, { method: id ? 'PATCH' : 'POST', body }))
     notify(); return saved
   },
   async saveCabin(draft: CabinDraft, id?: string) {
     const body = { cabinType: draft.type, capacity: draft.capacity, isAccessible: draft.accessible,
-      ...(!id ? { shipId: draft.shipId, deckId: draft.deckId, cabinNumber: draft.number.trim(), status: draft.status } : {}) }
+      ...(!id ? { deckId: draft.deckId, cabinNumber: draft.number.trim(), status: draft.status } : {}) }
     const saved = cabin(await apiRequest<CabinDto>(id ? idPath('cabins', id) : paths.cabins, { method: id ? 'PATCH' : 'POST', body }))
     notify(); return saved
   },

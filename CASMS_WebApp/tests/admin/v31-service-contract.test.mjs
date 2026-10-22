@@ -22,7 +22,7 @@ test('catalog serializers use exact per-kind DTO names and preserve zero/null wi
 test('catalog form enforces required fields, real money/integer limits, package enum and valid date interval', () => {
   assert.equal(Object.keys(model.validateCatalogDraft('products', draft)).length, 0)
   assert.equal(Object.keys(model.validateCatalogDraft('services', { ...draft, price: '', currency: '' })).length, 0)
-  for (const patch of [{ code: '' }, { name: 'a'.repeat(201) }, { price: '-1' }, { price: 'NaN' }, { currency: 'invalid' }]) assert.ok(Object.keys(model.validateCatalogDraft('products', { ...draft, ...patch })).length)
+  for (const patch of [{ code: 'x'.repeat(51) }, { name: 'a'.repeat(201) }, { price: '-1' }, { price: 'NaN' }, { currency: 'invalid' }]) assert.ok(Object.keys(model.validateCatalogDraft('products', { ...draft, ...patch })).length)
   assert.ok(model.validateCatalogDraft('services', { ...draft, capacity: '1.5' }).capacity)
   assert.ok(model.validateCatalogDraft('packages', { ...draft, type: 'MADE_UP' }).type)
   assert.ok(model.validateCatalogDraft('packages', { ...draft, startDate: '2026-02-30' }).startDate)

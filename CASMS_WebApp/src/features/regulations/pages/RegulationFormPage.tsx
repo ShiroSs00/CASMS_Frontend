@@ -1,3 +1,4 @@
+import { FormErrorSummary } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
@@ -41,8 +42,7 @@ const initialDraft: RegulationDraft = {
 function validate(draft: RegulationDraft) {
   const errors: FormErrors = {}
   const code = draft.code.trim().toUpperCase()
-  if (!code) errors.code = 'Vui lòng nhập mã quy định.'
-  else if (!/^[A-Z0-9_-]{3,30}$/.test(code)) errors.code = 'Mã quy định từ 3 đến 30 ký tự (chữ in hoa, số, gạch nối hoặc gạch dưới, VD: REG-SPD-01).'
+  if (code && !/^[A-Z0-9_-]{3,30}$/.test(code)) errors.code = 'Mã quy định từ 3 đến 30 ký tự (chữ in hoa, số, gạch nối hoặc gạch dưới, VD: REG-SPD-01).'
 
   const name = draft.name.trim()
   if (!name) errors.name = 'Vui lòng nhập tên quy định.'
@@ -216,18 +216,8 @@ export function RegulationFormPage() {
 
       <form noValidate onSubmit={(event) => void submit(event)}>
         <Panel title="Thông tin quy định">
+          <FormErrorSummary errors={errors} />
           <div className={styles.formGrid}>
-            <Field error={errors.code} htmlFor="code" label="Mã quy định">
-              <input
-                aria-invalid={Boolean(errors.code)}
-                data-form-error={Boolean(errors.code)}
-                id="code"
-                maxLength={30}
-                onChange={(event) => setValue('code', event.target.value.toUpperCase())}
-                placeholder="VD: REG-SPD-010"
-                value={draft.code}
-              />
-            </Field>
             <Field error={errors.name} htmlFor="name" label="Tên quy định">
               <input
                 aria-invalid={Boolean(errors.name)}

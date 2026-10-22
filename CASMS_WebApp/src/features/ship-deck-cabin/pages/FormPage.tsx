@@ -1,3 +1,4 @@
+import { FormErrorSummary } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
 import { entityPermission } from '../model/permissions'
 import { useRef, useState, type FormEvent } from 'react'
@@ -18,8 +19,8 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
   const source = ship ?? deck ?? cabin
   const access = useSessionAccess()
   const permitted = access.has(entityPermission(kind, source ? 'UPDATE' : 'CREATE'))
-  const [shipDraft, setShip] = useState<ShipDraft>(ship ?? { code: '', name: '', capacity: 0, totalDecks: 0, commissionDate: '', status: 'INACTIVE' })
-  const [deckDraft, setDeck] = useState<DeckDraft>(deck ?? { shipId: hostId, number: 0, name: '', priceMultiplier: 1.0 })
+  const [shipDraft, setShip] = useState<ShipDraft>(ship ?? { code: '', name: '', capacity: 0, totalDecks: 0, commissionDate: '', status: 'ACTIVE' })
+  const [deckDraft, setDeck] = useState<DeckDraft>(deck ?? { shipId: hostId, number: '', name: '', priceMultiplier: 1.0 })
   const [cabinDraft, setCabin] = useState<CabinDraft>(cabin ?? { shipId: hostId,
     deckId: data.decks.some(row => row.id === deckId && row.shipId === hostId) ? deckId : '',
     number: '', type: 'INTERIOR', capacity: 0, status: 'AVAILABLE', accessible: false })
@@ -55,9 +56,9 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
       {mutation.error && <Notice title="Không lưu được dữ liệu" tone="error">{mutation.error}</Notice>}
       <form noValidate ref={form} onSubmit={submit}>
         <Panel title={`Thông tin ${kindLabels[kind]}`}>
+          <FormErrorSummary errors={errors} />
           <div className={styles.grid}>
             {kind === 'ships' ? <>
-              <InputField label="Mã tàu *" value={shipDraft.code} maxLength={20} readOnly={Boolean(ship)} disabled={mutation.busy} error={errors.code} onChange={(event) => changeShip('code', event.target.value.toUpperCase())} placeholder="VD: CAS-AUR-04" />
               <InputField label="Tên tàu *" value={shipDraft.name} maxLength={100} disabled={mutation.busy} error={errors.name} onChange={(event) => changeShip('name', event.target.value)} />
               <SelectField label="Trạng thái *" value={shipDraft.status} disabled={mutation.busy || Boolean(ship)} error={errors.status} onChange={(value) => changeShip('status', value as ShipStatus)}>{Object.entries(shipStatuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField>
               <InputField label="Sức chứa hành khách *" type="number" min={1} step={1} value={shipDraft.capacity || ''} disabled={mutation.busy} error={errors.capacity} onChange={(event) => changeShip('capacity', Number(event.target.value))} />
@@ -65,7 +66,7 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
               <InputField label="Ngày đưa vào hoạt động" type="date" value={shipDraft.commissionDate} disabled={mutation.busy} error={errors.commissionDate} onChange={(event) => changeShip('commissionDate', event.target.value)} hint={ship ? 'Để trống để giữ ngày hiện tại.' : 'Không bắt buộc.'} />
             </> : kind === 'decks' ? <>
               <SelectField label="Tàu *" value={deckDraft.shipId} disabled={mutation.busy || Boolean(deck)} error={errors.shipId} onChange={(value) => changeDeck('shipId', value)}>{hostOptions}</SelectField>
-              <InputField label="Số boong *" type="number" min={1} step={1} max={data.ships.find((row) => row.id === deckDraft.shipId)?.totalDecks} value={deckDraft.number || ''} disabled={mutation.busy} error={errors.number} onChange={(event) => changeDeck('number', Number(event.target.value))} hint={deckDraft.shipId ? `Giới hạn theo tàu: ${data.ships.find((row) => row.id === deckDraft.shipId)?.totalDecks ?? 0} boong.` : 'Chọn tàu trước khi nhập số boong.'} />
+              <InputField label="Số boong" type="number" min={1} step={1} max={data.ships.find((row) => row.id === deckDraft.shipId)?.totalDecks} value={deckDraft.number} disabled={mutation.busy} error={errors.number} onChange={(event) => changeDeck('number', event.target.value === '' ? '' : Number(event.target.value))} hint={deckDraft.shipId ? `Để trống để tự đánh số. Giới hạn theo tàu: ${data.ships.find((row) => row.id === deckDraft.shipId)?.totalDecks ?? 0} boong.` : 'Chọn tàu trước khi nhập số boong.'} />
               <InputField label="Tên boong" maxLength={50} value={deckDraft.name} disabled={mutation.busy} error={errors.name} onChange={(event) => changeDeck('name', event.target.value)} hint="Không bắt buộc, tối đa 50 ký tự." />
               <InputField label="Hệ số giá tầng (Price Multiplier)" type="number" min={0.5} max={5.0} step={0.05} value={deckDraft.priceMultiplier ?? 1.0} disabled={mutation.busy} error={errors.priceMultiplier} onChange={(event) => changeDeck('priceMultiplier', Number(event.target.value))} hint="Mặc định: 1.00 (100%). Ví dụ tầng giữa 1.15 (+15%), tầng cao 1.25 (+25%)." />
             </> : <>
