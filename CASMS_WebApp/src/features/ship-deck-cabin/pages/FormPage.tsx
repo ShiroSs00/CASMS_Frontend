@@ -51,8 +51,6 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
     <PageHeader breadcrumb={`Vận hành / Tàu & đội tàu / ${sectionLabels[kind]} / ${source ? 'Chỉnh sửa' : 'Tạo mới'}`} title={`${source ? 'Chỉnh sửa' : kind === 'ships' ? 'Tạo' : 'Thêm'} ${kindLabels[kind]}`}
       description="Điền thông tin bên dưới. Thông tin được lưu vào hệ thống sau khi xác nhận." />
     <div className={styles.stack}>
-      {source && kind === 'ships' && <Notice title="Mã tàu được bảo vệ">Mã tàu không thay đổi sau khi tạo. Đổi trạng thái tại màn hình chi tiết.</Notice>}
-      {source && kind === 'cabins' && <Notice title="Các trường được phép cập nhật">Chỉ sửa loại cabin, sức chứa và hỗ trợ tiếp cận. Tàu, boong và số cabin được giữ nguyên; đổi trạng thái tại màn hình chi tiết.</Notice>}
       {mutation.error && <Notice title="Không lưu được dữ liệu" tone="error">{mutation.error}</Notice>}
       <form noValidate ref={form} onSubmit={submit}>
         <Panel title={`Thông tin ${kindLabels[kind]}`}>

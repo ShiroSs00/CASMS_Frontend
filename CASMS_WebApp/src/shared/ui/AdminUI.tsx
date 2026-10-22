@@ -45,7 +45,7 @@ export function Panel({ title, subtitle, children, className = '', id }: { title
   const titleId = useId()
   return <section id={id} className={`${styles.panel} ${className}`.trim()} aria-labelledby={title ? titleId : undefined}>{title && <h2 id={titleId}>{title}</h2>}{subtitle && <p className={styles.muted}>{subtitle}</p>}{children}</section>
 }
-export function Notice({ title, children, tone = 'info', role }:
+export function Notice({ title, children, tone = 'neutral', role }:
   { title: string; children: ReactNode; tone?: 'info' | 'success' | 'warning' | 'error' | 'neutral'; role?: 'alert' | 'status' }) {
   return <div className={`${styles.notice} ${styles[`notice_${tone}`]}`} role={role ?? (tone === 'error' ? 'alert' : 'status')}>
     <strong>{title}</strong><div>{children}</div>

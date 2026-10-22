@@ -17,10 +17,11 @@ export const issueLocationApi = {
   ships: (signal?: AbortSignal) => all<IssueShipOption>('/ships', ['shipId', 'shipCode', 'shipName'], signal),
   cruises: (signal?: AbortSignal) => all<IssueCruiseOption>('/cruise', ['cruiseId', 'cruiseCode', 'cruiseName'], signal),
   cabins: (signal?: AbortSignal) => all<IssueCabinOption>('/cabins', ['cabinId', 'shipId', 'cabinNumber'], signal),
+  cabinsForShip: (shipId: string, signal?: AbortSignal) => all<IssueCabinOption>(`/cabins/by-ship/${encodeURIComponent(shipId)}`, ['cabinId', 'shipId', 'cabinNumber'], signal),
 }
 
 export function validateIssueLocation(shipId: string, cruiseId: string, cabinId: string, context: { ships: IssueShipOption[]; cruises: IssueCruiseOption[]; cabins: IssueCabinOption[] } | null): string {
-  if (!context) return 'Chưa tải đủ dữ liệu tàu, chuyến hoặc cabin. Vui lòng thử lại.'
+  if (!context) return 'Chưa tải được dữ liệu vị trí đã chọn. Vui lòng thử lại.'
   if (!context.ships.some(ship => ship.shipId === shipId)) return 'Vui lòng chọn tàu từ danh sách.'
   if (cruiseId && !context.cruises.some(cruise => cruise.cruiseId === cruiseId && cruise.shipId === shipId)) return 'Chuyến đã chọn không thuộc tàu này.'
   if (cabinId && !context.cabins.some(cabin => cabin.cabinId === cabinId && cabin.shipId === shipId)) return 'Cabin đã chọn không thuộc tàu này.'

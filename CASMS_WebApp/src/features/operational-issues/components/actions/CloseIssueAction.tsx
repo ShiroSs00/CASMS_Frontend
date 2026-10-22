@@ -41,7 +41,6 @@ export function CloseIssueAction({ open, pending, error, onClose, onSubmit }: Pr
         <li>Đã ghi nhận thời điểm xử lý</li>
         <li>Sự cố chuyển sang CLOSED sau khi đóng</li>
       </ul>
-      <div className={styles.infoBanner}>Sự cố đã đóng có thể được mở lại khi cần tiếp tục xử lý.</div>
     </ActionDialog>
   )
 }

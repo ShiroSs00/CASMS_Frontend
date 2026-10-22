@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router'
+import { useSessionAccess } from '@/shared/auth'
 import { AdminShell } from '@/shared/ui/admin-v3'
-import { Button } from '@/shared/ui'
+import { ButtonLink, PageHeader } from '@/shared/ui'
 import { ApiError } from '@/shared/api/client'
 import { supplierApi } from '../api/supplier-api'
 import { SupplierListView } from '../components/SupplierListView'
 import { emptySupplierFilters, filterSuppliers, type SupplierListItem } from '../model/supplier-list'
 import styles from '../components/SupplierList.module.css'
-import formStyles from '../components/SupplierForm.module.css'
+
 
 export function SupplierListPage() {
+  const access = useSessionAccess()
   const [filters, setFilters] = useState(emptySupplierFilters)
   const [data, setData] = useState<SupplierListItem[] | null>(null)
   const [loading, setLoading] = useState(true)
@@ -52,33 +53,15 @@ export function SupplierListPage() {
   return (
     <AdminShell>
       <div className={styles.content}>
-        <header className={styles.titleRow}>
-          <div className={styles.titleCopy}>
-            <h1>Nhà cung cấp</h1>
-            <p>Quản lý đối tác tour, liên hệ và trạng thái vận hành.</p>
-          </div>
-          <Link
-            className={`${styles.createButton} ${formStyles.listCreateLink}`}
-            to="/admin/suppliers/new"
-          >
-            Thêm nhà cung cấp
-          </Link>
-        </header>
-
-        {error && (
-          <aside className={styles.errorBanner} role="alert">
-            <span>{error}</span>
-            <Button tone="secondary" onClick={handleRetry}>
-              Thử lại
-            </Button>
-          </aside>
-        )}
+        <PageHeader breadcrumb="ĐỐI TÁC / NHÀ CUNG CẤP" title="Nhà cung cấp" description="Quản lý đối tác, thông tin liên hệ và trạng thái hoạt động." actions={access.has('SUPPLIER_CREATE') && <ButtonLink to="/admin/suppliers/new">Thêm nhà cung cấp</ButtonLink>} />
 
         <SupplierListView
           rows={rows}
           filters={filters}
           totalCount={totalCount}
           loading={loading}
+          error={error}
+          onRetry={handleRetry}
           onFiltersChange={setFilters}
           onReset={reset}
         />

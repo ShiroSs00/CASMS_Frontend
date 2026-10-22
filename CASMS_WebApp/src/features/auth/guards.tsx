@@ -11,7 +11,7 @@ export function SessionBoundary() {
   const auth = useAuth()
   const location = useLocation()
   if (auth.status === 'loading') return <div className={styles.loading} role="status">Đang khôi phục phiên đăng nhập…</div>
-  if (auth.status === 'expired' && location.pathname !== '/login') {
+  if (auth.status === 'expired' && location.pathname.startsWith('/admin')) {
     const query = new URLSearchParams({ reason: 'expired' })
     const returnTo = safeAdminReturnTo(`${location.pathname}${location.search}${location.hash}`) ?? safeCustomerReturnTo(`${location.pathname}${location.search}${location.hash}`)
     if (returnTo) query.set('returnTo', returnTo)
@@ -44,8 +44,5 @@ export function AdminGuard() {
 }
 
 export function CustomerGuard() {
-  const auth = useAuth()
-  const location = useLocation()
-  if (!auth.user) return <Navigate to={`/login?${new URLSearchParams({ returnTo: location.pathname + location.search })}`} replace />
-  return <Outlet />
+  return <Navigate to="/booking/lookup" replace />
 }

@@ -19,7 +19,6 @@ type Props = {
   actionFeedback?: { type: 'success' | 'error'; message: string } | null
   onDismissFeedback?: () => void
   onToggleStatus?: () => void
-  onValidate?: () => void
   onVerify?: (request: SupplierVerificationRequest) => Promise<void>
   onDelete?: () => void
 }
@@ -47,7 +46,6 @@ export function SupplierDetail({
   actionFeedback = null,
   onDismissFeedback,
   onToggleStatus,
-  onValidate,
   onVerify,
   onDelete,
 }: Props) {
@@ -106,15 +104,6 @@ export function SupplierDetail({
           <p>{supplier.supplierType || 'Chưa phân loại'}</p>
         </div>
         <div className={styles.headerActions}>
-          {access.has('SUPPLIER_VALIDATE') && <button
-            type="button"
-            className={styles.validateButton}
-            onClick={onValidate}
-            disabled={actionInProgress !== null || !access.has('SUPPLIER_VALIDATE')}
-            title="Kiểm tra tính hợp lệ dữ liệu hồ sơ đối tác"
-          >
-            {actionInProgress === 'validate' ? 'Đang kiểm tra...' : 'Kiểm tra hợp lệ'}
-          </button>}
           {access.has('SUPPLIER_UPDATE') && <Link to={`/admin/suppliers/${supplier.id}/edit`} className={styles.editButton}>
             Chỉnh sửa
           </Link>}

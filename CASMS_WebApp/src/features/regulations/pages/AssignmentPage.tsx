@@ -308,12 +308,6 @@ function AssignmentPage({ type }: { type: HostType }) {
           >
             <AssignmentTable direct={false} removePermission={`${prefix}_REMOVE`} onRemove={setRemoveItem} rows={snapshot.inherited} />
           </Panel>
-          <Panel title="Kết quả kiểm tra quy định">
-            <Notice title="Kiểm tra trước khi gán" tone="info">Chọn quy định rồi kiểm tra xung đột trước khi xác nhận gán. Việc chọn quy định chưa tạo liên kết.</Notice>
-          </Panel>
-          <Notice title="Không suy luận ưu tiên" tone="info">
-            Có quy định trực tiếp không đồng nghĩa ghi đè quy định từ nguồn khác. Kết quả hiển thị phải đến từ dịch vụ kiểm tra.
-          </Notice>
         </>
       ) : null}
 
@@ -372,9 +366,6 @@ function AssignmentPage({ type }: { type: HostType }) {
               </select>
             </Field>
           </div>
-          <Notice title={`Phạm vi cố định: ${type === 'ship' ? 'SHIP' : 'CRUISE'}`} tone="info">
-            Chỉ hiển thị ứng viên đúng phạm vi của đối tượng hiện tại.
-          </Notice>
           {candidateLoading ? <LoadingPanel label="Đang tải ứng viên…" /> : null}
           {!candidateLoading && actionError ? <Notice title="Không tải được dữ liệu" tone="error" role="alert">{actionError}</Notice> : null}
           {!candidateLoading && !actionError && filteredCandidates.length === 0 ? (

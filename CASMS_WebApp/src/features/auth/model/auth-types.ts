@@ -9,6 +9,9 @@ export type AuthState = { status: 'loading' | 'anonymous' | 'authenticated' | 'e
 
 // Coarse navigation UX only. Backend remains the authority for every action.
 export const isStaff = (user: AuthUser | null | undefined) => Boolean(user?.roles.some((role) => role !== 'PASSENGER'))
+export const canSignIn = (user: AuthUser | null | undefined) => Boolean(user?.roles.some((role) =>
+  role === 'ADMIN' || role === 'CRUISE_MANAGER' || role === 'SHIP_MANAGER'
+  || role === 'OPERATIONS_MANAGER' || role === 'ACTIVITY_SERVICE_MANAGER'))
 
 export function safeAdminReturnTo(value: string | null): string | null {
   if (!value || !/^\/admin(?:[/?#]|$)/.test(value) || value.includes('\\')

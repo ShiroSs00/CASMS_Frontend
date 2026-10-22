@@ -1,5 +1,5 @@
 import { useSessionAccess } from '@/shared/auth'
-import { adminNavigation, roleNavigationGroups, workspaceUrl, roleWorkspace, staffRoleHome, staffRoleLabel } from './admin-navigation'
+import { adminNavigation, roleNavigationGroups, staffRoleHome, staffRoleLabel } from './admin-navigation'
 import { BrandLogo } from '../BrandLogo'
 import { useContext, useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router'
@@ -16,13 +16,11 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
   const [menu, setMenu] = useState({ path: pathname, open: false })
   const menuOpen = menu.path === pathname && menu.open
   const account = useContext(AdminAccountContext)
-  const workspace = roleWorkspace(roles)
   let activeTo = pathname.startsWith('/admin/staff/') ? pathname : pathname.split('/').slice(0,3).join('/')
   if (pathname.includes('/regulations')) activeTo = '/admin/regulations'
   else if (pathname.startsWith('/admin/itinerary-history')) activeTo = '/admin/itineraries'
   else if (pathname.startsWith('/admin/activity-registrations')) activeTo = new URLSearchParams(search).has('excursionId') ? '/admin/shore-excursions' : '/admin/activities'
-  const workspaceHome = workspace && workspaceUrl(workspace)
-  const activeLabel = pathname === workspaceHome ? 'Tổng quan khu vực' : adminNavigation.flatMap(group => group.items).find(item => item.to === activeTo)?.label
+  const activeLabel = adminNavigation.flatMap(group => group.items).find(item => item.to === activeTo)?.label
   const currentGroups = roleNavigationGroups(roles,access)
   return <div className={`${styles.shell} ${experience.admin} ${className}`.trim()}>
     <a href="#admin-v3-main" className={styles.skipLink}>Chuyển đến nội dung chính</a>
@@ -33,7 +31,6 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
       <div className={styles.workspaceContext}><span>KHU VỰC LÀM VIỆC</span><strong>{roleLabel}</strong></div>
       <nav aria-label="Điều hướng khu vực" className={styles.navigation}>
         <div className={styles.navGroup}><p className={styles.groupLabel}>CÔNG VIỆC VÀ TRA CỨU</p>
-          {workspace && <Link to={workspaceHome!} aria-current={pathname===workspaceHome?'page':undefined} className={`${styles.navItem} ${pathname===workspaceHome?styles.active:''}`}>Tổng quan khu vực</Link>}
           {access.status==='loading' && <p className={styles.unavailable}>Đang kiểm tra quyền truy cập…</p>}
           {currentGroups.map(group=>group.items.length===1 && (group.id==='system'||group.id==='staff/finance')
             ? group.items.map(item=><Link key={item.to} to={item.to!} aria-current={item.to===activeTo?'page':undefined} className={`${styles.navItem} ${item.to===activeTo?styles.active:''}`}>{item.label}</Link>)
@@ -41,9 +38,8 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
               <summary className={`${styles.menuSummary} ${group.items.some(item=>item.to===activeTo)?styles.menuCurrent:''}`}><span>{group.label}</span><span className={styles.menuChevron} aria-hidden="true">›</span></summary>
               <div className={styles.subMenu}>{group.items.map(item=><Link key={item.to} to={item.to!} aria-current={item.to===activeTo?'page':undefined} className={`${styles.navItem} ${item.to===activeTo?styles.active:''}`}>{item.label}</Link>)}</div>
             </details>)}
-          {!workspace && !currentGroups.some(group=>group.items.some(item=>item.to===home)) && <Link to={home} className={styles.navItem}>Khu chức năng của tôi</Link>}
+          {!currentGroups.some(group=>group.items.some(item=>item.to===home)) && <Link to={home} className={styles.navItem}>Khu chức năng của tôi</Link>}
         </div>
-        {workspace && <Link to="/admin/workflow" aria-current={pathname==='/admin/workflow'?'page':undefined} className={`${styles.navItem} ${pathname==='/admin/workflow'?styles.active:''}`}>Quy trình vận hành</Link>}
       </nav>
       <div className={styles.sidebarFooter}><span>OceVie Cruises</span><Link to="/">Xem WebApp <span aria-hidden="true">↗</span></Link></div>
     </aside>
@@ -52,7 +48,7 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
         {topbar ?? <div className={styles.context}><span className={styles.contextEyebrow}>OceVie / QUẢN TRỊ</span><p>{roleLabel}{activeLabel && activeLabel !== 'Tổng quan' && <><span className={styles.contextDivider} aria-hidden="true">/</span><span className={styles.contextSection}>{activeLabel}</span></>}</p></div>}
         {account}
       </header>
-      <title>{`OceVie — ${roleLabel}${activeLabel && activeLabel!==roleLabel && activeLabel!=='Tổng quan khu vực' ? ' / '+activeLabel : ''}`}</title>
+      <title>{`OceVie — ${roleLabel}${activeLabel && activeLabel!==roleLabel ? ' / '+activeLabel : ''}`}</title>
       <main id="admin-v3-main" tabIndex={-1} className={styles.main}>{children}</main>
     </div>
   </div>

@@ -200,11 +200,6 @@ export function RegulationFormPage() {
             : 'Quy định mới được lưu ở trạng thái DRAFT.'
         }
       />
-      {!isEdit ? (
-        <Notice title="Lưu dưới dạng bản nháp" tone="info">
-          Sau khi lưu, kiểm tra lại nội dung và xung đột trước khi kích hoạt.
-        </Notice>
-      ) : null}
       {source?.hasBeenActive ? (
         <Notice title="Giá trị đã được bảo vệ" tone="warning">
           <span id="protected-value-note">

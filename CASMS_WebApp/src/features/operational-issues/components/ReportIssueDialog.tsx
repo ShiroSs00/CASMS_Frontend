@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 
@@ -20,14 +20,15 @@ export function ReportIssueDialog(props: Props) {
 
 function ReportIssueDialogContent({ open, onClose, onCreated }: Props) {
   const access = useSessionAccess()
-  const ships = useReadQuery('report-issue-ships', issueLocationApi.ships)
-  const cruises = useReadQuery('report-issue-cruises', issueLocationApi.cruises)
-  const cabins = useReadQuery('report-issue-cabins', issueLocationApi.cabins)
-  const contextReady = !ships.loading && !cruises.loading && !cabins.loading && !ships.error && !cruises.error && !cabins.error
-  const lookupError = ships.error || cruises.error || cabins.error
   const [shipId, setShipId] = useState('')
   const [cruiseId, setCruiseId] = useState('')
   const [cabinId, setCabinId] = useState('')
+  const ships = useReadQuery('report-issue-ships', issueLocationApi.ships)
+  const cruises = useReadQuery('report-issue-cruises', issueLocationApi.cruises)
+  const cabins = useReadQuery(`report-issue-cabins:${shipId}`, useCallback(signal => shipId ? issueLocationApi.cabinsForShip(shipId, signal) : Promise.resolve([]), [shipId]))
+  const contextReady = !ships.loading && !ships.error
+    && (!cruiseId || (!cruises.loading && !cruises.error))
+    && (!cabinId || (!cabins.loading && !cabins.error))
   const [issueType, setIssueType] = useState<IssueType>('OPERATIONAL')
   const [severity, setSeverity] = useState<IssueSeverity>('MEDIUM')
   const [description, setDescription] = useState('')
@@ -44,7 +45,6 @@ function ReportIssueDialogContent({ open, onClose, onCreated }: Props) {
     setPending(true); setError('')
     try {
       await operationalIssuesApi.create({
-        issueCode: '',
         shipId: shipId.trim(),
         ...(cruiseId.trim() ? { cruiseId: cruiseId.trim() } : {}),
         ...(cabinId.trim() ? { cabinId: cabinId.trim() } : {}),
@@ -67,21 +67,21 @@ function ReportIssueDialogContent({ open, onClose, onCreated }: Props) {
     footer={<>
       <button className={styles.secondaryButton} disabled={pending} onClick={onClose} data-overlay-dismiss>Hủy</button>
       <button className={styles.primaryButton} disabled={invalid || pending} onClick={() => void submit()}>
-        {pending ? 'Đang gửi…' : 'Gửi issue'}
+        {pending ? 'Đang gửi…' : 'Gửi báo cáo'}
       </button>
     </>}
   >
     <div className={styles.formGrid}>
       <label className={styles.field}>Loại sự cố<select value={issueType} disabled={pending} onChange={(event) => setIssueType(event.target.value as IssueType)}>{ISSUE_TYPES.map((value) => <option key={value}>{value}</option>)}</select></label>
       <label className={styles.field}>Mức độ nghiêm trọng<select value={severity} disabled={pending} onChange={(event) => setSeverity(event.target.value as IssueSeverity)}>{ISSUE_SEVERITIES.map((value) => <option key={value}>{value}</option>)}</select></label>
-      <label className={styles.field}>Tàu *<select value={shipId} disabled={pending || !contextReady} onChange={(event) => { setShipId(event.target.value); setCruiseId(''); setCabinId(''); setError('') }} required><option value="">Chọn tàu</option>{ships.data?.map(ship => <option key={ship.shipId} value={ship.shipId}>{ship.shipName} · {ship.shipCode}</option>)}</select></label>
-      <label className={styles.field}>Chuyến liên quan (không bắt buộc)<select value={cruiseId} disabled={pending || !contextReady || !shipId} onChange={(event) => setCruiseId(event.target.value)}><option value="">Không gắn chuyến</option>{cruises.data?.filter(cruise => cruise.shipId === shipId).map(cruise => <option key={cruise.cruiseId} value={cruise.cruiseId}>{cruise.cruiseName} · {cruise.cruiseCode}</option>)}</select></label>
-      <label className={styles.field}>Cabin liên quan (không bắt buộc)<select value={cabinId} disabled={pending || !contextReady || !shipId} onChange={(event) => setCabinId(event.target.value)}><option value="">Không gắn cabin</option>{cabins.data?.filter(cabin => cabin.shipId === shipId).map(cabin => <option key={cabin.cabinId} value={cabin.cabinId}>Cabin {cabin.cabinNumber}</option>)}</select></label>
+      <label className={styles.field}>Tàu *<select value={shipId} disabled={pending || ships.loading || Boolean(ships.error)} onChange={(event) => { setShipId(event.target.value); setCruiseId(''); setCabinId(''); setError('') }} required><option value="">Chọn tàu</option>{ships.data?.map(ship => <option key={ship.shipId} value={ship.shipId}>{ship.shipName} · {ship.shipCode}</option>)}</select></label>
+      <label className={styles.field}>Chuyến liên quan (không bắt buộc)<select value={cruiseId} disabled={pending || cruises.loading || Boolean(cruises.error) || !shipId} onChange={(event) => { setCruiseId(event.target.value); setError('') }}><option value="">Không gắn chuyến</option>{cruises.data?.filter(cruise => cruise.shipId === shipId).map(cruise => <option key={cruise.cruiseId} value={cruise.cruiseId}>{cruise.cruiseName} · {cruise.cruiseCode}</option>)}</select></label>
+      <label className={styles.field}>Cabin liên quan (không bắt buộc)<select value={cabinId} disabled={pending || cabins.loading || Boolean(cabins.error) || !shipId} onChange={(event) => { setCabinId(event.target.value); setError('') }}><option value="">Không gắn cabin</option>{cabins.data?.filter(cabin => cabin.shipId === shipId).map(cabin => <option key={cabin.cabinId} value={cabin.cabinId}>Cabin {cabin.cabinNumber}</option>)}</select></label>
       <label className={`${styles.field} ${styles.fullWidth}`}>Mô tả *<textarea value={description} disabled={pending} required onChange={(event) => setDescription(event.target.value)} /></label>
     </div>
     {!allowed && <p role="status">{access.status === 'loading' ? 'Đang tải quyền tài khoản…' : access.error || 'Tài khoản chưa có quyền báo cáo sự cố.'}</p>}
-    {!contextReady && !lookupError && <p role="status">Đang tải tàu, chuyến và cabin…</p>}
-    {lookupError && <div className={styles.errorBanner} role="alert">{lookupError.message} <button type="button" className={styles.secondaryButton} onClick={() => { ships.retry(); cruises.retry(); cabins.retry() }}>Thử lại</button></div>}
+    {ships.loading && <p role="status">Đang tải danh sách tàu…</p>}
+    {[ships, cruises, cabins].map((query, index) => query.error && <div key={index} className={styles.errorBanner} role="alert">Không tải được {['tàu', 'chuyến', 'cabin'][index]}. {index > 0 && 'Bạn vẫn có thể báo cáo sự cố nếu để trống mục này.'} <button type="button" className={styles.secondaryButton} onClick={query.retry}>Thử lại</button></div>)}
     {contextReady && !ships.data?.length && <p role="status">Chưa có tàu. Hãy tạo tàu trước khi báo cáo sự cố.</p>}
     {contextReady && shipId && locationError && <div className={styles.errorBanner} role="alert">{locationError}</div>}
     <aside className={styles.permissionNote}>Người báo cáo được ghi nhận theo tài khoản đang đăng nhập.</aside>

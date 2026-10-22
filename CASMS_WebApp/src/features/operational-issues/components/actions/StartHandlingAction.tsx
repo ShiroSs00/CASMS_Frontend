@@ -42,9 +42,9 @@ export function StartHandlingAction({
         </>
       }
     >
-      <div className={styles.infoBanner}>
+      <p>
         Người phụ trách: <strong>{assigneeName ?? 'Chưa phân công'}</strong>
-      </div>
+      </p>
       <p>Hệ thống sẽ kiểm tra người được phân công và trạng thái hiện tại trước khi bắt đầu.</p>
     </ActionDialog>
   )

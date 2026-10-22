@@ -35,7 +35,7 @@ test('booking advances only after earlier choices are valid and retains staged p
   assert.equal(availableBookingStep(draft,cruise,[cabin],[]),1)
 })
 
-test('preview query cannot bypass customer authentication',()=>{
+test('former customer account routes use guest reference lookup',()=>{
   const {CustomerGuard}=load('features/auth/guards.tsx',{
     react:{},'@/shared/auth':{},'@/shared/ui/admin-v3':{},'@/shared/ui':{},
     'react-router':{Navigate:'Navigate',useLocation:()=>({pathname:'/my-bookings',search:'?preview=1'})},
@@ -43,7 +43,7 @@ test('preview query cannot bypass customer authentication',()=>{
   })
   const result=CustomerGuard()
   assert.equal(result.type,'Navigate')
-  assert.ok(result.props.to.startsWith('/login?'))
+  assert.equal(result.props.to,'/booking/lookup')
 })
 
 test('installment view uses persisted sequence, amounts and due dates without inventing paid states',()=>{

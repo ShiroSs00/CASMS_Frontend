@@ -88,9 +88,12 @@ export function roleWorkspace(roles: readonly string[]) {
   return adminWorkspaces.find(w=>w.id===id)
 }
 export function staffRoleHome(roles: readonly string[]) {
-  const role=primaryStaffRole(roles), workspace=roleWorkspace(roles)
+  const role=primaryStaffRole(roles)
   if(role==='ADMIN') return '/admin/system'
-  if(workspace) return workspaceUrl(workspace)
+  if(role==='CRUISE_MANAGER') return '/admin/cruises'
+  if(role==='SHIP_MANAGER') return '/admin/ships'
+  if(role==='OPERATIONS_MANAGER') return '/admin/issues'
+  if(role==='ACTIVITY_SERVICE_MANAGER') return '/admin/activities'
   if(role==='ONBOARD_STAFF') return '/admin/service-requests'
   if(role==='BOOKING_AGENT'||role==='CUSTOMER_SERVICE') return '/admin/bookings'
   if(role==='CHECKIN_STAFF') return '/admin/staff/checkin'
@@ -130,8 +133,7 @@ export function adminPathPermissions(pathname: string, search=''): readonly stri
 }
 export function canRoleOpenAdminPath(roles: readonly string[], pathname: string, search='', access?: AdminAccess) {
   if(!primaryStaffRole(roles)) return false
-  if(pathname==='/admin'||pathname==='/admin/workflow') return true
-  if(pathname.startsWith('/admin/workspaces/')) return roles.some(role=>roleWorkspace([role])?.id===pathname.split('/')[3])
+  if(pathname==='/admin') return true
   if(pathname==='/admin/system'&&!roles.includes('ADMIN')) return false
   const required=adminPathPermissions(pathname,search)
   const permissions=access ? (access.status==='ready'?access.permissions:[]) : roles.flatMap(role=>backendRolePermissions[role]??[])
