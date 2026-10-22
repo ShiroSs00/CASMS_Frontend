@@ -1,3 +1,4 @@
+import { BookingInstallments } from './BookingInstallments'
 import { Badge, DataTable, Panel } from '@/shared/ui'
 import type { BookingDetail } from '../api/real-booking-api'
 import { bookingMoney } from '../model/booking-presentation'
@@ -13,12 +14,12 @@ export function PublicBookingRecord({ booking, showPassengerDetails = false }: {
       <div><dt>Hợp đồng</dt><dd>{booking.contractReference ?? 'Chưa có'} · {contract}</dd></div><div><dt>Kế hoạch thanh toán</dt><dd>{plan}</dd></div>
     </dl>{booking.cancellationReason && <p>Lý do hủy: {booking.cancellationReason}</p>}</Panel>
     <Panel title="Giá vé & lịch thanh toán"><dl className={styles.recordFacts}>
-      <div><dt>Giá vé từ hệ thống</dt><dd>{bookingMoney(booking.agreedFareAmount, booking.currency)}</dd></div><div><dt>Cọc yêu cầu</dt><dd>{bookingMoney(booking.requiredDepositAmount, booking.currency)}</dd></div><div><dt>Hạn thanh toán cuối</dt><dd>{bookingWhen(booking.finalPaymentDueAt)}</dd></div>
-    </dl>{booking.installments.length > 0 ? <DataTable label="Các đợt thanh toán" headers={['Đợt', 'Số tiền yêu cầu', 'Hạn · giờ Việt Nam', 'Trạng thái']}>{booking.installments.map(item => <tr key={item.sequenceNo}><td>{item.sequenceNo} · {item.description}</td><td>{bookingMoney(item.requiredAmount, item.currency)}</td><td>{bookingWhen(item.dueAt)}</td><td>{item.status === 'Scheduled' ? 'Theo lịch' : item.status === 'Cancelled' ? 'Đã hủy' : item.status}</td></tr>)}</DataTable> : <p>Hệ thống chưa trả về lịch thanh toán.</p>}
-      <p className={styles.helper}>Lịch yêu cầu thanh toán không phải bằng chứng đã thu tiền. Chưa hỗ trợ thanh toán hoặc ký hợp đồng trực tuyến tại đây.</p>
+      <div><dt>Tổng giá vé</dt><dd>{bookingMoney(booking.agreedFareAmount, booking.currency)}</dd></div><div><dt>Cọc yêu cầu</dt><dd>{bookingMoney(booking.requiredDepositAmount, booking.currency)}</dd></div><div><dt>Hạn thanh toán cuối</dt><dd>{bookingWhen(booking.finalPaymentDueAt)}</dd></div>
+    </dl><BookingInstallments booking={booking} />
+      <p className={styles.helper}>Thực hiện thanh toán theo hướng dẫn hợp đồng và lưu chứng từ để đối soát.</p>
       {booking.contractSigningInstructions && <div className={styles.selection}><strong>Hướng dẫn hợp đồng</strong><p>{booking.contractSigningInstructions}</p></div>}
     </Panel>
     <Panel title="Hành khách & phòng"><DataTable label="Hành khách đặt chỗ" headers={['Hành khách', 'Phòng', 'Gói dịch vụ', 'Tham gia']}>{booking.passengers.map(person => <tr key={person.bookingPassengerId}><td>{person.fullName}</td><td>{person.cabinNumber ?? 'Chưa gán phòng'}</td><td>{person.tourPackageName ?? 'Chưa chọn gói'}</td><td>{person.participationStatus === 'Active' ? 'Tham gia' : 'Đã hủy'}</td></tr>)}</DataTable></Panel>
-    {showPassengerDetails && <Panel title="Thông tin hành khách đã ghi nhận">{booking.passengers.map(person => <section key={person.bookingPassengerId}><h3>{person.fullName}</h3><dl className={styles.recordFacts}><div><dt>Ngày sinh</dt><dd>{person.dateOfBirth ?? 'Chưa cung cấp'}</dd></div><div><dt>Quốc tịch</dt><dd>{person.nationality ?? 'Chưa cung cấp'}</dd></div><div><dt>Email</dt><dd>{person.email ?? 'Chưa cung cấp'}</dd></div><div><dt>Số điện thoại</dt><dd>{person.phoneNumber ?? 'Chưa cung cấp'}</dd></div></dl></section>)}<p className={styles.helper}>Thông tin chỉ đọc. Số giấy tờ được bảo vệ không hiển thị tại đây.</p></Panel>}
+    {showPassengerDetails && <Panel title="Thông tin hành khách đã ghi nhận">{booking.passengers.map(person => <section key={person.bookingPassengerId}><h3>{person.fullName}</h3><dl className={styles.recordFacts}><div><dt>Ngày sinh</dt><dd>{person.dateOfBirth ?? 'Chưa cung cấp'}</dd></div><div><dt>Quốc tịch</dt><dd>{person.nationality ?? 'Chưa cung cấp'}</dd></div><div><dt>Email</dt><dd>{person.email ?? 'Chưa cung cấp'}</dd></div><div><dt>Số điện thoại</dt><dd>{person.phoneNumber ?? 'Chưa cung cấp'}</dd></div></dl></section>)}<p className={styles.helper}>Liên hệ bộ phận đặt chỗ nếu cần cập nhật thông tin hành khách.</p></Panel>}
   </div>
 }

@@ -81,7 +81,7 @@ export function CustomerRegistrations({ booking }: { booking: BookingDetail }) {
   const list = useReadQuery('customer-registrations:' + booking.bookingId, api.registrations)
   const ids = new Set(booking.passengers.map(person => person.bookingPassengerId))
   const records = list.data?.filter(item => ids.has(item.bookingPassengerId))
-  return <Panel title="Đăng ký của tôi"><p>Chỉ hiển thị đăng ký API cho phép xem, thuộc hành khách của đặt chỗ này. Xác nhận tham gia khác với thanh toán và check-in.</p><BookingReadState {...list} publicResource="đăng ký" /><Button tone="secondary" onClick={list.retry}>Tải lại đăng ký</Button>
+  return <Panel title="Đăng ký của tôi"><p>Đăng ký hoạt động và tham quan của hành khách trong đặt chỗ này.</p><BookingReadState {...list} publicResource="đăng ký" /><Button tone="secondary" onClick={list.retry}>Tải lại đăng ký</Button>
     {records?.length === 0 && <Empty title="Chưa có đăng ký trong đặt chỗ này" />}
     {records?.map(item => <RecordEntry key={item.id} kind="activity" item={item} booking={booking} refresh={list.retry} />)}
   </Panel>
@@ -136,8 +136,8 @@ function RecordDetails({ kind, id, booking, refresh }: { kind: 'activity' | 'ser
     {item && belongs && <><p role="status">Trạng thái hiện tại: {statusName[item.status]} · {item.quantity} chỗ / đơn vị</p><p>Mã {kind === 'activity' ? 'hoạt động / tour' : 'dịch vụ'}: {'serviceId' in item ? item.serviceId : item.activityId || item.excursionId}</p>{'note' in item && item.note && <p>Ghi chú đã lưu: {item.note}</p>}{'notes' in item && item.notes && <p>Ghi chú đã lưu: {item.notes}</p>}
       {canWrite && <fieldset disabled={write.busy || write.uncertain || query.loading} className={styles.stack}>
         {pending && <PendingEdit key={item.id + ':' + item.quantity} kind={kind} item={item} write={write} after={after} />}
-        {pending && kind === 'activity' && <Button onClick={() => void write.run(() => api.confirmRegistration(id), 'Đã xác nhận đăng ký theo phản hồi API. Chưa xác nhận thanh toán hoặc điểm danh.', after)}>Xác nhận đăng ký</Button>}
-        {(pending || item.status === (kind === 'activity' ? 'CONFIRMED' : 'ACCEPTED')) && <><Field htmlFor={kind + '-cancel-' + id} label={kind === 'activity' ? 'Lý do hủy (tùy chọn)' : 'Xác nhận hủy yêu cầu bằng nút bên dưới'}>{kind === 'activity' ? <textarea id={kind + '-cancel-' + id} maxLength={500} value={reason} onChange={event => setReason(event.target.value)} /> : <p id={kind + '-cancel-' + id}>Thao tác chỉ hủy yêu cầu dịch vụ, không hủy Booking.</p>}</Field><Button tone="secondary" onClick={() => void write.run(() => kind === 'activity' ? api.cancelRegistration(id, reason) : api.cancelRequest(id), 'Đã hủy theo phản hồi API.', after)}>Hủy {kind === 'activity' ? 'đăng ký' : 'yêu cầu dịch vụ'}</Button></>}
+        {pending && kind === 'activity' && <Button onClick={() => void write.run(() => api.confirmRegistration(id), 'Đã xác nhận đăng ký tham gia.', after)}>Xác nhận đăng ký</Button>}
+        {(pending || item.status === (kind === 'activity' ? 'CONFIRMED' : 'ACCEPTED')) && <><Field htmlFor={kind + '-cancel-' + id} label={kind === 'activity' ? 'Lý do hủy (tùy chọn)' : 'Xác nhận hủy yêu cầu bằng nút bên dưới'}>{kind === 'activity' ? <textarea id={kind + '-cancel-' + id} maxLength={500} value={reason} onChange={event => setReason(event.target.value)} /> : <p id={kind + '-cancel-' + id}>Thao tác chỉ hủy yêu cầu dịch vụ, không hủy Booking.</p>}</Field><Button tone="secondary" onClick={() => void write.run(() => kind === 'activity' ? api.cancelRegistration(id, reason) : api.cancelRequest(id), 'Đã hủy yêu cầu.', after)}>Hủy {kind === 'activity' ? 'đăng ký' : 'yêu cầu dịch vụ'}</Button></>}
       </fieldset>}
     </>}<Feedback write={write} /><Button tone="secondary" onClick={query.retry}>Tải lại chi tiết</Button></div>
 }
@@ -147,7 +147,7 @@ function PendingEdit({ kind, item, write, after }: { kind: 'activity' | 'service
   function save(event: FormEvent) {
     event.preventDefault()
     if (!Number.isSafeInteger(quantity) || quantity < 1) return
-    void write.run(() => kind === 'activity' ? api.updateRegistration(id, quantity, note) : api.updateRequest(id, quantity, note), 'Đã cập nhật từ phản hồi API.', after)
+    void write.run(() => kind === 'activity' ? api.updateRegistration(id, quantity, note) : api.updateRequest(id, quantity, note), 'Đã cập nhật yêu cầu.', after)
   }
   return <form onSubmit={save} className={styles.stack}><p>Số lượng hiện tại {item.quantity}. Nhập số lượng mới; ghi chú gửi lần này sẽ thay thế ghi chú cũ.{kind === 'activity' && !('notes' in item && item.notes) && ' Dịch vụ chưa trả lại ghi chú đã lưu của đăng ký.'}</p><Quantity id={kind + '-edit-' + id} value={quantity} change={setQuantity} /><Field htmlFor={kind + '-note-' + id} label="Ghi chú mới (tùy chọn)"><textarea id={kind + '-note-' + id} maxLength={500} value={note} onChange={event => setNote(event.target.value)} /></Field><Button type="submit" disabled={!Number.isSafeInteger(quantity) || quantity < 1}>Lưu thay đổi</Button></form>
 }

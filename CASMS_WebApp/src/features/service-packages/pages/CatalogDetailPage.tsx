@@ -1,7 +1,9 @@
-import { useCallback } from 'react'
+import { useCallback, useContext } from 'react'
 import { Link, useParams } from 'react-router'
 import { useReadQuery } from '@/shared/api'
-import { Button, ButtonLink, Empty, Notice, PageHeader, Panel } from '@/shared/ui'
+import { useSessionAccess } from '@/shared/auth'
+import { ButtonLink, Empty, Notice, PageHeader, Panel } from '@/shared/ui'
+import { AdminRoleContext, canRoleOpenAdminPath, staffRoleHome } from '@/shared/ui/admin-v3'
 import { servicePackageApi } from '../api/service-package-api'
 import { CatalogFrame, CatalogState } from '../components/CatalogUI'
 import { CatalogActions } from '../components/CatalogActions'
@@ -11,7 +13,7 @@ import { benefitLabels, catalogTime, catalogConfig, statusLabels, type CatalogKi
 import styles from '../components/Catalog.module.css'
 function ServiceAvailability({ id }: { id: string }) {
   const query = useReadQuery('service-availability:' + id, useCallback(signal => servicePackageApi.availability(id, signal), [id]))
-  return <Panel title="Khả năng đáp ứng"><CatalogState {...query} />{query.data && <p>{query.data.available ? 'Dịch vụ đáp ứng được yêu cầu 1 đơn vị.' : 'Dịch vụ hiện chưa đáp ứng được yêu cầu 1 đơn vị.'}</p>}<Button disabled title="Dịch vụ chưa có lịch để kiểm tra xung đột.">Kiểm tra lịch dịch vụ</Button><p>Chức năng kiểm tra lịch dịch vụ chưa được hỗ trợ.</p></Panel>
+  return <Panel title="Khả năng đáp ứng"><CatalogState {...query} />{query.data && <p>{query.data.available ? 'Dịch vụ đáp ứng được yêu cầu 1 đơn vị.' : 'Dịch vụ hiện chưa đáp ứng được yêu cầu 1 đơn vị.'}</p>}</Panel>
 }
 function PackageBenefits({ id }: { id: string }) {
   const query = useReadQuery('package-benefits:' + id, useCallback(signal => servicePackageApi.benefits(id, signal), [id]))
@@ -26,12 +28,15 @@ function PackageBenefits({ id }: { id: string }) {
 }
 function CatalogDetail({ kind }: { kind: CatalogKind }) {
   const { id = '' } = useParams(), config = catalogConfig[kind]
+  const roles=useContext(AdminRoleContext)
+  const access=useSessionAccess()
+  const back=canRoleOpenAdminPath(roles,config.route,'',access)?config.route:staffRoleHome(roles)??'/admin'
   const query = useReadQuery(kind + ':' + id, useCallback(signal => servicePackageApi.get(kind, id, signal), [kind, id]))
   const item = query.data
-  return <CatalogFrame><PageHeader breadcrumb={'DỊCH VỤ TÀU / ' + config.label.toLocaleUpperCase('vi')} title={item?.name ?? 'Chi tiết ' + config.label.toLocaleLowerCase('vi')} description="Thông tin cung cấp, giá và các quan hệ đã được cấu hình." actions={<ButtonLink tone="secondary" to={config.route}>Về danh sách</ButtonLink>} /><CatalogState {...query} />
+  return <CatalogFrame><PageHeader breadcrumb={'DỊCH VỤ TÀU / ' + config.label.toLocaleUpperCase('vi')} title={item?.name ?? 'Chi tiết ' + config.label.toLocaleLowerCase('vi')} description="Thông tin cung cấp, giá và các quan hệ đã được cấu hình." actions={<ButtonLink tone="secondary" to={back}>Về danh sách</ButtonLink>} /><CatalogState {...query} />
     {item && <><CatalogActions kind={kind} item={item} onChanged={query.retry} /><Panel title="Thông tin chi tiết"><dl className={styles.definition}><dt>Mã</dt><dd>{item.code}</dd><dt>Loại</dt><dd>{item.type}</dd><dt>Trạng thái</dt><dd>{statusLabels[item.status] ?? item.status}</dd><dt>Giá</dt><dd>{item.price == null ? 'Chưa cấu hình' : `${item.price} ${item.currency ?? ''}`}</dd>{kind === 'services' && <><dt>Sức chứa cấu hình</dt><dd>{item.capacity ?? 'Không có thông tin'}</dd></>}{kind === 'packages' && <><dt>Thời hạn sử dụng</dt><dd>{item.startDate ?? 'Chưa xác định'} → {item.endDate ?? 'Chưa xác định'}</dd></>}<dt>Mô tả</dt><dd>{item.description || 'Chưa có mô tả'}</dd></dl></Panel>
       {kind === 'packages' && <PackageBenefitsEditor packageId={item.id} status={item.status} onChanged={query.retry} />}
-      {kind === 'services' && <ServiceAvailability id={item.id} />}{kind === 'packages' && <PackageBenefits id={item.id} />}{kind === 'products' && <Panel title="Ghi nhận bán hàng"><Button disabled title="Quy trình ghi nhận bán hàng chưa được hỗ trợ.">Ghi nhận bán hàng</Button><p>Chưa thể ghi nhận bán hàng cho sản phẩm tại màn hình này.</p></Panel>}
+      {kind === 'services' && <ServiceAvailability id={item.id} />}{kind === 'packages' && <PackageBenefits id={item.id} />}
     </>}
   </CatalogFrame>
 }

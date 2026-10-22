@@ -59,7 +59,7 @@ export function CruiseFilters({ query, ships, onChange, onReset }: {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value))
+  return new Intl.DateTimeFormat('vi-VN', { timeZone:'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value))
 }
 
 export function CruiseTable({ items }: { items: CruiseListItem[] }) {
@@ -67,7 +67,7 @@ export function CruiseTable({ items }: { items: CruiseListItem[] }) {
     {items.map((item) => <tr key={item.cruise.cruiseId}>
       <td><Link className={styles.rowLink} to={`/admin/cruises/${item.cruise.cruiseId}`}>{item.cruise.cruiseCode}</Link></td>
       <td>{item.cruise.cruiseName}</td>
-      <td>{item.ship?.shipName ?? 'Chưa phân công'}</td>
+      <td>{item.ship?.shipName ?? (item.cruise.shipId ? 'Chưa tải được thông tin tàu' : 'Chưa phân công')}</td>
       <td>{formatDate(item.cruise.departureDatetime)}</td>
       <td><CruiseStatusBadge status={item.cruise.status} /></td>
       <td>{item.readinessSummary ? <span title={item.readinessSummary.issues.join(' · ')}>{item.readinessSummary.ready ? 'Sẵn sàng' : `${item.readinessSummary.issues.length} CẦN KIỂM TRA`}</span> : 'Chưa kiểm tra'}</td>

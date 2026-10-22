@@ -1,0 +1,26 @@
+# Production WebApp cleanup and role-boundary results
+
+## Changes
+- Removed demo session provider state and development preview authentication bypass from canonical WebApp paths. Unconnected auth forms are now support information rather than fake submissions. Removed mock/developer labels and unsupported filter controls from runtime screens; real loading/errors and retry remain.
+- Added a route error boundary that does not expose stack traces or internal errors. Legacy isolated fixture modules are retained for regression coverage but are absent from the runtime dependency graph and production JS text scan.
+- Booking has three guarded stages: room selection, traveller/payment plan, review. Direct later-stage entry returns to the earliest incomplete stage. Back navigation retains the draft; missing prerequisite API data has visible retry. STAGES is the initial plan.
+- Booking installments are rendered from persisted sequence, amount, currency and due date, without inventing paid states. Live QA POST generated three installments (30/40/30), their sum matched the fare, lookup returned the same booking and the fixture was cancelled. No money was charged.
+- Hero now rotates seven real Asian ports: Singapore, Hong Kong, Yokohama, Port Klang, Busan, Keelung and Kobe. Four new WebP assets have verified Wikimedia source/license records and visible attribution. Desktop and 390px checks found no broken images or horizontal overflow.
+- Added ACTIVITY_MANAGER for the Activity Management Department. ONBOARD_STAFF now handles service requests and existing POS sale authority, without activity/catalog mutations. SHORE_MANAGER remains separate. Booking coordination, finance, operations and system administration retain separate entries. Operations can read booking/cabin context but cannot edit/cancel bookings. Canonical BE role permission initialization removes stale cross-department grants; account assignments are unchanged.
+- Shared activity/shore registration URLs now check the target-specific authority before mutation; attendance is similarly scoped. Passenger ownership checks remain in the service. A Spring method-security regression test proves a foreign department is rejected before the service executes.
+- Finance has a live booking/instalment lookup screen. Contract instructions use OceVie and no longer name an unverified hardcoded office/address.
+
+## Verification
+- FE: npm run lint, npm run typecheck, npm run build passed. Full unit suite: 308 passed, 1 opt-in live integration skipped (309 total).
+- BE targeted suites: 28 passed: BookingServiceTest 5, RolePermissionInitializerTest 11, RoleConstraintInitializerTest 3, PermissionConstraintInitializerTest 1, RegistrationAccessPolicyTest 5, ActivityRegistrationWorkflowTest 3.
+- Live integration: 1 passed on isolated casms_mobile_qa through the FE proxy; real booking create/read/lookup/cancel, staged amounts and OceVie contract instructions checked. Test booking was cancelled, no charge initiated.
+- Browser: direct step-3 entry returns to step 1; room selection advances to step 2 with STAGES; valid traveller data advances to review; returning to step 2 retains fields. Home and booking checked at desktop and mobile widths. Hero image source/license controls checked.
+- Local BE restarted with the new role schema/policy. No Mobile App source edits, commit or push. Screenshots are in the task visualization directory outside the repository.
+
+## Remaining integration requirements
+PaymentController and CheckinController still lack production endpoints for online collection/refunds/check-in. Installment schedules are implemented; actual financial settlement must not be inferred from them. Requested the production payment provider name/API documentation; no gateway or transaction outcome was invented. Account provisioning/role assignment is not implemented by the current BE identity lookup API; no privileged accounts were created for tests. The existing normal-database Flyway V4 blocker is outside QA startup (Flyway disabled only in the isolated QA runtime). This work is not a production deployment/readiness certification.
+
+Final runtime role verification: persisted ACTIVITY_MANAGER 36 permissions, ONBOARD_STAFF 13, SHORE_MANAGER 36 and OPERATIONS_MANAGER 62. No ACTIVITY_MANAGER account assignment was made. Browser /admin for the existing ONBOARD_STAFF QA account redirects to /admin/service-requests and the sidebar is only service staff. Initial empty-body activity POST returned DTO validation 400 (validation precedes method invocation); a structurally valid DTO with a nonexistent cruise was used for the actual authorization assertion, requiring 403 before service. This is not a data creation test.
+
+
+Final UI navigation check: the nested service catalog tabs are also filtered by role. ONBOARD_STAFF sees only service requests; it may read an individual UUID service detail needed to fulfil a request, but cannot open service catalog management, products, packages, or service mutations. Back links return to its assigned function. Unsupported product sale/schedule buttons were removed from WebApp instead of presenting inactive mock actions. The production payment provider/API question remains pending.

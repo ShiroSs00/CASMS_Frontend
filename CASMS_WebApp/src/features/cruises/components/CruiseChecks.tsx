@@ -29,8 +29,8 @@ export function CruiseChecks({ cruiseId }: { cruiseId: string }) {
     finally { lock.current = false; setBusy(false) }
   }
   return <Panel title="Kiểm tra kế hoạch chuyến" subtitle="Kiểm tra lịch và sức chứa không phát hành hoặc thay đổi trạng thái chuyến.">
-    <Button tone="secondary" disabled={busy || !access.has('CRUISE_VALIDATE')} onClick={() => void check('schedule')}>Kiểm tra lịch tàu</Button>{' '}
-    <Button tone="secondary" disabled={busy || !access.has('CRUISE_VALIDATE')} onClick={() => void check('capacity')}>Kiểm tra sức chứa</Button>
+    {access.has('CRUISE_VALIDATE') && <Button tone="secondary" disabled={busy || !access.has('CRUISE_VALIDATE')} onClick={() => void check('schedule')}>Kiểm tra lịch tàu</Button>}{' '}
+    {access.has('CRUISE_VALIDATE') && <Button tone="secondary" disabled={busy || !access.has('CRUISE_VALIDATE')} onClick={() => void check('capacity')}>Kiểm tra sức chứa</Button>}
     {!access.has('CRUISE_VALIDATE') && <p>Chưa có quyền kiểm tra chuyến.</p>}
     {error && <Notice tone="error" title="Không kiểm tra được">{error}</Notice>}
     {schedule !== null && <Notice tone={schedule ? 'success' : 'warning'} title="Kết quả lịch tàu">{schedule ? 'Lịch tàu đáp ứng kiểm tra hiện tại.' : 'Lịch tàu chưa đáp ứng điều kiện, cần rà soát phân công.'}</Notice>}

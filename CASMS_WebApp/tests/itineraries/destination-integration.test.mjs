@@ -60,11 +60,11 @@ function mount(component, params = { destinationId: destination.destinationId },
     calls.push({ name, args }); let resolve, reject
     const promise = new Promise((yes, no) => { resolve = yes; reject = no }); requests.push({ name, args, resolve, reject }); return promise
   } })
-  const pages = load('pages/MasterDataPages.tsx', { '@/shared/auth': {useSessionAccess:()=>({status:'ready',userId:'test-user',has:()=>granted})}, react, 'react-router': { useSearchParams:()=>[{get:()=>null}], Link: 'Link', useParams: () => params, useNavigate: () => route => calls.push({ name: 'navigate', args: [route] }) }, '@/shared/ui': Object.fromEntries(['Badge','Button','ButtonLink','DataTable','Empty','Field','Loading','Modal','Notice','PageHeader','Panel'].map(key => [key,key])), '@/shared/api': { ApiError }, '../api/itinerary-api': { itineraryApi: api }, '../model/itinerary': model, '../components/ItineraryUI': { ItineraryFrame: 'ItineraryFrame' } }, { requestAnimationFrame: callback => callback() })
-  function flatten(tree) { if (Array.isArray(tree)) return tree.flatMap(flatten); if (!tree || typeof tree !== 'object') return []; if (typeof tree.type === 'function') return flatten(tree.type(tree.props)); return [tree, ...flatten(tree.props?.children)] }
+  const pages = load('pages/MasterDataPages.tsx', { '@/shared/auth': {useSessionAccess:()=>({status:'ready',userId:'test-user',has:()=>granted})}, react, 'react-router': { useSearchParams:()=>[{get:()=>null}], Link: 'Link', useParams: () => params, useNavigate: () => route => calls.push({ name: 'navigate', args: [route] }) }, '@/shared/ui': Object.fromEntries(['Badge','Button','ButtonLink','DataTable','Empty','Field','Loading','Modal','Notice','PageHeader','Panel'].map(key => [key,key])), '@/shared/api': { ApiError }, '../api/itinerary-api': { itineraryApi: api }, '../model/itinerary': model, '../components/ItineraryUI': { ItineraryFrame: 'ItineraryFrame' }, '../components/LocationPicker': { LocationPicker: props => jsx('select', { id: 'master-country', value: props.country, disabled: props.disabled || props.countryLocked, onChange: event => props.onCountry(event.target.value) }) } }, { requestAnimationFrame: callback => callback() })
+  function flatten(tree) { if (Array.isArray(tree)) return tree.flatMap(flatten); if (!tree || typeof tree !== 'object') return []; if (typeof tree.type === 'function') return flatten(tree.type(tree.props)); return [tree, ...flatten(tree.props?.children), ...flatten(tree.props?.footer)] }
   const view = () => { index = 0; effectIndex = 0; const tree = flatten(jsx(pages[component], {})); for (const i of pending) { effects[i].cleanup?.(); effects[i].cleanup = effects[i].setup() } pending.clear(); return tree }
   const find = (type, predicate = () => true) => view().find(node => node.type === type && predicate(node.props))
-  const change = (id, value) => { find(id === 'master-description' ? 'textarea' : id === 'master-status' ? 'select' : 'input', props => props.id === id).props.onChange({ target: { value } }) }
+  const change = (id, value) => { find(id === 'master-description' ? 'textarea' : (id === 'master-status' || id === 'master-country') ? 'select' : 'input', props => props.id === id).props.onChange({ target: { value } }) }
   const submit = () => find('form').props.onSubmit({ preventDefault() {} })
   view()
   return { view, find, change, submit, requests, calls, writes, focused: () => focused, unmount() { for (const effect of effects) effect.cleanup?.() } }
@@ -95,7 +95,7 @@ test('Destination Create inline validation focuses first invalid field and block
   const app = mount('DestinationFormPage', {}); await app.submit(); assert.equal(app.focused(), 1); assert.equal(app.find('input', p => p.id === 'master-name').props['aria-invalid'], true); assert.equal(app.calls.length, 0)
 })
 test('Destination Edit locks immutable fields and sends empty description to clear it', async () => {
-  const app = mount('DestinationFormPage'); app.requests[0].resolve(destination); await flush(); assert.equal(app.find('input', p => p.id === 'master-country').props.disabled, true); assert.equal(app.find('select', p => p.id === 'master-status').props.disabled, true)
+  const app = mount('DestinationFormPage'); app.requests[0].resolve(destination); await flush(); assert.equal(app.find('select', p => p.id === 'master-country').props.disabled, true); assert.equal(app.find('select', p => p.id === 'master-status').props.disabled, true)
   app.change('master-description', ''); const save = app.submit(); const call = app.requests.find(r => r.name === 'updateDestination'); assert.equal(call.args[1].description, ''); call.resolve(destination); await save
 })
 test('Destination API errors keep the draft, release Save, reject duplicates and allow retry', async () => {
@@ -109,7 +109,7 @@ test('Destination Edit load errors offer retry; cleanup cancellation cannot alte
   const pending = mount('DestinationFormPage'); const before = pending.writes.length; pending.unmount(); pending.requests[0].reject(new DOMException('aborted','AbortError')); await flush(); assert.equal(pending.writes.length,before)
 })
 test('Port Create/Edit controls, payload, detail fetch and native validation remain unchanged', async () => {
-  const app = mount('PortFormPage', {}); assert.equal(app.find('form').props.noValidate,false); assert.equal(app.find('input', p => p.id === 'master-country').props.disabled,false); assert.equal(app.find('select', p => p.id === 'master-status').props.disabled,false)
+  const app = mount('PortFormPage', {}); assert.equal(app.find('form').props.noValidate,false); assert.equal(app.find('select', p => p.id === 'master-country').props.disabled,false); assert.equal(app.find('select', p => p.id === 'master-status').props.disabled,false)
   for (const [id,value] of [['master-code','VN-X'],['master-name','Port Name'],['master-country','VN'],['master-timezone','Asia/Ho_Chi_Minh']]) app.change(id,value)
   const saving=app.submit(); assert.equal(app.requests[0].name,'createPort'); assert.equal(app.requests[0].args[0].portCode,'VN-X'); app.requests[0].resolve({portId:'port-1'}); await saving
   const detail=mount('PortDetailPage',{portId:'port-1'}); assert.equal(detail.requests.length,1); assert.equal(detail.requests[0].name,'getPort'); detail.requests[0].resolve({portId:'port-1',portCode:'X',portName:'Port',countryCode:'VN',status:'ACTIVE'}); await flush(); assert.equal(detail.find('PageHeader').props.title,'Port'); assert.ok(!detail.requests.some(r=>r.name==='destinationPorts'))
@@ -126,8 +126,9 @@ test('Destination status requires explicit confirmation; failed request retains 
 })
 test('Destination mutation buttons and Create handler deny absent permissions, while reads remain available', async () => {
   const app=mount('DestinationDetailPage',undefined,false); app.requests.find(r=>r.name==='getDestination').resolve(destination); app.requests.find(r=>r.name==='destinationPorts').resolve([]); await flush()
-  assert.equal(app.find('Button',p=>p.children==='Ngừng kích hoạt').props.disabled,true)
-  assert.equal(app.find('Button',p=>p.children==='Kiểm tra dữ liệu').props.disabled,true)
+  assert.equal(app.find('Button',p=>p.children==='Ngừng kích hoạt'),undefined)
+  assert.equal(app.find('Button',p=>p.children==='Kiểm tra dữ liệu'),undefined)
+  assert.equal(app.find('Button',p=>p.children==='Xóa khi chưa sử dụng'),undefined)
   const form=mount('DestinationFormPage',{},false); form.change('master-name','New'); form.change('master-country','VN'); await form.submit(); assert.equal(form.calls.filter(c=>c.name==='createDestination').length,0)
 })
 test('Destination activate/deactivate serialize PATCH paths with no forged update body (unit only)', async()=>{

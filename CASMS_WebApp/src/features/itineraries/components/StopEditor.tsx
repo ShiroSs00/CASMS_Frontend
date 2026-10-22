@@ -57,7 +57,7 @@ export function StopEditor({ itineraryId, stop, days, ports, destinations, busy,
   }
   function submit(event: FormEvent) {
     event.preventDefault()
-    if (!editable || busy) return
+    if (!editable || busy || !access.has(stop ? 'CRUISE_STOP_UPDATE' : 'CRUISE_STOP_ADD')) return
     if ((stop || draft.stopOrder !== '') && (typeof draft.stopOrder !== 'number' || !Number.isSafeInteger(draft.stopOrder) || draft.stopOrder < 1)) { setError('Thứ tự điểm dừng phải là số nguyên dương.'); return }
     if (!days.some(day => day.itineraryDayId === draft.arrivalItineraryDayId) || !days.some(day => day.itineraryDayId === draft.departureItineraryDayId) || !ports.some(port => port.portId === draft.portId)) { setError('Chọn ngày và cảng từ danh sách đã tải.'); return }
     if (!Number.isFinite(Date.parse(draft.plannedArrival)) || !Number.isFinite(Date.parse(draft.plannedDeparture))) { setError('Nhập thời gian đến và rời cảng hợp lệ.'); return }
@@ -65,7 +65,9 @@ export function StopEditor({ itineraryId, stop, days, ports, destinations, busy,
     setError(''); onSave(draft)
   }
   return <Panel title={stop ? `Stop ${String(stop.stopOrder).padStart(2, '0')} · ${stop.portName ?? 'Điểm dừng'}` : 'Thêm điểm dừng'}>
+    {stop && !editable && <dl><dt>Cảng</dt><dd>{stop.portName ?? 'Chưa có tên cảng'}</dd><dt>Đến dự kiến</dt><dd>{new Date(stop.plannedArrival).toLocaleString('vi-VN')}</dd><dt>Rời dự kiến</dt><dd>{new Date(stop.plannedDeparture).toLocaleString('vi-VN')}</dd><dt>Ngày đến / rời</dt><dd>{days.find(day => day.itineraryDayId === stop.arrivalItineraryDayId)?.dayNumber ?? '—'} / {days.find(day => day.itineraryDayId === stop.departureItineraryDayId)?.dayNumber ?? '—'}</dd><dt>Điểm đến</dt><dd>{destinations.find(item => item.destinationId === stop.destinationId)?.destinationName ?? 'Chưa chọn'}</dd><dt>Loại ghé / cập cảng</dt><dd>{stop.callType} · {stop.arrivalMethod}</dd></dl>}
     <form className={styles.stopForm} onSubmit={submit}>
+      {editable && <>
       <Field htmlFor="stop-port" label="Cảng"><select id="stop-port" required disabled={!editable || busy} value={draft.portId} onChange={(event) => update('portId', event.target.value)}><option value="">Chọn cảng</option>{stop && !ports.some((port) => port.portId === stop.portId) && <option value={stop.portId}>{stop.portName ?? 'Cảng đã chọn · Chưa tải được tên'}</option>}{ports.map((port) => <option key={port.portId} value={port.portId}>{port.portName}</option>)}</select></Field>
       <Field htmlFor="stop-arrival" label="ETA"><input id="stop-arrival" type="datetime-local" required disabled={!editable || busy} value={draft.plannedArrival} onChange={(event) => update('plannedArrival', event.target.value)} /></Field>
       <Field htmlFor="stop-departure" label="ETD"><input id="stop-departure" type="datetime-local" required disabled={!editable || busy} value={draft.plannedDeparture} onChange={(event) => update('plannedDeparture', event.target.value)} /></Field>
@@ -77,17 +79,18 @@ export function StopEditor({ itineraryId, stop, days, ports, destinations, busy,
       <Field htmlFor="stop-destination" label="Điểm đến"><select id="stop-destination" disabled={!editable || busy} value={draft.destinationId ?? ''} onChange={(event) => update('destinationId', event.target.value || null)}><option value="">Không chọn</option>{destinations.map((destination) => <option key={destination.destinationId} value={destination.destinationId}>{destination.destinationName}</option>)}</select></Field>
       <Field htmlFor="stop-call-type" label="Loại ghé"><select id="stop-call-type" disabled={!editable || busy} value={draft.callType} onChange={(event) => update('callType', event.target.value as CruiseStopDraft['callType'])}><option value="NORMAL">Thông thường</option><option value="LATE_NIGHT">Đến khuya</option><option value="OVERNIGHT">Qua đêm</option></select></Field>
       <Field htmlFor="stop-arrival-method" label="Cách cập cảng"><select id="stop-arrival-method" disabled={!editable || busy} value={draft.arrivalMethod ?? 'BERTH'} onChange={(event) => update('arrivalMethod', event.target.value as CruiseStopDraft['arrivalMethod'])}><option value="BERTH">Cập cầu cảng</option><option value="TENDER">Trung chuyển bằng tàu nhỏ</option></select></Field>
+      </>}
       {error && <Notice title="Kiểm tra thời gian" tone="error">{error}</Notice>}
       {stopInfo && <Notice title="Thông tin điểm dừng" tone="info">{stopInfo}</Notice>}
       {stop && (
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <Button type="button" tone="secondary" disabled={busy || !access.has('CRUISE_STOP_READ')} onClick={() => void checkDuration()}>Thời lượng dừng</Button>
-          <Button type="button" tone="secondary" disabled={busy || !access.has('CRUISE_STOP_READ')} onClick={() => void checkAvailability()}>Tra cứu khả dụng cảng</Button>
-          <Button type="button" tone="secondary" disabled={busy || !access.has('CRUISE_STOP_VALIDATE')} onClick={onValidate}>Kiểm tra điểm dừng</Button>
+          {access.has('CRUISE_STOP_READ') && <Button type="button" tone="secondary" disabled={busy || !access.has('CRUISE_STOP_READ')} onClick={() => void checkDuration()}>Thời lượng dừng</Button>}
+          {access.has('CRUISE_STOP_READ') && <Button type="button" tone="secondary" disabled={busy || !access.has('CRUISE_STOP_READ')} onClick={() => void checkAvailability()}>Tra cứu khả dụng cảng</Button>}
+          {access.has('CRUISE_STOP_VALIDATE') && <Button type="button" tone="secondary" disabled={busy || !access.has('CRUISE_STOP_VALIDATE')} onClick={onValidate}>Kiểm tra điểm dừng</Button>}
         </div>
       )}
       {editable && <Button type="submit" disabled={busy}>{busy ? 'Đang lưu…' : stop ? 'Cập nhật điểm dừng' : 'Thêm điểm dừng'}</Button>}
-      {stop && editable && <Button type="button" tone="danger" disabled={busy || !access.has('CRUISE_STOP_REMOVE_DRAFT')} onClick={onRemove}>Xóa điểm dừng</Button>}
+      {stop && editable && (access.has('CRUISE_STOP_REMOVE_DRAFT') ? <Button type="button" tone="danger" disabled={busy || !access.has('CRUISE_STOP_REMOVE_DRAFT')} onClick={onRemove}>Xóa điểm dừng</Button> : null)}
     </form>
   </Panel>
 }

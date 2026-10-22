@@ -1,7 +1,8 @@
 import { Outlet } from 'react-router'
-import { AdminAccountActions } from '@/features/auth'
-import { AdminAccountContext } from '@/shared/ui/admin-v3'
+import { AdminAccountActions, useAuth } from '@/features/auth'
+import { AdminAccountContext, AdminRoleContext } from '@/shared/ui/admin-v3'
 
 export function AdminAccountLayout() {
-  return <AdminAccountContext value={<AdminAccountActions />}><Outlet /></AdminAccountContext>
+  const {user}=useAuth()
+  return <AdminRoleContext value={user?.roles ?? []}><AdminAccountContext value={<AdminAccountActions />}><Outlet /></AdminAccountContext></AdminRoleContext>
 }

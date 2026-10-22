@@ -1,9 +1,20 @@
+import { useSessionAccess } from '@/shared/auth'
 import { useCallback, useState } from 'react'
 import { useReadQuery } from '@/shared/api'
 import { Button, Empty, Field, Loading, Notice } from '@/shared/ui'
 import { bookingContextApi, type BookingContext, type BookingPassenger, type BookingSummary } from './booking-context-api'
 
-export function BookingPassengerPicker({ value, onChange, cruiseId, disabled, allowedStatuses = ['Draft', 'Confirmed'], initialBookingId = '', fixedBookingId }: { value: string; onChange: (passenger: BookingPassenger | null, booking: BookingContext | null) => void; cruiseId?: string; disabled?: boolean; allowedStatuses?: BookingSummary['bookingStatus'][]; initialBookingId?: string; fixedBookingId?: string }) {
+type BookingPassengerPickerProps = { value: string; onChange: (passenger: BookingPassenger | null, booking: BookingContext | null) => void; cruiseId?: string; disabled?: boolean; allowedStatuses?: BookingSummary['bookingStatus'][]; initialBookingId?: string; fixedBookingId?: string }
+
+export function BookingPassengerPicker(props: BookingPassengerPickerProps) {
+  const access = useSessionAccess()
+  if (access.status === 'loading') return <Loading label="Đang kiểm tra quyền xem đặt chỗ…" />
+  if (access.status === 'error') return <Notice title="Chưa tải được quyền xem đặt chỗ" tone="error">{access.error} Vui lòng tải lại trang để thử lại.</Notice>
+  if (!access.has('BOOKING_READ')) return <Notice title="Cần quyền xem đặt chỗ" tone="warning">Tài khoản chưa có quyền đọc đặt chỗ để chọn hành khách. Liên hệ quản trị viên để được cấp quyền phù hợp.</Notice>
+  return <BookingPassengerPickerContent {...props} />
+}
+
+function BookingPassengerPickerContent({ value, onChange, cruiseId, disabled, allowedStatuses = ['Draft', 'Confirmed'], initialBookingId = '', fixedBookingId }: BookingPassengerPickerProps) {
   const [bookingId, setBookingId] = useState(fixedBookingId ?? initialBookingId)
   const loadList = useCallback((signal: AbortSignal) => fixedBookingId ? bookingContextApi.get(fixedBookingId, signal).then(item => [item]) : bookingContextApi.list(cruiseId, signal), [cruiseId, fixedBookingId])
   const list = useReadQuery(`passenger-bookings:${cruiseId}:${fixedBookingId}`, loadList)

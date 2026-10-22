@@ -2,7 +2,7 @@ import { createContext, useContext, type Dispatch, type MutableRefObject, type S
 import type { BookingDetail, BookingDraft, BookingPersonDraft } from '../api/real-booking-api'
 
 export const blankBookingPerson = (): BookingPersonDraft => ({ fullName: '', dateOfBirth: '', nationality: '', documentType: '', documentNumber: '', email: '', phoneNumber: '', cabinId: '', tourPackageId: '' })
-export const initialLiveBooking = (): BookingDraft => ({ cruiseId: '', currency: 'USD', paymentPlan: 'DEPOSIT', notes: '', passengers: [blankBookingPerson()] })
+export const initialLiveBooking = (): BookingDraft => ({ cruiseId: '', currency: 'USD', paymentPlan: 'STAGES', notes: '', passengers: [blankBookingPerson()] })
 type LiveBookingState = {
   draft: BookingDraft; setDraft: Dispatch<SetStateAction<BookingDraft>>
   saved: BookingDetail | null; setSaved: Dispatch<SetStateAction<BookingDetail | null>>

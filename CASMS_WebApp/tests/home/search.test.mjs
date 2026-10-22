@@ -4,9 +4,11 @@ import test from 'node:test'
 import vm from 'node:vm'
 import ts from 'typescript'
 
+const ports = { exports: {} }
+vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../../src/features/home/model/asian-ports.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { module: ports, exports: ports.exports })
 const module = { exports: {} }
 const source = ts.transpileModule(readFileSync(new URL('../../src/features/home/model/public-booking.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
-vm.runInNewContext(source, { module, exports: module.exports, require: id => { assert.match(id, /\.png$/); return id } })
+vm.runInNewContext(source, { module, exports: module.exports, require: id => { assert.equal(id, './asian-ports'); return ports.exports } })
 const { homeCruiseType, homeCruiseSearch, featuredVoyages } = module.exports
 test('Home search accepts only supported public Cruise types; editorial examples carry no sellable dates or rates', () => {
   for (const type of ['ONE_DAY', 'MULTI_DAYS']) {

@@ -1,0 +1,35 @@
+.page { max-width:1280px; margin-inline:auto; }
+.pageHeader { display:flex; justify-content:space-between; align-items:flex-end; gap:32px; margin-bottom:32px; }
+.eyebrow { margin:0 0 14px; color:var(--brand-teal); font-size:12px; font-weight:600; letter-spacing:.1em; }
+.pageHeader h1 { margin:0; font-size:clamp(32px,3.2vw,44px); font-weight:600; line-height:1.2; letter-spacing:-.04em; }
+.intro { max-width:580px; margin:16px 0 0; color:var(--text-secondary); font-size:14px; line-height:1.7; }
+.headerNote { max-width:235px; padding-left:16px; border-left:1px solid var(--border-default); color:var(--text-primary); font-size:12px; font-weight:500; }
+.headerNote p { margin:8px 0 0; color:var(--text-secondary); font-weight:400; line-height:1.6; }
+.headerDot { display:inline-block; width:6px; height:6px; margin-right:7px; border-radius:50%; background:var(--brand-teal); }
+.workspaceGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.workspaceCard { display:flex; flex-direction:column; min-width:0; padding:28px; border:1px solid var(--border-default); border-radius:16px; background:white; box-shadow:0 4px 16px #061a2b04; }
+.cardTop { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+.workspaceIcon { display:grid; place-items:center; width:52px; height:52px; border-radius:14px; background:#DDF1F0; color:var(--brand-teal); }
+.workspaceIcon svg { width:28px; height:28px; }
+.workspaceNumber { color:#8FA4B1; font:500 13px/1.5 var(--font-heading); letter-spacing:.08em; }
+.responsibility { margin:0 0 8px; color:var(--text-secondary); font-size:12px; line-height:1.5; }
+.workspaceCard h2 { margin:0; font-size:22px; line-height:1.4; letter-spacing:-.02em; }
+.description { max-width:480px; margin:12px 0 20px; color:var(--text-secondary); line-height:1.7; }
+.toolPreview { display:flex; flex-wrap:wrap; gap:8px; margin-top:auto; margin-bottom:24px; }
+.toolPreview span { padding:5px 9px; border-radius:6px; background:#F4F7F8; color:var(--text-secondary); font-size:12px; }
+.cardBottom { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding-top:18px; border-top:1px solid #E7EEF0; }
+.available,.locked { font-size:12px; line-height:1.5; }
+.available { color:var(--brand-teal); }
+.locked { color:var(--text-secondary); }
+.cardBottom a { display:inline-flex; justify-content:space-between; align-items:center; gap:20px; min-height:44px; padding:10px 16px; border-radius:9px; color:white; background:var(--brand-navy); font-weight:500; font-size:13px; text-decoration:none; }
+.cardBottom a:hover { background:#153E60; }
+.lockedCard { background:#F8FAFB; box-shadow:none; }
+.lockedCard .workspaceIcon { background:#EDF3F4; color:#607282; }
+.helpPanel { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-top:28px; padding:24px; border:1px solid var(--border-default); border-radius:14px; background:var(--brand-pearl); }
+.helpPanel > div { display:flex; align-items:center; gap:16px; }
+.helpMark { display:grid; place-items:center; flex-shrink:0; width:36px; height:36px; border:1px solid var(--brand-sand); border-radius:50%; color:#8E6B23; font-size:18px; }
+.helpPanel h2 { margin:0; font-size:15px; line-height:1.5; }
+.helpPanel p { margin:6px 0 0; color:var(--text-secondary); font-size:13px; line-height:1.6; }
+.helpPanel a { display:inline-flex; align-items:center; gap:12px; flex-shrink:0; min-height:44px; color:var(--brand-navy); text-underline-offset:4px; font-size:13px; font-weight:500; }
+@media(max-width:1100px) { .pageHeader { align-items:flex-start; flex-direction:column; gap:20px; } .headerNote { max-width:none; } .workspaceCard { padding:22px; } .helpPanel { align-items:flex-start; flex-direction:column; } }
+@media(max-width:680px) { .workspaceGrid { grid-template-columns:minmax(0,1fr); gap:16px; } .pageHeader h1 { font-size:32px; } .workspaceCard { padding:22px; } .workspaceCard h2 { font-size:20px; } .helpPanel { padding:20px; } .helpPanel > div { align-items:flex-start; } }

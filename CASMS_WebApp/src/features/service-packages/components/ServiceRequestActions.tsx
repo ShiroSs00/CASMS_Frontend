@@ -20,11 +20,12 @@ export function ServiceRequestActions({ request, onChanged }: { request: Service
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa cập nhật được yêu cầu.') }
     finally { lock.current = false; setBusy(false) }
   }
+  if (!access.has('SERVICE_REQUEST_CREATE') && !access.has('SERVICE_REQUEST_ASSIGN') && !access.has('SERVICE_REQUEST_EXECUTE')) return null
   return <Panel title="Phân công và thực hiện">
     {request.status === 'REQUESTED' && (access.has('SERVICE_REQUEST_CREATE') || access.has('SERVICE_REQUEST_EXECUTE')) && <ButtonLink tone="secondary" to={`/admin/service-requests/${request.id}/edit`}>Sửa số lượng và ghi chú</ButtonLink>}
-    {actions.map(action => <Button key={action} tone={action === 'cancel' || action === 'reject' ? 'danger' : 'secondary'} disabled={busy || !allowed(action)} onClick={() => { setAction(action); setError('') }}>{labels[action]}</Button>)}
+    {actions.filter(allowed).map(action => <Button key={action} tone={action === 'cancel' || action === 'reject' ? 'danger' : 'secondary'} disabled={busy || !allowed(action)} onClick={() => { setAction(action); setError('') }}>{labels[action]}</Button>)}
     {!ownAssignment && ['ACCEPTED', 'IN_PROGRESS'].includes(request.status) && <p>Chỉ người được phân công mới có thể bắt đầu hoặc hoàn thành yêu cầu.</p>}
     <p>Nhận phân công sử dụng tài khoản đang đăng nhập; chưa hỗ trợ chỉ định nhân viên khác.</p>
-    {action && <Modal title={labels[action]} busy={busy} onClose={() => setAction(null)}><p>Xác nhận {labels[action].toLocaleLowerCase('vi')} cho yêu cầu đang xem?</p>{error && <Notice tone="error" title="Không thực hiện được">{error}</Notice>}<Button disabled={busy || !allowed(action)} onClick={() => void confirm()}>Xác nhận</Button></Modal>}
+    {action && allowed(action) && <Modal title={labels[action]} busy={busy} onClose={() => setAction(null)}><p>Xác nhận {labels[action].toLocaleLowerCase('vi')} cho yêu cầu đang xem?</p>{error && <Notice tone="error" title="Không thực hiện được">{error}</Notice>}<Button disabled={busy || !allowed(action)} onClick={() => void confirm()}>Xác nhận</Button></Modal>}
   </Panel>
 }

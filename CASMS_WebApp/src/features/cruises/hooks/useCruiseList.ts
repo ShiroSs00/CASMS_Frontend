@@ -22,6 +22,8 @@ export function useCruiseList() {
   const queryKey = useMemo(() => serializeCruiseQuery(query).toString(), [query])
   const sequence = useRef(0)
   const [state, setState] = useState<CruiseListState>({ status: 'loading', data: null, error: null })
+  const [shipsError, setShipsError] = useState('')
+  const [shipsAttempt, setShipsAttempt] = useState(0)
   const [ships, setShips] = useState<ShipRecord[]>([])
 
   const request = useCallback(() => {
@@ -51,9 +53,9 @@ export function useCruiseList() {
   useEffect(() => { request() }, [request])
   useEffect(() => {
     const controller = new AbortController()
-    void cruiseApi.listShips(controller.signal).then(setShips).catch(() => undefined)
+    void cruiseApi.listShips(controller.signal).then(value => { if (!controller.signal.aborted) { setShips(value); setShipsError('') } }).catch((error:unknown) => { if (!controller.signal.aborted) setShipsError(error instanceof Error ? error.message : 'Không tải được danh sách tàu.') })
     return () => controller.abort()
-  }, [])
+  }, [shipsAttempt])
 
   function updateQuery(patch: Partial<CruiseQuery>) {
     const changesFilter = Object.keys(patch).some((key) => key !== 'page')
@@ -74,6 +76,6 @@ export function useCruiseList() {
     updateQuery,
     resetQuery: () => setSearchParams(serializeCruiseQuery(DEFAULT_CRUISE_QUERY)),
     retry: load,
-    ships,
+    ships, shipsError, retryShips: () => setShipsAttempt(value=>value+1),
   }
 }

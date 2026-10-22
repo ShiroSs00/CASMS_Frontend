@@ -10,6 +10,26 @@ function load(file, imports, globals = {}) {
   vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2023, jsx: ts.JsxEmit.ReactJSX } }).outputText, { module, exports: module.exports, Date, AbortController, ...globals, require(id) { assert.ok(Object.hasOwn(imports, id), id); return imports[id] } })
   return module.exports
 }
+test('activity service manager login response is accepted as a staff session', () => {
+  const types = load('features/auth/model/auth-types.ts', {})
+  const dto = load('features/auth/api/dto.ts', { '../model/auth-types': types })
+  const session = dto.toSession({ accessToken: 'fixture-only', tokenType: 'Bearer', expiresIn: 3600,
+    userId: 'shore-fixture', username: 'shore-fixture', roles: ['ACTIVITY_SERVICE_MANAGER'] }, Date.now())
+  assert.equal(types.isStaff(session.user), true)
+  assert.equal(session.user.roles[0], 'ACTIVITY_SERVICE_MANAGER')
+  for(const role of ['SHORE_MANAGER','ACTIVITY_MANAGER']) assert.throws(()=>dto.toSession({accessToken:'fixture-only',tokenType:'Bearer',expiresIn:3600,userId:'legacy',username:'legacy',roles:[role]},Date.now()),/không hợp lệ/)
+})
+
+test('all 11 BE roles decode, and only PASSENGER is outside the staff area',()=>{
+  const types=load('features/auth/model/auth-types.ts',{})
+  const dto=load('features/auth/api/dto.ts',{'../model/auth-types':types})
+  assert.equal(types.AUTH_ROLES.length,11)
+  for(const role of types.AUTH_ROLES){
+    const session=dto.toSession({accessToken:'fixture',tokenType:'Bearer',expiresIn:3600,userId:'fixture',username:'fixture',roles:[role]},Date.now())
+    assert.equal(types.isStaff(session.user),role!=='PASSENGER')
+  }
+})
+
 test('Complete: existing auth login/refresh/logout exact methods, anonymous login and typed session DTO', async () => {
   const types = load('features/auth/model/auth-types.ts', {}), dto = load('features/auth/api/dto.ts', { '../model/auth-types': types }), calls = []
   let result = { accessToken: 'fixture-only-token', tokenType: 'Bearer', expiresIn: 3600, userId: 'u', username: 'fixture', roles: ['PASSENGER'] }

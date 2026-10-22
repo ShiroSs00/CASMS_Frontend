@@ -24,7 +24,7 @@ export function AdminAccountActions() {
   }
 
   return <div className={styles.account}>
-    <span className={styles.username}>{auth.user.username}</span>
+    <span className={styles.avatar} aria-hidden="true">{auth.user.username.slice(0,2).toUpperCase()}</span><span className={styles.username}><small>Tài khoản nhân sự</small>{auth.user.username}</span>
     <button type="button" disabled={busy} onClick={() => void logout()}>{busy ? 'Đang đăng xuất…' : 'Đăng xuất'}</button>
   </div>
 }

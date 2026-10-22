@@ -61,12 +61,14 @@ async function sandbox(permissions = []) {
   return { page, state, requests, login, finish }
 }
 
-test('V15 guest detail uses public core only; cabin estimates retain unknown currency and null deck metadata', { skip: !enabled }, async () => {
+test('Guest detail loads public supplements; cabin estimates retain unknown currency and null deck metadata', { skip: !enabled }, async () => {
   const s = await sandbox(), p = s.page
   try {
     await p.goto(base + '/cruises/' + cr + '?preview=1&catalog=live')
-    await p.getByText('Thông tin tàu bổ sung chưa được cung cấp công khai cho phiên này.', { exact: true }).waitFor()
-    assert.equal(s.requests.some(req => req.path.startsWith('/ships') || req.path.startsWith('/itineraries') || req.path.startsWith('/cruise-stops')), false)
+    await p.getByText('V15 authorized ship', { exact: true }).waitFor()
+    await p.getByText('V15 authorized day', { exact: true }).waitFor()
+    await p.getByText('V15 authorized stop', { exact: true }).waitFor()
+    assert.equal(s.requests.some(req => req.path.startsWith('/ships') || req.path.startsWith('/itineraries') || req.path.startsWith('/cruise-stops')), true)
     await p.getByRole('link', { name: 'Chọn phòng & đặt chỗ', exact: true }).click()
     await p.locator('#person-0-cabinId').selectOption(cabin)
     await p.getByText(/Giá tham chiếu ước tính \/ khách: 125,1234/).waitFor()

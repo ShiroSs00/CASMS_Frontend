@@ -54,7 +54,7 @@ test('OIM action hook cannot issue any mutation without the exact granted permis
   for (const [method, value] of [['assign', 'u'], ['start'], ['recordResolution', 'Fix'], ['verifyResolution'], ['close'], ['reopen']]) assert.equal(await actions[method](value), false)
   assert.equal(writes, 0)
 })
-function nodes(tree) { return Array.isArray(tree) ? tree.flatMap(nodes) : tree && typeof tree === 'object' ? [tree, ...nodes(tree.props?.children)] : [] }
+function nodes(tree) { return Array.isArray(tree) ? tree.flatMap(nodes) : tree && typeof tree === 'object' ? [tree, ...nodes(tree.props?.children), ...nodes(tree.props?.footer)] : [] }
 const flush = () => new Promise(setImmediate)
 test('Regulation candidate selection is read-only; explicit precheck and positive result are required before assignment', async () => {
   let index = 0, prechecks = 0, assignments = 0

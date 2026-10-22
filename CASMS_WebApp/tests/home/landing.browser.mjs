@@ -73,7 +73,7 @@ test('V14 editorial: inspiration cannot masquerade as live inventory or unsuppor
   try {
     await s.home()
     assert.equal(await p.locator('#voyages a[href*="cruiseType"]').count(), 0)
-    assert.equal(await p.locator('#destinations article').count(), 3)
+    assert.equal(await p.locator('#destinations article').count(), 7)
     assert.equal(await p.locator('#voyages article').count(), 3)
     assert.match(await p.locator('#voyages').innerText(), /NỘI DUNG BIÊN TẬP/)
     assert.match(await p.locator('#destinations').innerText(), /chưa hỗ trợ lọc theo điểm đến/)
@@ -91,11 +91,11 @@ test('V14 CTA matrix: every active Home link reaches its declared destination; m
     await s.home()
     assert.equal(await p.locator('header').getByRole('link', { name: 'Tra cứu bằng mã', exact: true }).getAttribute('href'), '/booking/lookup')
     assert.equal(await p.locator('footer button').count(), 0, 'Unavailable legal/help actions must not imitate working controls')
-    const hrefs = await p.locator('a[href]').evaluateAll(links => links.map(link => link.getAttribute('href')))
+    const hrefs = await p.locator('a[href]').evaluateAll(links => links.filter(link => link.getAttribute('target') !== '_blank').map(link => link.getAttribute('href')))
     assert.ok(hrefs.length > 10)
     for (let index = 0; index < hrefs.length; index++) {
       await s.home()
-      const link = p.locator('a[href]').nth(index), href = hrefs[index]
+      const link = p.locator('a[href]:not([target="_blank"])').nth(index), href = hrefs[index]
       assert.equal(await link.getAttribute('href'), href)
       const expected = new URL(href, p.url())
       if (expected.hash) assert.equal(await p.locator(expected.hash).count(), 1)
@@ -150,7 +150,7 @@ test('V14 desktop and keyboard: visible focus, meaningful headings/alt/labels, n
   try {
     await s.home()
     assert.equal(await p.getByRole('heading', { level: 1 }).count(), 1)
-    assert.match(await p.getByRole('heading', { level: 1 }).innerText(), /du thuyền/)
+    assert.match(await p.getByRole('heading', { level: 1 }).innerText(), /bến cảng/)
     assert.deepEqual(await p.locator('img').evaluateAll(images => images.filter(img => !img.hasAttribute('alt')).map(img => img.src)), [])
     await p.keyboard.press('Tab')
     assert.equal(await p.evaluate(() => globalThis.document.activeElement.textContent), 'Chuyển đến nội dung chính')

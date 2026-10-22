@@ -1,13 +1,16 @@
-import type { ReactNode } from 'react'
+import { useContext, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router'
 import { ApiError } from '@/shared/api'
+import { useSessionAccess } from '@/shared/auth'
 import { Button, Loading, Notice } from '@/shared/ui'
-import { AdminShell } from '@/shared/ui/admin-v3'
+import { AdminRoleContext, AdminShell, canRoleOpenAdminPath } from '@/shared/ui/admin-v3'
 import { catalogConfig } from '../model/catalog'
 import styles from './Catalog.module.css'
 export function CatalogFrame({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
-  const entries = [...Object.values(catalogConfig), { label: 'Yêu cầu dịch vụ', route: '/admin/service-requests' }]
+  const roles=useContext(AdminRoleContext)
+  const access=useSessionAccess()
+  const entries = [...Object.values(catalogConfig), { label: 'Yêu cầu dịch vụ', route: '/admin/service-requests' }].filter(item=>canRoleOpenAdminPath(roles,item.route,'',access))
   return <AdminShell><div className={styles.content}><nav className={styles.navigation} aria-label="Danh mục dịch vụ tàu">{entries.map(item => <Link key={item.route} to={item.route} aria-current={pathname === item.route || pathname.startsWith(item.route + '/') ? 'page' : undefined}>{item.label}</Link>)}</nav>{children}</div></AdminShell>
 }
 export function CatalogState({ loading, error, retry }: { loading: boolean; error: Error | null; retry: () => void }) {

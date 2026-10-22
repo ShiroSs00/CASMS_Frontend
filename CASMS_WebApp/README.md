@@ -1,30 +1,31 @@
 # CASMS WebApp
 
-Nền React + Vite + TypeScript của CASMS. WEB-001 chỉ cung cấp technical shell, routing và ranh giới module; chưa chứa tính năng nghiệp vụ CASMS.
+React + Vite + TypeScript application for OcvViet public cruise discovery, booking and operational administration.
 
-## Bắt đầu
+## Run
 
-Yêu cầu Node.js `24.21.0` và npm `11.19.0` (xem [hướng dẫn development](docs/engineering/development.md)).
+Use Node 24 and npm 11 (see package.json). Install with `npm ci`, then `npm run dev`.
 
-```bash
-npm ci
-npm run dev
-```
+- Browser API base: `VITE_API_BASE_URL=/api`.
+- Local backend origin: `CASMS_API_PROXY_TARGET=http://127.0.0.1:8080`.
+- Backend must be running; the dev proxy forwards requests and does not supply mock inventory.
+- For the existing isolated PostgreSQL QA runtime: `powershell -File tests/integration/start-backend-qa.ps1`.
 
-Các kiểm tra bắt buộc:
+## Validate
 
-```bash
+```sh
 npm run lint
 npm run typecheck
 npm run build
+npm test
 ```
 
-Không có script `test` trong WEB-001 vì chưa có test harness hoặc hành vi nghiệp vụ cần kiểm thử.
+Live API checks require explicit QA environment variables; see [development and QA](docs/engineering/development.md). Production hosting requires an API proxy or a deployed backend URL; the SPA rewrite is not an API server.
 
-## Nguồn chuẩn
+## Current behavior
 
-- [Mục lục và trạng thái tài liệu](docs/README.md)
-- [Kiến trúc và import boundaries](docs/engineering/architecture.md)
-- [Bản đồ module hiện có](docs/engineering/module-map.md)
-- [Quy trình branch, commit, push và Pull Request](docs/engineering/git-workflow.md)
-- [Task contract WEB-001](docs/tasks/WEB-001-bootstrap.md)
+Public catalog and details, available cabins, package details/benefits, booking create/lookup and account booking operations use backend APIs. Admin modules are loaded on demand. Unsupported online payment, document upload, check-in and boarding capabilities remain unavailable; no fake payment or boarding success is generated.
+
+The home slideshow uses licensed photos of Marina Bay (Singapore), Victoria Harbour (Hong Kong), and Ōsanbashi (Yokohama). Credits are served at [public/images/ports/credits.html](public/images/ports/credits.html). Images are editorial inspiration, not live inventory.
+
+[Documentation index](docs/README.md) · [Architecture](docs/engineering/architecture.md) · [Module map](docs/engineering/module-map.md) · [Git workflow](docs/engineering/git-workflow.md)

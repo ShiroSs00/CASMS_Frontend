@@ -3,7 +3,7 @@
 .brand { font-size:26px; font-weight:600; color:#fff; text-decoration:none; }
 .footerAbout p { max-width:360px; margin-top:16px; font-size:14px; line-height:1.7; }
 .footer nav { display:flex; flex-direction:column; align-items:flex-start; font-size:14px; }
-.footer nav > span { margin-bottom:8px; color:#f0d391; font-size:12px; letter-spacing:.08em; }
+.footer nav > span { margin-bottom:8px; color:#d4af37; font-size:12px; letter-spacing:.08em; }
 .footer nav a { display:inline-flex; align-items:center; min-height:44px; padding-block:8px; text-decoration:none; }
 .footer a:hover { text-decoration:underline; text-underline-offset:4px; }
 .footer a:focus-visible { outline:3px solid #fff; outline-offset:3px; }
@@ -13,4 +13,4 @@
 
 .footerAbout, .footer nav { min-width:0; overflow-wrap:anywhere; }
 .footer nav a { max-width:100%; line-height:1.5; }
-.footer nav a:active { color:#f0d391; }
+.footer nav a:active { color:#d4af37; }

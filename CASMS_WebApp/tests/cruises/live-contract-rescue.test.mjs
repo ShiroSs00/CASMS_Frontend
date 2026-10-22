@@ -12,7 +12,7 @@ const cruise = { cruiseId: 'cruise-1', shipId: null, departurePortId: 'port-1', 
 const plan = { itineraryId: 'itinerary-1', cruiseId: cruise.cruiseId, itineraryName: 'Hải trình thật', status: 'DRAFT', startDate: '2026-10-21', endDate: '2026-10-24' }
 function api(overrides = {}) {
   const calls = []
-  const { cruiseApi } = load(new URL('../../src/features/cruises/api/cruise-api.ts', import.meta.url), { '@/shared/api': { apiRequest: async (path, options) => {
+  const { cruiseApi } = load(new URL('../../src/features/cruises/api/cruise-api.ts', import.meta.url), { '../model/cruise-validation': load(new URL('../../src/features/cruises/model/cruise-validation.ts', import.meta.url), {}), '@/shared/api': { apiRequest: async (path, options) => {
     calls.push([path, options])
     if (Object.hasOwn(overrides, path)) return overrides[path](options)
     if (path === '/cruise/cruise-1') return cruise

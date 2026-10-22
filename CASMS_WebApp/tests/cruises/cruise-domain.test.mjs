@@ -10,39 +10,16 @@ async function loadValidation() {
   }
 }
 
-test('ONE_DAY accepts only a later return time on the same calendar date', async () => {
-  const { validateCruiseDraft, validateCruiseSchedule } = await loadValidation()
-
-  assert.equal(typeof validateCruiseSchedule, 'function', 'schedule validation is not implemented')
-  assert.deepEqual(
-    validateCruiseSchedule('ONE_DAY', '2026-11-20T08:00', '2026-11-20T18:00'),
-    {},
-  )
-  assert.equal(
-    validateCruiseSchedule('ONE_DAY', '2026-11-20T08:00', '2026-11-21T09:00').returnDatetime,
-    'Chuyến một ngày phải kết thúc trong cùng ngày khởi hành.',
-  )
-  assert.equal(
-    validateCruiseSchedule('MULTI_DAYS', '2026-11-20T08:00', '2026-11-20T18:00').returnDatetime,
-    'Chuyến nhiều ngày phải kết thúc vào ngày sau ngày khởi hành.',
-  )
-  assert.equal(
-    validateCruiseSchedule('MULTI_DAYS', '2026-11-20T08:00', '2026-11-19T18:00').returnDatetime,
-    'Thời gian kết thúc phải sau thời gian khởi hành.',
-  )
-  assert.deepEqual(validateCruiseSchedule('MULTI_DAYS', '2026-11-20T08:00', '2026-11-21T18:00'), {})
-  assert.deepEqual(validateCruiseDraft({
-    cruiseCode: ' ',
-    cruiseName: '',
-    cruiseType: 'ONE_DAY',
-    departureDatetime: '2026-11-20T08:00',
-    returnDatetime: '2026-11-20T18:00',
-    departurePortId: '',
-    returnPortId: '',
-  }), {
-    cruiseName: 'Tên hiển thị là bắt buộc.',
-    departurePortId: 'Vui lòng chọn cảng khởi hành.',
-    returnPortId: 'Vui lòng chọn cảng trở về.',
+test('Cruise schedule follows BE: positive instants, optional type and no invented five-day limit', async () => {
+  const {validateCruiseDraft,validateCruiseSchedule,inferCruiseType}=await loadValidation()
+  assert.deepEqual(validateCruiseSchedule('', '2026-11-20T08:00','2026-12-10T18:00'),{})
+  assert.deepEqual(validateCruiseSchedule('ONE_DAY','2026-11-20T08:00','2026-11-22T09:00'),{})
+  assert.equal(inferCruiseType('2026-11-20T08:00','2026-11-20T18:00'),'ONE_DAY')
+  assert.equal(inferCruiseType('2026-11-20T08:00','2026-11-21T08:59'),'ONE_DAY')
+  assert.equal(inferCruiseType('2026-11-20T08:00','2026-11-21T09:00'),'MULTI_DAYS')
+  assert.ok(validateCruiseSchedule('MULTI_DAYS','2026-11-20T08:00','2026-11-19T18:00').returnDatetime)
+  assert.deepEqual(validateCruiseDraft({cruiseCode:'',cruiseName:'',cruiseType:'',departureDatetime:'2026-11-20T08:00',returnDatetime:'2026-11-20T18:00',departurePortId:'',returnPortId:''}),{
+    cruiseName:'Tên hiển thị là bắt buộc.',departurePortId:'Vui lòng chọn cảng khởi hành.',returnPortId:'Vui lòng chọn cảng trở về.',
   })
 })
 
@@ -146,7 +123,7 @@ test('Mock adapter keeps Cruise persistence SQL-shaped and filters combined list
     cruiseName: ' Cruise mới ',
     cruiseType: 'MULTI_DAYS',
     departureDatetime: '2026-12-20T08:00',
-    returnDatetime: '2026-12-21T18:00',
+    returnDatetime: '2026-12-22T18:00',
     departurePortId: port,
     returnPortId: port,
   })

@@ -67,7 +67,7 @@ test('Catalog adapters distinguish empty, malformed DTO and wrong package benefi
   assert.ok(calls.every(call => !/schedule-check|\/sales/.test(call.path)))
 })
 test('new screen error states distinguish permission denial from BE expression failure and do not show fake empty success', () => {
-  const imports = { '@/shared/api': { ApiError }, '@/shared/ui': { Button: 'Button', Loading: 'Loading', Notice: 'Notice' }, '@/shared/ui/admin-v3': { AdminShell: 'AdminShell' }, 'react-router': { Link: 'Link', useLocation: () => ({ pathname: '' }) }, '../model/catalog': { catalogConfig: {} } }
+  const imports = { react:{useContext:()=>[]}, '@/shared/auth':{}, '@/shared/api': { ApiError }, '@/shared/ui': { Button: 'Button', Loading: 'Loading', Notice: 'Notice' }, '@/shared/ui/admin-v3': { AdminShell: 'AdminShell' }, 'react-router': { Link: 'Link', useLocation: () => ({ pathname: '' }) }, '../model/catalog': { catalogConfig: {} } }
   for (const [file, name] of [['features/activities/components/ActivityUI.tsx', 'ActivityState'], ['features/service-packages/components/CatalogUI.tsx', 'CatalogState']]) {
     const render = load(file, imports)[name]
     const denied = render({ loading: false, error: new ApiError('Denied', 403), retry() {} })

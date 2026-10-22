@@ -1,5 +1,5 @@
 .muted { color:#68767d; font-size:12px; }
-.link { color:#123042; font-weight:700; text-decoration:none; }
+.link { color:#0b2a4a; font-weight:700; text-decoration:none; }
 .link:hover { text-decoration:underline; }
 .pager,.actions,.modalActions { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:16px; }
 .actions,.modalActions { justify-content:flex-end; }
@@ -7,19 +7,19 @@
 .dayCard { margin-bottom:12px; padding:16px; border:1px solid #e0d8ca; border-radius:12px; background:#fff; }
 .dayHeading,.stopRow { display:flex; align-items:center; justify-content:space-between; gap:16px; }
 .stopList { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
-.stopRow { padding:11px 12px; border-left:3px solid #4b8af1; border-radius:6px; background:#f5f2e9; font-size:13px; }
+.stopRow { padding:11px 12px; border-left:3px solid #0e6b7a; border-radius:6px; background:#f5f2e9; font-size:13px; }
 .formGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
 .timeline { display:flex; flex-direction:column; gap:0; margin:0; padding:0; list-style:none; }
 .timeline li { position:relative; padding:0 0 20px 24px; color:#68767d; font-size:13px; }
-.timeline li::before { position:absolute; top:4px; left:3px; width:9px; height:9px; border:2px solid #123042; border-radius:50%; background:#faf8f2; content:''; }
+.timeline li::before { position:absolute; top:4px; left:3px; width:9px; height:9px; border:2px solid #0b2a4a; border-radius:50%; background:#f8f6ec; content:''; }
 .timeline li::after { position:absolute; top:17px; bottom:0; left:8px; width:1px; background:#d8d0c2; content:''; }
 .timeline li:last-child::after { display:none; }
 
-.stopCard { display:flex; width:100%; align-items:center; gap:12px; padding:14px; border:1px solid #d6dee4; border-radius:14px; background:#fff; color:#111820; text-align:left; cursor:pointer; }
-.selectedStop { border-color:#4b8af1; }
-.stopNumber { min-width:60px; color:#4b8af1; font-size:24px; line-height:32px; }
+.stopCard { display:flex; width:100%; align-items:center; gap:12px; padding:14px; border:1px solid #d5e0e4; border-radius:14px; background:#fff; color:#0b2a4a; text-align:left; cursor:pointer; }
+.selectedStop { border-color:#0e6b7a; }
+.stopNumber { min-width:60px; color:#0e6b7a; font-size:24px; line-height:32px; }
 .stopCopy { display:flex; flex:1; flex-direction:column; gap:2px; font-size:13px; }
-.stopCopy > span { color:#51616f; font-size:14px; line-height:20px; }
+.stopCopy > span { color:#506777; font-size:14px; line-height:20px; }
 .stopForm { display:flex; flex-direction:column; gap:10px; }
 .stopForm button { width:100%; }
 .inlineActions { display:flex; }

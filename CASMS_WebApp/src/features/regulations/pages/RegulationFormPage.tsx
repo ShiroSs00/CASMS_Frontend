@@ -321,9 +321,9 @@ export function RegulationFormPage() {
             </div>
           </div>
           <div className={styles.formActions}>
-            <Button disabled={submitting || !access.has(isEdit ? 'REGULATION_UPDATE' : 'REGULATION_CREATE') || (isEdit && !source)} type="submit">
+            {access.has(isEdit ? 'REGULATION_UPDATE' : 'REGULATION_CREATE') && <Button disabled={submitting || !access.has(isEdit ? 'REGULATION_UPDATE' : 'REGULATION_CREATE') || (isEdit && !source)} type="submit">
               {submitting ? 'Đang lưu…' : 'Lưu quy định'}
-            </Button>
+            </Button>}
             <Button
               disabled={submitting}
               onClick={() => navigate(source ? `/admin/regulations/${source.id}` : '/admin/regulations')}

@@ -1,19 +1,31 @@
-/*
- * Status: PROPOSED.
- * These WEB-001 values support the technical shell only. They are not official
- * CASMS design tokens until a reviewed design source is recorded in docs/design/.
- */
+/* OceVie Web Design Guidelines v1.0 — supplied brand reference. */
 :root {
-  --color-navy-950: #061725;
-  --color-navy-900: #081f32;
-  --color-navy-800: #12364f;
-  --color-cream-50: #fffaf0;
-  --color-cream-100: #f6ecd8;
-  --color-gold-300: #e6be5e;
-  --color-gold-400: #ca9632;
-  --color-slate-300: #bdcbd4;
-  --color-slate-400: #8fa4b1;
-  --color-success-300: #7bd9aa;
+  --brand-midnight: #061A2B;
+  --brand-navy: #0B2A4A;
+  --brand-teal: #0E6B7A;
+  --brand-gold: #D4AF37;
+  --brand-sand: #DBC9A7;
+  --brand-pearl: #F8F6EC;
+  --font-family-body: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
+  --font-family-heading: 'Sora', 'Be Vietnam Pro', sans-serif;
+  --font-body: var(--font-family-body);
+  --font-heading: var(--font-family-heading);
+  --text-primary: var(--brand-navy);
+  --text-secondary: #506777;
+  --surface-default: #fff;
+  --surface-subtle: #F4F7F8;
+  --surface-brand: var(--brand-navy);
+  --border-default: #D5E0E4;
+  --color-navy-950: var(--brand-midnight);
+  --color-navy-900: var(--brand-navy);
+  --color-navy-800: #153E60;
+  --color-cream-50: var(--brand-pearl);
+  --color-cream-100: #F7EFD9;
+  --color-gold-300: var(--brand-gold);
+  --color-gold-400: #8E6B23;
+  --color-slate-300: #D5E0E4;
+  --color-slate-400: #607282;
+  --color-success-300: #167347;
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;

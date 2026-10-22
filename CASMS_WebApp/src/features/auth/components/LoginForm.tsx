@@ -32,9 +32,9 @@ export function LoginForm({ expired, login, onSuccess }: {
     finally { lock.current = false; setBusy(false) }
   }
   return <div className={styles.loginCard}>
-    <p className={styles.eyebrow}>{expired ? 'PHIÊN ĐĂNG NHẬP' : 'TÀI KHOẢN OCVVIET'}</p>
+    <p className={styles.eyebrow}>{expired ? 'PHIÊN ĐĂNG NHẬP' : 'TÀI KHOẢN OceVie'}</p>
     <h1>{expired ? 'Phiên của bạn đã hết hạn' : 'Chào mừng trở lại'}</h1>
-    <p>{expired ? 'Đăng nhập lại để tiếp tục. Thông tin bạn đang xem không được coi là đã lưu nếu backend chưa xác nhận.' : 'Đăng nhập bằng tài khoản OcvViet để tiếp tục vào khu vực phù hợp với vai trò của bạn.'}</p>
+    <p>{expired ? 'Đăng nhập lại để tiếp tục.' : 'Đăng nhập để quản lý hành trình và công việc của bạn.'}</p>
     <form className={styles.loginForm} onSubmit={(event) => void submit(event)} noValidate>
       <Field htmlFor="auth-username" label="Tên đăng nhập" error={attempted && !username.trim() ? 'Nhập tên đăng nhập.' : undefined}><input id="auth-username" name="username" autoComplete="username" value={username} disabled={busy} required aria-invalid={attempted && !username.trim()} aria-describedby={attempted && !username.trim() ? 'auth-username-hint' : undefined} onChange={(event) => setUsername(event.target.value)} /></Field>
       <Field htmlFor="auth-password" label="Mật khẩu" error={attempted && !password ? 'Nhập mật khẩu.' : undefined}><input id="auth-password" name="password" type="password" autoComplete="current-password" value={password} disabled={busy} required aria-invalid={attempted && !password} aria-describedby={attempted && !password ? 'auth-password-hint' : undefined} onChange={(event) => setPassword(event.target.value)} /></Field>
@@ -42,7 +42,7 @@ export function LoginForm({ expired, login, onSuccess }: {
       {error && <div className={styles.error} role="alert">{error}</div>}
       <Button type="submit" className={styles.loginButton} disabled={busy}>{busy ? 'Đang đăng nhập…' : 'Đăng nhập'}</Button>
     </form>
-    <p className={styles.center}>Tài khoản được cấp và quản lý bởi hệ thống AURORA</p>
+    <p className={styles.center}>Tài khoản được cấp và quản lý bởi hệ thống OceVie</p>
     <p className={styles.help} id="auth-help">Liên hệ quản trị viên nếu bạn không thể đăng nhập</p>
   </div>
 }

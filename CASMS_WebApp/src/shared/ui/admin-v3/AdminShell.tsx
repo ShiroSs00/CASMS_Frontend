@@ -1,71 +1,58 @@
-import { useContext, useEffect, useRef, type ReactNode } from 'react'
+import { useSessionAccess } from '@/shared/auth'
+import { adminNavigation, roleNavigationGroups, workspaceUrl, roleWorkspace, staffRoleHome, staffRoleLabel } from './admin-navigation'
+import { BrandLogo } from '../BrandLogo'
+import { useContext, useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router'
 import styles from './AdminShell.module.css'
 import experience from '../Experience.module.css'
-import { AdminAccountContext } from './admin-account-context'
-
-const navigation: { label: string; items: { label: string; to?: string }[] }[] = [
-  { label: 'TỔNG QUAN', items: [{ label: 'Tổng quan' }, { label: 'Quy trình vận hành', to: '/admin/workflow' }] },
-  { label: 'ĐẶT CHỖ', items: [{ label: 'Đặt chỗ', to: '/admin/bookings' }, { label: 'Làm thủ tục' }] },
-  { label: 'DỮ LIỆU NỀN TẢNG', items: [
-    { label: 'Điểm đến', to: '/admin/destinations' }, { label: 'Cảng', to: '/admin/ports' },
-    { label: 'Tàu', to: '/admin/ships' }, { label: 'Boong', to: '/admin/decks' }, { label: 'Cabin', to: '/admin/cabins' },
-  ] },
-  { label: 'LẬP KẾ HOẠCH CHUYẾN', items: [
-    { label: 'Chuyến du lịch', to: '/admin/cruises' }, { label: 'Hải trình', to: '/admin/itineraries' },
-  ] },
-  { label: 'VẬN HÀNH & TUÂN THỦ', items: [
-    { label: 'Quy định', to: '/admin/regulations' }, { label: 'Sự cố vận hành', to: '/admin/issues' },
-  ] },
-  { label: 'DỊCH VỤ BỜ', items: [
-    { label: 'Nhà cung cấp', to: '/admin/suppliers' }, { label: 'Chuyến tham quan bờ', to: '/admin/shore-excursions' }, { label: 'Nhóm tour', to: '/admin/tour-groups' },
-  ] },
-  { label: 'DỊCH VỤ TÀU', items: [
-    { label: 'Hoạt động trên tàu', to: '/admin/activities' }, { label: 'Dịch vụ', to: '/admin/services' },
-    { label: 'Sản phẩm', to: '/admin/products' }, { label: 'Gói dịch vụ', to: '/admin/service-packages' },
-    { label: 'Yêu cầu dịch vụ', to: '/admin/service-requests' },
-    { label: 'Phân bổ gói', to: '/admin/package-assignments' },
-  ] },
-  { label: 'TÀI CHÍNH', items: [{ label: 'Thanh toán' }, { label: 'Hoàn tiền' }, { label: 'Báo cáo' }] },
-  { label: 'HỆ THỐNG', items: [{ label: 'Người dùng & quyền' }] },
-]
+import { AdminAccountContext, AdminRoleContext } from './admin-account-context'
 
 export function AdminShell({ children, className = '', topbar }: { children: ReactNode; className?: string; topbar?: ReactNode }) {
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
+  const access = useSessionAccess()
+  const roles=useContext(AdminRoleContext)
+  const roleLabel=staffRoleLabel(roles)
+  const home=staffRoleHome(roles) ?? '/403'
+  const [menu, setMenu] = useState({ path: pathname, open: false })
+  const menuOpen = menu.path === pathname && menu.open
   const account = useContext(AdminAccountContext)
-  const section = pathname.split('/')[2] ?? ''
-  let activeTo = `/admin/${section}`
-  if (pathname.includes('/regulations')) {
-    activeTo = '/admin/regulations'
-  } else if (pathname.startsWith('/admin/itinerary-history')) {
-    activeTo = '/admin/itineraries'
-  } else if (pathname.startsWith('/admin/activity-registrations')) {
-    activeTo = '/admin/activities'
-  }
-  const activeLabel = navigation.flatMap(group => group.items).find(item => item.to === activeTo)?.label
-  const sidebar = useRef<HTMLElement>(null)
-  useEffect(() => { sidebar.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest' }) }, [activeTo])
-
+  const workspace = roleWorkspace(roles)
+  let activeTo = pathname.startsWith('/admin/staff/') ? pathname : pathname.split('/').slice(0,3).join('/')
+  if (pathname.includes('/regulations')) activeTo = '/admin/regulations'
+  else if (pathname.startsWith('/admin/itinerary-history')) activeTo = '/admin/itineraries'
+  else if (pathname.startsWith('/admin/activity-registrations')) activeTo = new URLSearchParams(search).has('excursionId') ? '/admin/shore-excursions' : '/admin/activities'
+  const workspaceHome = workspace && workspaceUrl(workspace)
+  const activeLabel = pathname === workspaceHome ? 'Tổng quan khu vực' : adminNavigation.flatMap(group => group.items).find(item => item.to === activeTo)?.label
+  const currentGroups = roleNavigationGroups(roles,access)
   return <div className={`${styles.shell} ${experience.admin} ${className}`.trim()}>
     <a href="#admin-v3-main" className={styles.skipLink}>Chuyển đến nội dung chính</a>
-    <aside ref={sidebar} className={styles.sidebar} aria-label="Điều hướng quản trị">
-      {/* Official brand text for Admin Web */}
-      <div className={styles.brand}>OcvViet</div>
-      <p className={styles.subtitle}>ĐIỀU PHỐI &amp; VẬN HÀNH</p>
-      <nav aria-label="Vận hành" className={styles.navigation}>
-        {navigation.map(group => <div key={group.label} className={styles.navGroup}>
-          <p className={styles.groupLabel}>{group.label}</p>
-          {group.items.map(item => item.to
-            ? <Link key={item.label} to={item.to} aria-current={item.to === activeTo ? 'page' : undefined} className={`${styles.navItem} ${item.to === activeTo ? styles.active : ''}`}>{item.label}</Link>
-            : <span key={item.label} className={styles.navItem} aria-disabled="true">{item.label}</span>)}
-        </div>)}
+    <div className={styles.mobileBar}><BrandLogo /><button type="button" aria-expanded={menuOpen} aria-controls="admin-navigation" onClick={() => setMenu({ path: pathname, open: !menuOpen })}>{menuOpen ? 'Đóng menu' : 'Mở menu'}</button></div>
+    <aside id="admin-navigation" className={`${styles.sidebar} ${menuOpen ? styles.sidebarOpen : ''}`} aria-label="Điều hướng quản trị">
+      <div className={styles.brand}><BrandLogo variant="dark" /></div>
+      <p className={styles.subtitle}>MANAGEMENT SUITE</p>
+      <div className={styles.workspaceContext}><span>KHU VỰC LÀM VIỆC</span><strong>{roleLabel}</strong></div>
+      <nav aria-label="Điều hướng khu vực" className={styles.navigation}>
+        <div className={styles.navGroup}><p className={styles.groupLabel}>CÔNG VIỆC VÀ TRA CỨU</p>
+          {workspace && <Link to={workspaceHome!} aria-current={pathname===workspaceHome?'page':undefined} className={`${styles.navItem} ${pathname===workspaceHome?styles.active:''}`}>Tổng quan khu vực</Link>}
+          {access.status==='loading' && <p className={styles.unavailable}>Đang kiểm tra quyền truy cập…</p>}
+          {currentGroups.map(group=>group.items.length===1 && (group.id==='system'||group.id==='staff/finance')
+            ? group.items.map(item=><Link key={item.to} to={item.to!} aria-current={item.to===activeTo?'page':undefined} className={`${styles.navItem} ${item.to===activeTo?styles.active:''}`}>{item.label}</Link>)
+            : <details key={group.id} className={styles.menuGroup} open={group.items.some(item=>item.to===activeTo)}>
+              <summary className={`${styles.menuSummary} ${group.items.some(item=>item.to===activeTo)?styles.menuCurrent:''}`}><span>{group.label}</span><span className={styles.menuChevron} aria-hidden="true">›</span></summary>
+              <div className={styles.subMenu}>{group.items.map(item=><Link key={item.to} to={item.to!} aria-current={item.to===activeTo?'page':undefined} className={`${styles.navItem} ${item.to===activeTo?styles.active:''}`}>{item.label}</Link>)}</div>
+            </details>)}
+          {!workspace && !currentGroups.some(group=>group.items.some(item=>item.to===home)) && <Link to={home} className={styles.navItem}>Khu chức năng của tôi</Link>}
+        </div>
+        {workspace && <Link to="/admin/workflow" aria-current={pathname==='/admin/workflow'?'page':undefined} className={`${styles.navItem} ${pathname==='/admin/workflow'?styles.active:''}`}>Quy trình vận hành</Link>}
       </nav>
+      <div className={styles.sidebarFooter}><span>OceVie Cruises</span><Link to="/">Xem WebApp <span aria-hidden="true">↗</span></Link></div>
     </aside>
     <div className={styles.mainColumn}>
       <header className={styles.topbar} aria-label="Thanh thông tin quản trị">
-        {topbar ?? <p className={styles.context}>Khu vực quản trị{activeLabel && <><span aria-hidden="true">/</span><span className={styles.contextSection}>{activeLabel}</span></>}</p>}
+        {topbar ?? <div className={styles.context}><span className={styles.contextEyebrow}>OceVie / QUẢN TRỊ</span><p>{roleLabel}{activeLabel && activeLabel !== 'Tổng quan' && <><span className={styles.contextDivider} aria-hidden="true">/</span><span className={styles.contextSection}>{activeLabel}</span></>}</p></div>}
         {account}
       </header>
+      <title>{`OceVie — ${roleLabel}${activeLabel && activeLabel!==roleLabel && activeLabel!=='Tổng quan khu vực' ? ' / '+activeLabel : ''}`}</title>
       <main id="admin-v3-main" tabIndex={-1} className={styles.main}>{children}</main>
     </div>
   </div>

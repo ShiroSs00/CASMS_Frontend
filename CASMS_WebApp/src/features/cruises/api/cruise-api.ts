@@ -1,5 +1,5 @@
-import { apiRequest } from '@/shared/api'
-import { inferCruiseType } from '../model/cruise-validation'
+import { ApiError, apiRequest } from '@/shared/api'
+import { scheduleInstant } from '../model/cruise-validation'
 
 import type { CruiseQuery } from '../model/cruise-query'
 import type { CruiseDraft, CruiseRecord, PortRecord, ShipRecord } from '../model/cruise-record'
@@ -16,7 +16,15 @@ type RegulationProjection = {
 }
 
 function cruiseBody(draft: CruiseDraft) {
-  return { ...draft, cruiseType: draft.cruiseType || inferCruiseType(draft.departureDatetime, draft.returnDatetime), departureDatetime: new Date(draft.departureDatetime).toISOString(), returnDatetime: new Date(draft.returnDatetime).toISOString() }
+  return { ...(draft.cruiseCode.trim() ? {cruiseCode:draft.cruiseCode.trim()} : {}), cruiseName:draft.cruiseName.trim(),
+    ...(draft.cruiseType ? {cruiseType:draft.cruiseType} : {}),
+    departureDatetime:scheduleInstant(draft.departureDatetime).toISOString(), returnDatetime:scheduleInstant(draft.returnDatetime).toISOString(),
+    departurePortId:draft.departurePortId, returnPortId:draft.returnPortId }
+}
+async function readPage<T>(path: string, page: number, signal?: AbortSignal) {
+  const result = await apiRequest<PageDto<T>>(path,{query:{page,size:100},signal})
+  if (!result || !Array.isArray(result.content) || !Number.isSafeInteger(result.totalPages) || result.totalPages < 0 || result.totalPages > 10000) throw new ApiError('Danh sách phân trang từ hệ thống không hợp lệ.',502)
+  return result
 }
 
 function toCruise(dto: CruiseDto): CruiseRecord {
@@ -60,8 +68,10 @@ async function getPort(id: string, signal?: AbortSignal) {
 }
 
 async function listShips(signal?: AbortSignal) {
-  const page = await apiRequest<PageDto<ShipRecord>>('/ships', { query: { page: 0, size: 100 }, signal })
-  return page.content
+  const first = await readPage<ShipRecord>('/ships',0,signal)
+  const ships = [...first.content]
+  for (let page=1;page<first.totalPages;page++) ships.push(...(await readPage<ShipRecord>('/ships',page,signal)).content)
+  return ships
 }
 
 function readinessChecks(value: ReadinessDto): ReadinessCheck[] {
@@ -78,7 +88,7 @@ function readinessChecks(value: ReadinessDto): ReadinessCheck[] {
 async function linkedItinerary(cruiseId: string, signal?: AbortSignal): Promise<ItinerarySummary | null> {
   let pageNumber = 0
   while (true) {
-    const page = await apiRequest<PageDto<ItinerarySummary & { cruiseId: string }>>('/itineraries', { query: { page: pageNumber, size: 100 }, signal })
+    const page = await readPage<ItinerarySummary & {cruiseId:string}>('/itineraries',pageNumber,signal)
     const found = page.content.find(item => item.cruiseId === cruiseId)
     if (found) return { ...found, dayCount: null, portCallCount: null, seaDayCount: null, routeLabel: '', schedule: [] }
     if (++pageNumber >= page.totalPages) return null
@@ -99,8 +109,11 @@ export const cruiseApi = {
     })
     const items = page.content.map(toItem)
     const shipIds = [...new Set(items.flatMap((item) => item.cruise.shipId ? [item.cruise.shipId] : []))]
-    const ships = await Promise.all(shipIds.map((id) => getShip(id, signal)))
-    for (const item of items) item.ship = ships.find((ship) => ship?.shipId === item.cruise.shipId) ?? null
+    const ships = await Promise.allSettled(shipIds.map(id => getShip(id,signal)))
+    for (const item of items) {
+      const result = ships[shipIds.indexOf(item.cruise.shipId ?? '')]
+      if (result?.status === 'fulfilled') item.ship = result.value
+    }
     const readinessResults = await Promise.allSettled(items.map((item) => apiRequest<ReadinessDto>(`${byId(item.cruise.cruiseId)}/readiness`, { signal })))
     readinessResults.forEach((result, index) => {
       if (result.status === 'fulfilled') items[index].readinessSummary = { ready: result.value.ready, issues: result.value.issues ?? [] }
@@ -121,7 +134,11 @@ export const cruiseApi = {
     }
   },
   listShips,
-  listPorts: (signal?: AbortSignal) => apiRequest<PortRecord[]>('/ports/active', { signal }),
+  async listPorts(signal?: AbortSignal) {
+    const ports = await apiRequest<PortRecord[]>('/ports/active',{signal})
+    if (!Array.isArray(ports) || ports.some(port => !port || typeof port.portId !== 'string' || !port.portId || typeof port.portName !== 'string' || !port.portName.trim() || port.status !== 'ACTIVE') || new Set(ports.map(port=>port.portId)).size !== ports.length) throw new ApiError('Không đọc được danh sách cảng hoạt động. Vui lòng thử lại.',502)
+    return [...ports].sort((a,b)=>a.portName.localeCompare(b.portName,'vi'))
+  },
   async getDetail(id: string, signal?: AbortSignal, onCore?: (detail: CruiseDetailView) => void): Promise<CruiseDetailView> {
     const dto = await apiRequest<CruiseDto>(byId(id), { signal })
     const cruise = toCruise(dto)
@@ -178,7 +195,7 @@ export const cruiseApi = {
   },
   async updateCruise(id: string, draft: CruiseDraft) {
     const body = cruiseBody(draft)
-    return toCruise(await apiRequest<CruiseDto>(`${byId(id)}/draft`, { method: 'PATCH', body: { cruiseName: body.cruiseName, cruiseType: body.cruiseType, departureDatetime: body.departureDatetime, returnDatetime: body.returnDatetime, departurePortId: body.departurePortId, returnPortId: body.returnPortId } }))
+    return toCruise(await apiRequest<CruiseDto>(`${byId(id)}/draft`, { method: 'PATCH', body: { cruiseName: body.cruiseName, ...(body.cruiseType ? {cruiseType:body.cruiseType} : {}), departureDatetime: body.departureDatetime, returnDatetime: body.returnDatetime, departurePortId: body.departurePortId, returnPortId: body.returnPortId } }))
   },
   async getShipCandidates(id: string) {
     const ships = await listShips()

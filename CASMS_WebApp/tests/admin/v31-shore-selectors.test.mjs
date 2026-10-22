@@ -31,22 +31,22 @@ test('context uses real paged itineraries and stop/port names; missing context n
   const broken = load('shore-excursions/api/excursion-context-api.ts', { '@/shared/api': { apiRequest: async () => { throw Error('HTTP 403') } } })
   await assert.rejects(broken.excursionContextApi.stops(), /403/)
 })
-function nodes(tree) { return Array.isArray(tree) ? tree.flatMap(nodes) : tree && typeof tree === 'object' ? [tree, ...nodes(tree.props?.children)] : [] }
+function nodes(tree) { return Array.isArray(tree) ? tree.flatMap(nodes) : tree && typeof tree === 'object' ? [tree, ...nodes(tree.props?.children), ...nodes(tree.props?.footer)] : [] }
 const primitives = Object.fromEntries(['Button', 'Field', 'Loading', 'Notice'].map(key => [key, key]))
-test('Create forms render real entity selects, no UUID entry, and disable saving when permission/context unavailable', () => {
+test('Create forms render real entity selects, no UUID entry, and omit saving without permission', () => {
   const react = { useState: initial => [typeof initial === 'function' ? initial() : initial, () => {}] }
   const shared = { react, 'react-router': { Link: 'Link' }, '@/shared/ui': primitives, '@/shared/auth': { useSessionAccess: () => ({ has: () => false }) }, '@/shared/api': { useReadQuery: () => ({ data: null, loading: false, error: Error('403'), retry() {} }) } }
   const model = load('shore-excursions/model/shore-excursion.ts')
   const { ExcursionForm } = load('shore-excursions/components/ExcursionForm.tsx', { ...shared, '../model/shore-excursion': model, '../api/excursion-context-api': { excursionContextApi: {} } })
   const excursion = nodes(ExcursionForm({ busy: false, onSave() {} }))
   for (const field of ['cruiseStopId', 'supplierId']) { assert.ok(excursion.some(node => node.type === 'select' && node.props.name === field)); assert.ok(!excursion.some(node => node.type === 'input' && node.props.name === field)) }
-  assert.equal(excursion.find(node => node.type === 'Button' && node.props.type === 'submit').props.disabled, true)
+  assert.equal(excursion.some(node => node.type === 'Button' && node.props.type === 'submit'), false)
   const groupModel = load('tour-groups/model/tour-group.ts')
   const { GroupForm } = load('tour-groups/components/GroupForm.tsx', { ...shared, '../model/tour-group': groupModel, '../api/group-context-api': {} })
   const group = nodes(GroupForm({ busy: false, onSave() {} }))
   assert.ok(group.some(node => node.type === 'select' && node.props.name === 'shoreExcursionId'))
   assert.ok(!group.some(node => node.type === 'input' && ['shoreExcursionId', 'guideId', 'vehicleId'].includes(node.props.name)))
-  assert.equal(group.find(node => node.type === 'Button' && node.props.type === 'submit').props.disabled, true)
+  assert.equal(group.some(node => node.type === 'Button' && node.props.type === 'submit'), false)
 })
 test('eligible-passenger adapter retains only actual passenger ID/name and rejects missing names', async () => {
   const id = '3b71a7dc-8eda-495d-8fbf-1f5afea6cd8e'
@@ -64,7 +64,7 @@ test('Supplier verification failure keeps the dialog and entered notes; permissi
   const model = load('suppliers/model/supplier-list.ts')
   const { SupplierDetail } = load('suppliers/components/SupplierDetail.tsx', {
     react: { useState(initial) { const i = index++; if (!(i in state)) state[i] = initial; return [state[i], next => { state[i] = next }] } },
-    'react-router': { Link: 'Link' }, '@/shared/auth': { useSessionAccess: () => ({ has: permission => permission === 'SUPPLIER_VERIFY' }) }, '../model/supplier-list': model,
+    'react-router': { Link: 'Link' }, '@/shared/ui': { Modal: 'Modal' }, '@/shared/auth': { useSessionAccess: () => ({ has: permission => permission === 'SUPPLIER_VERIFY' }) }, '../model/supplier-list': model,
   })
   const render = () => { index = 0; return nodes(SupplierDetail({ supplier: { id: 's', supplierName: 'Supplier QA', status: 'ACTIVE', verificationStatus: 'PENDING' }, onVerify: async () => { calls++; throw Error('HTTP 500') } })) }
   render().find(node => node.type === 'button' && node.props.children === 'Xác minh nhà cung cấp').props.onClick()
@@ -72,5 +72,5 @@ test('Supplier verification failure keeps the dialog and entered notes; permissi
   assert.equal(render().find(node => node.type === 'button' && node.props.onClick?.name === 'handleConfirmVerify').props.disabled, false)
   await render().find(node => node.type === 'button' && node.props.onClick?.name === 'handleConfirmVerify').props.onClick()
   assert.equal(calls, 1); assert.equal(render().find(node => node.props?.id === 'verificationNotesInput').props.value, 'Ghi chú cần giữ')
-  assert.equal(render().find(node => node.type === 'button' && node.props.title === 'Xóa nhà cung cấp nếu chưa được sử dụng').props.disabled, true)
+  assert.equal(render().find(node => node.type === 'button' && node.props.title === 'Xóa nhà cung cấp nếu chưa được sử dụng'), undefined)
 })
