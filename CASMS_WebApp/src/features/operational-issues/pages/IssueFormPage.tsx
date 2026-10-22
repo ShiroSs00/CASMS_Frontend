@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
@@ -12,7 +12,6 @@ import { ISSUE_SEVERITIES, ISSUE_TYPES, type IssueSeverity, type IssueType, type
 import styles from '../components/OperationalIssues.module.css'
 
 type FormData = {
-  issueCode: string
   shipId: string
   cruiseId: string
   cabinId: string
@@ -22,7 +21,6 @@ type FormData = {
 }
 
 const initialForm: FormData = {
-  issueCode: '',
   shipId: '',
   cruiseId: '',
   cabinId: '',
@@ -45,8 +43,10 @@ export function IssueFormPage() {
   const lock = useRef(false)
   const ships = useReadQuery('issue-ships', issueLocationApi.ships)
   const cruises = useReadQuery('issue-cruises', issueLocationApi.cruises)
-  const cabins = useReadQuery('issue-cabins', issueLocationApi.cabins)
-  const contextReady = !ships.loading && !cruises.loading && !cabins.loading && !ships.error && !cruises.error && !cabins.error
+  const cabins = useReadQuery(`issue-cabins:${form.shipId}`, useCallback(signal => form.shipId ? issueLocationApi.cabinsForShip(form.shipId, signal) : Promise.resolve([]), [form.shipId]))
+  const contextReady = !ships.loading && !ships.error
+    && (!form.cruiseId || (!cruises.loading && !cruises.error))
+    && (!form.cabinId || (!cabins.loading && !cabins.error))
 
   useEffect(() => {
     if (!issueId) return
@@ -56,7 +56,6 @@ export function IssueFormPage() {
         if (!active) return
         setExistingIssue(issue)
         setForm({
-          issueCode: issue.code,
           shipId: issue.ship.id,
           cruiseId: issue.cruise?.id ?? '',
           cabinId: issue.cabin ?? '',
@@ -81,10 +80,6 @@ export function IssueFormPage() {
     event.preventDefault()
     if (lock.current || isBlockedEdit || !allowed) return
 
-    if (!isEdit && form.issueCode.trim().length > 30) {
-      setError('Mã sự cố tối đa 30 ký tự.')
-      return
-    }
     const locationError = !isEdit ? validateIssueLocation(form.shipId, form.cruiseId, form.cabinId, contextReady ? { ships: ships.data ?? [], cruises: cruises.data ?? [], cabins: cabins.data ?? [] } : null) : ''
     if (locationError) { setError(locationError); return }
     if (!form.description.trim()) {
@@ -105,7 +100,6 @@ export function IssueFormPage() {
         navigate(`/admin/issues/${updated.id}`)
       } else {
         const created = await operationalIssuesApi.create({
-          issueCode: form.issueCode.trim(),
           shipId: form.shipId.trim(),
           cruiseId: form.cruiseId.trim() || null,
           cabinId: form.cabinId.trim() || null,

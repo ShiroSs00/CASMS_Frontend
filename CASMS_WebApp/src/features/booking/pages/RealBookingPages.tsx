@@ -3,11 +3,12 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, ButtonLink, DataTable, Empty, Field, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Badge, Button, ButtonLink, DataTable, Empty, Field, ListFilters, ListFooter, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
 import { realBookingApi, type BookingDetail } from '../api/real-booking-api'
 import { BookingReadState, RealBookingFrame } from '../components/RealBookingUI'
 import { bookingMutationFailure } from '../model/booking-mutation'
 import styles from '../components/LiveBooking.module.css'
+import listStyles from '../components/BookingList.module.css'
 import { ApiError } from '@/shared/api'
 import { bookingLookupFailure } from '../model/booking-feedback'
 import { BookingInstallments } from '../components/BookingInstallments'
@@ -15,12 +16,52 @@ import { PublicBookingRecord } from '../components/PublicBookingRecord'
 import { bookingMoney } from '../model/booking-presentation'
 import { canManageBooking } from '../model/booking-permissions'
 export function RealBookingList({ admin = false }: { admin?: boolean }) {
-  const access=useSessionAccess()
+  const access = useSessionAccess()
   const [status, setStatus] = useState(''), [page, setPage] = useState(0), [cruiseId, setCruiseId] = useState('')
   const choices = useReadQuery('booking-cruises', realBookingApi.cruises)
   const list = useReadQuery(`booking-list:${page}:${status}:${cruiseId}`, useCallback(signal => realBookingApi.list(page, status || undefined, cruiseId || undefined, signal), [page, status, cruiseId]))
   const root = admin ? '/admin/bookings' : '/my-bookings'
-  return <RealBookingFrame admin={admin}><PageHeader title={admin ? 'Quản lý đặt chỗ' : 'Đặt chỗ của tôi'} breadcrumb="ĐẶT CHỖ" description="Thông tin chuyến đi, hành khách và hợp đồng được lưu trong hệ thống." actions={<>{(!admin || access.has('BOOKING_CREATE')) && <ButtonLink to={admin ? root + '/new' : '/booking/cabin-experience'}>Tạo đặt chỗ</ButtonLink>}<ButtonLink tone="secondary" to={admin ? root + '/lookup' : '/booking/lookup'}>Tra cứu bằng mã đặt chỗ</ButtonLink></>} /><Panel title="Tìm đặt chỗ"><Field htmlFor="booking-status" label="Trạng thái"><select id="booking-status" value={status} onChange={event => { setStatus(event.target.value); setPage(0) }}><option value="">Tất cả</option>{Object.entries(bookingStatusName).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field><Field htmlFor="booking-cruise" label="Chuyến đi"><select id="booking-cruise" value={cruiseId} onChange={event => { setCruiseId(event.target.value); setPage(0) }}><option value="">Tất cả chuyến</option>{choices.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}</select></Field>{choices.error && <Notice title="Chưa tải được bộ lọc chuyến" tone="warning">Danh sách đặt chỗ vẫn được tải độc lập.<Button onClick={choices.retry}>Thử lại</Button></Notice>}<Button tone="secondary" onClick={() => { setStatus(''); setCruiseId(''); setPage(0) }}>Xóa bộ lọc</Button></Panel><Panel title="Danh sách đặt chỗ"><BookingReadState {...list} publicResource={!admin ? 'danh sách đặt chỗ' : undefined} />{list.data && (!list.data.content.length ? <Empty title="Chưa có đặt chỗ phù hợp" /> : <DataTable label="Danh sách đặt chỗ" headers={admin ? ['Mã đặt chỗ', 'Chuyến đi', 'Trạng thái', ''] : ['Mã đặt chỗ', 'Chuyến đi', 'Trạng thái', 'Khởi hành', 'Hành khách', 'Giá vé', '']} >{list.data.content.map(item => <tr key={item.bookingId}><td>{item.bookingReference}</td><td>{item.cruiseName}</td><td>{bookingStatusName[item.bookingStatus]}</td>{!admin && <><td>{bookingWhen(item.departureDatetime)}</td><td>{item.passengerCount ?? 'Chưa có'}</td><td>{item.agreedFareAmount != null && item.currency ? bookingMoney(item.agreedFareAmount, item.currency) : 'Chưa có báo giá'}</td></>}<td><Link to={`${root}/${item.bookingId}`}>Chi tiết</Link></td></tr>)}</DataTable>)}{list.data && <div><Button tone="secondary" disabled={page === 0} onClick={() => setPage(value => value - 1)}>Trang trước</Button><span> Trang {page + 1} · {list.data.totalElements} đặt chỗ </span><Button tone="secondary" disabled={page + 1 >= list.data.totalPages} onClick={() => setPage(value => value + 1)}>Trang sau</Button></div>}</Panel></RealBookingFrame>
+  const filtered = Boolean(status || cruiseId)
+  const resetFilters = () => { setStatus(''); setCruiseId(''); setPage(0) }
+  return <RealBookingFrame admin={admin}>
+    <PageHeader title={admin ? 'Quản lý đặt chỗ' : 'Đặt chỗ của tôi'} breadcrumb="ĐẶT CHỖ"
+      description="Theo dõi đặt chỗ theo chuyến đi và trạng thái xác nhận."
+      actions={<><ButtonLink tone="secondary" to={admin ? root + '/lookup' : '/booking/lookup'}>Tra cứu bằng mã</ButtonLink>
+        {(!admin || access.has('BOOKING_CREATE')) && <ButtonLink to={admin ? root + '/new' : '/booking/cabin-experience'}>Tạo đặt chỗ</ButtonLink>}</>} />
+    <Panel title="Bộ lọc" subtitle="Chọn chuyến đi hoặc trạng thái để thu hẹp danh sách.">
+      <ListFilters label="Bộ lọc đặt chỗ" actions={<Button tone="secondary" disabled={!filtered} onClick={resetFilters}>Xóa bộ lọc</Button>}>
+        <Field htmlFor="booking-cruise" label="Chuyến đi"><select id="booking-cruise" value={cruiseId} onChange={event => { setCruiseId(event.target.value); setPage(0) }}>
+          <option value="">Tất cả chuyến đi</option>{choices.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}
+        </select></Field>
+        <Field htmlFor="booking-status" label="Trạng thái"><select id="booking-status" value={status} onChange={event => { setStatus(event.target.value); setPage(0) }}>
+          <option value="">Tất cả trạng thái</option>{Object.entries(bookingStatusName).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select></Field>
+      </ListFilters>
+      {choices.error && <div className={listStyles.notice}><Notice title="Chưa tải được bộ lọc chuyến" tone="warning">Danh sách đặt chỗ vẫn được tải độc lập. <Button tone="secondary" onClick={choices.retry}>Thử lại</Button></Notice></div>}
+    </Panel>
+    <Panel title="Danh sách đặt chỗ">
+      <BookingReadState {...list} publicResource={!admin ? 'danh sách đặt chỗ' : undefined} />
+      {list.data && !list.loading && !list.error && (list.data.content.length ? <>
+        <DataTable label="Danh sách đặt chỗ" headers={admin ? ['Mã đặt chỗ', 'Chuyến đi', 'Trạng thái', 'Thao tác'] : ['Mã đặt chỗ', 'Chuyến đi', 'Trạng thái', 'Khởi hành', 'Hành khách', 'Giá vé', 'Thao tác']}>
+          {list.data.content.map(item => <tr key={item.bookingId}>
+            <td><Link className={listStyles.reference} to={`${root}/${item.bookingId}`}>{item.bookingReference}</Link></td>
+            <td><span className={listStyles.cruise}>{item.cruiseName}</span></td>
+            <td><Badge label={bookingStatusName[item.bookingStatus] ?? item.bookingStatus} tone={item.bookingStatus === 'Confirmed' ? 'success' : item.bookingStatus === 'Cancelled' ? 'neutral' : 'warning'} /></td>
+            {!admin && <><td>{bookingWhen(item.departureDatetime)}</td><td>{item.passengerCount ?? 'Chưa có'}</td><td>{item.agreedFareAmount != null && item.currency ? bookingMoney(item.agreedFareAmount, item.currency) : 'Chưa có báo giá'}</td></>}
+            <td><Link className={listStyles.detail} aria-label={`Chi tiết đặt chỗ ${item.bookingReference}`} to={`${root}/${item.bookingId}`}>Xem chi tiết →</Link></td>
+          </tr>)}
+        </DataTable>
+      </> : <Empty title={filtered ? 'Không tìm thấy đặt chỗ phù hợp' : 'Chưa có đặt chỗ'}>
+        <p>{filtered ? 'Thử thay đổi chuyến đi hoặc trạng thái.' : 'Các đặt chỗ mới sẽ xuất hiện tại đây.'}</p>
+        {filtered && <Button tone="secondary" onClick={resetFilters}>Xóa bộ lọc</Button>}
+      </Empty>)}
+      {list.data && !list.loading && !list.error && <ListFooter summary={`${list.data.totalElements.toLocaleString('vi-VN')} đặt chỗ${filtered ? ' phù hợp bộ lọc' : ''}`}>
+        {list.data.totalPages > 1 && <><Button tone="secondary" size="compact" disabled={page === 0} onClick={() => setPage(value => Math.max(0, value - 1))}>← Trang trước</Button>
+          <span>Trang {page + 1} / {list.data.totalPages}</span>
+          <Button tone="secondary" size="compact" disabled={page + 1 >= list.data.totalPages} onClick={() => setPage(value => value + 1)}>Trang sau →</Button></>}
+      </ListFooter>}
+    </Panel>
+  </RealBookingFrame>
 }
 export function RealBookingDetail({ admin = false, related, customerIntro, showPassengerDetails = false }: { admin?: boolean; related?: (bookingId: string) => ReactNode; customerIntro?: ReactNode; showPassengerDetails?: boolean }) {
   const { bookingId = '' } = useParams()

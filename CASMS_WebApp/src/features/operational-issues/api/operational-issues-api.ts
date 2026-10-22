@@ -84,7 +84,14 @@ export const operationalIssuesApi = {
     return toIssue(await apiRequest<OperationalIssueDto>(path(id), { signal }))
   },
   async create(body: CreateOperationalIssueRequest) {
-    const result = toIssue(await apiRequest<OperationalIssueDto>('/operational-issues', { method: 'POST', body }))
+    const result = toIssue(await apiRequest<OperationalIssueDto>('/operational-issues', { method: 'POST', body: {
+      cruiseId: body.cruiseId?.trim() || null,
+      shipId: body.shipId.trim(),
+      cabinId: body.cabinId?.trim() || null,
+      issueType: body.issueType,
+      severity: body.severity,
+      description: body.description.trim(),
+    } }))
     notify(); return result
   },
   async update(id: string, body: UpdateOperationalIssueRequest) {

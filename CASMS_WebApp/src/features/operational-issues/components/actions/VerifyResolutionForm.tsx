@@ -39,7 +39,6 @@ export function VerifyResolutionForm({ open, pending, error, onClose, onSubmit }
         <li>Đã ghi nhận người xử lý</li>
         <li>Đã ghi nhận thời điểm xử lý</li>
       </ul>
-      <div className={styles.infoBanner}>Người xác minh là tài khoản đang đăng nhập.</div>
     </ActionDialog>
   )
 }

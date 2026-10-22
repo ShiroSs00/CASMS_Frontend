@@ -14,7 +14,7 @@ import { validateCruiseDraft, localCruiseInput, type CruiseFormErrors } from '..
 const EMPTY_DRAFT: CruiseDraft = {
   cruiseCode: '',
   cruiseName: '',
-  cruiseType: '',
+  cruiseType: 'ONE_DAY',
   departureDatetime: '',
   returnDatetime: '',
   departurePortId: '',
@@ -32,6 +32,7 @@ export function CruiseFormPage() {
   const [currentShip, setCurrentShip] = useState('Chưa phân công')
   const [loading, setLoading] = useState(editing)
   const [errors, setErrors] = useState<CruiseFormErrors>({})
+  const [hasSubmitted, setHasSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [busy, setBusy] = useState(false)
   const [ports, setPorts] = useState<PortRecord[]>([])
@@ -60,6 +61,8 @@ export function CruiseFormPage() {
         returnPortId: detail.cruise.returnPortId,
       })
       setStoredPorts([detail.departurePort,detail.returnPort])
+      setErrors({})
+      setHasSubmitted(false)
       setCurrentStatus(detail.cruise.status)
       setLoadedId(cruiseId)
       setCurrentShip(detail.ship?.shipName ?? 'Chưa phân công')
@@ -87,7 +90,7 @@ export function CruiseFormPage() {
   function update<K extends keyof CruiseDraft>(key: K, value: CruiseDraft[K]) {
     const next = { ...draft, [key]: value }
     setDraft(next)
-    if (errors[key] || key === 'cruiseType' || key === 'departureDatetime' || key === 'returnDatetime') {
+    if (hasSubmitted) {
       setErrors(validateCruiseDraft(next))
     }
   }
@@ -95,6 +98,7 @@ export function CruiseFormPage() {
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (submitLock.current || !canSave) return
+    setHasSubmitted(true)
     const nextErrors = validateCruiseDraft(draft)
     setErrors(nextErrors)
     setSubmitError('')
@@ -127,7 +131,7 @@ export function CruiseFormPage() {
           <FormErrorSummary errors={errors} />
           <div className={styles.formGrid}>
             <Field htmlFor="cruise-name" label="Tên hiển thị" error={errors.cruiseName}><input id="cruise-name" value={draft.cruiseName} aria-invalid={Boolean(errors.cruiseName)} aria-describedby={errors.cruiseName ? 'cruise-name-hint' : undefined} onChange={(event) => update('cruiseName', event.target.value)} /></Field>
-            <Field htmlFor="cruise-type-form" label="Loại chuyến" error={errors.cruiseType}><select id="cruise-type-form" value={draft.cruiseType} onChange={(event) => update('cruiseType', event.target.value as CruiseType)}>{!editing && <option value="">Để hệ thống tự xác định</option>}<option value="ONE_DAY">Chuyến trong ngày · ONE_DAY</option><option value="MULTI_DAYS">Chuyến nhiều ngày · MULTI_DAYS</option></select></Field>
+            <Field htmlFor="cruise-type-form" label="Loại chuyến" error={errors.cruiseType}><select id="cruise-type-form" value={draft.cruiseType} onChange={(event) => update('cruiseType', event.target.value as CruiseType)}><option value="ONE_DAY">Chuyến ngắn ngày (1–2 ngày)</option><option value="MULTI_DAYS">Chuyến dài ngày (3–5 ngày)</option></select></Field>
             <Field htmlFor="departure-time" label="Khởi hành (giờ Việt Nam)" error={errors.departureDatetime}><input id="departure-time" type="datetime-local" value={draft.departureDatetime} aria-invalid={Boolean(errors.departureDatetime)} aria-describedby={errors.departureDatetime ? 'departure-time-hint' : undefined} onChange={(event) => update('departureDatetime', event.target.value)} /></Field>
             <Field htmlFor="return-time" label="Kết thúc (giờ Việt Nam)" error={errors.returnDatetime}><input id="return-time" type="datetime-local" value={draft.returnDatetime} aria-invalid={Boolean(errors.returnDatetime)} aria-describedby={errors.returnDatetime ? 'return-time-hint' : undefined} onChange={(event) => update('returnDatetime', event.target.value)} /></Field>
             <Field htmlFor="cruise-form-status" label="Trạng thái"><input id="cruise-form-status" value={currentStatus} disabled /></Field>
@@ -137,10 +141,8 @@ export function CruiseFormPage() {
           </div>
           {portsLoading && <Loading label="Đang tải danh sách cảng…" />}
           {portsError && <Notice title="Không tải được danh sách cảng" tone="error"><p>{portsError}</p><Button type="button" tone="secondary" onClick={() => { setPortsLoading(true); setPortsError(''); setPortsAttempt(value=>value+1) }}>Tải lại danh sách cảng</Button></Notice>}
-          {!portsLoading && !portsError && <Notice title={`${ports.length} cảng đang hoạt động`}><p>Chọn một cảng khởi hành và một cảng kết thúc; hai cảng có thể trùng nhau. Những cảng ghé khác được thêm ở hải trình và điểm dừng sau khi lưu chuyến.</p>{!ports.length && <p>Chưa có cảng hoạt động trong dữ liệu hiện tại. Người quản lý cảng cần tạo hoặc kích hoạt cảng trước khi lập chuyến mới.</p>}</Notice>}
+          {!portsLoading && !portsError && !ports.length && <Notice title="Chưa có cảng hoạt động" tone="warning">Cần tạo hoặc kích hoạt cảng trước khi lập chuyến mới.</Notice>}
           {detailError && <Notice title="Không tải được chuyến" tone="error"><p>{detailError}</p><Button type="button" tone="secondary" onClick={() => { setLoading(true); setDetailError(''); setDetailAttempt(value=>value+1) }}>Tải lại chuyến</Button></Notice>}
-          <Notice title="Thời gian chuyến đi"><p>Thời gian kết thúc phải sau khởi hành. Khi để trống loại chuyến, hệ thống sẽ tự xác định; biểu mẫu không giới hạn hành trình ở 5 ngày.</p></Notice>
-          <Notice title="Phân công tàu"><p>Sau khi lưu, mở chi tiết chuyến để chọn tàu và kiểm tra lịch trống trước khi xác nhận phân công.</p></Notice>
           {editing && loadedId === cruiseId && currentStatus !== 'DRAFT' && <Notice title="Không thể sửa chuyến" tone="warning"><p>Chỉ chuyến ở trạng thái DRAFT mới được chỉnh sửa.</p></Notice>}
           {submitError && <Notice title="Không lưu được cruise" tone="error"><p>{submitError}</p></Notice>}
           <div className={styles.formActions}><Button type="submit" disabled={busy || !canSave}>{busy ? 'Đang lưu…' : editing ? 'Lưu thay đổi' : 'Tạo chuyến'}</Button><Button tone="secondary" disabled={busy} onClick={() => navigate(editing && cruiseId ? `/admin/cruises/${cruiseId}` : '/admin/cruises')}>Hủy</Button></div>

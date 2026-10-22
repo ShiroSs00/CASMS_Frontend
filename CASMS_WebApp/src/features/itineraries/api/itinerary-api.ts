@@ -192,9 +192,9 @@ export const itineraryApi = {
   getDestination: (id: string, signal?: AbortSignal) => apiRequest<Destination>(destinationPath(id), { signal }),
   destinationPorts: (id: string, signal?: AbortSignal) => apiRequest<DestinationPortSummary[]>(`${destinationPath(id)}/ports`, { signal }),
   createDestination: (draft: DestinationDraft) => apiRequest<Destination>('/destinations', { method: 'POST', body: {
-    destinationName: draft.destinationName, countryCode: draft.countryCode, description: draft.description, status: draft.status, latitude: draft.latitude, longitude: draft.longitude,
+    destinationName: draft.destinationName, countryCode: draft.countryCode, description: draft.description, status: draft.status,
   } }),
-  updateDestination: (id: string, draft: DestinationDraft) => apiRequest<Destination>(destinationPath(id), { method: 'PATCH', body: { destinationName: draft.destinationName, description: draft.description ?? undefined, latitude: draft.latitude ?? undefined, longitude: draft.longitude ?? undefined } }),
+  updateDestination: (id: string, draft: DestinationDraft) => apiRequest<Destination>(destinationPath(id), { method: 'PATCH', body: { destinationName: draft.destinationName, description: draft.description ?? undefined } }),
   removeDestination: (id: string) => apiRequest<void>(`${destinationPath(id)}/unused`, { method: 'DELETE' }),
   activateDestination: (id: string) => apiRequest<Destination>(`${destinationPath(id)}/activate`, { method: 'PATCH' }),
   deactivateDestination: (id: string) => apiRequest<Destination>(`${destinationPath(id)}/deactivate`, { method: 'PATCH' }),

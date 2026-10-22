@@ -144,7 +144,7 @@ export type Destination = {
 }
 
 export type DestinationPortSummary = Pick<Port, 'portId' | 'portCode' | 'portName'>
-export type DestinationDraft = Pick<Destination, 'destinationName' | 'countryCode' | 'description' | 'status' | 'latitude' | 'longitude'>
+export type DestinationDraft = Pick<Destination, 'destinationName' | 'countryCode' | 'description' | 'status'>
 export const destinationStatusLabels: Record<DestinationStatus, string> = { ACTIVE: 'Đang hoạt động', INACTIVE: 'Ngừng hoạt động' }
 
 export function validateDestinationDraft(draft: DestinationDraft, editing = false): Record<string, string> {

@@ -16,7 +16,7 @@ type LoadResult<T> = { value?: T; issue?: LoadIssue }
 
 function issueFor(error: unknown): LoadIssue {
   if (error instanceof ApiError) {
-    if (error.status === 401) return { status:401, message:`Cần đăng nhập để xem thông tin này.` }
+    if (error.status === 401) return { status:401, message:`Chưa thể truy cập thông tin chuyến đi. Vui lòng liên hệ bộ phận hỗ trợ.` }
     if (error.status === 403) return { status:403, message:`Bạn chưa được phép xem thông tin này. Vui lòng liên hệ bộ phận hỗ trợ.` }
     return { status:error.status, message:bookingReadFailure(error.status) }
   }
@@ -36,8 +36,7 @@ const statusNames:Record<string,string> = {DRAFT:'Bản nháp',PENDING_APPROVAL:
 const statusName = (value:string) => statusNames[value]??value
 
 function LiveError({issue,retry}:{issue:LoadIssue;retry:()=>void}) {
-  const location=useLocation()
-  return <div role="alert"><EmptyState title="Không tải được danh mục chuyến đi"><p>{issue.message}</p><Action onClick={retry}>Thử lại</Action>{issue.status===401&&<ActionLink secondary to={'/login?returnTo='+encodeURIComponent(location.pathname+location.search)}>Đăng nhập</ActionLink>}</EmptyState></div>
+  return <div role="alert"><EmptyState title="Không tải được danh mục chuyến đi"><p>{issue.message}</p><Action onClick={retry}>Thử lại</Action>{issue.status===401&&<ActionLink secondary to="/#project-contact">Liên hệ</ActionLink>}</EmptyState></div>
 }
 
 export function LiveCruiseSearch() {
@@ -65,7 +64,7 @@ function LiveCruiseSearchPage({page,cruiseType}:{page:number;cruiseType?:'ONE_DA
     <div className={s.container}>
       <div className={s.liveModeNotice}><strong>Chuyến du lịch đã công bố</strong><span>Chọn chuyến để xem lịch trình và các phòng còn trống.</span><Link to="/booking/lookup">Tra cứu đặt chỗ</Link></div>
       <div className={s.searchResultsHead}><div><p className={s.eyebrow}>HÀNH TRÌNH SẮP TỚI</p><Heading level={2} title={loading?'Đang tải hành trình…':issue?'Chưa tải được danh mục':`${result?.total??0} hành trình đã công bố`} description="Chọn hành trình để xem lịch trình, phòng còn trống và bắt đầu đặt chỗ."/></div></div>
-      <div className={s.liveFilterBar}><label className={s.liveFilter}><span id="catalog-cruise-type-label">Loại hành trình</span><select aria-labelledby="catalog-cruise-type-label" value={cruiseType??''} onChange={event=>{const query=new URLSearchParams(params);query.delete('page');if(event.target.value)query.set('cruiseType',event.target.value);else query.delete('cruiseType');setParams(query)}}><option value="">Tất cả</option><option value="ONE_DAY">Chuyến trong ngày</option><option value="MULTI_DAYS">Chuyến nhiều ngày</option></select></label><p>Sắp xếp theo ngày khởi hành sớm nhất · Giờ Việt Nam</p>{cruiseType && <Action onClick={()=>{const query=new URLSearchParams(params);query.delete('cruiseType');query.delete('page');setParams(query)}}>Xóa bộ lọc</Action>}</div>
+      <div className={s.liveFilterBar}><label className={s.liveFilter}><span id="catalog-cruise-type-label">Loại hành trình</span><select aria-labelledby="catalog-cruise-type-label" value={cruiseType??''} onChange={event=>{const query=new URLSearchParams(params);query.delete('page');if(event.target.value)query.set('cruiseType',event.target.value);else query.delete('cruiseType');setParams(query)}}><option value="">Tất cả</option><option value="ONE_DAY">Chuyến ngắn ngày (1–2 ngày)</option><option value="MULTI_DAYS">Chuyến dài ngày (3–5 ngày)</option></select></label><p>Sắp xếp theo ngày khởi hành sớm nhất · Giờ Việt Nam</p>{cruiseType && <Action onClick={()=>{const query=new URLSearchParams(params);query.delete('cruiseType');query.delete('page');setParams(query)}}>Xóa bộ lọc</Action>}</div>
       <div className={s.searchList} aria-live="polite" aria-busy={loading}>
         {loading?<p className={s.searchMessage} role="status">Đang tải hành trình…</p>
           :issue?<LiveError issue={issue} retry={retry}/>
@@ -99,8 +98,7 @@ export function LiveCruiseDetail() {
 }
 
 function ExtraIssue({issue,retry}:{issue:LoadIssue;retry:()=>void}) {
-  const location=useLocation()
-  return <div role="alert"><p>{issue.message}</p><Action onClick={retry}>Thử lại</Action>{issue.status===401&&<ActionLink secondary to={`/login?returnTo=${encodeURIComponent(location.pathname+location.search)}`}>Đăng nhập</ActionLink>}</div>
+  return <div role="alert"><p>{issue.message}</p><Action onClick={retry}>Thử lại</Action>{issue.status===401&&<ActionLink secondary to="/#project-contact">Liên hệ</ActionLink>}</div>
 }
 
 function LiveCruiseExtendedDetails({cruise}:{cruise:LiveCruise}) {

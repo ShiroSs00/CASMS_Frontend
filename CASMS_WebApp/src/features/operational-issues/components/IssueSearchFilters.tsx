@@ -1,10 +1,10 @@
 import { useState } from 'react'
+import { Button, Field, ListFilters, Panel } from '@/shared/ui'
 
 import { ISSUE_STATUSES } from '../model/issue'
 import { issueStatusLabels } from '../model/issue'
 import { DEFAULT_ISSUE_QUERY, type IssueQuery } from '../model/issue-query'
 import type { CruiseReference, PersonReference, ShipReference } from '../model/issue'
-import styles from './OperationalIssues.module.css'
 
 type Props = {
   query: IssueQuery
@@ -44,10 +44,11 @@ export function IssueSearchFilters({
   }
 
   return (
-    <section className={styles.filters} aria-label="Bộ lọc sự cố">
-      <label className={styles.field}>
-        Trạng thái
+    <Panel title="Bộ lọc">
+      <ListFilters label="Bộ lọc sự cố" onSubmit={() => onChange(draft)} actions={<><Button type="submit">Áp dụng bộ lọc</Button><Button tone="secondary" onClick={reset}>Xóa bộ lọc</Button></>}>
+      <Field htmlFor="issue-filter-status" label="Trạng thái">
         <select
+          id="issue-filter-status"
           value={draft.status}
           onChange={(event) => updateDraft({ status: event.target.value as IssueQuery['status'] })}
         >
@@ -58,10 +59,9 @@ export function IssueSearchFilters({
             </option>
           ))}
         </select>
-      </label>
-      <label className={styles.field}>
-        Tàu
-        <select value={draft.shipId} onChange={(event) => updateDraft({ shipId: event.target.value })}>
+      </Field>
+      <Field htmlFor="issue-filter-ship" label="Tàu">
+        <select id="issue-filter-ship" value={draft.shipId} onChange={(event) => updateDraft({ shipId: event.target.value })}>
           <option value="">Tất cả</option>
           {ships.map((ship) => (
             <option key={ship.id} value={ship.id}>
@@ -69,10 +69,10 @@ export function IssueSearchFilters({
             </option>
           ))}
         </select>
-      </label>
-      <label className={styles.field}>
-        Cruise
+      </Field>
+      <Field htmlFor="issue-filter-cruise" label="Chuyến đi">
         <select
+          id="issue-filter-cruise"
           value={draft.cruiseId}
           onChange={(event) => updateDraft({ cruiseId: event.target.value })}
         >
@@ -83,16 +83,8 @@ export function IssueSearchFilters({
             </option>
           ))}
         </select>
-      </label>
-      <div className={styles.filterActions}>
-        <button className={styles.primaryButton} onClick={() => onChange(draft)} type="button">
-          Áp dụng
-        </button>
-        <button className={styles.secondaryButton} onClick={reset} type="button">
-          Đặt lại
-        </button>
-      </div>
-      <p className={styles.filterGap}>Tìm kiếm, lọc mức độ/người xử lý và phân trang chưa khả dụng.</p>
-    </section>
+      </Field>
+      </ListFilters>
+    </Panel>
   )
 }

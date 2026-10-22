@@ -90,7 +90,7 @@ test('existing logout clears token and persisted session even when the server re
   const { authSession } = load('features/auth/model/auth-session.ts', {
     '@/shared/api': { setApiAccessToken: value => { token = value }, subscribeApiUnauthorized: () => () => {} },
     '../api/auth-api': { authApi: { login: async () => session, logout: async () => { logoutCalls++; throw new Error('Offline') } } },
-    './auth-types': { AUTH_ROLES: ['ADMIN'] },
+    './auth-types': { AUTH_ROLES: ['ADMIN'], canSignIn: user => user.roles.includes('ADMIN') },
   }, { sessionStorage: { setItem: (key, value) => store.set(key, value), removeItem: key => store.delete(key) }, setTimeout: () => 1, clearTimeout() {} })
   await authSession.login('QA', 'test-only'); assert.equal(token, 'test-token')
   const first = authSession.logout(), second = authSession.logout()

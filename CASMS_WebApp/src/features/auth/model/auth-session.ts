@@ -1,6 +1,6 @@
 import { setApiAccessToken, subscribeApiUnauthorized } from '@/shared/api'
 import { authApi } from '../api/auth-api'
-import { AUTH_ROLES, type AuthSession, type AuthState } from './auth-types'
+import { AUTH_ROLES, canSignIn, type AuthSession, type AuthState } from './auth-types'
 
 const STORAGE_KEY = 'aurora.auth.session.v1'
 let state: AuthState = { status: 'loading', session: null }
@@ -25,6 +25,10 @@ function clear(status: 'anonymous' | 'expired') {
   publish(status, null)
 }
 function persist(session: AuthSession) {
+  if (!canSignIn(session.user)) {
+    clear('anonymous')
+    throw new Error('Đăng nhập chỉ dành cho quản lý và quản trị viên. Hành khách có thể đặt chỗ và tra cứu bằng mã, không cần tài khoản.')
+  }
   // Do not silently promise browser-session persistence when storage is unavailable.
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session))
   publish('authenticated', session)
@@ -40,7 +44,7 @@ function restore(): AuthSession | null {
     || !Array.isArray(value.user.roles) || !value.user.roles.every((role) => AUTH_ROLES.includes(role))) {
     throw new Error('Invalid saved session')
   }
-  return value
+  return canSignIn(value.user) ? value : null
 }
 function schedule() {
   stopTimers()

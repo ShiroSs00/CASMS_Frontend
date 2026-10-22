@@ -15,6 +15,12 @@
 @media(max-width:720px) { .header { height:auto; min-height:116px; padding:16px 20px; flex-wrap:wrap; gap:12px; } .brandNav { display:contents; } .brand { order:0; } .accountNav { order:1; } .accountNav > button { display:none; } .brandNav nav { order:2; width:100%; justify-content:space-between; gap:8px; } .brandNav nav a { font-size:12px; } .notice { padding:12px 20px; } }
 
 .accountNav > a { display:inline-flex; align-items:center; min-height:44px; font-size:14px; }
+.contact { position:relative; }
+.contactLink { min-height:44px; padding:10px 20px; border:1px solid #d5e0e4; border-radius:8px; color:#0b2a4a; background:white; font:600 14px/20px var(--font-family-body); cursor:pointer; }
+.contactDetails { position:absolute; right:0; top:100%; z-index:30; width:min(300px,calc(100vw - 40px)); padding:20px; border:1px solid #d5e0e4; border-radius:12px; background:white; color:#0b2a4a; box-shadow:0 12px 30px #0b2a4a20; overflow-wrap:anywhere; display:flex; flex-direction:column; gap:8px; }
+.contactDetails > span { margin-top:8px; font-size:12px; color:#506777; }
+.contactDetails > p { margin:0; font-size:14px; }
+.contactDetails > a { display:flex; align-items:center; min-height:44px; text-decoration:underline; text-underline-offset:4px; }
 
 /* Presentation only; existing links, session and booking navigation stay intact. */
 .pageShell { display:flex; flex-direction:column; min-height:100dvh; font-family:var(--ui-font); }

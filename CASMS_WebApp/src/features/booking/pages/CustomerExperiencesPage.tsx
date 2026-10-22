@@ -21,7 +21,6 @@ function Experiences({ bookingId }: { bookingId: string }) {
   return <RealBookingFrame><div className={styles.stack}><ButtonLink tone="secondary" to={'/my-bookings/' + encodeURIComponent(bookingId)}>← Về chi tiết đặt chỗ</ButtonLink><PageHeader breadcrumb="ĐẶT CHỖ / TRẢI NGHIỆM" title="Hoạt động & dịch vụ" description="Đăng ký riêng theo tài khoản. Thông tin gói, yêu cầu dịch vụ, đăng ký tham gia và thanh toán là các trạng thái riêng." />
     <BookingReadState {...query} publicResource="đặt chỗ" />
     {booking && <><p>Đặt chỗ <strong>{booking.bookingReference}</strong> · {booking.cruiseName}</p>
-      <Notice title="Hồ sơ hành khách và tài khoản" tone="info">Chỉ hồ sơ đã liên kết với tài khoản của bạn mới có thể đăng ký hoặc gửi yêu cầu. Nếu hệ thống báo không có quyền dù bạn xem được Booking, liên hệ hỗ trợ để kiểm tra liên kết hồ sơ; không chọn thay hồ sơ người khác.</Notice>
       {access.has('ACTIVITY_READ') ? <CustomerActivities booking={booking} /> : <Notice title="Chưa có quyền xem hoạt động" tone="warning">Phiên hiện tại chưa được cấp quyền đọc hoạt động trên chuyến đi.</Notice>}
       {access.has('ACTIVITY_REGISTRATION') && <CustomerRegistrations booking={booking} />}
       {access.has('SERVICE_READ') ? <CustomerServices booking={booking} /> : <Notice title="Chưa có quyền xem dịch vụ bổ sung" tone="warning">Dịch vụ chưa được mở cho tài khoản này. Quyền trong gói không tự cấp quyền đặt dịch vụ qua tài khoản.</Notice>}

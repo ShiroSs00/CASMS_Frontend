@@ -3,12 +3,16 @@
 .link:hover { text-decoration:underline; }
 .pager,.actions,.modalActions { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:16px; }
 .actions,.modalActions { justify-content:flex-end; }
+.detailActions { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
 .editorGrid { display:grid; grid-template-columns:minmax(0,1.65fr) minmax(310px,.85fr); gap:18px; align-items:start; }
 .dayCard { margin-bottom:12px; padding:16px; border:1px solid #e0d8ca; border-radius:12px; background:#fff; }
 .dayHeading,.stopRow { display:flex; align-items:center; justify-content:space-between; gap:16px; }
 .stopList { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
 .stopRow { padding:11px 12px; border-left:3px solid #0e6b7a; border-radius:6px; background:#f5f2e9; font-size:13px; }
 .formGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.destinationGrid > :first-child, .destinationDescription { grid-column:1/-1; min-width:0; }
+.destinationDescription textarea { min-height:140px; line-height:1.6; resize:vertical; }
+.descriptionCount { margin:6px 0 0; text-align:right; color:var(--ui-muted,#506777); font-size:12px; font-variant-numeric:tabular-nums; }
 .timeline { display:flex; flex-direction:column; gap:0; margin:0; padding:0; list-style:none; }
 .timeline li { position:relative; padding:0 0 20px 24px; color:#68767d; font-size:13px; }
 .timeline li::before { position:absolute; top:4px; left:3px; width:9px; height:9px; border:2px solid #0b2a4a; border-radius:50%; background:#f8f6ec; content:''; }

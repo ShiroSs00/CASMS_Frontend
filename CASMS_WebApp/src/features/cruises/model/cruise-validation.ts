@@ -20,7 +20,7 @@ function calendarDate(value: string) {
   return `${part('year')}-${part('month')}-${part('day')}`
 }
 
-// Calendar duration is display-only; the backend has no five-day maximum.
+// Form categories use inclusive calendar days in Vietnam.
 export function cruiseDurationDays(departureDatetime: string, returnDatetime: string): number | null {
   const departure = scheduleInstant(departureDatetime)
   const returning = scheduleInstant(returnDatetime)
@@ -30,11 +30,11 @@ export function cruiseDurationDays(departureDatetime: string, returnDatetime: st
   return (endDay - startDay) / 86400000 + 1
 }
 
-/** Matches CruiseService's default inference (Duration.toHours() truncates). */
+/** The form sends an explicit category using the existing API enum values. */
 export function inferCruiseType(departureDatetime: string, returnDatetime: string): CruiseType | '' {
-  const milliseconds = scheduleInstant(returnDatetime).getTime() - scheduleInstant(departureDatetime).getTime()
-  if (!Number.isFinite(milliseconds) || milliseconds <= 0) return ''
-  return Math.trunc(milliseconds / 3600000) <= 24 ? 'ONE_DAY' : 'MULTI_DAYS'
+  const days = cruiseDurationDays(departureDatetime, returnDatetime)
+  if (days === null || days > 5) return ''
+  return days <= 2 ? 'ONE_DAY' : 'MULTI_DAYS'
 }
 
 export function localCruiseInput(value: string) {
@@ -65,7 +65,11 @@ export function validateCruiseSchedule(
     return errors
   }
 
-  if (cruiseType && !['ONE_DAY','MULTI_DAYS'].includes(cruiseType)) errors.cruiseType = 'Chọn loại chuyến hợp lệ.'
+  if (!cruiseType || !['ONE_DAY','MULTI_DAYS'].includes(cruiseType)) errors.cruiseType = 'Chọn chuyến ngắn ngày hoặc chuyến dài ngày.'
+  const days = cruiseDurationDays(departureDatetime, returnDatetime)
+  if (days !== null && days > 5) errors.returnDatetime = 'Chuyến du thuyền chỉ được kéo dài từ 1 đến 5 ngày.'
+  else if (days !== null && cruiseType === 'ONE_DAY' && days > 2) errors.returnDatetime = 'Chuyến ngắn ngày chỉ kéo dài 1–2 ngày. Chọn chuyến dài ngày hoặc điều chỉnh thời gian.'
+  else if (days !== null && cruiseType === 'MULTI_DAYS' && days < 3) errors.returnDatetime = 'Chuyến dài ngày cần kéo dài 3–5 ngày. Chọn chuyến ngắn ngày hoặc điều chỉnh thời gian.'
 
   return errors
 }

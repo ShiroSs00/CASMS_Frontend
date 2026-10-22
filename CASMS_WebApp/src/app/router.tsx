@@ -17,7 +17,6 @@ function featurePage<T>(load: () => Promise<T>, key: keyof T) {
 const adminRoutes = [
   { path: '/admin/system', lazy: featurePage(() => import('./pages/AdminSystemPage'), 'AdminSystemPage') },
   { path: '/admin/staff/:area', lazy: featurePage(() => import('./pages/AdminStaffFunctionPage'), 'AdminStaffFunctionPage') },
-  { path: '/admin/workspaces/:workspaceId', lazy: featurePage(() => import('./pages/AdminWorkspacePage'), 'AdminWorkspacePage') },
   { path: '/admin/bookings', lazy: featurePage(() => import('./pages/AdminBookingPages'), 'AdminBookingListPage') },
   { path: '/admin/bookings/lookup', lazy: featurePage(() => import('./pages/AdminBookingPages'), 'AdminBookingLookupPage') },
   { path: '/admin/bookings/new', lazy: featurePage(() => import('./pages/AdminBookingPages'), 'AdminBookingCreatePage') },
@@ -45,7 +44,6 @@ const adminRoutes = [
   { path: '/admin/service-packages/:id', lazy: featurePage(() => import('@/features/service-packages'), 'PackageDetailPage') },
   { path: '/admin/service-requests', lazy: featurePage(() => import('@/features/service-packages'), 'ServiceRequestListPage') },
   { path: '/admin/service-requests/:id', lazy: featurePage(() => import('@/features/service-packages'), 'ServiceRequestDetailPage') },
-  { path: '/admin/workflow', lazy: featurePage(() => import('./pages/AdminWorkflowPage'), 'AdminWorkflowPage') },
   { path: '/admin/tour-groups', lazy: featurePage(() => import('@/features/tour-groups'), 'TourGroupListPage') },
   { path: '/admin/tour-groups/new', lazy: featurePage(() => import('@/features/tour-groups'), 'TourGroupFormPage') },
   { path: '/admin/tour-groups/:groupId', lazy: featurePage(() => import('@/features/tour-groups'), 'TourGroupDetailPage') },
@@ -119,6 +117,8 @@ const adminRoutes = [
 ]
 
 export const router = createBrowserRouter([{ ErrorBoundary: RouteErrorPage, HydrateFallback: RouteLoading, Component: BookingSessionLayout, children: [{ Component: AdminAccountLayout, children: [{ Component: SessionBoundary, children: [
+  { path: '/admin/workflow', element: <Navigate to="/admin" replace /> },
+  { path: '/admin/workspaces/:workspaceId', element: <Navigate to="/admin" replace /> },
   { Component: AdminGuard, children: [...adminRoutes, { path: '/admin/*', element: <Navigate to="/admin" replace /> }] },
     { path: '/', Component: PublicLayout, children: [
     { index: true, lazy: featurePage(() => import('@/features/home'), 'HomePage') },

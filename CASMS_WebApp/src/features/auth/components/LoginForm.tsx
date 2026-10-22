@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { ApiError } from '@/shared/api'
 import { Button, Field } from '@/shared/ui'
+import { Link } from 'react-router'
 import type { AuthUser } from '../model/auth-types'
 import styles from './Auth.module.css'
 
@@ -32,9 +33,9 @@ export function LoginForm({ expired, login, onSuccess }: {
     finally { lock.current = false; setBusy(false) }
   }
   return <div className={styles.loginCard}>
-    <p className={styles.eyebrow}>{expired ? 'PHIÊN ĐĂNG NHẬP' : 'TÀI KHOẢN OceVie'}</p>
+    <p className={styles.eyebrow}>{expired ? 'PHIÊN ĐĂNG NHẬP' : 'QUẢN TRỊ OceVie'}</p>
     <h1>{expired ? 'Phiên của bạn đã hết hạn' : 'Chào mừng trở lại'}</h1>
-    <p>{expired ? 'Đăng nhập lại để tiếp tục.' : 'Đăng nhập để quản lý hành trình và công việc của bạn.'}</p>
+    <p>{expired ? 'Đăng nhập lại để tiếp tục.' : 'Đăng nhập dành cho quản lý và quản trị viên.'}</p>
     <form className={styles.loginForm} onSubmit={(event) => void submit(event)} noValidate>
       <Field htmlFor="auth-username" label="Tên đăng nhập" error={attempted && !username.trim() ? 'Nhập tên đăng nhập.' : undefined}><input id="auth-username" name="username" autoComplete="username" value={username} disabled={busy} required aria-invalid={attempted && !username.trim()} aria-describedby={attempted && !username.trim() ? 'auth-username-hint' : undefined} onChange={(event) => setUsername(event.target.value)} /></Field>
       <Field htmlFor="auth-password" label="Mật khẩu" error={attempted && !password ? 'Nhập mật khẩu.' : undefined}><input id="auth-password" name="password" type="password" autoComplete="current-password" value={password} disabled={busy} required aria-invalid={attempted && !password} aria-describedby={attempted && !password ? 'auth-password-hint' : undefined} onChange={(event) => setPassword(event.target.value)} /></Field>
@@ -44,5 +45,6 @@ export function LoginForm({ expired, login, onSuccess }: {
     </form>
     <p className={styles.center}>Tài khoản được cấp và quản lý bởi hệ thống OceVie</p>
     <p className={styles.help} id="auth-help">Liên hệ quản trị viên nếu bạn không thể đăng nhập</p>
+    <p className={styles.center}>Bạn là hành khách? <Link to="/cruises">Đặt chuyến</Link> hoặc <Link to="/booking/lookup">tra cứu bằng mã đặt chỗ</Link>, không cần đăng nhập.</p>
   </div>
 }

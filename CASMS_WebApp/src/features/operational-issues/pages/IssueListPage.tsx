@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, ButtonLink, PageHeader } from '@/shared/ui'
+import { Button, ButtonLink, ListFooter, PageHeader, Panel } from '@/shared/ui'
 
 import { AdminFrame } from '../components/AdminFrame'
 import { IssueListState } from '../components/IssueListState'
@@ -7,7 +7,6 @@ import { IssueMetrics } from '../components/IssueMetrics'
 import { IssueSearchFilters } from '../components/IssueSearchFilters'
 import { IssueTable } from '../components/IssueTable'
 import { ReportIssueDialog } from '../components/ReportIssueDialog'
-import styles from '../components/OperationalIssues.module.css'
 import { useIssueList } from '../hooks/useIssueList'
 import { hasActiveIssueFilters } from '../model/issue-query'
 
@@ -29,7 +28,7 @@ export function IssueListPage() {
 
   return (
     <AdminFrame>
-      <PageHeader title="Sự cố vận hành" breadcrumb="" description="Triage nhanh theo mức độ, trạng thái và ngữ cảnh tàu/chuyến." actions={<>
+      <PageHeader title="Sự cố vận hành" breadcrumb="" description="Theo dõi và xử lý sự cố theo trạng thái, tàu và chuyến đi." actions={<>
         <Button tone="secondary" onClick={() => setReportOpen(true)}>Báo cáo nhanh</Button>
         <ButtonLink to="/admin/issues/new">Báo cáo sự cố</ButtonLink>
       </>} />
@@ -52,6 +51,7 @@ export function IssueListPage() {
         onReset={resetQuery}
       />
 
+      <Panel title="Danh sách sự cố">
       {state.status === 'loading' && !state.data ? <IssueListState kind="loading" /> : null}
       {state.status === 'error' ? (
         <IssueListState kind="error" message={state.error} onRetry={retry} />
@@ -65,9 +65,10 @@ export function IssueListPage() {
       {items.length ? (
         <>
           <IssueTable issues={items} />
-          <div className={styles.pagination}><span>{total} kết quả · phân trang chưa khả dụng</span></div>
+          <ListFooter summary={`${total} sự cố`} />
         </>
       ) : null}
+      </Panel>
 
       <ReportIssueDialog open={reportOpen} onClose={() => setReportOpen(false)} onCreated={retry} />
     </AdminFrame>

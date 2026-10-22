@@ -81,7 +81,7 @@ export function StopEditor({ itineraryId, stop, days, ports, destinations, busy,
       <Field htmlFor="stop-arrival-method" label="Cách cập cảng"><select id="stop-arrival-method" disabled={!editable || busy} value={draft.arrivalMethod ?? 'BERTH'} onChange={(event) => update('arrivalMethod', event.target.value as CruiseStopDraft['arrivalMethod'])}><option value="BERTH">Cập cầu cảng</option><option value="TENDER">Trung chuyển bằng tàu nhỏ</option></select></Field>
       </>}
       {error && <Notice title="Kiểm tra thời gian" tone="error">{error}</Notice>}
-      {stopInfo && <Notice title="Thông tin điểm dừng" tone="info">{stopInfo}</Notice>}
+      {stopInfo && <Notice title="Thông tin điểm dừng" tone="neutral">{stopInfo}</Notice>}
       {stop && (
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {access.has('CRUISE_STOP_READ') && <Button type="button" tone="secondary" disabled={busy || !access.has('CRUISE_STOP_READ')} onClick={() => void checkDuration()}>Thời lượng dừng</Button>}

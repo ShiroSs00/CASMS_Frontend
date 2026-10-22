@@ -1,3 +1,4 @@
+import { DataTable, Field, ListFilters } from '@/shared/ui'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 
@@ -14,13 +15,11 @@ import {
 import {
   AdminFrame,
   Button,
-  Field,
   LoadingPanel,
   Notice,
   PageHeader,
   Panel,
   StatusBadge,
-  TableScroll,
 } from '../components/RegulationUI'
 import styles from '../components/Regulations.module.css'
 
@@ -81,17 +80,14 @@ export function RegulationListPage() {
         }
       />
 
-      <Panel title="Tìm kiếm & bộ lọc">
-        <div className={styles.filters}>
+      <Panel title="Bộ lọc">
+        <ListFilters label="Bộ lọc quy định" onSubmit={applyFilters} actions={<><Button type="submit">Áp dụng bộ lọc</Button><Button onClick={resetFilters} tone="secondary">Xóa bộ lọc</Button></>}>
           <Field htmlFor="reg-search" label="Tìm quy định">
             <input
               id="reg-search"
               onChange={(event) =>
                 setQuery((current) => ({ ...current, search: event.target.value }))
               }
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') applyFilters()
-              }}
               placeholder="Nhập mã hoặc tên"
               value={query.search}
             />
@@ -128,12 +124,12 @@ export function RegulationListPage() {
               value={query.scope}
             >
               <option value="ALL">Tất cả</option>
-              <option value="GLOBAL">GLOBAL · Toàn hệ thống</option>
-              <option value="SHIP">SHIP · Theo tàu</option>
-              <option value="CRUISE">CRUISE · Theo chuyến</option>
+              <option value="GLOBAL">Toàn hệ thống</option>
+              <option value="SHIP">Theo tàu</option>
+              <option value="CRUISE">Theo chuyến</option>
             </select>
           </Field>
-          <Field htmlFor="reg-status" label="Trạng thái cấu hình">
+          <Field htmlFor="reg-status" label="Trạng thái">
             <select
               id="reg-status"
               onChange={(event) =>
@@ -164,34 +160,7 @@ export function RegulationListPage() {
               value={query.effectiveAt}
             />
           </Field>
-        </div>
-        <div className={styles.toolbar}>
-          <Button onClick={applyFilters}>Áp dụng bộ lọc</Button>
-          <Button onClick={resetFilters} tone="secondary">
-            Xóa bộ lọc
-          </Button>
-          <Button
-            onClick={() => {
-              setLoading(true)
-              setError('')
-              setQuery((curr) => ({ ...curr, effectiveOnly: !curr.effectiveOnly }))
-              setAppliedQuery((curr) => ({ ...curr, effectiveOnly: !curr.effectiveOnly }))
-            }}
-            tone={appliedQuery.effectiveOnly ? 'primary' : 'secondary'}
-          >
-            {appliedQuery.effectiveOnly ? 'Đang lọc: Quy định hiện có hiệu lực' : 'Xem quy định hiện có hiệu lực'}
-          </Button>
-        </div>
-        {appliedQuery.effectiveOnly ? (
-          <Notice title="Nguồn dữ liệu hiệu lực" tone="success">
-            Danh sách được lấy trực tiếp từ máy chủ qua endpoint GET /operational-regulations/effective.
-          </Notice>
-        ) : null}
-        <Notice title="Hai trạng thái khác nhau" tone="info">
-          Trạng thái cấu hình cho biết quy định đang DRAFT, ACTIVE hay INACTIVE.
-          Hiệu lực tại thời điểm được tính riêng từ trạng thái và khoảng thời gian áp dụng.
-        </Notice>
-        <Notice title="Lọc trên danh sách đã tải" tone="info">Bộ lọc áp dụng cho dữ liệu hiện có. Dùng các bộ lọc để thu hẹp kết quả.</Notice>
+        </ListFilters>
       </Panel>
 
       <Panel title={`Danh sách quy định · ${items.length}`}>
@@ -225,19 +194,8 @@ export function RegulationListPage() {
             <p className={styles.resultsMeta}>
               Kết quả tính hiệu lực tại {formatDateTime(appliedQuery.effectiveAt)}.
             </p>
-            <TableScroll>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>MÃ / TÊN QUY ĐỊNH</th>
-                    <th>LOẠI</th>
-                    <th>PHẠM VI</th>
-                    <th>TRẠNG THÁI</th>
-                    <th>HIỆU LỰC</th>
-                    <th>THAO TÁC</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <DataTable label="Danh sách quy định" headers={['Mã / tên quy định', 'Loại', 'Phạm vi', 'Trạng thái', 'Hiệu lực', 'Thao tác']}>
+
                   {items.map((item) => (
                     <tr key={item.id}>
                       <td>
@@ -260,9 +218,9 @@ export function RegulationListPage() {
                       </td>
                     </tr>
                   ))}
-                </tbody>
-              </table>
-            </TableScroll>
+
+
+            </DataTable>
           </>
         ) : null}
       </Panel>

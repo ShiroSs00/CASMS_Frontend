@@ -90,7 +90,6 @@ function ListPage({ kind }: { kind: EntityKind }) {
         {kind === 'cabins' && <p className={styles.muted}>Trạng thái Sẵn sàng không xác nhận cabin còn chỗ cho một đặt chỗ hoặc chuyến đi cụ thể. Hãy kiểm tra yêu cầu chuyến đi trước khi gán khách.</p>}
       </form>
     </Panel>
-    {kind === 'decks' && ship && <Panel title="Thông tin tàu"><Notice title="Giới hạn số boong">{ship.name} được cấu hình {ship.totalDecks} boong. Số boong phải duy nhất trong tàu.</Notice></Panel>}
     <Panel title={`Danh sách ${kindLabels[kind]}${ship ? ` · ${ship.name}` : ''} · ${rows.length}`}>
       {searchAvailable && <p className={styles.muted}>Danh sách theo trạng thái Sẵn sàng hiện tại; kết quả không giữ chỗ hoặc gán khách.</p>}
       <DataState loading={loading} error={error} retry={retry} />

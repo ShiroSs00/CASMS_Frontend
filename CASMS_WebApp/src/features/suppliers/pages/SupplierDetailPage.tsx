@@ -98,31 +98,6 @@ export function SupplierDetailPage() {
     }
   }
 
-  async function handleValidate() {
-    if (!supplier || lock.current || !access.has('SUPPLIER_VALIDATE')) return
-    lock.current = true
-    setActionInProgress('validate')
-    setActionFeedback(null)
-    try {
-      const result = await supplierApi.validate(supplier.id)
-      setActionFeedback({
-        type: 'success',
-        message: result.message || 'Hồ sơ và thông tin nhà cung cấp hợp lệ.',
-      })
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setActionFeedback({ type: 'error', message: err.message })
-      } else {
-        setActionFeedback({
-          type: 'error',
-          message: 'Không thể kiểm tra tính hợp lệ của nhà cung cấp.',
-        })
-      }
-    } finally {
-      lock.current = false; setActionInProgress(null)
-    }
-  }
-
   async function handleVerify(request: SupplierVerificationRequest) {
     if (!supplier || lock.current || !access.has('SUPPLIER_VERIFY')) throw new Error('Chưa thể xác minh nhà cung cấp.')
     lock.current = true
@@ -205,7 +180,6 @@ export function SupplierDetailPage() {
           actionFeedback={actionFeedback}
           onDismissFeedback={() => setActionFeedback(null)}
           onToggleStatus={handleToggleStatus}
-          onValidate={handleValidate}
           onVerify={handleVerify}
           onDelete={handleDelete}
         /></>
