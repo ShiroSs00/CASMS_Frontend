@@ -2,24 +2,24 @@
 .appShell {
   --oim-bg: #f5f7f9;
   --oim-surface: #fff;
-  --oim-border: #d9e0e4;
-  --oim-primary: #123042;
+  --oim-border: #d5e0e4;
+  --oim-primary: #0b2a4a;
   --oim-navy-950: #092333;
-  --oim-text: #172b36;
-  --oim-muted: #52616b;
+  --oim-text: #0b2a4a;
+  --oim-muted: #506777;
   --oim-info: #185abd;
-  --oim-info-bg: #eaf2ff;
+  --oim-info-bg: #eaf3ff;
   --oim-success: #166345;
-  --oim-success-bg: #eaf7ef;
+  --oim-success-bg: #eaf6ef;
   --oim-warning: #805500;
-  --oim-warning-bg: #fff4d6;
-  --oim-error: #af2637;
-  --oim-error-bg: #fdeef0;
+  --oim-warning-bg: #fff4dd;
+  --oim-error: #b42318;
+  --oim-error-bg: #fff0ef;
   min-height: 100vh;
   background: var(--oim-bg);
   color: var(--oim-text);
   color-scheme: light;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:var(--font-family-body);
 }
 
 .skipLink {
@@ -721,14 +721,14 @@
 
 /* AURORA V3 — nodes 51:54, 51:167, 94:648, 98:433, 98:503, 98:558 */
 .appShell {
-  --oim-bg: #faf8f2;
+  --oim-bg: #f8f6ec;
   --oim-surface: #fff;
-  --oim-border: #d6dee4;
-  --oim-primary: #4b8af1;
-  --oim-navy-950: #123042;
-  --oim-text: #111820;
-  --oim-muted: #51616f;
-  --oim-info: #4b8af1;
+  --oim-border: #d5e0e4;
+  --oim-primary: #0e6b7a;
+  --oim-navy-950: #0b2a4a;
+  --oim-text: #0b2a4a;
+  --oim-muted: #506777;
+  --oim-info: #0e6b7a;
   --oim-info-bg: #edf5ff;
   --oim-success: #2f7d5c;
   --oim-success-bg: #edfaf2;
@@ -744,15 +744,15 @@
 .pageTitle { font-size: 28px; font-weight: 700; line-height: 36px; letter-spacing: -.2px; }
 .pageDescription { margin: 4px 0 0; font-size: 14px; line-height: 20px; }
 .primaryButton,.secondaryButton,.dangerButton { min-height: 42px; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; line-height: 18px; letter-spacing: .4px; text-decoration: none; }
-.primaryButton { border-color: #4b8af1; background: #4b8af1; }
-.secondaryButton { border-color: #d6dee4; color: #111820; }
+.primaryButton { border-color: #0e6b7a; background: #0e6b7a; }
+.secondaryButton { border-color: #d5e0e4; color: #0b2a4a; }
 .metricsGrid { gap: 12px; margin: 12px 0 14px; }
 .metricCard { min-height: 112px; padding: 16px; border-radius: 14px; }
 .eyebrow { margin-bottom: 5px; font-size: 11px; line-height: 16px; text-transform: none; }
 .metricValue { min-height: auto; padding: 0; background: transparent; font-size: 32px; font-weight: 700; line-height: 41px; font-variant-numeric: tabular-nums; }
-.metricHint { color: #51616f; font-size: 11px; line-height: 16px; }
+.metricHint { color: #506777; font-size: 11px; line-height: 16px; }
 .statusOpen,.severityCritical { background: transparent; color: #c84a4a; }
-.statusProgress { background: transparent; color: #4b8af1; }
+.statusProgress { background: transparent; color: #0e6b7a; }
 .statusResolved,.statusClosed,.severityLow { background: transparent; color: #2f7d5c; }
 .severityMedium,.statusReview,.severityHigh { background: transparent; color: #b97820; }
 .filters { grid-template-columns: 280px repeat(5,minmax(120px,1fr)); gap: 10px; margin: 14px 0; padding: 14px; border-radius: 12px; }
@@ -765,12 +765,12 @@
 .table th { padding: 10px 14px; background: #f5f2e9; font-size: 11px; }
 .table td { padding: 14px; border-top: 0; }
 .table tbody tr:nth-child(even) { background: #f5f2e9; }
-.issueLink,.issueName { color: #111820; font-weight: 600; text-decoration: none; }
+.issueLink,.issueName { color: #0b2a4a; font-weight: 600; text-decoration: none; }
 .statusBadge { min-height: 28px; padding: 5px 10px; border: 1px solid currentColor; border-radius: 999px; background: #fff; font-size: 11px; line-height: 16px; }
 .tableBadge { min-width: 100px; }
 .detailGrid { grid-template-columns: minmax(0,760px) minmax(300px,392px); gap: 16px; }
 .detailMain { display: grid; gap: 12px; }
-.actionRail { display: flex; flex-direction: column; gap: 10px; align-self: start; padding: 16px; border: 1px solid #d6dee4; border-radius: 14px; background: #fff; }
+.actionRail { display: flex; flex-direction: column; gap: 10px; align-self: start; padding: 16px; border: 1px solid #d5e0e4; border-radius: 14px; background: #fff; }
 .actionRail .panel { padding: 0; border: 0; }
 .panel,.statePanel { border-radius: 14px; }
 .panel { padding: 18px; }

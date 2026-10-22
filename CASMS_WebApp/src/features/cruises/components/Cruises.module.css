@@ -1,5 +1,5 @@
 
-.cruiseShell { --cruise-navy:#123042; --cruise-text:#172b36; --cruise-muted:#52616b; --cruise-border:#d9e0e4; --cruise-bg:#f5f7f9; }
+.cruiseShell { --cruise-navy:#0b2a4a; --cruise-text:#0b2a4a; --cruise-muted:#506777; --cruise-border:#d5e0e4; --cruise-bg:#f5f7f9; }
 .content { max-width:1136px; margin:0 auto; }
 .metrics,.detailMetrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-bottom:20px; }
 .metric,.detailMetrics > div { display:flex; min-height:94px; flex-direction:column; align-items:flex-start; justify-content:space-between; gap:12px; padding:20px 24px; border:1px solid var(--cruise-border); border-radius:8px; background:#fff; }

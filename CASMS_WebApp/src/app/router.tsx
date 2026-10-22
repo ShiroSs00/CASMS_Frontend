@@ -1,154 +1,127 @@
+import type { ComponentType } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router'
 
+import { CruiseSearchPage, CustomerCruiseDetailPage, BookingLookupPage, TravellerDetailsPage, CabinExperiencePage, ReviewBookingPage, MyBookingsPage, BookingDetailPage, ManageBookingPage, CustomerExperiencesPage, TravellerDocumentsPage, OnlineCheckinPage, ArrivalTimePage, BoardingPassPage, PaymentContractPage, ChangeRequestPage } from '@/features/booking'
 import { AccessDeniedPage, AdminGuard, CustomerGuard, AuthConceptPage, LoginPage, SessionBoundary } from '@/features/auth'
-
-import { CruiseSearchPage, CustomerCruiseDetailPage, TravellerDetailsPage, CabinExperiencePage, ReviewBookingPage, MyBookingsPage, BookingDetailPage, ManageBookingPage, TravellerDocumentsPage, OnlineCheckinPage, ArrivalTimePage, BoardingPassPage, PaymentContractPage, ChangeRequestPage, CustomerExperiencesPage } from '@/features/booking'
-
-import { HomePage } from '@/features/home'
-import { SupplierDetailPage, SupplierFormPage, SupplierListPage } from '@/features/suppliers'
-import { ShoreExcursionDetailPage, ShoreExcursionFormPage, ShoreExcursionListPage } from '@/features/shore-excursions'
-import { TourGroupDetailPage, TourGroupFormPage, TourGroupListPage } from '@/features/tour-groups'
-import { CruiseDetailPage, CruiseFormPage, CruiseListPage } from '@/features/cruises'
-import { IssueDetailPage, IssueFormPage, IssueListPage } from '@/features/operational-issues'
-import {
-  DestinationDetailPage,
-  DestinationFormPage,
-  DestinationListPage,
-  ItineraryDetailPage,
-  ItineraryFormPage,
-  ItineraryListPage,
-  ItineraryHistoryPage,
-  PortDetailPage,
-  PortFormPage,
-  PortListPage,
-} from '@/features/itineraries'
-import {
-  CruiseRegulationsPage,
-  RegulationDetailPage,
-  RegulationFormPage,
-  RegulationListPage,
-  ShipRegulationsPage,
-} from '@/features/regulations'
-import {
-  ShipListPage, ShipDetailPage, ShipFormPage,
-  DeckListPage, DeckDetailPage, DeckFormPage,
-  CabinListPage, CabinDetailPage, CabinFormPage,
-} from '@/features/ship-deck-cabin'
 
 import { PublicLayout } from './layouts/PublicLayout'
 import { AdminAccountLayout } from './layouts/AdminAccountLayout'
 import { BookingSessionLayout } from './layouts/BookingSessionLayout'
-import { ActivityListPage, ActivityDetailPage, ActivityFormPage, ActivityRegistrationPage } from '@/features/activities'
-import { ServiceListPage, ProductListPage, PackageListPage, ServiceRequestListPage, ServiceDetailPage, ProductDetailPage, PackageDetailPage, ServiceRequestDetailPage, ServiceFormPage, ProductFormPage, PackageFormPage, ServiceRequestFormPage, PackageAssignmentPage } from '@/features/service-packages'
-import { AdminWorkflowPage } from './pages/AdminWorkflowPage'
-import { AdminBookingListPage, AdminBookingDetailPage, AdminBookingCreatePage, AdminBookingLookupPage } from './pages/AdminBookingPages'
-import { BookingLookupPage } from '@/features/booking'
+import { RouteLoading } from './RouteLoading'
+import { RouteErrorPage } from './RouteErrorPage'
+
+function featurePage<T>(load: () => Promise<T>, key: keyof T) {
+  return async () => ({ Component: (await load())[key] as ComponentType })
+}
 
 const adminRoutes = [
-  { path: '/admin/bookings', Component: AdminBookingListPage },
-  { path: '/admin/bookings/lookup', Component: AdminBookingLookupPage },
-  { path: '/admin/bookings/new', Component: AdminBookingCreatePage },
-  { path: '/admin/bookings/:bookingId', Component: AdminBookingDetailPage },
-  { path: '/admin/activity-registrations', Component: ActivityRegistrationPage },
-  { path: '/admin/package-assignments', Component: PackageAssignmentPage },
-  { path: '/admin/service-requests/new', Component: ServiceRequestFormPage },
-  { path: '/admin/service-requests/:id/edit', Component: ServiceRequestFormPage },
-  { path: '/admin/services/new', Component: ServiceFormPage },
-  { path: '/admin/services/:id/edit', Component: ServiceFormPage },
-  { path: '/admin/products/new', Component: ProductFormPage },
-  { path: '/admin/products/:id/edit', Component: ProductFormPage },
-  { path: '/admin/service-packages/new', Component: PackageFormPage },
-  { path: '/admin/service-packages/:id/edit', Component: PackageFormPage },
-  { path: '/admin/itinerary-history', Component: ItineraryHistoryPage },
-  { path: '/admin/activities', Component: ActivityListPage },
-  { path: '/admin/activities/new', Component: ActivityFormPage },
-  { path: '/admin/activities/:activityId', Component: ActivityDetailPage },
-  { path: '/admin/activities/:activityId/edit', Component: ActivityFormPage },
-  { path: '/admin/services', Component: ServiceListPage },
-  { path: '/admin/services/:id', Component: ServiceDetailPage },
-  { path: '/admin/products', Component: ProductListPage },
-  { path: '/admin/products/:id', Component: ProductDetailPage },
-  { path: '/admin/service-packages', Component: PackageListPage },
-  { path: '/admin/service-packages/:id', Component: PackageDetailPage },
-  { path: '/admin/service-requests', Component: ServiceRequestListPage },
-  { path: '/admin/service-requests/:id', Component: ServiceRequestDetailPage },
-  { path: '/admin/workflow', Component: AdminWorkflowPage },
-  { path: '/admin/tour-groups', Component: TourGroupListPage },
-  { path: '/admin/tour-groups/new', Component: TourGroupFormPage },
-  { path: '/admin/tour-groups/:groupId', Component: TourGroupDetailPage },
-  { path: '/admin/tour-groups/:groupId/edit', Component: TourGroupFormPage },
-  { path: '/admin/shore-excursions', Component: ShoreExcursionListPage },
-  { path: '/admin/shore-excursions/new', Component: ShoreExcursionFormPage },
-  { path: '/admin/shore-excursions/:excursionId', Component: ShoreExcursionDetailPage },
-  { path: '/admin/shore-excursions/:excursionId/edit', Component: ShoreExcursionFormPage },
-  { path: '/admin', element: <Navigate to="/admin/ships" replace /> },
-  { path: '/admin/suppliers', Component: SupplierListPage },
-  { path: '/admin/suppliers/new', Component: SupplierFormPage },
-  { path: '/admin/suppliers/:supplierId', Component: SupplierDetailPage },
-  { path: '/admin/suppliers/:supplierId/edit', Component: SupplierFormPage },
-  { path: '/admin/ships', Component: ShipListPage },
-  { path: '/admin/ships/new', Component: ShipFormPage },
-  { path: '/admin/ships/:id', Component: ShipDetailPage },
-  { path: '/admin/ships/:id/edit', Component: ShipFormPage },
-  { path: '/admin/decks', Component: DeckListPage },
-  { path: '/admin/decks/new', Component: DeckFormPage },
-  { path: '/admin/decks/:id', Component: DeckDetailPage },
-  { path: '/admin/decks/:id/edit', Component: DeckFormPage },
-  { path: '/admin/cabins', Component: CabinListPage },
-  { path: '/admin/cabins/new', Component: CabinFormPage },
-  { path: '/admin/cabins/:id', Component: CabinDetailPage },
-  { path: '/admin/cabins/:id/edit', Component: CabinFormPage },
-  { path: '/admin/cruises', Component: CruiseListPage },
-  { path: '/admin/cruises/new', Component: CruiseFormPage },
-  { path: '/admin/cruises/:cruiseId', Component: CruiseDetailPage },
-  { path: '/admin/cruises/:cruiseId/edit', Component: CruiseFormPage },
-  { path: '/admin/itineraries', Component: ItineraryListPage },
-  { path: '/admin/itineraries/new', Component: ItineraryFormPage },
-  { path: '/admin/itineraries/:itineraryId', Component: ItineraryDetailPage },
-  { path: '/admin/itineraries/:itineraryId/edit', Component: ItineraryFormPage },
-  { path: '/admin/ports', Component: PortListPage },
-  { path: '/admin/ports/new', Component: PortFormPage },
-  { path: '/admin/ports/:portId', Component: PortDetailPage },
-  { path: '/admin/ports/:portId/edit', Component: PortFormPage },
-  { path: '/admin/destinations', Component: DestinationListPage },
-  { path: '/admin/destinations/new', Component: DestinationFormPage },
-  { path: '/admin/destinations/:destinationId', Component: DestinationDetailPage },
-  { path: '/admin/destinations/:destinationId/edit', Component: DestinationFormPage },
-  { path: '/admin/issues', Component: IssueListPage },
-  { path: '/admin/issues/new', Component: IssueFormPage },
-  { path: '/admin/issues/:issueId', Component: IssueDetailPage },
-  { path: '/admin/issues/:issueId/edit', Component: IssueFormPage },
+  { path: '/admin/system', lazy: featurePage(() => import('./pages/AdminSystemPage'), 'AdminSystemPage') },
+  { path: '/admin/staff/:area', lazy: featurePage(() => import('./pages/AdminStaffFunctionPage'), 'AdminStaffFunctionPage') },
+  { path: '/admin/workspaces/:workspaceId', lazy: featurePage(() => import('./pages/AdminWorkspacePage'), 'AdminWorkspacePage') },
+  { path: '/admin/bookings', lazy: featurePage(() => import('./pages/AdminBookingPages'), 'AdminBookingListPage') },
+  { path: '/admin/bookings/lookup', lazy: featurePage(() => import('./pages/AdminBookingPages'), 'AdminBookingLookupPage') },
+  { path: '/admin/bookings/new', lazy: featurePage(() => import('./pages/AdminBookingPages'), 'AdminBookingCreatePage') },
+  { path: '/admin/bookings/:bookingId', lazy: featurePage(() => import('./pages/AdminBookingPages'), 'AdminBookingDetailPage') },
+  { path: '/admin/activity-registrations', lazy: featurePage(() => import('@/features/activities'), 'ActivityRegistrationPage') },
+  { path: '/admin/package-assignments', lazy: featurePage(() => import('@/features/service-packages'), 'PackageAssignmentPage') },
+  { path: '/admin/service-requests/new', lazy: featurePage(() => import('@/features/service-packages'), 'ServiceRequestFormPage') },
+  { path: '/admin/service-requests/:id/edit', lazy: featurePage(() => import('@/features/service-packages'), 'ServiceRequestFormPage') },
+  { path: '/admin/services/new', lazy: featurePage(() => import('@/features/service-packages'), 'ServiceFormPage') },
+  { path: '/admin/services/:id/edit', lazy: featurePage(() => import('@/features/service-packages'), 'ServiceFormPage') },
+  { path: '/admin/products/new', lazy: featurePage(() => import('@/features/service-packages'), 'ProductFormPage') },
+  { path: '/admin/products/:id/edit', lazy: featurePage(() => import('@/features/service-packages'), 'ProductFormPage') },
+  { path: '/admin/service-packages/new', lazy: featurePage(() => import('@/features/service-packages'), 'PackageFormPage') },
+  { path: '/admin/service-packages/:id/edit', lazy: featurePage(() => import('@/features/service-packages'), 'PackageFormPage') },
+  { path: '/admin/itinerary-history', lazy: featurePage(() => import('@/features/itineraries'), 'ItineraryHistoryPage') },
+  { path: '/admin/activities', lazy: featurePage(() => import('@/features/activities'), 'ActivityListPage') },
+  { path: '/admin/activities/new', lazy: featurePage(() => import('@/features/activities'), 'ActivityFormPage') },
+  { path: '/admin/activities/:activityId', lazy: featurePage(() => import('@/features/activities'), 'ActivityDetailPage') },
+  { path: '/admin/activities/:activityId/edit', lazy: featurePage(() => import('@/features/activities'), 'ActivityFormPage') },
+  { path: '/admin/services', lazy: featurePage(() => import('@/features/service-packages'), 'ServiceListPage') },
+  { path: '/admin/services/:id', lazy: featurePage(() => import('@/features/service-packages'), 'ServiceDetailPage') },
+  { path: '/admin/products', lazy: featurePage(() => import('@/features/service-packages'), 'ProductListPage') },
+  { path: '/admin/products/:id', lazy: featurePage(() => import('@/features/service-packages'), 'ProductDetailPage') },
+  { path: '/admin/service-packages', lazy: featurePage(() => import('@/features/service-packages'), 'PackageListPage') },
+  { path: '/admin/service-packages/:id', lazy: featurePage(() => import('@/features/service-packages'), 'PackageDetailPage') },
+  { path: '/admin/service-requests', lazy: featurePage(() => import('@/features/service-packages'), 'ServiceRequestListPage') },
+  { path: '/admin/service-requests/:id', lazy: featurePage(() => import('@/features/service-packages'), 'ServiceRequestDetailPage') },
+  { path: '/admin/workflow', lazy: featurePage(() => import('./pages/AdminWorkflowPage'), 'AdminWorkflowPage') },
+  { path: '/admin/tour-groups', lazy: featurePage(() => import('@/features/tour-groups'), 'TourGroupListPage') },
+  { path: '/admin/tour-groups/new', lazy: featurePage(() => import('@/features/tour-groups'), 'TourGroupFormPage') },
+  { path: '/admin/tour-groups/:groupId', lazy: featurePage(() => import('@/features/tour-groups'), 'TourGroupDetailPage') },
+  { path: '/admin/tour-groups/:groupId/edit', lazy: featurePage(() => import('@/features/tour-groups'), 'TourGroupFormPage') },
+  { path: '/admin/shore-excursions', lazy: featurePage(() => import('@/features/shore-excursions'), 'ShoreExcursionListPage') },
+  { path: '/admin/shore-excursions/new', lazy: featurePage(() => import('@/features/shore-excursions'), 'ShoreExcursionFormPage') },
+  { path: '/admin/shore-excursions/:excursionId', lazy: featurePage(() => import('@/features/shore-excursions'), 'ShoreExcursionDetailPage') },
+  { path: '/admin/shore-excursions/:excursionId/edit', lazy: featurePage(() => import('@/features/shore-excursions'), 'ShoreExcursionFormPage') },
+  { path: '/admin', lazy: featurePage(() => import('./pages/AdminOverviewPage'), 'AdminOverviewPage') },
+  { path: '/admin/suppliers', lazy: featurePage(() => import('@/features/suppliers'), 'SupplierListPage') },
+  { path: '/admin/suppliers/new', lazy: featurePage(() => import('@/features/suppliers'), 'SupplierFormPage') },
+  { path: '/admin/suppliers/:supplierId', lazy: featurePage(() => import('@/features/suppliers'), 'SupplierDetailPage') },
+  { path: '/admin/suppliers/:supplierId/edit', lazy: featurePage(() => import('@/features/suppliers'), 'SupplierFormPage') },
+  { path: '/admin/ships', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'ShipListPage') },
+  { path: '/admin/ships/new', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'ShipFormPage') },
+  { path: '/admin/ships/:id', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'ShipDetailPage') },
+  { path: '/admin/ships/:id/edit', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'ShipFormPage') },
+  { path: '/admin/decks', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'DeckListPage') },
+  { path: '/admin/decks/new', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'DeckFormPage') },
+  { path: '/admin/decks/:id', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'DeckDetailPage') },
+  { path: '/admin/decks/:id/edit', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'DeckFormPage') },
+  { path: '/admin/cabins', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'CabinListPage') },
+  { path: '/admin/cabins/new', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'CabinFormPage') },
+  { path: '/admin/cabins/:id', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'CabinDetailPage') },
+  { path: '/admin/cabins/:id/edit', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'CabinFormPage') },
+  { path: '/admin/cruises', lazy: featurePage(() => import('@/features/cruises'), 'CruiseListPage') },
+  { path: '/admin/cruises/new', lazy: featurePage(() => import('@/features/cruises'), 'CruiseFormPage') },
+  { path: '/admin/cruises/:cruiseId', lazy: featurePage(() => import('@/features/cruises'), 'CruiseDetailPage') },
+  { path: '/admin/cruises/:cruiseId/edit', lazy: featurePage(() => import('@/features/cruises'), 'CruiseFormPage') },
+  { path: '/admin/itineraries', lazy: featurePage(() => import('@/features/itineraries'), 'ItineraryListPage') },
+  { path: '/admin/itineraries/new', lazy: featurePage(() => import('@/features/itineraries'), 'ItineraryFormPage') },
+  { path: '/admin/itineraries/:itineraryId', lazy: featurePage(() => import('@/features/itineraries'), 'ItineraryDetailPage') },
+  { path: '/admin/itineraries/:itineraryId/edit', lazy: featurePage(() => import('@/features/itineraries'), 'ItineraryFormPage') },
+  { path: '/admin/ports', lazy: featurePage(() => import('@/features/itineraries'), 'PortListPage') },
+  { path: '/admin/ports/new', lazy: featurePage(() => import('@/features/itineraries'), 'PortFormPage') },
+  { path: '/admin/ports/:portId', lazy: featurePage(() => import('@/features/itineraries'), 'PortDetailPage') },
+  { path: '/admin/ports/:portId/edit', lazy: featurePage(() => import('@/features/itineraries'), 'PortFormPage') },
+  { path: '/admin/destinations', lazy: featurePage(() => import('@/features/itineraries'), 'DestinationListPage') },
+  { path: '/admin/destinations/new', lazy: featurePage(() => import('@/features/itineraries'), 'DestinationFormPage') },
+  { path: '/admin/destinations/:destinationId', lazy: featurePage(() => import('@/features/itineraries'), 'DestinationDetailPage') },
+  { path: '/admin/destinations/:destinationId/edit', lazy: featurePage(() => import('@/features/itineraries'), 'DestinationFormPage') },
+  { path: '/admin/issues', lazy: featurePage(() => import('@/features/operational-issues'), 'IssueListPage') },
+  { path: '/admin/issues/new', lazy: featurePage(() => import('@/features/operational-issues'), 'IssueFormPage') },
+  { path: '/admin/issues/:issueId', lazy: featurePage(() => import('@/features/operational-issues'), 'IssueDetailPage') },
+  { path: '/admin/issues/:issueId/edit', lazy: featurePage(() => import('@/features/operational-issues'), 'IssueFormPage') },
 
   {
     path: '/admin/regulations',
-    Component: RegulationListPage,
+    lazy: featurePage(() => import('@/features/regulations'), 'RegulationListPage'),
   },
   {
     path: '/admin/regulations/new',
-    Component: RegulationFormPage,
+    lazy: featurePage(() => import('@/features/regulations'), 'RegulationFormPage'),
   },
   {
     path: '/admin/regulations/:regulationId',
-    Component: RegulationDetailPage,
+    lazy: featurePage(() => import('@/features/regulations'), 'RegulationDetailPage'),
   },
   {
     path: '/admin/regulations/:regulationId/edit',
-    Component: RegulationFormPage,
+    lazy: featurePage(() => import('@/features/regulations'), 'RegulationFormPage'),
   },
   {
     path: '/admin/ships/:shipId/regulations',
-    Component: ShipRegulationsPage,
+    lazy: featurePage(() => import('@/features/regulations'), 'ShipRegulationsPage'),
   },
   {
     path: '/admin/cruises/:cruiseId/regulations',
-    Component: CruiseRegulationsPage,
+    lazy: featurePage(() => import('@/features/regulations'), 'CruiseRegulationsPage'),
   },
 ]
 
-export const router = createBrowserRouter([{ Component: BookingSessionLayout, children: [{ Component: AdminAccountLayout, children: [{ Component: SessionBoundary, children: [
+export const router = createBrowserRouter([{ ErrorBoundary: RouteErrorPage, HydrateFallback: RouteLoading, Component: BookingSessionLayout, children: [{ Component: AdminAccountLayout, children: [{ Component: SessionBoundary, children: [
   { Component: AdminGuard, children: [...adminRoutes, { path: '/admin/*', element: <Navigate to="/admin" replace /> }] },
     { path: '/', Component: PublicLayout, children: [
-    { index: true, Component: HomePage },
+    { index: true, lazy: featurePage(() => import('@/features/home'), 'HomePage') },
     { path: 'cruises', Component: CruiseSearchPage },
     { path: 'cruises/:cruiseId', Component: CustomerCruiseDetailPage },
     { path: 'booking/lookup', Component: BookingLookupPage },

@@ -4,7 +4,7 @@ export type CruiseFormErrors = Partial<Record<keyof CruiseDraft, string>>
 
 const DISPLAY_TIME_ZONE = 'Asia/Ho_Chi_Minh'
 
-function scheduleInstant(value: string) {
+export function scheduleInstant(value: string) {
   const hasTimeZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)
   return new Date(hasTimeZone ? value : `${value.length === 16 ? `${value}:00` : value}+07:00`)
 }
@@ -20,8 +20,7 @@ function calendarDate(value: string) {
   return `${part('year')}-${part('month')}-${part('day')}`
 }
 
-// Retain legacy transport codes ONE_DAY/MULTI_DAYS while applying the user
-// defined Short Day/Long Days ranges in FE. Include departure and return days.
+// Calendar duration is display-only; the backend has no five-day maximum.
 export function cruiseDurationDays(departureDatetime: string, returnDatetime: string): number | null {
   const departure = scheduleInstant(departureDatetime)
   const returning = scheduleInstant(returnDatetime)
@@ -31,10 +30,17 @@ export function cruiseDurationDays(departureDatetime: string, returnDatetime: st
   return (endDay - startDay) / 86400000 + 1
 }
 
+/** Matches CruiseService's default inference (Duration.toHours() truncates). */
 export function inferCruiseType(departureDatetime: string, returnDatetime: string): CruiseType | '' {
-  const days = cruiseDurationDays(departureDatetime, returnDatetime)
-  return days !== null && days >= 1 && days <= 2 ? 'ONE_DAY'
-    : days !== null && days >= 3 && days <= 5 ? 'MULTI_DAYS' : ''
+  const milliseconds = scheduleInstant(returnDatetime).getTime() - scheduleInstant(departureDatetime).getTime()
+  if (!Number.isFinite(milliseconds) || milliseconds <= 0) return ''
+  return Math.trunc(milliseconds / 3600000) <= 24 ? 'ONE_DAY' : 'MULTI_DAYS'
+}
+
+export function localCruiseInput(value: string) {
+  const parts = new Intl.DateTimeFormat('en-CA', {timeZone:DISPLAY_TIME_ZONE,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(value))
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find(item => item.type === type)!.value
+  return `${part('year')}-${part('month')}-${part('day')}T${part('hour')}:${part('minute')}`
 }
 
 export function validateCruiseSchedule(
@@ -59,10 +65,7 @@ export function validateCruiseSchedule(
     return errors
   }
 
-  const inferred = inferCruiseType(departureDatetime, returnDatetime)
-  if (!inferred) errors.returnDatetime = 'Chuyến đi phải kéo dài từ 1 đến 5 ngày, tính cả ngày đi và ngày về.'
-  else if (cruiseType && cruiseType !== inferred) errors.cruiseType = inferred === 'ONE_DAY'
-    ? 'Hành trình 1–2 ngày thuộc Short Day.' : 'Hành trình 3–5 ngày thuộc Long Days.'
+  if (cruiseType && !['ONE_DAY','MULTI_DAYS'].includes(cruiseType)) errors.cruiseType = 'Chọn loại chuyến hợp lệ.'
 
   return errors
 }

@@ -38,7 +38,7 @@ export function IssueActions({ issue, onChanged }: Props) {
   const actions = useIssueActions(issue.id, onChanged)
   const availability = getIssueActionAvailability(issue)
   const availableActions = (Object.keys(availability) as IssueAction[]).filter(
-    (action) => availability[action].visible,
+    (action) => availability[action].visible && access.has(issueActionPermissions[action]),
   )
 
   return (
@@ -48,7 +48,7 @@ export function IssueActions({ issue, onChanged }: Props) {
         <div className={styles.actionStack}>
           {availableActions.map((action, index) => (
             <div key={action}>
-              <button
+              {access.has(issueActionPermissions[action]) && <button
                 className={index === 0 ? styles.primaryButton : styles.secondaryButton}
                 disabled={!availability[action].enabled || actions.pendingAction !== null || !access.has(issueActionPermissions[action])}
                 onClick={() => { actions.clearFeedback(); setActiveAction(action) }}
@@ -56,7 +56,7 @@ export function IssueActions({ issue, onChanged }: Props) {
                 type="button"
               >
                 {labels[action]}
-              </button>
+              </button>}
               {!access.has(issueActionPermissions[action]) && <p className={styles.actionHint}>Chưa có quyền thực hiện thao tác này.</p>}
               {!availability[action].enabled && availability[action].reason ? (
                 <p className={styles.actionHint}>{availability[action].reason}</p>
@@ -68,12 +68,12 @@ export function IssueActions({ issue, onChanged }: Props) {
         <p>Không có thao tác phù hợp với trạng thái hiện tại.</p>
       )}
 
-      <Button tone="secondary" disabled={validating || !access.has('OPERATIONAL_ISSUE_READ')} onClick={() => {
+      {access.has('OPERATIONAL_ISSUE_READ') && <Button tone="secondary" disabled={validating || !access.has('OPERATIONAL_ISSUE_READ')} onClick={() => {
         if (validationLock.current || !access.has('OPERATIONAL_ISSUE_READ')) return
         validationLock.current = true
         setValidating(true); setValidation(null)
         void operationalIssuesApi.validate(issue.id).then(() => setValidation({ tone: 'success', message: 'Hồ sơ và trạng thái sự cố hợp lệ.' })).catch((error: unknown) => setValidation({ tone: 'error', message: error instanceof Error ? error.message : 'Không kiểm tra được sự cố.' })).finally(() => { validationLock.current = false; setValidating(false) })
-      }}>{validating ? 'Đang kiểm tra…' : 'Kiểm tra hồ sơ sự cố'}</Button>
+      }}>{validating ? 'Đang kiểm tra…' : 'Kiểm tra hồ sơ sự cố'}</Button>}
       {validation && <Notice title="Kết quả kiểm tra" tone={validation.tone}>{validation.message}</Notice>}
 
       {actions.feedback ? (
@@ -91,7 +91,7 @@ export function IssueActions({ issue, onChanged }: Props) {
         </div>
       ) : null}
 
-      {activeAction === 'ASSIGN_HANDLER' && <AssignHandlerForm
+      {activeAction === 'ASSIGN_HANDLER' && access.has(issueActionPermissions.ASSIGN_HANDLER) && <AssignHandlerForm
         currentHandlerId={issue.assignedTo?.id}
         open
         pending={actions.pendingAction === 'ASSIGN_HANDLER'}
@@ -101,35 +101,35 @@ export function IssueActions({ issue, onChanged }: Props) {
       />}
       <StartHandlingAction
         assigneeName={issue.assignedTo?.name ?? null}
-        open={activeAction === 'START_HANDLING'}
+        open={activeAction !== null && access.has(issueActionPermissions[activeAction]) && activeAction === 'START_HANDLING'}
         pending={actions.pendingAction === 'START_HANDLING'}
         error={actions.feedback?.tone === 'error' ? actions.feedback.message : undefined}
         onClose={() => setActiveAction(null)}
         onSubmit={actions.start}
       />
       <RecordResolutionForm
-        open={activeAction === 'RECORD_RESOLUTION'}
+        open={activeAction !== null && access.has(issueActionPermissions[activeAction]) && activeAction === 'RECORD_RESOLUTION'}
         pending={actions.pendingAction === 'RECORD_RESOLUTION'}
         error={actions.feedback?.tone === 'error' ? actions.feedback.message : undefined}
         onClose={() => setActiveAction(null)}
         onSubmit={actions.recordResolution}
       />
       <VerifyResolutionForm
-        open={activeAction === 'VERIFY_RESOLUTION'}
+        open={activeAction !== null && access.has(issueActionPermissions[activeAction]) && activeAction === 'VERIFY_RESOLUTION'}
         pending={actions.pendingAction === 'VERIFY_RESOLUTION'}
         error={actions.feedback?.tone === 'error' ? actions.feedback.message : undefined}
         onClose={() => setActiveAction(null)}
         onSubmit={actions.verifyResolution}
       />
       <CloseIssueAction
-        open={activeAction === 'CLOSE'}
+        open={activeAction !== null && access.has(issueActionPermissions[activeAction]) && activeAction === 'CLOSE'}
         pending={actions.pendingAction === 'CLOSE'}
         error={actions.feedback?.tone === 'error' ? actions.feedback.message : undefined}
         onClose={() => setActiveAction(null)}
         onSubmit={actions.close}
       />
       <ReopenIssueForm
-        open={activeAction === 'REOPEN'}
+        open={activeAction !== null && access.has(issueActionPermissions[activeAction]) && activeAction === 'REOPEN'}
         pending={actions.pendingAction === 'REOPEN'}
         error={actions.feedback?.tone === 'error' ? actions.feedback.message : undefined}
         onClose={() => setActiveAction(null)}

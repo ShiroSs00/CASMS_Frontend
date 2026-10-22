@@ -43,7 +43,7 @@ export function GroupForm({ initial, busy, onSave }: { initial?: TourGroup; busy
           aria-invalid={!!errors[key]} aria-describedby={errors[key] ? `group-${key}-hint` : undefined} onChange={(event) => setValues({ ...values, [key]: event.target.value })} />
       </Field>)}
       <Field htmlFor="group-notes" label="Ghi chú" error={errors.notes}><textarea id="group-notes" name="notes" maxLength={500} value={values.notes} aria-invalid={!!errors.notes} aria-describedby={errors.notes ? 'group-notes-hint' : undefined} onChange={(event) => setValues({ ...values, notes: event.target.value })} /></Field>
-      <div className={styles.actions}><Button type="submit" disabled={busy || !access.has(initial ? 'TOUR_GROUP_UPDATE' : 'TOUR_GROUP_CREATE') || excursions.loading || Boolean(excursions.error) || !excursions.data?.length}>{busy ? 'Đang lưu…' : 'Lưu nhóm tour'}</Button><Link to={initial ? `/admin/tour-groups/${initial.tourGroupId}` : '/admin/tour-groups'}>Quay lại</Link></div>
+      <div className={styles.actions}>{access.has(initial ? 'TOUR_GROUP_UPDATE' : 'TOUR_GROUP_CREATE') && <Button type="submit" disabled={busy || !access.has(initial ? 'TOUR_GROUP_UPDATE' : 'TOUR_GROUP_CREATE') || excursions.loading || Boolean(excursions.error) || !excursions.data?.length}>{busy ? 'Đang lưu…' : 'Lưu nhóm tour'}</Button>}<Link to={initial ? `/admin/tour-groups/${initial.tourGroupId}` : '/admin/tour-groups'}>Quay lại</Link></div>
     </fieldset></form>
   </>
 }

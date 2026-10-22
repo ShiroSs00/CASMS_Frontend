@@ -9,7 +9,7 @@ import { CruiseFrame } from '../components/CruiseUI'
 import { cruiseApi } from '../api/cruise-api'
 import styles from '../components/Cruises.module.css'
 import type { CruiseDraft, CruiseStatus, CruiseType, PortRecord } from '../model/cruise-record'
-import { validateCruiseDraft, type CruiseFormErrors } from '../model/cruise-validation'
+import { validateCruiseDraft, localCruiseInput, type CruiseFormErrors } from '../model/cruise-validation'
 
 const EMPTY_DRAFT: CruiseDraft = {
   cruiseCode: '',
@@ -21,10 +21,6 @@ const EMPTY_DRAFT: CruiseDraft = {
   returnPortId: '',
 }
 
-function localInputValue(value: string) {
-  const date = new Date(value)
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
-}
 
 export function CruiseFormPage() {
   const access = useSessionAccess()
@@ -39,9 +35,15 @@ export function CruiseFormPage() {
   const [submitError, setSubmitError] = useState('')
   const [busy, setBusy] = useState(false)
   const [ports, setPorts] = useState<PortRecord[]>([])
+  const [portsLoading, setPortsLoading] = useState(true)
+  const [portsError, setPortsError] = useState('')
+  const [portsAttempt, setPortsAttempt] = useState(0)
+  const [detailError, setDetailError] = useState('')
+  const [detailAttempt, setDetailAttempt] = useState(0)
+  const [storedPorts, setStoredPorts] = useState<PortRecord[]>([])
   const [loadedId, setLoadedId] = useState<string | null>(null)
   const submitLock = useRef(false)
-  const canSave = access.has(editing ? 'CRUISE_UPDATE_DRAFT' : 'CRUISE_CREATE') && (!editing || (loadedId === cruiseId && currentStatus === 'DRAFT'))
+  const canSave = !portsLoading && !portsError && access.has(editing ? 'CRUISE_UPDATE_DRAFT' : 'CRUISE_CREATE') && (!editing || (loadedId === cruiseId && currentStatus === 'DRAFT'))
 
   useEffect(() => {
     if (!cruiseId) return
@@ -52,32 +54,35 @@ export function CruiseFormPage() {
         cruiseCode: detail.cruise.cruiseCode,
         cruiseName: detail.cruise.cruiseName,
         cruiseType: detail.cruise.cruiseType,
-        departureDatetime: localInputValue(detail.cruise.departureDatetime),
-        returnDatetime: localInputValue(detail.cruise.returnDatetime),
+        departureDatetime: localCruiseInput(detail.cruise.departureDatetime),
+        returnDatetime: localCruiseInput(detail.cruise.returnDatetime),
         departurePortId: detail.cruise.departurePortId,
         returnPortId: detail.cruise.returnPortId,
       })
+      setStoredPorts([detail.departurePort,detail.returnPort])
       setCurrentStatus(detail.cruise.status)
       setLoadedId(cruiseId)
       setCurrentShip(detail.ship?.shipName ?? 'Chưa phân công')
       setLoading(false)
     }).catch((error: unknown) => {
       if (controller.signal.aborted) return
-      setSubmitError(error instanceof Error ? error.message : 'Không tải được cruise.')
+      setDetailError(error instanceof Error ? error.message : 'Không tải được chuyến.')
       setLoading(false)
     })
     return () => controller.abort()
-  }, [cruiseId])
+  }, [cruiseId, detailAttempt])
 
   useEffect(() => {
     const controller = new AbortController()
     void cruiseApi.listPorts(controller.signal).then((result) => {
-      if (!controller.signal.aborted) setPorts(result)
+      if (!controller.signal.aborted) { setPorts(result); setPortsLoading(false); setPortsError('') }
     }).catch((error: unknown) => {
-      if (!controller.signal.aborted) setSubmitError(error instanceof Error ? error.message : 'Không tải được danh mục cảng.')
+      if (!controller.signal.aborted) { setPortsError(error instanceof Error ? error.message : 'Không tải được danh mục cảng.'); setPortsLoading(false) }
     })
     return () => controller.abort()
-  }, [])
+  }, [portsAttempt])
+
+  const portOptions = [...ports, ...storedPorts.filter((port,index,all) => port && !ports.some(item=>item.portId===port.portId) && all.findIndex(item=>item?.portId===port.portId)===index)]
 
   function update<K extends keyof CruiseDraft>(key: K, value: CruiseDraft[K]) {
     const next = { ...draft, [key]: value }
@@ -116,25 +121,29 @@ export function CruiseFormPage() {
 
   return <CruiseFrame>
     <div className={styles.content}>
-      <PageHeader breadcrumb="VẬN HÀNH / CRUISE" title={editing ? 'Chỉnh sửa cruise' : 'Tạo cruise'} description={editing ? 'Chỉnh sửa dữ liệu chuyến. Phân công tàu được kiểm tra và xác nhận trong luồng riêng.' : 'Tạo chuyến ở trạng thái DRAFT. Có thể phân công tàu sau khi lưu.'} />
+      <PageHeader breadcrumb="LỊCH TRÌNH / CHUYẾN DU THUYỀN" title={editing ? 'Chỉnh sửa chuyến du thuyền' : 'Tạo chuyến du thuyền'} description={editing ? 'Chỉnh sửa dữ liệu chuyến. Phân công tàu được kiểm tra và xác nhận trong luồng riêng.' : 'Chọn thời gian và cảng đi, cảng kết thúc. Có thể phân công tàu sau khi lưu bản nháp.'} />
       <form onSubmit={submit} noValidate>
         <Panel title="Thông tin chuyến">
           <FormErrorSummary errors={errors} />
           <div className={styles.formGrid}>
             <Field htmlFor="cruise-name" label="Tên hiển thị" error={errors.cruiseName}><input id="cruise-name" value={draft.cruiseName} aria-invalid={Boolean(errors.cruiseName)} aria-describedby={errors.cruiseName ? 'cruise-name-hint' : undefined} onChange={(event) => update('cruiseName', event.target.value)} /></Field>
-            <Field htmlFor="cruise-type-form" label="Loại chuyến" error={errors.cruiseType}><select id="cruise-type-form" value={draft.cruiseType} onChange={(event) => update('cruiseType', event.target.value as CruiseType)}>{!editing && <option value="">Tự xác định theo số ngày chuyến</option>}<option value="ONE_DAY">Short Day · 1–2 ngày</option><option value="MULTI_DAYS">Long Days · 3–5 ngày</option></select></Field>
-            <Field htmlFor="departure-time" label="Khởi hành" error={errors.departureDatetime}><input id="departure-time" type="datetime-local" value={draft.departureDatetime} aria-invalid={Boolean(errors.departureDatetime)} aria-describedby={errors.departureDatetime ? 'departure-time-hint' : undefined} onChange={(event) => update('departureDatetime', event.target.value)} /></Field>
-            <Field htmlFor="return-time" label="Kết thúc" error={errors.returnDatetime}><input id="return-time" type="datetime-local" value={draft.returnDatetime} aria-invalid={Boolean(errors.returnDatetime)} aria-describedby={errors.returnDatetime ? 'return-time-hint' : undefined} onChange={(event) => update('returnDatetime', event.target.value)} /></Field>
+            <Field htmlFor="cruise-type-form" label="Loại chuyến" error={errors.cruiseType}><select id="cruise-type-form" value={draft.cruiseType} onChange={(event) => update('cruiseType', event.target.value as CruiseType)}>{!editing && <option value="">Để hệ thống tự xác định</option>}<option value="ONE_DAY">Chuyến trong ngày · ONE_DAY</option><option value="MULTI_DAYS">Chuyến nhiều ngày · MULTI_DAYS</option></select></Field>
+            <Field htmlFor="departure-time" label="Khởi hành (giờ Việt Nam)" error={errors.departureDatetime}><input id="departure-time" type="datetime-local" value={draft.departureDatetime} aria-invalid={Boolean(errors.departureDatetime)} aria-describedby={errors.departureDatetime ? 'departure-time-hint' : undefined} onChange={(event) => update('departureDatetime', event.target.value)} /></Field>
+            <Field htmlFor="return-time" label="Kết thúc (giờ Việt Nam)" error={errors.returnDatetime}><input id="return-time" type="datetime-local" value={draft.returnDatetime} aria-invalid={Boolean(errors.returnDatetime)} aria-describedby={errors.returnDatetime ? 'return-time-hint' : undefined} onChange={(event) => update('returnDatetime', event.target.value)} /></Field>
             <Field htmlFor="cruise-form-status" label="Trạng thái"><input id="cruise-form-status" value={currentStatus} disabled /></Field>
-            <Field htmlFor="departure-port" label="Cảng khởi hành" error={errors.departurePortId}><select id="departure-port" value={draft.departurePortId} aria-invalid={Boolean(errors.departurePortId)} aria-describedby={errors.departurePortId ? 'departure-port-hint' : undefined} onChange={(event) => update('departurePortId', event.target.value)}><option value="">Chọn cảng khởi hành</option>{ports.map((port) => <option value={port.portId} key={port.portId}>{port.portName}</option>)}</select></Field>
-            <Field htmlFor="return-port" label="Cảng trở về" error={errors.returnPortId}><select id="return-port" value={draft.returnPortId} aria-invalid={Boolean(errors.returnPortId)} aria-describedby={errors.returnPortId ? 'return-port-hint' : undefined} onChange={(event) => update('returnPortId', event.target.value)}><option value="">Chọn cảng trở về</option>{ports.map((port) => <option value={port.portId} key={port.portId}>{port.portName}</option>)}</select></Field>
+            <Field htmlFor="departure-port" label="Cảng khởi hành" error={errors.departurePortId}><select id="departure-port" disabled={busy || portsLoading || Boolean(portsError)} value={draft.departurePortId} aria-invalid={Boolean(errors.departurePortId)} aria-describedby={errors.departurePortId ? 'departure-port-hint' : undefined} onChange={(event) => update('departurePortId', event.target.value)}><option value="">Chọn cảng khởi hành</option>{portOptions.map(port => <option value={port.portId} key={port.portId}>{port.portName}{port.countryCode ? ` · ${port.countryCode}` : ''}{port.status !== 'ACTIVE' ? ' · Cảng đã lưu, không còn hoạt động' : ''}</option>)}</select></Field>
+            <Field htmlFor="return-port" label="Cảng trở về" error={errors.returnPortId}><select id="return-port" disabled={busy || portsLoading || Boolean(portsError)} value={draft.returnPortId} aria-invalid={Boolean(errors.returnPortId)} aria-describedby={errors.returnPortId ? 'return-port-hint' : undefined} onChange={(event) => update('returnPortId', event.target.value)}><option value="">Chọn cảng trở về</option>{portOptions.map(port => <option value={port.portId} key={port.portId}>{port.portName}{port.countryCode ? ` · ${port.countryCode}` : ''}{port.status !== 'ACTIVE' ? ' · Cảng đã lưu, không còn hoạt động' : ''}</option>)}</select></Field>
             <Field htmlFor="current-ship" label="Tàu hiện tại"><input id="current-ship" value={currentShip} disabled /></Field>
           </div>
-          <Notice title="Kiểm tra lịch theo loại chuyến"><p>Short Day: 1–2 ngày. Long Days: 3–5 ngày. Tính cả ngày đi và ngày về theo giờ Việt Nam; thời gian kết thúc phải sau khởi hành.</p></Notice>
-          <Notice title="Phân công tàu" tone="warning"><p>Gán, đổi hoặc gỡ tàu qua precheck riêng trên trang chi tiết. Lưu form không tự xác nhận assignment khi có conflict.</p></Notice>
+          {portsLoading && <Loading label="Đang tải danh sách cảng…" />}
+          {portsError && <Notice title="Không tải được danh sách cảng" tone="error"><p>{portsError}</p><Button type="button" tone="secondary" onClick={() => { setPortsLoading(true); setPortsError(''); setPortsAttempt(value=>value+1) }}>Tải lại danh sách cảng</Button></Notice>}
+          {!portsLoading && !portsError && <Notice title={`${ports.length} cảng đang hoạt động`}><p>Chọn một cảng khởi hành và một cảng kết thúc; hai cảng có thể trùng nhau. Những cảng ghé khác được thêm ở hải trình và điểm dừng sau khi lưu chuyến.</p>{!ports.length && <p>Chưa có cảng hoạt động trong dữ liệu hiện tại. Người quản lý cảng cần tạo hoặc kích hoạt cảng trước khi lập chuyến mới.</p>}</Notice>}
+          {detailError && <Notice title="Không tải được chuyến" tone="error"><p>{detailError}</p><Button type="button" tone="secondary" onClick={() => { setLoading(true); setDetailError(''); setDetailAttempt(value=>value+1) }}>Tải lại chuyến</Button></Notice>}
+          <Notice title="Thời gian chuyến đi"><p>Thời gian kết thúc phải sau khởi hành. Khi để trống loại chuyến, hệ thống sẽ tự xác định; biểu mẫu không giới hạn hành trình ở 5 ngày.</p></Notice>
+          <Notice title="Phân công tàu"><p>Sau khi lưu, mở chi tiết chuyến để chọn tàu và kiểm tra lịch trống trước khi xác nhận phân công.</p></Notice>
           {editing && loadedId === cruiseId && currentStatus !== 'DRAFT' && <Notice title="Không thể sửa chuyến" tone="warning"><p>Chỉ chuyến ở trạng thái DRAFT mới được chỉnh sửa.</p></Notice>}
           {submitError && <Notice title="Không lưu được cruise" tone="error"><p>{submitError}</p></Notice>}
-          <div className={styles.formActions}><Button type="submit" disabled={busy || !canSave}>{busy ? 'Đang lưu…' : editing ? 'Lưu thay đổi' : 'Tạo cruise'}</Button><Button tone="secondary" disabled={busy} onClick={() => navigate(editing && cruiseId ? `/admin/cruises/${cruiseId}` : '/admin/cruises')}>Hủy</Button></div>
+          <div className={styles.formActions}><Button type="submit" disabled={busy || !canSave}>{busy ? 'Đang lưu…' : editing ? 'Lưu thay đổi' : 'Tạo chuyến'}</Button><Button tone="secondary" disabled={busy} onClick={() => navigate(editing && cruiseId ? `/admin/cruises/${cruiseId}` : '/admin/cruises')}>Hủy</Button></div>
         </Panel>
       </form>
     </div>

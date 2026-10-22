@@ -1,0 +1,5 @@
+/* Official Google Fonts files, self-hosted; licenses in /fonts/. */
+@font-face { font-family:'Sora'; src:url('/fonts/Sora-Variable.ttf') format('truetype'); font-style:normal; font-weight:100 800; font-display:swap; }
+@font-face { font-family:'Be Vietnam Pro'; src:url('/fonts/BeVietnamPro-Regular.ttf') format('truetype'); font-style:normal; font-weight:400; font-display:swap; }
+@font-face { font-family:'Be Vietnam Pro'; src:url('/fonts/BeVietnamPro-Medium.ttf') format('truetype'); font-style:normal; font-weight:500; font-display:swap; }
+@font-face { font-family:'Be Vietnam Pro'; src:url('/fonts/BeVietnamPro-SemiBold.ttf') format('truetype'); font-style:normal; font-weight:600 900; font-display:swap; }

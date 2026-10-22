@@ -48,6 +48,7 @@ function sessionHarness() {
   const { router } = load('app/router.tsx', {
     ...features, 'react-router': { createBrowserRouter: routes => routes, Navigate: 'Navigate' },
     './layouts/PublicLayout': {}, './layouts/AdminAccountLayout': {}, './layouts/BookingSessionLayout': layout,
+    './RouteLoading': { RouteLoading: 'RouteLoading' }, './RouteErrorPage': {RouteErrorPage:'RouteErrorPage'},
     './pages/AdminBookingPages': {}, './pages/AdminWorkflowPage': {},
   })
   function stableRender(component, fiber) {
@@ -63,7 +64,7 @@ function sessionHarness() {
       if (identity !== providerIdentity) { providerIdentity = identity; providerFiber = { values: [] } }
       tree = stableRender(tree.type, providerFiber)
     }
-    return tree.props.children.props.value
+    return tree.props.value
   }
   return { render, signIn: id => { user = id ? { id } : null } }
 }

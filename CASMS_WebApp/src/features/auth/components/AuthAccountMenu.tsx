@@ -25,9 +25,9 @@ export function AuthAccountMenu() {
     finally { setBusy(false) }
   }
   return <div className={styles.account} ref={root}>
-    <button className={styles.accountTrigger} ref={trigger} type="button" aria-expanded={open} aria-controls="ocvviet-account-menu" onClick={() => setOpen((value) => !value)}>{auth.user.username} <span aria-hidden="true">▾</span></button>
-    {open && <div className={styles.accountMenu} id="ocvviet-account-menu" aria-label="Tài khoản OcvViet">
-      <button type="button" disabled title="Quản lý tài khoản chưa khả dụng">Tài khoản OcvViet</button>
+    <button className={styles.accountTrigger} ref={trigger} type="button" aria-expanded={open} aria-controls="ocevie-account-menu" onClick={() => setOpen((value) => !value)}>{auth.user.username} <span aria-hidden="true">▾</span></button>
+    {open && <div className={styles.accountMenu} id="ocevie-account-menu" aria-label="Tài khoản OceVie">
+      <button type="button" disabled title="Quản lý tài khoản chưa khả dụng">Tài khoản OceVie</button>
       <Link to="/my-bookings" onClick={() => setOpen(false)}>Booking của tôi</Link>
       {auth.isStaff && <Link to="/admin" onClick={() => setOpen(false)}>Khu vực quản trị</Link>}
       <button type="button" className={styles.logout} disabled={busy} onClick={() => void logout()}>{busy ? 'Đang đăng xuất…' : 'Đăng xuất'}</button>

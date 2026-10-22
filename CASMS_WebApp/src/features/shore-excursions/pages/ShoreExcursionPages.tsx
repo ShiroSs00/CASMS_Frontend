@@ -69,7 +69,7 @@ function ExcursionDetail({ id }: { id: string }) {
       <PageHeader breadcrumb="Dịch vụ bờ / Chuyến tham quan" title={item.excursionName} description={item.excursionCode ?? 'Chưa có mã chuyến tham quan'} actions={<><ExcursionBadge status={item.status} />{canEditExcursion(item.status) && access.has("EXCURSION_UPDATE") && <ButtonLink to={`${root}/${id}/edit`}>Chỉnh sửa</ButtonLink>}<Button tone="secondary" onClick={query.reload}>Tải lại</Button></>} />
       <ExcursionFacts item={item} />
       <div className={styles.actions}><ButtonLink tone="secondary" to={`/admin/suppliers/${item.supplierId}`}>Nhà cung cấp {item.supplierName}</ButtonLink><ButtonLink tone="secondary" to={`/admin/tour-groups?excursionId=${item.shoreExcursionId}`}>Các nhóm tham quan</ButtonLink></div>
-      <ButtonLink tone="secondary" to={`/admin/activity-registrations?excursionId=${encodeURIComponent(id)}`}>Đăng ký & điểm danh hành khách</ButtonLink>
+      {(access.has('ACTIVITY_ATTENDANCE') || access.has('ACTIVITY_REGISTRATION')) && <ButtonLink tone="secondary" to={`/admin/activity-registrations?excursionId=${encodeURIComponent(id)}`}>Đăng ký & điểm danh hành khách</ButtonLink>}
       <ExcursionActions excursion={item} onRefresh={query.reload} />
     </>}
   </ShoreLayout>

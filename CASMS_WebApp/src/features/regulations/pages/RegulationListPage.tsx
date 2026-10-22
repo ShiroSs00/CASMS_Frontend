@@ -191,7 +191,7 @@ export function RegulationListPage() {
           Trạng thái cấu hình cho biết quy định đang DRAFT, ACTIVE hay INACTIVE.
           Hiệu lực tại thời điểm được tính riêng từ trạng thái và khoảng thời gian áp dụng.
         </Notice>
-        <Notice title="Lọc trên danh sách đã tải" tone="info">Bộ lọc áp dụng cho dữ liệu hiện có. Tìm kiếm và phân trang trên máy chủ chưa khả dụng.</Notice>
+        <Notice title="Lọc trên danh sách đã tải" tone="info">Bộ lọc áp dụng cho dữ liệu hiện có. Dùng các bộ lọc để thu hẹp kết quả.</Notice>
       </Panel>
 
       <Panel title={`Danh sách quy định · ${items.length}`}>

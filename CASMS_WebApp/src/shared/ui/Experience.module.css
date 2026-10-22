@@ -6,13 +6,13 @@
   --ui-subtle: var(--surface-subtle, #f4f7f8);
   --ui-border: var(--border-default, #d5e0e4);
   --ui-brand: var(--surface-brand, #0b2a4a);
-  --ui-accent: #ca9632;
+  --ui-accent: #d4af37;
   --ui-focus: #0e6b7a;
   --ui-danger: #b42318;
   --ui-radius: 10px;
   --ui-panel-radius: 14px;
   --ui-control-height: 44px;
-  --ui-font: 'OceVie Inter', Inter, 'Segoe UI', system-ui, sans-serif;
+  --ui-font: var(--font-family-body);
   --ui-shadow: 0 2px 8px rgb(6 23 37 / 4%);
   font-family: var(--ui-font);
   line-height: 1.5;
@@ -46,3 +46,5 @@
 .admin :where(select), .booking :where(select), .overlay :where(select) { text-overflow:ellipsis; }
 .admin :where(fieldset), .booking :where(fieldset) { min-inline-size:0; }
 .admin :where(button,a,input,select,textarea), .booking :where(button,a,input,select,textarea), .overlay :where(button,a,input,select,textarea) { -webkit-tap-highlight-color:transparent; }
+
+.admin :where(h1,h2,h3),.booking :where(h1,h2,h3),.overlay :where(h1,h2,h3) { font-family:var(--font-family-heading); font-weight:600; }

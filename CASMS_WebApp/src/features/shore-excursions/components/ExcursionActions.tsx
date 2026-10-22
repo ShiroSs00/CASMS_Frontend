@@ -43,20 +43,22 @@ export function ExcursionActions({ excursion, onRefresh }: { excursion: ShoreExc
     const result = await mutation.run((signal) => shoreExcursionApi.availability(excursion.shoreExcursionId, count, signal))
     if (result.ok) setReport(`Kết quả cho ${count} khách: ${statusLabels[result.value.status]}, còn ${result.value.availableCapacity} chỗ.`)
   }
-  return <Panel title="Thao tác chuyến tham quan">
+  const canManage = ['EXCURSION_STATUS_CHANGE', 'EXCURSION_DELETE_DRAFT', 'EXCURSION_VALIDATE'].some(value => access.has(value))
+  if (!canManage && (excursion.status !== 'OPEN' || !access.has('EXCURSION_READ'))) return null
+  return <Panel title={canManage ? 'Thao tác chuyến tham quan' : 'Tra cứu chỗ trống'}>
     {!action && mutation.error != null && <ShoreError error={mutation.error} />}
     {report && <Notice title="Kết quả từ hệ thống">{report}</Notice>}
     <div className={styles.actions}>
-      {lifecycleActions(excursion.status).map((next) => <Button key={next} tone={next === 'cancel' ? 'danger' : 'secondary'} disabled={mutation.busy || !access.has(permission(next))} onClick={() => open(next)}>{labels[next]}</Button>)}
-      <Button tone="secondary" disabled={mutation.busy || !access.has(permission('validate'))} onClick={() => open('validate')}>{labels.validate}</Button>
-      <Button tone="secondary" disabled={mutation.busy || !access.has(permission('refresh-capacity'))} onClick={() => open('refresh-capacity')}>{labels['refresh-capacity']}</Button>
-      {canDeleteExcursion(excursion.status) && <Button tone="danger" disabled={mutation.busy || !access.has(permission('remove'))} onClick={() => open('remove')}>{labels.remove}</Button>}
+      {lifecycleActions(excursion.status).map((next) => (access.has(permission(next)) ? <Button key={next} tone={next === 'cancel' ? 'danger' : 'secondary'} disabled={mutation.busy || !access.has(permission(next))} onClick={() => open(next)}>{labels[next]}</Button> : null))}
+      {access.has(permission('validate')) && <Button tone="secondary" disabled={mutation.busy || !access.has(permission('validate'))} onClick={() => open('validate')}>{labels.validate}</Button>}
+      {access.has(permission('refresh-capacity')) && <Button tone="secondary" disabled={mutation.busy || !access.has(permission('refresh-capacity'))} onClick={() => open('refresh-capacity')}>{labels['refresh-capacity']}</Button>}
+      {canDeleteExcursion(excursion.status) && (access.has(permission('remove')) ? <Button tone="danger" disabled={mutation.busy || !access.has(permission('remove'))} onClick={() => open('remove')}>{labels.remove}</Button> : null)}
     </div>
     {excursion.status === 'OPEN' && <form className={styles.actions} onSubmit={(event) => void checkAvailability(event)}>
       <Field htmlFor="excursion-participants" label="Số khách cần kiểm tra"><input id="excursion-participants" type="number" min={1} max={2147483647} step={1} required disabled={mutation.busy} value={participants} onChange={(event) => { setParticipants(event.target.value); setReport('') }} /></Field>
-      <Button type="submit" tone="secondary" disabled={mutation.busy || !access.has('EXCURSION_READ')}>Kiểm tra chỗ trống</Button>
+      {access.has('EXCURSION_READ') && <Button type="submit" tone="secondary" disabled={mutation.busy || !access.has('EXCURSION_READ')}>Kiểm tra chỗ trống</Button>}
     </form>}
-    {action && <Modal title={labels[action]} busy={mutation.busy} onClose={() => setAction(null)} footer={<div className={styles.actions}><Button tone="secondary" disabled={mutation.busy} onClick={() => setAction(null)} data-overlay-dismiss>Quay lại</Button><Button tone={action === 'cancel' || action === 'remove' ? 'danger' : 'primary'} disabled={mutation.busy || !access.has(permission(action)) || (action === 'cancel' && (!reason.trim() || reason.trim().length > 500))} onClick={() => void execute()}>{mutation.busy ? 'Đang xử lý…' : 'Xác nhận'}</Button></div>}>
+    {action && access.has(permission(action)) && <Modal title={labels[action]} busy={mutation.busy} onClose={() => setAction(null)} footer={<div className={styles.actions}><Button tone="secondary" disabled={mutation.busy} onClick={() => setAction(null)} data-overlay-dismiss>Quay lại</Button>{access.has(permission(action)) && <Button tone={action === 'cancel' || action === 'remove' ? 'danger' : 'primary'} disabled={mutation.busy || !access.has(permission(action)) || (action === 'cancel' && (!reason.trim() || reason.trim().length > 500))} onClick={() => void execute()}>{mutation.busy ? 'Đang xử lý…' : 'Xác nhận'}</Button>}</div>}>
       <p className={styles.text}>{excursion.excursionName}</p>
       {action === 'remove' ? <p>Chỉ có thể xóa chuyến tham quan đang lên kế hoạch và chưa có đăng ký. Hệ thống sẽ kiểm tra trước khi xóa.</p>
         : action === 'start' ? <p>Chỉ bắt đầu khi thời điểm hiện tại nằm trong khoảng thời gian diễn ra chuyến tham quan. Hệ thống kiểm tra điều kiện trước khi cập nhật.</p>

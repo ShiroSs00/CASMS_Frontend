@@ -1,4 +1,4 @@
-import { apiRequest } from '@/shared/api'
+import { ApiError, apiRequest } from '@/shared/api'
 import { decodeBookingContext, decodeBookingSummary, type BookingContext, type BookingSummary } from '@/domain/booking-context'
 export type AvailableCabin = { cabinId: string; cabinNumber: string; deckId: string | null; deckNumber: number | null; deckName: string | null; cabinType: string; capacity: number; remainingCapacity: number; isAccessible: boolean | null; priceMultiplier?: number | null; estimatedPrice?: number | null }
 export type BookingListItem = BookingSummary & { agreedFareAmount: number | null; currency: string | null; departureDatetime: string | null; passengerCount: number | null }
@@ -36,6 +36,16 @@ function decodeListItem(value: unknown): BookingListItem {
 const path = (id: string) => '/booking/' + encodeURIComponent(id)
 export function serializeBooking(draft: BookingDraft) {
   return { cruiseId: draft.cruiseId, currency: draft.currency, paymentPlan: draft.paymentPlan, notes: draft.notes.trim() || undefined, passengers: draft.passengers.map(person => ({ fullName: person.fullName.trim(), cabinId: person.cabinId, dateOfBirth: person.dateOfBirth || undefined, nationality: person.nationality.trim() || undefined, documentType: person.documentType || undefined, documentNumber: person.documentNumber.trim() || undefined, email: person.email.trim() || undefined, phoneNumber: person.phoneNumber.trim() || undefined, tourPackageId: person.tourPackageId || undefined })) }
+}
+export function bookingPackageErrors(draft: BookingDraft, packages: { id: string; currency: string }[] | null): Record<string, string> {
+  const errors: Record<string, string> = {}
+  draft.passengers.forEach((person, index) => {
+    if (!person.tourPackageId) return
+    const pack = packages?.find(item => item.id === person.tourPackageId)
+    if (!pack) errors[`person-${index}-tourPackageId`] = 'Gói đã chọn chưa tải được hoặc không còn hoạt động. Bỏ chọn hoặc tải lại gói.'
+    else if (pack.currency !== draft.currency) errors[`person-${index}-tourPackageId`] = `Gói dùng ${pack.currency}, khác tiền tệ đặt chỗ ${draft.currency}. Chọn gói cùng tiền tệ hoặc bỏ chọn gói.`
+  })
+  return errors
 }
 export function bookingFieldErrors(draft: BookingDraft, cruise: BookingCruiseOption | undefined, cabins: AvailableCabin[] | null, now = Date.now(), step = 3): Record<string, string> {
   const errors: Record<string, string> = {}
@@ -99,7 +109,17 @@ export const realBookingApi = {
     return items
   },
   async packages(signal?: AbortSignal) { const data = await apiRequest<{ id: string; name: string; status: string; price: number; currency: string }[]>('/servicepackage/packages', { signal }); if (!Array.isArray(data) || data.some(item => !item || !item.id || !item.name || typeof item.status !== 'string' || typeof item.price !== 'number' || !Number.isFinite(item.price) || item.price < 0 || typeof item.currency !== 'string' || !/^[A-Z]{3}$/.test(item.currency))) throw new Error('Không tải được gói dịch vụ.'); return data.filter(item => item.status === 'ACTIVE') },
-  async create(draft: BookingDraft) { const data = decodeBookingDetail(await apiRequest<unknown>('/booking', { method: 'POST', body: serializeBooking(draft) })); if (data.cruiseId !== draft.cruiseId) throw new Error('Chuyến đi trả về không khớp yêu cầu đặt chỗ; cần kiểm tra kết quả trước khi gửi lại.'); return data },
+  async create(draft: BookingDraft) {
+    if (draft.passengers.some(person => person.tourPackageId)) {
+      // This read happens before any write. A failure here is safe to retry.
+      const packages = await realBookingApi.packages().catch(() => { throw new ApiError('Chưa kiểm tra được gói dịch vụ. Đặt chỗ chưa được gửi; hãy tải lại gói và thử lại.', 422) })
+      const errors = bookingPackageErrors(draft, packages)
+      if (Object.keys(errors).length) throw new ApiError(Object.values(errors)[0], 422)
+    }
+    const data = decodeBookingDetail(await apiRequest<unknown>('/booking', { method: 'POST', body: serializeBooking(draft) }))
+    if (data.cruiseId !== draft.cruiseId) throw new Error('Chuyến đi trả về không khớp yêu cầu đặt chỗ; cần kiểm tra kết quả trước khi gửi lại.')
+    return data
+  },
   confirm: async (id: string) => decodeBookingDetail(await apiRequest<unknown>(path(id) + '/confirm', { method: 'POST' })),
   cancel: async (id: string, reason: string) => decodeBookingDetail(await apiRequest<unknown>(path(id) + '/cancel', { method: 'POST', body: { reason: reason.trim() } })),
   changeCabin: async (bookingPassengerId: string, newCabinId: string, changeReason: string) => decodeBookingDetail(await apiRequest<unknown>('/booking/change-cabin', { method: 'POST', body: { bookingPassengerId, newCabinId, changeReason: changeReason.trim() || undefined } })),

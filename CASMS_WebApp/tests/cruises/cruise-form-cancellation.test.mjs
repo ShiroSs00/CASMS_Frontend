@@ -8,7 +8,7 @@ const source = ts.transpileModule(readFileSync(new URL('../../src/features/cruis
   compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 },
 }).outputText
 const flush = () => new Promise(setImmediate)
-const port = (name) => [{ portId: name, portName: name }]
+const port = (name) => [{ portId: name, portName: name, status:'ACTIVE',countryCode:'' }]
 const detail = (id) => ({ cruise: { cruiseId: id, cruiseCode: id, cruiseName: id, status: 'DRAFT', cruiseType: 'ONE_DAY', departureDatetime: '2026-10-18T01:00:00Z', returnDatetime: '2026-10-18T03:00:00Z', departurePortId: 'port', returnPortId: 'port' }, ship: null })
 function nodes(tree) { return Array.isArray(tree) ? tree.flatMap(nodes) : tree && typeof tree === 'object' ? [tree, ...nodes(tree.props?.children)] : [] }
 function text(tree) { return Array.isArray(tree) ? tree.map(text).join('') : tree && typeof tree === 'object' ? text(tree.props?.children) : String(tree ?? '') }
@@ -37,7 +37,7 @@ function mount(cruiseId) {
     if (id.endsWith('/CruiseUI')) return { CruiseFrame: 'CruiseFrame' }
     if (id.endsWith('/cruise-api')) return { cruiseApi: { getDetail: (...args) => request('getDetail', args), listPorts: (...args) => request('listPorts', args) } }
     if (id.endsWith('.module.css')) return { default: {} }
-    if (id.endsWith('/cruise-validation')) return {}
+    if (id.endsWith('/cruise-validation')) return { localCruiseInput:value=>value.slice(0,16) }
       if (id === '@/shared/auth') return { useSessionAccess: () => ({ has: () => true }) }
       throw new Error('Unexpected import: ' + id)
   } })

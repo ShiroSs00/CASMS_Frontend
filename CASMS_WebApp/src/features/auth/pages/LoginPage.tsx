@@ -1,3 +1,4 @@
+import { roleSafeAdminReturnTo } from '@/shared/ui/admin-v3'
 import { useEffect, useState } from 'react'
 import { authSession } from '../model/auth-session'
 import { Navigate, useNavigate, useSearchParams } from 'react-router'
@@ -11,10 +12,11 @@ export function LoginPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const customerReturnTo = safeCustomerReturnTo(params.get('returnTo'))
-  const returnTo = customerReturnTo ?? safeAdminReturnTo(params.get('returnTo')) ?? '/admin'
+  const adminReturnTo = safeAdminReturnTo(params.get('returnTo'))
+  const destination = (roles: readonly string[]) => customerReturnTo ?? roleSafeAdminReturnTo(roles,adminReturnTo) ?? '/403'
   const [arrivedExpired] = useState(auth.status === 'expired')
   const expired = arrivedExpired || params.get('reason') === 'expired'
   useEffect(() => { authSession.acknowledgeExpiry() }, [])
-  if (auth.user) return <Navigate to={auth.isStaff ? returnTo : customerReturnTo ?? '/my-bookings'} replace />
-  return <AuthPageShell expired={expired}><LoginForm expired={expired} login={auth.login} onSuccess={(user) => navigate(isStaff(user) ? returnTo : customerReturnTo ?? '/my-bookings', { replace: true })} /></AuthPageShell>
+  if (auth.user) return <Navigate to={auth.isStaff ? destination(auth.user.roles) : customerReturnTo ?? '/my-bookings'} replace />
+  return <AuthPageShell expired={expired}><LoginForm expired={expired} login={auth.login} onSuccess={(user) => navigate(isStaff(user) ? destination(user.roles) : customerReturnTo ?? '/my-bookings', { replace: true })} /></AuthPageShell>
 }

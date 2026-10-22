@@ -35,6 +35,7 @@ async function sandbox(caps = permissions) {
     if (p === '/cruise') return reply({ content: [{ cruiseId: cr, shipId: ship, cruiseName: booking.cruiseName, status: 'PUBLISHED', departureDatetime: '2099-01-01T00:00:00Z' }], number: 0, totalPages: 1, totalElements: 1 })
     if (p === '/booking/available-cabins') return reply([{ cabinId: 'c', cabinNumber: '101', capacity: 2, remainingCapacity: 2 }])
     if (p === '/servicepackage/packages') return reply([{ id: 'pack', name: 'Fixture premium', status: 'ACTIVE', price: 20, currency: 'USD' }])
+    if (p === '/servicepackage/packages/pack/benefits') return reply({ packageInfo: { id: 'pack', code: 'PK', name: 'Fixture premium', type: 'PREMIUM', price: 20, currency: 'USD', status: 'ACTIVE' }, services: [{ packageId: 'pack', serviceId: 's', benefitType: 'INCLUDED' }], activities: [], excursions: [] }, state.packageStatus)
     if (p === '/servicepackage/packages/pack') return reply({ id: state.malformed ? 'wrong' : 'pack', code: 'PK', name: 'Fixture premium', description: 'Verified fixture package details', type: 'PREMIUM', price: 20, currency: 'USD', status: 'ACTIVE', startDate: null, endDate: null }, state.packageStatus)
     if (p === '/activities' && method === 'GET') return reply([activity, { ...activity, id: 'other', cruiseId: 'other-cruise', name: 'OTHER_CRUISE_MUST_NOT_RENDER' }])
     if (p === '/activities/a' && method === 'GET') return reply(activity)

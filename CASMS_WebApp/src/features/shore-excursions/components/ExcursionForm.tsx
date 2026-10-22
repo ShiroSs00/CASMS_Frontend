@@ -49,7 +49,7 @@ export function ExcursionForm({ initial, busy, onSave }: { initial?: ShoreExcurs
             inputMode={key === 'price' ? 'decimal' : undefined} value={values[key]} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? `excursion-${key}-hint` : undefined}
             onChange={(event) => setValues({ ...values, [key]: event.target.value })} />
         </Field>)}
-        <div className={styles.actions}><Button type="submit" disabled={busy || !access.has(initial ? 'EXCURSION_UPDATE' : 'EXCURSION_CREATE') || stops.loading || suppliers.loading || Boolean(stops.error || suppliers.error) || !stops.data?.length}>{busy ? 'Đang lưu…' : 'Lưu chuyến tham quan'}</Button><Link to={initial ? `/admin/shore-excursions/${initial.shoreExcursionId}` : '/admin/shore-excursions'}>Quay lại</Link></div>
+        <div className={styles.actions}>{access.has(initial ? 'EXCURSION_UPDATE' : 'EXCURSION_CREATE') && <Button type="submit" disabled={busy || !access.has(initial ? 'EXCURSION_UPDATE' : 'EXCURSION_CREATE') || stops.loading || suppliers.loading || Boolean(stops.error || suppliers.error) || !stops.data?.length}>{busy ? 'Đang lưu…' : 'Lưu chuyến tham quan'}</Button>}<Link to={initial ? `/admin/shore-excursions/${initial.shoreExcursionId}` : '/admin/shore-excursions'}>Quay lại</Link></div>
       </fieldset>
     </form>
   </>

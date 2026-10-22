@@ -7,7 +7,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router'
 
-let server, api, shared, ui, tourUI
+let server, api, shared, ui, tourUI, access
 const id = '00000000-0000-4000-8000-000000000001', targetId = '00000000-0000-4000-8000-000000000002'
 const row = { tourGroupPassengerId: id, tourGroupId: id, shoreExcursionId: id, passengerId: id, groupCode: 'Nhóm A', assignmentStatus: 'ASSIGNED', assignedAt: null, checkedInAt: null, returnedAt: null, createdAt: null }
 const group = { tourGroupId: id, shoreExcursionId: id, excursionName: 'Tour', groupCode: 'Nhóm A', maximumCapacity: 10, assignedPassengers: 1, availableCapacity: 9, status: 'ASSEMBLING' }
@@ -19,6 +19,7 @@ before(async () => {
   shared = await server.ssrLoadModule('/src/shared/api/index.ts')
   ui = await server.ssrLoadModule('/src/features/tour-groups/components/GroupPassengers.tsx')
   tourUI = await server.ssrLoadModule('/src/features/tour-groups/components/TourUI.tsx')
+  access = await server.ssrLoadModule('/src/shared/auth/session-access.ts')
   shared.setApiAccessToken('isolated-frontend-test-token')
 })
 after(async () => { await server?.close() })
@@ -112,6 +113,7 @@ test('existing envelope client still rejects raw DTOs and accepts its documented
 })
 
 test('isolated roster render preserves context, escapes raw text and exposes only eligible controls', () => {
+  access.setSessionAccess({ status: 'ready', userId: 'staff', permissions: ['TOUR_GROUP_PASSENGER_MOVE', 'TOUR_GROUP_PASSENGER_REMOVE', 'TOUR_GROUP_PASSENGER_ATTENDANCE'], error: '' })
   const render = (status, assignmentStatus, busy = false) => renderToStaticMarkup(createElement(MemoryRouter, null, createElement(ui.PassengerRoster, { group: { ...group, status }, rows: [{ ...row, groupCode: '<script>unsafe</script>', assignmentStatus }], busy, onAction() {} })))
   const assembling = render('ASSEMBLING', 'ASSIGNED')
   for (const label of ['Chuyển nhóm', 'Gỡ phân công', 'Điểm danh khởi hành']) assert.ok(assembling.includes(label))
@@ -122,6 +124,10 @@ test('isolated roster render preserves context, escapes raw text and exposes onl
   assert.ok(render('ASSEMBLING', 'ASSIGNED', true).includes('disabled=""'))
   assert.ok(render('DEPARTED', 'CHECKED_IN').includes('Điểm danh trở về'))
   for (const status of ['COMPLETED', 'CANCELLED']) assert.ok(render('RETURNED', status).includes('Không có thao tác phù hợp.'))
+  access.setSessionAccess({ status: 'ready', userId: 'reader', permissions: ['TOUR_GROUP_READ'], error: '' })
+  const readonly = render('ASSEMBLING', 'ASSIGNED')
+  for (const label of ['Chuyển nhóm', 'Gỡ phân công', 'Điểm danh khởi hành']) assert.ok(!readonly.includes(label))
+  assert.ok(readonly.includes(`href="/admin/tour-groups/${id}"`))
   const empty = renderToStaticMarkup(createElement(ui.PassengerRoster, { group, rows: [], busy: false, onAction() {} }))
   assert.ok(empty.includes('Chưa có phân công hành khách trong nhóm'))
   const loading = renderToStaticMarkup(createElement(ui.GroupPassengers, { group, onChanged() {} }))

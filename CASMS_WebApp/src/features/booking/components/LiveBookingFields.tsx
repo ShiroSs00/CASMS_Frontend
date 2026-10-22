@@ -29,14 +29,14 @@ export function CabinPassengerFields({ cabins, packages, publicJourney = false }
         <select id={`person-${index}-tourPackageId`} value={person.tourPackageId} disabled={!packages && !person.tourPackageId} aria-invalid={Boolean(errors[`person-${index}-tourPackageId`])} aria-describedby={publicJourney || errors[`person-${index}-tourPackageId`] ? `person-${index}-tourPackageId-hint` : undefined} onChange={event => update(index, 'tourPackageId', event.target.value)}>
           <option value="">Không chọn gói</option>
           {person.tourPackageId && !packages?.some(item => item.id === person.tourPackageId) && <option value={person.tourPackageId}>Gói đã chọn cần kiểm tra lại</option>}
-          {packages?.map(pack => <option key={pack.id} value={pack.id}>{pack.name} · {publicJourney ? bookingMoney(pack.price, pack.currency) : `${pack.price} ${pack.currency}`}</option>)}
+          {packages?.map(pack => <option key={pack.id} value={pack.id} disabled={pack.currency !== draft.currency}>{pack.name} · {publicJourney ? bookingMoney(pack.price, pack.currency) : `${pack.price} ${pack.currency}`}{pack.currency !== draft.currency ? ` · Khác tiền tệ đặt chỗ (${draft.currency})` : ''}</option>)}
         </select>
       </Field>
       {publicJourney && person.tourPackageId && <CustomerPackageDetails key={person.tourPackageId} id={person.tourPackageId} passenger={index + 1} />}
       {index > 0 && <Button tone="secondary" onClick={() => setDraft(current => ({ ...current, passengers: current.passengers.filter((_, i) => i !== index) }))}>Bỏ hành khách {index + 1}</Button>}
     </Panel>)}
     <Button tone="secondary" onClick={() => setDraft(current => ({ ...current, passengers: [...current.passengers, blankBookingPerson()] }))}>Thêm hành khách</Button>
-    <p>Chọn gói không tự động giữ chỗ dịch vụ hoặc hoạt động trong gói. Phòng còn trống sẽ được kiểm tra lại khi gửi đặt chỗ.</p>
+    <p>Đặt chỗ đang dùng {draft.currency}. Chỉ chọn gói cùng tiền tệ; hệ thống không tự quy đổi. Chọn gói không tự động giữ chỗ dịch vụ hoặc hoạt động trong gói. Phòng còn trống sẽ được kiểm tra lại khi gửi đặt chỗ.</p>
   </div>
 }
 

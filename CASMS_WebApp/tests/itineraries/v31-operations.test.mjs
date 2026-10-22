@@ -84,6 +84,12 @@ function mountStop(allowed) {
 test('actual stop form asks confirmation, blocks permission denial and locks double submission (unit; no live write)', async () => {
   for (const allowed of [false, true]) {
     const page = mountStop(allowed)
+    if (!allowed) {
+      assert.equal(page.render().some(n => n.type === 'form'), false)
+      assert.equal(page.render().some(n => n.props?.id === 'stop-operation-value'), false)
+      assert.equal(page.calls(), 0)
+      continue
+    }
     page.render().find(n => n.props?.id === 'stop-operation-value').props.onChange({ target: { value: '3' } })
     await page.render().find(n => n.type === 'form').props.onSubmit({ preventDefault() {} }); assert.equal(page.calls(), 0)
     const submit = page.render().find(n => n.type === 'form').props.onSubmit

@@ -79,7 +79,7 @@ for (const key of [`deck-parent:${ship.id}`, `deck-capacity:${deck.id}`, `deck-c
     else assert.doesNotMatch(text(tree), /Tổng số cabin/)
     if (!key.startsWith('deck-cabins:')) assert.ok(all.some(node => node.type === 'DataTable'))
     else assert.ok(!all.some(node => node.type === 'DataTable'))
-    if (key.startsWith('deck-parent:')) assert.ok(all.some(node => node.type === 'Link' && node.props.to === '/admin/ships/' + ship.id && text(node.children).includes(ship.id)))
+    if (key.startsWith('deck-parent:')) assert.ok(all.some(node => node.type === 'Link' && node.props.to === '/admin/ships/' + ship.id && text(node.children).includes('Xem tàu liên kết')))
   })
 }
 

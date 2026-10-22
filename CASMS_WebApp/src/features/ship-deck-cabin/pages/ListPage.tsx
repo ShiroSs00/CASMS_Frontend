@@ -85,7 +85,7 @@ function ListPage({ kind }: { kind: EntityKind }) {
           {kind === 'cabins' && <InputField label="Sức chứa tối thiểu" type="number" min={1} step={1} value={filters.minCapacity} error={filterError} onChange={(event) => update('minCapacity', event.target.value)} placeholder="Không giới hạn" />}
         </div>
         <div className={styles.actions}><Button type="submit">Áp dụng bộ lọc</Button><Button tone="secondary" onClick={() => { setFilters(empty); apply(empty) }}>Xóa bộ lọc</Button>
-          {kind === 'cabins' && <Button tone="text" disabled={!access.has('CABIN_SEARCH')} onClick={() => { const values = { ...filters, status: 'AVAILABLE', available: '1' }; setFilters(values); apply(values) }}>Tìm cabin sẵn sàng</Button>}
+          {kind === 'cabins' && (access.has('CABIN_SEARCH') ? <Button tone="text" disabled={!access.has('CABIN_SEARCH')} onClick={() => { const values = { ...filters, status: 'AVAILABLE', available: '1' }; setFilters(values); apply(values) }}>Tìm cabin sẵn sàng</Button> : null)}
         </div>
         {kind === 'cabins' && <p className={styles.muted}>Trạng thái Sẵn sàng không xác nhận cabin còn chỗ cho một đặt chỗ hoặc chuyến đi cụ thể. Hãy kiểm tra yêu cầu chuyến đi trước khi gán khách.</p>}
       </form>
@@ -105,7 +105,7 @@ function ListPage({ kind }: { kind: EntityKind }) {
               <Link className={styles.link} to={`/admin/${kind}/${row.id}/edit`}>Chỉnh sửa</Link>
               {'code' in row && <><Link className={styles.link} to={`/admin/decks?ship=${row.id}`}>Boong</Link><Link className={styles.link} to={`/admin/cabins?ship=${row.id}`}>Cabin</Link></>}
               {kind === 'decks' && 'shipId' in row && <Link className={styles.link} to={`/admin/cabins?ship=${row.shipId}&deck=${row.id}`}>Xem cabin</Link>}
-              <button className={`${styles.link} ${styles.danger}`} disabled={!access.has(entityPermission(kind, 'DELETE'))} onClick={() => { mutation.clear(); setDeleting(row) }}>Xóa chưa sử dụng</button>
+              {access.has(entityPermission(kind, 'DELETE')) && <button className={`${styles.link} ${styles.danger}`} disabled={!access.has(entityPermission(kind, 'DELETE'))} onClick={() => { mutation.clear(); setDeleting(row) }}>Xóa chưa sử dụng</button>}
             </div></td>
           </tr>)}
         </DataTable>
@@ -114,7 +114,7 @@ function ListPage({ kind }: { kind: EntityKind }) {
     </Panel>
     {deleting && <Modal title={`Xóa ${kindLabels[kind]} chưa sử dụng?`} busy={mutation.busy} onClose={() => setDeleting(null)}>
       <div className={styles.stack}>
-        <Notice title={entityName(deleting)} tone="warning">Xóa đối tượng khỏi hệ thống. Backend sẽ kiểm tra điều kiện chưa sử dụng; thao tác có thể bị từ chối khi còn dữ liệu liên quan.</Notice>
+        <Notice title={entityName(deleting)} tone="warning">Chỉ có thể xóa mục chưa được sử dụng và không còn dữ liệu liên quan.</Notice>
         {mutation.error && <Notice title="Xóa thất bại" tone="error">{mutation.error}</Notice>}
         <div className={styles.actions}><Button tone="danger" disabled={mutation.busy} onClick={() => void mutation.run(async () => { if (!access.has(entityPermission(kind, 'DELETE'))) return; await shipDeckCabinApi.deleteUnused(kind, deleting.id); setDeleting(null) }, 'Đã xóa đối tượng chưa sử dụng.')}>{mutation.busy ? 'Đang xóa…' : 'Xác nhận xóa'}</Button><Button tone="secondary" disabled={mutation.busy} onClick={() => setDeleting(null)} data-overlay-dismiss>Hủy</Button></div>
       </div>

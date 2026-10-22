@@ -106,7 +106,7 @@ export function SupplierDetail({
           <p>{supplier.supplierType || 'Chưa phân loại'}</p>
         </div>
         <div className={styles.headerActions}>
-          <button
+          {access.has('SUPPLIER_VALIDATE') && <button
             type="button"
             className={styles.validateButton}
             onClick={onValidate}
@@ -114,11 +114,11 @@ export function SupplierDetail({
             title="Kiểm tra tính hợp lệ dữ liệu hồ sơ đối tác"
           >
             {actionInProgress === 'validate' ? 'Đang kiểm tra...' : 'Kiểm tra hợp lệ'}
-          </button>
+          </button>}
           {access.has('SUPPLIER_UPDATE') && <Link to={`/admin/suppliers/${supplier.id}/edit`} className={styles.editButton}>
             Chỉnh sửa
           </Link>}
-          <button
+          {access.has('SUPPLIER_STATUS_CHANGE') && <button
             type="button"
             className={styles.statusButton}
             onClick={onToggleStatus}
@@ -138,8 +138,8 @@ export function SupplierDetail({
                 : supplier.status === 'ACTIVE'
                   ? 'Tạm dừng'
                   : 'Kích hoạt'}
-          </button>
-          <button
+          </button>}
+          {access.has('SUPPLIER_DELETE') && <button
             type="button"
             className={styles.deleteButton}
             onClick={() => setShowDeleteModal(true)}
@@ -147,7 +147,7 @@ export function SupplierDetail({
             title="Xóa nhà cung cấp nếu chưa được sử dụng"
           >
             {actionInProgress === 'delete' ? 'Đang xóa...' : 'Xóa'}
-          </button>
+          </button>}
         </div>
       </header>
 
@@ -172,17 +172,17 @@ export function SupplierDetail({
           <p className={styles.cardValue}>{supplierDateTime(supplier.updatedAt)}</p>
         </div>
 
-        <div className={styles.summaryCard}>
+        {access.has('SUPPLIER_VERIFY') && <div className={styles.summaryCard}>
           <p className={styles.cardLabel}>HÀNH ĐỘNG XÁC MINH</p>
-          <button
+          {access.has('SUPPLIER_VERIFY') && <button
             type="button"
             className={styles.verifyActiveBtn}
             onClick={() => setShowVerifyModal(true)}
             disabled={actionInProgress !== null || !access.has('SUPPLIER_VERIFY')}
           >
             {actionInProgress === 'verify' ? 'Đang xác minh...' : 'Xác minh nhà cung cấp'}
-          </button>
-        </div>
+          </button>}
+        </div>}
       </section>
 
       {/* Two-column info cards */}
@@ -268,9 +268,9 @@ export function SupplierDetail({
       </footer>
 
       {/* Verification modal dialog */}
-      {showVerifyModal && (
+      {showVerifyModal && access.has('SUPPLIER_VERIFY') && (
         <Modal title="Xác minh nhà cung cấp" busy={actionInProgress === 'verify'} onClose={() => { setShowVerifyModal(false); setVerificationNotes('') }} footer={<div className={styles.dialogActions}>
-              <button
+              {access.has('SUPPLIER_VERIFY') && <button
                 type="button"
                 className={styles.statusButton}
                 onClick={() => {
@@ -280,15 +280,15 @@ export function SupplierDetail({
                 disabled={actionInProgress === 'verify' || !access.has('SUPPLIER_VERIFY')} data-overlay-dismiss
               >
                 Hủy
-              </button>
-              <button
+              </button>}
+              {access.has('SUPPLIER_VERIFY') && <button
                 type="button"
                 className={styles.editButton}
                 onClick={handleConfirmVerify}
                 disabled={actionInProgress === 'verify' || !access.has('SUPPLIER_VERIFY')}
               >
                 {actionInProgress === 'verify' ? 'Đang xác minh...' : 'Xác nhận'}
-              </button>
+              </button>}
             </div>}>
             <div className={styles.dialogBody}>
               <p>
@@ -344,17 +344,17 @@ export function SupplierDetail({
       )}
 
       {/* Delete confirmation modal dialog */}
-      {showDeleteModal && (
+      {showDeleteModal && access.has('SUPPLIER_DELETE') && (
         <Modal title="Xác nhận xóa nhà cung cấp" busy={actionInProgress === 'delete'} onClose={() => setShowDeleteModal(false)} footer={<div className={styles.dialogActions}>
-              <button
+              {access.has('SUPPLIER_DELETE') && <button
                 type="button"
                 className={styles.statusButton}
                 onClick={() => setShowDeleteModal(false)}
                 disabled={actionInProgress === 'delete' || !access.has('SUPPLIER_DELETE')} data-overlay-dismiss
               >
                 Hủy
-              </button>
-              <button
+              </button>}
+              {access.has('SUPPLIER_DELETE') && <button
                 type="button"
                 className={styles.deleteButton}
                 onClick={() => {
@@ -364,7 +364,7 @@ export function SupplierDetail({
                 disabled={actionInProgress === 'delete' || !access.has('SUPPLIER_DELETE')}
               >
                 {actionInProgress === 'delete' ? 'Đang xóa...' : 'Xác nhận xóa'}
-              </button>
+              </button>}
             </div>}>
             <div className={styles.dialogBody}>
               <p>

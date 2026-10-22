@@ -1,3 +1,4 @@
+import { useSessionAccess } from '@/shared/auth'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { Button } from '@/shared/ui'
@@ -13,6 +14,7 @@ import styles from '../components/ShipList.module.css'
 const repository = { load: shipDeckCabinApi.loadShipList, loadField: shipDeckCabinApi.loadShipListField }
 
 export function ShipListPage() {
+  const access = useSessionAccess()
   const { state, retry, retrySupplement } = useShipList(repository)
   const [pending, setPending] = useState(emptyShipFilters)
   const [applied, setApplied] = useState(emptyShipFilters)
@@ -23,7 +25,7 @@ export function ShipListPage() {
     <div className={styles.content}>
       <header className={styles.titleRow}>
         <div><h1>Đội tàu</h1><p>Theo dõi trạng thái tàu, boong, phòng và mức sẵn sàng vận hành.</p></div>
-        <Link to="/admin/ships/new" className={styles.createButton}>Tạo tàu</Link>
+        {access.has('SHIP_CREATE') && <Link to="/admin/ships/new" className={styles.createButton}>Tạo tàu</Link>}
       </header>
       <ShipListMetrics metrics={state.status === 'data' ? state.data.metrics : undefined} />
       <ShipListFilters value={pending} onChange={setPending} onApply={() => setApplied({ ...pending })} onReset={reset} disabled={state.status !== 'data'} canReset={hasFilters(pending) || hasFilters(applied)} />

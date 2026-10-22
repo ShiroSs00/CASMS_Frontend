@@ -75,7 +75,7 @@ function AssignmentTable({
               <td><StatusBadge status={item.regulation.status} /></td>
               <td>
                 {direct ? (
-                  <button
+                  (access.has(removePermission) ? <button
                     className={styles.linkButton}
                     disabled={!item.capabilities.canRemove.allowed || !access.has(removePermission)}
                     onClick={() => onRemove(item)}
@@ -83,7 +83,7 @@ function AssignmentTable({
                     type="button"
                   >
                     Gỡ liên kết
-                  </button>
+                  </button> : null)
                 ) : (
                   <span title={item.capabilities.canRemove.reason}>Chỉ đọc</span>
                 )}
@@ -270,7 +270,7 @@ function AssignmentPage({ type }: { type: HostType }) {
       <PageHeader
         title={title}
         description={snapshot?.host.description ?? 'Quy định trực tiếp và kế thừa của đối tượng.'}
-        actions={<Button disabled={loading || !snapshot || !access.has(`${prefix}_ASSIGN`)} onClick={() => void openAssign()}>Gán quy định</Button>}
+        actions={(access.has(`${prefix}_ASSIGN`) ? <Button disabled={loading || !snapshot || !access.has(`${prefix}_ASSIGN`)} onClick={() => void openAssign()}>Gán quy định</Button> : null)}
       />
       <div className={styles.twoColumn}>
         <Field label={type === 'ship' ? 'Hiệu lực tại thời điểm' : 'Thời điểm kiểm tra'}>
@@ -317,7 +317,7 @@ function AssignmentPage({ type }: { type: HostType }) {
         </>
       ) : null}
 
-      {assignOpen ? (
+      {assignOpen && access.has(`${prefix}_ASSIGN`) ? (
         <Modal busy={submitting}
           description={snapshot?.host.name ?? 'Chưa tải được tên đối tượng liên kết'}
           onClose={() => {
@@ -330,12 +330,12 @@ function AssignmentPage({ type }: { type: HostType }) {
           wide
          footer={<div className={styles.modalActions}>
 <Button disabled={submitting} onClick={() => setAssignOpen(false)} tone="secondary" data-overlay-dismiss>Hủy</Button>
-<Button
+{access.has(`${prefix}_ASSIGN`) && <Button
               disabled={submitting || !access.has(`${prefix}_ASSIGN`) || checking || !selected?.capabilities.canAssign.allowed || !conflict?.canProceed}
               onClick={() => void assign()}
             >
               {submitting ? 'Đang gán…' : 'Gán quy định'}
-            </Button>
+            </Button>}
 </div>}>
           <div className={styles.twoColumn}>
             <Field htmlFor="candidate-search" label="Tìm quy định">
@@ -409,7 +409,7 @@ function AssignmentPage({ type }: { type: HostType }) {
               {selected.capabilities.canAssign.reason}
             </Notice>
           ) : null}
-          <Button tone="secondary" disabled={checking || submitting || !selected || !access.has(`${prefix}_READ`)} onClick={() => { if (selected) void checkCandidate(selected) }}>Kiểm tra trước khi gán</Button>{checking ? <LoadingPanel label="Đang kiểm tra xung đột…" /> : null}
+          {access.has(`${prefix}_READ`) && <Button tone="secondary" disabled={checking || submitting || !selected || !access.has(`${prefix}_READ`)} onClick={() => { if (selected) void checkCandidate(selected) }}>Kiểm tra trước khi gán</Button>}{checking ? <LoadingPanel label="Đang kiểm tra xung đột…" /> : null}
           {conflict ? <ConflictCard result={conflict} /> : null}
           {!selectedId && !checking ? (
             <Notice title="Chưa có kết quả kiểm tra" tone="neutral">
@@ -420,7 +420,7 @@ function AssignmentPage({ type }: { type: HostType }) {
         </Modal>
       ) : null}
 
-      {removeItem ? (
+      {removeItem && access.has(`${prefix}_REMOVE`) ? (
         <Modal busy={submitting}
           description="Chỉ gỡ liên kết trực tiếp; không xóa Regulation."
           onClose={() => {
@@ -429,13 +429,13 @@ function AssignmentPage({ type }: { type: HostType }) {
           title={`Gỡ ${removeItem.regulation.code} khỏi ${type === 'ship' ? 'tàu' : 'chuyến'}?`}
          footer={<div className={styles.modalActions}>
 <Button disabled={submitting} onClick={() => setRemoveItem(null)} tone="secondary" data-overlay-dismiss>Hủy</Button>
-<Button
+{access.has(`${prefix}_REMOVE`) && <Button
               disabled={submitting || !access.has(`${prefix}_REMOVE`) || !removeItem.capabilities.canRemove.allowed}
               onClick={() => void remove()}
               tone="danger"
             >
               {submitting ? 'Đang gỡ…' : 'Gỡ liên kết'}
-            </Button>
+            </Button>}
 </div>}>
           <Notice title="Ảnh hưởng của thao tác" tone="warning">
             <p>Đối tượng: {snapshot?.host.name}</p>

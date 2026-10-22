@@ -2,7 +2,7 @@
 .location > button { max-width:100%; min-width:0; white-space:normal; overflow-wrap:anywhere; }
 .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-bottom:12px; }
 .results { display:grid; gap:8px; margin-top:12px; }
-.result { display:flex; flex-direction:column; gap:4px; width:100%; padding:12px; border:1px solid #d6dee4; border-radius:8px; background:white; color:#123042; text-align:left; cursor:pointer; overflow-wrap:anywhere; }
+.result { display:flex; flex-direction:column; gap:4px; width:100%; padding:12px; border:1px solid #d5e0e4; border-radius:8px; background:white; color:#0b2a4a; text-align:left; cursor:pointer; overflow-wrap:anywhere; }
 .result[aria-pressed="true"] { border-color:#146b70; background:#edf6f4; }
 .result:focus-visible { outline:3px solid #146b70; outline-offset:2px; }
 .note { color:#68767d; font-size:12px; line-height:1.6; }

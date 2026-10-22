@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
-import { ISSUE_SEVERITIES, ISSUE_STATUSES } from '../model/issue'
-import { issueSeverityLabels, issueStatusLabels } from '../model/issue'
+import { ISSUE_STATUSES } from '../model/issue'
+import { issueStatusLabels } from '../model/issue'
 import { DEFAULT_ISSUE_QUERY, type IssueQuery } from '../model/issue-query'
 import type { CruiseReference, PersonReference, ShipReference } from '../model/issue'
 import styles from './OperationalIssues.module.css'
@@ -19,7 +19,6 @@ export function IssueSearchFilters({
   query,
   ships,
   cruises,
-  handlers,
   onChange,
   onReset,
 }: Props) {
@@ -46,35 +45,6 @@ export function IssueSearchFilters({
 
   return (
     <section className={styles.filters} aria-label="Bộ lọc sự cố">
-      <label className={styles.field}>
-        Tìm kiếm
-        <input
-          value={draft.search}
-          onChange={(event) => updateDraft({ search: event.target.value })}
-          placeholder="Mã sự cố / mô tả"
-          disabled
-          title="Backend chưa hỗ trợ search"
-          type="search"
-        />
-      </label>
-      <label className={styles.field}>
-        Mức độ
-        <select
-          value={draft.severity}
-          disabled
-          title="Backend chưa hỗ trợ severity filter"
-          onChange={(event) =>
-            updateDraft({ severity: event.target.value as IssueQuery['severity'] })
-          }
-        >
-          <option value="">Tất cả</option>
-          {ISSUE_SEVERITIES.map((severity) => (
-            <option key={severity} value={severity}>
-              {issueSeverityLabels[severity]}
-            </option>
-          ))}
-        </select>
-      </label>
       <label className={styles.field}>
         Trạng thái
         <select
@@ -110,22 +80,6 @@ export function IssueSearchFilters({
           {availableCruises.map((cruise) => (
             <option key={cruise.id} value={cruise.id}>
               {cruise.code} · {cruise.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className={styles.field}>
-        Người xử lý
-        <select
-          value={draft.handlerId}
-          disabled
-          title="Backend chưa hỗ trợ handler filter"
-          onChange={(event) => updateDraft({ handlerId: event.target.value })}
-        >
-          <option value="">Tất cả</option>
-          {handlers.map((handler) => (
-            <option key={handler.id} value={handler.id}>
-              {handler.name}
             </option>
           ))}
         </select>
