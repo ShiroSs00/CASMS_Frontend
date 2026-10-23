@@ -48,3 +48,11 @@
 /* OceVie desktop: use shared semantic presentation, retain feature behavior. */
 .content h1 { font:600 clamp(28px,2.2vw,34px)/1.25 var(--ui-font); overflow-wrap:anywhere; }
 .actions .cancelButton,.actions .submitButton,.returnLink,.listCreateLink.listCreateLink { border-radius:var(--ui-radius); }
+
+/* Keep field rows aligned; wrap according to available form width. */
+.fieldRow { align-items:start; gap:16px 24px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }
+
+.context { margin-top:0; align-self:end; }
+.form { gap:16px; }
+.actions { justify-content:flex-end; }
+.form textarea { min-height:96px; height:96px; }

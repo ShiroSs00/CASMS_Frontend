@@ -84,3 +84,6 @@
 .installments p { margin:8px 0 0; font-size:14px; }
 .installmentNumber { flex:none; display:grid; place-items:center; width:28px; height:28px; border-radius:50%; background:#0b6570; color:white; font-weight:600; }
 @media(max-width:1000px) { .installments { grid-template-columns:1fr; } }
+
+/* Keep field rows aligned; wrap according to available form width. */
+.fields,.lookupContact { align-items:start; gap:16px 24px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }

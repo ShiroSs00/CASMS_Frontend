@@ -5,6 +5,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 const root = new URL('../../src/', import.meta.url)
 function load(file, imports = {}) {
+  if (file.endsWith('/service-package-api.ts')) imports = { ...imports, '../model/catalog-contract': load('features/service-packages/model/catalog-contract.ts') }
   const module = { exports: {} }
   vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2023 } }).outputText, { module, exports: module.exports, require(id) { assert.ok(Object.hasOwn(imports, id), id); return imports[id] } })
   return module.exports

@@ -96,7 +96,7 @@
 .field :is(input,select,textarea):disabled { background:#edf1f3; color:#506777; border-color:#c4d0d7; cursor:not-allowed; opacity:1; }
 .field :is(input,select,textarea)[aria-invalid='true'] { border:2px solid var(--ui-danger,#b42318); }
 .field input:is([type='checkbox'],[type='radio']) { width:20px; min-height:20px; height:20px; accent-color:var(--ui-focus,#0e6b7a); }
-.field label { color:var(--ui-ink,#0b2a4a); font-size:14px; line-height:1.5; }
+.field label { flex:none; margin:0; color:var(--ui-ink,#0b2a4a); font-size:14px; line-height:1.5; }
 .muted,.error { font-size:13px; line-height:1.5; }
 .notice { border-radius:12px; padding:16px 20px; font-size:14px; line-height:1.6; gap:6px; }
 .notice_info { border-color:#bdcfe4; color:#173c61; }

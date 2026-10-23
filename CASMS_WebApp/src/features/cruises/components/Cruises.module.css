@@ -70,3 +70,6 @@
 .pagination,.pagination > div { flex-wrap:wrap; }
 
 .operationForm { display:grid; gap:16px; align-content:start; margin-top:16px; max-width:760px; } .operationForm label { flex:none; }
+
+/* Keep field rows aligned; wrap according to available form width. */
+.formGrid { align-items:start; gap:16px 24px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }

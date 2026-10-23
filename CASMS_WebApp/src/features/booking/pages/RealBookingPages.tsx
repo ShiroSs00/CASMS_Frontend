@@ -78,7 +78,7 @@ function BookingOperations({ booking, onChanged }: { booking: BookingDetail; onC
   const [uncertain, setUncertain] = useState(false)
   const [action, setAction] = useState<'confirm' | 'cancel' | 'cabin' | null>(null), [reason, setReason] = useState(''), [person, setPerson] = useState(''), [cabinId, setCabinId] = useState(''), [acknowledged, setAcknowledged] = useState(false), [error, setError] = useState(''), [busy, setBusy] = useState(false)
   const cabins = useReadQuery('booking-change-cabins:' + booking.cruiseId + action, useCallback(signal => action === 'cabin' ? realBookingApi.cabins(booking.cruiseId, signal) : Promise.resolve(null), [booking.cruiseId, action]))
-  const permitted = (value: NonNullable<typeof action>) => canManageBooking(value,booking.bookingStatus,access)
+  const permitted = (value: NonNullable<typeof action>) => canManageBooking(value,booking.bookingStatus,access) && (value !== 'confirm' || booking.contractStatus === 'Accepted')
   async function confirm() {
     if (!action || !permitted(action) || lock.current || uncertain) return
     if (action === 'cancel' && !reason.trim()) { setError('Nhập lý do hủy đặt chỗ.'); return }

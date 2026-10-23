@@ -22,7 +22,7 @@ function RequestEditor({ initial }: { initial?: ServiceRequest }) {
   const access = useSessionAccess(), navigate = useNavigate()
   const services = useReadQuery('request-service-options', useCallback(signal => servicePackageApi.list('services', signal), []))
   const [serviceId, setServiceId] = useState(initial?.serviceId ?? '')
-  const [slotId, setSlotId] = useState('')
+  const [slotId, setSlotId] = useState(initial?.scheduleId ?? '')
   const [openedAt] = useState(() => Date.now())
   const requestKey = useRef<{ payload: string; key: string } | null>(null)
   const slots = useReadQuery(`request-slots:${serviceId}`, useCallback(signal => !initial && serviceId ? serviceSlots(serviceId, signal) : Promise.resolve([]), [initial, serviceId]))
@@ -35,8 +35,9 @@ function RequestEditor({ initial }: { initial?: ServiceRequest }) {
     event.preventDefault()
     if (lock.current || !allowed) return
     if (!Number.isSafeInteger(Number(quantity)) || Number(quantity) < 1 || Number(quantity) > 2147483647 || note.length > 500 || (!initial && !services.data?.some(service => service.id === serviceId && service.status === 'ACTIVE'))) { setError('Chọn dịch vụ đang hoạt động, số lượng nguyên dương và ghi chú tối đa 500 ký tự.'); return }
+    if (initial?.scheduleId && Number(quantity) !== initial.quantity) { setError('Chưa hỗ trợ đổi số lượng của yêu cầu theo khung giờ. Liên hệ bộ phận dịch vụ để điều chỉnh.'); return }
     if (!initial && serviceId && (slots.loading || slots.error)) { setError('Chưa tải được lịch dịch vụ. Vui lòng tải lại trước khi gửi.'); return }
-    if (slotId && !slots.data?.some(slot => slot.id === slotId && slot.status === 'OPEN' && slot.remainingCapacity >= Number(quantity) && Date.parse(slot.endsAt) > Date.now())) { setError('Khung giờ không còn đủ chỗ hoặc đã kết thúc.'); return }
+    if (!initial && slotId && !slots.data?.some(slot => slot.id === slotId && slot.status === 'OPEN' && slot.remainingCapacity >= Number(quantity) && Date.parse(slot.endsAt) > Date.now())) { setError('Khung giờ không còn đủ chỗ hoặc đã kết thúc.'); return }
     const payload = JSON.stringify({ serviceId, bookingPassengerId, slotId, quantity: Number(quantity), note })
     if (requestKey.current?.payload !== payload) requestKey.current = { payload, key: crypto.randomUUID() }
     lock.current = true; setBusy(true); setError('')
@@ -44,14 +45,16 @@ function RequestEditor({ initial }: { initial?: ServiceRequest }) {
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa lưu được yêu cầu. Dữ liệu đã nhập được giữ lại.') }
     finally { lock.current = false; setBusy(false) }
   }
-  return <Panel title="Nội dung yêu cầu"><form onSubmit={submit} className={styles.stack}>
+  return <Panel title="Nội dung yêu cầu"><form onSubmit={submit} className={styles.editor}>
     {!initial && <><CatalogState {...services} /><Field htmlFor="request-service" label="Dịch vụ"><select id="request-service" required value={serviceId} disabled={busy || services.loading || Boolean(services.error)} onChange={event => { setServiceId(event.target.value); setSlotId('') }}><option value="">Chọn dịch vụ</option>{services.data?.map(service => <option key={service.id} value={service.id} disabled={service.status !== 'ACTIVE'}>{service.name} · {service.code}</option>)}</select></Field><BookingPassengerPicker value={bookingPassengerId} disabled={busy} allowedStatuses={['Confirmed']} onChange={passenger => setBookingPassengerId(passenger?.bookingPassengerId ?? '')} /><p>Liên kết đặt chỗ là tùy chọn; nếu chọn, hành khách phải thuộc tài khoản đang yêu cầu.</p></>}
     {initial && <ButtonLink tone="secondary" to={`/admin/services/${initial.serviceId}`}>Xem dịch vụ đã yêu cầu (không đổi)</ButtonLink>}
+    {initial?.scheduleId && <Notice title="Yêu cầu đã giữ khung giờ">Khung giờ và số lượng được giữ theo yêu cầu gốc. Bạn có thể cập nhật ghi chú; liên hệ bộ phận dịch vụ nếu cần đổi lịch hoặc số lượng.</Notice>}
+    {!initial && serviceId && <Button tone="secondary" disabled={busy || slots.loading} onClick={() => { slots.retry(); setError('') }}>Tải lại lịch & chỗ trống</Button>}
     {!initial && serviceId && <><CatalogState {...slots} /><Field htmlFor="request-slot" label="Khung giờ dịch vụ"><select id="request-slot" key={serviceId} value={slots.data?.some(slot => slot.id === slotId) ? slotId : ''} disabled={busy || slots.loading || Boolean(slots.error)} onChange={event => setSlotId(event.target.value)}><option value="">Không chọn khung giờ</option>{slots.data?.map(slot => <option key={slot.id} value={slot.id} disabled={slot.status !== 'OPEN' || slot.remainingCapacity < Number(quantity) || Date.parse(slot.endsAt) <= openedAt}>{new Date(slot.startsAt).toLocaleString('vi-VN')} → {new Date(slot.endsAt).toLocaleString('vi-VN')} · {slot.location} · còn {slot.remainingCapacity} chỗ</option>)}</select></Field>{slots.data?.length === 0 && <p>Chưa có khung giờ được mở cho dịch vụ này.</p>}</>}
-    <Field htmlFor="request-quantity" label="Số lượng"><input id="request-quantity" required type="number" min={1} max={2147483647} step={1} disabled={busy} value={quantity} onChange={event => setQuantity(event.target.value)} /></Field>
+    <Field htmlFor="request-quantity" label="Số lượng"><input id="request-quantity" required type="number" min={1} max={2147483647} step={1} disabled={busy || Boolean(initial?.scheduleId)} value={quantity} onChange={event => setQuantity(event.target.value)} /></Field>
     <Field htmlFor="request-note" label="Ghi chú"><textarea id="request-note" maxLength={500} disabled={busy} value={note} onChange={event => setNote(event.target.value)} /></Field>
     {error && <Notice title="Không lưu được yêu cầu" tone="error">{error}</Notice>}
     {!allowed && <p>Tài khoản chưa có quyền lưu yêu cầu này.</p>}
-    <Button type="submit" disabled={busy || !allowed || (!initial && (!services.data || services.loading || Boolean(services.error)))}>{busy ? 'Đang lưu…' : 'Lưu yêu cầu'}</Button>
+    <div className={styles.editorActions}><Button type="submit" disabled={busy || !allowed || (!initial && (!services.data || services.loading || Boolean(services.error)))}>{busy ? 'Đang lưu…' : 'Lưu yêu cầu'}</Button></div>
   </form></Panel>
 }

@@ -34,3 +34,6 @@
 .detailToolbar { display:flex; width:100%; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px 24px; }
 .recordStatus { display:flex; flex-wrap:wrap; align-items:center; gap:10px; color:var(--ui-muted,#506777); font-size:13px; }
 @media(max-width:700px) { .editor { grid-template-columns:minmax(0,1fr); } .definition { grid-template-columns:1fr; gap:6px; } .definition dd { margin-bottom:12px; } }
+
+.editor { gap:16px 24px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }
+.editor > div:has(> textarea), .editor > p { grid-column:1/-1; }

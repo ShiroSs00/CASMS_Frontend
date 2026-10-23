@@ -17,3 +17,9 @@
 /* OceVie desktop: use shared semantic presentation, retain feature behavior. */
 .filters label { min-width:0; flex:1 1 220px; font-size:14px; line-height:1.5; }
 .actions { gap:12px; }
+
+/* Keep field rows aligned; wrap according to available form width. */
+.form { align-items:start; gap:16px 24px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }
+
+.form > div:has(> textarea) { grid-column:1/-1; }
+form .actions { justify-content:flex-end; padding-top:16px; border-top:1px solid var(--ui-border,#d5e0e4); }

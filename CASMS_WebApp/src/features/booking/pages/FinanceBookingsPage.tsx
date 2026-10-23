@@ -1,26 +1,51 @@
-import { PaymentLedger } from '../components/PaymentLedger'
-import { useCallback, useState } from 'react'
-import { useReadQuery } from '@/shared/api'
+import { useCallback, useState, type FormEvent } from 'react'
+import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, DataTable, Empty, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Button, DataTable, Empty, Field, Notice, PageHeader, Panel } from '@/shared/ui'
 import { realBookingApi } from '../api/real-booking-api'
 import { BookingReadState, RealBookingFrame } from '../components/RealBookingUI'
 import { BookingInstallments } from '../components/BookingInstallments'
+import { PaymentLedger } from '../components/PaymentLedger'
 import { bookingMoney } from '../model/booking-presentation'
 import { bookingStatusName } from '../model/real-booking-view'
 
 export function FinanceBookingsPage() {
-  const [page,setPage]=useState(0),[selected,setSelected]=useState('')
-  const access=useSessionAccess(),allowed=access.status==='ready'&&access.has('BOOKING_READ')
-  const list=useReadQuery(`finance-bookings:${access.userId}:${allowed}:${page}`,useCallback(signal=>allowed?realBookingApi.list(page,undefined,undefined,signal):Promise.resolve(null),[allowed,page]))
-  const detail=useReadQuery(`finance-schedule:${access.userId}:${allowed}:${selected}`,useCallback(signal=>allowed&&selected?realBookingApi.get(selected,signal):Promise.resolve(null),[allowed,selected]))
-  return <RealBookingFrame admin><PageHeader title="Tài chính & lịch thanh toán" breadcrumb="TÀI CHÍNH" description="Tra cứu giá vé và các đợt thanh toán theo hợp đồng." />
-    {!allowed&&<Notice title="Chưa thể mở dữ liệu tài chính">{access.status==='loading'?'Đang kiểm tra quyền truy cập…':'Tài khoản cần quyền xem đặt chỗ.'}</Notice>}
-    {allowed&&<><Panel title="Đặt chỗ"><BookingReadState {...list}/>{list.data&&<>
-      {!list.data.content.length?<Empty title="Chưa có đặt chỗ"/>:<DataTable label="Đặt chỗ và giá vé" headers={['Mã đặt chỗ','Chuyến đi','Trạng thái','Tổng giá vé','']}>
-        {list.data.content.map(item=><tr key={item.bookingId}><td>{item.bookingReference}</td><td>{item.cruiseName}</td><td>{bookingStatusName[item.bookingStatus]}</td><td>{item.agreedFareAmount!=null&&item.currency?bookingMoney(item.agreedFareAmount,item.currency):'Chưa có'}</td><td><Button tone="secondary" onClick={()=>setSelected(item.bookingId)}>Xem lịch thanh toán</Button></td></tr>)}
+  const access = useSessionAccess()
+  return <FinanceWorkspace key={`${access.userId}:${access.status}`} />
+}
+
+function FinanceWorkspace() {
+  const access = useSessionAccess()
+  const canBookings = access.status === 'ready' && access.has('BOOKING_READ')
+  const canPayments = access.status === 'ready' && (access.has('PAYMENT_READ') || access.has('PAYMENT_REPORT') || access.has('PAYMENT_PROCESS'))
+  const [page, setPage] = useState(0)
+  const [selected, setSelected] = useState<{ id: string; reference: string; currency: string } | null>(null)
+  const [bookingId, setBookingId] = useState(''), [error, setError] = useState('')
+  const list = useReadQuery(`finance-bookings:${access.userId}:${canBookings}:${page}`, useCallback(signal => canBookings ? realBookingApi.list(page, undefined, undefined, signal) : Promise.resolve(null), [canBookings, page]))
+  const selectedId = selected?.id ?? ''
+  const detail = useReadQuery(`finance-schedule:${access.userId}:${canBookings}:${selectedId}`, useCallback(signal => canBookings && selectedId ? realBookingApi.get(selectedId, signal) : Promise.resolve(null), [canBookings, selectedId]))
+  function openLedger(event: FormEvent) {
+    event.preventDefault()
+    if (!canPayments) return
+    const id = bookingId.trim()
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) { setError('Nhập ID đặt chỗ hợp lệ từ hồ sơ bàn giao.'); return }
+    const known = list.data?.content.find(row => row.bookingId.toLowerCase() === id.toLowerCase())
+    setSelected({ id, reference: known?.bookingReference ?? 'Đặt chỗ được tra cứu', currency: known?.currency ?? '' }); setError('')
+  }
+  return <RealBookingFrame admin><PageHeader title="Tài chính & lịch thanh toán" breadcrumb="TÀI CHÍNH" description="Đối chiếu khoản thu, hợp đồng và các đợt thanh toán." />
+    {!canBookings && <Notice title="Danh sách đặt chỗ chưa khả dụng">{access.status === 'loading' ? 'Đang kiểm tra quyền truy cập…' : 'Tài khoản cần quyền xem đặt chỗ để mở danh sách và hợp đồng.'}</Notice>}
+    {canPayments && <Panel title="Tra cứu khoản thu theo đặt chỗ" subtitle="Dùng ID đặt chỗ trong hồ sơ bàn giao khi chưa mở được danh sách hoặc hợp đồng."><form onSubmit={openLedger}><Field htmlFor="finance-booking-id" label="ID đặt chỗ"><input id="finance-booking-id" required value={bookingId} onChange={event => setBookingId(event.target.value)} /></Field><Button type="submit">Mở khoản thu</Button></form>{error && <Notice title="Chưa tra cứu được" tone="error">{error}</Notice>}</Panel>}
+    {canBookings && <Panel title="Đặt chỗ"><BookingReadState {...list} />{list.data && <>
+      {!list.data.content.length ? <Empty title="Chưa có đặt chỗ" /> : <DataTable label="Đặt chỗ và giá vé" headers={['Mã đặt chỗ', 'Chuyến đi', 'Trạng thái', 'Tổng giá vé', '']}>
+        {list.data.content.map(item => <tr key={item.bookingId}><td>{item.bookingReference}</td><td>{item.cruiseName}</td><td>{bookingStatusName[item.bookingStatus]}</td><td>{item.agreedFareAmount != null && item.currency ? bookingMoney(item.agreedFareAmount, item.currency) : 'Chưa có'}</td><td><Button tone="secondary" onClick={() => setSelected({ id: item.bookingId, reference: item.bookingReference, currency: item.currency ?? '' })}>Xem khoản thu & lịch thanh toán</Button></td></tr>)}
       </DataTable>}
-      <Button tone="secondary" disabled={page===0} onClick={()=>setPage(value=>value-1)}>Trang trước</Button><span> Trang {page+1} </span><Button tone="secondary" disabled={page+1>=list.data.totalPages} onClick={()=>setPage(value=>value+1)}>Trang sau</Button>
-    </>}</Panel>{selected&&<><PaymentLedger key={selected} bookingId={selected} currency={list.data?.content.find(item => item.bookingId === selected)?.currency ?? ''} onChanged={() => { detail.retry(); list.retry() }} /><Panel title="Lịch thanh toán"><BookingReadState {...detail}/>{detail.data&&<><h2>{detail.data.bookingReference}</h2><p>Hợp đồng: {detail.data.contractReference??'Chưa có'}</p><BookingInstallments booking={detail.data}/><p>Đối chiếu chứng từ thanh toán trước khi xác nhận đã thu tiền.</p></>}</Panel>{detail.error && <Notice title="Chưa truy cập được hợp đồng" tone="warning">Máy chủ chưa cho tài khoản này đọc chi tiết đặt chỗ. Lịch sử giao dịch phía trên dùng quyền thanh toán riêng; lịch thanh toán cần được mở quyền từ máy chủ.</Notice>}</>}</>}
+      <Button tone="secondary" disabled={page === 0} onClick={() => setPage(value => value - 1)}>Trang trước</Button><span> Trang {page + 1} </span><Button tone="secondary" disabled={page + 1 >= list.data.totalPages} onClick={() => setPage(value => value + 1)}>Trang sau</Button>
+    </>}</Panel>}
+    {selected && <section aria-label={`Tài chính ${selected.reference}`}><h2>{selected.reference}</h2>
+      <PaymentLedger key={selected.id} bookingId={selected.id} currency={detail.data?.currency ?? selected.currency} onChanged={() => { detail.retry(); list.retry() }} />
+      {canBookings && <Panel title="Lịch thanh toán"><BookingReadState {...detail} />{detail.data && <BookingInstallments booking={detail.data} />}
+        {detail.error instanceof ApiError && detail.error.status === 403 && <Notice title="Chưa truy cập được hợp đồng" tone="warning">Tài khoản chưa được phép đọc chi tiết đặt chỗ này. Bạn vẫn có thể tra cứu khoản thu phía trên bằng quyền thanh toán của mình.</Notice>}
+      </Panel>}
+    </section>}
   </RealBookingFrame>
 }

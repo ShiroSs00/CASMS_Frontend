@@ -64,3 +64,6 @@
 @media(max-width:760px) { .filters { grid-template-columns:minmax(0,1fr); } }
 @media(max-width:900px) { .fieldGrid { grid-template-columns:minmax(0,1fr); } }
 @media(max-width:600px) { .contextFacts { grid-template-columns:minmax(0,1fr); } .excursionContext { padding:16px; } .customization > summary { padding:16px; } .customizationBody { padding:0 16px 16px; } }
+
+/* Keep field rows aligned; wrap according to available form width. */
+.fieldGrid { align-items:start; gap:16px 24px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }
