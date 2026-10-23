@@ -1,7 +1,7 @@
 export type CatalogKind = 'services' | 'products' | 'packages'
 export type CatalogItem = { id: string; code: string; name: string; description: string | null; type: string; price: number | null; currency: string | null; capacity?: number | null; status: string; startDate?: string | null; endDate?: string | null }
 export type ServiceRequest = { id: string; serviceId: string; passengerId: string; bookingId: string | null; bookingPassengerId: string | null; quantity: number; note: string | null; status: string; assignedUserId: string | null; requestTime: string; completedAt: string | null }
-export type Benefits = { packageInfo: CatalogItem; services: { packageId: string; serviceId: string; benefitType: string }[]; activities: { packageId: string; activityId: string; benefitType: string }[]; excursions: { packageId: string; excursionId: string; benefitType: string }[] }
+export type Benefits = { packageInfo: CatalogItem; services: { packageId: string; serviceId: string; benefitType: string }[]; activities: { packageId: string; activityId: string; benefitType: string }[]; excursions: { packageId: string; excursionId: string; benefitType: string }[]; entitlements?: { id: string; packageId: string; categoryId: string; benefitType: string; quantityLimit: number | null; unitCode: string | null; discountPercent: number | null; ownerScope: string | null }[] }
 export const catalogConfig = {
   services: { label: 'Dịch vụ', route: '/admin/services' },
   products: { label: 'Sản phẩm', route: '/admin/products' },

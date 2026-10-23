@@ -12,7 +12,7 @@ function PackageRead({ id }: { id: string }) {
   const item = query.data
   return <div className={styles.stack} aria-live="polite"><BookingReadState {...query} publicResource="chi tiết gói" />{item && <div>
     <h3>{item.name}</h3><p>{item.description || 'Chưa có mô tả gói.'}</p>
-    <p>{bookingMoney(item.price, item.currency)} · {({ BASIC: 'Cơ bản', PREMIUM: 'Cao cấp', ADVANCED: 'Nâng cao' } as Record<string, string>)[item.type]}</p>
+    <p>{bookingMoney(item.price, item.currency)} · {({ BASIC: 'Cơ bản', PLUS: 'Mở rộng', PREMIUM: 'Cao cấp', PREMIUM_PLUS: 'Cao cấp mở rộng', ADVANCED: 'Nâng cao', ADD_ON: 'Bổ sung' } as Record<string, string>)[item.type] ?? item.type}</p>
     {(item.startDate || item.endDate) && <p>Khoảng ngày áp dụng: {item.startDate || 'Chưa cung cấp'} → {item.endDate || 'Chưa cung cấp'}. Điều kiện áp dụng được kiểm tra khi gửi đặt chỗ.</p>}
     {item.status !== 'ACTIVE' && <p role="alert">Gói hiện không hoạt động. Bỏ chọn hoặc chọn gói khác trước khi gửi.</p>}
     <h4>Quyền lợi trong gói</h4>

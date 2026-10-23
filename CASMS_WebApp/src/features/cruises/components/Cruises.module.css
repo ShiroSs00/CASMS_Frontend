@@ -69,3 +69,4 @@
 .definitionGrid dd { overflow-wrap:anywhere; }
 .pagination,.pagination > div { flex-wrap:wrap; }
 
+.operationForm { display:grid; gap:16px; align-content:start; margin-top:16px; max-width:760px; } .operationForm label { flex:none; }

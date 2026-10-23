@@ -6,7 +6,7 @@ import { useSessionAccess } from '@/shared/auth'
 import { Button, ButtonLink, DataTable, Empty, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
 import { shoreExcursionApi } from '../api/shore-excursion-api'
 import { excursionContextApi } from '../api/excursion-context-api'
-import { ExcursionActions } from '../components/ExcursionActions'
+import { ExcursionActions, ExcursionAvailability } from '../components/ExcursionActions'
 import { ExcursionForm } from '../components/ExcursionForm'
 import { ExcursionBadge, ShoreError, ShoreLayout } from '../components/ShoreUI'
 import styles from '../components/ShoreExcursions.module.css'
@@ -66,11 +66,20 @@ function ExcursionDetail({ id }: { id: string }) {
   return <ShoreLayout>
     <Link className={styles.link} to={root}>← Chuyến tham quan bờ</Link>
     {query.loading ? <Loading label="Đang tải chi tiết…" /> : query.error != null ? <ShoreError error={query.error} onRetry={query.reload} /> : item && <>
-      <PageHeader breadcrumb="Dịch vụ bờ / Chuyến tham quan" title={item.excursionName} description={item.excursionCode ?? 'Chưa có mã chuyến tham quan'} actions={<><ExcursionBadge status={item.status} />{canEditExcursion(item.status) && access.has("EXCURSION_UPDATE") && <ButtonLink to={`${root}/${id}/edit`}>Chỉnh sửa</ButtonLink>}<Button tone="secondary" onClick={query.reload}>Tải lại</Button></>} />
+      <PageHeader breadcrumb="Dịch vụ bờ / Chuyến tham quan" title={item.excursionName} description={item.excursionCode ?? 'Chưa có mã chuyến tham quan'} actions={<div className={styles.detailToolbar}>
+        <div className={styles.recordStatus}><span>Trạng thái</span><ExcursionBadge status={item.status} /></div>
+        <ExcursionActions excursion={item} onRefresh={query.reload}>
+          {canEditExcursion(item.status) && access.has('EXCURSION_UPDATE') && <ButtonLink tone="secondary" to={`${root}/${id}/edit`}>Chỉnh sửa</ButtonLink>}
+          <Button tone="secondary" onClick={query.reload}>Tải lại</Button>
+        </ExcursionActions>
+      </div>} />
       <ExcursionFacts item={item} />
-      <div className={styles.actions}><ButtonLink tone="secondary" to={`/admin/suppliers/${item.supplierId}`}>Nhà cung cấp {item.supplierName}</ButtonLink><ButtonLink tone="secondary" to={`/admin/tour-groups?excursionId=${item.shoreExcursionId}`}>Các nhóm tham quan</ButtonLink></div>
-      {(access.has('ACTIVITY_ATTENDANCE') || access.has('ACTIVITY_REGISTRATION')) && <ButtonLink tone="secondary" to={`/admin/activity-registrations?excursionId=${encodeURIComponent(id)}`}>Đăng ký & điểm danh hành khách</ButtonLink>}
-      <ExcursionActions excursion={item} onRefresh={query.reload} />
+      <Panel title="Thông tin liên quan"><nav className={styles.relatedLinks} aria-label="Thông tin liên quan chuyến tham quan">
+        <ButtonLink tone="secondary" to={`/admin/suppliers/${item.supplierId}`}>Xem nhà cung cấp</ButtonLink>
+        <ButtonLink tone="secondary" to={`/admin/tour-groups?excursionId=${item.shoreExcursionId}`}>Các nhóm tham quan</ButtonLink>
+        {(access.has('ACTIVITY_ATTENDANCE') || access.has('ACTIVITY_REGISTRATION')) && <ButtonLink tone="secondary" to={`/admin/activity-registrations?excursionId=${encodeURIComponent(id)}`}>Đăng ký & điểm danh hành khách</ButtonLink>}
+      </nav></Panel>
+      <ExcursionAvailability excursion={item} />
     </>}
   </ShoreLayout>
 }

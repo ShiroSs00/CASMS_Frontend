@@ -34,7 +34,7 @@ export function TourGroupListPage() {
     setSearch(next)
   }
   return <TourLayout>
-    <PageHeader breadcrumb="Dịch vụ bờ" title="Nhóm tour" description="Quản lý nhóm tham quan, phân công hướng dẫn viên và sức chứa." actions={access.has("TOUR_GROUP_CREATE") && <ButtonLink to={`${root}/new`}>Tạo nhóm tour</ButtonLink>} />
+    <PageHeader breadcrumb="Dịch vụ bờ" title="Nhóm tour" description="Quản lý nhóm tham quan, phân công hướng dẫn viên và sức chứa." actions={access.has("TOUR_GROUP_CREATE") && <ButtonLink to={`${root}/new${excursionId ? `?excursionId=${encodeURIComponent(excursionId)}` : ''}`}>Tạo nhóm tour</ButtonLink>} />
     <Panel title="Bộ lọc"><form key={search.toString()} onSubmit={filter}>
       <div className={styles.filters}><label>Chuyến tham quan<select key={`${excursionId}:${excursions.data?.length}`} name="excursionId" defaultValue={excursionId} disabled={excursions.loading || Boolean(excursions.error)}><option value="">Tất cả chuyến tham quan</option>{excursions.data?.map(item => <option key={item.shoreExcursionId} value={item.shoreExcursionId}>{item.excursionName}</option>)}</select></label><label>Hướng dẫn viên<select disabled><option>Chưa có danh mục hướng dẫn viên</option></select></label><label>Trạng thái<select name="status" defaultValue={rawStatus ?? ''}><option value="">Tất cả</option>{groupStatuses.map((value) => <option key={value} value={value}>{groupStatusLabels[value]}</option>)}</select></label></div>
       <div className={styles.actions}><Button type="submit">Áp dụng bộ lọc</Button><Button tone="secondary" onClick={() => setSearch({})}>Xóa bộ lọc</Button><Button tone="secondary" onClick={query.reload}>Tải lại</Button></div>
@@ -59,9 +59,15 @@ function GroupDetail({ id }: { id: string }) {
   return <TourLayout><Link className={styles.link} to={root}>← Nhóm tour</Link>
     {receipt && <Notice title="Đã cập nhật phân công"><p>{receipt.message}</p>{receipt.targetId && <Link className={styles.link} to={`${root}/${receipt.targetId}`}>Xem nhóm đích {receipt.targetCode}</Link>}</Notice>}
     {query.loading ? <Loading label="Đang tải chi tiết nhóm…" /> : query.error != null ? <TourError error={query.error} onRetry={query.reload} /> : group && <>
-      <PageHeader breadcrumb="Dịch vụ bờ / Nhóm tour" title={`Nhóm ${group.groupCode}`} description={group.excursionName} actions={<><GroupBadge status={group.status} />{canPrepareGroup(group.status) && access.has("TOUR_GROUP_UPDATE") && <ButtonLink to={`${root}/${id}/edit`}>Chỉnh sửa</ButtonLink>}<Button tone="secondary" onClick={query.reload}>Tải lại</Button></>} />
-      <GroupFacts group={group} /><GroupCapacity group={group} /><GroupControls group={group} onRefresh={query.reload} />
-      <ButtonLink tone="secondary" to={`/admin/shore-excursions/${group.shoreExcursionId}`}>Chuyến tham quan {group.excursionName}</ButtonLink>
+      <PageHeader breadcrumb="Dịch vụ bờ / Nhóm tour" title={`Nhóm ${group.groupCode}`} description={group.excursionName} actions={<div className={styles.detailToolbar}>
+        <div className={styles.recordStatus}><span>Trạng thái</span><GroupBadge status={group.status} /></div>
+        <GroupControls group={group} onRefresh={query.reload}>
+          {canPrepareGroup(group.status) && access.has('TOUR_GROUP_UPDATE') && <ButtonLink tone="secondary" to={`${root}/${id}/edit`}>Chỉnh sửa</ButtonLink>}
+          <Button tone="secondary" onClick={query.reload}>Tải lại</Button>
+        </GroupControls>
+      </div>} />
+      <GroupFacts group={group} /><GroupCapacity group={group} />
+      <Panel title="Thông tin liên quan"><nav className={styles.relatedLinks} aria-label="Thông tin liên quan nhóm tour"><ButtonLink tone="secondary" to={`/admin/shore-excursions/${group.shoreExcursionId}`}>Xem chuyến tham quan</ButtonLink></nav></Panel>
       <GroupPassengers group={group} onChanged={(result) => { setReceipt(result); query.reload() }} />
     </>}
   </TourLayout>
@@ -76,7 +82,9 @@ function GroupFacts({ group }: { group: TourGroup }) {
 }
 export function TourGroupFormPage() {
   const { groupId } = useParams()
-  return <TourLayout><Link className={styles.link} to={root}>← Nhóm tour</Link><PageHeader breadcrumb="Dịch vụ bờ / Nhóm tour" title={groupId ? 'Chỉnh sửa nhóm tour' : 'Tạo nhóm tour'} description="Cấu hình nhóm, lịch trình và sức chứa. Hệ thống kiểm tra điều kiện khi lưu." />{groupId ? <EditGroup key={groupId} id={groupId} /> : <SaveGroup />}</TourLayout>
+  const [search] = useSearchParams()
+  const excursionId = search.get('excursionId')?.trim() ?? ''
+  return <TourLayout><Link className={styles.link} to={root}>← Nhóm tour</Link><PageHeader breadcrumb="Dịch vụ bờ / Nhóm tour" title={groupId ? 'Chỉnh sửa nhóm tour' : 'Tạo nhóm tour'} description="Lấy thông tin từ chuyến tham quan và bổ sung các thông tin riêng của nhóm." />{groupId ? <EditGroup key={groupId} id={groupId} /> : <SaveGroup key={excursionId} initialExcursionId={excursionId} />}</TourLayout>
 }
 function EditGroup({ id }: { id: string }) {
   const load = useCallback((signal: AbortSignal) => tourGroupApi.get(id, signal), [id])
@@ -87,7 +95,7 @@ function EditGroup({ id }: { id: string }) {
   if (!canPrepareGroup(query.data.status)) return <Notice title="Không thể chỉnh sửa">Nhóm đang ở trạng thái {groupStatusLabels[query.data.status]}. Chỉ có thể chỉnh sửa nhóm đang lên kế hoạch. <Link to={`${root}/${id}`}>Xem chi tiết</Link></Notice>
   return <SaveGroup initial={query.data} />
 }
-function SaveGroup({ initial }: { initial?: TourGroup }) {
+function SaveGroup({ initial, initialExcursionId }: { initial?: TourGroup; initialExcursionId?: string }) {
   const access = useSessionAccess()
   const navigate = useNavigate(), mutation = useTourMutation()
   async function save(request: GroupRequest) {
@@ -95,5 +103,5 @@ function SaveGroup({ initial }: { initial?: TourGroup }) {
     const result = await mutation.run((signal) => initial ? tourGroupApi.update(initial.tourGroupId, request, signal) : tourGroupApi.create(request, signal))
     if (result.ok) navigate(`${root}/${result.value.tourGroupId}`)
   }
-  return <Panel title="Thông tin cấu hình">{mutation.error != null && <TourError error={mutation.error} />}<GroupForm initial={initial} busy={mutation.busy} onSave={save} /></Panel>
+  return <Panel title="Thông tin nhóm tour">{mutation.error != null && <TourError error={mutation.error} />}<GroupForm initial={initial} initialExcursionId={initialExcursionId} busy={mutation.busy} onSave={save} /></Panel>
 }

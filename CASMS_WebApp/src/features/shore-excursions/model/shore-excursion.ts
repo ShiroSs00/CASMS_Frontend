@@ -80,10 +80,12 @@ export function validateExcursionForm(values: ExcursionFormValues): Partial<Reco
   for (const key of ['excursionName', 'meetingPoint'] as const) if (!values[key].trim() || values[key].trim().length > 250) errors[key] = 'Nhập nội dung từ 1 đến 250 ký tự.'
   if (values.excursionCode.trim().length > 50) errors.excursionCode = 'Tối đa 50 ký tự.'
   for (const key of ['startTime', 'plannedReturnTime'] as const) if (!values[key] || !Number.isFinite(Date.parse(values[key]))) errors[key] = 'Nhập thời gian hợp lệ.'
+  if (!errors.startTime && !errors.plannedReturnTime && Date.parse(values.plannedReturnTime) <= Date.parse(values.startTime)) errors.plannedReturnTime = 'Thời gian trở về phải sau thời gian bắt đầu.'
   for (const key of ['maximumCapacity', 'minimumParticipants'] as const) {
     if (key === 'minimumParticipants' && !values[key].trim()) continue
     if (!/^\d+$/.test(values[key]) || Number(values[key]) < 1 || Number(values[key]) > 2147483647) errors[key] = 'Nhập số nguyên từ 1 đến 2147483647.'
   }
+  if (!errors.minimumParticipants && !errors.maximumCapacity && values.minimumParticipants.trim() && Number(values.minimumParticipants) > Number(values.maximumCapacity)) errors.minimumParticipants = 'Số khách tối thiểu không được lớn hơn sức chứa tối đa.'
   if (values.price.trim() && !/^\d{1,15}(?:\.\d{1,4})?$/.test(values.price.trim())) errors.price = 'Giá không âm, tối đa 15 chữ số nguyên và 4 chữ số thập phân.'
   if (values.currencyCode.trim() && !/^[A-Z]{3}$/.test(values.currencyCode.trim())) errors.currencyCode = 'Nhập 3 chữ cái viết hoa.'
   return errors

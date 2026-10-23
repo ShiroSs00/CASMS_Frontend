@@ -51,6 +51,7 @@ const messages: Record<string, string> = {
 function errorMessage(error: unknown) {
   if (!(error instanceof Error)) return 'Đã xảy ra lỗi. Vui lòng thử lại.'
   if (messages[error.message]) return messages[error.message]
+  if (/JDBC exception|could not determine data type|SQL \[/i.test(error.message)) return 'Máy chủ chưa thể xử lý dữ liệu nhóm tour. Vui lòng thử lại hoặc tải lại nhóm.'
   if (error.message.startsWith('Tour group not found:')) return 'Không tìm thấy nhóm tour.'
   if (error.message.startsWith('Tour group passenger assignment not found:')) return 'Không tìm thấy phân công hành khách.'
   if (error.message.startsWith('Passenger not found:')) return 'Không tìm thấy hành khách.'

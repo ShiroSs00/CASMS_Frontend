@@ -26,11 +26,12 @@ export const groupPassengerApi = {
     if (!Array.isArray(value) || value.some(row => !row || typeof row.passengerId !== 'string' || !isUuid(row.passengerId) || typeof row.fullName !== 'string' || !row.fullName.trim())) throw new Error('Danh sách hành khách đủ điều kiện không đầy đủ.')
     return value.map(row => ({ passengerId: row.passengerId, fullName: row.fullName }))
   }), { signal }),
-  list: (groupId: string, signal?: AbortSignal) => apiRequestRaw(base, decode((value) => {
-    const rows = normalizePassengers(value)
-    if (rows.some((row) => row.tourGroupId.toLowerCase() !== groupId.toLowerCase())) throw new Error('Danh sách phân công không thuộc nhóm đang xem.')
-    return rows
-  }), { query: { groupId: uuid(groupId) }, signal }),
+  list: (groupId: string, signal?: AbortSignal) => {
+    const selectedGroup = uuid(groupId).toLowerCase()
+    // BE's optional-filter search fails on nullable JDBC parameters. Its unfiltered
+    // list uses findAllWithDetails under the same read permission; scope after decoding.
+    return apiRequestRaw(base, decode(value => normalizePassengers(value).filter(row => row.tourGroupId.toLowerCase() === selectedGroup)), { signal })
+  },
   get: (id: string, signal?: AbortSignal) => apiRequestRaw(path(id), assignmentResponse({ tourGroupPassengerId: id }), { signal }),
   assign: (groupId: string, passengerId: string, signal?: AbortSignal) => apiRequestRaw(base, assignmentResponse({ tourGroupId: groupId, passengerId, assignmentStatus: 'ASSIGNED' }), { method: 'POST', body: { tourGroupId: uuid(groupId), passengerId: uuid(passengerId) }, signal }),
   move: (id: string, targetTourGroupId: string, signal?: AbortSignal) => apiRequestRaw(`${path(id)}/move`, assignmentResponse({ tourGroupId: targetTourGroupId, assignmentStatus: 'ASSIGNED' }), { method: 'PATCH', body: { targetTourGroupId: uuid(targetTourGroupId) }, signal }),

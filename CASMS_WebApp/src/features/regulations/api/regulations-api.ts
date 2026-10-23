@@ -200,7 +200,8 @@ export const regulationsApi = {
     return normalizeConflict(await apiRequest<ConflictDto>(`${base}/precheck`, { method: 'POST', body: { regulationId: id } }))
   },
   async assign(type: HostType, hostId: string, regulationId: string) {
-    await apiRequest<unknown>(assignmentPath(type, hostId), { method: 'POST', body: { regulationId } })
+    const body = type === 'ship' ? { shipId: hostId, regulationId } : { cruiseId: hostId, regulationId }
+    await apiRequest<unknown>(assignmentPath(type, hostId), { method: 'POST', body })
     return { message: 'Đã gán quy định thành công.' }
   },
   async remove(type: HostType, hostId: string, regulationId: string) {

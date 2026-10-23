@@ -18,7 +18,7 @@ export function decodeCustomerPackage(value: unknown): CustomerPackage {
   const v = row(value), price = money(v.price), code = currency(v.currency)
   if (price == null || code == null) throw new Error('Giá gói không đầy đủ.')
   for (const key of ['startDate', 'endDate']) if (v[key] != null && (!/^\d{4}-\d{2}-\d{2}$/.test(String(v[key])) || !Number.isFinite(Date.parse(String(v[key]))) || new Date(String(v[key])).toISOString().slice(0, 10) !== v[key])) throw new Error('Ngày áp dụng gói không hợp lệ.')
-  return { id: text(v.id), name: text(v.name), code: text(v.code), description: optional(v.description), type: state(v.type, ['BASIC', 'PREMIUM', 'ADVANCED']), price, currency: code, status: state(v.status, ['DRAFT', 'ACTIVE', 'INACTIVE', 'EXPIRED', 'CANCELLED']), startDate: optional(v.startDate), endDate: optional(v.endDate) }
+  return { id: text(v.id), name: text(v.name), code: text(v.code), description: optional(v.description), type: state(v.type, ['BASIC', 'PLUS', 'PREMIUM', 'PREMIUM_PLUS', 'ADVANCED', 'ADD_ON']), price, currency: code, status: state(v.status, ['DRAFT', 'ACTIVE', 'INACTIVE', 'EXPIRED', 'CANCELLED']), startDate: optional(v.startDate), endDate: optional(v.endDate) }
 }
 export type CustomerActivity = { id: string; cruiseId: string; name: string; description: string | null; startTime: string; endTime: string; location: string | null; capacity: number; price: number | null; currency: string | null; status: string }
 export function decodeCustomerActivity(value: unknown): CustomerActivity {
