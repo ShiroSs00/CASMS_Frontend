@@ -99,11 +99,12 @@ function MasterForm({ kind }: { kind: Kind }) {
     const controller = new AbortController()
     const request = kind === 'port' ? itineraryApi.getPort(id, controller.signal) : itineraryApi.getDestination(id, controller.signal)
     void request.then((item) => {
-      if (kind === 'destination' && controller.signal.aborted) return
+      if (controller.signal.aborted) return
+      setError('')
       setLoadedId(id)
       if (kind === 'port') { const port = item as Port; setDraft({ code: port.portCode, name: port.portName, city: '', countryCode: port.countryCode, timeZoneId: port.timeZoneId, latitude: port.latitude?.toString() ?? '', longitude: port.longitude?.toString() ?? '', description: '', status: port.status }) }
       else { const destination = item as Destination; setDraft({ ...EMPTY, name: destination.destinationName, countryCode: destination.countryCode, description: destination.description ?? '', status: destination.status }) }
-    }).catch((reason: unknown) => { if (kind !== 'destination' || !controller.signal.aborted) setError(kind === 'destination' ? destinationMessage(reason) : message(reason)) }).finally(() => { if (kind !== 'destination' || !controller.signal.aborted) setLoading(false) })
+    }).catch((reason: unknown) => { if (!controller.signal.aborted) setError(kind === 'destination' ? destinationMessage(reason) : message(reason)) }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
   }, [id, kind, loadAttempt])
 
@@ -230,8 +231,6 @@ function MasterDetail({ kind }: { kind: Kind }) {
     return () => { active = false; controller.abort() }
   }, [id, kind, portsAttempt])
   const retryPorts = () => { setPortsLoading(true); setPortsError(''); setPortsAttempt(value => value + 1) }
-  async function validate() { if (kind !== 'port' || !can('VALIDATE') || mutationLock.current) return; mutationLock.current = true; setBusy(true); setError(''); setSuccess(''); try { await itineraryApi.validatePort(id); setSuccess('Dữ liệu hợp lệ.') } catch (reason) { setError(message(reason)) } finally { mutationLock.current = false; setBusy(false) } }
-  async function checkAvailability() { if (kind !== 'port' || mutationLock.current) return; mutationLock.current = true; setBusy(true); setError(''); setSuccess(''); try { const isAvailable = await itineraryApi.checkPortAvailability(id); setSuccess(isAvailable ? 'Cảng đang hoạt động và sẵn sàng vận hành.' : 'Cảng hiện không khả dụng cho vận hành.') } catch (reason) { setError(message(reason)) } finally { mutationLock.current = false; setBusy(false) } }
   async function togglePort() {
     if (!record || !can(kind === 'destination' ? 'UPDATE' : record.status === 'ACTIVE' ? 'DEACTIVATE' : 'ACTIVATE') || mutationLock.current) return
     mutationLock.current = true; setBusy(true); setError('')
@@ -246,10 +245,8 @@ function MasterDetail({ kind }: { kind: Kind }) {
   return <ItineraryFrame><PageHeader breadcrumb="DANH MỤC VẬN HÀNH" title={title} description={`Chi tiết ${copy.singular} và các liên kết đang áp dụng.`} actions={record ? <div className={styles.detailActions} role="group" aria-label={`Thao tác ${copy.singular}`}>
     <Badge label={kind === 'destination' && status ? destinationStatusLabels[status] : status ?? '—'} tone={status === 'ACTIVE' ? 'success' : 'neutral'} />
     {can('UPDATE') && <Button tone="secondary" disabled={busy} onClick={() => navigate(`/admin/${copy.route}/${id}/edit`)}>Chỉnh sửa</Button>}
-    {kind === 'destination' && <>
-      {can('UPDATE') && <Button disabled={busy} onClick={() => setStatusOpen(true)}>{status === 'ACTIVE' ? 'Ngừng kích hoạt' : 'Kích hoạt'}</Button>}
-      {can('DELETE_UNUSED') && <Button tone="danger" disabled={busy} onClick={() => setRemoveOpen(true)}>Xóa khi chưa sử dụng</Button>}
-    </>}
+    {can(kind === 'destination' ? 'UPDATE' : status === 'ACTIVE' ? 'DEACTIVATE' : 'ACTIVATE') && <Button disabled={busy} onClick={() => setStatusOpen(true)}>{status === 'ACTIVE' ? 'Ngừng kích hoạt' : 'Kích hoạt'}</Button>}
+    {can('DELETE_UNUSED') && <Button tone="danger" disabled={busy} onClick={() => setRemoveOpen(true)}>Xóa khi chưa sử dụng</Button>}
   </div> : undefined} />
     {loading && <Loading label={`Đang tải ${copy.singular}…`} />}{error && <Notice title="Không thể thực hiện" tone="error"><p>{error}</p>{kind === 'destination' && !record && <Button onClick={() => void load()}>Thử lại</Button>}</Notice>}{success && <Notice title="Đã cập nhật" tone="success"><p>{success}</p></Notice>}
     {record && <><Panel title="Thông tin danh mục">{kind === 'port' ? <DataTable label="Thông tin cảng" headers={['Thuộc tính', 'Giá trị']}><tr><td>Mã cảng</td><td>{(record as Port).portCode}</td></tr><tr><td>Quốc gia / múi giờ</td><td>{record.countryCode} · {(record as Port).timeZoneId}</td></tr><tr><td>Tọa độ</td><td>{(record as Port).latitude ?? '—'}, {(record as Port).longitude ?? '—'}</td></tr></DataTable> : <DataTable label="Thông tin điểm đến" headers={['Thuộc tính', 'Giá trị']}><tr><td>Quốc gia</td><td>{record.countryCode}</td></tr><tr><td>Mô tả</td><td>{(record as Destination).description || '—'}</td></tr></DataTable>}</Panel>
@@ -260,14 +257,14 @@ function MasterDetail({ kind }: { kind: Kind }) {
             {linkedPorts.map(port => <tr key={port.portId}><td>{port.portCode}</td><td>{port.portName}</td><td><Link className={styles.link} to={`/admin/ports/${port.portId}`}>Mở cảng →</Link></td></tr>)}
           </DataTable> : <Empty title="Chưa có cảng liên kết" />}
       </Panel>}
-      {kind === 'port' && <Panel title="Thao tác"><div className={styles.actions}>{can('VALIDATE') && <Button tone="secondary" disabled={busy} onClick={() => void validate()}>Kiểm tra dữ liệu</Button>}<Button tone="secondary" disabled={busy} onClick={() => void checkAvailability()}>Kiểm tra khả dụng</Button>{can(status === 'ACTIVE' ? 'DEACTIVATE' : 'ACTIVATE') && <Button disabled={busy} onClick={() => setStatusOpen(true)}>{status === 'ACTIVE' ? 'Ngừng kích hoạt' : 'Kích hoạt'}</Button>}{can('DELETE_UNUSED') && <Button tone="danger" disabled={busy} onClick={() => setRemoveOpen(true)}>Xóa khi chưa sử dụng</Button>}</div></Panel>}</>}
+    </>}
     {statusOpen && can(kind === 'destination' ? 'UPDATE' : status === 'ACTIVE' ? 'DEACTIVATE' : 'ACTIVATE') && <Modal title={status === 'ACTIVE' ? 'Ngừng kích hoạt' : 'Kích hoạt'} busy={busy} onClose={() => setStatusOpen(false)}><p>Xác nhận thay đổi trạng thái của {title}? Các điều kiện đang sử dụng sẽ được kiểm tra trước khi cập nhật.</p>{error && <Notice title="Chưa đổi được trạng thái" tone="error">{error}</Notice>}<Button disabled={busy} onClick={() => void togglePort()}>Xác nhận thay đổi trạng thái</Button></Modal>}
     {removeOpen && can('DELETE_UNUSED') && <Modal title={`Xóa ${copy.singular}?`} onClose={() => { if (!busy) setRemoveOpen(false) }} footer={<div className={styles.modalActions}><Button tone="secondary" disabled={busy} onClick={() => setRemoveOpen(false)} data-overlay-dismiss>Quay lại</Button><Button tone="danger" disabled={busy} onClick={() => void remove()}>{busy ? 'Đang xóa…' : 'Xác nhận xóa'}</Button></div>}><p>{kind === 'destination' ? 'Chỉ xóa điểm đến khi bạn đã xác nhận không còn được sử dụng. Thao tác này không thể hoàn tác.' : 'Chỉ có thể xóa bản ghi chưa được sử dụng.'}</p></Modal>}
   </ItineraryFrame>
 }
 
 export const PortListPage = () => <MasterList kind="port" />
-export const PortFormPage = () => <MasterForm kind="port" />
+export const PortFormPage = () => { const { portId } = useParams(); return <MasterForm key={portId ?? 'new'} kind="port" /> }
 export const PortDetailPage = () => <MasterDetail kind="port" />
 export const DestinationListPage = () => <MasterList kind="destination" />
 export const DestinationFormPage = () => { const { destinationId } = useParams(); return <MasterForm key={destinationId ?? 'new'} kind="destination" /> }

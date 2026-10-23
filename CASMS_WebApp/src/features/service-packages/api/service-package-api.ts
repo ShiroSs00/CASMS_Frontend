@@ -40,7 +40,7 @@ export const servicePackageApi = {
     if (row.bookingPassengerId !== bookingPassengerId || row.packageId !== tourPackageId) throw new ApiError('Phản hồi phân bổ không khớp yêu cầu.', status)
     return row
   }, { method, body: method === 'DELETE' ? undefined : { tourPackageId } }),
-  saveRequest: (draft: { serviceId: string; bookingPassengerId?: string; quantity: number; note: string }, id?: string) => apiRequestRaw(endpoint('requests', id), (value, status) => record<ServiceRequest>(data(value, status), status, true), { method: id ? 'PUT' : 'POST', body: id ? { quantity: draft.quantity, note: draft.note.trim() || null } : { serviceId: draft.serviceId, bookingPassengerId: draft.bookingPassengerId || null, quantity: draft.quantity, note: draft.note.trim() || null } }),
+  saveRequest: (draft: { serviceId: string; bookingPassengerId?: string; serviceScheduleId?: string; idempotencyKey?: string; quantity: number; note: string }, id?: string) => apiRequestRaw(endpoint('requests', id), (value, status) => record<ServiceRequest>(data(value, status), status, true), { method: id ? 'PUT' : 'POST', body: id ? { quantity: draft.quantity, note: draft.note.trim() || null } : { serviceId: draft.serviceId, bookingPassengerId: draft.bookingPassengerId || null, serviceScheduleId: draft.serviceScheduleId || undefined, idempotencyKey: draft.idempotencyKey, quantity: draft.quantity, note: draft.note.trim() || null } }),
   requestAction: (id: string, action: 'assign' | 'accept' | 'reject' | 'start' | 'complete' | 'cancel') => apiRequestRaw(endpoint('requests', id) + (action === 'cancel' ? '/cancel' : '/actions/' + action), (value, status) => record<ServiceRequest>(data(value, status), status, true), { method: 'POST' }),
   components: (id: string, kind: BenefitKind, signal?: AbortSignal): Promise<BenefitRow[]> => apiRequestRaw(endpoint('packages', id) + '/' + kind, (value, status) => {
     const rows = data(value, status), field = kind === 'services' ? 'serviceId' : kind === 'activities' ? 'activityId' : 'excursionId'
@@ -77,6 +77,7 @@ export const servicePackageApi = {
     for (const [rows, key] of [[dto.services, 'serviceId'], [dto.activities, 'activityId'], [dto.excursions, 'excursionId']] as const) {
       if (rows.some((row: unknown) => !row || typeof row !== 'object' || !('packageId' in row) || row.packageId !== id || !(key in row) || typeof (row as Record<string, unknown>)[key] !== 'string' || !('benefitType' in row) || !['INCLUDED', 'OPTIONAL'].includes(String(row.benefitType)))) throw new ApiError('Thành phần quyền lợi không đúng định dạng.', status)
     }
+    if ('entitlements' in dto && dto.entitlements != null && (!Array.isArray(dto.entitlements) || dto.entitlements.some((row: unknown) => !row || typeof row !== 'object' || !('id' in row) || typeof row.id !== 'string' || !('packageId' in row) || row.packageId !== id || !('categoryId' in row) || typeof row.categoryId !== 'string'))) throw new ApiError('Quyền lợi theo nhóm dịch vụ không đúng định dạng.', status)
     return dto as Benefits
   }, { signal }),
 }

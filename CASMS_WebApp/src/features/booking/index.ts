@@ -7,3 +7,4 @@ export { RealBookingList, RealBookingDetail, BookingLookupPage } from './pages/R
 export { RealBookingCreatePage } from './pages/RealBookingCreatePage'
 export { CustomerExperiencesPage } from './pages/CustomerExperiencesPage'
 export { FinanceBookingsPage } from './pages/FinanceBookingsPage'
+export { CheckinDesk } from './pages/CheckinDesk'

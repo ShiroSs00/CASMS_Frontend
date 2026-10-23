@@ -1,3 +1,4 @@
+import { PaymentLedger } from '../components/PaymentLedger'
 import { useCallback, useState } from 'react'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
@@ -20,6 +21,6 @@ export function FinanceBookingsPage() {
         {list.data.content.map(item=><tr key={item.bookingId}><td>{item.bookingReference}</td><td>{item.cruiseName}</td><td>{bookingStatusName[item.bookingStatus]}</td><td>{item.agreedFareAmount!=null&&item.currency?bookingMoney(item.agreedFareAmount,item.currency):'Chưa có'}</td><td><Button tone="secondary" onClick={()=>setSelected(item.bookingId)}>Xem lịch thanh toán</Button></td></tr>)}
       </DataTable>}
       <Button tone="secondary" disabled={page===0} onClick={()=>setPage(value=>value-1)}>Trang trước</Button><span> Trang {page+1} </span><Button tone="secondary" disabled={page+1>=list.data.totalPages} onClick={()=>setPage(value=>value+1)}>Trang sau</Button>
-    </>}</Panel>{selected&&<Panel title="Lịch thanh toán"><BookingReadState {...detail}/>{detail.data&&<><h2>{detail.data.bookingReference}</h2><p>Hợp đồng: {detail.data.contractReference??'Chưa có'}</p><BookingInstallments booking={detail.data}/><p>Đối chiếu chứng từ thanh toán trước khi xác nhận đã thu tiền.</p></>}</Panel>}</>}
+    </>}</Panel>{selected&&<><PaymentLedger key={selected} bookingId={selected} currency={list.data?.content.find(item => item.bookingId === selected)?.currency ?? ''} onChanged={() => { detail.retry(); list.retry() }} /><Panel title="Lịch thanh toán"><BookingReadState {...detail}/>{detail.data&&<><h2>{detail.data.bookingReference}</h2><p>Hợp đồng: {detail.data.contractReference??'Chưa có'}</p><BookingInstallments booking={detail.data}/><p>Đối chiếu chứng từ thanh toán trước khi xác nhận đã thu tiền.</p></>}</Panel>{detail.error && <Notice title="Chưa truy cập được hợp đồng" tone="warning">Máy chủ chưa cho tài khoản này đọc chi tiết đặt chỗ. Lịch sử giao dịch phía trên dùng quyền thanh toán riêng; lịch thanh toán cần được mở quyền từ máy chủ.</Notice>}</>}</>}
   </RealBookingFrame>
 }

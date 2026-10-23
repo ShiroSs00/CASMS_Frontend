@@ -160,8 +160,7 @@ export function roleNavigationItems(roles: readonly string[], access: AdminAcces
 export type AdminNavigationGroup = { id: string; label: string; items: AdminNavigationItem[] }
 const navigationGroups = [
   {id:'experiences',label:'Hoạt động và tour',sections:['activities','shore-excursions','tour-groups']},
-  {id:'services',label:'Dịch vụ và sản phẩm',sections:['services','products','service-requests']},
-  {id:'packages',label:'Gói dịch vụ',sections:['service-packages','package-assignments']},
+  {id:'services',label:'Dịch vụ, sản phẩm và gói',sections:['services','products','service-packages','service-requests','package-assignments']},
   {id:'locations',label:'Điểm đến và đối tác',sections:['destinations','ports','suppliers']},
   {id:'fleet',label:'Đội tàu',sections:['ships','decks','cabins']},
   {id:'schedule',label:'Chuyến đi và lịch trình',sections:['cruises','itineraries']},
