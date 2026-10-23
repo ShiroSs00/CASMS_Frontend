@@ -49,7 +49,7 @@ test('public contact supports hover, keyboard, touch and guest lookup; managemen
     await page.locator('#auth-username').fill('fixture')
     await page.locator('#auth-password').fill('fixture-only')
     await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
-    await page.getByRole('alert').filter({ hasText: 'Đăng nhập chỉ dành cho quản lý và quản trị viên' }).waitFor()
+    await page.getByRole('alert').filter({ hasText: 'Hành khách có thể đặt chỗ và tra cứu bằng mã' }).waitFor()
     assert.equal(await page.evaluate(() => globalThis.sessionStorage.getItem('aurora.auth.session.v1')), null)
     assert.deepEqual(errors, [])
   } finally { await browser.close() }

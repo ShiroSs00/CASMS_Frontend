@@ -6,6 +6,7 @@ import ts from 'typescript'
 const root = new URL('../../src/', import.meta.url), jsx = (type, props) => ({ type, props })
 class ApiError extends Error { constructor(message, status) { super(message); this.status = status } }
 function load(file, imports) {
+  if (file.endsWith('/service-package-api.ts')) imports = { ...imports, '../model/catalog-contract': load('features/service-packages/model/catalog-contract.ts', {}) }
   const module = { exports: {} }
   vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 } }).outputText, {
     module, exports: module.exports, Error, AbortController, require(id) {

@@ -15,16 +15,18 @@ function load(file, imports = {}) {
 class ApiError extends Error { constructor(message, status) { super(message); this.status = status } }
 const pack = { id: 'package', code: 'PK', name: 'Package', type: 'PREMIUM', price: 120, currency: 'USD', status: 'ACTIVE' }
 
-test('public package benefits preserve included/optional distinctions and reject foreign, duplicate or malformed components', () => {
+test('public package benefits preserve inherited ownership and reject wrong package headers, duplicate or malformed components', () => {
   const { decodePackageBenefits } = load('features/booking/api/customer-extras-api.ts', { '@/shared/api': {} })
   const payload = { packageInfo: pack, services: [{ packageId: pack.id, serviceId: 'service', benefitType: 'INCLUDED' }], activities: [], excursions: [{ packageId: pack.id, excursionId: 'excursion', benefitType: 'OPTIONAL' }] }
   const result = decodePackageBenefits(payload, pack.id)
   assert.equal(result.benefits.length, 2)
   assert.equal(result.benefits[0].benefitType, 'INCLUDED')
   assert.equal(result.benefits[1].benefitType, 'OPTIONAL')
+  const inherited = decodePackageBenefits({ ...payload, services: [{ ...payload.services[0], packageId: 'parent' }] }, pack.id)
+  assert.equal(inherited.benefits[0].sourcePackageId, 'parent')
   for (const changes of [
     { packageInfo: { ...pack, id: 'other' } },
-    { services: [{ ...payload.services[0], packageId: 'other' }] },
+    { services: [{ ...payload.services[0], packageId: '' }] },
     { services: [payload.services[0], payload.services[0]] },
     { services: [{ ...payload.services[0], benefitType: 'FREE_UPGRADE' }] },
     { excursions: null },

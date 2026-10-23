@@ -28,3 +28,8 @@
 /* OceVie desktop: use shared semantic presentation, retain feature behavior. */
 .link { display:inline-flex; align-items:center; min-height:44px; padding-block:8px; white-space:normal; overflow-wrap:anywhere; }
 .twoColumns { gap:24px; }
+
+/* Keep field rows aligned; wrap according to available form width. */
+.grid { align-items:start; gap:16px 24px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }
+
+form .actions { justify-content:flex-end; border-top:1px solid var(--ui-border,#d5e0e4); }

@@ -4,10 +4,10 @@
 .pager,.actions,.modalActions { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:16px; }
 .actions,.modalActions { justify-content:flex-end; }
 .detailActions { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
-.editorGrid { display:grid; grid-template-columns:minmax(0,1.65fr) minmax(310px,.85fr); gap:18px; align-items:start; }
+.editorGrid { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.2fr); gap:24px; align-items:start; }
 .dayCard { margin-bottom:12px; padding:16px; border:1px solid #e0d8ca; border-radius:12px; background:#fff; }
 .dayHeading,.stopRow { display:flex; align-items:center; justify-content:space-between; gap:16px; }
-.stopList { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+.stopList { display:flex; flex-direction:column; gap:8px; margin-top:0; }
 .stopRow { padding:11px 12px; border-left:3px solid #0e6b7a; border-radius:6px; background:#f5f2e9; font-size:13px; }
 .formGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
 .destinationGrid > :first-child, .destinationDescription { grid-column:1/-1; min-width:0; }
@@ -29,7 +29,7 @@
 .inlineActions { display:flex; }
 .inlineActions button { width:auto; }
 
-@media(max-width:900px) {
+@media(max-width:1100px) {
   .editorGrid { grid-template-columns:1fr; }
 }
 @media(max-width:760px) {
@@ -41,3 +41,25 @@
   .inlineActions { flex-wrap:wrap; }
 }
 
+
+/* Keep field rows aligned; wrap according to available form width. */
+.formGrid { align-items:start; gap:16px 24px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }
+.editorGrid > * { min-width:0; }
+.editorForm { display:grid; min-width:0; gap:16px; }
+.editorFields { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(200px,calc((100% - 20px)/2))),1fr)); gap:16px 20px; align-items:start; }
+.editorFields > * { min-width:0; }
+.editorFields label { flex:none; margin:0; }
+.editorFields textarea { min-height:96px; resize:vertical; }
+.fullRow { grid-column:1/-1; }
+.editorFields > p { margin:0; line-height:1.6; }
+.editorDetails { min-width:0; border:1px solid var(--ui-border,#d5e0e4); border-radius:10px; }
+.editorDetails > summary { padding:12px 14px; cursor:pointer; color:var(--ui-ink,#0b2a4a); font-size:14px; font-weight:600; }
+.editorDetails > summary:focus-visible { outline:3px solid var(--ui-focus,#0e6b7a); outline-offset:2px; }
+.editorDetails > :not(summary) { margin:0; padding:4px 14px 14px; }
+.editorTools,.editorActions { display:flex; flex-wrap:wrap; gap:10px; }
+.editorActions { justify-content:flex-end; padding-top:16px; border-top:1px solid var(--ui-border,#d5e0e4); }
+.editorTools button,.editorActions button { width:auto; }
+@media(max-width:480px) { .editorActions { flex-direction:column; } .editorActions button,.editorTools button { width:100%; } }
+
+.formGrid > div:has(> textarea) { grid-column:1/-1; }
+.actions { flex-wrap:wrap; }

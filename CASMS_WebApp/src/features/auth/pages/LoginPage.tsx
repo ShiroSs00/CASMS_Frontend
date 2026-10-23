@@ -17,5 +17,5 @@ export function LoginPage() {
   const expired = arrivedExpired || params.get('reason') === 'expired'
   useEffect(() => { authSession.acknowledgeExpiry() }, [])
   if (auth.user) return <Navigate to={destination(auth.user.roles)} replace />
-  return <AuthPageShell expired={expired} editorialTitle="Điều hành hành trình cùng OceVie." editorialDescription="Không gian làm việc dành cho quản lý và quản trị viên."><LoginForm expired={expired} login={auth.login} onSuccess={(user) => navigate(destination(user.roles), { replace: true })} /></AuthPageShell>
+  return <AuthPageShell expired={expired} editorialTitle="Điều hành hành trình cùng OceVie." editorialDescription="Không gian làm việc dành cho quản trị viên, quản lý và nhân viên đặt chỗ."><LoginForm expired={expired} login={auth.login} onSuccess={(user) => navigate(destination(user.roles), { replace: true })} /></AuthPageShell>
 }

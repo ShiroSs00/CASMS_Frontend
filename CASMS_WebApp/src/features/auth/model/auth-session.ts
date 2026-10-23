@@ -27,7 +27,7 @@ function clear(status: 'anonymous' | 'expired') {
 function persist(session: AuthSession) {
   if (!canSignIn(session.user)) {
     clear('anonymous')
-    throw new Error('Đăng nhập chỉ dành cho quản lý và quản trị viên. Hành khách có thể đặt chỗ và tra cứu bằng mã, không cần tài khoản.')
+    throw new Error('Đăng nhập dành cho quản trị viên, quản lý và nhân viên đặt chỗ. Hành khách có thể đặt chỗ và tra cứu bằng mã, không cần tài khoản.')
   }
   // Do not silently promise browser-session persistence when storage is unavailable.
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session))

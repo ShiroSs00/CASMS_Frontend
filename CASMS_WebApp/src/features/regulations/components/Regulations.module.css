@@ -319,3 +319,10 @@
 .detailItem dd,.regulationFacts dd { overflow-wrap:anywhere; }
 @media(max-width:1100px) { .regulationColumns { grid-template-columns:minmax(0,1fr); } }
 
+
+/* Keep field rows aligned; wrap according to available form width. */
+.formGrid { align-items:start; gap:16px 24px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }
+
+.field { min-width:0; }
+.field label { flex:none; margin:0; }
+.formActions { justify-content:flex-end; }

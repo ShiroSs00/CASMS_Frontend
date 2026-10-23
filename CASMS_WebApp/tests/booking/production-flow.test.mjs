@@ -48,6 +48,7 @@ test('former customer account routes use guest reference lookup',()=>{
 
 test('installment view uses persisted sequence, amounts and due dates without inventing paid states',()=>{
   const {BookingInstallments}=load('features/booking/components/BookingInstallments.tsx',{
+    '@/shared/ui':{Notice:'Notice'},
     '../model/booking-presentation':{bookingMoney:(amount,currency)=>`${amount} ${currency}`},
     '../model/real-booking-view':{bookingWhen:value=>value},
   })

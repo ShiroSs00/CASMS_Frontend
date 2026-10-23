@@ -62,7 +62,7 @@ function requestResult(value: unknown, id: string | null, expected: string, quan
 const registrationPath = (id: string) => '/activities/registrations/' + part(id)
 const requestPath = (id: string) => '/servicepackage/requests/' + part(id)
 
-export type CustomerBenefit = { id: string; kind: 'services' | 'activities' | 'excursions'; benefitType: 'INCLUDED' | 'OPTIONAL' }
+export type CustomerBenefit = { id: string; sourcePackageId: string; kind: 'services' | 'activities' | 'excursions'; benefitType: 'INCLUDED' | 'OPTIONAL' }
 export function decodePackageBenefits(value: unknown, id: string) {
   const v = row(value)
   const packageInfo = identity(decodeCustomerPackage(v.packageInfo), id)
@@ -71,11 +71,11 @@ export function decodePackageBenefits(value: unknown, id: string) {
     const idKey = { services: 'serviceId', activities: 'activityId', excursions: 'excursionId' }[kind]
     const seen = new Set<string>()
     for (const value of list(v[kind], row)) {
-      if (value.packageId !== id) throw new Error('Quyền lợi không thuộc gói đã chọn.')
+      const sourcePackageId = text(value.packageId)
       const componentId = text(value[idKey])
       if (seen.has(componentId)) throw new Error('Quyền lợi trong gói bị trùng.')
       seen.add(componentId)
-      benefits.push({ id: componentId, kind, benefitType: state(value.benefitType, ['INCLUDED', 'OPTIONAL']) as CustomerBenefit['benefitType'] })
+      benefits.push({ id: componentId, sourcePackageId, kind, benefitType: state(value.benefitType, ['INCLUDED', 'OPTIONAL']) as CustomerBenefit['benefitType'] })
     }
   }
   return { packageInfo, benefits }
