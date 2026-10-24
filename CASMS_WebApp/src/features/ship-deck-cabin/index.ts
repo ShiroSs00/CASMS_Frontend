@@ -1,4 +1,6 @@
 export { ShipListPage } from './pages/ShipListPage'
-export { DeckListPage, CabinListPage } from './pages/ListPage'
+export { ShipDeckListPage as DeckListPage, ShipCabinListPage as CabinListPage } from './pages/ShipStructureListPage'
 export { ShipFormPage, DeckFormPage, CabinFormPage } from './pages/FormPage'
-export { ShipDetailPage, DeckDetailPage, CabinDetailPage } from './pages/DetailPage'
+export { DeckDetailPage, CabinDetailPage } from './pages/DetailPage'
+export { ShipManagementPage as ShipDetailPage } from './pages/ShipManagementPage'
+export { FleetDashboardPage } from './pages/FleetDashboardPage'

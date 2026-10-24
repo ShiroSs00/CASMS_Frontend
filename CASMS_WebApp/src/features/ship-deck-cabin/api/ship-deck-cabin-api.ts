@@ -16,11 +16,13 @@ const ship = (dto: ShipDto): Ship => ({
   id: dto.shipId, code: dto.shipCode, name: dto.shipName, status: dto.status,
   capacity: dto.totalCapacity, totalDecks: dto.totalDecks, commissionDate: dto.commissionDate ?? '',
   createdAt: dto.createdAt, updatedAt: dto.updatedAt,
+  manifestModelId: dto.manifestModelId, deckNumberLimit: dto.deckNumberLimit, lengthMeters: dto.lengthMeters, beamMeters: dto.beamMeters,
 })
 const deck = (dto: DeckDto): Deck => ({ id: dto.deckId, shipId: dto.shipId, number: dto.deckNumber,
   name: dto.deckName ?? '', priceMultiplier: dto.priceMultiplier ?? 1.0, createdAt: dto.createdAt, updatedAt: dto.updatedAt })
 const cabin = (dto: CabinDto): Cabin => ({ id: dto.cabinId, shipId: dto.shipId, deckId: dto.deckId,
-  number: dto.cabinNumber, type: dto.cabinType, capacity: dto.capacity, status: dto.status, accessible: dto.isAccessible })
+  number: dto.cabinNumber, type: dto.cabinType, capacity: dto.capacity, status: dto.status, accessible: dto.isAccessible,
+  modelWidth: dto.modelWidth, modelHeight: dto.modelHeight, modelDepth: dto.modelDepth })
 const cruise = (dto: CruiseDto): CruisePreview => ({ id: dto.cruiseId, code: dto.cruiseCode,
   name: dto.cruiseName, status: dto.status, departure: dto.departureDatetime, returnAt: dto.returnDatetime })
 const checkedBoolean = (value: boolean): boolean => {
@@ -52,6 +54,20 @@ async function allPages<T>(path: string, signal?: AbortSignal): Promise<T[]> {
 export const shipDeckCabinApi = {
   subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
   getRevision: () => revision,
+  async listShipDecks(shipId: string, signal: AbortSignal): Promise<Deck[]> {
+    const rows = await allPages<DeckDto>(`/decks/by-ship/${encodeURIComponent(shipId)}`, signal)
+    if (rows.some(row => row.shipId !== shipId)) throw new ApiError('Danh sách boong không khớp với tàu đang xem.', 502)
+    return rows.map(deck).sort((a, b) => a.number - b.number)
+  },
+  async listShipCabins(shipId: string, signal: AbortSignal): Promise<Cabin[]> {
+    const rows = await allPages<CabinDto>(`/cabins/by-ship/${encodeURIComponent(shipId)}`, signal)
+    if (rows.some(row => row.shipId !== shipId)) throw new ApiError('Danh sách phòng không khớp với tàu đang xem.', 502)
+    return rows.map(cabin).sort((a, b) => a.number.localeCompare(b.number, 'vi', { numeric: true }))
+  },
+  async updateDeckOperations(id: string, name: string, priceMultiplier: number) {
+    const result = deck(await apiRequest<DeckDto>(idPath('decks', id), { method: 'PATCH', body: { deckName: name.trim(), priceMultiplier } }))
+    notify(); return result
+  },
   async listShips(signal: AbortSignal): Promise<Ship[]> {
     return (await allPages<ShipDto>(paths.ships, signal)).map(ship)
   },
@@ -97,6 +113,8 @@ export const shipDeckCabinApi = {
     const body = {
       shipName: draft.name.trim(), totalCapacity: draft.capacity, totalDecks: draft.totalDecks,
       ...(draft.commissionDate ? { commissionDate: draft.commissionDate } : {}),
+      ...(draft.lengthMeters != null ? { lengthMeters: draft.lengthMeters } : {}),
+      ...(draft.beamMeters != null ? { beamMeters: draft.beamMeters } : {}),
       ...(!id ? { shipCode: draft.code.trim(), status: draft.status } : {}),
     }
     const saved = ship(await apiRequest<ShipDto>(id ? idPath('ships', id) : paths.ships, { method: id ? 'PATCH' : 'POST', body }))
@@ -108,8 +126,8 @@ export const shipDeckCabinApi = {
     notify(); return saved
   },
   async saveCabin(draft: CabinDraft, id?: string) {
-    const body = { cabinType: draft.type, capacity: draft.capacity, isAccessible: draft.accessible,
-      ...(!id ? { deckId: draft.deckId, cabinNumber: draft.number.trim(), status: draft.status } : {}) }
+    const body = { capacity: draft.capacity, isAccessible: draft.accessible,
+      ...(!id ? { cabinType: draft.type, deckId: draft.deckId, cabinNumber: draft.number.trim(), status: draft.status } : {}) }
     const saved = cabin(await apiRequest<CabinDto>(id ? idPath('cabins', id) : paths.cabins, { method: id ? 'PATCH' : 'POST', body }))
     notify(); return saved
   },
@@ -122,7 +140,7 @@ export const shipDeckCabinApi = {
   async changeCabinStatus(id: string, status: CabinStatus) {
     await apiRequest<CabinDto>(`${idPath('cabins', id)}/status`, { method: 'POST', query: { status } }); notify()
   },
-  async blockCabin(id: string, reasonStatus: 'OCCUPIED' | 'MAINTENANCE') {
+  async blockCabin(id: string, reasonStatus: 'OUT_OF_SERVICE' | 'MAINTENANCE') {
     await apiRequest<CabinDto>(`${idPath('cabins', id)}/block`, { method: 'POST', query: { reasonStatus } }); notify()
   },
   async releaseCabin(id: string) {

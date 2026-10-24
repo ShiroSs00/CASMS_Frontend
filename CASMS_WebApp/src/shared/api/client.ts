@@ -7,6 +7,7 @@ type RequestOptions = {
   body?: unknown
   signal?: AbortSignal
   authenticated?: boolean
+  timeoutMs?: number
 }
 export class ApiError extends Error {
   status: number
@@ -32,18 +33,19 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
     if (value !== undefined) query.set(key, String(value))
   }
   const headers: Record<string, string> = { Accept: 'application/json' }
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json'
+  const multipart = typeof FormData !== 'undefined' && options.body instanceof FormData
+  if (options.body !== undefined && !multipart) headers['Content-Type'] = 'application/json'
   const requestToken = options.authenticated === false ? null : accessToken
   if (requestToken) headers.Authorization = `Bearer ${requestToken}`
   const controller = new AbortController()
   const abort = () => controller.abort()
   options.signal?.addEventListener('abort', abort, { once: true })
   if (options.signal?.aborted) abort()
-  const timeout = setTimeout(abort, 20000)
+  const timeout = setTimeout(abort, options.timeoutMs ?? 20000)
   try {
     const response = await fetch(`${baseUrl}${path}${query.size ? `?${query}` : ''}`, {
       method: options.method ?? 'GET', headers, signal: controller.signal,
-      body: options.body === undefined ? undefined : JSON.stringify(prepareCreateBody(path, options.method, options.body)),
+      body: options.body === undefined ? undefined : multipart ? options.body as FormData : JSON.stringify(prepareCreateBody(path, options.method, options.body)),
     })
     if (response.status === 204 && response.ok) return decode(undefined, response.status)
     let payload: ApiEnvelope<T> | null = null
