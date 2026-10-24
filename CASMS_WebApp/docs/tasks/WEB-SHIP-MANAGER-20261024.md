@@ -22,6 +22,8 @@ Validation: lint, typecheck/build, relevant API/access/regression tests; browser
 
 ## Implemented
 
+Dashboard metric follow-up: remove only the “Phòng” aggregate tile, retaining active/maintenance/attention tiles and all per-ship cabin counts in the table. Change desktop metric grid to three equal columns and mobile to one column. Existing feature allowed paths apply. Preserve viewer/BLE work. No new tests for this presentation-only change; required lint/typecheck/build and real UI inspection only, no QA environment.
+
 Git delivery authorized 2026-10-24: user explicitly requests a new branch without “codex”, push, then merge main. Deliver frontend import and fleet work from this conversation through feat/ship-import-management and a pull request (no direct main push). Preserve unrelated operations task notes and all backend/mobile changes. Refresh origin/main, review staged source/test/docs only and run required checks before publishing. This authorization supersedes earlier “no commit/push requested” notes.
 
 Ship list readiness removal: remove the Sẵn sàng filter and Sẵn sàng vận hành card row as requested in the screenshot. Keep name/status filters and current-cruise/capacity details. Dashboard and backend readiness remain outside this UI request. Existing feature paths apply; validate desktop/mobile and required checks.

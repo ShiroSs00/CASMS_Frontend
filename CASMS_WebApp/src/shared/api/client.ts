@@ -27,6 +27,29 @@ export function subscribeApiUnauthorized(listener: () => void) {
 }
 const baseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 
+/** Authenticated asset bytes; credentials are only sent through the configured API origin. */
+export async function apiAsset(path: string, signal: AbortSignal, progress?: (loaded: number, total: number) => void): Promise<ArrayBuffer> {
+  if (!/^\/ships\/[^/]+\/models\/[^/]+\/assets\//.test(path) || path.includes('..') || /[?#\\]/.test(path)) throw new ApiError('Đường dẫn asset không hợp lệ.', 400)
+  const token = accessToken
+  const response = await fetch(`${baseUrl}${path}`, { signal, headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  if (!response.ok) {
+    if (response.status === 401 && token === accessToken) unauthorizedListeners.forEach(listener => listener())
+    throw new ApiError(response.status === 403 ? 'Bạn không có quyền đọc asset mô hình.' : `Không tải được asset (HTTP ${response.status}).`, response.status)
+  }
+  const total = Number(response.headers.get('content-length')) || 0
+  if (!response.body) return response.arrayBuffer()
+  const reader = response.body.getReader(), chunks: Uint8Array[] = []
+  let loaded = 0, lastProgress = 0
+  try {
+    while (true) { const part = await reader.read(); if (part.done) break; chunks.push(part.value); loaded += part.value.length; if (Date.now()-lastProgress>150) { progress?.(loaded,total);lastProgress=Date.now() } }
+  } finally { reader.releaseLock() }
+  signal.throwIfAborted()
+  progress?.(loaded,total)
+  const bytes = new Uint8Array(loaded); let offset = 0
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length }
+  return bytes.buffer
+}
+
 async function request<T>(path: string, options: RequestOptions, decode: (payload: unknown, status: number) => T): Promise<T> {
   const query = new URLSearchParams()
   for (const [key, value] of Object.entries(options.query ?? {})) {

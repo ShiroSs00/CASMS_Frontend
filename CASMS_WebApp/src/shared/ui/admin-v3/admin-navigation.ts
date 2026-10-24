@@ -8,6 +8,8 @@ export type AdminWorkspace = {
   action: { label: string; to: string; permission: string };
 }
 const tools: readonly AdminNavigationItem[] = [
+  { label:'Hành khách trên tàu', to:'/admin/passenger-tracking', permissions:['BLE_TELEMETRY_READ'] },
+  { label:'Model 3D', to:'/admin/ship-models', permissions:['SHIP_MODEL_READ'] },
   { label:'Dashboard', to:'/admin/fleet-dashboard', permissions:['SHIP_READ'] },
   { label:'Nhập thông tin tàu', to:'/admin/ship-import', permissions:['SHIP_MODEL_CREATE'] },
   { label:'Tài khoản hệ thống', to:'/admin/system', permissions:['USER_READ'] },
@@ -139,6 +141,8 @@ export function canRoleOpenAdminPath(roles: readonly string[], pathname: string,
   if(pathname==='/admin') return true
   if(pathname==='/admin/system'&&!roles.includes('ADMIN')) return false
   if(pathname==='/admin/ship-import'&&!roles.includes('ADMIN')) return false
+  if(pathname==='/admin/ship-models'&&!roles.includes('ADMIN')) return false
+  if(pathname==='/admin/passenger-tracking'&&!roles.includes('SHIP_MANAGER')) return false
   if(pathname==='/admin/fleet-dashboard'&&!roles.includes('SHIP_MANAGER')) return false
   if(pathname.replace(/\/$/,'')==='/admin/ships/new'&&roles.includes('SHIP_MANAGER')) return false
   const required=adminPathPermissions(pathname,search)
@@ -146,9 +150,9 @@ export function canRoleOpenAdminPath(roles: readonly string[], pathname: string,
   return required.some(p=>permissions.includes(p))
 }
 const roleJobSections: Record<string,readonly string[]> = {
-  ADMIN:['system','ship-import'],
+  ADMIN:['system','ship-import','ship-models'],
   CRUISE_MANAGER:['cruises','itineraries','destinations','ports'],
-  SHIP_MANAGER:['fleet-dashboard','ships','decks','cabins'],
+  SHIP_MANAGER:['fleet-dashboard','ships','decks','passenger-tracking','cabins'],
   OPERATIONS_MANAGER:['issues','regulations','itineraries','cruises','bookings'],
   ACTIVITY_SERVICE_MANAGER:['activities','services','products','service-packages','service-requests','package-assignments','shore-excursions','tour-groups','suppliers'],
   ONBOARD_STAFF:['service-requests','activities','shore-excursions','tour-groups','services'],
@@ -163,7 +167,7 @@ export function roleNavigationItems(roles: readonly string[], access: AdminAcces
   const ordered=[...primary,...tools.filter(tool=>!primary.includes(tool))]
   const importOnlyAdmin=role==='ADMIN'&&!roles.includes('SHIP_MANAGER')
   const fleetPaths=['/admin/ships','/admin/decks','/admin/cabins']
-  const managerPaths=['/admin/fleet-dashboard','/admin/ships','/admin/decks']
+  const managerPaths=['/admin/fleet-dashboard','/admin/ships','/admin/decks','/admin/passenger-tracking']
   return ordered.map(item=>role==='SHIP_MANAGER'&&item.to==='/admin/decks'?{...item,permissions:['DECK_READ','CABIN_READ']}:item)
     .filter(item=>!(importOnlyAdmin&&fleetPaths.includes(item.to!))&&(role!=='SHIP_MANAGER'||managerPaths.includes(item.to!))&&canOpenAdminItem(item,access)&&canRoleOpenAdminPath(roles,item.to!,'',access))
     .map(item=>role==='SHIP_MANAGER'?{...item,label:({'/admin/fleet-dashboard':'Dashboard','/admin/ships':'Ship','/admin/decks':'Boong & Cabin'} as Record<string,string>)[item.to!]??item.label}:item)

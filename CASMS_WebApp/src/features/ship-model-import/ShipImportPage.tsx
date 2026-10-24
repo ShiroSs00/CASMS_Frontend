@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router'
 import { useSessionAccess } from '@/shared/auth'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { Badge, Button, Notice, PageHeader, Panel } from '@/shared/ui'
@@ -123,6 +124,7 @@ function ShipImportContent({ userId }: { userId: string }) {
         </>}
         {!job && <p className={styles.muted}>{registration ? 'Thông tin tàu đã được ghi nhận. Tiếp tục để nhập boong và phòng từ gói mô hình.' : 'Gói đã được chọn cho lượt nhập này. Tiếp tục để ghi nhận thông tin tàu từ manifest.'}</p>}
         <div className={styles.actions}>
+          {registration && <Link to={`/admin/ship-models?${new URLSearchParams({ship:registration.shipId,model:registration.shipModelId})}`}>Xem model 3D ↗</Link>}
           <span className={styles.muted}>Gói: {bundleLabel(session)}</span>
           {(!job || job.status === 'FAILED' || job.status === 'PARTIAL') && <Button disabled={!allowed || Boolean(busy) || Boolean(running) || !historyReady} onClick={() => { setError(''); setOpen(true) }}>{job ? 'Thử nhập lại' : 'Tiếp tục nhập'}</Button>}
           {!running && <Button tone={job?.status === 'SUCCEEDED' ? 'primary' : 'secondary'} disabled={!allowed || Boolean(busy) || !historyReady} onClick={startNew}>Nhập gói khác</Button>}

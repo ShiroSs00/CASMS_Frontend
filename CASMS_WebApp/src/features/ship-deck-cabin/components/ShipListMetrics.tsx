@@ -4,7 +4,6 @@ import styles from './ShipList.module.css'
 const cards = [
   { key: 'activeCount', label: 'Đang hoạt động', note: 'tàu đang hoạt động', tone: 'success' },
   { key: 'maintenanceCount', label: 'Bảo trì', note: 'tàu đang bảo trì', tone: 'warning' },
-  { key: 'configuredCabinCount', label: 'Phòng', note: 'đã cấu hình', tone: 'brand' },
   { key: 'attentionCount', label: 'Cần chú ý', note: 'chưa sẵn sàng vận hành', tone: 'danger' },
 ] as const
 

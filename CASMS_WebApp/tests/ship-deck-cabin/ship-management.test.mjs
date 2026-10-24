@@ -19,11 +19,11 @@ const types = load('features/ship-deck-cabin/model/types.ts')
 const model = load('features/ship-deck-cabin/model/ship-management.ts')
 const ship = { id: 's1', code: 'SH-0001', name: 'Conquest', capacity: 610, totalDecks: 13, deckNumberLimit: 14, status: 'ACTIVE', commissionDate: '', lengthMeters: 290, beamMeters: 35 }
 
-test('Ship Manager has three direct menu entries with a combined structure page and cannot create ships manually', () => {
+test('Ship Manager has direct fleet and read-only passenger monitoring entries and cannot create ships manually', () => {
   const nav = load('shared/ui/admin-v3/admin-navigation.ts')
   const access = { status: 'ready', permissions: nav.backendRolePermissions.SHIP_MANAGER }
   const groups = nav.roleNavigationGroups(['SHIP_MANAGER'], access)
-  assert.deepEqual(Array.from(groups, group => group.label), ['Dashboard', 'Ship', 'Boong & Cabin'])
+  assert.deepEqual(Array.from(groups, group => group.label), ['Dashboard', 'Ship', 'Boong & Cabin', 'Hành khách trên tàu'])
   const cabinOnly = {status:'ready',permissions:['SHIP_READ','CABIN_READ']}
   assert.ok(nav.roleNavigationItems(['SHIP_MANAGER'],cabinOnly).some(item=>item.to==='/admin/decks'))
   assert.equal(nav.canRoleOpenAdminPath(['SHIP_MANAGER'],'/admin/decks','',cabinOnly),true)

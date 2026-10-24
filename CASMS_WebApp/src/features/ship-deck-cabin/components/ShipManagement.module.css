@@ -93,7 +93,7 @@
 .pagination { display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; }
 .quickLinks { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
 .dashboardHeading p:empty { display:none; }
-.dashboardMetrics > dl { margin:0; grid-template-columns:repeat(4,minmax(0,1fr)); }
+.dashboardMetrics > dl { margin:0; grid-template-columns:repeat(3,minmax(0,1fr)); }
 .dashboardMetrics > dl > div { background:var(--ui-surface); }
 .quickLinks a { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px 24px; border:1px solid var(--ui-border); border-radius:12px; color:var(--ui-ink); background:var(--ui-surface); text-decoration:none; }
 .quickLinks a:hover { border-color:var(--surface-brand); background:var(--ui-bg); }
@@ -113,7 +113,7 @@
 .manageLink { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:8px 12px; border:1px solid var(--ui-border); border-radius:8px; color:var(--surface-brand); font-weight:600; white-space:nowrap; text-decoration:none; }
 .manageLink:hover { border-color:var(--surface-brand); }
 .srOnly { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
-@media(max-width:600px) { .dashboardMetrics > dl { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:600px) { .dashboardMetrics > dl { grid-template-columns:1fr; } }
 @media(max-width:600px) { .structureToolbar .shipPicker { align-items:stretch; } .structureToolbar .shipPicker > div { flex-basis:auto; } }
 @media(max-width:1000px) { .metrics,.filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .readonly { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:600px) { .formGrid,.filters,.readonly { grid-template-columns:1fr; } .quickLinks { gap:8px; } .quickLinks a { padding:14px 12px; } .quickLinks strong { font-size:14px; } .quickLinks span { font-size:18px; } .metrics { gap:12px; } .metrics > div { padding:16px; } .metrics dd { font-size:26px; } .tabs a { padding-inline:16px; } .shipPicker { align-items:stretch; flex-direction:column; gap:12px; } .shipPicker > div { flex-basis:auto; } }
