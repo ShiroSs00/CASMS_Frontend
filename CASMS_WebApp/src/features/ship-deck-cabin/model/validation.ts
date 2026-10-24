@@ -51,7 +51,8 @@ export function validateDeck(draft: DeckDraft, data: DataSnapshot | null | undef
     errors.shipId = 'Không xác thực được boong đang chỉnh sửa. Vui lòng tải lại dữ liệu.'
   }
   if (positive(draft.number) && ship) {
-    if (draft.number > ship.totalDecks) errors.number = `Số boong không được vượt quá ${ship.totalDecks} boong của tàu.`
+    const limit = ship.deckNumberLimit ?? ship.totalDecks
+    if (draft.number > limit) errors.number = `Số boong không được vượt quá ${limit} boong của tàu.`
     else if (data.decks.some(row => row.shipId === draft.shipId && row.number === draft.number && row.id !== currentDeckId)) {
       errors.number = 'Số boong này đã tồn tại trên tàu đã chọn.'
     }

@@ -46,18 +46,18 @@ test('authorized passenger picker delegates unchanged booking context to its que
   assert.equal(result.props.onChange, props.onChange)
 })
 
-test('ship list only offers creation when the session explicitly grants SHIP_CREATE', () => {
+test('ship list does not offer manual creation even when SHIP_CREATE is granted for import', () => {
   for (const granted of [false, true]) {
     const { ShipListPage } = load('features/ship-deck-cabin/pages/ShipListPage.tsx', {
       react: { useState: value => [value, () => {}] }, 'react-router': { Link: 'Link' },
       '@/shared/auth': { useSessionAccess: () => ({ has: permission => granted && permission === 'SHIP_CREATE' }) },
-      '@/shared/ui': { Button: 'Button' }, '@/shared/ui/admin-v3': { AdminShell: 'AdminShell' },
-      '../components/ShipListMetrics': { ShipListMetrics: 'Metrics' }, '../components/ShipListFilters': { ShipListFilters: 'Filters' }, '../components/ShipListTable': { ShipListTable: 'Table' },
+      '@/shared/ui': { Button: 'Button', PageHeader: 'PageHeader', Panel: 'Panel' }, '@/shared/ui/admin-v3': { AdminShell: 'AdminShell' },
+      '../components/ShipListFilters': { ShipListFilters: 'Filters' }, '../components/FleetShipCards': { FleetShipCards: 'FleetShipCards' },
       '../api/ship-deck-cabin-api': { shipDeckCabinApi: {} }, '../model/ship-list-types': { emptyShipFilters: { search:'', status:'ALL', readiness:'ALL' } },
       '../model/useShipList': { useShipList: () => ({ state: { status: 'error', message: 'Denied' } }) },
     })
     const links = nodes(ShipListPage()).filter(node => node.type === 'Link' && node.props.to === '/admin/ships/new')
-    assert.equal(links.length, granted ? 1 : 0)
+    assert.equal(links.length, 0)
   }
 })
 

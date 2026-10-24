@@ -17,11 +17,6 @@ export function ShipListFilters({ value, onChange, onApply, onReset, disabled, c
         <option value="ALL">Tất cả</option><option value="ACTIVE">{shipStatuses.ACTIVE}</option><option value="MAINTENANCE">{shipStatuses.MAINTENANCE}</option><option value="INACTIVE">{shipStatuses.INACTIVE}</option>
       </select>
     </label>
-    <label className={styles.field}><span id={`${id}-readiness`}>Sẵn sàng</span>
-      <select aria-labelledby={`${id}-readiness`} value={value.readiness} disabled={disabled} onChange={event => onChange({ ...value, readiness: event.target.value as Filters['readiness'] })}>
-        <option value="ALL">Tất cả</option><option value="READY">Sẵn sàng</option><option value="ATTENTION">Cần chú ý</option><option value="BLOCKED">Chưa sẵn sàng</option>
-      </select>
-    </label>
     <Button className={`${styles.button} ${styles.filterButton}`} type="submit" disabled={disabled}>Lọc</Button>
     {canReset && <Button className={`${styles.button} ${styles.resetButton}`} tone="text" onClick={onReset}>Xóa bộ lọc</Button>}
   </form>
