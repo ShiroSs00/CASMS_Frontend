@@ -15,6 +15,8 @@ function featurePage<T>(load: () => Promise<T>, key: keyof T) {
 }
 
 const adminRoutes = [
+  { path: '/admin/passenger-tracking', lazy: featurePage(() => import('@/features/ship-model-viewer'), 'PassengerTrackingPage') },
+  { path: '/admin/ship-models', lazy: featurePage(() => import('@/features/ship-model-viewer'), 'ModelViewerPage') },
   { path: '/admin/fleet-dashboard', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'FleetDashboardPage') },
   { path: '/admin/ship-import', lazy: featurePage(() => import('@/features/ship-model-import'), 'ShipImportPage') },
   { path: '/admin/system', lazy: featurePage(() => import('./pages/AdminSystemPage'), 'AdminSystemPage') },

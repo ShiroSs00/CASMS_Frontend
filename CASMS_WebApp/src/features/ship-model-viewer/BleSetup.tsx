@@ -1,0 +1,54 @@
+import {useCallback,useRef,useState} from 'react'
+import {useSessionAccess} from '@/shared/auth'
+import {useReadQuery} from '@/shared/api'
+import {Badge,Button,Field,Modal,Notice} from '@/shared/ui'
+import {bleApi,validateAnchor,type Anchor,type AnchorDraft,type Point} from './ble'
+import type {Manifest} from './model'
+import {ModelCanvas} from './ModelCanvas'
+import styles from './Viewer.module.css'
+
+function AnchorForm({ship,deckId,point,node,anchor,onClose,onSaved}:{ship:string;deckId:string;point?:Point;node?:string;anchor?:Anchor;onClose:()=>void;onSaved:()=>void}) {
+  const access=useSessionAccess(),saving=useRef(false)
+  const [draft,setDraft]=useState<AnchorDraft>({deviceName:anchor?.deviceName??'',deviceType:anchor?.deviceType??'BLE_RECEIVER',bleIdentifier:anchor?.identifier??'',deckId:anchor?.deckId??deckId,x:anchor?.position.x??point?.x??0,y:anchor?.position.y??point?.y??0,z:anchor?.position.z??point?.z??0,rotationX:anchor?.rotation?.x??0,rotationY:anchor?.rotation?.y??0,rotationZ:anchor?.rotation?.z??0,txPowerDbm:anchor?.txPowerDbm??-59,pathLossExponent:anchor?.pathLossExponent??2.2,modelUnitsPerMeter:anchor?.modelUnitsPerMeter??1,modelNodeKey:anchor?.modelNodeKey??node??''})
+  const [errors,setErrors]=useState<Record<string,string>>({}),[busy,setBusy]=useState(false),[error,setError]=useState('')
+  const allowed=access.has(anchor?'BLE_ANCHOR_UPDATE':'BLE_ANCHOR_CREATE')
+  const change=(key:keyof AnchorDraft,value:string|number)=>{setDraft(d=>({...d,[key]:value}));setErrors({})}
+  async function save(event:React.SubmitEvent<HTMLFormElement>){event.preventDefault();if(!allowed||saving.current)return;const issues=validateAnchor(draft);setErrors(issues);if(Object.keys(issues).length){requestAnimationFrame(()=>document.getElementById('ble-anchor-form')?.querySelector<HTMLElement>('[aria-invalid=true]')?.focus());return}saving.current=true;setBusy(true);setError('');try{await bleApi.save(ship,draft,anchor?.anchorId);onSaved();onClose()}catch(e){setError(e instanceof Error?e.message:'Chưa lưu được anchor.')}finally{saving.current=false;setBusy(false)}}
+  return <Modal title={anchor?'Chỉnh sửa BLE anchor':'Thêm BLE anchor'} description="Kiểm tra vị trí và định danh thiết bị trước khi lưu." onClose={onClose} busy={busy} wide footer={<><Button tone="secondary" disabled={busy} onClick={onClose}>Hủy</Button><Button type="submit" form="ble-anchor-form" disabled={!allowed||busy}>{busy?'Đang lưu…':'Lưu anchor'}</Button></>}>
+    {error&&<Notice title="Chưa lưu được anchor" tone="error">{error}</Notice>}
+    <form id="ble-anchor-form" className={styles.bleForm} onSubmit={event=>void save(event)} noValidate>
+      <Field htmlFor="anchor-name" label="Tên anchor *" error={errors.deviceName}><input id="anchor-name" maxLength={120} value={draft.deviceName} onChange={e=>change('deviceName',e.target.value)} required/></Field>
+      <div className={styles.bleFormGrid}><Field htmlFor="anchor-type" label="Loại thiết bị" error={errors.deviceType}><select id="anchor-type" value={draft.deviceType} disabled={Boolean(anchor)} onChange={e=>change('deviceType',e.target.value)}><option value="BLE_RECEIVER">Receiver · bộ thu</option><option value="BLE_BEACON">Beacon · bộ phát</option></select></Field><Field htmlFor="anchor-id" label="Định danh BLE *" error={errors.bleIdentifier}><input id="anchor-id" maxLength={150} value={draft.bleIdentifier} onChange={e=>change('bleIdentifier',e.target.value)} placeholder="MAC / định danh thiết bị" required/></Field></div>
+      <fieldset><legend>Vị trí trong model</legend><div className={styles.bleFormGrid}>{(['x','y','z'] as const).map(key=><Field key={key} htmlFor={`anchor-${key}`} label={key.toUpperCase()} error={key==='x'?errors.position:undefined}><input id={`anchor-${key}`} type="number" step="any" value={Number.isFinite(draft[key])?draft[key]:''} onChange={e=>change(key,e.target.value===''?NaN:Number(e.target.value))}/></Field>)}</div><Field htmlFor="anchor-node" label="Node tham chiếu"><input id="anchor-node" maxLength={200} value={draft.modelNodeKey} onChange={e=>change('modelNodeKey',e.target.value)}/></Field></fieldset>
+      <details><summary>Góc xoay & thông số tín hiệu</summary><div className={styles.bleFormGrid}>{([['rotationX','Góc xoay X'],['rotationY','Góc xoay Y'],['rotationZ','Góc xoay Z'],['txPowerDbm','Tx power (dBm)'],['pathLossExponent','Hệ số suy hao'],['modelUnitsPerMeter','Đơn vị model / mét']] as const).map(([key,label])=><Field key={key} htmlFor={`anchor-${key}`} label={label} error={errors[key]}><input id={`anchor-${key}`} type="number" step="any" value={Number.isFinite(draft[key])?draft[key]:''} onChange={e=>change(key,e.target.value===''?NaN:Number(e.target.value))}/></Field>)}</div></details>
+      {Object.entries(errors).filter(([key])=>['txPowerDbm','pathLossExponent','modelUnitsPerMeter','deckId'].includes(key)).map(([key,message])=><p key={key} role="alert" className={styles.note}>{message}</p>)}
+    </form>
+  </Modal>
+}
+export function BleSetup({ship,model,manifest}:{ship:string;model:string;manifest:Manifest}) {
+  const access=useSessionAccess(),[revision,setRevision]=useState(0),[deckId,setDeck]=useState(''),[selectedId,setSelected]=useState(''),[placing,setPlacing]=useState(false),[form,setForm]=useState<{anchor?:Anchor;point?:Point;node?:string}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('')
+  const inFlight=useRef(false),load=useCallback((signal:AbortSignal)=>bleApi.anchors(ship,signal),[ship]),mapLoad=useCallback((signal:AbortSignal)=>bleApi.mappings(ship,model,signal),[ship,model])
+  const anchors=useReadQuery(`ble-anchors:${ship}:${revision}`,load),mapping=useReadQuery(`ble-map:${ship}:${model}`,mapLoad)
+  const mapped=manifest.decks.filter(d=>mapping.data?.some(m=>m.modelDeckId===d.id)),deck=mapped.find(d=>d.id===deckId)??mapped[0],businessDeck=mapping.data?.find(m=>m.modelDeckId===deck?.id)?.deckId
+  const visible=anchors.data?.filter(a=>a.deckId===businessDeck)??[],selected=visible.find(a=>a.anchorId===selectedId)
+  const changed=()=>{setRevision(n=>n+1);setMessage('Đã cập nhật BLE anchor.');setError('')}
+  async function action(anchor:Anchor,operation:string,permission:string){if(inFlight.current||!access.has(permission))return;inFlight.current=true;setBusy(true);setError('');try{await bleApi.action(ship,anchor.anchorId,operation);changed()}catch(e){setError(e instanceof Error?e.message:'Chưa thực hiện được thao tác.')}finally{inFlight.current=false;setBusy(false)}}
+  return <div className={styles.page}>
+    <Notice title="Setup BLE anchor" tone="info">Chọn boong đã ánh xạ, bật “Đặt anchor”, rồi bấm lên bề mặt model. Anchor được lưu theo tàu và boong, dùng chung giữa các phiên bản model.</Notice>
+    {message&&<Notice title="Đã lưu" tone="success">{message}</Notice>}{error&&<Notice title="Chưa hoàn tất" tone="error">{error}</Notice>}
+    {(anchors.error||mapping.error)&&<Notice title="Chưa tải được cấu hình BLE" tone="error">{anchors.error?.message??mapping.error?.message}<Button onClick={()=>{anchors.retry();mapping.retry()}}>Thử lại</Button></Notice>}
+    <div className={styles.bleToolbar}><Field htmlFor="ble-deck" label="Boong"><select id="ble-deck" value={deck?.id??''} disabled={!mapped.length} onChange={e=>{setDeck(e.target.value);setSelected('');setPlacing(false)}}>{!mapped.length&&<option value="">{mapping.loading?'Đang tải ánh xạ…':'Chưa có boong được ánh xạ'}</option>}{mapped.map(d=><option key={d.id} value={d.id}>Boong {d.number} · {d.name}</option>)}</select></Field>{access.has('BLE_ANCHOR_CREATE')&&<Button disabled={!businessDeck||busy} tone={placing?'secondary':'primary'} onClick={()=>setPlacing(!placing)}>{placing?'Hủy đặt anchor':'Đặt anchor trên model'}</Button>}</div>
+    {placing&&<Notice title="Đang chọn vị trí" tone="info">Bấm lên bề mặt boong để mở form; tọa độ chỉ được lưu khi bạn chọn “Lưu anchor”.</Notice>}
+    <div className={styles.bleWorkspace}><aside className={styles.inspector}><div className={styles.panelLabel}><h2>BLE anchor</h2><span>{visible.length}</span></div>{anchors.loading&&<p role="status">Đang tải anchor…</p>}{!anchors.loading&&!visible.length&&<p className={styles.note}>Boong này chưa có anchor.</p>}{visible.map(a=><button key={a.anchorId} className={styles.anchorItem} aria-pressed={selectedId===a.anchorId} onClick={()=>setSelected(a.anchorId)}><strong>{a.deviceName}</strong><small>{a.deviceCode} · {a.status==='ACTIVE'?'Hoạt động':a.status==='RETIRED'?'Ngừng sử dụng':'Chưa kích hoạt'}</small></button>)}</aside>
+      {deck&&<ModelCanvas key={`${ship}:${model}:${deck.asset}`} ship={ship} model={model} file={deck.asset} selected="" onPick={()=>{}} markers={visible.map(a=>({id:a.anchorId,label:a.deviceName,position:a.position,color:selectedId===a.anchorId?'#e6a325':a.status==='ACTIVE'?'#0d8e8a':'#8494a5'}))} focusedMarker={selectedId} placing={placing} onMarker={setSelected} onPlace={(point,node)=>{if(!businessDeck||!access.has('BLE_ANCHOR_CREATE'))return;setPlacing(false);setForm({point,node})}}/>}
+      {selected&&<aside className={styles.inspector}><h2>{selected.deviceName}</h2><Badge label={selected.status}/><dl className={styles.facts}>{[['Mã',selected.deviceCode],['Định danh',selected.identifier??'Chưa có'],['Loại',selected.deviceType],['Vị trí XYZ',`${selected.position.x.toFixed(2)} · ${selected.position.y.toFixed(2)} · ${selected.position.z.toFixed(2)}`],['Lắp đặt',selected.installedAt?'Đã xác nhận':'Chưa xác nhận'],['Hiệu chuẩn',selected.calibrated?'Đã hiệu chuẩn':'Chưa hiệu chuẩn']].map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl><div className={styles.anchorActions}>
+        {access.has('BLE_ANCHOR_UPDATE')&&selected.status!=='RETIRED'&&<Button tone="secondary" onClick={()=>setForm({anchor:selected})}>Chỉnh sửa</Button>}
+        {access.has('BLE_ANCHOR_VALIDATE')&&<Button tone="secondary" disabled={busy} onClick={()=>void action(selected,'validate','BLE_ANCHOR_VALIDATE')}>Kiểm tra cấu hình</Button>}
+        {!selected.installedAt&&access.has('BLE_ANCHOR_INSTALL')&&<Button tone="secondary" disabled={busy} onClick={()=>void action(selected,'installation-confirmation','BLE_ANCHOR_INSTALL')}>Xác nhận đã lắp thực tế</Button>}
+        {selected.status==='INACTIVE'&&access.has('BLE_ANCHOR_ACTIVATE')&&<Button disabled={busy||!selected.installedAt} onClick={()=>void action(selected,'activate','BLE_ANCHOR_ACTIVATE')}>Kích hoạt</Button>}
+        {selected.status==='ACTIVE'&&access.has('BLE_ANCHOR_DEACTIVATE')&&<Button tone="secondary" disabled={busy} onClick={()=>void action(selected,'deactivate','BLE_ANCHOR_DEACTIVATE')}>Tạm tắt</Button>}
+      </div></aside>}
+    </div>
+    {form&&businessDeck&&<AnchorForm ship={ship} deckId={businessDeck} point={form.point} node={form.node} anchor={form.anchor} onClose={()=>setForm(null)} onSaved={changed}/>}
+  </div>
+}
