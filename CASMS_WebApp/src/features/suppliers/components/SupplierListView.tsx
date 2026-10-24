@@ -1,4 +1,5 @@
-import { Link } from 'react-router'
+import { PermissionLink as Link } from '@/shared/ui'
+
 import { Badge, Button, DataTable, Empty, Field, ListFilters, ListFooter, Loading, Notice, Panel } from '@/shared/ui'
 import { supplierStatusLabels, supplierUpdatedDate, supplierVerificationLabels, type SupplierFilters, type SupplierListItem } from '../model/supplier-list'
 import styles from './SupplierList.module.css'

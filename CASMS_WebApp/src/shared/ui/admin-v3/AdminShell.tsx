@@ -1,5 +1,5 @@
 import { useSessionAccess } from '@/shared/auth'
-import { adminNavigation, roleNavigationGroups, staffRoleHome, staffRoleLabel } from './admin-navigation'
+import { roleNavigationGroups, staffRoleLabel } from './admin-navigation'
 import { BrandLogo } from '../BrandLogo'
 import { useContext, useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router'
@@ -12,7 +12,6 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
   const access = useSessionAccess()
   const roles=useContext(AdminRoleContext)
   const roleLabel=staffRoleLabel(roles)
-  const home=staffRoleHome(roles) ?? '/403'
   const [menu, setMenu] = useState({ path: pathname, open: false })
   const menuOpen = menu.path === pathname && menu.open
   const account = useContext(AdminAccountContext)
@@ -20,8 +19,8 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
   if (pathname.includes('/regulations')) activeTo = '/admin/regulations'
   else if (pathname.startsWith('/admin/itinerary-history')) activeTo = '/admin/itineraries'
   else if (pathname.startsWith('/admin/activity-registrations')) activeTo = new URLSearchParams(search).has('excursionId') ? '/admin/shore-excursions' : '/admin/activities'
-  const activeLabel = adminNavigation.flatMap(group => group.items).find(item => item.to === activeTo)?.label
   const currentGroups = roleNavigationGroups(roles,access)
+  const activeLabel = currentGroups.flatMap(group => group.items).find(item => item.to === activeTo)?.label
   return <div className={`${styles.shell} ${experience.admin} ${className}`.trim()}>
     <a href="#admin-v3-main" className={styles.skipLink}>Chuyển đến nội dung chính</a>
     <div className={styles.mobileBar}><BrandLogo /><button type="button" aria-expanded={menuOpen} aria-controls="admin-navigation" onClick={() => setMenu({ path: pathname, open: !menuOpen })}>{menuOpen ? 'Đóng menu' : 'Mở menu'}</button></div>
@@ -38,7 +37,8 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
               <summary className={`${styles.menuSummary} ${group.items.some(item=>item.to===activeTo)?styles.menuCurrent:''}`}><span>{group.label}</span><span className={styles.menuChevron} aria-hidden="true">›</span></summary>
               <div className={styles.subMenu}>{group.items.map(item=><Link key={item.to} to={item.to!} aria-current={item.to===activeTo?'page':undefined} className={`${styles.navItem} ${item.to===activeTo?styles.active:''}`}>{item.label}</Link>)}</div>
             </details>)}
-          {!currentGroups.some(group=>group.items.some(item=>item.to===home)) && <Link to={home} className={styles.navItem}>Khu chức năng của tôi</Link>}
+          {access.status === 'error' && <div className={styles.unavailable}><p>Chưa tải được quyền truy cập.</p><button type="button" onClick={access.retry}>Thử lại</button></div>}
+          {access.status === 'ready' && !currentGroups.length && <p className={styles.unavailable}>Tài khoản chưa được cấp quyền truy cập chức năng.</p>}
         </div>
       </nav>
       <div className={styles.sidebarFooter}><span>OceVie Cruises</span><Link to="/">Xem WebApp <span aria-hidden="true">↗</span></Link></div>

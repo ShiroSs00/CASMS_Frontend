@@ -1,5 +1,6 @@
+import { PermissionLink as Link } from '@/shared/ui'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 

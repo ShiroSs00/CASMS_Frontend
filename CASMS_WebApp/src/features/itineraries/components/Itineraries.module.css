@@ -63,3 +63,27 @@
 
 .formGrid > div:has(> textarea) { grid-column:1/-1; }
 .actions { flex-wrap:wrap; }
+.journeyGrid { display:grid; grid-template-columns:240px minmax(0,1fr); gap:24px; align-items:start; }
+.daysSidebar { display:grid; gap:12px; padding:18px; background:#faf8f1; border:1px solid #e4dcc7; border-radius:12px; position:sticky; top:20px; }
+.daysSidebar h2 { font-size:17px; margin:0; }
+.daysSidebar > p { margin:0; font-size:13px; line-height:1.6; }
+.dayChoice { display:flex; flex-direction:column; gap:6px; padding:16px; width:100%; background:white; border:1px solid var(--ui-border,#d5e0e4); border-radius:10px; font:inherit; font-size:13px; color:var(--ui-ink,#0b2a4a); text-align:left; cursor:pointer; }
+.daySelected { border:2px solid #0b2a4a; padding:15px; background:#f0f5f8; }
+.dayChoice:focus-visible { outline:3px solid #b28d37; outline-offset:3px; }
+.incomplete { color:#8a4b00; font-size:12px; font-weight:600; }
+.pendingDay { display:grid; gap:8px; padding:14px; border:1px dashed #b3a88c; border-radius:10px; font-size:13px; }
+.dayContent,.programStack { display:grid; min-width:0; gap:20px; }
+.dayToolbar { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:4px 0 12px; }
+.dayToolbar h2 { margin:0; font-size:20px; }
+.dayToolbar p { margin:8px 0 0; color:var(--ui-muted); }
+.programCard { display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding:16px 0; border-bottom:1px solid var(--ui-border,#d5e0e4); }
+.programCard > div:first-child { flex:1; min-width:180px; }
+.programCard p { margin:6px 0; line-height:1.6; }
+.programCard:last-child { border-bottom:0; }
+.drawerFields { display:grid; gap:18px; border:0; padding:0; margin:0; min-width:0; }
+.journeyFooter { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; padding:20px; margin-top:24px; border:1px solid #e4dcc7; border-radius:12px; background:#faf8f1; }
+.journeyFooter > span { color:var(--ui-muted); font-size:13px; }
+.reviewList { list-style:none; margin:0; padding:0; }
+.reviewList li { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:16px 0; border-bottom:1px solid var(--ui-border); }
+@media(max-width:1000px) { .journeyGrid { grid-template-columns:200px minmax(0,1fr); gap:16px; } .dayToolbar { align-items:flex-start; flex-direction:column; } }
+@media(max-width:760px) { .journeyGrid { grid-template-columns:1fr; } .daysSidebar { position:static; } }

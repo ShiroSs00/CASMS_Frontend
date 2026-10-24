@@ -1,6 +1,7 @@
+import { PermissionLink as Link } from '@/shared/ui'
 import { ServiceSchedules } from '../components/ServiceSchedules'
 import { useCallback, useContext } from 'react'
-import { Link, useParams } from 'react-router'
+import { useParams } from 'react-router'
 import { apiRequest, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { Badge, ButtonLink, DataTable, Empty, Notice, PageHeader, Panel } from '@/shared/ui'
@@ -36,12 +37,12 @@ function CatalogDetail({ kind }: { kind: CatalogKind }) {
   const { id = '' } = useParams(), config = catalogConfig[kind]
   const roles=useContext(AdminRoleContext)
   const access=useSessionAccess()
-  const back=canRoleOpenAdminPath(roles,config.route,'',access)?config.route:staffRoleHome(roles)??'/admin'
+  const back=canRoleOpenAdminPath(roles,config.route,'',access)?config.route:staffRoleHome(roles,access)??'/admin'
   const query = useReadQuery(kind + ':' + id, useCallback(signal => servicePackageApi.get(kind, id, signal), [kind, id]))
   const item = query.data
   return <CatalogFrame><Link className={styles.backLink} to={back}>← {back === config.route ? config.label : 'Về trang quản lý'}</Link><PageHeader breadcrumb={'DỊCH VỤ TÀU / ' + config.label.toLocaleUpperCase('vi')} title={item?.name ?? 'Chi tiết ' + config.label.toLocaleLowerCase('vi')} description="Thông tin cung cấp, giá và các quan hệ đã được cấu hình." actions={item && <div className={styles.detailToolbar}><div className={styles.recordStatus}><span>Trạng thái</span><Badge label={statusLabels[item.status] ?? item.status} tone={item.status === 'ACTIVE' ? 'success' : 'neutral'} /></div><CatalogActions kind={kind} item={item} onChanged={query.retry} /></div>} /><CatalogState {...query} />
     {item && <><Panel title="Thông tin chi tiết"><dl className={styles.definition}><dt>Mã</dt><dd>{item.code}</dd><dt>Loại</dt><dd>{item.type}</dd><dt>Trạng thái</dt><dd>{statusLabels[item.status] ?? item.status}</dd><dt>Giá</dt><dd>{item.price == null ? 'Chưa cấu hình' : `${item.price} ${item.currency ?? ''}`}</dd>{kind === 'services' && <><dt>Sức chứa cấu hình</dt><dd>{item.capacity ?? 'Không có thông tin'}</dd></>}{kind === 'packages' && <><dt>Thời hạn sử dụng</dt><dd>{item.startDate ?? 'Chưa xác định'} → {item.endDate ?? 'Chưa xác định'}</dd></>}<dt>Mô tả</dt><dd>{item.description || 'Chưa có mô tả'}</dd></dl></Panel>
-      {kind === 'packages' && <PackageBenefitsEditor packageId={item.id} status={item.status} onChanged={query.retry} />}
+      {kind === 'packages' && access.can({mode:'ANY',permissions:['TOUR_PACKAGE_MANAGE','PACKAGE_COMPONENT_MANAGE']}) && <PackageBenefitsEditor packageId={item.id} status={item.status} onChanged={query.retry} />}
       {kind === 'services' && <><ServiceAvailability id={item.id} /><ServiceSchedules key={item.id} serviceId={item.id} /></>}{kind === 'packages' && <PackageBenefits id={item.id} />}
     </>}
   </CatalogFrame>

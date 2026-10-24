@@ -1,3 +1,4 @@
+import { getSessionAccess, hasPermissions } from '@/shared/auth'
 import { ApiError, apiRequest } from '@/shared/api'
 import { scheduleInstant } from '../model/cruise-validation'
 
@@ -5,7 +6,7 @@ import type { CruiseQuery } from '../model/cruise-query'
 import type { CruiseDraft, CruiseRecord, PortRecord, ShipRecord } from '../model/cruise-record'
 import type { CruiseDetailView, CruiseListItem, CruiseListResult, ReadinessCheck, ItinerarySummary } from '../model/cruise-view'
 import type { ShipCandidate } from '../model/ship-assignment'
-import type { CapacityDto, CruiseDto, PageDto, ReadinessDto } from './dto'
+import type { CapacityDto, CruiseDto, CruiseSaveRequestDto, PageDto, ReadinessDto } from './dto'
 
 const root = '/cruise'
 const byId = (id: string) => `${root}/${encodeURIComponent(id)}`
@@ -15,8 +16,8 @@ type RegulationProjection = {
   regulation: { regulationId: string; regulationCode: string; name: string; status: 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'EXPIRED' }
 }
 
-function cruiseBody(draft: CruiseDraft) {
-  return { ...(draft.cruiseCode.trim() ? {cruiseCode:draft.cruiseCode.trim()} : {}), cruiseName:draft.cruiseName.trim(),
+function cruiseBody(draft: CruiseDraft): CruiseSaveRequestDto {
+  return { cruiseName:draft.cruiseName.trim(),
     ...(draft.cruiseType ? {cruiseType:draft.cruiseType} : {}),
     departureDatetime:scheduleInstant(draft.departureDatetime).toISOString(), returnDatetime:scheduleInstant(draft.returnDatetime).toISOString(),
     departurePortId:draft.departurePortId, returnPortId:draft.returnPortId }
@@ -79,7 +80,7 @@ function readinessChecks(value: ReadinessDto): ReadinessCheck[] {
   return [
     { key: 'SHIP', label: 'Phân công tàu', state: value.shipAssigned && value.shipActive ? 'PASS' : 'BLOCKED', reason: issue('ship', value.shipAssigned ? 'Kiểm tra trạng thái hoạt động của tàu.' : 'Chưa gán tàu.') },
     { key: 'SCHEDULE', label: 'Lịch chạy', state: value.scheduleValid ? 'PASS' : 'BLOCKED', reason: issue('schedule', value.scheduleValid ? 'Lịch chạy hợp lệ.' : 'Cần kiểm tra lịch chạy.') },
-    { key: 'ITINERARY', label: 'Hải trình', state: value.itineraryConfigured ? 'PASS' : 'BLOCKED', reason: issue('itinerary', value.itineraryConfigured ? 'Đã cấu hình hải trình.' : 'Chưa cấu hình hải trình.') },
+    { key: 'ITINERARY', label: 'Lịch trình', state: value.itineraryConfigured ? 'PASS' : 'BLOCKED', reason: issue('itinerary', value.itineraryConfigured ? 'Đã cấu hình lịch trình.' : 'Chưa cấu hình lịch trình.') },
     { key: 'CONFIGURATION', label: 'Cấu hình tàu', state: value.shipConfigurationValid ? 'PASS' : 'BLOCKED', reason: value.shipConfigurationValid ? 'Cấu hình boong và cabin hợp lệ.' : 'Cần hoàn tất cấu hình boong và cabin.' },
     { key: 'PORTS', label: 'Cảng đi / về', state: value.portsActive ? 'PASS' : 'BLOCKED', reason: value.portsActive ? 'Cảng đang hoạt động.' : 'Cần kiểm tra trạng thái cảng.' },
   ]
@@ -149,15 +150,17 @@ export const cruiseApi = {
       assignmentCapabilities: { assign: { allowed: false, reason: 'Đang tải thông tin phân công.' }, change: { allowed: false, reason: 'Đang tải thông tin phân công.' }, unassign: { allowed: false, reason: 'Đang tải thông tin phân công.' } },
     }
     onCore?.(base)
+    const access = getSessionAccess()
+    const optional = <T,>(permission: string, load: () => Promise<T>) => hasPermissions(access,{mode:'ANY',permissions:[permission]}) ? load() : Promise.resolve(null)
     const results = await Promise.allSettled([
-      dto.ship ? Promise.resolve(dto.ship) : getShip(cruise.shipId, signal),
-      dto.departurePort ? Promise.resolve(dto.departurePort) : getPort(cruise.departurePortId, signal),
-      dto.returnPort ? Promise.resolve(dto.returnPort) : getPort(cruise.returnPortId, signal),
-      apiRequest<ReadinessDto>(`${byId(id)}/readiness`, { signal }),
-      cruise.shipId ? apiRequest<CapacityDto>(`${byId(id)}/validate-capacity`, { signal }) : Promise.resolve(null),
-      apiRequest<CruiseDetailView['issues']>('/operational-issues', { query: { cruiseId: id }, signal }),
-      apiRequest<{ direct: RegulationProjection[]; inherited: RegulationProjection[] }>(`/cruises/${encodeURIComponent(id)}/regulations/effective`, { signal }),
-      linkedItinerary(id, signal),
+      optional('SHIP_READ', () => dto.ship ? Promise.resolve(dto.ship) : getShip(cruise.shipId, signal)),
+      optional('PORT_READ', () => dto.departurePort ? Promise.resolve(dto.departurePort) : getPort(cruise.departurePortId, signal)),
+      optional('PORT_READ', () => dto.returnPort ? Promise.resolve(dto.returnPort) : getPort(cruise.returnPortId, signal)),
+      optional('CRUISE_VALIDATE', () => apiRequest<ReadinessDto>(`${byId(id)}/readiness`, { signal })),
+      cruise.shipId ? optional('CRUISE_VALIDATE', () => apiRequest<CapacityDto>(`${byId(id)}/validate-capacity`, { signal })) : Promise.resolve(null),
+      optional('OPERATIONAL_ISSUE_READ', () => apiRequest<CruiseDetailView['issues']>('/operational-issues', { query: { cruiseId: id }, signal })),
+      optional('CRUISE_REGULATION_READ', () => apiRequest<{ direct: RegulationProjection[]; inherited: RegulationProjection[] }>(`/cruises/${encodeURIComponent(id)}/regulations/effective`, { signal })),
+      optional('ITINERARY_READ', () => linkedItinerary(id, signal)),
     ])
     const supplementaryErrors: Record<string, string> = {}
     for (const [index, key] of ['ship', 'departurePort', 'returnPort', 'readiness', 'capacity', 'issues', 'regulations', 'itinerary'].entries()) {
@@ -166,8 +169,8 @@ export const cruiseApi = {
     }
     const [s, p, r, ready, cap, incidents, regulations, plan] = results
     const ship = s.status === 'fulfilled' ? s.value : null
-    const departurePort = p.status === 'fulfilled' ? p.value : { ...fallbackPort(cruise.departurePortId), portName: 'Chưa tải được cảng đi' }
-    const returnPort = r.status === 'fulfilled' ? r.value : { ...fallbackPort(cruise.returnPortId), portName: 'Chưa tải được cảng về' }
+    const departurePort = p.status === 'fulfilled' && p.value ? p.value : { ...fallbackPort(cruise.departurePortId), portName: 'Chưa tải được cảng đi' }
+    const returnPort = r.status === 'fulfilled' && r.value ? r.value : { ...fallbackPort(cruise.returnPortId), portName: 'Chưa tải được cảng về' }
     const readiness = ready.status === 'fulfilled' ? ready.value : null
     const capacity = cap.status === 'fulfilled' ? cap.value : null
     const regulationSnapshot = regulations.status === 'fulfilled' ? regulations.value : null
@@ -181,7 +184,7 @@ export const cruiseApi = {
       capacity: { shipTotalCapacity: capacity?.shipTotalCapacity ?? null, activePassengerCount: capacity?.bookedPassengersCount ?? null, remainingPassengerHeadroom: capacity?.availableCapacity ?? null },
       readiness: { state: readiness ? readiness.ready ? 'READY' : 'BLOCKED' : 'UNKNOWN', checks: readiness ? readinessChecks(readiness) : [], issues: readiness?.issues },
       regulations: regulationSnapshot ? [...regulationSnapshot.direct, ...regulationSnapshot.inherited].map((item) => ({ regulationId: item.regulation.regulationId, code: item.regulation.regulationCode, name: item.regulation.name, source: item.source, status: item.regulation.status })) : [],
-      issues: incidents.status === 'fulfilled' ? incidents.value : [],
+      issues: incidents.status === 'fulfilled' ? incidents.value ?? [] : [],
       bookingHasData: capacity ? capacity.bookedPassengersCount > 0 : null,
       assignmentCapabilities: {
         assign: { allowed: !cruise.shipId && ['DRAFT', 'PUBLISHED'].includes(cruise.status), reason: cruise.shipId ? 'Chuyến đã có tàu.' : null },

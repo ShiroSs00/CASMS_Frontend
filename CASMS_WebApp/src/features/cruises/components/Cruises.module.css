@@ -73,3 +73,8 @@
 
 /* Keep field rows aligned; wrap according to available form width. */
 .formGrid { align-items:start; gap:16px 24px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }
+.journeyForm { display:grid; grid-template-columns:minmax(0,1fr); gap:22px; }
+.journeyForm > * { min-width:0; }
+.unavailableFields { padding:16px; background:#faf8f1; border:1px solid #e4dcc7; border-radius:10px; color:var(--ui-muted); }
+.unavailableFields summary { cursor:pointer; color:var(--ui-ink); font-weight:600; }
+.unavailableFields p { line-height:1.6; margin-bottom:0; }

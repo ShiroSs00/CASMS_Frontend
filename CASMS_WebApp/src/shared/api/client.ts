@@ -1,4 +1,5 @@
 import { prepareCreateBody } from './create-body'
+import { apiPermissionRequirement, getSessionAccess, hasPermissions } from '@/shared/auth'
 
 type ApiEnvelope<T> = { success: boolean; message?: string; error?: string; code?: string; data?: T }
 type RequestOptions = {
@@ -18,7 +19,14 @@ export class ApiError extends Error {
 
 // A login provider may supply JWT in memory. Never store it in public VITE_* vars.
 let accessToken: string | null = null
-export function setApiAccessToken(token: string | null) { accessToken = token }
+let sessionGeneration = 0
+const activeRequests = new Set<AbortController>()
+export function setApiAccessToken(token: string | null) {
+  if (token === accessToken) return
+  accessToken = token
+  sessionGeneration += 1
+  activeRequests.forEach(controller => controller.abort())
+}
 const unauthorizedListeners = new Set<() => void>()
 export function subscribeApiUnauthorized(listener: () => void) {
   unauthorizedListeners.add(listener)
@@ -34,8 +42,12 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (options.body !== undefined) headers['Content-Type'] = 'application/json'
   const requestToken = options.authenticated === false ? null : accessToken
+  const generation = sessionGeneration
+  const required = options.authenticated === false ? null : apiPermissionRequirement(path, options.method)
+  if (required && (!requestToken || !hasPermissions(getSessionAccess(), required))) throw new ApiError('Bạn chưa được cấp quyền thực hiện thao tác này.', requestToken ? 403 : 401, 'ACCESS_DENIED')
   if (requestToken) headers.Authorization = `Bearer ${requestToken}`
   const controller = new AbortController()
+  activeRequests.add(controller)
   const abort = () => controller.abort()
   options.signal?.addEventListener('abort', abort, { once: true })
   if (options.signal?.aborted) abort()
@@ -45,6 +57,7 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
       method: options.method ?? 'GET', headers, signal: controller.signal,
       body: options.body === undefined ? undefined : JSON.stringify(prepareCreateBody(path, options.method, options.body)),
     })
+    if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
     if (response.status === 204 && response.ok) return decode(undefined, response.status)
     let payload: ApiEnvelope<T> | null = null
     try { payload = await response.json() as ApiEnvelope<T> } catch { /* Do not render HTML error pages. */ }
@@ -59,12 +72,16 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
         : response.status === 403 ? 'Bạn không có quyền thực hiện thao tác này.'
           : message || `Không thể thực hiện yêu cầu (HTTP ${response.status}).`, response.status, payload?.code ?? payload?.error)
     }
+    if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
+    if (required && !hasPermissions(getSessionAccess(), required)) throw new ApiError('Quyền truy cập đã thay đổi. Vui lòng tải lại dữ liệu.', 403, 'ACCESS_DENIED')
     return decode(payload, response.status)
   } catch (error) {
+    if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
     if (error instanceof ApiError || options.signal?.aborted) throw error
     if (controller.signal.aborted) throw new ApiError('Yêu cầu quá thời gian. Hãy thử lại.', 0)
     throw new ApiError('Không kết nối được backend. Kiểm tra server và cấu hình API.', 0)
   } finally {
+    activeRequests.delete(controller)
     clearTimeout(timeout)
     options.signal?.removeEventListener('abort', abort)
   }

@@ -1,6 +1,7 @@
+import { PermissionLink as Link } from '@/shared/ui'
 import { TechnicalDetails } from '@/shared/ui'
 import { useCallback, useState } from 'react'
-import { Link } from 'react-router'
+
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { Badge, Button, DataTable, Empty, Field, Loading, Modal, Panel } from '@/shared/ui'

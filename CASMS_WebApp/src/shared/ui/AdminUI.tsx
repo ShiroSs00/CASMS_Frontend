@@ -1,5 +1,5 @@
 import { Children, Fragment, cloneElement, isValidElement, useId, type ButtonHTMLAttributes, type ReactNode } from 'react'
-import { Link } from 'react-router'
+import { PermissionLink } from './PermissionLink'
 import { AdminShell } from './admin-v3'
 import styles from './AdminUI.module.css'
 export { Modal } from './Overlay'
@@ -30,7 +30,7 @@ export function ButtonLink({ to, children, tone = 'primary', size = 'regular', a
 }) {
   const sizeClass = size === 'compact' ? styles.compact : ''
   const widthClass = fullWidth ? styles.fullWidth : autoWidth ? styles.autoWidth : ''
-  return <Link to={to} className={`${styles.button} ${styles[tone]} ${styles.buttonLink} ${sizeClass} ${widthClass} ${className}`.trim()}>{children}</Link>
+  return <PermissionLink hideWhenDenied to={to} className={`${styles.button} ${styles[tone]} ${styles.buttonLink} ${sizeClass} ${widthClass} ${className}`.trim()}>{children}</PermissionLink>
 }
 export function PageHeader({ title, description, breadcrumb, actions }:
   { title: string; description: string; breadcrumb: string; actions?: ReactNode }) {

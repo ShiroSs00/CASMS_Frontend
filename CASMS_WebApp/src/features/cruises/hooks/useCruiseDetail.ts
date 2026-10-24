@@ -23,7 +23,7 @@ export function useCruiseDetail(cruiseId: string | undefined) {
     }).then((data) => {
       if (!signal?.aborted && sequence.current === attempt) setState({ status: 'ready', data, error: null })
     }).catch((error: unknown) => {
-      if (!signal?.aborted && sequence.current === attempt) setState({ status: 'error', data: null, error: error instanceof Error ? error.message : 'Không tải được chuyến du lịch.' })
+      if (!signal?.aborted && sequence.current === attempt) setState({ status: 'error', data: null, error: error instanceof Error ? error.message : 'Không tải được chuyến đi.' })
     })
   }, [cruiseId])
 

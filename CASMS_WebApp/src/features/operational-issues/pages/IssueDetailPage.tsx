@@ -1,4 +1,5 @@
-import { Link, useLocation, useParams } from 'react-router'
+import { PermissionLink as Link } from '@/shared/ui'
+import { useLocation, useParams } from 'react-router'
 import { useSessionAccess } from '@/shared/auth'
 
 import { AdminFrame } from '../components/AdminFrame'

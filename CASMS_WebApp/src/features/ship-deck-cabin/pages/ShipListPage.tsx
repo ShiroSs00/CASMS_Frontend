@@ -1,6 +1,7 @@
+import { PermissionLink as Link } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
 import { useState } from 'react'
-import { Link } from 'react-router'
+
 import { Button } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { ShipListMetrics } from '../components/ShipListMetrics'

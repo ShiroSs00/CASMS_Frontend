@@ -4,3 +4,5 @@ export { FormErrorSummary } from './AdminUI'
 
 export { BrandLogo } from './BrandLogo'
 export { ListFilters, ListFooter } from './ListControls'
+export { JourneySteps } from './JourneySteps'
+export { PermissionLink } from './PermissionLink'

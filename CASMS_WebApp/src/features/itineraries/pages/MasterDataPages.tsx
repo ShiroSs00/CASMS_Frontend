@@ -1,6 +1,7 @@
+import { PermissionLink as Link } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 
 import { Badge, Button, ButtonLink, DataTable, Empty, Field, Loading, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
 import { ApiError } from '@/shared/api'

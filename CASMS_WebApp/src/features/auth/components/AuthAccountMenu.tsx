@@ -1,10 +1,13 @@
+import { useSessionAccess } from '@/shared/auth'
+import { staffRoleHome } from '@/shared/ui/admin-v3'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useAuth } from '../useAuth'
 import styles from './Auth.module.css'
 
 export function AuthAccountMenu() {
-  const auth = useAuth()
+  const auth = useAuth(), access = useSessionAccess()
+  const home = staffRoleHome(auth.user?.roles ?? [],access)
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -29,7 +32,7 @@ export function AuthAccountMenu() {
     {open && <div className={styles.accountMenu} id="ocevie-account-menu" aria-label="Tài khoản OceVie">
       <button type="button" disabled title="Quản lý tài khoản chưa khả dụng">Tài khoản OceVie</button>
       <Link to="/my-bookings" onClick={() => setOpen(false)}>Booking của tôi</Link>
-      {auth.isStaff && <Link to="/admin" onClick={() => setOpen(false)}>Khu vực quản trị</Link>}
+      {auth.isStaff && home && <Link to={home} onClick={() => setOpen(false)}>Khu vực quản trị</Link>}
       <button type="button" className={styles.logout} disabled={busy} onClick={() => void logout()}>{busy ? 'Đang đăng xuất…' : 'Đăng xuất'}</button>
     </div>}
   </div>

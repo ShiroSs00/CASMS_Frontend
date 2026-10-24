@@ -1,3 +1,4 @@
+import { SHIP_TIME_ZONE, zonedInput } from '@/shared/lib/journey-time'
 export type ItineraryStatus =
   | 'DRAFT'
   | 'PENDING_APPROVAL'
@@ -46,15 +47,15 @@ export function validateItineraryDraft(draft: ItineraryDraft, context: {
   else if (context.itineraries.some(item => item.cruiseId === draft.cruiseId && item.itineraryId !== context.editingId)) errors.cruiseId = 'Chuyến này đã có lịch trình. Hãy mở lịch trình hiện có.'
   const editing = Boolean(context?.editingId)
   if ((editing && !draft.itineraryName.trim()) || draft.itineraryName.trim().length > 200) errors.itineraryName = 'Tên lịch trình tối đa 200 ký tự; không để trống khi chỉnh sửa.'
-  const startDate = draft.startDate || (!editing ? cruise?.departureDatetime.slice(0, 10) : '') || ''
-  const endDate = draft.endDate || (!editing ? cruise?.returnDatetime.slice(0, 10) : '') || ''
+  const startDate = draft.startDate || (!editing ? (cruise ? zonedInput(cruise.departureDatetime, SHIP_TIME_ZONE).slice(0,10) : '') : '') || ''
+  const endDate = draft.endDate || (!editing ? (cruise ? zonedInput(cruise.returnDatetime, SHIP_TIME_ZONE).slice(0,10) : '') : '') || ''
   const isDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value
   if (!isDate(startDate)) errors.startDate = 'Vui lòng chọn ngày bắt đầu hợp lệ.'
   if (!isDate(endDate) || endDate <= startDate) errors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu.'
   if (cruise) {
-    const start = cruise.departureDatetime.slice(0, 10), end = cruise.returnDatetime.slice(0, 10)
-    if (startDate < start || startDate > end) errors.startDate = 'Ngày bắt đầu phải nằm trong khoảng ngày của chuyến (UTC).'
-    if (endDate > end || endDate < start) errors.endDate = 'Ngày kết thúc phải nằm trong khoảng ngày của chuyến (UTC).'
+    const start = zonedInput(cruise.departureDatetime, SHIP_TIME_ZONE).slice(0,10), end = zonedInput(cruise.returnDatetime, SHIP_TIME_ZONE).slice(0,10)
+    if (startDate < start || startDate > end) errors.startDate = 'Ngày bắt đầu phải nằm trong khoảng ngày của chuyến (giờ Việt Nam).'
+    if (endDate > end || endDate < start) errors.endDate = 'Ngày kết thúc phải nằm trong khoảng ngày của chuyến (giờ Việt Nam).'
   }
   if ((editing || draft.itineraryType) && !['ROUND_TRIP', 'ONE_WAY'].includes(draft.itineraryType)) errors.itineraryType = 'Vui lòng chọn loại hành trình hợp lệ.'
   return errors
@@ -70,7 +71,7 @@ export type ItineraryDay = {
   description?: string | null
 }
 
-export type ItineraryDayDraft = Omit<ItineraryDay, 'itineraryDayId' | 'dayNumber'> & { dayNumber: number | '' }
+export type ItineraryDayDraft = Omit<ItineraryDay, 'itineraryDayId' | 'dayNumber' | 'dayType'> & { dayNumber: number | ''; dayType: ItineraryDayType | '' }
 
 export function validateItineraryDay(draft: ItineraryDayDraft, itinerary: Itinerary, days: ItineraryDay[], editingId?: string): string {
   // Validate BE's inferred values without sending FE-computed defaults.
@@ -169,7 +170,7 @@ export const itineraryStatusLabels: Record<ItineraryStatus, string> = {
   DRAFT: 'Nháp',
   PENDING_APPROVAL: 'Chờ duyệt',
   APPROVED: 'Đã duyệt',
-  OPEN_FOR_SALE: 'Mở bán',
+  OPEN_FOR_SALE: 'Đã phát hành',
   ACTIVE: 'Đang hoạt động',
   COMPLETED: 'Hoàn thành',
   REJECTED: 'Bị từ chối',
