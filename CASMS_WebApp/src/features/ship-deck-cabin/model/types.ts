@@ -6,11 +6,13 @@ export type RecordBase = { id: string; createdAt?: string; updatedAt?: string }
 export type Ship = RecordBase & {
   code: string; name: string; status: ShipStatus
   capacity: number; totalDecks: number; commissionDate: string
+  manifestModelId?: string | null; deckNumberLimit?: number; lengthMeters?: number | null; beamMeters?: number | null
 }
 export type Deck = RecordBase & { shipId: string; number: number; name: string; priceMultiplier?: number }
 export type Cabin = RecordBase & {
   shipId: string; deckId: string; number: string; type: CabinType
   capacity: number; status: CabinStatus; accessible: boolean
+  modelWidth?: number | null; modelHeight?: number | null; modelDepth?: number | null
 }
 export type ShipDraft = Omit<Ship, keyof RecordBase>
 export type DeckDraft = Omit<Deck, keyof RecordBase | 'number'> & { number: number | '' }

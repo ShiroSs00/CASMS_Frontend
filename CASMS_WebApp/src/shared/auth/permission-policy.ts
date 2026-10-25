@@ -11,7 +11,7 @@ export function hasPermissions(access: PermissionAccess, requirement: Permission
 }
 
 // Snapshot of actual BE controller annotations. Static paths precede UUID paths.
-const rules = apiRules.map(rule => ({ ...rule, pattern: new RegExp('^' + rule.path.split('/').map(part => part.startsWith('{') && part.endsWith('}') ? '[^/]+' : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/') + '/?$') }))
+const rules = apiRules.map(rule => ({ ...rule, pattern: new RegExp('^' + rule.path.split('/').map(part => part.startsWith('{*') && part.endsWith('}') ? '.+' : part.startsWith('{') && part.endsWith('}') ? '[^/]+' : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/') + '/?$') }))
 export function apiPermissionRequirement(path: string, method = 'GET'): PermissionRequirement | null {
   const rule = rules.find(item => item.method === method && item.pattern.test(path.split('?')[0]))
   if (!rule || rule.mode === 'PUBLIC') return null

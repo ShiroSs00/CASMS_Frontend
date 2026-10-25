@@ -30,7 +30,7 @@ export function ShipListTable({ items, filtered, onReset, onRetry }: { items: Sh
     </table>
     {!items.length && <div className={styles.statePanel} role="status">
       <p>{filtered ? 'Không có tàu phù hợp với bộ lọc.' : 'Chưa có tàu trong danh sách.'}</p>
-      {filtered ? <Button tone="secondary" className={styles.button} onClick={onReset}>Xóa bộ lọc</Button> : <p>Tạo tàu để bắt đầu quản lý đội tàu.</p>}
+      {filtered ? <Button tone="secondary" className={styles.button} onClick={onReset}>Xóa bộ lọc</Button> : <p>Tàu sẽ xuất hiện sau khi quản trị viên hoàn tất nhập thông tin tàu từ gói mô hình.</p>}
     </div>}
   </div>
 }

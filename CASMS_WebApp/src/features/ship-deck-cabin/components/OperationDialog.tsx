@@ -12,7 +12,7 @@ import styles from './Management.module.css'
 
 export type Operation = 'status' | 'block' | 'release' | 'schedule' | 'ready' | 'availability' | 'affected' | 'validate' | 'ownership'
 const titles: Record<Operation, string> = {
-  status: 'Đổi trạng thái', block: 'Khóa cabin', release: 'Mở cabin',
+  status: 'Đổi trạng thái', block: 'Khóa phòng', release: 'Mở phòng',
   schedule: 'Kiểm tra lịch trống', ready: 'Kiểm tra sẵn sàng vận hành', availability: 'Kiểm tra cabin',
   affected: 'Các chuyến bị ảnh hưởng', validate: 'Kiểm tra cấu hình', ownership: 'Kiểm tra boong thuộc tàu',
 }
@@ -29,7 +29,7 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
   const [end, setEnd] = useState('')
   const [guests, setGuests] = useState(1)
   const [accessible, setAccessible] = useState(false)
-  const [reasonStatus, setReasonStatus] = useState<'OCCUPIED' | 'MAINTENANCE'>('MAINTENANCE')
+  const [reasonStatus, setReasonStatus] = useState<'OUT_OF_SERVICE' | 'MAINTENANCE'>('MAINTENANCE')
   const [shipId, setShipId] = useState('shipId' in item ? item.shipId : '')
   const [results, setResults] = useState<CheckResult[]>([])
   const [cruises, setCruises] = useState<CruisePreview[] | null>(null)
@@ -92,9 +92,9 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
         {cruises && <CruiseTable rows={cruises} />}
       </> : <>
         {operation === 'status' && <SelectField label="Trạng thái mới" value={status} disabled={mutation.busy} onChange={(value) => { setStatus(value); mutation.clear() }}>
-          {Object.entries(isShip ? shipStatuses : cabinStatuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          {Object.entries(isShip ? shipStatuses : cabinStatuses).filter(([value]) => isShip || value !== 'OCCUPIED' || status === 'OCCUPIED').map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </SelectField>}
-        {operation === 'block' && <><SelectField label="Trạng thái khóa" value={reasonStatus} disabled={mutation.busy} onChange={(value) => { setReasonStatus(value as typeof reasonStatus); mutation.clear() }}><option value="MAINTENANCE">Bảo trì</option><option value="OCCUPIED">Đang có khách</option></SelectField><Notice title="Xác nhận khóa cabin" tone="warning">Khóa cabin sẵn sàng sang trạng thái đã chọn. Hệ thống sẽ kiểm tra điều kiện trước khi cập nhật.</Notice></>}
+        {operation === 'block' && <><SelectField label="Trạng thái khóa" value={reasonStatus} disabled={mutation.busy} onChange={(value) => { setReasonStatus(value as typeof reasonStatus); mutation.clear() }}><option value="MAINTENANCE">Bảo trì</option><option value="OUT_OF_SERVICE">Ngừng phục vụ</option></SelectField><Notice title="Xác nhận khóa cabin" tone="warning">Khóa cabin sẵn sàng sang trạng thái đã chọn. Hệ thống sẽ kiểm tra điều kiện trước khi cập nhật.</Notice></>}
         {operation === 'release' && <Notice title="Xác nhận mở cabin" tone="warning">Cabin sẽ được chuyển về trạng thái Sẵn sàng nếu hệ thống cho phép.</Notice>}
       </>}
       {mutation.error && <Notice title="Thao tác chưa hoàn tất" tone="error">{mutation.error}</Notice>}

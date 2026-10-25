@@ -20,6 +20,7 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
   else if (pathname.startsWith('/admin/itinerary-history')) activeTo = '/admin/itineraries'
   else if (pathname.startsWith('/admin/activity-registrations')) activeTo = new URLSearchParams(search).has('excursionId') ? '/admin/shore-excursions' : '/admin/activities'
   const currentGroups = roleNavigationGroups(roles,access)
+  if(activeTo==='/admin/cabins'&&currentGroups.some(group=>group.items.some(item=>item.to==='/admin/decks'&&item.label==='Boong & Cabin'))) activeTo='/admin/decks'
   const activeLabel = currentGroups.flatMap(group => group.items).find(item => item.to === activeTo)?.label
   return <div className={`${styles.shell} ${experience.admin} ${className}`.trim()}>
     <a href="#admin-v3-main" className={styles.skipLink}>Chuyển đến nội dung chính</a>
@@ -31,7 +32,7 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
       <nav aria-label="Điều hướng khu vực" className={styles.navigation}>
         <div className={styles.navGroup}><p className={styles.groupLabel}>CÔNG VIỆC VÀ TRA CỨU</p>
           {access.status==='loading' && <p className={styles.unavailable}>Đang kiểm tra quyền truy cập…</p>}
-          {currentGroups.map(group=>group.items.length===1 && (group.id==='system'||group.id==='staff/finance')
+          {currentGroups.map(group=>group.items.length===1 && (group.direct||group.id==='system'||group.id==='staff/finance'||group.id==='ship-import'||group.id==='ship-models')
             ? group.items.map(item=><Link key={item.to} to={item.to!} aria-current={item.to===activeTo?'page':undefined} className={`${styles.navItem} ${item.to===activeTo?styles.active:''}`}>{item.label}</Link>)
             : <details key={group.id} className={styles.menuGroup} open={group.items.some(item=>item.to===activeTo)}>
               <summary className={`${styles.menuSummary} ${group.items.some(item=>item.to===activeTo)?styles.menuCurrent:''}`}><span>{group.label}</span><span className={styles.menuChevron} aria-hidden="true">›</span></summary>
@@ -41,7 +42,7 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
           {access.status === 'ready' && !currentGroups.length && <p className={styles.unavailable}>Tài khoản chưa được cấp quyền truy cập chức năng.</p>}
         </div>
       </nav>
-      <div className={styles.sidebarFooter}><span>OceVie Cruises</span><Link to="/">Xem WebApp <span aria-hidden="true">↗</span></Link></div>
+      <div className={styles.sidebarFooter}><span>OceVie Cruises</span></div>
     </aside>
     <div className={styles.mainColumn}>
       <header className={styles.topbar} aria-label="Thanh thông tin quản trị">

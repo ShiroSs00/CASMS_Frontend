@@ -79,13 +79,13 @@ test('Availability preserves denied/network failures and maps genuine successful
   const dto = { cabinId: cabin.id, shipId: ship.id, deckId: deck.id, cabinNumber: '101', cabinType: 'SUITE', capacity: 2, status: 'AVAILABLE', isAccessible: false }
   const app = apiHarness(async () => [dto]); assert.deepEqual(plain(await app.api.searchAvailable({})), [cabin])
 })
-test('Cabin Create/Edit serialization stays aligned; Edit excludes identity and status fields', async () => {
+test('Cabin Create/Edit serialization stays aligned; Edit excludes identity, type, geometry and status fields', async () => {
   const dto = { cabinId: cabin.id, shipId: ship.id, deckId: deck.id, cabinNumber: '101', cabinType: 'SUITE', capacity: 2, status: 'AVAILABLE', isAccessible: false }
   const app = apiHarness(async () => dto)
   await app.api.saveCabin({ ...draft, number: ' 101 ' }); await app.api.saveCabin(draft, cabin.id)
   assert.deepEqual(plain(app.calls.map(call => [call.endpoint, call.options])), [
     ['/cabins', { method: 'POST', body: { cabinType: 'SUITE', capacity: 2, isAccessible: false, deckId: deck.id, cabinNumber: '101', status: 'AVAILABLE' } }],
-    ['/cabins/' + cabin.id, { method: 'PATCH', body: { cabinType: 'SUITE', capacity: 2, isAccessible: false } }],
+    ['/cabins/' + cabin.id, { method: 'PATCH', body: { capacity: 2, isAccessible: false } }],
   ])
 })
 test('Cabin GET inspection messages describe current status without promising Booking availability', async () => {

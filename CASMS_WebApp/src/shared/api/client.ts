@@ -8,6 +8,7 @@ type RequestOptions = {
   body?: unknown
   signal?: AbortSignal
   authenticated?: boolean
+  timeoutMs?: number
 }
 export class ApiError extends Error {
   status: number
@@ -34,13 +35,69 @@ export function subscribeApiUnauthorized(listener: () => void) {
 }
 const baseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 
+/** Authenticated asset bytes; credentials are only sent through the configured API origin. */
+export async function apiAsset(path: string, signal: AbortSignal, progress?: (loaded: number, total: number) => void): Promise<ArrayBuffer> {
+  if (!/^\/ships\/[^/]+\/models\/[^/]+\/assets\//.test(path) || path.includes('..') || /[?#\\]/.test(path)) throw new ApiError('Đường dẫn asset không hợp lệ.', 400)
+  const token = accessToken, generation = sessionGeneration
+  const required = apiPermissionRequirement(path)
+  const checkAccess = () => {
+    if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
+    if (!token || !required || !hasPermissions(getSessionAccess(), required)) throw new ApiError('Bạn chưa được cấp quyền đọc asset mô hình.', token ? 403 : 401, 'ACCESS_DENIED')
+  }
+  checkAccess()
+  const controller = new AbortController()
+  const abort = () => controller.abort()
+  activeRequests.add(controller)
+  signal.addEventListener('abort', abort, { once: true })
+  if (signal.aborted) abort()
+  try {
+    const response = await fetch(`${baseUrl}${path}`, { signal: controller.signal, headers: { Authorization: `Bearer ${token}` } })
+    checkAccess()
+    if (!response.ok) {
+      if (response.status === 401 && token === accessToken) unauthorizedListeners.forEach(listener => listener())
+      throw new ApiError(response.status === 403 ? 'Bạn không có quyền đọc asset mô hình.' : `Không tải được asset (HTTP ${response.status}).`, response.status)
+    }
+    const total = Number(response.headers.get('content-length')) || 0
+    if (!response.body) {
+      const bytes = await response.arrayBuffer()
+      checkAccess()
+      controller.signal.throwIfAborted()
+      return bytes
+    }
+    const reader = response.body.getReader(), chunks: Uint8Array[] = []
+    let loaded = 0, lastProgress = 0
+    try {
+      while (true) {
+        const part = await reader.read()
+        checkAccess()
+        if (part.done) break
+        chunks.push(part.value); loaded += part.value.length
+        if (Date.now()-lastProgress>150) { progress?.(loaded,total);lastProgress=Date.now() }
+      }
+    } finally { reader.releaseLock() }
+    checkAccess()
+    controller.signal.throwIfAborted()
+    progress?.(loaded,total)
+    const bytes = new Uint8Array(loaded); let offset = 0
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length }
+    return bytes.buffer
+  } catch (error) {
+    if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
+    throw error
+  } finally {
+    activeRequests.delete(controller)
+    signal.removeEventListener('abort', abort)
+  }
+}
+
 async function request<T>(path: string, options: RequestOptions, decode: (payload: unknown, status: number) => T): Promise<T> {
   const query = new URLSearchParams()
   for (const [key, value] of Object.entries(options.query ?? {})) {
     if (value !== undefined) query.set(key, String(value))
   }
   const headers: Record<string, string> = { Accept: 'application/json' }
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json'
+  const multipart = typeof FormData !== 'undefined' && options.body instanceof FormData
+  if (options.body !== undefined && !multipart) headers['Content-Type'] = 'application/json'
   const requestToken = options.authenticated === false ? null : accessToken
   const generation = sessionGeneration
   const required = options.authenticated === false ? null : apiPermissionRequirement(path, options.method)
@@ -51,11 +108,11 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
   const abort = () => controller.abort()
   options.signal?.addEventListener('abort', abort, { once: true })
   if (options.signal?.aborted) abort()
-  const timeout = setTimeout(abort, 20000)
+  const timeout = setTimeout(abort, options.timeoutMs ?? 20000)
   try {
     const response = await fetch(`${baseUrl}${path}${query.size ? `?${query}` : ''}`, {
       method: options.method ?? 'GET', headers, signal: controller.signal,
-      body: options.body === undefined ? undefined : JSON.stringify(prepareCreateBody(path, options.method, options.body)),
+      body: options.body === undefined ? undefined : multipart ? options.body as FormData : JSON.stringify(prepareCreateBody(path, options.method, options.body)),
     })
     if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
     if (response.status === 204 && response.ok) return decode(undefined, response.status)
