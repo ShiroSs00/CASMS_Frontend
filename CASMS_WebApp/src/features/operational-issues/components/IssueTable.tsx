@@ -1,5 +1,6 @@
+import { PermissionLink as Link } from '@/shared/ui'
 import { DataTable } from '@/shared/ui'
-import { Link, useLocation } from 'react-router'
+import { useLocation } from 'react-router'
 
 import type { OperationalIssue } from '../model/issue'
 import { IssueSeverityBadge, IssueStatusBadge } from './IssueStatusBadge'

@@ -1,4 +1,5 @@
 import { prepareCreateBody } from './create-body'
+import { apiPermissionRequirement, getSessionAccess, hasPermissions } from '@/shared/auth'
 
 type ApiEnvelope<T> = { success: boolean; message?: string; error?: string; code?: string; data?: T }
 type RequestOptions = {
@@ -19,7 +20,14 @@ export class ApiError extends Error {
 
 // A login provider may supply JWT in memory. Never store it in public VITE_* vars.
 let accessToken: string | null = null
-export function setApiAccessToken(token: string | null) { accessToken = token }
+let sessionGeneration = 0
+const activeRequests = new Set<AbortController>()
+export function setApiAccessToken(token: string | null) {
+  if (token === accessToken) return
+  accessToken = token
+  sessionGeneration += 1
+  activeRequests.forEach(controller => controller.abort())
+}
 const unauthorizedListeners = new Set<() => void>()
 export function subscribeApiUnauthorized(listener: () => void) {
   unauthorizedListeners.add(listener)
@@ -30,24 +38,56 @@ const baseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 /** Authenticated asset bytes; credentials are only sent through the configured API origin. */
 export async function apiAsset(path: string, signal: AbortSignal, progress?: (loaded: number, total: number) => void): Promise<ArrayBuffer> {
   if (!/^\/ships\/[^/]+\/models\/[^/]+\/assets\//.test(path) || path.includes('..') || /[?#\\]/.test(path)) throw new ApiError('Đường dẫn asset không hợp lệ.', 400)
-  const token = accessToken
-  const response = await fetch(`${baseUrl}${path}`, { signal, headers: token ? { Authorization: `Bearer ${token}` } : {} })
-  if (!response.ok) {
-    if (response.status === 401 && token === accessToken) unauthorizedListeners.forEach(listener => listener())
-    throw new ApiError(response.status === 403 ? 'Bạn không có quyền đọc asset mô hình.' : `Không tải được asset (HTTP ${response.status}).`, response.status)
+  const token = accessToken, generation = sessionGeneration
+  const required = apiPermissionRequirement(path)
+  const checkAccess = () => {
+    if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
+    if (!token || !required || !hasPermissions(getSessionAccess(), required)) throw new ApiError('Bạn chưa được cấp quyền đọc asset mô hình.', token ? 403 : 401, 'ACCESS_DENIED')
   }
-  const total = Number(response.headers.get('content-length')) || 0
-  if (!response.body) return response.arrayBuffer()
-  const reader = response.body.getReader(), chunks: Uint8Array[] = []
-  let loaded = 0, lastProgress = 0
+  checkAccess()
+  const controller = new AbortController()
+  const abort = () => controller.abort()
+  activeRequests.add(controller)
+  signal.addEventListener('abort', abort, { once: true })
+  if (signal.aborted) abort()
   try {
-    while (true) { const part = await reader.read(); if (part.done) break; chunks.push(part.value); loaded += part.value.length; if (Date.now()-lastProgress>150) { progress?.(loaded,total);lastProgress=Date.now() } }
-  } finally { reader.releaseLock() }
-  signal.throwIfAborted()
-  progress?.(loaded,total)
-  const bytes = new Uint8Array(loaded); let offset = 0
-  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length }
-  return bytes.buffer
+    const response = await fetch(`${baseUrl}${path}`, { signal: controller.signal, headers: { Authorization: `Bearer ${token}` } })
+    checkAccess()
+    if (!response.ok) {
+      if (response.status === 401 && token === accessToken) unauthorizedListeners.forEach(listener => listener())
+      throw new ApiError(response.status === 403 ? 'Bạn không có quyền đọc asset mô hình.' : `Không tải được asset (HTTP ${response.status}).`, response.status)
+    }
+    const total = Number(response.headers.get('content-length')) || 0
+    if (!response.body) {
+      const bytes = await response.arrayBuffer()
+      checkAccess()
+      controller.signal.throwIfAborted()
+      return bytes
+    }
+    const reader = response.body.getReader(), chunks: Uint8Array[] = []
+    let loaded = 0, lastProgress = 0
+    try {
+      while (true) {
+        const part = await reader.read()
+        checkAccess()
+        if (part.done) break
+        chunks.push(part.value); loaded += part.value.length
+        if (Date.now()-lastProgress>150) { progress?.(loaded,total);lastProgress=Date.now() }
+      }
+    } finally { reader.releaseLock() }
+    checkAccess()
+    controller.signal.throwIfAborted()
+    progress?.(loaded,total)
+    const bytes = new Uint8Array(loaded); let offset = 0
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length }
+    return bytes.buffer
+  } catch (error) {
+    if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
+    throw error
+  } finally {
+    activeRequests.delete(controller)
+    signal.removeEventListener('abort', abort)
+  }
 }
 
 async function request<T>(path: string, options: RequestOptions, decode: (payload: unknown, status: number) => T): Promise<T> {
@@ -59,8 +99,12 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
   const multipart = typeof FormData !== 'undefined' && options.body instanceof FormData
   if (options.body !== undefined && !multipart) headers['Content-Type'] = 'application/json'
   const requestToken = options.authenticated === false ? null : accessToken
+  const generation = sessionGeneration
+  const required = options.authenticated === false ? null : apiPermissionRequirement(path, options.method)
+  if (required && (!requestToken || !hasPermissions(getSessionAccess(), required))) throw new ApiError('Bạn chưa được cấp quyền thực hiện thao tác này.', requestToken ? 403 : 401, 'ACCESS_DENIED')
   if (requestToken) headers.Authorization = `Bearer ${requestToken}`
   const controller = new AbortController()
+  activeRequests.add(controller)
   const abort = () => controller.abort()
   options.signal?.addEventListener('abort', abort, { once: true })
   if (options.signal?.aborted) abort()
@@ -70,6 +114,7 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
       method: options.method ?? 'GET', headers, signal: controller.signal,
       body: options.body === undefined ? undefined : multipart ? options.body as FormData : JSON.stringify(prepareCreateBody(path, options.method, options.body)),
     })
+    if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
     if (response.status === 204 && response.ok) return decode(undefined, response.status)
     let payload: ApiEnvelope<T> | null = null
     try { payload = await response.json() as ApiEnvelope<T> } catch { /* Do not render HTML error pages. */ }
@@ -84,12 +129,16 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
         : response.status === 403 ? 'Bạn không có quyền thực hiện thao tác này.'
           : message || `Không thể thực hiện yêu cầu (HTTP ${response.status}).`, response.status, payload?.code ?? payload?.error)
     }
+    if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
+    if (required && !hasPermissions(getSessionAccess(), required)) throw new ApiError('Quyền truy cập đã thay đổi. Vui lòng tải lại dữ liệu.', 403, 'ACCESS_DENIED')
     return decode(payload, response.status)
   } catch (error) {
+    if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
     if (error instanceof ApiError || options.signal?.aborted) throw error
     if (controller.signal.aborted) throw new ApiError('Yêu cầu quá thời gian. Hãy thử lại.', 0)
     throw new ApiError('Không kết nối được backend. Kiểm tra server và cấu hình API.', 0)
   } finally {
+    activeRequests.delete(controller)
     clearTimeout(timeout)
     options.signal?.removeEventListener('abort', abort)
   }

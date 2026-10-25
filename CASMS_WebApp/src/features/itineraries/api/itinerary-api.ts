@@ -50,9 +50,11 @@ const destinationPath = (id: string) => `/destinations/${encodeURIComponent(id)}
 
 function stopBody(draft: Partial<CruiseStopDraft>) {
   return {
-    ...draft,
-    plannedArrival: draft.plannedArrival ? new Date(draft.plannedArrival).toISOString() : undefined,
-    plannedDeparture: draft.plannedDeparture ? new Date(draft.plannedDeparture).toISOString() : undefined,
+    itineraryId: draft.itineraryId, arrivalItineraryDayId: draft.arrivalItineraryDayId, departureItineraryDayId: draft.departureItineraryDayId,
+    portId: draft.portId, destinationId: draft.destinationId || undefined, stopOrder: draft.stopOrder === '' ? undefined : draft.stopOrder,
+    plannedArrival: draft.plannedArrival, plannedDeparture: draft.plannedDeparture,
+    callType: draft.callType, arrivalMethod: draft.arrivalMethod, allAboardTime: draft.allAboardTime || undefined,
+    tenderTransferMinutes: draft.tenderTransferMinutes,
   }
 }
 
@@ -116,6 +118,7 @@ export const itineraryHistoryApi = {
 }
 
 export const itineraryApi = {
+  getCruise: (id: string, signal?: AbortSignal) => apiRequest<ItineraryCruiseOption & { cruiseType: 'ONE_DAY' | 'MULTI_DAYS' }>(`/cruise/${encodeURIComponent(id)}`, { signal }),
   async list(pageNumber = 1, signal?: AbortSignal) {
     return page(await apiRequest<PageDto<Itinerary>>('/itineraries', { query: { page: pageNumber - 1, size: 20, sort: 'startDate,desc' }, signal }))
   },
@@ -123,7 +126,7 @@ export const itineraryApi = {
   listCruises,
   allItineraries: (signal?: AbortSignal) => allPages<Itinerary>('/itineraries', signal),
   create: (draft: ItineraryDraft) => apiRequest<Itinerary>('/itineraries', { method: 'POST', body: {
-    cruiseId: draft.cruiseId, itineraryName: draft.itineraryName.trim(), startDate: draft.startDate, endDate: draft.endDate, itineraryType: draft.itineraryType,
+    cruiseId: draft.cruiseId, itineraryName: draft.itineraryName.trim() || undefined, startDate: draft.startDate || undefined, endDate: draft.endDate || undefined, itineraryType: draft.itineraryType || undefined,
   } }),
   async formContext(signal?: AbortSignal) {
     const [cruises, itineraries] = await Promise.all([listCruises(signal), allPages<Itinerary>('/itineraries', signal)])
@@ -144,7 +147,7 @@ export const itineraryApi = {
   listDays: (id: string, signal?: AbortSignal) => apiRequest<ItineraryDay[]>(`${itineraryPath(id)}/days`, { signal }),
   listDaysByItinerary: (itineraryId: string, signal?: AbortSignal) => apiRequest<ItineraryDay[]>(`/itinerary-days/by-itinerary/${encodeURIComponent(itineraryId)}`, { signal }),
   getDay: (id: string, signal?: AbortSignal) => apiRequest<ItineraryDay>(dayPath(id), { signal }),
-  createDay: (draft: ItineraryDayDraft) => apiRequest<ItineraryDay>('/itinerary-days', { method: 'POST', body: { ...draft, dayNumber: draft.dayNumber === '' ? undefined : draft.dayNumber } }),
+  createDay: (draft: ItineraryDayDraft) => apiRequest<ItineraryDay>('/itinerary-days', { method: 'POST', body: { itineraryId: draft.itineraryId, dayNumber: draft.dayNumber === '' ? undefined : draft.dayNumber, date: draft.date || undefined, dayType: draft.dayType, shipTimeZoneId: 'Asia/Ho_Chi_Minh', description: draft.description || undefined } }),
   updateDay: (id: string, draft: Partial<ItineraryDayDraft>) => apiRequest<ItineraryDay>(dayPath(id), { method: 'PATCH', body: { dayNumber: draft.dayNumber, date: draft.date, dayType: draft.dayType, shipTimeZoneId: draft.shipTimeZoneId, description: draft.description } }),
   setDayType: (id: string, dayType: ItineraryDayType) => apiRequest<ItineraryDay>(`${dayPath(id)}/day-type`, { method: 'POST', query: { dayType } }),
   setShipTimeZone: (id: string, shipTimeZoneId: string) => apiRequest<ItineraryDay>(`${dayPath(id)}/ship-timezone`, { method: 'POST', query: { shipTimeZoneId } }),

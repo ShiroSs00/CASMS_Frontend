@@ -1,4 +1,4 @@
-import { Link } from 'react-router'
+import { PermissionLink as Link } from '@/shared/ui'
 import { Button, Empty, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'

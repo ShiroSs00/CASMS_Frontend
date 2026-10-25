@@ -11,7 +11,8 @@ export function PackageBenefitsEditor({ packageId, status, onChanged }: { packag
   const access = useSessionAccess()
   const [kind, setKind] = useState<BenefitKind>('services')
   const components = useReadQuery(`package-components:${packageId}:${kind}`, useCallback(signal => servicePackageApi.components(packageId, kind, signal), [packageId, kind]))
-  const options = useReadQuery(`package-options:${kind}`, useCallback(signal => servicePackageApi.benefitOptions(kind, signal), [kind]))
+  const canOptions = access.has(kind === 'services' ? 'SERVICE_READ' : kind === 'activities' ? 'ACTIVITY_READ' : 'EXCURSION_READ')
+  const options = useReadQuery(`package-options:${kind}:${canOptions}`, useCallback(signal => canOptions ? servicePackageApi.benefitOptions(kind, signal) : Promise.resolve([]), [kind,canOptions]))
   const [edit, setEdit] = useState<{ method: 'POST' | 'PUT' | 'DELETE'; row?: BenefitRow } | null>(null)
   const [entityId, setEntityId] = useState(''), [benefitType, setBenefitType] = useState<'INCLUDED' | 'OPTIONAL'>('INCLUDED')
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
@@ -30,7 +31,8 @@ export function PackageBenefitsEditor({ packageId, status, onChanged }: { packag
     <CatalogState {...components} /><CatalogState {...options} />
     {components.data?.length === 0 && <Empty title="Chưa có thành phần trong nhóm quyền lợi này" />}
     <ul>{components.data?.map(row => <li key={row.entityId}><strong>{options.data?.find(item => item.id === row.entityId)?.name ?? 'Thành phần đã liên kết'}</strong> · {benefitLabels[row.benefitType]}{' '}{row.packageId !== packageId ? <span>· Kế thừa từ gói cha; chỉnh sửa tại gói nguồn.</span> : <>{access.has('PACKAGE_COMPONENT_MANAGE') && <Button tone="text" disabled={!allowed || busy} onClick={() => open('PUT', row)}>Đổi quyền lợi</Button>}{access.has('PACKAGE_COMPONENT_MANAGE') && <Button tone="text" disabled={!allowed || busy} onClick={() => open('DELETE', row)}>Gỡ khỏi gói</Button>}</>}</li>)}</ul>
-    {access.has('PACKAGE_COMPONENT_MANAGE') && <Button disabled={!allowed || busy || !options.data || !components.data} onClick={() => open('POST')}>Thêm quyền lợi</Button>}
+    {access.has('PACKAGE_COMPONENT_MANAGE') && <Button disabled={!allowed || busy || !canOptions || !options.data || !components.data} onClick={() => open('POST')}>Thêm quyền lợi</Button>}
+    {!canOptions && <p>Chưa có quyền xem danh mục thành phần đã chọn.</p>}
     {access.has('PACKAGE_COMPONENT_MANAGE') && status !== 'DRAFT' && <p>Chỉ gói nháp chưa được phân bổ mới được thay đổi thành phần.</p>}
     {edit && access.has('PACKAGE_COMPONENT_MANAGE') && <Modal title={edit.method === 'DELETE' ? 'Gỡ thành phần khỏi gói' : 'Cấu hình quyền lợi gói'} busy={busy} onClose={() => setEdit(null)}>
       {edit.method === 'POST' ? <Field htmlFor="package-benefit-entity" label={labels[kind]}><select id="package-benefit-entity" value={entityId} disabled={busy} onChange={event => setEntityId(event.target.value)}><option value="">Chọn thành phần có thật</option>{options.data?.filter(item => !components.data?.some(row => row.entityId === item.id)).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field> : <p>{options.data?.find(item => item.id === entityId)?.name ?? 'Thành phần đã chọn'}</p>}

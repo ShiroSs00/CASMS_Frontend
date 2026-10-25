@@ -1,9 +1,11 @@
 import { Navigate } from 'react-router'
 import { useAuth } from '@/features/auth'
-import { staffRoleHome } from '@/shared/ui/admin-v3'
+import { useSessionAccess } from '@/shared/auth'
+import { AdminShell, staffRoleHome } from '@/shared/ui/admin-v3'
+import { Notice } from '@/shared/ui'
 
-/** Every login lands in its role's function, never the four-department picker. */
 export function AdminOverviewPage() {
-  const {user}=useAuth()
-  return <Navigate to={staffRoleHome(user?.roles ?? []) ?? '/403'} replace />
+  const { user } = useAuth(), access = useSessionAccess()
+  const home = staffRoleHome(user?.roles ?? [],access)
+  return home ? <Navigate to={home} replace /> : <AdminShell><Notice title="Tài khoản chưa được cấp quyền truy cập chức năng">Liên hệ người quản trị để được cấp quyền phù hợp với công việc.</Notice></AdminShell>
 }

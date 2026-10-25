@@ -1,4 +1,5 @@
 import type { CruiseDraft, CruiseType } from './cruise-record'
+import { wallTimeToInstant, SHIP_TIME_ZONE } from '@/shared/lib/journey-time'
 
 export type CruiseFormErrors = Partial<Record<keyof CruiseDraft, string>>
 
@@ -6,7 +7,7 @@ const DISPLAY_TIME_ZONE = 'Asia/Ho_Chi_Minh'
 
 export function scheduleInstant(value: string) {
   const hasTimeZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)
-  return new Date(hasTimeZone ? value : `${value.length === 16 ? `${value}:00` : value}+07:00`)
+  try { return new Date(hasTimeZone ? value : wallTimeToInstant(value, SHIP_TIME_ZONE)) } catch { return new Date(NaN) }
 }
 
 function calendarDate(value: string) {

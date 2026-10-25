@@ -58,7 +58,7 @@ export const activityApi = {
     return values
   },
   save: (draft: ActivityDraft, id?: string) => apiRequestRaw(id ? byId(id) : '/activities', record, { method: id ? 'PUT' : 'POST', body: {
-    activityCode: draft.activityCode.trim(), activityName: draft.activityName.trim(), description: draft.description.trim(), location: draft.location.trim(), cruiseId: draft.cruiseId,
+    activityName: draft.activityName.trim(), description: draft.description.trim(), location: draft.location.trim(), cruiseId: draft.cruiseId,
     startTime: new Date(draft.startTime).toISOString(), endTime: new Date(draft.endTime).toISOString(), capacity: draft.capacity, price: draft.price, currencyCode: draft.currencyCode || undefined,
   } }),
 }

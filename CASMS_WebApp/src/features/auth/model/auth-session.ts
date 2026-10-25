@@ -1,4 +1,5 @@
 import { setApiAccessToken, subscribeApiUnauthorized } from '@/shared/api'
+import { setSessionAccess } from '@/shared/auth'
 import { authApi } from '../api/auth-api'
 import { AUTH_ROLES, canSignIn, type AuthSession, type AuthState } from './auth-types'
 
@@ -14,6 +15,9 @@ const listeners = new Set<() => void>()
 
 function stopTimers() { clearTimeout(refreshTimer); clearTimeout(expiryTimer) }
 function publish(status: AuthState['status'], session: AuthSession | null) {
+  if (!session || session.accessToken !== state.session?.accessToken || session.user.id !== state.session?.user.id) {
+    setSessionAccess({ status: session ? 'loading' : 'anonymous', userId: session?.user.id ?? null, permissions: [], error: '' })
+  }
   setApiAccessToken(session?.accessToken ?? null)
   state = { status, session }
   listeners.forEach((listener) => listener())
@@ -108,9 +112,11 @@ export const authSession = {
     if (logoutInFlight) return logoutInFlight
     generation += 1
     stopTimers()
+    const pending = authApi.logout()
+    clear('anonymous')
     logoutInFlight = (async () => {
-      try { await authApi.logout() } catch { /* Stateless logout must still clear locally. */ }
-      finally { clear('anonymous'); logoutInFlight = null }
+      try { await pending } catch { /* BE logout is stateless; local session is already cleared. */ }
+      finally { logoutInFlight = null }
     })()
     return logoutInFlight
   },

@@ -1,5 +1,6 @@
+import { PermissionLink as Link } from '@/shared/ui'
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router'
+
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { Button, Field, FormErrorSummary, Loading, Notice } from '@/shared/ui'

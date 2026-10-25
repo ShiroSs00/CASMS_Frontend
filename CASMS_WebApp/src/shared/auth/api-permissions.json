@@ -1,0 +1,2935 @@
+[
+  {
+    "method": "POST",
+    "path": "/checkin/guidance-sessions/{sessionId}/participants/auto-populate",
+    "mode": "ANY",
+    "permissions": [
+      "CHECKIN_UPDATE"
+    ],
+    "source": "com/casms/checkin/controller/GuidanceSessionController.java:66"
+  },
+  {
+    "method": "POST",
+    "path": "/cruises/{cruiseId}/ble-receivers/{receiverId}/calibrate-at-one-meter",
+    "mode": "ANY",
+    "permissions": [
+      "BLE_ANCHOR_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/BleRuntimeController.java:41"
+  },
+  {
+    "method": "POST",
+    "path": "/cruises/{cruiseId}/passenger-ble-identities/{identityId}/revoke",
+    "mode": "ANY",
+    "permissions": [
+      "PASSENGER_BLE_REVOKE"
+    ],
+    "source": "com/casms/identity/controller/PassengerBleIdentityController.java:56"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/ble-anchors/{anchorId}/installation-confirmation",
+    "mode": "ANY",
+    "permissions": [
+      "BLE_ANCHOR_INSTALL"
+    ],
+    "source": "com/casms/ship/controller/BleAnchorController.java:67"
+  },
+  {
+    "method": "POST",
+    "path": "/itinerary-days/by-itinerary/{itineraryId}/validate-sequence",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_DAY_READ"
+    ],
+    "source": "com/casms/ship/controller/ItineraryDayController.java:92"
+  },
+  {
+    "method": "GET",
+    "path": "/tour-group-passengers/groups/{groupId}/eligible-passengers",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_PASSENGER_READ"
+    ],
+    "source": "com/casms/activity/controller/TourGroupPassengerController.java:161"
+  },
+  {
+    "method": "POST",
+    "path": "/cruises/{cruiseId}/ble-receivers/{receiverId}/observations",
+    "mode": "ANY",
+    "permissions": [
+      "BLE_TELEMETRY_RECEIVE"
+    ],
+    "source": "com/casms/ship/controller/BleRuntimeController.java:24"
+  },
+  {
+    "method": "GET",
+    "path": "/tour-group-passengers/groups/{groupId}/available-capacity",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_PASSENGER_READ"
+    ],
+    "source": "com/casms/activity/controller/TourGroupPassengerController.java:131"
+  },
+  {
+    "method": "GET",
+    "path": "/cruises/{cruiseId}/ble-receivers/{receiverId}/tracking",
+    "mode": "ANY",
+    "permissions": [
+      "BLE_TELEMETRY_READ"
+    ],
+    "source": "com/casms/ship/controller/BleRuntimeController.java:33"
+  },
+  {
+    "method": "DELETE",
+    "path": "/servicepackage/packages/{id}/excursions/{excursionId}",
+    "mode": "ANY",
+    "permissions": [
+      "PACKAGE_COMPONENT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:97"
+  },
+  {
+    "method": "POST",
+    "path": "/servicepackage/packages/{id}/excursions/{excursionId}",
+    "mode": "ANY",
+    "permissions": [
+      "PACKAGE_COMPONENT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:95"
+  },
+  {
+    "method": "PUT",
+    "path": "/servicepackage/packages/{id}/excursions/{excursionId}",
+    "mode": "ANY",
+    "permissions": [
+      "PACKAGE_COMPONENT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:96"
+  },
+  {
+    "method": "DELETE",
+    "path": "/servicepackage/packages/{id}/activities/{activityId}",
+    "mode": "ANY",
+    "permissions": [
+      "PACKAGE_COMPONENT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:93"
+  },
+  {
+    "method": "POST",
+    "path": "/servicepackage/packages/{id}/activities/{activityId}",
+    "mode": "ANY",
+    "permissions": [
+      "PACKAGE_COMPONENT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:91"
+  },
+  {
+    "method": "PUT",
+    "path": "/servicepackage/packages/{id}/activities/{activityId}",
+    "mode": "ANY",
+    "permissions": [
+      "PACKAGE_COMPONENT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:92"
+  },
+  {
+    "method": "GET",
+    "path": "/cruises/{cruiseId}/passenger-ble-identities/history",
+    "mode": "ANY",
+    "permissions": [
+      "PASSENGER_BLE_HISTORY"
+    ],
+    "source": "com/casms/identity/controller/PassengerBleIdentityController.java:48"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/models/{modelId}/assets/{*assetPath}",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_READ"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:114"
+  },
+  {
+    "method": "DELETE",
+    "path": "/ships/{shipId}/models/{modelId}/objects/{objectId}",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_MODEL_OBJECT_DELETE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:178"
+  },
+  {
+    "method": "GET",
+    "path": "/checkin/guidance-sessions/{sessionId}/participants",
+    "mode": "ANY",
+    "permissions": [
+      "CHECKIN_UPDATE"
+    ],
+    "source": "com/casms/checkin/controller/GuidanceSessionController.java:84"
+  },
+  {
+    "method": "GET",
+    "path": "/cruises/{cruiseId}/passenger-ble-identities/active",
+    "mode": "ANY",
+    "permissions": [
+      "PASSENGER_BLE_READ"
+    ],
+    "source": "com/casms/identity/controller/PassengerBleIdentityController.java:35"
+  },
+  {
+    "method": "PUT",
+    "path": "/ships/{shipId}/models/{modelId}/objects/{objectId}",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_MODEL_OBJECT_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:171"
+  },
+  {
+    "method": "DELETE",
+    "path": "/servicepackage/packages/{id}/services/{serviceId}",
+    "mode": "ANY",
+    "permissions": [
+      "PACKAGE_COMPONENT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:89"
+  },
+  {
+    "method": "POST",
+    "path": "/servicepackage/packages/{id}/services/{serviceId}",
+    "mode": "ANY",
+    "permissions": [
+      "PACKAGE_COMPONENT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:87"
+  },
+  {
+    "method": "PUT",
+    "path": "/servicepackage/packages/{id}/services/{serviceId}",
+    "mode": "ANY",
+    "permissions": [
+      "PACKAGE_COMPONENT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:88"
+  },
+  {
+    "method": "POST",
+    "path": "/checkin/guidance-sessions/{sessionId}/attendance",
+    "mode": "ANY",
+    "permissions": [
+      "CHECKIN_UPDATE"
+    ],
+    "source": "com/casms/checkin/controller/GuidanceSessionController.java:75"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/ble-anchors/{anchorId}/deactivate",
+    "mode": "ANY",
+    "permissions": [
+      "BLE_ANCHOR_DEACTIVATE"
+    ],
+    "source": "com/casms/ship/controller/BleAnchorController.java:61"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/models/{modelId}/cabin-mappings",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_READ"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:93"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/ble-anchors/{anchorId}/activate",
+    "mode": "ANY",
+    "permissions": [
+      "BLE_ANCHOR_ACTIVATE"
+    ],
+    "source": "com/casms/ship/controller/BleAnchorController.java:55"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/ble-anchors/{anchorId}/validate",
+    "mode": "ANY",
+    "permissions": [
+      "BLE_ANCHOR_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/BleAnchorController.java:79"
+  },
+  {
+    "method": "PUT",
+    "path": "/ships/{shipId}/models/{modelId}/cabin-mappings",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:99"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/models/{modelId}/deck-mappings",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_READ"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:79"
+  },
+  {
+    "method": "POST",
+    "path": "/servicepackage/requests/{id}/actions/{action}",
+    "mode": "ANY",
+    "permissions": [
+      "SERVICE_REQUEST_ASSIGN",
+      "SERVICE_REQUEST_EXECUTE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:78"
+  },
+  {
+    "method": "PUT",
+    "path": "/ships/{shipId}/models/{modelId}/deck-mappings",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:85"
+  },
+  {
+    "method": "DELETE",
+    "path": "/ships/{shipId}/ble-anchors/{anchorId}/unused",
+    "mode": "ANY",
+    "permissions": [
+      "BLE_ANCHOR_DELETE"
+    ],
+    "source": "com/casms/ship/controller/BleAnchorController.java:86"
+  },
+  {
+    "method": "PATCH",
+    "path": "/checkin/guidance-sessions/{sessionId}/status",
+    "mode": "ANY",
+    "permissions": [
+      "CHECKIN_UPDATE"
+    ],
+    "source": "com/casms/checkin/controller/GuidanceSessionController.java:57"
+  },
+  {
+    "method": "POST",
+    "path": "/servicepackage/products/{id}/status/{action}",
+    "mode": "ANY",
+    "permissions": [
+      "PRODUCT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:60"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/ble-anchors/{anchorId}/retire",
+    "mode": "ANY",
+    "permissions": [
+      "BLE_ANCHOR_RETIRE"
+    ],
+    "source": "com/casms/ship/controller/BleAnchorController.java:73"
+  },
+  {
+    "method": "GET",
+    "path": "/checkin/guidance-sessions/cruise/{cruiseId}",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/checkin/controller/GuidanceSessionController.java:41"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/services/{id}/availability",
+    "mode": "ANY",
+    "permissions": [
+      "SERVICE_READ"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:48"
+  },
+  {
+    "method": "GET",
+    "path": "/cruises/{cruiseId}/regulations/effective",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_REGULATION_READ"
+    ],
+    "source": "com/casms/ship/controller/CruiseRegulationController.java:64"
+  },
+  {
+    "method": "POST",
+    "path": "/activities/excursions/{id}/registrations",
+    "mode": "ANY",
+    "permissions": [
+      "EXCURSION_BOOKING"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:148"
+  },
+  {
+    "method": "POST",
+    "path": "/checkin/passenger/{passengerId}/complete",
+    "mode": "ANY",
+    "permissions": [
+      "CHECKIN_UPDATE"
+    ],
+    "source": "com/casms/checkin/controller/CheckinController.java:40"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/models/{modelId}/activate",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:107"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/3d-configuration/validate",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_CONFIGURATION_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:193"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/packages/{id}/activities",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "PACKAGE_COMPONENT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:90"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/packages/{id}/excursions",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "PACKAGE_COMPONENT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:94"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/models/{modelId}/objects",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_MODEL_READ"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:165"
+  },
+  {
+    "method": "POST",
+    "path": "/cruises/{cruiseId}/regulations/precheck",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_REGULATION_READ"
+    ],
+    "source": "com/casms/ship/controller/CruiseRegulationController.java:46"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/models/{modelId}/archive",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_MODEL_PUBLISH"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:147"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/models/{modelId}/objects",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_MODEL_OBJECT_CREATE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:158"
+  },
+  {
+    "method": "DELETE",
+    "path": "/ships/{shipId}/models/{modelId}/unused",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_MODEL_DELETE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:151"
+  },
+  {
+    "method": "GET",
+    "path": "/checkin/passenger/{passengerId}/status",
+    "mode": "ANY",
+    "permissions": [
+      "CHECKIN_READ"
+    ],
+    "source": "com/casms/checkin/controller/CheckinController.java:51"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/services/{id}/schedules",
+    "mode": "ANY",
+    "permissions": [
+      "SERVICE_READ"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:50"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/packages/{id}/benefits",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:67"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/packages/{id}/services",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "PACKAGE_COMPONENT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:86"
+  },
+  {
+    "method": "POST",
+    "path": "/activities/registrations/{id}/confirm",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_REGISTRATION"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:157"
+  },
+  {
+    "method": "POST",
+    "path": "/checkin/passenger/{passengerId}/start",
+    "mode": "ANY",
+    "permissions": [
+      "CHECKIN_CREATE"
+    ],
+    "source": "com/casms/checkin/controller/CheckinController.java:26"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/models/{modelId}/ready",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_MODEL_PUBLISH"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:143"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/regulations/effective",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_REGULATION_READ"
+    ],
+    "source": "com/casms/ship/controller/ShipRegulationController.java:64"
+  },
+  {
+    "method": "POST",
+    "path": "/activities/registrations/{id}/cancel",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_REGISTRATION"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:173"
+  },
+  {
+    "method": "POST",
+    "path": "/servicepackage/requests/{id}/cancel",
+    "mode": "ANY",
+    "permissions": [
+      "SERVICE_REQUEST_CREATE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:79"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/regulations/precheck",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_REGULATION_READ"
+    ],
+    "source": "com/casms/ship/controller/ShipRegulationController.java:46"
+  },
+  {
+    "method": "POST",
+    "path": "/servicepackage/products/{id}/sales",
+    "mode": "ANY",
+    "permissions": [
+      "PRODUCT_SALE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:61"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/models/metadata",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_MODEL_CREATE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:135"
+  },
+  {
+    "method": "DELETE",
+    "path": "/servicepackage/package-assignments/{bookingPassengerId}",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_ASSIGN"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:85"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/package-assignments/{bookingPassengerId}",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_ASSIGN",
+      "TOUR_PACKAGE_MANAGE",
+      "BOOKING_READ"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:82"
+  },
+  {
+    "method": "POST",
+    "path": "/servicepackage/package-assignments/{bookingPassengerId}",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_ASSIGN"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:83"
+  },
+  {
+    "method": "PUT",
+    "path": "/servicepackage/package-assignments/{bookingPassengerId}",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_ASSIGN"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:84"
+  },
+  {
+    "method": "GET",
+    "path": "/itinerary-change-history/itineraries/{itineraryId}",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_CHANGE_READ"
+    ],
+    "source": "com/casms/ship/controller/ItineraryChangeHistoryController.java:82"
+  },
+  {
+    "method": "PATCH",
+    "path": "/operational-regulations/{regulationId}/deactivate",
+    "mode": "ANY",
+    "permissions": [
+      "REGULATION_DEACTIVATE"
+    ],
+    "source": "com/casms/ship/controller/OperationalRegulationController.java:83"
+  },
+  {
+    "method": "GET",
+    "path": "/operational-regulations/{regulationId}/conflicts",
+    "mode": "ANY",
+    "permissions": [
+      "REGULATION_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/OperationalRegulationController.java:109"
+  },
+  {
+    "method": "PATCH",
+    "path": "/operational-regulations/{regulationId}/activate",
+    "mode": "ANY",
+    "permissions": [
+      "REGULATION_ACTIVATE"
+    ],
+    "source": "com/casms/ship/controller/OperationalRegulationController.java:74"
+  },
+  {
+    "method": "POST",
+    "path": "/operational-regulations/{regulationId}/validate",
+    "mode": "ANY",
+    "permissions": [
+      "REGULATION_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/OperationalRegulationController.java:100"
+  },
+  {
+    "method": "POST",
+    "path": "/itineraries/{itineraryId}/validate-feasibility",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/ItineraryController.java:97"
+  },
+  {
+    "method": "DELETE",
+    "path": "/cruises/{cruiseId}/regulations/{regulationId}",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_REGULATION_REMOVE"
+    ],
+    "source": "com/casms/ship/controller/CruiseRegulationController.java:74"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise-stops/{cruiseStopId}/port-availability",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STOP_READ"
+    ],
+    "source": "com/casms/ship/controller/CruiseStopController.java:164"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-stops/{cruiseStopId}/planned-departure",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STOP_TIME_MANAGE"
+    ],
+    "source": "com/casms/ship/controller/CruiseStopController.java:147"
+  },
+  {
+    "method": "POST",
+    "path": "/itinerary-days/{itineraryDayId}/ship-timezone",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_DAY_TIMEZONE_SET"
+    ],
+    "source": "com/casms/ship/controller/ItineraryDayController.java:83"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/validate-ship-availability",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:129"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-stops/{cruiseStopId}/actual-departure",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STOP_ACTUAL_DEPARTURE"
+    ],
+    "source": "com/casms/ship/controller/CruiseStopController.java:102"
+  },
+  {
+    "method": "POST",
+    "path": "/itineraries/{itineraryId}/validate-structure",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/ItineraryController.java:148"
+  },
+  {
+    "method": "GET",
+    "path": "/cruises/{cruiseId}/passenger-ble-identities",
+    "mode": "ANY",
+    "permissions": [
+      "PASSENGER_BLE_READ"
+    ],
+    "source": "com/casms/identity/controller/PassengerBleIdentityController.java:42"
+  },
+  {
+    "method": "POST",
+    "path": "/cruises/{cruiseId}/passenger-ble-identities",
+    "mode": "ANY",
+    "permissions": [
+      "PASSENGER_BLE_ASSIGN"
+    ],
+    "source": "com/casms/identity/controller/PassengerBleIdentityController.java:27"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-stops/{cruiseStopId}/all-aboard-time",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STOP_ALL_ABOARD"
+    ],
+    "source": "com/casms/ship/controller/CruiseStopController.java:84"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-stops/{cruiseStopId}/planned-arrival",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STOP_TIME_MANAGE"
+    ],
+    "source": "com/casms/ship/controller/CruiseStopController.java:138"
+  },
+  {
+    "method": "POST",
+    "path": "/itineraries/{itineraryId}/validate-sequence",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/ItineraryController.java:157"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-stops/{cruiseStopId}/actual-arrival",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STOP_ACTUAL_ARRIVAL"
+    ],
+    "source": "com/casms/ship/controller/CruiseStopController.java:93"
+  },
+  {
+    "method": "DELETE",
+    "path": "/tour-groups/{id}/passengers/{passengerId}",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_PASSENGER_REMOVE"
+    ],
+    "source": "com/casms/activity/controller/TourGroupController.java:110"
+  },
+  {
+    "method": "DELETE",
+    "path": "/ships/{shipId}/regulations/{regulationId}",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_REGULATION_REMOVE"
+    ],
+    "source": "com/casms/ship/controller/ShipRegulationController.java:74"
+  },
+  {
+    "method": "GET",
+    "path": "/itinerary-days/by-itinerary/{itineraryId}",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_DAY_READ"
+    ],
+    "source": "com/casms/ship/controller/ItineraryDayController.java:39"
+  },
+  {
+    "method": "POST",
+    "path": "/itinerary-days/{itineraryDayId}/day-type",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_DAY_TYPE_SET"
+    ],
+    "source": "com/casms/ship/controller/ItineraryDayController.java:74"
+  },
+  {
+    "method": "POST",
+    "path": "/itinerary-days/{itineraryDayId}/validate",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_DAY_READ"
+    ],
+    "source": "com/casms/ship/controller/ItineraryDayController.java:101"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise-stops/by-itinerary/{itineraryId}",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/CruiseStopController.java:40"
+  },
+  {
+    "method": "PATCH",
+    "path": "/destinations/{destinationId}/deactivate",
+    "mode": "ANY",
+    "permissions": [
+      "DESTINATION_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/DestinationController.java:107"
+  },
+  {
+    "method": "POST",
+    "path": "/activities/participations/{id}/{action}",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_ATTENDANCE"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:195"
+  },
+  {
+    "method": "POST",
+    "path": "/operational-issues/{issueId}/resolution",
+    "mode": "ANY",
+    "permissions": [
+      "OPERATIONAL_ISSUE_RESOLVE"
+    ],
+    "source": "com/casms/ship/controller/OperationalIssueController.java:99"
+  },
+  {
+    "method": "DELETE",
+    "path": "/cruise/{cruiseId}/packages/{packageId}",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_ASSIGN"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:247"
+  },
+  {
+    "method": "DELETE",
+    "path": "/itinerary-days/{itineraryDayId}/unused",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_DAY_DELETE"
+    ],
+    "source": "com/casms/ship/controller/ItineraryDayController.java:64"
+  },
+  {
+    "method": "PATCH",
+    "path": "/shore-excursions/{id}/refresh-capacity",
+    "mode": "ANY",
+    "permissions": [
+      "EXCURSION_STATUS_CHANGE"
+    ],
+    "source": "com/casms/activity/controller/ShoreExcursionController.java:123"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-stops/{cruiseStopId}/substitute",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STOP_SUBSTITUTE"
+    ],
+    "source": "com/casms/ship/controller/CruiseStopController.java:120"
+  },
+  {
+    "method": "POST",
+    "path": "/itineraries/{itineraryId}/apply-change",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_APPLY_CHANGE"
+    ],
+    "source": "com/casms/ship/controller/ItineraryController.java:139"
+  },
+  {
+    "method": "PUT",
+    "path": "/cruise/{cruiseId}/change-assigned-ship",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_CHANGE_SHIP"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:112"
+  },
+  {
+    "method": "GET",
+    "path": "/checkin/guidance-sessions/{sessionId}",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/checkin/controller/GuidanceSessionController.java:49"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/ble-anchors/{anchorId}",
+    "mode": "ANY",
+    "permissions": [
+      "BLE_ANCHOR_READ"
+    ],
+    "source": "com/casms/ship/controller/BleAnchorController.java:41"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ships/{shipId}/ble-anchors/{anchorId}",
+    "mode": "ANY",
+    "permissions": [
+      "BLE_ANCHOR_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/BleAnchorController.java:48"
+  },
+  {
+    "method": "PATCH",
+    "path": "/destinations/{destinationId}/activate",
+    "mode": "ANY",
+    "permissions": [
+      "DESTINATION_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/DestinationController.java:99"
+  },
+  {
+    "method": "POST",
+    "path": "/servicepackage/services/{id}/{action}",
+    "mode": "ANY",
+    "permissions": [
+      "SERVICE_ACTIVATE",
+      "SERVICE_SUSPEND"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:54"
+  },
+  {
+    "method": "POST",
+    "path": "/servicepackage/packages/{id}/{action}",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:68"
+  },
+  {
+    "method": "POST",
+    "path": "/destinations/{destinationId}/validate",
+    "mode": "ANY",
+    "permissions": [
+      "DESTINATION_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/DestinationController.java:90"
+  },
+  {
+    "method": "POST",
+    "path": "/operational-issues/{issueId}/validate",
+    "mode": "ANY",
+    "permissions": [
+      "OPERATIONAL_ISSUE_READ"
+    ],
+    "source": "com/casms/ship/controller/OperationalIssueController.java:140"
+  },
+  {
+    "method": "GET",
+    "path": "/cabins/{cabinId}/compatibility-check",
+    "mode": "ANY",
+    "permissions": [
+      "CABIN_READ"
+    ],
+    "source": "com/casms/ship/controller/CabinController.java:105"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise-stops/{cruiseStopId}/duration",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STOP_READ"
+    ],
+    "source": "com/casms/ship/controller/CruiseStopController.java:156"
+  },
+  {
+    "method": "PATCH",
+    "path": "/tour-group-passengers/{id}/departure",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_PASSENGER_ATTENDANCE"
+    ],
+    "source": "com/casms/activity/controller/TourGroupPassengerController.java:96"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-stops/{cruiseStopId}/validate",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STOP_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/CruiseStopController.java:129"
+  },
+  {
+    "method": "DELETE",
+    "path": "/destinations/{destinationId}/unused",
+    "mode": "ANY",
+    "permissions": [
+      "DESTINATION_DELETE_UNUSED"
+    ],
+    "source": "com/casms/ship/controller/DestinationController.java:72"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/validate-schedule",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:138"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/validate-capacity",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:146"
+  },
+  {
+    "method": "PATCH",
+    "path": "/operational-issues/{issueId}/assign",
+    "mode": "ANY",
+    "permissions": [
+      "OPERATIONAL_ISSUE_ASSIGN"
+    ],
+    "source": "com/casms/ship/controller/OperationalIssueController.java:80"
+  },
+  {
+    "method": "PATCH",
+    "path": "/operational-issues/{issueId}/verify",
+    "mode": "ANY",
+    "permissions": [
+      "OPERATIONAL_ISSUE_RESOLVE"
+    ],
+    "source": "com/casms/ship/controller/OperationalIssueController.java:112"
+  },
+  {
+    "method": "PATCH",
+    "path": "/operational-issues/{issueId}/reopen",
+    "mode": "ANY",
+    "permissions": [
+      "OPERATIONAL_ISSUE_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/OperationalIssueController.java:132"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-stops/{cruiseStopId}/reorder",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STOP_REORDER"
+    ],
+    "source": "com/casms/ship/controller/CruiseStopController.java:75"
+  },
+  {
+    "method": "GET",
+    "path": "/shore-excursions/{id}/availability",
+    "mode": "ANY",
+    "permissions": [
+      "EXCURSION_READ"
+    ],
+    "source": "com/casms/activity/controller/ShoreExcursionController.java:110"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/package-assignments",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_ASSIGN",
+      "TOUR_PACKAGE_MANAGE",
+      "BOOKING_READ"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:81"
+  },
+  {
+    "method": "GET",
+    "path": "/destinations/{destinationId}/ports",
+    "mode": "ANY",
+    "permissions": [
+      "DESTINATION_PORTS_VIEW"
+    ],
+    "source": "com/casms/ship/controller/DestinationController.java:82"
+  },
+  {
+    "method": "PATCH",
+    "path": "/notification/{notificationId}/read",
+    "mode": "ANY",
+    "permissions": [
+      "NOTIFICATION_READ"
+    ],
+    "source": "com/casms/notification/controller/NotificationController.java:33"
+  },
+  {
+    "method": "PATCH",
+    "path": "/operational-issues/{issueId}/start",
+    "mode": "ANY",
+    "permissions": [
+      "OPERATIONAL_ISSUE_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/OperationalIssueController.java:90"
+  },
+  {
+    "method": "PATCH",
+    "path": "/operational-issues/{issueId}/close",
+    "mode": "ANY",
+    "permissions": [
+      "OPERATIONAL_ISSUE_RESOLVE"
+    ],
+    "source": "com/casms/ship/controller/OperationalIssueController.java:124"
+  },
+  {
+    "method": "DELETE",
+    "path": "/cruise-stops/{cruiseStopId}/draft",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STOP_REMOVE_DRAFT"
+    ],
+    "source": "com/casms/ship/controller/CruiseStopController.java:65"
+  },
+  {
+    "method": "GET",
+    "path": "/tour-group-passengers/eligibility",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_PASSENGER_READ"
+    ],
+    "source": "com/casms/activity/controller/TourGroupPassengerController.java:144"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/service-categories",
+    "mode": "ANY",
+    "permissions": [
+      "SERVICE_READ"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:49"
+  },
+  {
+    "method": "GET",
+    "path": "/operational-regulations/effective",
+    "mode": "ANY",
+    "permissions": [
+      "REGULATION_READ"
+    ],
+    "source": "com/casms/ship/controller/OperationalRegulationController.java:92"
+  },
+  {
+    "method": "PATCH",
+    "path": "/tour-group-passengers/{id}/remove",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_PASSENGER_REMOVE"
+    ],
+    "source": "com/casms/activity/controller/TourGroupPassengerController.java:86"
+  },
+  {
+    "method": "PATCH",
+    "path": "/tour-group-passengers/{id}/return",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_PASSENGER_ATTENDANCE"
+    ],
+    "source": "com/casms/activity/controller/TourGroupPassengerController.java:106"
+  },
+  {
+    "method": "POST",
+    "path": "/itineraries/{itineraryId}/approve",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_APPROVE"
+    ],
+    "source": "com/casms/ship/controller/ItineraryController.java:114"
+  },
+  {
+    "method": "POST",
+    "path": "/itineraries/{itineraryId}/publish",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_PUBLISH"
+    ],
+    "source": "com/casms/ship/controller/ItineraryController.java:166"
+  },
+  {
+    "method": "DELETE",
+    "path": "/cruise/{cruiseId}/staff/{userId}",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STAFF_REMOVE"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:216"
+  },
+  {
+    "method": "POST",
+    "path": "/activities/{id}/actions/{action}",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_LIFECYCLE"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:116"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-stops/{cruiseStopId}/omit",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STOP_OMIT"
+    ],
+    "source": "com/casms/ship/controller/CruiseStopController.java:111"
+  },
+  {
+    "method": "POST",
+    "path": "/itineraries/{itineraryId}/submit",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_SUBMIT"
+    ],
+    "source": "com/casms/ship/controller/ItineraryController.java:106"
+  },
+  {
+    "method": "POST",
+    "path": "/itineraries/{itineraryId}/reject",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_REJECT"
+    ],
+    "source": "com/casms/ship/controller/ItineraryController.java:126"
+  },
+  {
+    "method": "POST",
+    "path": "/itineraries/{itineraryId}/cancel",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_CANCEL"
+    ],
+    "source": "com/casms/ship/controller/ItineraryController.java:174"
+  },
+  {
+    "method": "DELETE",
+    "path": "/itineraries/{itineraryId}/draft",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_DELETE_DRAFT"
+    ],
+    "source": "com/casms/ship/controller/ItineraryController.java:87"
+  },
+  {
+    "method": "GET",
+    "path": "/cabins/{cabinId}/capacity-check",
+    "mode": "ANY",
+    "permissions": [
+      "CABIN_READ"
+    ],
+    "source": "com/casms/ship/controller/CabinController.java:96"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/capacity-summary",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_CAPACITY_SUMMARY"
+    ],
+    "source": "com/casms/ship/controller/ShipController.java:98"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/affected-cruises",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_AFFECTED_CRUISES"
+    ],
+    "source": "com/casms/ship/controller/ShipController.java:106"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/models/{modelId}",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_READ"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:66"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/3d-configuration",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_CONFIGURATION_READ"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:186"
+  },
+  {
+    "method": "PATCH",
+    "path": "/tour-group-passengers/{id}/move",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_PASSENGER_MOVE"
+    ],
+    "source": "com/casms/activity/controller/TourGroupPassengerController.java:73"
+  },
+  {
+    "method": "PATCH",
+    "path": "/itineraries/{itineraryId}/draft",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_UPDATE_DRAFT"
+    ],
+    "source": "com/casms/ship/controller/ItineraryController.java:78"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/unassign-ship",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_UNASSIGN_SHIP"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:121"
+  },
+  {
+    "method": "PUT",
+    "path": "/ships/{shipId}/models/{modelId}",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_MODEL_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:128"
+  },
+  {
+    "method": "GET",
+    "path": "/activities/{id}/schedule-check",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_READ"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:81"
+  },
+  {
+    "method": "GET",
+    "path": "/activities/participations/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_ATTENDANCE"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:188"
+  },
+  {
+    "method": "GET",
+    "path": "/cruises/{cruiseId}/regulations",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_REGULATION_READ"
+    ],
+    "source": "com/casms/ship/controller/CruiseRegulationController.java:56"
+  },
+  {
+    "method": "GET",
+    "path": "/itineraries/{itineraryId}/days",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/ItineraryController.java:182"
+  },
+  {
+    "method": "PATCH",
+    "path": "/shore-excursions/{id}/complete",
+    "mode": "ANY",
+    "permissions": [
+      "EXCURSION_STATUS_CHANGE"
+    ],
+    "source": "com/casms/activity/controller/ShoreExcursionController.java:171"
+  },
+  {
+    "method": "POST",
+    "path": "/shore-excursions/{id}/validate",
+    "mode": "ANY",
+    "permissions": [
+      "EXCURSION_VALIDATE"
+    ],
+    "source": "com/casms/activity/controller/ShoreExcursionController.java:96"
+  },
+  {
+    "method": "POST",
+    "path": "/tour-group-passengers/validate",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_PASSENGER_VALIDATE"
+    ],
+    "source": "com/casms/activity/controller/TourGroupPassengerController.java:116"
+  },
+  {
+    "method": "POST",
+    "path": "/cruises/{cruiseId}/regulations",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_REGULATION_ASSIGN"
+    ],
+    "source": "com/casms/ship/controller/CruiseRegulationController.java:33"
+  },
+  {
+    "method": "GET",
+    "path": "/activities/registrations/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_ATTENDANCE",
+      "ACTIVITY_REGISTRATION"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:131"
+  },
+  {
+    "method": "GET",
+    "path": "/cabins/{cabinId}/availability",
+    "mode": "ANY",
+    "permissions": [
+      "CABIN_AVAILABILITY"
+    ],
+    "source": "com/casms/ship/controller/CabinController.java:140"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/current-cruise",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_CURRENT_CRUISE"
+    ],
+    "source": "com/casms/ship/controller/ShipController.java:116"
+  },
+  {
+    "method": "PATCH",
+    "path": "/shore-excursions/{id}/confirm",
+    "mode": "ANY",
+    "permissions": [
+      "EXCURSION_STATUS_CHANGE"
+    ],
+    "source": "com/casms/activity/controller/ShoreExcursionController.java:135"
+  },
+  {
+    "method": "POST",
+    "path": "/activities/{id}/registrations",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_REGISTRATION"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:139"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/assign-ship",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_ASSIGN_SHIP"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:103"
+  },
+  {
+    "method": "PUT",
+    "path": "/activities/registrations/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_REGISTRATION"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:165"
+  },
+  {
+    "method": "DELETE",
+    "path": "/servicepackage/services/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "SERVICE_DELETE_UNUSED"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:55"
+  },
+  {
+    "method": "DELETE",
+    "path": "/servicepackage/products/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "PRODUCT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:62"
+  },
+  {
+    "method": "DELETE",
+    "path": "/servicepackage/packages/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:69"
+  },
+  {
+    "method": "GET",
+    "path": "/activities/{id}/availability",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_READ"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:73"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/services/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "SERVICE_READ"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:47"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/products/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "PRODUCT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:57"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/packages/{id}",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:64"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/requests/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "SERVICE_REQUEST_READ",
+      "SERVICE_REQUEST_CREATE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:75"
+  },
+  {
+    "method": "GET",
+    "path": "/cabins/{cabinId}/assignments",
+    "mode": "ANY",
+    "permissions": [
+      "CABIN_ASSIGNMENTS_VIEW"
+    ],
+    "source": "com/casms/ship/controller/CabinController.java:123"
+  },
+  {
+    "method": "GET",
+    "path": "/decks/{deckId}/validate-ship",
+    "mode": "ANY",
+    "permissions": [
+      "DECK_READ"
+    ],
+    "source": "com/casms/ship/controller/DeckController.java:90"
+  },
+  {
+    "method": "PATCH",
+    "path": "/shore-excursions/{id}/cancel",
+    "mode": "ANY",
+    "permissions": [
+      "EXCURSION_STATUS_CHANGE"
+    ],
+    "source": "com/casms/activity/controller/ShoreExcursionController.java:183"
+  },
+  {
+    "method": "PUT",
+    "path": "/servicepackage/services/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "SERVICE_UPDATE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:53"
+  },
+  {
+    "method": "PUT",
+    "path": "/servicepackage/products/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "PRODUCT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:59"
+  },
+  {
+    "method": "PUT",
+    "path": "/servicepackage/packages/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:66"
+  },
+  {
+    "method": "PUT",
+    "path": "/servicepackage/requests/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "SERVICE_REQUEST_CREATE",
+      "SERVICE_REQUEST_EXECUTE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:77"
+  },
+  {
+    "method": "GET",
+    "path": "/payment/booking/{bookingId}",
+    "mode": "ANY",
+    "permissions": [
+      "PAYMENT_READ",
+      "PAYMENT_REPORT"
+    ],
+    "source": "com/casms/payment/controller/PaymentController.java:49"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/readiness",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:154"
+  },
+  {
+    "method": "GET",
+    "path": "/ports/{portId}/availability",
+    "mode": "ANY",
+    "permissions": [
+      "PORT_READ"
+    ],
+    "source": "com/casms/ship/controller/PortController.java:106"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/availability",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_SCHEDULE_CHECK"
+    ],
+    "source": "com/casms/ship/controller/ShipController.java:88"
+  },
+  {
+    "method": "PATCH",
+    "path": "/shore-excursions/{id}/close",
+    "mode": "ANY",
+    "permissions": [
+      "EXCURSION_STATUS_CHANGE"
+    ],
+    "source": "com/casms/activity/controller/ShoreExcursionController.java:147"
+  },
+  {
+    "method": "PATCH",
+    "path": "/shore-excursions/{id}/start",
+    "mode": "ANY",
+    "permissions": [
+      "EXCURSION_STATUS_CHANGE"
+    ],
+    "source": "com/casms/activity/controller/ShoreExcursionController.java:159"
+  },
+  {
+    "method": "POST",
+    "path": "/suppliers/{id}/verification",
+    "mode": "ANY",
+    "permissions": [
+      "SUPPLIER_VERIFY"
+    ],
+    "source": "com/casms/activity/controller/SupplierController.java:109"
+  },
+  {
+    "method": "POST",
+    "path": "/tour-groups/{id}/passengers",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_PASSENGER_ASSIGN"
+    ],
+    "source": "com/casms/activity/controller/TourGroupController.java:96"
+  },
+  {
+    "method": "POST",
+    "path": "/booking/{bookingId}/confirm",
+    "mode": "ANY",
+    "permissions": [
+      "BOOKING_CONFIRM"
+    ],
+    "source": "com/casms/booking/controller/BookingController.java:93"
+  },
+  {
+    "method": "POST",
+    "path": "/payment/{paymentId}/confirm",
+    "mode": "ANY",
+    "permissions": [
+      "PAYMENT_PROCESS"
+    ],
+    "source": "com/casms/payment/controller/PaymentController.java:40"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/ble-anchors",
+    "mode": "ANY",
+    "permissions": [
+      "BLE_ANCHOR_READ"
+    ],
+    "source": "com/casms/ship/controller/BleAnchorController.java:35"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/packages",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/CruiseController.java:239"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/manifest",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_MANIFEST_READ"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:260"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/regulations",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_REGULATION_READ"
+    ],
+    "source": "com/casms/ship/controller/ShipRegulationController.java:56"
+  },
+  {
+    "method": "POST",
+    "path": "/booking/{bookingId}/cancel",
+    "mode": "ANY",
+    "permissions": [
+      "BOOKING_CANCEL"
+    ],
+    "source": "com/casms/booking/controller/BookingController.java:103"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/ble-anchors",
+    "mode": "ANY",
+    "permissions": [
+      "BLE_ANCHOR_CREATE"
+    ],
+    "source": "com/casms/ship/controller/BleAnchorController.java:28"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/complete",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_COMPLETE"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:178"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/packages",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_ASSIGN"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:230"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/regulations",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_REGULATION_ASSIGN"
+    ],
+    "source": "com/casms/ship/controller/ShipRegulationController.java:33"
+  },
+  {
+    "method": "GET",
+    "path": "/activities/participations",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_ATTENDANCE"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:181"
+  },
+  {
+    "method": "GET",
+    "path": "/tour-groups/{id}/capacity",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_READ"
+    ],
+    "source": "com/casms/activity/controller/TourGroupController.java:137"
+  },
+  {
+    "method": "PATCH",
+    "path": "/suppliers/{id}/deactivate",
+    "mode": "ANY",
+    "permissions": [
+      "SUPPLIER_STATUS_CHANGE"
+    ],
+    "source": "com/casms/activity/controller/SupplierController.java:98"
+  },
+  {
+    "method": "PATCH",
+    "path": "/tour-groups/{id}/complete",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_STATUS_CHANGE"
+    ],
+    "source": "com/casms/activity/controller/TourGroupController.java:185"
+  },
+  {
+    "method": "POST",
+    "path": "/tour-groups/{id}/validate",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_VALIDATE"
+    ],
+    "source": "com/casms/activity/controller/TourGroupController.java:123"
+  },
+  {
+    "method": "POST",
+    "path": "/checkin/guidance-sessions",
+    "mode": "ANY",
+    "permissions": [
+      "CHECKIN_CREATE"
+    ],
+    "source": "com/casms/checkin/controller/GuidanceSessionController.java:32"
+  },
+  {
+    "method": "POST",
+    "path": "/cabins/{cabinId}/validate",
+    "mode": "ANY",
+    "permissions": [
+      "CABIN_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/CabinController.java:131"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/publish",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_PUBLISH"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:162"
+  },
+  {
+    "method": "POST",
+    "path": "/ports/{portId}/deactivate",
+    "mode": "ANY",
+    "permissions": [
+      "PORT_DEACTIVATE"
+    ],
+    "source": "com/casms/ship/controller/PortController.java:89"
+  },
+  {
+    "method": "GET",
+    "path": "/activities/registrations",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_ATTENDANCE",
+      "ACTIVITY_REGISTRATION"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:123"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/readiness",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_READINESS"
+    ],
+    "source": "com/casms/ship/controller/ShipController.java:133"
+  },
+  {
+    "method": "PATCH",
+    "path": "/tour-groups/{id}/confirm",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_STATUS_CHANGE"
+    ],
+    "source": "com/casms/activity/controller/TourGroupController.java:152"
+  },
+  {
+    "method": "POST",
+    "path": "/servicepackage/schedules",
+    "mode": "ANY",
+    "permissions": [
+      "SERVICE_CREATE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:51"
+  },
+  {
+    "method": "POST",
+    "path": "/cabins/{cabinId}/release",
+    "mode": "ANY",
+    "permissions": [
+      "CABIN_RELEASE"
+    ],
+    "source": "com/casms/ship/controller/CabinController.java:157"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/cancel",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_CANCEL"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:186"
+  },
+  {
+    "method": "DELETE",
+    "path": "/cabins/{cabinId}/unused",
+    "mode": "ANY",
+    "permissions": [
+      "CABIN_DELETE"
+    ],
+    "source": "com/casms/ship/controller/CabinController.java:79"
+  },
+  {
+    "method": "DELETE",
+    "path": "/cruise/{cruiseId}/draft",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_DELETE_DRAFT"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:93"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/services",
+    "mode": "ANY",
+    "permissions": [
+      "SERVICE_READ"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:46"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/products",
+    "mode": "ANY",
+    "permissions": [
+      "PRODUCT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:56"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/packages",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:63"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/requests",
+    "mode": "ANY",
+    "permissions": [
+      "SERVICE_REQUEST_READ",
+      "SERVICE_REQUEST_CREATE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:74"
+  },
+  {
+    "method": "GET",
+    "path": "/cabins/by-ship/{shipId}",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/CabinController.java:49"
+  },
+  {
+    "method": "GET",
+    "path": "/cabins/by-deck/{deckId}",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/CabinController.java:55"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/staff",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STAFF_READ"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:208"
+  },
+  {
+    "method": "GET",
+    "path": "/decks/{deckId}/capacity",
+    "mode": "ANY",
+    "permissions": [
+      "DECK_READ"
+    ],
+    "source": "com/casms/ship/controller/DeckController.java:108"
+  },
+  {
+    "method": "PATCH",
+    "path": "/suppliers/{id}/activate",
+    "mode": "ANY",
+    "permissions": [
+      "SUPPLIER_STATUS_CHANGE"
+    ],
+    "source": "com/casms/activity/controller/SupplierController.java:87"
+  },
+  {
+    "method": "PATCH",
+    "path": "/tour-groups/{id}/cancel",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_STATUS_CHANGE"
+    ],
+    "source": "com/casms/activity/controller/TourGroupController.java:162"
+  },
+  {
+    "method": "PATCH",
+    "path": "/cruise/{cruiseId}/draft",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:84"
+  },
+  {
+    "method": "POST",
+    "path": "/suppliers/{id}/validate",
+    "mode": "ANY",
+    "permissions": [
+      "SUPPLIER_VALIDATE"
+    ],
+    "source": "com/casms/activity/controller/SupplierController.java:126"
+  },
+  {
+    "method": "POST",
+    "path": "/servicepackage/services",
+    "mode": "ANY",
+    "permissions": [
+      "SERVICE_CREATE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:52"
+  },
+  {
+    "method": "POST",
+    "path": "/servicepackage/products",
+    "mode": "ANY",
+    "permissions": [
+      "PRODUCT_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:58"
+  },
+  {
+    "method": "POST",
+    "path": "/servicepackage/packages",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:65"
+  },
+  {
+    "method": "POST",
+    "path": "/servicepackage/requests",
+    "mode": "ANY",
+    "permissions": [
+      "SERVICE_REQUEST_CREATE"
+    ],
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:76"
+  },
+  {
+    "method": "POST",
+    "path": "/cabins/{cabinId}/status",
+    "mode": "ANY",
+    "permissions": [
+      "CABIN_STATUS_CHANGE"
+    ],
+    "source": "com/casms/ship/controller/CabinController.java:114"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/start",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_START"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:170"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/staff",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STAFF_ASSIGN"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:197"
+  },
+  {
+    "method": "POST",
+    "path": "/decks/{deckId}/validate",
+    "mode": "ANY",
+    "permissions": [
+      "DECK_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/DeckController.java:99"
+  },
+  {
+    "method": "POST",
+    "path": "/ports/{portId}/activate",
+    "mode": "ANY",
+    "permissions": [
+      "PORT_ACTIVATE"
+    ],
+    "source": "com/casms/ship/controller/PortController.java:81"
+  },
+  {
+    "method": "POST",
+    "path": "/ports/{portId}/validate",
+    "mode": "ANY",
+    "permissions": [
+      "PORT_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/PortController.java:97"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/validate",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/ShipController.java:124"
+  },
+  {
+    "method": "GET",
+    "path": "/decks/by-ship/{shipId}",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/DeckController.java:48"
+  },
+  {
+    "method": "PATCH",
+    "path": "/tour-groups/{id}/guide",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_GUIDE_ASSIGN"
+    ],
+    "source": "com/casms/activity/controller/TourGroupController.java:83"
+  },
+  {
+    "method": "PATCH",
+    "path": "/tour-groups/{id}/start",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_STATUS_CHANGE"
+    ],
+    "source": "com/casms/activity/controller/TourGroupController.java:175"
+  },
+  {
+    "method": "POST",
+    "path": "/cabins/{cabinId}/block",
+    "mode": "ANY",
+    "permissions": [
+      "CABIN_BLOCK"
+    ],
+    "source": "com/casms/ship/controller/CabinController.java:148"
+  },
+  {
+    "method": "DELETE",
+    "path": "/decks/{deckId}/unused",
+    "mode": "ANY",
+    "permissions": [
+      "DECK_DELETE"
+    ],
+    "source": "com/casms/ship/controller/DeckController.java:72"
+  },
+  {
+    "method": "DELETE",
+    "path": "/ports/{portId}/unused",
+    "mode": "ANY",
+    "permissions": [
+      "PORT_DELETE_UNUSED"
+    ],
+    "source": "com/casms/ship/controller/PortController.java:71"
+  },
+  {
+    "method": "DELETE",
+    "path": "/ships/{shipId}/unused",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_DELETE"
+    ],
+    "source": "com/casms/ship/controller/ShipController.java:69"
+  },
+  {
+    "method": "GET",
+    "path": "/decks/{deckId}/cabins",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/DeckController.java:82"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/models",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_MODEL_READ"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:62"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/status",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_STATUS_CHANGE"
+    ],
+    "source": "com/casms/ship/controller/ShipController.java:79"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/models",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:55"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/model",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_READ"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:73"
+  },
+  {
+    "method": "POST",
+    "path": "/booking/change-cabin",
+    "mode": "ANY",
+    "permissions": [
+      "BOOKING_CABIN_ASSIGN",
+      "BOOKING_UPDATE"
+    ],
+    "source": "com/casms/booking/controller/BookingController.java:114"
+  },
+  {
+    "method": "GET",
+    "path": "/destinations/active",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/DestinationController.java:48"
+  },
+  {
+    "method": "GET",
+    "path": "/itineraries/mine",
+    "mode": "ANY",
+    "permissions": [
+      "BOOKING_READ"
+    ],
+    "source": "com/casms/ship/controller/ItineraryController.java:39"
+  },
+  {
+    "method": "POST",
+    "path": "/payment/process",
+    "mode": "ANY",
+    "permissions": [
+      "PAYMENT_PROCESS"
+    ],
+    "source": "com/casms/payment/controller/PaymentController.java:31"
+  },
+  {
+    "method": "GET",
+    "path": "/identity/users",
+    "mode": "ANY",
+    "permissions": [
+      "USER_READ",
+      "OPERATIONAL_ISSUE_ASSIGN",
+      "OPERATIONAL_ISSUE_CREATE",
+      "OPERATIONAL_ISSUE_UPDATE"
+    ],
+    "source": "com/casms/identity/controller/IdentityController.java:29"
+  },
+  {
+    "method": "POST",
+    "path": "/cabins/search",
+    "mode": "ANY",
+    "permissions": [
+      "CABIN_SEARCH"
+    ],
+    "source": "com/casms/ship/controller/CabinController.java:89"
+  },
+  {
+    "method": "GET",
+    "path": "/ports/active",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/PortController.java:47"
+  },
+  {
+    "method": "DELETE",
+    "path": "/operational-regulations/{regulationId}",
+    "mode": "ANY",
+    "permissions": [
+      "REGULATION_DELETE"
+    ],
+    "source": "com/casms/ship/controller/OperationalRegulationController.java:65"
+  },
+  {
+    "method": "GET",
+    "path": "/operational-regulations/{regulationId}",
+    "mode": "ANY",
+    "permissions": [
+      "REGULATION_READ"
+    ],
+    "source": "com/casms/ship/controller/OperationalRegulationController.java:46"
+  },
+  {
+    "method": "PUT",
+    "path": "/operational-regulations/{regulationId}",
+    "mode": "ANY",
+    "permissions": [
+      "REGULATION_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/OperationalRegulationController.java:55"
+  },
+  {
+    "method": "GET",
+    "path": "/itinerary-change-history/{historyId}",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_CHANGE_READ"
+    ],
+    "source": "com/casms/ship/controller/ItineraryChangeHistoryController.java:72"
+  },
+  {
+    "method": "GET",
+    "path": "/itinerary-days/{itineraryDayId}",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_DAY_READ"
+    ],
+    "source": "com/casms/ship/controller/ItineraryDayController.java:47"
+  },
+  {
+    "method": "PATCH",
+    "path": "/itinerary-days/{itineraryDayId}",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_DAY_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/ItineraryDayController.java:55"
+  },
+  {
+    "method": "GET",
+    "path": "/destinations/{destinationId}",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/DestinationController.java:55"
+  },
+  {
+    "method": "GET",
+    "path": "/operational-issues/{issueId}",
+    "mode": "ANY",
+    "permissions": [
+      "OPERATIONAL_ISSUE_READ"
+    ],
+    "source": "com/casms/ship/controller/OperationalIssueController.java:62"
+  },
+  {
+    "method": "PATCH",
+    "path": "/destinations/{destinationId}",
+    "mode": "ANY",
+    "permissions": [
+      "DESTINATION_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/DestinationController.java:63"
+  },
+  {
+    "method": "PUT",
+    "path": "/operational-issues/{issueId}",
+    "mode": "ANY",
+    "permissions": [
+      "OPERATIONAL_ISSUE_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/OperationalIssueController.java:70"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise-stops/{cruiseStopId}",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/CruiseStopController.java:48"
+  },
+  {
+    "method": "PATCH",
+    "path": "/cruise-stops/{cruiseStopId}",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STOP_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/CruiseStopController.java:56"
+  },
+  {
+    "method": "GET",
+    "path": "/tour-group-passengers/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_PASSENGER_READ"
+    ],
+    "source": "com/casms/activity/controller/TourGroupPassengerController.java:63"
+  },
+  {
+    "method": "GET",
+    "path": "/itineraries/{itineraryId}",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/ItineraryController.java:70"
+  },
+  {
+    "method": "GET",
+    "path": "/itinerary-change-history",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_CHANGE_READ"
+    ],
+    "source": "com/casms/ship/controller/ItineraryChangeHistoryController.java:52"
+  },
+  {
+    "method": "POST",
+    "path": "/itinerary-change-history",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_CHANGE_RECORD"
+    ],
+    "source": "com/casms/ship/controller/ItineraryChangeHistoryController.java:36"
+  },
+  {
+    "method": "GET",
+    "path": "/operational-regulations",
+    "mode": "ANY",
+    "permissions": [
+      "REGULATION_READ"
+    ],
+    "source": "com/casms/ship/controller/OperationalRegulationController.java:39"
+  },
+  {
+    "method": "POST",
+    "path": "/operational-regulations",
+    "mode": "ANY",
+    "permissions": [
+      "REGULATION_CREATE"
+    ],
+    "source": "com/casms/ship/controller/OperationalRegulationController.java:30"
+  },
+  {
+    "method": "DELETE",
+    "path": "/shore-excursions/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "EXCURSION_DELETE_DRAFT"
+    ],
+    "source": "com/casms/activity/controller/ShoreExcursionController.java:85"
+  },
+  {
+    "method": "GET",
+    "path": "/shore-excursions/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "EXCURSION_READ"
+    ],
+    "source": "com/casms/activity/controller/ShoreExcursionController.java:60"
+  },
+  {
+    "method": "GET",
+    "path": "/tour-group-passengers",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_PASSENGER_READ"
+    ],
+    "source": "com/casms/activity/controller/TourGroupPassengerController.java:48"
+  },
+  {
+    "method": "POST",
+    "path": "/tour-group-passengers",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_PASSENGER_ASSIGN"
+    ],
+    "source": "com/casms/activity/controller/TourGroupPassengerController.java:37"
+  },
+  {
+    "method": "PUT",
+    "path": "/shore-excursions/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "EXCURSION_UPDATE"
+    ],
+    "source": "com/casms/activity/controller/ShoreExcursionController.java:72"
+  },
+  {
+    "method": "GET",
+    "path": "/booking/{bookingId}",
+    "mode": "ANY",
+    "permissions": [
+      "BOOKING_READ"
+    ],
+    "source": "com/casms/booking/controller/BookingController.java:83"
+  },
+  {
+    "method": "GET",
+    "path": "/payment/{paymentId}",
+    "mode": "ANY",
+    "permissions": [
+      "PAYMENT_READ",
+      "PAYMENT_REPORT"
+    ],
+    "source": "com/casms/payment/controller/PaymentController.java:60"
+  },
+  {
+    "method": "GET",
+    "path": "/operational-issues",
+    "mode": "ANY",
+    "permissions": [
+      "OPERATIONAL_ISSUE_READ"
+    ],
+    "source": "com/casms/ship/controller/OperationalIssueController.java:51"
+  },
+  {
+    "method": "POST",
+    "path": "/operational-issues",
+    "mode": "ANY",
+    "permissions": [
+      "OPERATIONAL_ISSUE_CREATE"
+    ],
+    "source": "com/casms/ship/controller/OperationalIssueController.java:36"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/CruiseController.java:70"
+  },
+  {
+    "method": "POST",
+    "path": "/ship-model-assets",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:45"
+  },
+  {
+    "method": "GET",
+    "path": "/shore-excursions",
+    "mode": "ANY",
+    "permissions": [
+      "EXCURSION_READ"
+    ],
+    "source": "com/casms/activity/controller/ShoreExcursionController.java:44"
+  },
+  {
+    "method": "GET",
+    "path": "/tour-groups/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_READ"
+    ],
+    "source": "com/casms/activity/controller/TourGroupController.java:60"
+  },
+  {
+    "method": "GET",
+    "path": "/cabins/{cabinId}",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/CabinController.java:62"
+  },
+  {
+    "method": "PATCH",
+    "path": "/cabins/{cabinId}",
+    "mode": "ANY",
+    "permissions": [
+      "CABIN_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/CabinController.java:70"
+  },
+  {
+    "method": "POST",
+    "path": "/shore-excursions",
+    "mode": "ANY",
+    "permissions": [
+      "EXCURSION_CREATE"
+    ],
+    "source": "com/casms/activity/controller/ShoreExcursionController.java:33"
+  },
+  {
+    "method": "PUT",
+    "path": "/tour-groups/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_UPDATE"
+    ],
+    "source": "com/casms/activity/controller/TourGroupController.java:70"
+  },
+  {
+    "method": "DELETE",
+    "path": "/activities/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_UPDATE"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:108"
+  },
+  {
+    "method": "GET",
+    "path": "/activities/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_READ"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:66"
+  },
+  {
+    "method": "PUT",
+    "path": "/activities/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_UPDATE"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:99"
+  },
+  {
+    "method": "DELETE",
+    "path": "/suppliers/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "SUPPLIER_DELETE"
+    ],
+    "source": "com/casms/activity/controller/SupplierController.java:77"
+  },
+  {
+    "method": "GET",
+    "path": "/suppliers/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "SUPPLIER_READ"
+    ],
+    "source": "com/casms/activity/controller/SupplierController.java:56"
+  },
+  {
+    "method": "GET",
+    "path": "/decks/{deckId}",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/DeckController.java:55"
+  },
+  {
+    "method": "GET",
+    "path": "/ports/{portId}",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/PortController.java:54"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/ShipController.java:52"
+  },
+  {
+    "method": "PATCH",
+    "path": "/decks/{deckId}",
+    "mode": "ANY",
+    "permissions": [
+      "DECK_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/DeckController.java:63"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ports/{portId}",
+    "mode": "ANY",
+    "permissions": [
+      "PORT_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/PortController.java:62"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ships/{shipId}",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/ShipController.java:60"
+  },
+  {
+    "method": "POST",
+    "path": "/itinerary-days",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_DAY_CREATE"
+    ],
+    "source": "com/casms/ship/controller/ItineraryDayController.java:31"
+  },
+  {
+    "method": "PUT",
+    "path": "/suppliers/{id}",
+    "mode": "ANY",
+    "permissions": [
+      "SUPPLIER_UPDATE"
+    ],
+    "source": "com/casms/activity/controller/SupplierController.java:65"
+  },
+  {
+    "method": "GET",
+    "path": "/destinations",
+    "mode": "ANY",
+    "permissions": [
+      "DESTINATION_READ"
+    ],
+    "source": "com/casms/ship/controller/DestinationController.java:41"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-stops",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STOP_ADD"
+    ],
+    "source": "com/casms/ship/controller/CruiseStopController.java:32"
+  },
+  {
+    "method": "POST",
+    "path": "/destinations",
+    "mode": "ANY",
+    "permissions": [
+      "DESTINATION_CREATE"
+    ],
+    "source": "com/casms/ship/controller/DestinationController.java:33"
+  },
+  {
+    "method": "GET",
+    "path": "/tour-groups",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_READ"
+    ],
+    "source": "com/casms/activity/controller/TourGroupController.java:46"
+  },
+  {
+    "method": "GET",
+    "path": "/itineraries",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/ItineraryController.java:63"
+  },
+  {
+    "method": "POST",
+    "path": "/tour-groups",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_GROUP_CREATE"
+    ],
+    "source": "com/casms/activity/controller/TourGroupController.java:35"
+  },
+  {
+    "method": "POST",
+    "path": "/itineraries",
+    "mode": "ANY",
+    "permissions": [
+      "ITINERARY_CREATE"
+    ],
+    "source": "com/casms/ship/controller/ItineraryController.java:50"
+  },
+  {
+    "method": "GET",
+    "path": "/activities",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_READ"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:59"
+  },
+  {
+    "method": "POST",
+    "path": "/activities",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_CREATE"
+    ],
+    "source": "com/casms/activity/controller/ActivityController.java:89"
+  },
+  {
+    "method": "GET",
+    "path": "/suppliers",
+    "mode": "ANY",
+    "permissions": [
+      "SUPPLIER_READ"
+    ],
+    "source": "com/casms/activity/controller/SupplierController.java:49"
+  },
+  {
+    "method": "POST",
+    "path": "/suppliers",
+    "mode": "ANY",
+    "permissions": [
+      "SUPPLIER_CREATE"
+    ],
+    "source": "com/casms/activity/controller/SupplierController.java:39"
+  },
+  {
+    "method": "GET",
+    "path": "/booking",
+    "mode": "ANY",
+    "permissions": [
+      "BOOKING_READ"
+    ],
+    "source": "com/casms/booking/controller/BookingController.java:71"
+  },
+  {
+    "method": "GET",
+    "path": "/cabins",
+    "mode": "ANY",
+    "permissions": [
+      "CABIN_READ"
+    ],
+    "source": "com/casms/ship/controller/CabinController.java:43"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/ship/controller/CruiseController.java:56"
+  },
+  {
+    "method": "POST",
+    "path": "/cabins",
+    "mode": "ANY",
+    "permissions": [
+      "CABIN_CREATE"
+    ],
+    "source": "com/casms/ship/controller/CabinController.java:35"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_CREATE"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java:48"
+  },
+  {
+    "method": "GET",
+    "path": "/decks",
+    "mode": "ANY",
+    "permissions": [
+      "DECK_READ"
+    ],
+    "source": "com/casms/ship/controller/DeckController.java:42"
+  },
+  {
+    "method": "GET",
+    "path": "/ports",
+    "mode": "ANY",
+    "permissions": [
+      "PORT_READ"
+    ],
+    "source": "com/casms/ship/controller/PortController.java:40"
+  },
+  {
+    "method": "GET",
+    "path": "/ships",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_READ"
+    ],
+    "source": "com/casms/ship/controller/ShipController.java:45"
+  },
+  {
+    "method": "POST",
+    "path": "/decks",
+    "mode": "ANY",
+    "permissions": [
+      "DECK_CREATE"
+    ],
+    "source": "com/casms/ship/controller/DeckController.java:34"
+  },
+  {
+    "method": "POST",
+    "path": "/ports",
+    "mode": "ANY",
+    "permissions": [
+      "PORT_CREATE"
+    ],
+    "source": "com/casms/ship/controller/PortController.java:32"
+  },
+  {
+    "method": "POST",
+    "path": "/ships",
+    "mode": "ANY",
+    "permissions": [
+      "SHIP_CREATE"
+    ],
+    "source": "com/casms/ship/controller/ShipController.java:37"
+  }
+]

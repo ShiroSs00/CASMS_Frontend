@@ -1,5 +1,6 @@
+import { PermissionLink as Link } from '@/shared/ui'
 import { useId, type InputHTMLAttributes, type ReactNode } from 'react'
-import { Link } from 'react-router'
+
 import { Badge, Button, Field, Loading, Notice } from '@/shared/ui'
 import type { CabinStatus, ShipStatus } from '../model/types'
 import { cabinStatuses, shipStatuses } from '../model/types'

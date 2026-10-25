@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { permissionPolicy } from '../helpers/permission-policy.mjs'
 
 function load(path, imports = {}, globals = {}) {
   const module = { exports: {} }
@@ -48,15 +49,15 @@ test('import uses multipart upload and separate register/import endpoints', asyn
   assert.throws(() => decodeJob({ ...job, status: 'DONE' }))
   assert.notEqual(model.jobLabel('PARTIAL'), model.jobLabel('SUCCEEDED'))
 })
-test('dedicated admin import menu uses effective grants and does not add Ship Manager management', () => {
-  const nav = load('shared/ui/admin-v3/admin-navigation.ts')
+test('import and fleet menus use effective grants independently of the staff role', () => {
+  const nav = load('shared/ui/admin-v3/admin-navigation.ts', {'@/shared/auth':permissionPolicy})
   const access = { status: 'ready', permissions: ['SHIP_MODEL_CREATE'] }
   assert.equal(nav.canRoleOpenAdminPath(['ADMIN'], '/admin/ship-import', '', access), true)
-  assert.equal(nav.canRoleOpenAdminPath(['SHIP_MANAGER'], '/admin/ship-import', '', access), false)
+  assert.equal(nav.canRoleOpenAdminPath(['SHIP_MANAGER'], '/admin/ship-import', '', access), true)
   assert.equal(nav.canRoleOpenAdminPath(['ADMIN'], '/admin/ship-import', '', { ...access, permissions: [] }), false)
   assert.ok(nav.roleNavigationItems(['ADMIN'], access).some(item => item.to === '/admin/ship-import'))
   const fleetAccess = { status: 'ready', permissions: ['SHIP_MODEL_CREATE', 'SHIP_READ', 'DECK_READ', 'CABIN_READ'] }
-  assert.ok(!nav.roleNavigationGroups(['ADMIN'], fleetAccess).some(group => group.id === 'fleet'))
+  assert.ok(nav.roleNavigationGroups(['ADMIN'], fleetAccess).some(group => group.id === 'fleet'))
   assert.ok(nav.roleNavigationGroups(['SHIP_MANAGER'], fleetAccess).some(group => group.items.some(item => item.to === '/admin/ships')))
   assert.ok(nav.roleNavigationGroups(['ADMIN', 'SHIP_MANAGER'], fleetAccess).some(group => group.id === 'fleet'))
 })

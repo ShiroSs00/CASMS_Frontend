@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { permissionPolicy } from '../helpers/permission-policy.mjs'
 
 const jsx = (type, props, key) => ({ type, props, key })
 function load(path, imports = {}) {
@@ -19,22 +20,22 @@ const types = load('features/ship-deck-cabin/model/types.ts')
 const model = load('features/ship-deck-cabin/model/ship-management.ts')
 const ship = { id: 's1', code: 'SH-0001', name: 'Conquest', capacity: 610, totalDecks: 13, deckNumberLimit: 14, status: 'ACTIVE', commissionDate: '', lengthMeters: 290, beamMeters: 35 }
 
-test('Ship Manager has direct fleet and read-only passenger monitoring entries and cannot create ships manually', () => {
-  const nav = load('shared/ui/admin-v3/admin-navigation.ts')
-  const access = { status: 'ready', permissions: nav.backendRolePermissions.SHIP_MANAGER }
+test('Ship Manager keeps direct fleet navigation and all verified effective grants', () => {
+  const nav = load('shared/ui/admin-v3/admin-navigation.ts', {'@/shared/auth': permissionPolicy})
+  const access = { status: 'ready', permissions: ['SHIP_READ', 'DECK_READ', 'CABIN_READ', 'BLE_TELEMETRY_READ', 'SHIP_UPDATE'] }
   const groups = nav.roleNavigationGroups(['SHIP_MANAGER'], access)
-  assert.deepEqual(Array.from(groups, group => group.label), ['Dashboard', 'Ship', 'Boong & Cabin', 'Hành khách trên tàu'])
+  assert.deepEqual(Array.from(groups.slice(0,4), group => group.label), ['Dashboard', 'Tàu', 'Boong & Cabin', 'Hành khách trên tàu'])
   const cabinOnly = {status:'ready',permissions:['SHIP_READ','CABIN_READ']}
   assert.ok(nav.roleNavigationItems(['SHIP_MANAGER'],cabinOnly).some(item=>item.to==='/admin/decks'))
   assert.equal(nav.canRoleOpenAdminPath(['SHIP_MANAGER'],'/admin/decks','',cabinOnly),true)
-  assert.ok(!nav.roleNavigationItems(['SHIP_MANAGER'],access).some(item=>item.to==='/admin/cabins'))
+  assert.ok(nav.roleNavigationItems(['SHIP_MANAGER'],access).some(item=>item.to==='/admin/cabins'))
   assert.ok(groups.every(group => group.direct && group.items.length === 1))
-  assert.equal(nav.staffRoleHome(['SHIP_MANAGER']), '/admin/fleet-dashboard')
+  assert.equal(nav.staffRoleHome(['SHIP_MANAGER'], access), '/admin/fleet-dashboard')
   assert.equal(nav.canRoleOpenAdminPath(['SHIP_MANAGER'], '/admin/ships/new', '', access), false)
-  assert.equal(nav.canRoleOpenAdminPath(['ADMIN', 'SHIP_MANAGER'], '/admin/ships/new', '', access), false)
+  assert.equal(nav.canRoleOpenAdminPath(['SHIP_MANAGER'], '/admin/ships/new', '', { ...access, permissions: [...access.permissions, 'SHIP_CREATE'] }), true)
   assert.equal(nav.canRoleOpenAdminPath(['SHIP_MANAGER'], '/admin/ships/s1/edit', '', access), true)
   assert.equal(nav.roleNavigationGroups(['SHIP_MANAGER'], { status: 'ready', permissions: [] }).length, 0)
-  assert.ok(!nav.roleNavigationItems(['ADMIN'], { status: 'ready', permissions: nav.backendRolePermissions.ADMIN }).some(item => item.to === '/admin/fleet-dashboard'))
+  assert.ok(nav.roleNavigationItems(['ADMIN'], { status: 'ready', permissions: ['SHIP_READ'] }).some(item => item.to === '/admin/fleet-dashboard'))
 })
 
 test('ship-scoped reads retrieve every page and reject a response belonging to another ship', async () => {
