@@ -22,10 +22,10 @@
 .form > fieldset > div { min-width:0; }
 .fullRow, .stopContext { grid-column:1/-1; }
 .fullRow:empty { display:none; }
-.stopContext { display:grid; gap:16px; padding:20px; border:1px solid var(--ui-border,#d5e0e4); border-radius:var(--ui-radius,10px); background:var(--ui-subtle,#f4f7f8); font-size:14px; line-height:1.6; }
+.stopContext { display:grid; gap:16px; padding:20px; border:1px solid var(--ui-border,var(--border-default)); border-radius:var(--ui-radius,10px); background:var(--ui-subtle,#f4f7f8); font-size:14px; line-height:1.6; }
 .stopContext p { margin:0; }
 .windowFacts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 24px; margin:0; }
-.windowFacts dt { color:var(--ui-muted,#506777); font-size:13px; }
+.windowFacts dt { color:var(--ui-muted,var(--text-secondary)); font-size:13px; }
 .windowFacts dd { margin:4px 0 0; font-weight:600; overflow-wrap:anywhere; }
 .suggestion { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }
 .suggestion p { flex:1 1 260px; }
@@ -34,11 +34,11 @@
 .filters label { font-size:14px; line-height:1.5; }
 .actions { gap:12px; }
 .form > .actions { grid-column:1/-1; padding-top:20px; border-top:1px solid var(--ui-border); }
-.form fieldset > .actions { grid-column:1/-1; justify-content:flex-end; margin:0; padding-top:20px; border-top:1px solid var(--ui-border,#d5e0e4); }
+.form fieldset > .actions { grid-column:1/-1; justify-content:flex-end; margin:0; padding-top:20px; border-top:1px solid var(--ui-border,var(--border-default)); }
 .link { display:inline-flex; align-items:center; min-height:44px; padding-block:8px; overflow-wrap:anywhere; }
 .hint { font-size:13px; line-height:1.5; }
 .detailToolbar { display:flex; width:100%; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px 24px; }
-.recordStatus { display:flex; flex-wrap:wrap; align-items:center; gap:10px; color:var(--ui-muted,#506777); font-size:13px; }
+.recordStatus { display:flex; flex-wrap:wrap; align-items:center; gap:10px; color:var(--ui-muted,var(--text-secondary)); font-size:13px; }
 .detailActions { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
 .detailActions > :is(button,a) { width:auto; flex:0 0 auto; }
 .relatedLinks { display:flex; flex-wrap:wrap; gap:12px; }
@@ -52,3 +52,6 @@
 
 /* Keep field rows aligned; wrap according to available form width. */
 .form { align-items:start; gap:16px 24px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }
+
+.recordName { display:block; color:var(--brand-navy); font-weight:600; line-height:1.6; }
+.recordCode { display:block; color:var(--text-secondary); font-size:12px; margin-top:4px; font-weight:400; }

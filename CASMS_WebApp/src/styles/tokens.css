@@ -40,4 +40,19 @@
   --radius-lg: 1.5rem;
   --content-width: 78rem;
   --shadow-lg: 0 2rem 5rem rgb(0 0 0 / 24%);
+  --surface-canvas: #F3F6F7;
+  --surface-tinted: #EDF5F5;
+  --border-control: #8297A4;
+  --radius-control: 0.3125rem;
+  --radius-panel: 0.5rem;
+  --shadow-panel: 0 4px 20px rgb(6 26 43 / 4%);
+  --shadow-floating: 0 16px 48px rgb(6 26 43 / 12%);
+  /* Animate UI transition.color/menu/fade, CSS fallback for custom controls. */
+  --motion-feedback: 200ms;
+  --motion-surface: 220ms;
+  --motion-fade: 200ms;
+  --motion-overlay: 400ms;
+  --ease-feedback: cubic-bezier(.25, .1, .25, 1);
+  --ease-out: cubic-bezier(.23, 1, .32, 1);
+  --ease-soft: cubic-bezier(.215, .61, .355, 1);
 }

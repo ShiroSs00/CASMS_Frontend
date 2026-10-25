@@ -63,7 +63,7 @@ function LiveCruiseSearchPage({page,cruiseType}:{page:number;cruiseType?:'ONE_DA
     <section className={s.searchHero}><div className={s.container}><div className={s.searchIntro}><p className={s.eyebrow}>KHÁM PHÁ HẢI TRÌNH</p><h1>Hành trình đã công bố</h1><p>Khám phá hành trình đã công bố và lựa chọn phòng phù hợp.</p></div></div></section>
     <div className={s.container}>
       <div className={s.liveModeNotice}><strong>Chuyến du lịch đã công bố</strong><span>Chọn chuyến để xem lịch trình và các phòng còn trống.</span><Link to="/booking/lookup">Tra cứu đặt chỗ</Link></div>
-      <div className={s.searchResultsHead}><div><p className={s.eyebrow}>HÀNH TRÌNH SẮP TỚI</p><Heading level={2} title={loading?'Đang tải hành trình…':issue?'Chưa tải được danh mục':`${result?.total??0} hành trình đã công bố`} description="Chọn hành trình để xem lịch trình, phòng còn trống và bắt đầu đặt chỗ."/></div></div>
+      <div className={s.catalogWorkspace}><div className={s.searchResultsHead}><div><p className={s.eyebrow}>HÀNH TRÌNH SẮP TỚI</p><Heading level={2} title={loading?'Đang tải hành trình…':issue?'Chưa tải được danh mục':`${result?.total??0} hành trình đã công bố`} description="Chọn hành trình để xem lịch trình, phòng còn trống và bắt đầu đặt chỗ."/></div></div>
       <div className={s.liveFilterBar}><label className={s.liveFilter}><span id="catalog-cruise-type-label">Loại hành trình</span><select aria-labelledby="catalog-cruise-type-label" value={cruiseType??''} onChange={event=>{const query=new URLSearchParams(params);query.delete('page');if(event.target.value)query.set('cruiseType',event.target.value);else query.delete('cruiseType');setParams(query)}}><option value="">Tất cả</option><option value="ONE_DAY">Chuyến ngắn ngày (1–2 ngày)</option><option value="MULTI_DAYS">Chuyến dài ngày (3–5 ngày)</option></select></label><p>Sắp xếp theo ngày khởi hành sớm nhất · Giờ Việt Nam</p>{cruiseType && <Action onClick={()=>{const query=new URLSearchParams(params);query.delete('cruiseType');query.delete('page');setParams(query)}}>Xóa bộ lọc</Action>}</div>
       <div className={s.searchList} aria-live="polite" aria-busy={loading}>
         {loading?<p className={s.searchMessage} role="status">Đang tải hành trình…</p>
@@ -72,6 +72,7 @@ function LiveCruiseSearchPage({page,cruiseType}:{page:number;cruiseType?:'ONE_DA
             :<EmptyState title={result?.total?'Trang này không có hành trình':'Chưa có hành trình đã công bố'}><p>{cruiseType ? 'Chưa có chuyến phù hợp với loại hành trình đang chọn. Bạn có thể xóa bộ lọc để xem tất cả.' : 'Hiện chưa có chuyến đã công bố trong trang này. Vui lòng quay lại sau.'}</p>{page>1&&<ActionLink to={pageLink(1)}>Về trang đầu</ActionLink>}</EmptyState>}
       </div>
       {result&&result.total>0&&result.page<=result.pageCount&&<nav className={s.livePagination} aria-label="Phân trang danh mục cruise"><span>Trang {result.page} / {result.pageCount} · {result.total} hành trình</span><div>{result.page>1?<Link to={pageLink(result.page-1)}>← Trang trước</Link>:<span aria-disabled="true">← Trang trước</span>}{result.page<result.pageCount?<Link to={pageLink(result.page+1)}>Trang sau →</Link>:<span aria-disabled="true">Trang sau →</span>}</div></nav>}
+      </div>
     </div>
   </div>
 }

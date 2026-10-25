@@ -4,8 +4,15 @@
 .steps a,.steps button,.label { display:flex; gap:10px; align-items:center; width:100%; padding:10px; color:var(--ui-muted,#566879); text-decoration:none; font:inherit; font-size:14px; border:0; background:none; text-align:left; }
 .steps button,.steps a { cursor:pointer; }
 .steps li span span,.steps a span,.steps button span { display:grid; place-items:center; min-width:28px; height:28px; border:1px solid #c6baa0; border-radius:50%; }
-.steps li[aria-current] { border-radius:8px; background:#0b2a4a; }
+.steps li[aria-current] { border-radius:8px; background:var(--brand-navy); }
 .steps li[aria-current] a,.steps li[aria-current] button,.steps li[aria-current] .label { color:white; font-weight:600; }
-.steps li[aria-current] span span,.steps li[aria-current] button span { background:#d6b767; color:#0b2a4a; }
+.steps li[aria-current] span span,.steps li[aria-current] button span { background:#d6b767; color:var(--brand-navy); }
 .steps button:focus-visible,.steps a:focus-visible { outline:3px solid #b28d37; outline-offset:2px; border-radius:8px; }
 @media(max-width:900px) { .steps ol { flex-wrap:wrap; } .steps li { flex-basis:40%; } }
+
+.steps { border:0; border-radius:0; padding:0; background:transparent; }
+.steps ol { gap:0; }
+.steps li { border-bottom:2px solid #C5D4D0; padding-bottom:12px; }
+.steps li[aria-current] { background:transparent; border-radius:0; border-bottom-color:var(--brand-teal); }
+.steps li[aria-current] a,.steps li[aria-current] button,.steps li[aria-current] .label { color:var(--brand-navy); }
+.steps li[aria-current] span span,.steps li[aria-current] button span { background:var(--brand-navy); color:white; border-color:var(--brand-navy); }

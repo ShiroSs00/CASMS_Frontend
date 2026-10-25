@@ -4,7 +4,7 @@
 .frame { display:flex; flex-direction:column; max-height:inherit; min-height:0; }
 .header { display:flex; flex:0 0 auto; justify-content:space-between; gap:20px; padding:24px; border-bottom:1px solid var(--ui-border); background:var(--ui-surface); }
 .header > div { min-width:0; }
-.header h2 { margin:0; font:600 20px/1.4 var(--ui-font); overflow-wrap:anywhere; }
+.header h2 { margin:0; font:600 20px/1.4 var(--font-family-heading); overflow-wrap:anywhere; }
 .header p { margin:8px 0 0; color:var(--ui-muted); font-size:14px; line-height:1.6; }
 .close { flex:0 0 44px; width:44px; height:44px; border:1px solid var(--ui-border); border-radius:10px; background:var(--ui-surface); color:var(--ui-ink); font:400 26px/1 var(--ui-font); cursor:pointer; }
 .close:hover:not(:disabled) { background:var(--ui-subtle); }
@@ -13,11 +13,11 @@
 .body > :where(p) { margin:0; line-height:1.6; }
 .body :where(form) { min-width:0; }
 .body :where(input,select,textarea) { max-width:100%; }
-.footer { flex:0 0 auto; display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:12px; padding:16px 24px; border-top:1px solid var(--ui-border); background:var(--ui-surface); }
+.footer { flex:0 0 auto; display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:12px; padding:16px 24px; border-top:1px solid var(--ui-border); background:var(--ui-subtle); }
 .discard { flex:0 0 auto; border-top:1px solid #d9bd88; padding:16px 24px; background:#fff8eb; color:#754d00; }
 .discard p { margin:0 0 12px; font-size:14px; line-height:1.5; }
 .discardActions { display:flex; flex-wrap:wrap; gap:12px; }
-.keepEditing,.discardButton { min-height:44px; border:1px solid #8297a4; border-radius:10px; padding:10px 14px; font:500 14px/1.5 var(--ui-font); cursor:pointer; }
+.keepEditing,.discardButton { min-height:44px; border:1px solid var(--border-control); border-radius:10px; padding:10px 14px; font:500 14px/1.5 var(--ui-font); cursor:pointer; }
 .keepEditing { background:#fff; color:var(--ui-ink); }
 .discardButton { background:var(--ui-danger); border-color:var(--ui-danger); color:#fff; }
 .drawer { width:min(640px,calc(100vw - 24px)); height:100dvh; max-height:100dvh; margin:0 0 0 auto; border-radius:16px 0 0 16px; }
@@ -32,3 +32,23 @@
 .confirming .footer { display:none; }
 .confirming .body { opacity:.65; }
 .close:focus-visible,.keepEditing:focus-visible,.discardButton:focus-visible { outline:3px solid var(--ui-focus); outline-offset:3px; }
+
+/* Animate UI CSS fallback: subtle state feedback; native dialog retains focus. */
+.dialog[open] { opacity:1; transition:opacity var(--motion-fade) var(--ease-out); }
+.dialog[open]::backdrop { transition:background-color var(--motion-overlay) var(--ease-soft); }
+@starting-style {
+  .dialog[open] { opacity:0; }
+  .dialog[open]::backdrop { background:transparent; }
+}
+.close,.keepEditing,.discardButton { transition:background-color var(--motion-feedback) var(--ease-feedback),border-color var(--motion-feedback) var(--ease-feedback); }
+
+.dialog { border-radius:8px; border:0; box-shadow:0 28px 90px #061a2b40; }
+.header { background:var(--brand-navy); color:white; padding:28px; border-bottom:2px solid var(--brand-gold); }
+.header h2 { font-size:22px; font-weight:500; }
+.header p { color:#D2E0E6; }
+.close { background:transparent; color:white; border-color:#7895A3; border-radius:4px; }
+.close:hover:not(:disabled) { background:#ffffff18; }
+.close:focus-visible { outline-color:var(--brand-gold); }
+.body { padding:28px; }
+.footer { background:#EEF3F0; padding:20px 28px; }
+@media(max-width:600px) { .header,.body { padding:24px 20px; } .footer { padding:20px; } }

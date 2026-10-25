@@ -1,6 +1,6 @@
 import { PermissionLink as Link } from '@/shared/ui'
 
-import { Badge, Button, DataTable, Empty, Field, ListFilters, ListFooter, Loading, Notice, Panel } from '@/shared/ui'
+import { Badge, Button, CollectionSummary, DataTable, Empty, Field, ListFilters, ListFooter, Loading, Notice, Panel } from '@/shared/ui'
 import { supplierStatusLabels, supplierUpdatedDate, supplierVerificationLabels, type SupplierFilters, type SupplierListItem } from '../model/supplier-list'
 import styles from './SupplierList.module.css'
 
@@ -18,6 +18,7 @@ type Props = {
 export function SupplierListView({ rows, filters, totalCount, loading = false, error, onFiltersChange, onReset, onRetry }: Props) {
   const filtered = Boolean(filters.search || filters.status !== 'ALL' || filters.verification !== 'ALL')
   return <>
+    <CollectionSummary count={loading || error ? null : totalCount} visible={rows.length} filtered={filtered} label="Đối tác đã tải" />
     <Panel title="Bộ lọc">
       <ListFilters label="Bộ lọc nhà cung cấp" actions={<Button tone="secondary" disabled={!filtered} onClick={onReset}>Xóa bộ lọc</Button>}>
         <Field htmlFor="supplier-search" label="Tìm kiếm"><input id="supplier-search" type="search" placeholder="Tên, loại hoặc thông tin liên hệ" value={filters.search} onChange={event => onFiltersChange({ ...filters, search: event.target.value })} /></Field>

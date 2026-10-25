@@ -37,18 +37,20 @@ export function PageHeader({ title, description, breadcrumb, actions }:
   const segments = breadcrumb.split('/').map(segment => segment.trim()).filter(Boolean)
   return <header className={styles.header}>
     {segments.length > 0 && <nav className={styles.breadcrumb} aria-label="Đường dẫn trang"><ol>{segments.map((segment, index) => <li key={`${segment}-${index}`} aria-current={index === segments.length - 1 ? 'page' : undefined}>{segment}</li>)}</ol></nav>}
-    <h1>{title}</h1><p>{description}</p>
-    {actions && <div className={styles.actions}>{actions}</div>}
+    <div className={styles.headerBody}><div className={styles.headerCopy}><h1>{title}</h1>{description && <p>{description}</p>}</div>
+      {actions && <div className={styles.actions}>{actions}</div>}
+    </div>
   </header>
 }
 export function Panel({ title, subtitle, children, className = '', id }: { title?: string; subtitle?: string; children: ReactNode; className?: string; id?: string }) {
   const titleId = useId()
-  return <section id={id} className={`${styles.panel} ${className}`.trim()} aria-labelledby={title ? titleId : undefined}>{title && <h2 id={titleId}>{title}</h2>}{subtitle && <p className={styles.muted}>{subtitle}</p>}{children}</section>
+  return <section id={id} className={`${styles.panel} ${className}`.trim()} aria-labelledby={title ? titleId : undefined}>{(title || subtitle) && <div className={styles.panelHeading}>{title && <h2 id={titleId}>{title}</h2>}{subtitle && <p className={styles.muted}>{subtitle}</p>}</div>}{children}</section>
 }
 export function Notice({ title, children, tone = 'neutral', role }:
   { title: string; children: ReactNode; tone?: 'info' | 'success' | 'warning' | 'error' | 'neutral'; role?: 'alert' | 'status' }) {
   return <div className={`${styles.notice} ${styles[`notice_${tone}`]}`} role={role ?? (tone === 'error' ? 'alert' : 'status')}>
-    <strong>{title}</strong><div>{children}</div>
+    <span className={styles.noticeIcon} aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><circle cx="12" cy="12" r="9" />{tone === 'success' ? <path d="m8 12 3 3 5-6" /> : <path d="M12 7v6m0 4h.01" />}</svg></span>
+    <div className={styles.noticeContent}><strong>{title}</strong><div>{children}</div></div>
   </div>
 }
 export function Field({ htmlFor, label, error, hint, children }:
@@ -96,8 +98,8 @@ export function DataTable({ headers, children, label }: { headers: string[]; chi
   </div>
 }
 export function Loading({ label = 'Đang tải dữ liệu…' }: { label?: string }) {
-  return <div className={styles.empty} role="status"><span className={styles.spinner} aria-hidden="true" /><strong>{label}</strong></div>
+  return <div className={`${styles.empty} ${styles.loadingState}`} role="status"><span className={styles.spinner} aria-hidden="true" /><strong>{label}</strong><div className={styles.loadingLines} aria-hidden="true"><span /><span /></div></div>
 }
 export function Empty({ title = 'Không có kết quả phù hợp', children }: { title?: string; children?: ReactNode }) {
-  return <div className={styles.empty}><strong>{title}</strong>{children}</div>
+  return <div className={styles.empty}><span className={styles.emptyMark} aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4zM4 14h5l2 3h2l2-3h5M8 8h8" /></svg></span><strong>{title}</strong>{children}</div>
 }

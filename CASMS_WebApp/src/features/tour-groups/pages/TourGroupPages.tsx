@@ -1,10 +1,11 @@
+import { EditorLayout } from '@/shared/ui'
 import { PermissionLink as Link } from '@/shared/ui'
-import { TechnicalDetails } from '@/shared/ui'
+import { TechnicalDetails, RecordFacts } from '@/shared/ui'
 import { useCallback, useState, type FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, ButtonLink, DataTable, Empty, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Button, ButtonLink, CollectionSummary, DataTable, Empty, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
 import { tourGroupApi } from '../api/tour-group-api'
 import { listExcursionOptions } from '../api/group-context-api'
 import { GroupCapacity } from '../components/GroupCapacity'
@@ -36,6 +37,7 @@ export function TourGroupListPage() {
   }
   return <TourLayout>
     <PageHeader breadcrumb="Dịch vụ bờ" title="Nhóm tour" description="Quản lý nhóm tham quan, phân công hướng dẫn viên và sức chứa." actions={access.has("TOUR_GROUP_CREATE") && <ButtonLink to={`${root}/new${excursionId ? `?excursionId=${encodeURIComponent(excursionId)}` : ''}`}>Tạo nhóm tour</ButtonLink>} />
+    <CollectionSummary count={query.loading || query.error ? null : query.data?.length ?? null} filtered={Boolean(excursionId || guideId || rawStatus)} label="Nhóm tour" scope="Kết quả trả về theo bộ lọc" />
     <Panel title="Bộ lọc"><form key={search.toString()} onSubmit={filter}>
       <div className={styles.filters}><label>Chuyến tham quan<select key={`${excursionId}:${excursions.data?.length}`} name="excursionId" defaultValue={excursionId} disabled={excursions.loading || Boolean(excursions.error)}><option value="">Tất cả chuyến tham quan</option>{excursions.data?.map(item => <option key={item.shoreExcursionId} value={item.shoreExcursionId}>{item.excursionName}</option>)}</select></label><label>Hướng dẫn viên<select disabled><option>Chưa có danh mục hướng dẫn viên</option></select></label><label>Trạng thái<select name="status" defaultValue={rawStatus ?? ''}><option value="">Tất cả</option>{groupStatuses.map((value) => <option key={value} value={value}>{groupStatusLabels[value]}</option>)}</select></label></div>
       <div className={styles.actions}><Button type="submit">Áp dụng bộ lọc</Button><Button tone="secondary" onClick={() => setSearch({})}>Xóa bộ lọc</Button><Button tone="secondary" onClick={query.reload}>Tải lại</Button></div>
@@ -67,7 +69,7 @@ function GroupDetail({ id }: { id: string }) {
           <Button tone="secondary" onClick={query.reload}>Tải lại</Button>
         </GroupControls>
       </div>} />
-      <GroupFacts group={group} /><GroupCapacity group={group} />
+      <div className={styles.detailOverview}><GroupFacts group={group} /><GroupCapacity group={group} /></div>
       <Panel title="Thông tin liên quan"><nav className={styles.relatedLinks} aria-label="Thông tin liên quan nhóm tour"><ButtonLink tone="secondary" to={`/admin/shore-excursions/${group.shoreExcursionId}`}>Xem chuyến tham quan</ButtonLink></nav></Panel>
       <GroupPassengers group={group} onChanged={(result) => { setReceipt(result); query.reload() }} />
     </>}
@@ -79,7 +81,7 @@ function GroupFacts({ group }: { group: TourGroup }) {
     ['Điểm tập trung', group.meetingPoint ?? 'Chưa đặt'], ['Giờ tập trung', displayTime(group.assemblyTime)], ['Khởi hành dự kiến', displayTime(group.plannedDepartureTime)],
     ['Trở về dự kiến', displayTime(group.plannedReturnTime)], ['Khởi hành thực tế', displayTime(group.actualDepartureTime)], ['Trở về thực tế', displayTime(group.actualReturnTime)], ['Ghi chú', group.notes ?? '—'],
   ]
-  return <Panel title="Thông tin nhóm tour"><dl className={styles.facts}>{facts.map(([label, value]) => <div key={label} style={{ display: 'contents' }}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><TechnicalDetails entries={[["Nhóm tour", group.tourGroupId], ["Chuyến tham quan", group.shoreExcursionId], ["Hướng dẫn viên", group.guideId], ["Phương tiện", group.vehicleId]]} /></Panel>
+  return <Panel title="Thông tin nhóm tour"><RecordFacts entries={facts} /><TechnicalDetails entries={[["Nhóm tour", group.tourGroupId], ["Chuyến tham quan", group.shoreExcursionId], ["Hướng dẫn viên", group.guideId], ["Phương tiện", group.vehicleId]]} /></Panel>
 }
 export function TourGroupFormPage() {
   const { groupId } = useParams()
@@ -104,5 +106,5 @@ function SaveGroup({ initial, initialExcursionId }: { initial?: TourGroup; initi
     const result = await mutation.run((signal) => initial ? tourGroupApi.update(initial.tourGroupId, request, signal) : tourGroupApi.create(request, signal))
     if (result.ok) navigate(`${root}/${result.value.tourGroupId}`)
   }
-  return <Panel title="Thông tin nhóm tour">{mutation.error != null && <TourError error={mutation.error} />}<GroupForm initial={initial} initialExcursionId={initialExcursionId} busy={mutation.busy} onSave={save} /></Panel>
+  return <EditorLayout guidance={[{title:"Chuyến tham quan",description:"Chọn đúng chuyến tham quan của nhóm."},{title:"Lịch trình nhóm",description:"Rà soát thời gian tập trung, khởi hành và số khách."}]}><Panel title="Thông tin nhóm tour">{mutation.error != null && <TourError error={mutation.error} />}<GroupForm initial={initial} initialExcursionId={initialExcursionId} busy={mutation.busy} onSave={save} /></Panel></EditorLayout>
 }

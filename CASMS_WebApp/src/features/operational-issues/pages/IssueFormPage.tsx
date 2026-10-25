@@ -1,3 +1,4 @@
+import { EditorLayout } from '@/shared/ui'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
@@ -153,7 +154,7 @@ export function IssueFormPage() {
       )}
 
       {!loading && (!isEdit || !isBlockedEdit) && (
-        <form onSubmit={handleSubmit}>
+        <EditorLayout guidance={[{title:"Vị trí sự cố",description:"Chọn đúng tàu, chuyến và cabin liên quan."},{title:"Mô tả rõ tác động",description:"Ghi nhận hiện tượng và mức độ để hỗ trợ xử lý."}]}><form onSubmit={handleSubmit}>
           <Panel title="Thông tin cơ bản">
             {isEdit && existingIssue && (
               <div className={styles.readonlySummary}>
@@ -229,7 +230,7 @@ export function IssueFormPage() {
               </Button>
             </div>
           </Panel>
-        </form>
+        </form></EditorLayout>
       )}
     </AdminFrame>
   )

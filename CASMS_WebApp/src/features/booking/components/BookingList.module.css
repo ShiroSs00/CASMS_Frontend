@@ -1,5 +1,5 @@
-.reference { color:var(--ui-ink,#0b2a4a); font-weight:650; text-decoration:none; font-variant-numeric:tabular-nums; }
+.reference { color:var(--ui-ink,var(--brand-navy)); font-weight:650; text-decoration:none; font-variant-numeric:tabular-nums; }
 .reference:hover { text-decoration:underline; text-underline-offset:4px; }
 .cruise { display:block; max-width:360px; white-space:normal; overflow-wrap:anywhere; line-height:1.5; }
-.detail { display:inline-flex; align-items:center; min-height:44px; white-space:nowrap; font-weight:600; color:var(--ui-ink,#0b2a4a); text-underline-offset:4px; }
+.detail { display:inline-flex; align-items:center; min-height:44px; white-space:nowrap; font-weight:600; color:var(--ui-ink,var(--brand-navy)); text-underline-offset:4px; }
 .notice { margin-top:16px; }

@@ -1,7 +1,7 @@
 import { PermissionLink as Link } from '@/shared/ui'
 import { useId, type InputHTMLAttributes, type ReactNode } from 'react'
 
-import { Badge, Button, Field, Loading, Notice } from '@/shared/ui'
+import { Badge, Button, Field, Loading, Notice, RecordFacts } from '@/shared/ui'
 import type { CabinStatus, ShipStatus } from '../model/types'
 import { cabinStatuses, shipStatuses } from '../model/types'
 import styles from './Management.module.css'
@@ -23,7 +23,7 @@ export function StatusBadge({ status }: { status: ShipStatus | CabinStatus }) {
     tone={status === 'ACTIVE' || status === 'AVAILABLE' ? 'success' : status === 'MAINTENANCE' ? 'warning' : status === 'OCCUPIED' ? 'info' : 'neutral'} />
 }
 export function Definition({ rows }: { rows: Array<[string, ReactNode]> }) {
-  return <dl className={styles.definition}>{rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+  return <RecordFacts entries={rows} />
 }
 export function DataState({ loading, error, retry }: { loading: boolean; error: string; retry: () => void }) {
   if (loading) return <Loading />

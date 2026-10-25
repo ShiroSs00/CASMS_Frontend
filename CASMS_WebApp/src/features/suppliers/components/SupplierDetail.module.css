@@ -528,3 +528,12 @@
 .breadcrumb { flex-wrap:wrap; }
 .breadcrumbCurrent { white-space:normal; overflow-wrap:anywhere; }
 @media(max-width:1200px) { .summaryRow { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+.headerRow { padding:28px; background:var(--surface-default); border:1px solid var(--border-default); border-radius:var(--radius-panel); align-items:center; }
+.titleArea h1 { font-family:var(--font-family-heading); }
+.summaryRow { width:100%; }
+.summaryCard { padding:24px; border-top:3px solid var(--brand-teal); min-width:0; }
+.cardValue { overflow-wrap:anywhere; }
+.infoCard .cardTitle { margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--border-default); font-family:var(--font-family-heading); }
+.infoItem { padding-block:14px; border-bottom:1px solid var(--border-default); }
+@media(max-width:600px) { .headerRow { padding:22px 20px; align-items:stretch; } .summaryCard { padding:20px 16px; } .summaryRow { grid-template-columns:minmax(0,1fr); } }

@@ -28,7 +28,7 @@ export function IssueListPage() {
 
   return (
     <AdminFrame>
-      <PageHeader title="Sự cố vận hành" breadcrumb="" description="Theo dõi và xử lý sự cố theo trạng thái, tàu và chuyến đi." actions={<>
+      <PageHeader title="Sự cố vận hành" breadcrumb="VẬN HÀNH / SỰ CỐ" description="Theo dõi và xử lý sự cố theo trạng thái, tàu và chuyến đi." actions={<>
         <Button tone="secondary" onClick={() => setReportOpen(true)}>Báo cáo nhanh</Button>
         <ButtonLink to="/admin/issues/new">Báo cáo sự cố</ButtonLink>
       </>} />
