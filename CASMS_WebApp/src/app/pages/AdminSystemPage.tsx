@@ -15,7 +15,7 @@ export function AdminSystemPage() {
     return users
   },[allowed])
   const query=useReadQuery(`system-users:${access.userId}:${allowed}`,load)
-  return <AdminShell><PageHeader breadcrumb="HỆ THỐNG" title="Quản trị hệ thống" description="Tra cứu tài khoản nhân sự theo quyền quản trị hệ thống. Lịch trình, vận hành và dịch vụ do các bộ phận nghiệp vụ phụ trách." />
+  return <AdminShell><PageHeader breadcrumb="HỆ THỐNG" title="Tài khoản nhân sự" description="Tra cứu tài khoản nhân sự đang hoạt động." />
     <Panel title="Tài khoản đang hoạt động">
       {access.status==='loading'&&<Loading label="Đang kiểm tra quyền…" />}
       {access.status==='error'&&<Notice title="Chưa tải được quyền" tone="error">{access.error}</Notice>}

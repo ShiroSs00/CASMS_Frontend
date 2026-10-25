@@ -69,7 +69,7 @@ export function IssueDetailPage() {
               </p>
             </div>
             <div className={styles.headerActions}>
-              {state.issue.status === 'OPEN' && access.has('OPERATIONAL_ISSUE_UPDATE') && (
+              {state.issue.status === 'OPEN' && access.canDo('OPERATIONAL_ISSUE_UPDATE') && (
                 <Link className={styles.secondaryButton} to={`/admin/issues/${state.issue.id}/edit`}>
                   Chỉnh sửa sự cố
                 </Link>

@@ -21,7 +21,7 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
   shipChoicesState?: { loading: boolean; error: string; retry: () => void }
 }) {
   const access = useSessionAccess()
-  const permitted = access.has(operationPermission(kind, operation)) && (operation !== 'availability' || access.has('CABIN_READ'))
+  const permitted = access.canDo(operationPermission(kind, operation)) && (operation !== 'availability' || access.canDo('CABIN_READ'))
   const isShip = 'code' in item
   const isCheck = ['schedule', 'ready', 'availability', 'affected', 'validate', 'ownership'].includes(operation)
   const [status, setStatus] = useState<string>('status' in item ? item.status : '')

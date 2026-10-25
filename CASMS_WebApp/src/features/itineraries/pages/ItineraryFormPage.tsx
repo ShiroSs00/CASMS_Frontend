@@ -61,7 +61,7 @@ export function ItineraryFormPage() {
   function update<K extends keyof ItineraryDraft>(key: K, value: ItineraryDraft[K]) { setDraft(current => ({ ...current, [key]: value })) }
   async function submit(event: FormEvent) {
     event.preventDefault()
-    if (lock.current || !recordReady || !access.has(editing ? 'ITINERARY_UPDATE_DRAFT' : 'ITINERARY_CREATE')) return
+    if (lock.current || !recordReady || !access.canDo(editing ? 'ITINERARY_UPDATE_DRAFT' : 'ITINERARY_CREATE')) return
     const invalid = validateItineraryDraft(effectiveDraft, context && !contextError ? { ...context, editingId: itineraryId } : null)
     setErrors(invalid); setError('')
     if (Object.keys(invalid).length) { form.current?.querySelector<HTMLElement>(`[name="${Object.keys(invalid)[0]}"]`)?.focus(); return }
@@ -81,7 +81,7 @@ export function ItineraryFormPage() {
     <PageHeader breadcrumb="LẬP CHUYẾN ĐI / LỊCH TRÌNH" title={editing ? 'Chỉnh sửa lịch trình' : 'Tạo lịch trình'} description="Chọn chuyến đi trước, sau đó cấu hình ngày và các cảng ghé. Người tạo được xác định từ tài khoản đang đăng nhập." />
     <JourneySteps current={1} cruiseId={draft.cruiseId || undefined} itineraryId={itineraryId} />
     {existing && <Notice title="Chuyến đi đã có lịch trình"><p>Tiếp tục chỉnh sửa lịch trình hiện có để tránh tạo trùng.</p><ButtonLink to={`/admin/itineraries/${existing.itineraryId}`}>Mở lịch trình</ButtonLink></Notice>}
-    {!access.has(editing ? 'ITINERARY_UPDATE_DRAFT' : 'ITINERARY_CREATE') && <Notice title="Chưa có quyền lưu lịch trình" tone="warning">{access.status === 'loading' ? 'Đang tải quyền tài khoản…' : access.error || 'Tài khoản chưa có quyền tạo hoặc sửa lịch trình.'}</Notice>}
+    {!access.canDo(editing ? 'ITINERARY_UPDATE_DRAFT' : 'ITINERARY_CREATE') && <Notice title="Chưa có quyền lưu lịch trình" tone="warning">{access.status === 'loading' ? 'Đang tải quyền tài khoản…' : access.error || 'Tài khoản chưa có quyền tạo hoặc sửa lịch trình.'}</Notice>}
     {editing && !recordReady && !error && <Loading label="Đang tải lịch trình…" />}
     {!context && !contextError && <Loading label="Đang tải chuyến và lịch trình…" />}
     {contextError && <Notice title="Chưa tải đủ thông tin chuyến" tone="error"><p>{contextError}</p><Button onClick={() => setAttempt(value => value + 1)}>Thử lại</Button></Notice>}
@@ -104,6 +104,6 @@ export function ItineraryFormPage() {
         cruise ? `Kết thúc theo Cruise: ${cruiseTime(cruise.returnDatetime)} (giờ Việt Nam). Giờ tham chiếu, không lưu riêng trong lịch trình.` : '',
       ].filter(Boolean).join(' ') || undefined} error={errors.endDate}><input {...field('endDate')} type="date" value={effectiveDraft.endDate} onChange={event => update('endDate', event.target.value)} required={editing} /></Field>
       <Field htmlFor="itinerary-itineraryType" label="Loại hành trình" error={errors.itineraryType}><select {...field('itineraryType')} value={draft.itineraryType} onChange={event => update('itineraryType', event.target.value as ItineraryType)}>{!editing && <option value="">Tự xác định theo cảng đi và về</option>}<option value="ROUND_TRIP">Khứ hồi</option><option value="ONE_WAY">Một chiều</option></select></Field>
-    </div>{error && <Notice title="Chưa thể lưu" tone="error"><p>{error}</p></Notice>}<div className={styles.actions}><Button tone="secondary" disabled={busy} onClick={() => navigate(editing && itineraryId ? `/admin/itineraries/${itineraryId}` : '/admin/itineraries')}>Hủy</Button>{access.has(editing ? 'ITINERARY_UPDATE_DRAFT' : 'ITINERARY_CREATE') && <Button type="submit" disabled={busy || !access.has(editing ? 'ITINERARY_UPDATE_DRAFT' : 'ITINERARY_CREATE') || !recordReady || !context || Boolean(contextError) || Boolean(existing) || effectiveDraft.startDate === effectiveDraft.endDate || (!editing && !eligible.length)}>{busy ? 'Đang lưu…' : 'Lưu lịch trình'}</Button>}</div></Panel></form>
+    </div>{error && <Notice title="Chưa thể lưu" tone="error"><p>{error}</p></Notice>}<div className={styles.actions}><Button tone="secondary" disabled={busy} onClick={() => navigate(editing && itineraryId ? `/admin/itineraries/${itineraryId}` : '/admin/itineraries')}>Hủy</Button>{access.canDo(editing ? 'ITINERARY_UPDATE_DRAFT' : 'ITINERARY_CREATE') && <Button type="submit" disabled={busy || !access.canDo(editing ? 'ITINERARY_UPDATE_DRAFT' : 'ITINERARY_CREATE') || !recordReady || !context || Boolean(contextError) || Boolean(existing) || effectiveDraft.startDate === effectiveDraft.endDate || (!editing && !eligible.length)}>{busy ? 'Đang lưu…' : 'Lưu lịch trình'}</Button>}</div></Panel></form>
   </ItineraryFrame>
 }

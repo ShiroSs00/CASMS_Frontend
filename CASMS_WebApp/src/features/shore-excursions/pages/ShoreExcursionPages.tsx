@@ -36,7 +36,7 @@ export function ShoreExcursionListPage() {
     setSearch(next)
   }
   return <ShoreLayout>
-    <PageHeader breadcrumb="Dịch vụ bờ" title="Chuyến tham quan bờ" description="Quản lý chuyến tham quan theo điểm dừng, nhà cung cấp và trạng thái." actions={access.has("EXCURSION_CREATE") && <ButtonLink to={`${root}/new`}>Tạo chuyến tham quan</ButtonLink>} />
+    <PageHeader breadcrumb="Dịch vụ bờ" title="Chuyến tham quan bờ" description="Quản lý chuyến tham quan theo điểm dừng, nhà cung cấp và trạng thái." actions={access.canDo("EXCURSION_CREATE") && <ButtonLink to={`${root}/new`}>Tạo chuyến tham quan</ButtonLink>} />
     <Panel title="Bộ lọc">
       <form key={search.toString()} onSubmit={filter}>
         <div className={styles.filters}>
@@ -70,7 +70,7 @@ function ExcursionDetail({ id }: { id: string }) {
       <PageHeader breadcrumb="Dịch vụ bờ / Chuyến tham quan" title={item.excursionName} description={item.excursionCode ?? 'Chưa có mã chuyến tham quan'} actions={<div className={styles.detailToolbar}>
         <div className={styles.recordStatus}><span>Trạng thái</span><ExcursionBadge status={item.status} /></div>
         <ExcursionActions excursion={item} onRefresh={query.reload}>
-          {canEditExcursion(item.status) && access.has('EXCURSION_UPDATE') && <ButtonLink tone="secondary" to={`${root}/${id}/edit`}>Chỉnh sửa</ButtonLink>}
+          {canEditExcursion(item.status) && access.canDo('EXCURSION_UPDATE') && <ButtonLink tone="secondary" to={`${root}/${id}/edit`}>Chỉnh sửa</ButtonLink>}
           <Button tone="secondary" onClick={query.reload}>Tải lại</Button>
         </ExcursionActions>
       </div>} />
@@ -78,7 +78,7 @@ function ExcursionDetail({ id }: { id: string }) {
       <Panel title="Thông tin liên quan"><nav className={styles.relatedLinks} aria-label="Thông tin liên quan chuyến tham quan">
         <ButtonLink tone="secondary" to={`/admin/suppliers/${item.supplierId}`}>Xem nhà cung cấp</ButtonLink>
         <ButtonLink tone="secondary" to={`/admin/tour-groups?excursionId=${item.shoreExcursionId}`}>Các nhóm tham quan</ButtonLink>
-        {(access.has('ACTIVITY_ATTENDANCE') || access.has('ACTIVITY_REGISTRATION')) && <ButtonLink tone="secondary" to={`/admin/activity-registrations?excursionId=${encodeURIComponent(id)}`}>Đăng ký & điểm danh hành khách</ButtonLink>}
+        {(access.canDo('ACTIVITY_ATTENDANCE') || access.canDo('ACTIVITY_REGISTRATION')) && <ButtonLink tone="secondary" to={`/admin/activity-registrations?excursionId=${encodeURIComponent(id)}`}>Đăng ký & điểm danh hành khách</ButtonLink>}
       </nav></Panel>
       <ExcursionAvailability excursion={item} />
     </>}
@@ -112,7 +112,7 @@ function SaveExcursion({ initial }: { initial?: ShoreExcursion }) {
   const access = useSessionAccess()
   const navigate = useNavigate(), mutation = useShoreMutation()
   async function save(request: ExcursionRequest) {
-    if (!access.has(initial ? 'EXCURSION_UPDATE' : 'EXCURSION_CREATE')) return
+    if (!access.canDo(initial ? 'EXCURSION_UPDATE' : 'EXCURSION_CREATE')) return
     const result = await mutation.run((signal) => initial ? shoreExcursionApi.update(initial.shoreExcursionId, request, signal) : shoreExcursionApi.create(request, signal))
     if (result.ok) navigate(`${root}/${result.value.shoreExcursionId}`)
   }

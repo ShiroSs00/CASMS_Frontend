@@ -16,8 +16,8 @@ export function FinanceBookingsPage() {
 
 function FinanceWorkspace() {
   const access = useSessionAccess()
-  const canBookings = access.status === 'ready' && access.has('BOOKING_READ')
-  const canPayments = access.status === 'ready' && (access.has('PAYMENT_READ') || access.has('PAYMENT_REPORT') || access.has('PAYMENT_PROCESS'))
+  const canBookings = access.status === 'ready' && access.canDo('BOOKING_READ')
+  const canPayments = access.status === 'ready' && (access.canDo('PAYMENT_READ') || access.canDo('PAYMENT_REPORT') || access.canDo('PAYMENT_PROCESS'))
   const [page, setPage] = useState(0)
   const [selected, setSelected] = useState<{ id: string; reference: string; currency: string } | null>(null)
   const [bookingId, setBookingId] = useState(''), [error, setError] = useState('')

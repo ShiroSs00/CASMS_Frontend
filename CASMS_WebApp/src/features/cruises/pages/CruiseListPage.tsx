@@ -10,7 +10,7 @@ export function CruiseListPage() {
   const { query, state, ships, shipsError, retryShips, updateQuery, resetQuery, retry } = useCruiseList()
   return <CruiseFrame>
     <div className={styles.content}>
-      <PageHeader breadcrumb="VẬN HÀNH / CHUYẾN" title="Chuyến đi" description="Quản lý chuyến, lịch chạy, tàu được phân công và trạng thái sẵn sàng vận hành." actions={access.has('CRUISE_CREATE') && <ButtonLink to="/admin/cruises/new">Tạo chuyến</ButtonLink>} />
+      <PageHeader breadcrumb="VẬN HÀNH / CHUYẾN" title="Chuyến đi" description="Quản lý chuyến, lịch chạy, tàu được phân công và trạng thái sẵn sàng vận hành." actions={access.canDo('CRUISE_CREATE') && <ButtonLink to="/admin/cruises/new">Tạo chuyến</ButtonLink>} />
       <CruiseMetrics result={state.status === 'ready' ? state.data : null} />
       <CruiseFilters query={query} ships={ships} onChange={updateQuery} onReset={resetQuery} />
       {shipsError && <Notice title="Chưa tải được bộ lọc tàu" tone="warning"><p>{shipsError}</p><Button tone="secondary" onClick={retryShips}>Tải lại danh sách tàu</Button></Notice>}

@@ -66,7 +66,7 @@ export function SupplierFormPage() {
   }
 
   async function handleSubmit(values: SupplierFormValues) {
-    if (!access.has(mode === 'create' ? 'SUPPLIER_CREATE' : 'SUPPLIER_UPDATE')) { setApiError('Tài khoản chưa có quyền lưu nhà cung cấp.'); return }
+    if (!access.canDo(mode === 'create' ? 'SUPPLIER_CREATE' : 'SUPPLIER_UPDATE')) { setApiError('Tài khoản chưa có quyền lưu nhà cung cấp.'); return }
     setIsSubmitting(true)
     setApiError(null)
     try {

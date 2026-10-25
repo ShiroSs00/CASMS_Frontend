@@ -25,7 +25,7 @@ export function ItineraryHistoryPage() {
   const plans = useReadQuery('history-itinerary-options', itineraryApi.allItineraries)
   const load = useCallback((signal: AbortSignal) => itineraryHistoryApi.search({ itineraryId: itineraryId || undefined, changeType: changeType || undefined }, signal), [itineraryId, changeType])
   const history = useReadQuery(`history:${itineraryId}:${changeType}`, load)
-  const canStops = access.has('CRUISE_STOP_READ')
+  const canStops = access.canDo('CRUISE_STOP_READ')
   const loadStops = useCallback((signal: AbortSignal) => itineraryId && canStops ? itineraryApi.listStops(itineraryId, signal) : Promise.resolve([]), [itineraryId, canStops])
   const stops = useReadQuery(`history-stops:${itineraryId}`, loadStops)
   const loadDetail = useCallback((signal: AbortSignal) => selected ? itineraryHistoryApi.get(selected, signal) : Promise.resolve(null), [selected])
@@ -33,7 +33,7 @@ export function ItineraryHistoryPage() {
   const plan = plans.data?.find(item => item.itineraryId === itineraryId)
   async function submit(event: FormEvent) {
     event.preventDefault()
-    if (lock.current || !access.has('ITINERARY_CHANGE_RECORD')) return
+    if (lock.current || !access.canDo('ITINERARY_CHANGE_RECORD')) return
     if (!plan || stops.loading || stops.error || !changeType || !(changeType in types) || (stopId && !stops.data?.some(stop => stop.cruiseStopId === stopId)) || !summary.trim() || !reason.trim() || summary.trim().length > 1000 || reason.trim().length > 1000) { setError('Chọn lịch trình, loại thay đổi, mô tả và lý do hợp lệ (tối đa 1000 ký tự). Dữ liệu liên quan phải được tải đầy đủ.'); return }
     if (!confirmed) { setConfirmed(true); return }
     lock.current = true; setBusy(true); setError(''); setSuccess('')
@@ -56,7 +56,7 @@ export function ItineraryHistoryPage() {
       {history.error && <Notice title="Không tải được nhật ký" tone="error">{history.error.message}<Button onClick={history.retry}>Thử lại</Button></Notice>}
       {history.data && !history.data.length && <Empty title="Chưa có nhật ký phù hợp" />}
       {history.data?.map(entry => <article key={entry.changeHistoryId}><h3>{entry.changeSummary || 'Thay đổi lịch trình'}</h3><p>{entry.changeType ? types[entry.changeType] : 'Chưa phân loại'} · {entry.changedAt ? new Date(entry.changedAt).toLocaleString('vi-VN') : 'Chưa có thời gian'}</p><p>{entry.reason || 'Chưa có lý do'}</p><Button tone="text" onClick={() => setSelected(entry.changeHistoryId)}>Xem chi tiết bản ghi</Button><ButtonLink tone="secondary" to={`/admin/itineraries/${entry.itineraryId}`}>Mở lịch trình</ButtonLink></article>)}
-      {access.has('ITINERARY_CHANGE_RECORD') && <Button disabled={!plan || !access.has('ITINERARY_CHANGE_RECORD')} onClick={() => { setRecording(true); setConfirmed(false); setError('') }}>Ghi nhận điều chỉnh</Button>}
+      {access.canDo('ITINERARY_CHANGE_RECORD') && <Button disabled={!plan || !access.canDo('ITINERARY_CHANGE_RECORD')} onClick={() => { setRecording(true); setConfirmed(false); setError('') }}>Ghi nhận điều chỉnh</Button>}
       {!plan && <p>Chọn một lịch trình có thật để ghi nhận điều chỉnh.</p>}
     </Panel>
     {selected && <Modal title="Chi tiết nhật ký" onClose={() => setSelected(null)}>
@@ -64,7 +64,7 @@ export function ItineraryHistoryPage() {
       {detail.error && <Notice tone="error" title="Không tải được bản ghi">{detail.error.message}<Button onClick={detail.retry}>Thử lại</Button></Notice>}
       {detail.data && <HistoryDetails entry={detail.data} />}
     </Modal>}
-    {recording && access.has('ITINERARY_CHANGE_RECORD') && <Modal title="Ghi nhận điều chỉnh" busy={busy} onClose={() => setRecording(false)}><form className={styles.stopForm} onSubmit={submit}>
+    {recording && access.canDo('ITINERARY_CHANGE_RECORD') && <Modal title="Ghi nhận điều chỉnh" busy={busy} onClose={() => setRecording(false)}><form className={styles.stopForm} onSubmit={submit}>
       <p>{plan?.itineraryName}. Người ghi nhận lấy từ tài khoản đang đăng nhập. Nhật ký không tự thay đổi thời gian, trạng thái hoặc quyền lợi hành khách.</p>
       {stops.error && <Notice tone="error" title="Không tải được điểm dừng">{stops.error.message}<Button type="button" onClick={stops.retry}>Thử lại</Button></Notice>}
       <Field htmlFor="history-stop" label="Phạm vi thay đổi"><select id="history-stop" value={stopId} disabled={busy || stops.loading || Boolean(stops.error)} onChange={event => { setStopId(event.target.value); setConfirmed(false) }}><option value="">Toàn lịch trình</option>{stops.data?.map(stop => <option key={stop.cruiseStopId} value={stop.cruiseStopId}>Điểm {stop.stopOrder} · {stop.portName || 'Cảng ghé'}</option>)}</select></Field>
@@ -73,7 +73,7 @@ export function ItineraryHistoryPage() {
       <Field htmlFor="history-reason" label="Lý do"><textarea id="history-reason" required maxLength={1000} disabled={busy} value={reason} onChange={event => { setReason(event.target.value); setConfirmed(false) }} /></Field>
       {error && <Notice title="Không ghi được nhật ký" tone="error">{error}</Notice>}
       {confirmed && <Notice tone="warning" title="Xác nhận ghi nhật ký">{summary} · {reason}</Notice>}
-      {access.has('ITINERARY_CHANGE_RECORD') && <Button type="submit" disabled={busy || !access.has('ITINERARY_CHANGE_RECORD') || stops.loading || Boolean(stops.error)}>{busy ? 'Đang ghi…' : confirmed ? 'Xác nhận ghi nhật ký' : 'Kiểm tra và tiếp tục'}</Button>}
+      {access.canDo('ITINERARY_CHANGE_RECORD') && <Button type="submit" disabled={busy || !access.canDo('ITINERARY_CHANGE_RECORD') || stops.loading || Boolean(stops.error)}>{busy ? 'Đang ghi…' : confirmed ? 'Xác nhận ghi nhật ký' : 'Kiểm tra và tiếp tục'}</Button>}
     </form></Modal>}
   </ItineraryFrame>
 }

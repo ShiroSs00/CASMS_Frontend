@@ -1,7 +1,7 @@
 import { prepareCreateBody } from './create-body'
 import { apiPermissionRequirement, getSessionAccess, hasPermissions } from '@/shared/auth'
 
-type ApiEnvelope<T> = { success: boolean; message?: string; error?: string; code?: string; data?: T }
+type ApiEnvelope<T> = { success: boolean; message?: string; error?: string; code?: string; data?: T; details?: unknown }
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   query?: Record<string, string | number | boolean | undefined>
@@ -9,12 +9,14 @@ type RequestOptions = {
   signal?: AbortSignal
   authenticated?: boolean
   timeoutMs?: number
+  idempotencyKey?: string
 }
 export class ApiError extends Error {
   status: number
   code?: string
-  constructor(message: string, status: number, code?: string) {
-    super(message); this.name = 'ApiError'; this.status = status; this.code = code
+  details?: unknown
+  constructor(message: string, status: number, code?: string, details?: unknown) {
+    super(message); this.name = 'ApiError'; this.status = status; this.code = code; this.details = details
   }
 }
 
@@ -96,6 +98,7 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
     if (value !== undefined) query.set(key, String(value))
   }
   const headers: Record<string, string> = { Accept: 'application/json' }
+  if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey
   const multipart = typeof FormData !== 'undefined' && options.body instanceof FormData
   if (options.body !== undefined && !multipart) headers['Content-Type'] = 'application/json'
   const requestToken = options.authenticated === false ? null : accessToken
@@ -127,7 +130,7 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
       }
       throw new ApiError(response.status === 401 ? 'Cần đăng nhập với JWT hợp lệ hoặc phiên đăng nhập đã hết hạn.'
         : response.status === 403 ? 'Bạn không có quyền thực hiện thao tác này.'
-          : message || `Không thể thực hiện yêu cầu (HTTP ${response.status}).`, response.status, payload?.code ?? payload?.error)
+          : message || `Không thể thực hiện yêu cầu (HTTP ${response.status}).`, response.status, payload?.code ?? payload?.error, payload?.details ?? payload?.data)
     }
     if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
     if (required && !hasPermissions(getSessionAccess(), required)) throw new ApiError('Quyền truy cập đã thay đổi. Vui lòng tải lại dữ liệu.', 403, 'ACCESS_DENIED')

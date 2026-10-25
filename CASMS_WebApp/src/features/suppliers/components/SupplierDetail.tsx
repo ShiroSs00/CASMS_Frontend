@@ -60,7 +60,7 @@ export function SupplierDetail({
   const isStatusBusy = actionInProgress === 'activate' || actionInProgress === 'deactivate'
 
   async function handleConfirmVerify() {
-    if (!onVerify || !access.has('SUPPLIER_VERIFY')) return
+    if (!onVerify || !access.canDo('SUPPLIER_VERIFY')) return
     try { await onVerify({
       verificationStatus: selectedVerification,
       verificationNotes: verificationNotes.trim() || null,
@@ -105,14 +105,14 @@ export function SupplierDetail({
           <p>{supplier.supplierType || 'Chưa phân loại'}</p>
         </div>
         <div className={styles.headerActions}>
-          {access.has('SUPPLIER_UPDATE') && <Link to={`/admin/suppliers/${supplier.id}/edit`} className={styles.editButton}>
+          {access.canDo('SUPPLIER_UPDATE') && <Link to={`/admin/suppliers/${supplier.id}/edit`} className={styles.editButton}>
             Chỉnh sửa
           </Link>}
-          {access.has('SUPPLIER_STATUS_CHANGE') && <button
+          {access.canDo('SUPPLIER_STATUS_CHANGE') && <button
             type="button"
             className={styles.statusButton}
             onClick={onToggleStatus}
-            disabled={isStatusBusy || !access.has('SUPPLIER_STATUS_CHANGE') || (supplier.status === 'INACTIVE' && !canActivate)}
+            disabled={isStatusBusy || !access.canDo('SUPPLIER_STATUS_CHANGE') || (supplier.status === 'INACTIVE' && !canActivate)}
             title={
               supplier.status === 'INACTIVE' && !canActivate
                 ? 'Nhà cung cấp cần được xác minh (VERIFIED) trước khi kích hoạt'
@@ -129,11 +129,11 @@ export function SupplierDetail({
                   ? 'Tạm dừng'
                   : 'Kích hoạt'}
           </button>}
-          {access.has('SUPPLIER_DELETE') && <button
+          {access.canDo('SUPPLIER_DELETE') && <button
             type="button"
             className={styles.deleteButton}
             onClick={() => setShowDeleteModal(true)}
-            disabled={actionInProgress !== null || !access.has('SUPPLIER_DELETE')}
+            disabled={actionInProgress !== null || !access.canDo('SUPPLIER_DELETE')}
             title="Xóa nhà cung cấp nếu chưa được sử dụng"
           >
             {actionInProgress === 'delete' ? 'Đang xóa...' : 'Xóa'}
@@ -162,13 +162,13 @@ export function SupplierDetail({
           <p className={styles.cardValue}>{supplierDateTime(supplier.updatedAt)}</p>
         </div>
 
-        {access.has('SUPPLIER_VERIFY') && <div className={styles.summaryCard}>
+        {access.canDo('SUPPLIER_VERIFY') && <div className={styles.summaryCard}>
           <p className={styles.cardLabel}>HÀNH ĐỘNG XÁC MINH</p>
-          {access.has('SUPPLIER_VERIFY') && <button
+          {access.canDo('SUPPLIER_VERIFY') && <button
             type="button"
             className={styles.verifyActiveBtn}
             onClick={() => setShowVerifyModal(true)}
-            disabled={actionInProgress !== null || !access.has('SUPPLIER_VERIFY')}
+            disabled={actionInProgress !== null || !access.canDo('SUPPLIER_VERIFY')}
           >
             {actionInProgress === 'verify' ? 'Đang xác minh...' : 'Xác minh nhà cung cấp'}
           </button>}
@@ -258,24 +258,24 @@ export function SupplierDetail({
       </footer>
 
       {/* Verification modal dialog */}
-      {showVerifyModal && access.has('SUPPLIER_VERIFY') && (
+      {showVerifyModal && access.canDo('SUPPLIER_VERIFY') && (
         <Modal title="Xác minh nhà cung cấp" busy={actionInProgress === 'verify'} onClose={() => { setShowVerifyModal(false); setVerificationNotes('') }} footer={<div className={styles.dialogActions}>
-              {access.has('SUPPLIER_VERIFY') && <button
+              {access.canDo('SUPPLIER_VERIFY') && <button
                 type="button"
                 className={styles.statusButton}
                 onClick={() => {
                   setShowVerifyModal(false)
                   setVerificationNotes('')
                 }}
-                disabled={actionInProgress === 'verify' || !access.has('SUPPLIER_VERIFY')} data-overlay-dismiss
+                disabled={actionInProgress === 'verify' || !access.canDo('SUPPLIER_VERIFY')} data-overlay-dismiss
               >
                 Hủy
               </button>}
-              {access.has('SUPPLIER_VERIFY') && <button
+              {access.canDo('SUPPLIER_VERIFY') && <button
                 type="button"
                 className={styles.editButton}
                 onClick={handleConfirmVerify}
-                disabled={actionInProgress === 'verify' || !access.has('SUPPLIER_VERIFY')}
+                disabled={actionInProgress === 'verify' || !access.canDo('SUPPLIER_VERIFY')}
               >
                 {actionInProgress === 'verify' ? 'Đang xác minh...' : 'Xác nhận'}
               </button>}
@@ -334,24 +334,24 @@ export function SupplierDetail({
       )}
 
       {/* Delete confirmation modal dialog */}
-      {showDeleteModal && access.has('SUPPLIER_DELETE') && (
+      {showDeleteModal && access.canDo('SUPPLIER_DELETE') && (
         <Modal title="Xác nhận xóa nhà cung cấp" busy={actionInProgress === 'delete'} onClose={() => setShowDeleteModal(false)} footer={<div className={styles.dialogActions}>
-              {access.has('SUPPLIER_DELETE') && <button
+              {access.canDo('SUPPLIER_DELETE') && <button
                 type="button"
                 className={styles.statusButton}
                 onClick={() => setShowDeleteModal(false)}
-                disabled={actionInProgress === 'delete' || !access.has('SUPPLIER_DELETE')} data-overlay-dismiss
+                disabled={actionInProgress === 'delete' || !access.canDo('SUPPLIER_DELETE')} data-overlay-dismiss
               >
                 Hủy
               </button>}
-              {access.has('SUPPLIER_DELETE') && <button
+              {access.canDo('SUPPLIER_DELETE') && <button
                 type="button"
                 className={styles.deleteButton}
                 onClick={() => {
                   setShowDeleteModal(false)
                   onDelete?.()
                 }}
-                disabled={actionInProgress === 'delete' || !access.has('SUPPLIER_DELETE')}
+                disabled={actionInProgress === 'delete' || !access.canDo('SUPPLIER_DELETE')}
               >
                 {actionInProgress === 'delete' ? 'Đang xóa...' : 'Xác nhận xóa'}
               </button>}

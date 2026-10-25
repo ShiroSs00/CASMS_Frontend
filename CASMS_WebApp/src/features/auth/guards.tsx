@@ -26,9 +26,9 @@ export function AdminGuard() {
   if (!auth.isStaff) return <Navigate to="/403" replace />
   if (access.status === 'anonymous' || access.status === 'loading') return <AdminShell><Loading label="Đang kiểm tra quyền truy cập…" /></AdminShell>
   if (access.status === 'error') return <AdminShell><Notice title="Chưa tải được quyền truy cập" tone="error"><p>{access.error}</p><Button onClick={access.retry}>Thử lại</Button></Notice></AdminShell>
-  const granted = access.userId === auth.user.id && canRoleOpenAdminPath(auth.user.roles,location.pathname,location.search,access) && (!workspace || canEnterWorkspace(workspace,access))
+  const granted = access.userId === auth.user.id && canRoleOpenAdminPath(access.roles,location.pathname,location.search,access) && (!workspace || canEnterWorkspace(workspace,access))
   if (!granted) {
-    const home = staffRoleHome(auth.user.roles,access)
+    const home = staffRoleHome(access.roles,access)
     return <AdminShell><Notice title="403 — Bạn không có quyền truy cập" tone="warning"><p>{home ? 'Tài khoản chưa được cấp quyền sử dụng chức năng này.' : 'Tài khoản chưa được cấp quyền truy cập chức năng.'}</p>{home && <Link to={home}>Về chức năng được phép</Link>}</Notice></AdminShell>
   }
   return <Outlet />

@@ -20,9 +20,9 @@ export function GroupControls({ group, onRefresh, children }: { group: TourGroup
   const options = useReadQuery(`group-control-options:${group.tourGroupId}:${control}`, loadOptions)
   const preparing = canPrepareGroup(group.status)
   const needsId = control === 'assign-passenger' || control === 'remove-passenger'
-  function open(next: Control) { if (!access.has(permission(next))) return; mutation.clearError(); setReason(''); setIdValue(''); setControl(next) }
+  function open(next: Control) { if (!access.canDo(permission(next))) return; mutation.clearError(); setReason(''); setIdValue(''); setControl(next) }
   async function execute() {
-    if (!control || !access.has(permission(control)) || (needsId && !options.data?.some(row => row.id === idValue)) || (control === 'cancel' && (!reason.trim() || reason.trim().length > 500))) return
+    if (!control || !access.canDo(permission(control)) || (needsId && !options.data?.some(row => row.id === idValue)) || (control === 'cancel' && (!reason.trim() || reason.trim().length > 500))) return
     const id = group.tourGroupId
     const result = await mutation.run<TourGroup>(async (signal) => {
       if (control === 'assign-passenger') {
@@ -40,12 +40,12 @@ export function GroupControls({ group, onRefresh, children }: { group: TourGroup
   return <div className={styles.detailActions} role="group" aria-label="Thao tác nhóm tour">
     {children}
     {preparing && <>
-        {access.has('TOUR_GROUP_GUIDE_ASSIGN') && <Button tone="secondary" disabled title="Chưa có danh mục hướng dẫn viên đủ điều kiện">Phân công hướng dẫn viên</Button>}
-        {access.has('TOUR_GROUP_PASSENGER_ASSIGN') && <Button tone="secondary" disabled={mutation.busy || !access.has('TOUR_GROUP_PASSENGER_ASSIGN') || group.availableCapacity === 0} onClick={() => open('assign-passenger')}>{labels['assign-passenger']}</Button>}
-        {access.has('TOUR_GROUP_PASSENGER_REMOVE') && <Button tone="secondary" disabled={mutation.busy || !access.has('TOUR_GROUP_PASSENGER_REMOVE') || group.assignedPassengers === 0} onClick={() => open('remove-passenger')}>{labels['remove-passenger']}</Button>}
+        {access.canDo('TOUR_GROUP_GUIDE_ASSIGN') && <Button tone="secondary" disabled title="Chưa có danh mục hướng dẫn viên đủ điều kiện">Phân công hướng dẫn viên</Button>}
+        {access.canDo('TOUR_GROUP_PASSENGER_ASSIGN') && <Button tone="secondary" disabled={mutation.busy || !access.canDo('TOUR_GROUP_PASSENGER_ASSIGN') || group.availableCapacity === 0} onClick={() => open('assign-passenger')}>{labels['assign-passenger']}</Button>}
+        {access.canDo('TOUR_GROUP_PASSENGER_REMOVE') && <Button tone="secondary" disabled={mutation.busy || !access.canDo('TOUR_GROUP_PASSENGER_REMOVE') || group.assignedPassengers === 0} onClick={() => open('remove-passenger')}>{labels['remove-passenger']}</Button>}
     </>}
-    {groupActions(group.status).map(action => access.has(permission(action)) ? <Button key={action} tone={action === 'cancel' ? 'danger' : 'secondary'} disabled={mutation.busy} onClick={() => open(action)}>{labels[action]}</Button> : null)}
-    {control && access.has(permission(control)) && <Modal title={labels[control]} busy={mutation.busy} onClose={() => setControl(null)} footer={<div className={styles.actions}><Button tone="secondary" disabled={mutation.busy} onClick={() => setControl(null)} data-overlay-dismiss>Quay lại</Button>{access.has(permission(control)) && <Button tone={control === 'cancel' || control === 'remove-passenger' ? 'danger' : 'primary'} disabled={mutation.busy || !access.has(permission(control)) || (needsId && (options.loading || Boolean(options.error) || !isUuid(idValue.trim()))) || (control === 'cancel' && (!reason.trim() || reason.trim().length > 500))} onClick={() => void execute()}>{mutation.busy ? 'Đang xử lý…' : 'Xác nhận'}</Button>}</div>}>
+    {groupActions(group.status).map(action => access.canDo(permission(action)) ? <Button key={action} tone={action === 'cancel' ? 'danger' : 'secondary'} disabled={mutation.busy} onClick={() => open(action)}>{labels[action]}</Button> : null)}
+    {control && access.canDo(permission(control)) && <Modal title={labels[control]} busy={mutation.busy} onClose={() => setControl(null)} footer={<div className={styles.actions}><Button tone="secondary" disabled={mutation.busy} onClick={() => setControl(null)} data-overlay-dismiss>Quay lại</Button>{access.canDo(permission(control)) && <Button tone={control === 'cancel' || control === 'remove-passenger' ? 'danger' : 'primary'} disabled={mutation.busy || !access.canDo(permission(control)) || (needsId && (options.loading || Boolean(options.error) || !isUuid(idValue.trim()))) || (control === 'cancel' && (!reason.trim() || reason.trim().length > 500))} onClick={() => void execute()}>{mutation.busy ? 'Đang xử lý…' : 'Xác nhận'}</Button>}</div>}>
       <p className={styles.text}>Nhóm {group.groupCode}</p>
       {needsId && <><Field htmlFor="tour-assignment-id" label={control === 'assign-passenger' ? 'Hành khách đủ điều kiện' : 'Phân công hành khách hiện tại'}><select id="tour-assignment-id" disabled={mutation.busy || options.loading || Boolean(options.error)} value={idValue} onChange={event => setIdValue(event.target.value)}><option value="">Chọn hành khách</option>{options.data?.map(row => <option key={row.id} value={row.id}>{row.label}</option>)}</select></Field>{options.error && <TourError error={options.error} onRetry={options.retry} />}{!options.loading && options.data?.length === 0 && <p>Không có hành khách phù hợp. Không thể tự tạo hành khách thay thế.</p>}</>}
       {control === 'remove-passenger' && <p>Xác nhận gỡ phân công đã chọn khỏi nhóm này.</p>}

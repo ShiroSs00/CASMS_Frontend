@@ -61,7 +61,7 @@ function MasterList({ kind }: { kind: Kind }) {
   }, [kind, page, attempt, activeOnly])
 
   return <ItineraryFrame>
-    <PageHeader breadcrumb="DANH MỤC VẬN HÀNH" title={copy.plural} description={kind === 'port' ? 'Quản lý mã cảng, quốc gia, múi giờ và tọa độ phục vụ lịch trình.' : 'Quản lý các điểm đến thương mại được liên kết với cảng ghé.'} actions={access.has(`${kind.toUpperCase()}_CREATE`) ? <ButtonLink to={`/admin/${copy.route}/new`}>Thêm {copy.singular}</ButtonLink> : undefined} />
+    <PageHeader breadcrumb="DANH MỤC VẬN HÀNH" title={copy.plural} description={kind === 'port' ? 'Quản lý mã cảng, quốc gia, múi giờ và tọa độ phục vụ lịch trình.' : 'Quản lý các điểm đến thương mại được liên kết với cảng ghé.'} actions={access.canDo(`${kind.toUpperCase()}_CREATE`) ? <ButtonLink to={`/admin/${copy.route}/new`}>Thêm {copy.singular}</ButtonLink> : undefined} />
     <Panel title={`Danh sách ${copy.singular}`}><label><input type="checkbox" checked={activeOnly} onChange={event => { setActiveOnly(event.target.checked); setPage(1); setLoading(true) }} /> Chỉ hiển thị đang hoạt động</label>
       {loading && <Loading label={`Đang tải ${copy.singular}…`} />}
       {error && <Notice title="Không tải được dữ liệu" tone="error"><p>{error}</p><Button onClick={load}>Thử lại</Button></Notice>}
@@ -87,7 +87,7 @@ function MasterForm({ kind }: { kind: Kind }) {
   const [loadedId, setLoadedId] = useState<string | null>(null)
   const submitLock = useRef(false)
   const canSave = !editing || loadedId === id
-  const permitted = access.has(`${kind.toUpperCase()}_${editing ? 'UPDATE' : 'CREATE'}`)
+  const permitted = access.canDo(`${kind.toUpperCase()}_${editing ? 'UPDATE' : 'CREATE'}`)
   const [loading, setLoading] = useState(editing)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -187,7 +187,7 @@ function MasterForm({ kind }: { kind: Kind }) {
 }
 function MasterDetail({ kind }: { kind: Kind }) {
   const access = useSessionAccess()
-  const can = (action: string) => access.has(`${kind.toUpperCase()}_${action}`)
+  const can = (action: string) => access.canDo(`${kind.toUpperCase()}_${action}`)
   const params = useParams()
   const id = (kind === 'port' ? params.portId : params.destinationId) ?? ''
   const copy = meta[kind]

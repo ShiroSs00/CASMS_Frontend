@@ -14,7 +14,7 @@ export function ActivityFormPage() {
   const { activityId } = useParams(), navigate = useNavigate(), lock = useRef(false), form = useRef<HTMLFormElement>(null)
   const access = useSessionAccess()
   const [editable, setEditable] = useState(false)
-  const permitted = access.has(activityId ? 'ACTIVITY_UPDATE' : 'ACTIVITY_CREATE')
+  const permitted = access.canDo(activityId ? 'ACTIVITY_UPDATE' : 'ACTIVITY_CREATE')
   const cruises = useReadQuery('activity-cruises', activityApi.cruises)
   const [draft, setDraft] = useState<ActivityDraft>(blank), [errors, setErrors] = useState<Record<string, string>>({})
   const [error, setError] = useState(''), [busy, setBusy] = useState(false), [loadedId, setLoadedId] = useState<string | null>(null), [attempt, setAttempt] = useState(0)
@@ -23,8 +23,8 @@ export function ActivityFormPage() {
     const controller = new AbortController()
     void activityApi.get(activityId, controller.signal).then(item => {
       if (controller.signal.aborted) return
-      setDraft({ activityCode: item.code, activityName: item.name, cruiseId: item.cruiseId, description: item.description ?? '', startTime: localTime(item.startTime), endTime: localTime(item.endTime), location: item.location ?? '', capacity: item.capacity, price: item.price, currencyCode: item.currencyCode ?? '' })
-      setEditable(item.status === 'PLANNED'); setLoadedId(item.id); setError('')
+      setDraft({ activityCode: item.code, activityName: item.name, cruiseId: item.cruiseId ?? '', description: item.description ?? '', startTime: localTime(item.startTime), endTime: localTime(item.endTime), location: item.location ?? '', capacity: item.capacity, price: item.price, currencyCode: item.currencyCode ?? '' })
+      setEditable(item.status === 'PLANNED' && item.cruiseId !== null); setLoadedId(item.id); setError('')
     }).catch((reason: unknown) => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Không tải được hoạt động.') })
     return () => controller.abort()
   }, [activityId, attempt])
@@ -42,7 +42,7 @@ export function ActivityFormPage() {
   }
   const input = (name: keyof ActivityDraft) => ({ id: 'activity-' + name, name, 'aria-invalid': Boolean(errors[name]), 'aria-describedby': errors[name] ? `activity-${name}-hint` : undefined })
   return <ActivityFrame><PageHeader breadcrumb="DỊCH VỤ TÀU / HOẠT ĐỘNG" title={activityId ? 'Chỉnh sửa hoạt động' : 'Tạo hoạt động trên tàu'} description={`Nhập giờ theo ${Intl.DateTimeFormat().resolvedOptions().timeZone}. Hoạt động phải nằm trong thời gian chuyến và giới hạn sức chứa.`} /><ActivityState {...cruises} />
-    {!permitted && <Notice title="Không có quyền lưu hoạt động" tone="warning">Liên hệ quản trị viên để được cấp quyền phù hợp.</Notice>}{activityId && loadedId === activityId && !editable && <Notice title="Chỉ sửa hoạt động đã lên kế hoạch" tone="warning">Hoạt động đang ở trạng thái không cho phép chỉnh sửa.</Notice>}{error && <Notice title="Chưa thể thực hiện" tone="error"><p>{error}</p>{activityId && loadedId !== activityId && <Button onClick={() => setAttempt(value => value + 1)}>Tải lại hoạt động</Button>}</Notice>}
+    {!permitted && <Notice title="Không có quyền lưu hoạt động" tone="warning">Liên hệ quản trị viên để được cấp quyền phù hợp.</Notice>}{activityId && loadedId === activityId && !editable && <Notice title={draft.cruiseId?"Chỉ sửa hoạt động đã lên kế hoạch":"Hoạt động nguồn"} tone="warning">{draft.cruiseId?"Hoạt động đang ở trạng thái không cho phép chỉnh sửa.":"Hoạt động này chưa gắn lần khởi hành. Biểu mẫu hiện tại chỉ chỉnh sửa hoạt động của lần khởi hành."}</Notice>}{error && <Notice title="Chưa thể thực hiện" tone="error"><p>{error}</p>{activityId && loadedId !== activityId && <Button onClick={() => setAttempt(value => value + 1)}>Tải lại hoạt động</Button>}</Notice>}
     {cruises.data && !cruises.data.length && <Notice title="Chưa có chuyến du lịch"><p>Tạo chuyến trước khi lập hoạt động trên tàu.</p><ButtonLink to="/admin/cruises/new">Tạo chuyến</ButtonLink></Notice>}
     <form ref={form} onSubmit={submit} noValidate><Panel title="Thông tin hoạt động">
           <FormErrorSummary errors={errors} /><div className={styles.form}>

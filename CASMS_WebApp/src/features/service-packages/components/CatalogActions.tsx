@@ -14,9 +14,9 @@ export function CatalogActions({ kind, item, onChanged }: { kind: CatalogKind; i
   const lock = useRef(false)
   const actions = catalogActions(kind, item.status)
   const spec = actions.find(spec => spec.action === action)
-  const canDelete = access.has(catalogPermission(kind, 'delete')) && (kind !== 'packages' || item.status === 'DRAFT')
+  const canDelete = access.canDo(catalogPermission(kind, 'delete')) && (kind !== 'packages' || item.status === 'DRAFT')
   async function confirm() {
-    if (lock.current || !action || (action === 'delete' ? !canDelete : !spec || !access.has(spec.permission))) return
+    if (lock.current || !action || (action === 'delete' ? !canDelete : !spec || !access.canDo(spec.permission))) return
     lock.current = true; setBusy(true); setError('')
     try {
       if (action === 'delete') { await servicePackageApi.remove(kind, item.id); navigate(catalogConfig[kind].route) }
@@ -24,11 +24,11 @@ export function CatalogActions({ kind, item, onChanged }: { kind: CatalogKind; i
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa cập nhật được danh mục.') }
     finally { lock.current = false; setBusy(false) }
   }
-  if (!access.has(catalogPermission(kind, 'update')) && !access.has(catalogPermission(kind, 'delete')) && !actions.some(spec => access.has(spec.permission))) return null
+  if (!access.canDo(catalogPermission(kind, 'update')) && !access.canDo(catalogPermission(kind, 'delete')) && !actions.some(spec => access.canDo(spec.permission))) return null
   return <div className={styles.detailActions} role="group" aria-label={`Thao tác ${catalogConfig[kind].label.toLocaleLowerCase('vi')}`}>
-    {access.has(catalogPermission(kind, 'update')) && (kind !== 'packages' || item.status === 'DRAFT') && <ButtonLink tone="secondary" to={`${catalogConfig[kind].route}/${item.id}/edit`}>Chỉnh sửa</ButtonLink>}{' '}
-    {actions.map(spec => (access.has(spec.permission) ? <Button key={spec.action} disabled={busy || !access.has(spec.permission)} onClick={() => { setAction(spec.action); setError('') }}>{spec.label}</Button> : null))}{' '}
-    {access.has(catalogPermission(kind, 'delete')) && <Button tone="danger" disabled={busy || !canDelete} onClick={() => { setAction('delete'); setError('') }}>Xóa khi chưa sử dụng</Button>}
-    {action && (action === 'delete' ? access.has(catalogPermission(kind, 'delete')) : spec && access.has(spec.permission)) && <Modal title={action === 'delete' ? 'Xác nhận xóa danh mục' : spec?.label ?? 'Cập nhật trạng thái'} busy={busy} onClose={() => setAction(null)}><p>{item.name} · {item.code}. {action === 'delete' ? 'Chỉ xóa bản ghi chưa được sử dụng. Thao tác này không thể hoàn tác.' : 'Thay đổi có thể ảnh hưởng khả năng cung cấp cho yêu cầu hoặc gói dịch vụ.'}</p>{error && <Notice tone="error" title="Không thể cập nhật">{error}</Notice>}<Button tone={action === 'delete' ? 'danger' : 'primary'} disabled={busy} onClick={() => void confirm()}>Xác nhận</Button></Modal>}
+    {access.canDo(catalogPermission(kind, 'update')) && (kind !== 'packages' || item.status === 'DRAFT') && <ButtonLink tone="secondary" to={`${catalogConfig[kind].route}/${item.id}/edit`}>Chỉnh sửa</ButtonLink>}{' '}
+    {actions.map(spec => (access.canDo(spec.permission) ? <Button key={spec.action} disabled={busy || !access.canDo(spec.permission)} onClick={() => { setAction(spec.action); setError('') }}>{spec.label}</Button> : null))}{' '}
+    {access.canDo(catalogPermission(kind, 'delete')) && <Button tone="danger" disabled={busy || !canDelete} onClick={() => { setAction('delete'); setError('') }}>Xóa khi chưa sử dụng</Button>}
+    {action && (action === 'delete' ? access.canDo(catalogPermission(kind, 'delete')) : spec && access.canDo(spec.permission)) && <Modal title={action === 'delete' ? 'Xác nhận xóa danh mục' : spec?.label ?? 'Cập nhật trạng thái'} busy={busy} onClose={() => setAction(null)}><p>{item.name} · {item.code}. {action === 'delete' ? 'Chỉ xóa bản ghi chưa được sử dụng. Thao tác này không thể hoàn tác.' : 'Thay đổi có thể ảnh hưởng khả năng cung cấp cho yêu cầu hoặc gói dịch vụ.'}</p>{error && <Notice tone="error" title="Không thể cập nhật">{error}</Notice>}<Button tone={action === 'delete' ? 'danger' : 'primary'} disabled={busy} onClick={() => void confirm()}>Xác nhận</Button></Modal>}
   </div>
 }

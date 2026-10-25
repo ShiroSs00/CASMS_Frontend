@@ -61,7 +61,7 @@ export function SupplierDetailPage() {
   }
 
   async function handleToggleStatus() {
-    if (!supplier || lock.current || !access.has('SUPPLIER_STATUS_CHANGE')) return
+    if (!supplier || lock.current || !access.canDo('SUPPLIER_STATUS_CHANGE')) return
     lock.current = true
     const isActivating = supplier.status === 'INACTIVE'
     const actionKey = isActivating ? 'activate' : 'deactivate'
@@ -100,7 +100,7 @@ export function SupplierDetailPage() {
   }
 
   async function handleVerify(request: SupplierVerificationRequest) {
-    if (!supplier || lock.current || !access.has('SUPPLIER_VERIFY')) throw new Error('Chưa thể xác minh nhà cung cấp.')
+    if (!supplier || lock.current || !access.canDo('SUPPLIER_VERIFY')) throw new Error('Chưa thể xác minh nhà cung cấp.')
     lock.current = true
     setActionInProgress('verify')
     setActionFeedback(null)
@@ -130,7 +130,7 @@ export function SupplierDetailPage() {
   }
 
   async function handleDelete() {
-    if (!supplier || lock.current || !access.has('SUPPLIER_DELETE')) return
+    if (!supplier || lock.current || !access.canDo('SUPPLIER_DELETE')) return
     lock.current = true
     setActionInProgress('delete')
     setActionFeedback(null)

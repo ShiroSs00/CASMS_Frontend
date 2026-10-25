@@ -45,7 +45,7 @@ export function ExcursionForm({ initial, busy, onSave }: { initial?: ShoreExcurs
   }
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (busy || !access.has(initial ? 'EXCURSION_UPDATE' : 'EXCURSION_CREATE')) return
+    if (busy || !access.canDo(initial ? 'EXCURSION_UPDATE' : 'EXCURSION_CREATE')) return
     if (stops.error || suppliers.error || stops.loading || suppliers.loading) { setContextError('Chưa tải đủ điểm dừng và nhà cung cấp. Vui lòng thử tải lại.'); return }
     setContextError('')
     const next = { ...validateExcursionForm(values), ...validateExcursionWindow(values.startTime, values.plannedReturnTime, stop) }
@@ -84,7 +84,7 @@ export function ExcursionForm({ initial, busy, onSave }: { initial?: ShoreExcurs
             inputMode={key === 'price' ? 'decimal' : undefined} value={values[key]} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? `excursion-${key}-hint` : undefined}
             onChange={(event) => change(key, event.target.value)} />
         </Field>)}
-        <div className={styles.actions}><Link className={styles.link} to={initial ? `/admin/shore-excursions/${initial.shoreExcursionId}` : '/admin/shore-excursions'}>Quay lại</Link>{access.has(initial ? 'EXCURSION_UPDATE' : 'EXCURSION_CREATE') && <Button type="submit" disabled={busy || stops.loading || suppliers.loading || Boolean(stops.error || suppliers.error) || !stops.data?.length}>{busy ? 'Đang lưu…' : 'Lưu chuyến tham quan'}</Button>}</div>
+        <div className={styles.actions}><Link className={styles.link} to={initial ? `/admin/shore-excursions/${initial.shoreExcursionId}` : '/admin/shore-excursions'}>Quay lại</Link>{access.canDo(initial ? 'EXCURSION_UPDATE' : 'EXCURSION_CREATE') && <Button type="submit" disabled={busy || stops.loading || suppliers.loading || Boolean(stops.error || suppliers.error) || !stops.data?.length}>{busy ? 'Đang lưu…' : 'Lưu chuyến tham quan'}</Button>}</div>
       </fieldset>
     </form>
   </>
