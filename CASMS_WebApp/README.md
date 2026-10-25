@@ -20,12 +20,10 @@ npm run build
 npm test
 ```
 
-Live API checks require explicit QA environment variables; see [development and QA](docs/engineering/development.md). Production hosting requires an API proxy or a deployed backend URL; the SPA rewrite is not an API server.
+Live API checks require explicit QA environment variables (see tests/integration/webapp-live-api.test.mjs). Production hosting requires an API proxy or a deployed backend URL; the SPA rewrite is not an API server.
 
 ## Current behavior
 
 Public catalog and details, available cabins, package details/benefits, booking create/lookup and account booking operations use backend APIs. Admin modules are loaded on demand. Unsupported online payment, document upload, check-in and boarding capabilities remain unavailable; no fake payment or boarding success is generated.
 
 The home slideshow uses licensed photos of Marina Bay (Singapore), Victoria Harbour (Hong Kong), and Ōsanbashi (Yokohama). Credits are served at [public/images/ports/credits.html](public/images/ports/credits.html). Images are editorial inspiration, not live inventory.
-
-[Documentation index](docs/README.md) · [Architecture](docs/engineering/architecture.md) · [Module map](docs/engineering/module-map.md) · [Git workflow](docs/engineering/git-workflow.md)
