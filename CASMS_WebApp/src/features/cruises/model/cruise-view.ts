@@ -116,7 +116,7 @@ export const itineraryStatusLabels: Record<ItineraryStatus, string> = {
   DRAFT: 'Nháp',
   PENDING_APPROVAL: 'Chờ duyệt',
   APPROVED: 'Đã duyệt',
-  OPEN_FOR_SALE: 'Mở bán',
+  OPEN_FOR_SALE: 'Đã phát hành',
   ACTIVE: 'Đang hoạt động',
   COMPLETED: 'Hoàn thành',
   REJECTED: 'Từ chối',

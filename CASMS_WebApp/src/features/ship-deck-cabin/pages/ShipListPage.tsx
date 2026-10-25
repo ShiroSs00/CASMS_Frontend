@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
-import { Button, PageHeader, Panel } from '@/shared/ui'
+import { PermissionLink as Link, Button, PageHeader, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { ShipListFilters } from '../components/ShipListFilters'
 import { FleetShipCards } from '../components/FleetShipCards'

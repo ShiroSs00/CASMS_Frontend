@@ -1,4 +1,4 @@
-import { Link } from 'react-router'
+import { PermissionLink as Link } from '@/shared/ui'
 import { Button, Empty } from '@/shared/ui'
 import type { ShipListItem, SupplementField } from '../model/ship-list-types'
 import { StatusBadge } from './Common'

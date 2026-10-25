@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { useSearchParams } from 'react-router'
+import { PermissionLink as Link } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
 import { useReadQuery } from '@/shared/api'
 import { Badge, Button, Empty, Field, Loading, Notice, Panel } from '@/shared/ui'

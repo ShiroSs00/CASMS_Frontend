@@ -1,3 +1,4 @@
+import { useSessionAccess } from '@/shared/auth'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 
@@ -17,6 +18,7 @@ export type CruiseListState =
   | { status: 'error'; data: CruiseListResult | null; error: string }
 
 export function useCruiseList() {
+  const canShips = useSessionAccess().has('SHIP_READ')
   const [searchParams, setSearchParams] = useSearchParams()
   const query = useMemo(() => parseCruiseQuery(searchParams), [searchParams])
   const queryKey = useMemo(() => serializeCruiseQuery(query).toString(), [query])
@@ -53,9 +55,10 @@ export function useCruiseList() {
   useEffect(() => { request() }, [request])
   useEffect(() => {
     const controller = new AbortController()
+    if (!canShips) return () => controller.abort()
     void cruiseApi.listShips(controller.signal).then(value => { if (!controller.signal.aborted) { setShips(value); setShipsError('') } }).catch((error:unknown) => { if (!controller.signal.aborted) setShipsError(error instanceof Error ? error.message : 'Không tải được danh sách tàu.') })
     return () => controller.abort()
-  }, [shipsAttempt])
+  }, [shipsAttempt, canShips])
 
   function updateQuery(patch: Partial<CruiseQuery>) {
     const changesFilter = Object.keys(patch).some((key) => key !== 'page')

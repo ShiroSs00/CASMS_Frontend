@@ -1,6 +1,7 @@
+import { PermissionLink as Link } from '@/shared/ui'
 import { TechnicalDetails } from '@/shared/ui'
 import { useCallback, type ReactNode } from 'react'
-import { Link } from 'react-router'
+
 import { DataTable, Empty, Notice, Panel } from '@/shared/ui'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { useApiQuery } from '../hooks/useAdminData'

@@ -1,6 +1,7 @@
+import { PermissionLink as Link } from '@/shared/ui'
 import { useEffect, useState } from 'react'
 import { useSessionAccess } from '@/shared/auth'
-import { Link, useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { ApiError } from '@/shared/api/client'
 import { supplierApi } from '../api/supplier-api'

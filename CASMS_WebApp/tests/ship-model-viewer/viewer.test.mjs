@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs'
 import vm from 'node:vm'
 import test from 'node:test'
 import ts from 'typescript'
+import { permissionPolicy } from '../helpers/permission-policy.mjs'
 function load(path,imports={}) {const module={exports:{}};vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../../src/'+path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2023}}).outputText,{module,exports:module.exports,URLSearchParams,TextDecoder,require:id=>{assert.ok(id in imports,id);return imports[id]}});return module.exports}
 const model=load('features/ship-model-viewer/model.ts')
 test('asset references remain inside the selected ship/version and reject traversal and external URLs',()=>{
@@ -19,11 +20,11 @@ test('manifest identity is required and cabin filtering preserves source geometr
   assert.equal(model.selectedCabins(manifest,'d2','C01').length,0)
   assert.equal(JSON.stringify(manifest),before)
 })
-test('model viewer is restricted to Admin with effective read permission',()=>{
-  const nav=load('shared/ui/admin-v3/admin-navigation.ts')
+test('model viewer requires effective read permission without granting access from role alone',()=>{
+  const nav=load('shared/ui/admin-v3/admin-navigation.ts', {'@/shared/auth':permissionPolicy})
   const access={status:'ready',permissions:['SHIP_MODEL_READ','SHIP_READ']}
   assert.equal(nav.canRoleOpenAdminPath(['ADMIN'],'/admin/ship-models','',access),true)
-  assert.equal(nav.canRoleOpenAdminPath(['SHIP_MANAGER'],'/admin/ship-models','',access),false)
+  assert.equal(nav.canRoleOpenAdminPath(['SHIP_MANAGER'],'/admin/ship-models','',access),true)
   assert.equal(nav.canRoleOpenAdminPath(['ADMIN'],'/admin/ship-models','',{status:'ready',permissions:[]}),false)
   assert.ok(nav.roleNavigationItems(['ADMIN'],access).some(x=>x.to==='/admin/ship-models'))
 })

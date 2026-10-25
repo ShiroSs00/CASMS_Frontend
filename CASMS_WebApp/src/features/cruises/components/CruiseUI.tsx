@@ -1,5 +1,6 @@
+import { PermissionLink as Link } from '@/shared/ui'
 import type { ReactNode } from 'react'
-import { Link } from 'react-router'
+
 
 import { Badge, Button, DataTable, Empty, Field, Loading, Notice } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'

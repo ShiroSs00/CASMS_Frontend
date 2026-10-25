@@ -1,5 +1,6 @@
-/** Navigation contract: CASMS Backend 15a113a. Session permissions gate actual access. */
-export type AdminNavigationItem = { label: string; to?: string; permissions?: readonly string[] }
+import { hasPermissions, type PermissionRequirement } from '@/shared/auth'
+/** Runtime access uses /auth/me.effectivePermissions. Roles only order staff tools. */
+export type AdminNavigationItem = { label: string; to?: string; permissions?: readonly string[]; permissionMode?: 'ANY' | 'ALL' }
 export type WorkspaceId = 'schedule' | 'operations' | 'services'
 export type AdminAccess = { status: string; permissions: readonly string[] }
 export type AdminWorkspace = {
@@ -8,40 +9,40 @@ export type AdminWorkspace = {
   action: { label: string; to: string; permission: string };
 }
 const tools: readonly AdminNavigationItem[] = [
-  { label:'Hành khách trên tàu', to:'/admin/passenger-tracking', permissions:['BLE_TELEMETRY_READ'] },
-  { label:'Model 3D', to:'/admin/ship-models', permissions:['SHIP_MODEL_READ'] },
-  { label:'Dashboard', to:'/admin/fleet-dashboard', permissions:['SHIP_READ'] },
-  { label:'Nhập thông tin tàu', to:'/admin/ship-import', permissions:['SHIP_MODEL_CREATE'] },
-  { label:'Tài khoản hệ thống', to:'/admin/system', permissions:['USER_READ'] },
-  { label:'Đặt chỗ', to:'/admin/bookings', permissions:['BOOKING_READ'] },
-  { label:'Điểm đến', to:'/admin/destinations', permissions:['DESTINATION_READ'] },
-  { label:'Cảng', to:'/admin/ports', permissions:['PORT_READ'] },
-  { label:'Tàu', to:'/admin/ships', permissions:['SHIP_READ'] },
-  { label:'Boong', to:'/admin/decks', permissions:['DECK_READ'] },
-  { label:'Cabin', to:'/admin/cabins', permissions:['CABIN_READ'] },
-  { label:'Chuyến du lịch', to:'/admin/cruises', permissions:['CRUISE_READ'] },
-  { label:'Hải trình', to:'/admin/itineraries', permissions:['ITINERARY_READ'] },
-  { label:'Quy định', to:'/admin/regulations', permissions:['REGULATION_READ'] },
-  { label:'Sự cố vận hành', to:'/admin/issues', permissions:['OPERATIONAL_ISSUE_READ'] },
-  { label:'Nhà cung cấp', to:'/admin/suppliers', permissions:['SUPPLIER_READ'] },
-  { label:'Chuyến tham quan bờ', to:'/admin/shore-excursions', permissions:['EXCURSION_READ'] },
-  { label:'Nhóm tour', to:'/admin/tour-groups', permissions:['TOUR_GROUP_READ'] },
-  { label:'Hoạt động trên tàu', to:'/admin/activities', permissions:['ACTIVITY_READ'] },
-  { label:'Dịch vụ', to:'/admin/services', permissions:['SERVICE_READ'] },
-  { label:'Sản phẩm', to:'/admin/products', permissions:['PRODUCT_MANAGE'] },
-  { label:'Gói dịch vụ', to:'/admin/service-packages', permissions:['TOUR_PACKAGE_MANAGE','TOUR_PACKAGE_ASSIGN','BOOKING_READ'] },
-  { label:'Yêu cầu dịch vụ', to:'/admin/service-requests', permissions:['SERVICE_REQUEST_READ','SERVICE_REQUEST_CREATE'] },
-  { label:'Phân bổ gói', to:'/admin/package-assignments', permissions:['TOUR_PACKAGE_ASSIGN','TOUR_PACKAGE_MANAGE','BOOKING_READ'] },
-  { label:'Làm thủ tục', to:'/admin/staff/checkin', permissions:['CHECKIN_READ','CHECKIN_CREATE','CHECKIN_UPDATE'] },
-  { label:'Tài chính', to:'/admin/staff/finance', permissions:['PAYMENT_REPORT'] },
+  { label:'Hành khách trên tàu', to:'/admin/passenger-tracking', permissionMode:'ANY', permissions:['BLE_TELEMETRY_READ'] },
+  { label:'Model 3D', to:'/admin/ship-models', permissionMode:'ANY', permissions:['SHIP_MODEL_READ'] },
+  { label:'Dashboard', to:'/admin/fleet-dashboard', permissionMode:'ANY', permissions:['SHIP_READ'] },
+  { label:'Nhập thông tin tàu', to:'/admin/ship-import', permissionMode:'ANY', permissions:['SHIP_MODEL_CREATE'] },
+  { label:'Tài khoản hệ thống', to:'/admin/system', permissionMode:'ANY', permissions:['USER_READ'] },
+  { label:'Đặt chỗ', to:'/admin/bookings', permissionMode:'ANY', permissions:['BOOKING_READ'] },
+  { label:'Điểm đến', to:'/admin/destinations', permissionMode:'ANY', permissions:['DESTINATION_READ'] },
+  { label:'Cảng', to:'/admin/ports', permissionMode:'ANY', permissions:['PORT_READ'] },
+  { label:'Tàu', to:'/admin/ships', permissionMode:'ANY', permissions:['SHIP_READ'] },
+  { label:'Boong', to:'/admin/decks', permissionMode:'ANY', permissions:['DECK_READ','CABIN_READ'] },
+  { label:'Cabin', to:'/admin/cabins', permissionMode:'ANY', permissions:['CABIN_READ'] },
+  { label:'Chuyến đi', to:'/admin/cruises', permissionMode:'ANY', permissions:['CRUISE_READ'] },
+  { label:'Lịch trình', to:'/admin/itineraries', permissionMode:'ANY', permissions:['ITINERARY_READ'] },
+  { label:'Quy định', to:'/admin/regulations', permissionMode:'ANY', permissions:['REGULATION_READ'] },
+  { label:'Sự cố vận hành', to:'/admin/issues', permissionMode:'ANY', permissions:['OPERATIONAL_ISSUE_READ'] },
+  { label:'Nhà cung cấp', to:'/admin/suppliers', permissionMode:'ANY', permissions:['SUPPLIER_READ'] },
+  { label:'Chuyến tham quan bờ', to:'/admin/shore-excursions', permissionMode:'ANY', permissions:['EXCURSION_READ'] },
+  { label:'Nhóm tour', to:'/admin/tour-groups', permissionMode:'ANY', permissions:['TOUR_GROUP_READ'] },
+  { label:'Hoạt động trên tàu', to:'/admin/activities', permissionMode:'ANY', permissions:['ACTIVITY_READ'] },
+  { label:'Dịch vụ', to:'/admin/services', permissionMode:'ANY', permissions:['SERVICE_READ'] },
+  { label:'Sản phẩm', to:'/admin/products', permissionMode:'ANY', permissions:['PRODUCT_MANAGE'] },
+  { label:'Gói dịch vụ', to:'/admin/service-packages', permissionMode:'ANY', permissions:['TOUR_PACKAGE_MANAGE','TOUR_PACKAGE_ASSIGN','BOOKING_READ'] },
+  { label:'Yêu cầu dịch vụ', to:'/admin/service-requests', permissionMode:'ANY', permissions:['SERVICE_REQUEST_READ','SERVICE_REQUEST_CREATE'] },
+  { label:'Phân bổ gói', to:'/admin/package-assignments', permissionMode:'ANY', permissions:['TOUR_PACKAGE_ASSIGN','TOUR_PACKAGE_MANAGE','BOOKING_READ'] },
+  { label:'Làm thủ tục', to:'/admin/staff/checkin', permissionMode:'ANY', permissions:['CHECKIN_READ','CHECKIN_CREATE','CHECKIN_UPDATE'] },
+  { label:'Tài chính', to:'/admin/staff/finance', permissionMode:'ANY', permissions:['PAYMENT_REPORT'] },
 ]
 export const adminWorkspaces: readonly AdminWorkspace[] = [
   { id:'schedule', title:'Quản lý lịch trình', shortTitle:'Lịch trình',
     description:'Thiết kế tuyến đi, sắp xếp lịch trình và chuẩn bị công bố chuyến du thuyền.',
-    responsibility:'Chuyến đi · Hải trình · Cảng ghé', permissions:['CRUISE_READ','ITINERARY_READ'],
+    responsibility:'Chuyến đi · Lịch trình · Lần ghé cảng', permissions:['CRUISE_READ','ITINERARY_READ'],
     tools:['cruises','itineraries','destinations','ports'],
-    steps:['Kiểm tra điểm đến và cảng ghé.','Tạo chuyến, chọn tàu và thời gian dự kiến.','Sắp xếp ngày hành trình và điểm dừng.','Gửi duyệt và kiểm tra điều kiện công bố.'],
-    action:{label:'Tạo chuyến du thuyền',to:'/admin/cruises/new',permission:'CRUISE_CREATE'} },
+    steps:['Kiểm tra điểm đến và cảng ghé.','Tạo chuyến, chọn tàu và thời gian dự kiến.','Sắp xếp ngày và các lần ghé cảng trong lịch trình.','Gửi duyệt và kiểm tra điều kiện công bố.'],
+    action:{label:'Tạo chuyến đi',to:'/admin/cruises/new',permission:'CRUISE_CREATE'} },
   { id:'operations', title:'Quản lý vận hành', shortTitle:'Vận hành',
     description:'Theo dõi đội tàu, duyệt lịch trình và điều phối hoạt động theo quyền được phân công.',
     responsibility:'Đội tàu · Điều phối · Tuân thủ', permissions:['SHIP_READ','REGULATION_READ','OPERATIONAL_ISSUE_READ'],
@@ -57,10 +58,10 @@ export const adminWorkspaces: readonly AdminWorkspace[] = [
 ]
 export const adminNavigation = [{label:'CÔNG VIỆC VÀ TRA CỨU',items:tools}]
 export function canOpenAdminItem(item: AdminNavigationItem, access: AdminAccess) {
-  return Boolean(item.to) && access.status==='ready' && Boolean(item.permissions?.some(p=>access.permissions.includes(p)))
+  return Boolean(item.to) && access.status==='ready' && Boolean(item.permissionMode && item.permissions && hasPermissions(access,{mode:item.permissionMode,permissions:item.permissions}))
 }
 export function canEnterWorkspace(workspace: AdminWorkspace, access: AdminAccess) {
-  return access.status==='ready' && workspace.permissions.some(p=>access.permissions.includes(p))
+  return access.status==='ready' && hasPermissions(access,{mode:'ANY',permissions:workspace.permissions})
 }
 export function workspaceUrl(workspace: AdminWorkspace) { return '/admin/workspaces/'+workspace.id }
 export function workspaceTools(workspace: AdminWorkspace) { return workspace.tools.map(tool=>tools.find(item=>item.to==='/admin/'+tool)!) }
@@ -91,18 +92,9 @@ export function roleWorkspace(roles: readonly string[]) {
   const id=role==='CRUISE_MANAGER'?'schedule':role==='SHIP_MANAGER'||role==='OPERATIONS_MANAGER'?'operations':role==='ACTIVITY_SERVICE_MANAGER'?'services':undefined
   return adminWorkspaces.find(w=>w.id===id)
 }
-export function staffRoleHome(roles: readonly string[]) {
-  const role=primaryStaffRole(roles)
-  if(role==='ADMIN') return '/admin/system'
-  if(role==='CRUISE_MANAGER') return '/admin/cruises'
-  if(role==='SHIP_MANAGER') return '/admin/fleet-dashboard'
-  if(role==='OPERATIONS_MANAGER') return '/admin/issues'
-  if(role==='ACTIVITY_SERVICE_MANAGER') return '/admin/activities'
-  if(role==='ONBOARD_STAFF') return '/admin/service-requests'
-  if(role==='BOOKING_AGENT'||role==='CUSTOMER_SERVICE') return '/admin/bookings'
-  if(role==='CHECKIN_STAFF') return '/admin/staff/checkin'
-  if(role==='FINANCE_OFFICER') return '/admin/staff/finance'
-  return null
+export function staffRoleHome(roles: readonly string[], access?: AdminAccess) {
+  if (!primaryStaffRole(roles) || access?.status !== 'ready') return null
+  return roleNavigationItems(roles, access)[0]?.to ?? null
 }
 export function staffRoleLabel(roles: readonly string[]) {
   const role=primaryStaffRole(roles)
@@ -136,18 +128,23 @@ export function adminPathPermissions(pathname: string, search=''): readonly stri
   if(section==='decks'&&!parts[3]) return ['DECK_READ','CABIN_READ']
   return tools.find(item=>item.to===('/admin/'+section+(section==='staff'?'/'+parts[3]:'')))?.permissions ?? []
 }
+export function adminPathRequirements(pathname: string, search = ''): readonly PermissionRequirement[] {
+  const permissions = adminPathPermissions(pathname, search)
+  if (!permissions.length) return []
+  const requirements: PermissionRequirement[] = [{ mode: 'ANY', permissions }]
+  // Edit screens load the saved record before exposing mutations: read AND edit.
+  const parts = pathname.split('/')
+  if (parts[4] === 'edit') {
+    const read = tools.find(item => item.to === '/admin/' + parts[2])
+    if (read?.permissions) requirements.push({ mode: read.permissionMode ?? 'ANY', permissions: read.permissions })
+  }
+  return requirements
+}
 export function canRoleOpenAdminPath(roles: readonly string[], pathname: string, search='', access?: AdminAccess) {
-  if(!primaryStaffRole(roles)) return false
-  if(pathname==='/admin') return true
-  if(pathname==='/admin/system'&&!roles.includes('ADMIN')) return false
-  if(pathname==='/admin/ship-import'&&!roles.includes('ADMIN')) return false
-  if(pathname==='/admin/ship-models'&&!roles.includes('ADMIN')) return false
-  if(pathname==='/admin/passenger-tracking'&&!roles.includes('SHIP_MANAGER')) return false
-  if(pathname==='/admin/fleet-dashboard'&&!roles.includes('SHIP_MANAGER')) return false
-  if(pathname.replace(/\/$/,'')==='/admin/ships/new'&&roles.includes('SHIP_MANAGER')) return false
-  const required=adminPathPermissions(pathname,search)
-  const permissions=access ? (access.status==='ready'?access.permissions:[]) : roles.flatMap(role=>backendRolePermissions[role]??[])
-  return required.some(p=>permissions.includes(p))
+  if (!primaryStaffRole(roles) || access?.status !== 'ready') return false
+  if (pathname === '/admin') return true
+  const requirements = adminPathRequirements(pathname, search)
+  return requirements.length > 0 && requirements.every(requirement => hasPermissions(access,requirement))
 }
 const roleJobSections: Record<string,readonly string[]> = {
   ADMIN:['system','ship-import','ship-models'],
@@ -165,12 +162,8 @@ export function roleNavigationItems(roles: readonly string[], access: AdminAcces
   const role=primaryStaffRole(roles)
   const primary=(roleJobSections[role??'']??[]).map(section=>tools.find(tool=>tool.to==='/admin/'+section)!)
   const ordered=[...primary,...tools.filter(tool=>!primary.includes(tool))]
-  const importOnlyAdmin=role==='ADMIN'&&!roles.includes('SHIP_MANAGER')
-  const fleetPaths=['/admin/ships','/admin/decks','/admin/cabins']
-  const managerPaths=['/admin/fleet-dashboard','/admin/ships','/admin/decks','/admin/passenger-tracking']
-  return ordered.map(item=>role==='SHIP_MANAGER'&&item.to==='/admin/decks'?{...item,permissions:['DECK_READ','CABIN_READ']}:item)
-    .filter(item=>!(importOnlyAdmin&&fleetPaths.includes(item.to!))&&(role!=='SHIP_MANAGER'||managerPaths.includes(item.to!))&&canOpenAdminItem(item,access)&&canRoleOpenAdminPath(roles,item.to!,'',access))
-    .map(item=>role==='SHIP_MANAGER'?{...item,label:({'/admin/fleet-dashboard':'Dashboard','/admin/ships':'Ship','/admin/decks':'Boong & Cabin'} as Record<string,string>)[item.to!]??item.label}:item)
+  return ordered.filter(item=>canOpenAdminItem(item,access)&&canRoleOpenAdminPath(roles,item.to!,'',access))
+    .map(item=>role==='SHIP_MANAGER'&&item.to==='/admin/decks'?{...item,label:'Boong & Cabin'}:item)
 }
 export type AdminNavigationGroup = { id: string; label: string; items: AdminNavigationItem[]; direct?: boolean }
 const navigationGroups = [
@@ -194,12 +187,16 @@ export function roleNavigationGroups(roles: readonly string[], access: AdminAcce
   }
   return [...groups.values()]
 }
-export function roleSafeAdminReturnTo(roles: readonly string[], value: string | null) {
-  if(!value||value.includes('\\')||[...value].some(c=>c.charCodeAt(0)<32||c.charCodeAt(0)===127)) return staffRoleHome(roles)
-  try {const url=new URL(value,'https://ocevie.invalid'); return url.origin==='https://ocevie.invalid'&&canRoleOpenAdminPath(roles,url.pathname,url.search)?url.pathname+url.search+url.hash:staffRoleHome(roles)} catch {return staffRoleHome(roles)}
+export function roleSafeAdminReturnTo(roles: readonly string[], value: string | null, access?: AdminAccess) {
+  const home = staffRoleHome(roles,access)
+  if (!value || value.includes('\\') || [...value].some(c => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127)) return home
+  try {
+    const url = new URL(value,'https://ocevie.invalid')
+    return url.origin === 'https://ocevie.invalid' && canRoleOpenAdminPath(roles,url.pathname,url.search,access) ? url.pathname + url.search + url.hash : home
+  } catch { return home }
 }
 
-// BE 15a113a snapshot for pre-session landing only; runtime uses /auth/me.
+// Historical BE 15a113a snapshot; NOT used for landing, menu, routes or requests.
 export const backendRolePermissions: Record<string, readonly string[]> = {
   ADMIN: 'SHIP_CREATE SHIP_READ SHIP_UPDATE BLE_ANCHOR_ACTIVATE BLE_ANCHOR_CREATE BLE_ANCHOR_DEACTIVATE BLE_ANCHOR_DELETE BLE_ANCHOR_INSTALL BLE_ANCHOR_READ BLE_ANCHOR_RETIRE BLE_ANCHOR_UPDATE BLE_ANCHOR_VALIDATE BLE_TELEMETRY_READ BLE_TELEMETRY_RECEIVE SHIP_CONFIGURATION_READ SHIP_CONFIGURATION_VALIDATE SHIP_MODEL_CREATE SHIP_MODEL_DELETE SHIP_MODEL_OBJECT_CREATE SHIP_MODEL_OBJECT_DELETE SHIP_MODEL_OBJECT_UPDATE SHIP_MODEL_PUBLISH SHIP_MODEL_READ SHIP_MODEL_UPDATE USER_CREATE USER_READ USER_ROLE_ASSIGN USER_STATUS_CHANGE USER_UPDATE'.split(' '),
   CRUISE_MANAGER: 'BOOKING_READ CRUISE_ASSIGN_SHIP CRUISE_CANCEL CRUISE_CHANGE_SHIP CRUISE_COMPLETE CRUISE_CREATE CRUISE_DELETE_DRAFT CRUISE_PUBLISH CRUISE_READ CRUISE_REGULATION_ASSIGN CRUISE_REGULATION_READ CRUISE_REGULATION_REMOVE CRUISE_START CRUISE_STATUS_CHANGE CRUISE_STOP_ACTUAL_ARRIVAL CRUISE_STOP_ACTUAL_DEPARTURE CRUISE_STOP_ADD CRUISE_STOP_ALL_ABOARD CRUISE_STOP_OMIT CRUISE_STOP_READ CRUISE_STOP_REMOVE_DRAFT CRUISE_STOP_REORDER CRUISE_STOP_SUBSTITUTE CRUISE_STOP_TIME_MANAGE CRUISE_STOP_UPDATE CRUISE_STOP_VALIDATE CRUISE_UNASSIGN_SHIP CRUISE_UPDATE_DRAFT CRUISE_VALIDATE DESTINATION_READ EXCURSION_READ ITINERARY_APPLY_CHANGE ITINERARY_CANCEL ITINERARY_CHANGE_READ ITINERARY_CHANGE_RECORD ITINERARY_CREATE ITINERARY_DAY_CREATE ITINERARY_DAY_DELETE ITINERARY_DAY_READ ITINERARY_DAY_TIMEZONE_SET ITINERARY_DAY_TYPE_SET ITINERARY_DAY_UPDATE ITINERARY_DAYS_MANAGE ITINERARY_DELETE_DRAFT ITINERARY_PUBLISH ITINERARY_READ ITINERARY_SUBMIT ITINERARY_UPDATE_DRAFT ITINERARY_VALIDATE OPERATIONAL_ISSUE_READ PORT_READ REGULATION_READ REPORT_GENERATE SERVICE_READ SERVICE_REQUEST_READ SHIP_READ SUPPLIER_READ TOUR_GROUP_READ'.split(' '),

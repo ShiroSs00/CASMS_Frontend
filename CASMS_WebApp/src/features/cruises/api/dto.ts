@@ -1,5 +1,14 @@
 import type { CruiseStatus, CruiseType, PortRecord, ShipRecord } from '../model/cruise-record'
 
+export type CruiseSaveRequestDto = {
+  cruiseName: string
+  cruiseType?: CruiseType
+  departureDatetime: string
+  returnDatetime: string
+  departurePortId: string
+  returnPortId: string
+}
+
 export type PageDto<T> = {
   content: T[]
   totalPages: number
