@@ -2,16 +2,16 @@
 .twoColumns { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
 .actions { display:flex; flex-wrap:wrap; gap:16px; align-items:center; margin-top:4px; }
 .rowActions { display:flex; flex-wrap:wrap; gap:8px 12px; }
-.link { color:#0b2a4a; font:inherit; font-weight:600; text-decoration:underline; text-underline-offset:3px; background:none; border:0; padding:0; cursor:pointer; }
-.link:disabled { color:#506777; text-decoration:none; cursor:not-allowed; }
+.link { color:var(--brand-navy); font:inherit; font-weight:600; text-decoration:underline; text-underline-offset:3px; background:none; border:0; padding:0; cursor:pointer; }
+.link:disabled { color:var(--text-secondary); text-decoration:none; cursor:not-allowed; }
 .danger { color:#b42318; }
-.muted { color:#506777; font-size:13px; line-height:20px; }
+.muted { color:var(--text-secondary); font-size:13px; line-height:20px; }
 .full { grid-column:1/-1; }
 .check { display:flex; gap:10px; align-items:center; min-height:48px; font-size:14px; }
-.check input { width:20px; height:20px; accent-color:#0b2a4a; }
-.definition { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; margin:0; border-top:1px solid #d5e0e4; border-left:1px solid #d5e0e4; }
-.definition div { padding:14px 16px; min-height:84px; border-right:1px solid #d5e0e4; border-bottom:1px solid #d5e0e4; overflow-wrap:anywhere; }
-.definition dt { color:#506777; font-size:12px; margin-bottom:6px; }
+.check input { width:20px; height:20px; accent-color:var(--brand-navy); }
+.definition { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; margin:0; border-top:1px solid var(--border-default); border-left:1px solid var(--border-default); }
+.definition div { padding:14px 16px; min-height:84px; border-right:1px solid var(--border-default); border-bottom:1px solid var(--border-default); overflow-wrap:anywhere; }
+.definition dt { color:var(--text-secondary); font-size:12px; margin-bottom:6px; }
 .definition dd { margin:0; font-size:14px; font-weight:500; line-height:21px; }
 .stack { display:flex; flex-direction:column; gap:16px; }
 .pagination { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; }
@@ -32,4 +32,4 @@
 /* Keep field rows aligned; wrap according to available form width. */
 .grid { align-items:start; gap:16px 24px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }
 
-form .actions { justify-content:flex-end; border-top:1px solid var(--ui-border,#d5e0e4); }
+form .actions { justify-content:flex-end; border-top:1px solid var(--ui-border,var(--border-default)); }

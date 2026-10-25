@@ -1,4 +1,5 @@
-import { FormErrorSummary } from '@/shared/ui'
+import { EditorLayout } from '@/shared/ui'
+import { FormErrorSummary, FormSection } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
@@ -209,10 +210,10 @@ export function RegulationFormPage() {
       ) : null}
       {submitError ? <Notice title="Không lưu được dữ liệu" tone="error" role="alert">{submitError}</Notice> : null}
 
-      <form noValidate onSubmit={(event) => void submit(event)}>
+      <EditorLayout guidance={[{title:"Phạm vi áp dụng",description:"Kiểm tra loại, phạm vi, giá trị và đơn vị của quy định."},{title:"Thời gian hiệu lực",description:"Đối chiếu thời điểm bắt đầu và kết thúc trước khi lưu."}]}><form noValidate onSubmit={(event) => void submit(event)}>
         <Panel title="Thông tin quy định">
           <FormErrorSummary errors={errors} />
-          <div className={styles.formGrid}>
+          <div className={styles.formGrid}><FormSection title="01 · Nội dung và phạm vi">
             <Field error={errors.name} htmlFor="name" label="Tên quy định">
               <input
                 aria-invalid={Boolean(errors.name)}
@@ -248,7 +249,7 @@ export function RegulationFormPage() {
                 <option value="CRUISE">CRUISE · Theo chuyến</option>
               </select>
             </Field>
-            <Field error={errors.value} htmlFor="value" label="Giá trị">
+            </FormSection><FormSection title="02 · Giá trị và đơn vị"><Field error={errors.value} htmlFor="value" label="Giá trị">
               {source?.hasBeenActive ? (
                 <input
                   aria-describedby="protected-value-note"
@@ -285,7 +286,7 @@ export function RegulationFormPage() {
                 <option value="NONE">NONE</option>
               </select>
             </Field>
-            <Field error={errors.effectiveFrom} htmlFor="effective-from" label="Bắt đầu hiệu lực">
+            </FormSection><FormSection title="03 · Thời gian hiệu lực"><Field error={errors.effectiveFrom} htmlFor="effective-from" label="Bắt đầu hiệu lực">
               <input
                 aria-invalid={Boolean(errors.effectiveFrom)}
                 data-form-error={Boolean(errors.effectiveFrom)}
@@ -305,7 +306,7 @@ export function RegulationFormPage() {
                 value={draft.effectiveTo ?? ''}
               />
             </Field>
-            <div className={styles.fullWidth}>
+            </FormSection><div className={styles.fullWidth}>
               <Field htmlFor="description" label="Mô tả">
                 <textarea
                   id="description"
@@ -328,7 +329,7 @@ export function RegulationFormPage() {
             </Button>
           </div>
         </Panel>
-      </form>
+      </form></EditorLayout>
     </AdminFrame>
   )
 }

@@ -1,5 +1,5 @@
 import { useParams } from 'react-router'
-import { Field, Notice, PageHeader } from '@/shared/ui'
+import { Field, Notice, PageHeader, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { CheckinDesk, FinanceBookingsPage } from '@/features/booking'
 import { CruiseOperations } from '@/features/cruises'
@@ -20,7 +20,7 @@ function CheckinWorkspace() {
     }
     return rows
   }, [allowed]))
-  return <><CheckinDesk />{allowed && <><Field htmlFor="desk-cruise" label="Hướng dẫn an toàn theo chuyến"><select id="desk-cruise" disabled={cruises.loading || Boolean(cruises.error)} value={cruiseId} onChange={e => setCruiseId(e.target.value)}><option value="">Chọn chuyến</option>{cruises.data?.map(c => <option key={c.cruiseId} value={c.cruiseId}>{c.cruiseCode} · {c.cruiseName}</option>)}</select></Field>{cruises.error && <Notice title="Chưa đọc được chuyến" tone="error">{cruises.error.message}</Notice>}{cruiseId && <CruiseOperations key={cruiseId} cruiseId={cruiseId} />}</>}</>
+  return <><CheckinDesk />{allowed && <Panel title="Hướng dẫn an toàn theo chuyến"><Field htmlFor="desk-cruise" label="Hướng dẫn an toàn theo chuyến"><select id="desk-cruise" disabled={cruises.loading || Boolean(cruises.error)} value={cruiseId} onChange={e => setCruiseId(e.target.value)}><option value="">Chọn chuyến</option>{cruises.data?.map(c => <option key={c.cruiseId} value={c.cruiseId}>{c.cruiseCode} · {c.cruiseName}</option>)}</select></Field>{cruises.error && <Notice title="Chưa đọc được chuyến" tone="error">{cruises.error.message}</Notice>}{cruiseId && <CruiseOperations key={cruiseId} cruiseId={cruiseId} />}</Panel>}</>
 }
 
 export function AdminStaffFunctionPage() {

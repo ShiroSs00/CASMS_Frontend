@@ -28,7 +28,7 @@ export function PageHeader({
   description: string
   actions?: ReactNode
 }) {
-  return <SharedPageHeader title={title} description={description} actions={actions} breadcrumb="" />
+  return <SharedPageHeader title={title} description={description} actions={actions} breadcrumb="VẬN HÀNH / QUY ĐỊNH" />
 }
 
 export function Field({ htmlFor, ...props }: { label: string; htmlFor?: string; hint?: string; error?: string; children: ReactNode }) {

@@ -8,6 +8,7 @@ import { BookingInstallments } from '../components/BookingInstallments'
 import { PaymentLedger } from '../components/PaymentLedger'
 import { bookingMoney } from '../model/booking-presentation'
 import { bookingStatusName } from '../model/real-booking-view'
+import styles from '../components/LiveBooking.module.css'
 
 export function FinanceBookingsPage() {
   const access = useSessionAccess()
@@ -34,13 +35,16 @@ function FinanceWorkspace() {
   }
   return <RealBookingFrame admin><PageHeader title="Tài chính & lịch thanh toán" breadcrumb="TÀI CHÍNH" description="Đối chiếu khoản thu, hợp đồng và các đợt thanh toán." />
     {!canBookings && <Notice title="Danh sách đặt chỗ chưa khả dụng">{access.status === 'loading' ? 'Đang kiểm tra quyền truy cập…' : 'Tài khoản cần quyền xem đặt chỗ để mở danh sách và hợp đồng.'}</Notice>}
-    {canPayments && <Panel title="Tra cứu khoản thu theo đặt chỗ" subtitle="Dùng ID đặt chỗ trong hồ sơ bàn giao khi chưa mở được danh sách hoặc hợp đồng."><form onSubmit={openLedger}><Field htmlFor="finance-booking-id" label="ID đặt chỗ"><input id="finance-booking-id" required value={bookingId} onChange={event => setBookingId(event.target.value)} /></Field><Button type="submit">Mở khoản thu</Button></form>{error && <Notice title="Chưa tra cứu được" tone="error">{error}</Notice>}</Panel>}
-    {canBookings && <Panel title="Đặt chỗ"><BookingReadState {...list} />{list.data && <>
+    <div className={styles.financeGrid}>
+    {canPayments && <Panel className={styles.financeLookup} title="Tra cứu khoản thu" subtitle="Dùng ID đặt chỗ trong hồ sơ bàn giao khi chưa mở được danh sách hoặc hợp đồng."><form onSubmit={openLedger}><Field htmlFor="finance-booking-id" label="ID đặt chỗ"><input id="finance-booking-id" required value={bookingId} onChange={event => setBookingId(event.target.value)} /></Field><Button type="submit">Mở khoản thu</Button></form>{error && <Notice title="Chưa tra cứu được" tone="error">{error}</Notice>}</Panel>}
+    {canBookings && <Panel className={styles.financeList} title="Đặt chỗ"><BookingReadState {...list} />{list.data && <>
       {!list.data.content.length ? <Empty title="Chưa có đặt chỗ" /> : <DataTable label="Đặt chỗ và giá vé" headers={['Mã đặt chỗ', 'Chuyến đi', 'Trạng thái', 'Tổng giá vé', '']}>
         {list.data.content.map(item => <tr key={item.bookingId}><td>{item.bookingReference}</td><td>{item.cruiseName}</td><td>{bookingStatusName[item.bookingStatus]}</td><td>{item.agreedFareAmount != null && item.currency ? bookingMoney(item.agreedFareAmount, item.currency) : 'Chưa có'}</td><td><Button tone="secondary" onClick={() => setSelected({ id: item.bookingId, reference: item.bookingReference, currency: item.currency ?? '' })}>Xem khoản thu & lịch thanh toán</Button></td></tr>)}
       </DataTable>}
-      <Button tone="secondary" disabled={page === 0} onClick={() => setPage(value => value - 1)}>Trang trước</Button><span> Trang {page + 1} </span><Button tone="secondary" disabled={page + 1 >= list.data.totalPages} onClick={() => setPage(value => value + 1)}>Trang sau</Button>
+      <div className={styles.financePagination}><Button tone="secondary" disabled={page === 0} onClick={() => setPage(value => value - 1)}>Trang trước</Button><span> Trang {page + 1} </span><Button tone="secondary" disabled={page + 1 >= list.data.totalPages} onClick={() => setPage(value => value + 1)}>Trang sau</Button></div>
     </>}</Panel>}
+    </div>
+    {!selected && canBookings && !list.loading && !list.error && Boolean(list.data?.content.length) && <Panel title="Chi tiết khoản thu"><Empty title="Chọn đặt chỗ để xem khoản thu"><p>Mở một đặt chỗ trong danh sách hoặc tra cứu bằng ID để đối chiếu giao dịch và lịch thanh toán.</p></Empty></Panel>}
     {selected && <section aria-label={`Tài chính ${selected.reference}`}><h2>{selected.reference}</h2>
       <PaymentLedger key={selected.id} bookingId={selected.id} currency={detail.data?.currency ?? selected.currency} onChanged={() => { detail.retry(); list.retry() }} />
       {canBookings && <Panel title="Lịch thanh toán"><BookingReadState {...detail} />{detail.data && <BookingInstallments booking={detail.data} />}

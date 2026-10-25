@@ -1,0 +1,12 @@
+.facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 28px; margin:0; }
+.facts > div { min-width:0; padding:16px 0; border-bottom:1px solid var(--border-default); }
+.facts dt { font-size:12px; line-height:1.6; color:var(--text-secondary); }
+.facts dd { margin:8px 0 0; color:var(--text-primary); font-size:14px; font-weight:500; line-height:1.7; overflow-wrap:anywhere; white-space:pre-wrap; }
+@media(max-width:650px) { .facts { grid-template-columns:minmax(0,1fr); } }
+
+.facts { gap:0 32px; }
+.facts > div { display:grid; grid-template-columns:minmax(100px,.8fr) minmax(0,1.2fr); gap:20px; padding:18px 0; align-items:start; }
+.facts dt { font-size:12px; }
+.facts dd { margin:0; font-size:13px; font-weight:500; }
+@media(max-width:1100px) { .facts { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:600px) { .facts > div { grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr); gap:16px; } }

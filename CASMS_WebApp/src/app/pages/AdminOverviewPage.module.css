@@ -7,7 +7,7 @@
 .headerNote p { margin:8px 0 0; color:var(--text-secondary); font-weight:400; line-height:1.6; }
 .headerDot { display:inline-block; width:6px; height:6px; margin-right:7px; border-radius:50%; background:var(--brand-teal); }
 .workspaceGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
-.workspaceCard { display:flex; flex-direction:column; min-width:0; padding:28px; border:1px solid var(--border-default); border-radius:16px; background:white; box-shadow:0 4px 16px #061a2b04; }
+.workspaceCard { display:flex; flex-direction:column; min-width:0; padding:28px; border:1px solid var(--border-default); border-radius:var(--radius-panel); background:white; transition:border-color var(--motion-feedback) var(--ease-feedback),box-shadow var(--motion-feedback) var(--ease-feedback); box-shadow:var(--shadow-panel); }
 .cardTop { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
 .workspaceIcon { display:grid; place-items:center; width:52px; height:52px; border-radius:14px; background:#DDF1F0; color:var(--brand-teal); }
 .workspaceIcon svg { width:28px; height:28px; }
@@ -33,3 +33,6 @@
 .helpPanel a { display:inline-flex; align-items:center; gap:12px; flex-shrink:0; min-height:44px; color:var(--brand-navy); text-underline-offset:4px; font-size:13px; font-weight:500; }
 @media(max-width:1100px) { .pageHeader { align-items:flex-start; flex-direction:column; gap:20px; } .headerNote { max-width:none; } .workspaceCard { padding:22px; } .helpPanel { align-items:flex-start; flex-direction:column; } }
 @media(max-width:680px) { .workspaceGrid { grid-template-columns:minmax(0,1fr); gap:16px; } .pageHeader h1 { font-size:32px; } .workspaceCard { padding:22px; } .workspaceCard h2 { font-size:20px; } .helpPanel { padding:20px; } .helpPanel > div { align-items:flex-start; } }
+
+@media(hover:hover) and (pointer:fine) { .workspaceCard:has(a:hover) { border-color:var(--brand-teal); box-shadow:var(--shadow-floating); } }
+.workspaceCard:focus-within { border-color:var(--brand-teal); }

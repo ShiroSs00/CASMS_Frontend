@@ -5,7 +5,7 @@
 .createButton, .content .button { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 180px; min-height: 44px; padding: 0 16px; border: 1px solid var(--surface-brand); border-radius: 6px; background: var(--surface-brand); color: var(--text-inverse); font-size: 14px; font-weight: 600; line-height: 17px; letter-spacing: .14px; text-decoration: none; }
 .createButton:hover { filter: brightness(1.15); }
 .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 280px)); gap: 12px; }
-.metric { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--border-default); border-radius: 16px; }
+.metric { display: flex; flex-direction: column; gap: 14px; padding: 24px; border: 1px solid var(--border-default); border-radius: var(--radius-panel); background:var(--surface-default); box-shadow:var(--shadow-panel); }
 .metric dt, .metricNote { color: var(--text-secondary); font-size: 12px; font-weight: 500; line-height: 17px; letter-spacing: .12px; }
 .metricValue { font-size: 32px; font-weight: 600; line-height: 40px; }
 .success { color: var(--status-success); }
@@ -54,3 +54,11 @@
 .field { font-size:14px; line-height:1.5; }
 .tableContainer { max-width:100%; border-radius:12px; }
 .table th { font-size:13px; font-weight:600; }
+
+.metric { position:relative; overflow:hidden; border-top:3px solid var(--brand-teal); }
+.metric:has(.warning) { border-top-color:#995700; }
+.metric:has(.danger) { border-top-color:#B42318; }
+.metricValue { margin:0; font-family:var(--font-family-heading); font-variant-numeric:tabular-nums; letter-spacing:-.04em; }
+.metricNote { margin:0; }
+.tableContainer { background:var(--surface-default); box-shadow:var(--shadow-panel); }
+@media(max-width:600px) { .metric { padding:20px; } }

@@ -1,4 +1,4 @@
-import { DataTable, Field, ListFilters } from '@/shared/ui'
+import { CollectionSummary, DataTable, Field, ListFilters } from '@/shared/ui'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 
@@ -80,6 +80,7 @@ export function RegulationListPage() {
         }
       />
 
+      <CollectionSummary count={loading || error ? null : items.length} filtered={Boolean(appliedQuery.search || appliedQuery.type !== 'ALL' || appliedQuery.scope !== 'ALL' || appliedQuery.status !== 'ALL')} label="Quy định trong kết quả" scope="Tra cứu theo thời điểm đã chọn" />
       <Panel title="Bộ lọc">
         <ListFilters label="Bộ lọc quy định" onSubmit={applyFilters} actions={<><Button type="submit">Áp dụng bộ lọc</Button><Button onClick={resetFilters} tone="secondary">Xóa bộ lọc</Button></>}>
           <Field htmlFor="reg-search" label="Tìm quy định">

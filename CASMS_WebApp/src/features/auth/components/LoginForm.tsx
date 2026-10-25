@@ -33,8 +33,8 @@ export function LoginForm({ expired, login, onSuccess }: {
     finally { lock.current = false; setBusy(false) }
   }
   return <div className={styles.loginCard}>
-    <p className={styles.eyebrow}>{expired ? 'PHIÊN ĐĂNG NHẬP' : 'QUẢN TRỊ OceVie'}</p>
-    <h1>{expired ? 'Phiên của bạn đã hết hạn' : 'Chào mừng trở lại'}</h1>
+    <p className={styles.eyebrow}>{expired ? 'PHIÊN ĐĂNG NHẬP' : 'OCEVIE · STAFF PORTAL'}</p>
+    <h1>{expired ? 'Phiên của bạn đã hết hạn' : 'Không gian điều hành'}</h1>
     <p>{expired ? 'Đăng nhập lại để tiếp tục.' : 'Đăng nhập dành cho quản trị viên, quản lý và nhân viên đặt chỗ.'}</p>
     <form className={styles.loginForm} onSubmit={(event) => void submit(event)} noValidate>
       <Field htmlFor="auth-username" label="Tên đăng nhập" error={attempted && !username.trim() ? 'Nhập tên đăng nhập.' : undefined}><input id="auth-username" name="username" autoComplete="username" value={username} disabled={busy} required aria-invalid={attempted && !username.trim()} aria-describedby={attempted && !username.trim() ? 'auth-username-hint' : undefined} onChange={(event) => setUsername(event.target.value)} /></Field>

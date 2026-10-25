@@ -2,7 +2,7 @@ import { useSessionAccess } from '@/shared/auth'
 import { useCallback } from 'react'
 import { useParams } from 'react-router'
 import { useReadQuery } from '@/shared/api'
-import { ButtonLink, PageHeader, Panel } from '@/shared/ui'
+import { Badge, ButtonLink, PageHeader, Panel, RecordFacts } from '@/shared/ui'
 import { activityApi } from '../api/activity-api'
 import { ActivityFrame, ActivityState } from '../components/ActivityUI'
 import { activityTime, activityStatusLabels, type Activity } from '../model/activity'
@@ -25,6 +25,10 @@ export function ActivityDetailPage() {
   const query = useReadQuery('activity:' + activityId, useCallback(signal => activityApi.get(activityId, signal), [activityId]))
   const activity = query.data
   return <ActivityFrame><PageHeader breadcrumb="DỊCH VỤ TÀU / HOẠT ĐỘNG" title={activity?.name ?? 'Chi tiết hoạt động'} description="Lịch tổ chức, sức chứa và các đăng ký liên quan." actions={<><ButtonLink tone="secondary" to="/admin/activities">Danh sách hoạt động</ButtonLink></>} /><ActivityState {...query} />
-    {activity && <><Panel title="Thông tin hoạt động"><dl className={styles.definition}><dt>Mã hoạt động</dt><dd>{activity.code}</dd><dt>Trạng thái</dt><dd>{activityStatusLabels[activity.status] ?? activity.status}</dd><dt>Thời gian</dt><dd>{activityTime(activity.startTime)} → {activityTime(activity.endTime)}</dd><dt>Địa điểm</dt><dd>{activity.location || 'Chưa xác định'}</dd><dt>Sức chứa</dt><dd>{activity.capacity}</dd><dt>Giá tham gia</dt><dd>{activity.price === null ? 'Chưa cấu hình' : `${activity.price} ${activity.currencyCode ?? ''}`}</dd><dt>Mô tả</dt><dd>{activity.description || 'Chưa có mô tả'}</dd></dl><ButtonLink tone="secondary" to={`/admin/cruises/${activity.cruiseId}`}>Xem chuyến đi</ButtonLink></Panel><ActivityOperations activity={activity} onChanged={query.retry} /><ActivityRelated activity={activity} /></>}
+    {activity && <><div className={styles.detailLayout}><Panel title="Thông tin hoạt động"><RecordFacts entries={[
+      ['Mã hoạt động', activity.code], ['Trạng thái', <Badge label={activityStatusLabels[activity.status] ?? activity.status} tone={activity.status === 'IN_PROGRESS' ? 'info' : activity.status === 'COMPLETED' ? 'success' : 'neutral'} />],
+      ['Thời gian', `${activityTime(activity.startTime)} → ${activityTime(activity.endTime)}`], ['Địa điểm', activity.location || 'Chưa xác định'],
+      ['Sức chứa', activity.capacity], ['Giá tham gia', activity.price === null ? 'Chưa cấu hình' : `${activity.price} ${activity.currencyCode ?? ''}`], ['Mô tả', activity.description || 'Chưa có mô tả'],
+    ]} /><ButtonLink tone="secondary" to={`/admin/cruises/${activity.cruiseId}`}>Xem chuyến đi</ButtonLink></Panel><aside className={styles.actionRail}><ActivityOperations activity={activity} onChanged={query.retry} /></aside></div><ActivityRelated activity={activity} /></>}
   </ActivityFrame>
 }

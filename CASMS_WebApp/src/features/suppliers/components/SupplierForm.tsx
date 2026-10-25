@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Button, Field, FormErrorSummary } from '@/shared/ui'
+import { Button, Field, FormErrorSummary, FormSection } from '@/shared/ui'
 import {
   supplierFormFieldOrder,
   supplierFormFields,
@@ -87,23 +87,19 @@ export function SupplierForm({
       aria-label={mode === 'create' ? 'Thêm nhà cung cấp' : 'Chỉnh sửa nhà cung cấp'}
     >
       {submitted && <FormErrorSummary errors={errors} />}
-      <h2>Nhà cung cấp</h2>
-      <div className={styles.fieldRow}>
+      <FormSection title="01 · Nhà cung cấp" description="Thông tin nhận diện và lĩnh vực cung ứng.">
         {input('supplierName')}
         {input('supplierType')}
-      </div>
-      <h2>Liên hệ chính</h2>
-      <div className={styles.fieldRow}>
+      </FormSection>
+      <FormSection title="02 · Liên hệ chính" description="Người liên hệ và kênh liên lạc phục vụ điều phối.">
         {input('contactName')}
         {input('contactPhone')}
-      </div>
-      <div className={styles.fieldRow}>
         {input('contactEmail')}
         <div className={styles.context}>
           <p>Trạng thái &amp; xác minh</p>
           <p>Được quản lý ngoài biểu mẫu này.</p>
         </div>
-      </div>
+      </FormSection>
       <div className={styles.notes}>
         <Field htmlFor="supplier-form-notes" label="Ghi chú" error={errorFor('notes')}>
           <textarea

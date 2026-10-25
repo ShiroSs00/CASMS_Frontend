@@ -1,31 +1,31 @@
-.pageShell { color-scheme:light; background:#f8f6ec; color:#0b2a4a; font-family:var(--font-family-body); }
+.pageShell { color-scheme:light; background:var(--brand-pearl); color:var(--brand-navy); font-family:var(--font-family-body); }
 .header { height:82px; padding:0 72px; display:flex; align-items:center; justify-content:space-between; gap:24px; background:white; }
 .header a { text-decoration:none; }
 .brandNav { display:flex; gap:40px; align-items:center; }
-.brand { color:#0b2a4a; font-size:22px; line-height:32px; font-weight:600; }
+.brand { color:var(--brand-navy); font-size:22px; line-height:32px; font-weight:600; }
 .brandNav nav { display:flex; gap:40px; }
-.brandNav nav a { color:#506777; font-size:14px; line-height:20px; font-weight:400; }
+.brandNav nav a { color:var(--text-secondary); font-size:14px; line-height:20px; font-weight:400; }
 .accountNav { display:flex; align-items:center; justify-content:flex-end; gap:24px; flex:none; }
 .accountNav > button { border:0; background:none; color:inherit; font:500 14px/20px var(--font-family-body); cursor:pointer; }
-.skipLink { position:absolute; left:16px; top:-100px; z-index:50; padding:12px; background:white; color:#0b2a4a; }
+.skipLink { position:absolute; left:16px; top:-100px; z-index:50; padding:12px; background:white; color:var(--brand-navy); }
 .skipLink:focus { top:12px; }
-.notice { position:relative; background:white; border-bottom:1px solid #d5e0e4; padding:12px 72px; font-size:14px; }
+.notice { position:relative; background:white; border-bottom:1px solid var(--border-default); padding:12px 72px; font-size:14px; }
 .notice button { margin-left:16px; border:0; background:none; cursor:pointer; }
 @media(max-width:1200px) { .header { padding:0 32px; } .brandNav { gap:20px; } .brand { width:auto; } .brandNav nav { gap:20px; } .brandNav nav a { width:auto; } .accountNav { width:auto; } }
 @media(max-width:720px) { .header { height:auto; min-height:116px; padding:16px 20px; flex-wrap:wrap; gap:12px; } .brandNav { display:contents; } .brand { order:0; } .accountNav { order:1; } .accountNav > button { display:none; } .brandNav nav { order:2; width:100%; justify-content:space-between; gap:8px; } .brandNav nav a { font-size:12px; } .notice { padding:12px 20px; } }
 
 .accountNav > a { display:inline-flex; align-items:center; min-height:44px; font-size:14px; }
 .contact { position:relative; }
-.contactLink { min-height:44px; padding:10px 20px; border:1px solid #d5e0e4; border-radius:8px; color:#0b2a4a; background:white; font:600 14px/20px var(--font-family-body); cursor:pointer; }
-.contactDetails { position:absolute; right:0; top:100%; z-index:30; width:min(300px,calc(100vw - 40px)); padding:20px; border:1px solid #d5e0e4; border-radius:12px; background:white; color:#0b2a4a; box-shadow:0 12px 30px #0b2a4a20; overflow-wrap:anywhere; display:flex; flex-direction:column; gap:8px; }
-.contactDetails > span { margin-top:8px; font-size:12px; color:#506777; }
+.contactLink { min-height:44px; padding:10px 20px; border:1px solid var(--border-default); border-radius:8px; color:var(--brand-navy); background:white; font:600 14px/20px var(--font-family-body); cursor:pointer; }
+.contactDetails { position:absolute; right:0; top:100%; z-index:30; width:min(300px,calc(100vw - 40px)); padding:20px; border:1px solid var(--border-default); border-radius:16px; background:white; color:var(--brand-navy); box-shadow:var(--shadow-floating); overflow-wrap:anywhere; display:flex; flex-direction:column; gap:8px; }
+.contactDetails > span { margin-top:8px; font-size:12px; color:var(--text-secondary); }
 .contactDetails > p { margin:0; font-size:14px; }
 .contactDetails > a { display:flex; align-items:center; min-height:44px; text-decoration:underline; text-underline-offset:4px; }
 
 /* Presentation only; existing links, session and booking navigation stay intact. */
 .pageShell { display:flex; flex-direction:column; min-height:100dvh; font-family:var(--ui-font); }
 .pageShell > main { flex:1; min-width:0; }
-.header { min-height:80px; height:auto; padding-block:14px; border-bottom:1px solid #e5e0d4; flex-wrap:wrap; }
+.header { min-height:80px; height:auto; padding-block:14px; border-bottom:1px solid #e5e0d4; box-shadow:0 2px 16px #061a2b05; flex-wrap:wrap; }
 .brandNav, .accountNav { min-width:0; flex-wrap:wrap; }
 .brandNav nav { flex-wrap:wrap; }
 .header nav a { display:inline-flex; align-items:center; min-height:44px; border-bottom:2px solid transparent; }
@@ -40,3 +40,17 @@
 .brand { display:inline-flex; align-items:center; flex-shrink:0; }
 @media(min-width:1181px) { .header { padding-inline:max(32px,calc((100% - 1280px)/2)); } .brandNav { gap:28px; } .brandNav nav { gap:24px; } }
 @media(max-width:720px) { .brandNav { display:contents; } .accountNav { margin-left:0; gap:16px; width:100%; justify-content:space-between; order:2; } .brandNav nav { order:1; } }
+.contactDetails { opacity:1; transition:opacity var(--motion-surface) var(--ease-soft); }
+@starting-style { .contactDetails { opacity:0; } }
+
+.brandLine { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; padding:10px max(24px,calc((100% - 1280px)/2)); background:var(--brand-midnight); color:#E0E8EA; font-size:9px; letter-spacing:.13em; }
+.brandLine a { font-size:10px; letter-spacing:normal; text-underline-offset:4px; }
+.header { padding:20px max(24px,calc((100% - 1280px)/2)); min-height:100px; border-bottom:1px solid #C8CFCC; box-shadow:none; background:var(--brand-pearl); }
+.brand img { width:170px; }
+.brandNav { gap:48px; }
+.brandNav nav { gap:28px; }
+.header nav a { font-size:12px; }
+.accountNav { gap:20px; }
+.accountNav > a { border:1px solid var(--brand-navy); padding:10px 16px; border-radius:3px; font-size:12px; }
+@media(max-width:1180px) { .brandNav { flex:1; flex-wrap:wrap; } .header { gap:12px; padding-inline:28px; } .brandNav nav { gap:18px; } }
+@media(max-width:760px) { .header { padding:20px; } .brandNav { display:contents; } .brandNav nav { order:2; width:100%; gap:14px; justify-content:flex-start; } .brandNav nav a { font-size:11px; } .accountNav { width:auto; margin-left:auto; order:1; } .accountNav > a { font-size:11px; padding:8px 12px; } .brand img { width:136px; } .brandLine { padding-inline:20px; } }

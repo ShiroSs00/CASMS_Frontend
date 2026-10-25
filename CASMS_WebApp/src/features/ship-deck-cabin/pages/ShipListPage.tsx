@@ -19,10 +19,7 @@ export function ShipListPage() {
   const items = state.status === 'data' ? filterShips(state.data.items, applied) : []
   return <AdminShell>
     <div className={styles.stack}>
-      <div className={styles.fleetPageHeading}>
-        <div className={styles.dashboardHeading}><PageHeader breadcrumb="Ship" title="Quản lý tàu" description="" /></div>
-        <Link className={styles.manageLink} to="/admin/decks">Boong & Cabin <span aria-hidden="true">↗</span></Link>
-      </div>
+      <PageHeader breadcrumb="ĐỘI TÀU / HỒ SƠ TÀU" title="Quản lý tàu" description="Tra cứu hồ sơ, cấu trúc không gian và chuyến hiện tại của từng tàu." actions={<Link className={styles.manageLink} to="/admin/decks">Boong & Cabin <span aria-hidden="true">↗</span></Link>} />
       <Panel className={styles.fleetFilterPanel}><ShipListFilters value={pending} onChange={setPending} onApply={() => setApplied({ ...pending })} onReset={reset} disabled={state.status !== 'data'} canReset={hasFilters(pending) || hasFilters(applied)} /></Panel>
       {state.status === 'loading' && <Panel><p role="status">Đang tải danh sách tàu…</p></Panel>}
       {state.status === 'error' && <Panel><div role="alert"><p>{state.message}</p><Button onClick={retry}>Thử lại</Button></div></Panel>}
