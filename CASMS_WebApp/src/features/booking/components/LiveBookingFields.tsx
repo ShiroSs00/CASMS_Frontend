@@ -13,7 +13,7 @@ export function CabinPassengerFields({ cabins, packages, publicJourney = false }
     if (publicJourney) setErrors(current => { const next = { ...current }; delete next[`person-${index}-${key}`]; return next })
   }
   return <div className={styles.stack}>
-    {draft.passengers.map((person, index) => <Panel key={index} title={`Hành khách ${index + 1}${person.fullName ? ' · ' + person.fullName : ''}`}>
+    {draft.passengers.map((person, index) => <Panel className={styles.passengerCard} key={index} title={`Hành khách ${index + 1}${person.fullName ? ' · ' + person.fullName : ''}`}>
       <Field htmlFor={`person-${index}-cabinId`} label={`Phòng cho hành khách ${index + 1} *`} hint={publicJourney ? 'Chọn cùng một phòng cho các hành khách ở chung, trong số chỗ còn lại.' : undefined} error={errors[`person-${index}-cabinId`]}>
         <select id={`person-${index}-cabinId`} value={person.cabinId} aria-invalid={Boolean(errors[`person-${index}-cabinId`])} aria-describedby={publicJourney || errors[`person-${index}-cabinId`] ? `person-${index}-cabinId-hint` : undefined} onChange={event => update(index, 'cabinId', event.target.value)}>
           <option value="">Chọn phòng trống</option>
@@ -51,7 +51,7 @@ export function PassengerDetailsFields({ publicJourney = false, representativeEm
     ['nationality', 'Quốc tịch (tùy chọn)', 'text', 10], ['email', 'Email', 'email', undefined],
     ['phoneNumber', 'Số điện thoại', 'tel', 16], ['documentNumber', 'Số giấy tờ (tùy chọn)', 'text', 30],
   ] as const
-  return <div className={styles.stack}>{draft.passengers.map((person, index) => <Panel key={index} title={`Hành khách ${index + 1}${index === 0 ? ' · Người đại diện' : ''}`}>
+  return <div className={styles.stack}>{draft.passengers.map((person, index) => <Panel className={styles.passengerCard} key={index} title={`Hành khách ${index + 1}${index === 0 ? ' · Người đại diện' : ''}`}>
     {index === 0 && <p>Khách chưa đăng nhập cần email người đại diện để nhận hướng dẫn hợp đồng.</p>}
     {publicJourney && <p className={styles.helper}>Dấu * là thông tin bắt buộc. Nhập họ tên như trên giấy tờ; các thông tin tùy chọn có thể để trống.</p>}
     <div className={styles.fields}>{fields.map(([key, label, type, maxLength]) => {

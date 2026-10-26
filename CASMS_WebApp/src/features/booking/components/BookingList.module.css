@@ -3,3 +3,12 @@
 .cruise { display:block; max-width:360px; white-space:normal; overflow-wrap:anywhere; line-height:1.5; }
 .detail { display:inline-flex; align-items:center; min-height:44px; white-space:nowrap; font-weight:600; color:var(--ui-ink,var(--brand-navy)); text-underline-offset:4px; }
 .notice { margin-top:16px; }
+
+@media(min-width:960px) {
+  .registerWorkspace { display:grid; grid-template-columns:260px minmax(0,1fr); gap:28px; align-items:start; }
+  .registerWorkspace > section { min-width:0; margin:0; }
+  .registerFilters { position:sticky; top:var(--workspace-sticky-top,24px); background:var(--brand-pearl); border-top:3px solid var(--brand-gold); }
+  .registerFilters form { display:flex; flex-direction:column; align-items:stretch; }
+  .registerFilters form > div { flex:auto; display:grid; grid-template-columns:1fr; }
+  .registerResults { min-height:360px; }
+}

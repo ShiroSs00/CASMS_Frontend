@@ -128,6 +128,9 @@ export const router = createBrowserRouter([{ ErrorBoundary: RouteErrorPage, Hydr
   ...(import.meta.env.DEV && import.meta.env.MODE === 'trip-preview' ? [{ path: '/preview/trip-planning/*', lazy: featurePage(() => import('@/features/trip-planning'), 'TripPlanningPage') }] : []),
     { path: '/', Component: PublicLayout, children: [
     { index: true, lazy: featurePage(() => import('@/features/home'), 'HomePage') },
+    { path: 'destinations', lazy: featurePage(() => import('@/features/home'), 'DestinationsPage') },
+    { path: 'ships', lazy: featurePage(() => import('@/features/home'), 'ShipsPage') },
+    { path: 'deals', lazy: featurePage(() => import('@/features/home'), 'DealsPage') },
     { path: 'cruises', Component: CruiseSearchPage },
     { path: 'cruises/:cruiseId', Component: CustomerCruiseDetailPage },
     { path: 'booking/lookup', Component: BookingLookupPage },

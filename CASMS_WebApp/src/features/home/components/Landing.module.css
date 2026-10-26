@@ -5,7 +5,7 @@
 .home a { text-decoration:none; }
 .home :is(a,button,input,select):focus-visible { outline:3px solid var(--brand-navy);outline-offset:4px; }
 .hero :is(a,button):focus-visible,.experience a:focus-visible,.final a:focus-visible,.footer a:focus-visible { outline-color:var(--brand-pearl); }
-.home section[id],.footer { scroll-margin-top:24px; }
+.home section[id],.footer { scroll-margin-top:var(--public-anchor-offset,24px); }
 .container { max-width:1200px;margin:auto; }
 .eyebrow { color:var(--brand-navy);font-size:12px;line-height:15px;font-weight:600;letter-spacing:.96px; }
 .hero { min-height:740px;position:relative;overflow:hidden;background:var(--brand-navy);color:white;isolation:isolate;padding-bottom:224px; }
@@ -172,3 +172,112 @@
 @media(max-width:1100px) { .home .container,.home > .finderWrap { width:calc(100% - 56px); } .heroCopy { padding:64px 32px; } .hero h1 { font-size:42px; } .heroBottom { left:calc(48% + 24px); right:24px; } .heroControls { flex-wrap:wrap; } .heroDots button { width:26px; } .experience,.ship { padding:32px; gap:32px; } .experience > img,.ship > img { height:400px; } .home > .finderWrap { grid-template-columns:1fr 1.5fr; gap:24px; } }
 @media(max-width:760px) { .hero { padding:0; min-height:0; display:flex; flex-direction:column; } .heroCopy { width:100%; padding:48px 24px; } .hero h1 { font-size:44px; max-width:520px; } .heroActions { flex-direction:row; align-items:center; flex-wrap:wrap; } .heroSlides { position:relative; inset:auto; width:100%; height:440px; order:2; } .heroShade { inset:auto 0 0; width:100%; height:440px; } .heroBottom { left:24px; right:24px; bottom:24px; z-index:1; } .heroPort h2 { font-size:28px; } .heroCredit { max-width:100%; } .home .container,.home > .finderWrap { width:calc(100% - 40px); } .home > .finderWrap { grid-template-columns:1fr; gap:24px; } .finder { display:grid; grid-template-columns:1fr auto; } .finder .textLink { grid-column:1/-1; } .destinationGrid { grid-template-columns:1fr; gap:20px; } .destinationCard,.destinationCard:nth-child(2),.destinationCard:nth-child(3) { margin:0; height:340px; } .home .destinations { margin-top:56px; } .voyageGrid { grid-template-columns:1fr; } .experience,.ship { grid-template-columns:1fr; gap:28px; padding:24px; margin-top:64px; } .experience > img,.ship > img { height:320px; } .featured { padding-top:64px; } }
 @media(max-width:390px) { .heroCopy { padding:40px 20px; } .hero h1 { font-size:38px; } .heroBottom { left:20px; right:20px; } .heroControls { gap:4px; } .finder { grid-template-columns:1fr; } .finder .primary { width:100%; } .finder .textLink { grid-column:1; } }
+
+/* Desktop campaign direction: photography leads; booking remains tied to live catalog. */
+.highlights { display:grid; gap:24px; margin:40px 0; }
+.highlights > div { display:flex; align-items:flex-start; gap:18px; min-width:0; }
+.highlights > div > span { color:var(--brand-teal); font:500 12px/1.5 var(--font-family-heading); border-bottom:1px solid var(--brand-gold); padding:4px 0 10px; }
+.highlights h2 { font-size:17px; font-weight:500; line-height:1.5; }
+.highlights p { margin-top:8px!important; color:var(--text-secondary); font-size:13px; line-height:1.9; }
+.sectionLead { min-width:0; }
+.voyageImage { position:relative; overflow:hidden; }
+.voyageImage > span { position:absolute; bottom:18px; left:20px; padding:6px 10px; background:var(--brand-midnight); color:white; font-size:9px; letter-spacing:.12em; }
+.destinationNumber { color:#E6DCB9; font-size:9px; letter-spacing:.1em; }
+@media(min-width:960px) {
+  .home .container { width:calc(100% - 112px); max-width:1320px; }
+  .hero { min-height:760px; background:var(--brand-midnight); color:white; isolation:isolate; }
+  .heroSlides,.heroShade { position:absolute; inset:0; width:100%; height:100%; }
+  .heroShade { background:linear-gradient(90deg,#061a2bf0 0%,#061a2bb8 43%,#061a2b08 100%),linear-gradient(0deg,#061a2baa,transparent 55%); }
+  .heroCopy { width:70%; max-width:920px; padding:100px 40px 160px max(56px,calc((100vw - 1320px)/2)); color:white; }
+  .hero .eyebrow { display:inline-flex; padding-left:36px; position:relative; color:#E8D995; font-size:10px; letter-spacing:.17em; }
+  .hero .eyebrow::before { content:''; position:absolute; left:0; top:50%; width:24px; height:1px; background:var(--brand-gold); }
+  .hero h1 { max-width:850px; font-size:clamp(48px,4.5vw,76px); font-weight:400; letter-spacing:-.045em; line-height:1.2; margin-top:30px; }
+  .hero h1 > span { color:#F3E7BB; }
+  .heroSubtitle { max-width:490px; color:#E0E8E9; font-size:15px; line-height:1.9; margin-top:28px!important; }
+  .heroActions { flex-direction:row; align-items:center; gap:24px; margin-top:36px; }
+  .heroActions .primary { background:var(--brand-gold); color:var(--brand-midnight); border-radius:6px; min-height:54px; font-size:13px; gap:28px; padding:16px 24px; }
+  .heroActions .secondary { color:white; gap:12px; border:0; font-size:12px; padding:12px 0; }
+  .heroBottom { width:350px; left:auto; right:max(56px,calc((100vw - 1320px)/2)); bottom:112px; padding:24px; border:1px solid #ffffff45; border-radius:10px; background:#061a2bba; grid-template-columns:1fr; gap:16px; }
+  .heroPort h2 { font-size:32px; }
+  .heroPortEyebrow { color:#E8D995; font-size:9px; }
+  .heroControls { gap:4px; }
+  .heroControls > button { width:36px; min-height:40px; height:40px; }
+  .heroDots button { width:22px; height:40px; min-height:40px; }
+  .heroCredit { font-size:9px; }
+  .home > .finderWrap { position:relative; z-index:2; width:calc(100% - 112px); max-width:1320px; margin:-52px auto 0; padding:28px 32px; display:grid; grid-template-columns:1fr 1.7fr; gap:36px; border:1px solid #D7DFD7; border-radius:12px; background:white; box-shadow:0 18px 50px #061a2b14; }
+  .finderHeading { align-self:center; }
+  .finderHeading h2 { font-size:22px; }
+  .finderHeading p { max-width:38ch; font-size:12px; }
+  .finder { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px 20px; align-items:end; }
+  .finder .primary { height:52px; width:146px; background:var(--brand-teal); border-radius:6px; }
+  .finder .textLink { grid-column:1/-1; min-height:24px; font-size:11px; }
+  .finder label { font-size:11px; }
+  .finder select { background:#F6F8F4; border-color:#B8C9C7; }
+  .highlights { grid-template-columns:repeat(3,minmax(0,1fr)); gap:44px; margin:52px 0 0; padding:0 0 48px; border-bottom:1px solid #CCD2C3; }
+  .highlights > div + div { padding-left:32px; border-left:1px solid #CCD2C3; }
+  .home h2 { font-weight:400; font-size:clamp(32px,3vw,46px); line-height:1.35; }
+  .home .highlights h2 { font-size:17px; font-weight:500; }
+  .sectionLead { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(280px,.75fr); align-items:end; justify-content:space-between; gap:64px; margin-bottom:36px; }
+  .sectionLead h2 { margin-top:18px; }
+  .sectionLead .intro { margin:0!important; min-height:0; max-width:52ch; font-size:14px; line-height:1.9; }
+  .sectionLead .textLink { margin-top:16px; font-size:12px; }
+  .home .destinations { margin-top:88px; }
+  .destinationGrid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin:0; }
+  .destinationCard,.destinationCard:nth-child(2),.destinationCard:nth-child(3) { height:300px; margin:0; border-radius:8px; }
+  .destinationCard:first-child { grid-column:span 2; height:380px; }
+  .destinationCard:nth-child(2),.destinationCard:nth-child(3) { height:380px; }
+  .destinationCard:nth-child(n+4) { height:260px; }
+  .destinationShade { background:linear-gradient(0deg,#061a2bf2 0%,#061a2b20 75%); }
+  .destinationCopy { inset:auto 24px 24px; gap:10px; }
+  .destinationCopy h3 { font-size:27px; }
+  .destinationCopy p { font-size:11px; line-height:1.8; }
+  .destinationCard:first-child h3 { font-size:40px; }
+  .experience { grid-template-columns:1.08fr 1fr; gap:64px; padding:0; background:var(--brand-navy); overflow:hidden; border-radius:10px; margin-top:96px; }
+  .experience > img { height:540px; width:100%; border-radius:0; }
+  .experience > div { padding:40px 48px 40px 0; gap:22px; }
+  .experience h2 { font-size:36px; }
+  .experience .primary { background:var(--brand-gold); color:var(--brand-navy); padding-inline:22px; }
+  .experience ul { gap:12px; font-size:13px; }
+  .featured { padding-top:96px; }
+  .voyageGrid { gap:28px; margin-top:0; }
+  .voyageCard { padding:0 0 24px; border:0; border-bottom:1px solid #CCD2C3; border-radius:0; background:transparent; gap:14px; }
+  .voyageImage { width:100%; border-radius:8px; }
+  .voyageCard img { height:300px; border-radius:0; }
+  .voyageCard h3 { font-size:23px; line-height:1.5; }
+  .voyageCard .detail { font-size:13px; line-height:1.8; }
+  .ship { margin-top:96px; padding:0; gap:64px; background:transparent; color:var(--brand-navy); }
+  .ship > div { padding-block:28px; gap:24px; }
+  .ship > img { height:440px; border-radius:8px; }
+  .ship .eyebrow { color:var(--brand-teal); }
+  .ship > div > p { color:var(--text-secondary); font-size:14px; line-height:1.9; }
+  .home .journey { margin-top:88px; }
+  .home .manage { margin-top:32px; padding:40px; gap:64px; background:white; border:1px solid #D8DFD6; border-radius:10px; }
+  .manage h3 { font-size:26px; font-weight:400; }
+  .manage p { line-height:1.9; font-size:14px; }
+  .manage ol li { padding:20px 0; border-bottom:1px solid #D8DFD6; }
+  .home .final { margin-top:88px; margin-bottom:80px; padding:40px 48px; border-radius:10px; background:var(--brand-navy); }
+}
+@media(min-width:960px) and (max-width:1199px) { .heroBottom { width:300px; right:32px; bottom:96px; padding:20px; } .heroCopy { width:66%; padding-left:32px; } .hero h1 { font-size:48px; } .heroActions { align-items:flex-start; flex-direction:column; gap:12px; } .home .container,.home > .finderWrap { width:calc(100% - 64px); } .home > .finderWrap { grid-template-columns:1fr 1.4fr; gap:24px; } .highlights { gap:20px; } .highlights > div + div { padding-left:20px; } .sectionLead { gap:32px; } .experience { gap:32px; } .experience > div { padding-right:28px; } .experience h2 { font-size:30px; } }
+@media(min-width:960px) and (hover:hover) and (pointer:fine) { .destinationCard img,.voyageImage img { transition:transform var(--motion-surface) var(--ease-soft); } .destinationCard:hover img,.voyageImage:hover img { transform:scale(1.04); } .heroActions .primary:hover { background:#E4C767; } }
+@media(prefers-reduced-motion:reduce) { .destinationCard img,.voyageImage img { transition:none; transform:none!important; } }
+
+@media(min-width:960px) { .home .finderHeading h2 { font-size:22px; line-height:1.5; letter-spacing:-.015em; } .home .heroPort h2 { font-size:32px; line-height:1.35; } }
+
+.faq { margin-top:64px; display:grid; gap:28px; }
+.faq h2 { margin-top:16px; }
+.faq details { border-bottom:1px solid #CAD5CC; }
+.faq summary { list-style:none; display:flex; justify-content:space-between; align-items:center; gap:20px; padding:24px 0; min-height:64px; font-size:14px; font-weight:500; cursor:pointer; }
+.faq summary::-webkit-details-marker { display:none; }
+.faq summary > span { display:grid; place-items:center; flex:0 0 28px; height:28px; border:1px solid #B0C1B7; border-radius:50%; color:var(--brand-teal); transition:transform var(--motion-surface) var(--ease-soft); }
+.faq details[open] summary > span { transform:rotate(45deg); }
+.faq details p { padding-bottom:24px; font-size:13px; line-height:1.9; color:var(--text-secondary); max-width:68ch; }
+@media(min-width:960px) { .faq { margin-top:88px; grid-template-columns:1fr 1.2fr; gap:72px; padding-block:16px 0; } .faq .textLink { margin-top:24px; font-size:12px; } }
+@media(prefers-reduced-motion:reduce) { .faq summary > span { transition:none; } }
+
+.exploreNav { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:8px 32px; padding:24px; border-bottom:1px solid #CCD2C3; }
+.exploreNav a { display:inline-flex; align-items:center; min-height:44px; padding:8px 4px; border-bottom:2px solid transparent; color:var(--brand-navy); font-size:13px; font-weight:500; }
+.exploreNav a:hover { border-bottom-color:var(--brand-gold); color:var(--brand-teal); }
+.heroPort { min-height:116px; }
+.heroCredit { min-height:30px; }
+.heroSlides img { transition:opacity var(--motion-overlay) var(--ease-soft); }
+@media(prefers-reduced-motion:reduce) { .heroSlides img { transition:none; } }

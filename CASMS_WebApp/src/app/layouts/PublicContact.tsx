@@ -14,8 +14,8 @@ export function PublicContact() {
     document.addEventListener('pointerdown', outside)
     return () => document.removeEventListener('pointerdown', outside)
   }, [open])
-  return <div ref={root} className={styles.contact} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false) }} onKeyDown={event => { if (event.key === 'Escape') { setOpen(false); trigger.current?.focus(); event.stopPropagation() } }}>
-    <button ref={trigger} id="project-contact" className={styles.contactLink} type="button" aria-expanded={open} aria-controls="project-contact-details" onClick={() => setOpen(true)}>Liên hệ</button>
+  return <div ref={root} className={styles.contact} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false) }} onKeyDown={event => { if (event.key === 'Escape') { setOpen(false); trigger.current?.focus(); event.stopPropagation() } }}>
+    <button ref={trigger} id="project-contact" className={styles.contactLink} type="button" aria-expanded={open} aria-controls="project-contact-details" onClick={() => setOpen(value => !value)}>Liên hệ</button>
     {open && <div className={styles.contactDetails} id="project-contact-details" role="region" aria-label="Liên hệ OceVie">
       <strong>Liên hệ OceVie</strong>
       <span>Điện thoại</span>

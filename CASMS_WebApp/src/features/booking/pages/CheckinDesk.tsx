@@ -1,7 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { ApiError, apiRequest } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, DataTable, Empty, Field, Modal, Notice, Panel } from '@/shared/ui'
+import { Button, DataTable, Empty, Field, Modal, Notice, Panel, ProcessGuide } from '@/shared/ui'
 import { decodeBookingDetail, type BookingDetail } from '../api/real-booking-api'
 import { bookingMoney } from '../model/booking-presentation'
 import styles from '../components/LiveBooking.module.css'
@@ -46,7 +46,8 @@ export function CheckinDesk() {
     finally { lock.current = false; setBusy(false) }
   }
   return <>
-    <Panel title="Tra cứu hành khách tại quầy"><form onSubmit={lookup} className={styles.deskLookup}><Field htmlFor="desk-reference" label="Mã đặt chỗ"><input id="desk-reference" required disabled={busy} value={reference} onChange={e => setReference(e.target.value)} /></Field><Field htmlFor="desk-email" label="Email người đại diện"><input id="desk-email" required type="email" disabled={busy} value={email} onChange={e => setEmail(e.target.value)} /></Field><Button type="submit" disabled={busy}>Tra cứu đặt chỗ</Button></form></Panel>
+    <ProcessGuide label="Tiếp nhận hành khách" steps={[{title:"Tra cứu đặt chỗ",description:"Dùng mã đặt chỗ và email người đại diện."},{title:"Đối chiếu hồ sơ",description:"Chọn hành khách và kiểm tra thông tin tại quầy."},{title:"Kiểm tra trạng thái",description:"Đọc trạng thái mới nhất trước khi xác nhận thủ tục."}]} />
+    <div className={styles.checkinDesk}><aside className={styles.checkinSearch}><Panel title="Tra cứu hành khách tại quầy"><form onSubmit={lookup} className={styles.deskLookup}><Field htmlFor="desk-reference" label="Mã đặt chỗ"><input id="desk-reference" required disabled={busy} value={reference} onChange={e => setReference(e.target.value)} /></Field><Field htmlFor="desk-email" label="Email người đại diện"><input id="desk-email" required type="email" disabled={busy} value={email} onChange={e => setEmail(e.target.value)} /></Field><Button type="submit" disabled={busy}>Tra cứu đặt chỗ</Button></form></Panel></aside><div className={styles.checkinRecords}>
     {error && <Notice title="Chưa thực hiện được" tone="error">{error}</Notice>}
     {selected && access.canDo('CHECKIN_READ') && <Button tone="secondary" disabled={busy} onClick={() => void status(selected)}>Tải lại trạng thái hành khách</Button>}
     {uncertain && <Notice title="Cần đối chiếu hồ sơ check-in" tone="warning">Tải lại trạng thái hành khách để kiểm tra kết quả trước khi tiếp tục.</Notice>}
@@ -56,6 +57,7 @@ export function CheckinDesk() {
     </Panel>}
     {!booking && !busy && !error && <Panel title="Hồ sơ hành khách"><Empty title="Chưa chọn hành khách"><p>Tra cứu bằng mã đặt chỗ và email người đại diện để mở danh sách hành khách.</p></Empty></Panel>}
     <Notice title="Trạng thái lên tàu">Trạng thái sẵn sàng lên tàu được xác nhận bởi hệ thống. Cấp thẻ, quét QR và ghi nhận khách đã lên tàu chưa khả dụng trên webapp.</Notice>
+    </div></div>
     {action && <Modal title={action === 'start' ? 'Bắt đầu thủ tục' : 'Hoàn tất thủ tục'} busy={busy} onClose={() => setAction(null)}><p>Đối chiếu hành khách, hợp đồng, chứng từ và yêu cầu an toàn tại quầy trước khi xác nhận.</p>{error && <Notice title="Chưa cập nhật được" tone="error">{error}</Notice>}<Button disabled={busy} onClick={() => void submit()}>Xác nhận</Button></Modal>}
   </>
 }

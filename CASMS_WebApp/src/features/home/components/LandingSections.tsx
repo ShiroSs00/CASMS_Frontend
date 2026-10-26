@@ -2,8 +2,16 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import { asianPorts } from '../model/asian-ports'
 const haLong = asianPorts[0].image
 const editorial = asianPorts[2].image
-import { destinations, featuredVoyages, homeCruiseSearch, homeCruiseType } from '../model/public-booking'
+import { featuredVoyages, homeCruiseSearch, homeCruiseType } from '../model/public-booking'
 import styles from './Landing.module.css'
+
+export function JourneyHighlights() {
+  return <section className={styles.highlights} aria-label="Chuẩn bị kỳ nghỉ cùng OceVie">{[
+    ['01', 'Tìm nhịp nghỉ của bạn', 'Khám phá chuyến ngắn ngày hoặc hành trình dài hơn.'],
+    ['02', 'Chọn không gian riêng', 'Xem phòng còn trống cho từng hành khách trong nhóm.'],
+    ['03', 'Sẵn sàng trước ngày đi', 'Tra cứu hồ sơ và hướng dẫn hợp đồng bằng mã đặt chỗ.'],
+  ].map(([number,title,description])=><div key={number}><span aria-hidden="true">{number}</span><div><h2>{title}</h2><p>{description}</p></div></div>)}</section>
+}
 
 export function CruiseFinder() {
   const navigate = useNavigate()
@@ -15,11 +23,9 @@ export function CruiseFinder() {
   </form></section>
 }
 export function FeaturedVoyages() {
-  return <section className={styles.featured} id="voyages" aria-labelledby="voyages-title"><p className={styles.eyebrow}>CẢM HỨNG HẢI TRÌNH</p><h2 id="voyages-title">Những bến cảng khơi nguồn cảm hứng.</h2><p className={styles.intro}>Khám phá những thành phố cảng và tìm hành trình cho kỳ nghỉ tiếp theo.</p><div className={styles.voyageGrid}>{featuredVoyages.map(v=><article className={styles.voyageCard} key={v.id}><img src={v.image} alt={`${v.title}`}/><p className={styles.eyebrow}>{v.region}</p><h3>{v.title}</h3><p className={styles.detail}>{v.detail}</p></article>)}</div><Link className={styles.textLink} to="/cruises">Xem các chuyến đã công bố →</Link></section>
+  return <section className={styles.featured} id="voyages" aria-labelledby="voyages-title"><div className={styles.sectionLead}><div><p className={styles.eyebrow}>NHẬT KÝ TỪ BIỂN</p><h2 id="voyages-title">Một góc nhìn khác.<br />Một kỳ nghỉ khác.</h2></div><p className={styles.intro}>Những khung hình từ thành phố cảng châu Á, dành cho khi bạn cần một chút cảm hứng trước chuyến đi.</p></div><div className={styles.voyageGrid}>{featuredVoyages.map((v,index)=><article className={styles.voyageCard} key={v.id}><div className={styles.voyageImage}><img src={v.image} alt={`${v.title}`} loading="lazy" width="1600" height="1000"/><span>0{index+1} / CẢM HỨNG</span></div><p className={styles.eyebrow}>{v.region}</p><h3>{v.title}</h3><p className={styles.detail}>{v.detail}</p></article>)}</div><Link className={styles.textLink} to="/cruises">Từ cảm hứng đến hành trình — xem chuyến đã công bố ↗</Link></section>
 }
-export function DestinationDiscovery() {
-  return <section className={styles.destinations} id="destinations" aria-labelledby="destinations-title"><p className={styles.eyebrow}>GỢI Ý ĐIỂM ĐẾN</p><h2 id="destinations-title">Ghé châu Á qua từng bến cảng.</h2><p className={styles.intro}>Từ Đông Nam Á đến Đông Bắc Á, mỗi bến cảng mở ra một góc nhìn mới.</p><div className={styles.destinationGrid}>{destinations.map(d=><article className={styles.destinationCard} key={d.title}><img src={d.image} alt={`Ảnh cảng châu Á · ${d.title}`}/><div className={styles.destinationShade}/><div className={styles.destinationCopy}><h3>{d.title}</h3><p>{d.detail}</p></div></article>)}</div><Link className={styles.textLink} to="/cruises">Xem tất cả hành trình →</Link></section>
-}
+export { DestinationDiscovery } from './PublicDestinations'
 export function OceVieExperience() {
   return <section className={styles.experience} id="experience" aria-labelledby="experience-title"><img src={editorial} alt="Cảng Ōsanbashi, Yokohama lúc hoàng hôn"/><div><p className={styles.eyebrow}>CHUẨN BỊ TRẢI NGHIỆM</p><h2 id="experience-title">Từng lựa chọn, theo nhịp nghỉ của bạn.</h2><p>Xem lịch trình, chọn phòng cho từng hành khách và cân nhắc gói dịch vụ tùy chọn trước khi gửi yêu cầu.</p><ul><li>Phòng trống được hiển thị theo hành trình.</li><li>Gói dịch vụ có thể bỏ qua khi đặt chỗ.</li><li>Kiểm tra và sửa thông tin trước khi gửi.</li></ul><Link className={styles.primary} to="/cruises">Tìm hành trình & chọn phòng</Link></div></section>
 }
@@ -31,4 +37,12 @@ export function BookingJourney() {
 }
 export function FinalCta() {
   return <section className={styles.final}><div><p className={styles.eyebrow}>BẮT ĐẦU HÀNH TRÌNH</p><h2>Tìm chuyến phù hợp với nhịp nghỉ của bạn.</h2></div><Link className={styles.primary} to="/cruises">Tìm chuyến</Link></section>
+}
+
+export function BookingFaq() {
+  return <section className={styles.faq} id="booking-faq" aria-labelledby="booking-faq-title"><div><p className={styles.eyebrow}>TRƯỚC KHI BẠN ĐẶT CHỖ</p><h2 id="booking-faq-title">Thông tin cần biết<br />trước khi đặt chuyến.</h2><Link className={styles.textLink} to="/cruises">Tìm hành trình phù hợp ↗</Link></div><div>{[
+    ['Tôi có cần đăng nhập để đặt chuyến?', 'Bạn có thể xem hành trình đã công bố, chọn phòng và gửi thông tin đặt chỗ mà không cần tài khoản. Sau khi có mã, dùng thông tin người đại diện để tra cứu.'],
+    ['Tôi xem giá vé và lịch thanh toán ở đâu?', 'Thông tin giá vé, tiền tệ áp dụng và lịch thanh toán nằm trong kết quả đặt chỗ. Giá gói và giá tham chiếu của phòng được hiển thị riêng khi có dữ liệu; chúng không phải tổng giá vé đã xác nhận.'],
+    ['Làm sao để xem lại thông tin đã đặt?', 'Mở trang tra cứu, nhập mã đặt chỗ cùng email hoặc số điện thoại của người đại diện. Bạn có thể xem thông tin hành khách, phòng và hướng dẫn hợp đồng được hệ thống trả về.'],
+  ].map(([question,answer])=><details key={question}><summary>{question}<span aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</div></section>
 }

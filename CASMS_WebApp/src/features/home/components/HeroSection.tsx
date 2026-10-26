@@ -46,14 +46,14 @@ export function HeroSection() {
     <div className={styles.heroShade} />
     <div className={styles.heroCopy}>
       <p className={styles.eyebrow}>OceVie · NHỮNG HẢI TRÌNH CHÂU Á</p>
-      <h1 id="home-title">Mỗi bến cảng,<br />một hành trình mới.</h1>
-      <p className={styles.heroSubtitle}>Từ những đường chân trời rực sáng đến bến cảng bình yên. Tìm chuyến du thuyền, chọn phòng và bắt đầu kỳ nghỉ theo cách của bạn.</p>
-      <div className={styles.heroActions}><a className={styles.primary} href="#cruise-finder">Khám phá hành trình <span aria-hidden="true">↗</span></a><a className={styles.secondary} href="#destinations">Cảm hứng điểm đến</a></div>
+      <h1 id="home-title">Một chuyến đi.<br /><span>Nhiều điều đáng nhớ.</span></h1>
+      <p className={styles.heroSubtitle}>Rời nhịp sống quen thuộc, tìm một góc nhìn mới từ biển. Khám phá những bến cảng châu Á và chọn hành trình dành cho bạn.</p>
+      <div className={styles.heroActions}><a className={styles.primary} href="#cruise-finder">Tìm hành trình của bạn <span aria-hidden="true">↗</span></a><a className={styles.secondary} href="#destinations">Khám phá điểm đến <span aria-hidden="true">↓</span></a></div>
     </div>
     <div className={styles.heroBottom}>
       <div className={styles.heroPort} aria-live={rotating ? 'off' : 'polite'} aria-atomic="true">
         <p className={styles.heroPortEyebrow}>GÓC NHÌN TỪ BẾN CẢNG · {String(active + 1).padStart(2, '0')} / {String(asianPorts.length).padStart(2, '0')}</p>
-        <h2>{port.name}</h2><p>{port.location} · {port.country}</p>
+        <h2>{port.location}</h2><p>{port.name} · {port.country}</p>
         <span className={styles.heroPhotoDescription}>{port.alt}</span>
       </div>
       <div className={styles.heroControls} role="group" aria-label="Điều khiển ảnh cảng châu Á">

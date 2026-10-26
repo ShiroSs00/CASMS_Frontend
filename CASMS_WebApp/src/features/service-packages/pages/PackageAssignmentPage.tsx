@@ -2,7 +2,7 @@ import { useCallback, useId, useRef, useState } from 'react'
 import { BookingPassengerPicker, type BookingContext, type BookingPassenger } from '@/domain/booking-context'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Badge, Button, ButtonLink, Empty, Field, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Badge, Button, ButtonLink, Empty, Field, Modal, Notice, PageHeader, Panel, ProcessGuide } from '@/shared/ui'
 import { servicePackageApi } from '../api/service-package-api'
 import { CatalogFrame, CatalogState } from '../components/CatalogUI'
 import styles from '../components/PackageAssignment.module.css'
@@ -22,6 +22,7 @@ export function PackageAssignmentPage() {
   return <CatalogFrame><PageHeader breadcrumb="ĐẶT CHỖ / GÓI CỦA HÀNH KHÁCH" title="Gói dịch vụ của hành khách"
     description="Xem gói đang sử dụng; gán hoặc thay đổi gói theo quyền được cấp."
     actions={<ButtonLink tone="secondary" to="/admin/service-packages">Danh mục gói</ButtonLink>} />
+    <ProcessGuide label="Phân bổ theo hành khách" steps={[{title:"Chọn hồ sơ",description:"Tìm đặt chỗ và xác định đúng hành khách."},{title:"So sánh gói",description:"Xem nội dung, hiệu lực và giá danh mục tham khảo."},{title:"Xem lại phân bổ",description:"Đối chiếu gói đã chọn trước khi xác nhận."}]} />
     <BookingPackageAssignments />
   </CatalogFrame>
 }

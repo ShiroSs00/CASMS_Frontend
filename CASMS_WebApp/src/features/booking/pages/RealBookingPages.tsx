@@ -1,3 +1,4 @@
+import { BookingPhotoNote } from '../components/BookingExperience'
 import { bookingStatusName, bookingWhen, bookingPlanName } from '../model/real-booking-view'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useParams, useSearchParams } from 'react-router'
@@ -30,7 +31,7 @@ export function RealBookingList({ admin = false }: { admin?: boolean }) {
       actions={<><ButtonLink tone="secondary" to={admin ? root + '/lookup' : '/booking/lookup'}>Tra cứu bằng mã</ButtonLink>
         {(!admin || access.canDo('BOOKING_CREATE')) && <ButtonLink to={admin ? root + '/new' : '/booking/cabin-experience'}>Tạo đặt chỗ</ButtonLink>}</>} />
     <CollectionSummary count={list.loading || list.error ? null : list.data?.totalElements ?? null} visible={list.data?.content.length} filtered={filtered} label="Đặt chỗ trong kết quả" scope="Tổng kết quả từ hệ thống" />
-    <Panel title="Bộ lọc" subtitle="Chọn chuyến đi hoặc trạng thái để thu hẹp danh sách.">
+    <div className={listStyles.registerWorkspace}><Panel className={listStyles.registerFilters} title="Bộ lọc" subtitle="Chọn chuyến đi hoặc trạng thái để thu hẹp danh sách.">
       <ListFilters label="Bộ lọc đặt chỗ" actions={<Button tone="secondary" disabled={!filtered} onClick={resetFilters}>Xóa bộ lọc</Button>}>
         <Field htmlFor="booking-cruise" label="Chuyến đi"><select id="booking-cruise" value={cruiseId} onChange={event => { setCruiseId(event.target.value); setPage(0) }}>
           <option value="">Tất cả chuyến đi</option>{choices.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}
@@ -41,7 +42,7 @@ export function RealBookingList({ admin = false }: { admin?: boolean }) {
       </ListFilters>
       {choices.error && <div className={listStyles.notice}><Notice title="Chưa tải được bộ lọc chuyến" tone="warning">Danh sách đặt chỗ vẫn được tải độc lập. <Button tone="secondary" onClick={choices.retry}>Thử lại</Button></Notice></div>}
     </Panel>
-    <Panel title="Danh sách đặt chỗ">
+    <Panel className={listStyles.registerResults} title="Danh sách đặt chỗ">
       <BookingReadState {...list} publicResource={!admin ? 'danh sách đặt chỗ' : undefined} />
       {list.data && !list.loading && !list.error && (list.data.content.length ? <>
         <DataTable label="Danh sách đặt chỗ" headers={admin ? ['Mã đặt chỗ', 'Chuyến đi', 'Trạng thái', 'Thao tác'] : ['Mã đặt chỗ', 'Chuyến đi', 'Trạng thái', 'Khởi hành', 'Hành khách', 'Giá vé', 'Thao tác']}>
@@ -62,13 +63,13 @@ export function RealBookingList({ admin = false }: { admin?: boolean }) {
           <span>Trang {page + 1} / {list.data.totalPages}</span>
           <Button tone="secondary" size="compact" disabled={page + 1 >= list.data.totalPages} onClick={() => setPage(value => value + 1)}>Trang sau →</Button></>}
       </ListFooter>}
-    </Panel>
+    </Panel></div>
   </RealBookingFrame>
 }
 export function RealBookingDetail({ admin = false, related, customerIntro, showPassengerDetails = false }: { admin?: boolean; related?: (bookingId: string) => ReactNode; customerIntro?: ReactNode; showPassengerDetails?: boolean }) {
   const { bookingId = '' } = useParams()
   const detail = useReadQuery('real-booking:' + bookingId, useCallback(signal => realBookingApi.get(bookingId, signal), [bookingId]))
-  const content = <>{!admin && customerIntro}<PageHeader title={detail.data?.bookingReference ?? 'Chi tiết đặt chỗ'} breadcrumb="ĐẶT CHỖ / CHI TIẾT" description="Thông tin hành khách, phòng đã chọn và hợp đồng. Thanh toán thực tế cần được đối soát riêng." actions={<ButtonLink tone="secondary" to={admin ? '/admin/bookings' : '/my-bookings'}>Danh sách đặt chỗ</ButtonLink>} /><BookingReadState {...detail} publicResource={!admin ? 'chi tiết đặt chỗ' : undefined} />{detail.data && <><BookingRecord booking={detail.data} publicView={!admin} showPassengerDetails={!admin && showPassengerDetails} /><BookingOperations publicView={!admin} key={bookingId} booking={detail.data} onChanged={detail.retry} />{admin && related?.(bookingId)}</>}</>
+  const content = <>{!admin && customerIntro}<PageHeader title={detail.data?.bookingReference ?? 'Chi tiết đặt chỗ'} breadcrumb="ĐẶT CHỖ / CHI TIẾT" description="Thông tin hành khách, phòng đã chọn và hợp đồng. Thanh toán thực tế cần được đối soát riêng." actions={<ButtonLink tone="secondary" to={admin ? '/admin/bookings' : '/my-bookings'}>Danh sách đặt chỗ</ButtonLink>} /><BookingReadState {...detail} publicResource={!admin ? 'chi tiết đặt chỗ' : undefined} />{detail.data && <><div className={admin ? styles.recordWorkspace : undefined}><div><BookingRecord booking={detail.data} publicView={!admin} showPassengerDetails={!admin && showPassengerDetails} /></div><aside className={admin ? styles.recordActions : undefined}><BookingOperations publicView={!admin} key={bookingId} booking={detail.data} onChanged={detail.retry} /></aside></div>{admin && related?.(bookingId)}</>}</>
   return <RealBookingFrame admin={admin}>{admin ? content : <div className={styles.stack}>{content}</div>}</RealBookingFrame>
 }
 export function BookingRecord({ booking, publicView = false, showPassengerDetails = false }: { booking: BookingDetail; publicView?: boolean; showPassengerDetails?: boolean }) {
@@ -126,8 +127,8 @@ export function BookingLookupPage({ admin = false }: { admin?: boolean }) {
         <Field htmlFor="lookup-phone" label="Số điện thoại đại diện"><input id="lookup-phone" type="tel" autoComplete="tel" value={phone} aria-describedby="lookup-contact-help" onChange={event => { setPhone(event.target.value); setMissing(current => ({ ...current, email: '' })); setData(null); setError('') }} /></Field>
       </div><Button type="submit" disabled={busy}>{busy ? 'Đang tra cứu…' : 'Tra cứu'}</Button>
     </fieldset></form>{error && <div id="lookup-error-summary" ref={errorSummary} tabIndex={-1} role="region" aria-label="Không tra cứu được"><Notice title="Không tra cứu được" tone="error">{error}</Notice></div>}</Panel>
-    <aside className={styles.lookupHelp}><h2>Bạn cần chuẩn bị gì?</h2><p>Mã đặt chỗ và thông tin liên hệ đã dùng khi đặt. Kiểm tra lại ký tự và thông tin người đại diện nếu chưa tìm thấy.</p><p className={styles.helper}>Tra cứu chỉ hiển thị dữ liệu được hệ thống trả về; không tự xác nhận Booking hoặc thanh toán.</p></aside></div>
+    <aside className={styles.lookupHelp}><BookingPhotoNote /><h2>Bạn cần chuẩn bị gì?</h2><p>Mã đặt chỗ và thông tin liên hệ đã dùng khi đặt. Kiểm tra lại ký tự và thông tin người đại diện nếu chưa tìm thấy.</p><p className={styles.helper}>Tra cứu chỉ hiển thị dữ liệu được hệ thống trả về; không tự xác nhận Booking hoặc thanh toán.</p></aside></div>
     {data && <section className={styles.stack} aria-label="Kết quả tra cứu"><h2 ref={resultHeading} tabIndex={-1}>Kết quả tra cứu · {data.bookingReference}</h2><BookingRecord booking={data} publicView /></section>}
   </div></RealBookingFrame>
-  return <RealBookingFrame admin={admin}><PageHeader title="Tra cứu đặt chỗ" breadcrumb="HÀNH TRÌNH / ĐẶT CHỖ" description="Dùng mã đặt chỗ và thông tin liên hệ của người đại diện. Không cần đăng nhập." /><Panel title="Thông tin tra cứu"><form onSubmit={event => { event.preventDefault(); void lookup() }}><fieldset disabled={busy} className={styles.draftFields}>{[['reference', 'Mã đặt chỗ', reference, setReference], ['email', 'Email đại diện', email, setEmail], ['phone', 'Số điện thoại đại diện', phone, setPhone]].map(([key, label, value, setter]) => <Field key={String(key)} htmlFor={'lookup-' + key} label={String(label)}><input id={'lookup-' + key} type={key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'} value={String(value)} onChange={event => { (setter as (value: string) => void)(event.target.value); setData(null); setError('') }} /></Field>)}<Button type="submit" disabled={busy}>{busy ? 'Đang tra cứu…' : 'Tra cứu'}</Button></fieldset></form>{error && <Notice title="Không tra cứu được" tone="error">{error}</Notice>}</Panel>{data && <BookingRecord booking={data} />}</RealBookingFrame>
+  return <RealBookingFrame admin={admin}><PageHeader title="Tra cứu đặt chỗ" breadcrumb="HÀNH TRÌNH / ĐẶT CHỖ" description="Tra cứu hồ sơ bằng mã đặt chỗ và thông tin liên hệ của người đại diện." /><Panel title="Thông tin tra cứu"><form onSubmit={event => { event.preventDefault(); void lookup() }}><fieldset disabled={busy} className={styles.draftFields}>{[['reference', 'Mã đặt chỗ', reference, setReference], ['email', 'Email đại diện', email, setEmail], ['phone', 'Số điện thoại đại diện', phone, setPhone]].map(([key, label, value, setter]) => <Field key={String(key)} htmlFor={'lookup-' + key} label={String(label)}><input id={'lookup-' + key} type={key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'} value={String(value)} onChange={event => { (setter as (value: string) => void)(event.target.value); setData(null); setError('') }} /></Field>)}<Button type="submit" disabled={busy}>{busy ? 'Đang tra cứu…' : 'Tra cứu'}</Button></fieldset></form>{error && <Notice title="Không tra cứu được" tone="error">{error}</Notice>}</Panel>{data && <BookingRecord booking={data} />}</RealBookingFrame>
 }

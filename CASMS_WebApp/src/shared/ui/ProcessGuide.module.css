@@ -1,0 +1,8 @@
+.guide { padding:24px 28px; margin-bottom:28px; border-radius:8px; border:1px solid #D1DDDA; background:#E7EEEA; }
+.label { display:block; color:var(--brand-teal); font-size:10px; letter-spacing:.12em; text-transform:uppercase; margin-bottom:20px; }
+.guide ol { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:32px; list-style:none; margin:0; padding:0; }
+.guide li { display:flex; align-items:flex-start; gap:14px; min-width:0; }
+.guide li > span { flex:none; display:grid; place-items:center; width:30px; height:30px; border:1px solid #A4BDBA; border-radius:50%; font-size:10px; color:var(--brand-teal); background:#F7F9F3; }
+.guide strong { display:block; font-size:13px; line-height:1.6; }
+.guide p { margin:6px 0 0; color:var(--text-secondary); font-size:12px; line-height:1.8; }
+@media(max-width:959px) { .guide ol { grid-template-columns:1fr; gap:20px; } }
