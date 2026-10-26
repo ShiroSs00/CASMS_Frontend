@@ -1,3 +1,4 @@
+import { EditorLayout } from '@/shared/ui'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useCallback, useState, type FormEvent } from 'react'
 
@@ -64,7 +65,7 @@ export function ExcursionForm({ initial, busy, onSave }: { initial?: ShoreExcurs
     {!stops.loading && stops.data?.length === 0 && <Notice title="Chưa có điểm dừng">Cần cấu hình lịch trình và điểm dừng trước khi tạo chuyến tham quan. <Link to="/admin/itineraries">Mở hải trình</Link></Notice>}
     {contextError && <Notice tone="error" title="Kiểm tra thông tin liên quan">{contextError}</Notice>}
     <p className={styles.hint}>Thời gian theo múi giờ trình duyệt: {Intl.DateTimeFormat().resolvedOptions().timeZone}. Các trường có dấu * là bắt buộc.</p>
-    <form className={styles.form} onSubmit={submit} noValidate>
+    <EditorLayout guidance={[{title:"Điểm dừng và đối tác",description:"Kiểm tra điểm dừng và nhà cung cấp đã xác minh."},{title:"Lịch tham quan",description:"Đối chiếu giờ lưu cảng và thời hạn trở lại tàu."}]}><form className={styles.form} onSubmit={submit} noValidate>
       <fieldset disabled={busy}>
         <div className={styles.fullRow}><FormErrorSummary errors={errors} /></div>
         <Field htmlFor="excursion-cruiseStopId" label="Điểm dừng *" error={errors.cruiseStopId}><select id="excursion-cruiseStopId" name="cruiseStopId" required value={values.cruiseStopId} disabled={stops.loading || Boolean(stops.error)} onChange={event => change('cruiseStopId', event.target.value)}><option value="">Chọn lịch trình và cảng ghé</option>{stops.data?.map(item => <option key={item.cruiseStopId} value={item.cruiseStopId}>{item.label}</option>)}</select></Field>
@@ -86,6 +87,6 @@ export function ExcursionForm({ initial, busy, onSave }: { initial?: ShoreExcurs
         </Field>)}
         <div className={styles.actions}><Link className={styles.link} to={initial ? `/admin/shore-excursions/${initial.shoreExcursionId}` : '/admin/shore-excursions'}>Quay lại</Link>{access.canDo(initial ? 'EXCURSION_UPDATE' : 'EXCURSION_CREATE') && <Button type="submit" disabled={busy || stops.loading || suppliers.loading || Boolean(stops.error || suppliers.error) || !stops.data?.length}>{busy ? 'Đang lưu…' : 'Lưu chuyến tham quan'}</Button>}</div>
       </fieldset>
-    </form>
+    </form></EditorLayout>
   </>
 }

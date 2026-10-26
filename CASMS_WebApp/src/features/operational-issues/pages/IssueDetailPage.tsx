@@ -1,3 +1,4 @@
+import { PageHeader } from '@/shared/ui'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useLocation, useParams } from 'react-router'
 import { useSessionAccess } from '@/shared/auth'
@@ -56,19 +57,10 @@ export function IssueDetailPage() {
       ) : null}
       {state.status === 'ready' ? (
         <>
-          <header className={styles.pageHeader}>
-            <div>
-              <h1 className={styles.pageTitle}>
-                {state.issue.code} · {state.issue.displayTitle}
-              </h1>
-              <p className={styles.pageDescription}>
-                {state.issue.cruise
-                  ? `${state.issue.cruise.code} · ${state.issue.cruise.name}`
-                  : state.issue.ship.name}{' '}
-                · tạo {formatDate(state.issue.reportedAt)}
-              </p>
-            </div>
-            <div className={styles.headerActions}>
+          <PageHeader breadcrumb="VẬN HÀNH / SỰ CỐ" title={`${state.issue.code} · ${state.issue.displayTitle}`}
+            description={`${state.issue.cruise ? `${state.issue.cruise.code} · ${state.issue.cruise.name}` : state.issue.ship.name} · tạo ${formatDate(state.issue.reportedAt)}`}
+            actions={<>
+
               {state.issue.status === 'OPEN' && access.canDo('OPERATIONAL_ISSUE_UPDATE') && (
                 <Link className={styles.secondaryButton} to={`/admin/issues/${state.issue.id}/edit`}>
                   Chỉnh sửa sự cố
@@ -77,8 +69,7 @@ export function IssueDetailPage() {
               <Link className={styles.secondaryButton} to={`/admin/ships/${state.issue.ship.id}`}>Xem tàu liên quan</Link>
               {state.issue.cruise && <Link className={styles.secondaryButton} to={`/admin/cruises/${state.issue.cruise.id}`}>Xem chuyến liên quan</Link>}
               <Link className={styles.primaryButton} to={returnTo}>Quay lại danh sách</Link>
-            </div>
-          </header>
+                        </>} />
           <div className={styles.detailGrid}>
             <div className={styles.detailMain}>
               <IssueTimeline issue={state.issue} />

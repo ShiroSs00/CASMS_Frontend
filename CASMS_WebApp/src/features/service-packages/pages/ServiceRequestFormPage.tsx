@@ -1,3 +1,4 @@
+import { EditorLayout } from '@/shared/ui'
 import { useCallback, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { BookingPassengerPicker } from '@/domain/booking-context'
@@ -46,7 +47,7 @@ function RequestEditor({ initial }: { initial?: ServiceRequest }) {
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa lưu được yêu cầu. Dữ liệu đã nhập được giữ lại.') }
     finally { lock.current = false; setBusy(false) }
   }
-  return <Panel title="Nội dung yêu cầu"><form onSubmit={submit} className={styles.editor}>
+  return <Panel title="Nội dung yêu cầu"><EditorLayout guidance={[{title:"Dịch vụ và số lượng",description:"Kiểm tra dịch vụ được chọn, số lượng và ghi chú."},{title:"Khung giờ",description:"Kiểm tra lịch và chỗ trống khi yêu cầu gắn với khung giờ."}]}><form onSubmit={submit} className={styles.editor}>
     {!initial && <><CatalogState {...services} /><Field htmlFor="request-service" label="Dịch vụ"><select id="request-service" required value={serviceId} disabled={busy || services.loading || Boolean(services.error)} onChange={event => { setServiceId(event.target.value); setSlotId('') }}><option value="">Chọn dịch vụ</option>{services.data?.map(service => <option key={service.id} value={service.id} disabled={service.status !== 'ACTIVE'}>{service.name} · {service.code}</option>)}</select></Field><BookingPassengerPicker value={bookingPassengerId} disabled={busy} allowedStatuses={['Confirmed']} onChange={passenger => setBookingPassengerId(passenger?.bookingPassengerId ?? '')} /><p>Liên kết đặt chỗ là tùy chọn; nếu chọn, hành khách phải thuộc tài khoản đang yêu cầu.</p></>}
     {initial && <ButtonLink tone="secondary" to={`/admin/services/${initial.serviceId}`}>Xem dịch vụ đã yêu cầu (không đổi)</ButtonLink>}
     {initial?.scheduleId && <Notice title="Yêu cầu đã giữ khung giờ">Khung giờ và số lượng được giữ theo yêu cầu gốc. Bạn có thể cập nhật ghi chú; liên hệ bộ phận dịch vụ nếu cần đổi lịch hoặc số lượng.</Notice>}
@@ -57,5 +58,5 @@ function RequestEditor({ initial }: { initial?: ServiceRequest }) {
     {error && <Notice title="Không lưu được yêu cầu" tone="error">{error}</Notice>}
     {!allowed && <p>Tài khoản chưa có quyền lưu yêu cầu này.</p>}
     <div className={styles.editorActions}>{allowed && <Button type="submit" disabled={busy || (!initial && (!services.data || services.loading || Boolean(services.error)))}>{busy ? 'Đang lưu…' : 'Lưu yêu cầu'}</Button>}</div>
-  </form></Panel>
+  </form></EditorLayout></Panel>
 }

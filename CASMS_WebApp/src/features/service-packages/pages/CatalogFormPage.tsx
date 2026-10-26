@@ -1,9 +1,10 @@
+import { EditorLayout } from '@/shared/ui'
 import { FormErrorSummary } from '@/shared/ui'
 import { useCallback, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, ButtonLink, Field, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Button, ButtonLink, Field, FormSection, Notice, PageHeader, Panel } from '@/shared/ui'
 import { servicePackageApi } from '../api/service-package-api'
 import { CatalogFrame, CatalogState } from '../components/CatalogUI'
 import { catalogConfig, type CatalogItem, type CatalogKind } from '../model/catalog'
@@ -42,19 +43,25 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa lưu được danh mục. Dữ liệu đã nhập được giữ lại.') }
     finally { lock.current = false; setBusy(false) }
   }
-  return <Panel title="Thông tin danh mục"><form ref={form} onSubmit={submit} noValidate className={styles.editor}>
+  return <EditorLayout guidance={[{title:"Nhận diện danh mục",description:"Đối chiếu tên, loại và nội dung mô tả."},{title:"Thông tin cung cấp",description:"Kiểm tra giá, đơn vị và các trường cấu hình đang hiển thị."}]}><Panel title="Thông tin danh mục"><form ref={form} onSubmit={submit} noValidate className={styles.editor}>
     <FormErrorSummary errors={errors} />
     {kind === 'packages' && <p className={styles.fullRow}>Đặt tên gói tùy chỉnh, chọn mức gói rồi thêm dịch vụ và quyền lợi trong trang chi tiết. Chọn Bổ sung (Extra) cho gói mua thêm.</p>}
     {knownTypes.error && <Notice title="Chưa cập nhật được các loại đang dùng" tone="warning">Bạn vẫn có thể chọn các loại có sẵn.<Button tone="secondary" onClick={knownTypes.retry}>Tải lại loại</Button></Notice>}
     {!allowed && <Notice title="Chưa có quyền lưu" tone="warning">{access.error || 'Đang tải quyền hoặc tài khoản chưa được cấp quyền thao tác này.'}</Notice>}
-    {fields.map(field => <Field key={field.key} htmlFor={`catalog-${field.key}`} label={field.label} error={errors[field.key]}>
+    {[
+      { title: '01 · Nhận diện danh mục', description: 'Tên và loại giúp nhân sự tìm đúng thông tin.', keys: ['name', 'type'] },
+      { title: '02 · Giá & cấu hình', description: 'Kiểm tra số tiền, mã tiền tệ và các thông tin cấu hình.', keys: ['price', 'currency', 'capacity'] },
+      { title: '03 · Thời gian hiệu lực', description: 'Khoảng thời gian áp dụng cho gói dịch vụ.', keys: ['startDate', 'endDate'] },
+    ].filter(group => fields.some(field => group.keys.includes(field.key))).map(group => <FormSection key={group.title} title={group.title} description={group.description}>
+    {fields.filter(field => group.keys.includes(field.key)).map(field => <Field key={field.key} htmlFor={`catalog-${field.key}`} label={field.label} error={errors[field.key]}>
       {field.key === 'type' ? <select id={`catalog-${field.key}`} name={field.key} required aria-invalid={Boolean(errors.type)} value={draft.type} disabled={busy} onChange={event => setDraft({ ...draft, type: event.target.value })}><option value="">Chọn loại {catalogConfig[kind].label.toLocaleLowerCase('vi')}</option>{[...typeOptions].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
         : <input id={`catalog-${field.key}`} name={field.key} type={field.type ?? 'text'} maxLength={field.maxLength} min={field.type === 'number' ? 0 : undefined} step={field.key === 'capacity' ? 1 : field.type === 'number' ? 'any' : undefined} disabled={busy} value={draft[field.key]} aria-invalid={Boolean(errors[field.key])} onChange={event => setDraft({ ...draft, [field.key]: field.key === 'currency' ? event.target.value.toUpperCase() : event.target.value })} />}
     </Field>)}
+    </FormSection>)}
     <div className={styles.fullRow}><Field htmlFor="catalog-description" label="Mô tả" error={errors.description}><textarea id="catalog-description" name="description" maxLength={1000} disabled={busy} value={draft.description} onChange={event => setDraft({ ...draft, description: event.target.value })} /></Field></div>
     {error && <Notice title="Không lưu được danh mục" tone="error">{error}</Notice>}
     <div className={styles.editorActions}><ButtonLink tone="secondary" to={catalogConfig[kind].route}>Hủy</ButtonLink><Button type="submit" disabled={busy || !allowed}>{busy ? 'Đang lưu…' : 'Lưu danh mục'}</Button></div>
-  </form></Panel>
+  </form></Panel></EditorLayout>
 }
 export function ServiceFormPage() { return <CatalogFormPage kind="services" /> }
 export function ProductFormPage() { return <CatalogFormPage kind="products" /> }

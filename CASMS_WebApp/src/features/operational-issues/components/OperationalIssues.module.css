@@ -2,11 +2,11 @@
 .appShell {
   --oim-bg: #f5f7f9;
   --oim-surface: #fff;
-  --oim-border: #d5e0e4;
-  --oim-primary: #0b2a4a;
+  --oim-border: var(--border-default);
+  --oim-primary: var(--brand-navy);
   --oim-navy-950: #092333;
-  --oim-text: #0b2a4a;
-  --oim-muted: #506777;
+  --oim-text: var(--brand-navy);
+  --oim-muted: var(--text-secondary);
   --oim-info: #185abd;
   --oim-info-bg: #eaf3ff;
   --oim-success: #166345;
@@ -213,7 +213,7 @@
 .panel,
 .statePanel {
   border: 1px solid var(--oim-border);
-  border-radius: 8px;
+  border-radius:var(--radius-control);
   background: var(--oim-surface);
 }
 
@@ -273,7 +273,7 @@
   margin: 20px 0 16px;
   padding: 16px;
   border: 1px solid var(--oim-border);
-  border-radius: 8px;
+  border-radius:var(--radius-control);
   background: var(--oim-surface);
 }
 
@@ -314,7 +314,7 @@
 .tableViewport {
   overflow-x: auto;
   border: 1px solid var(--oim-border);
-  border-radius: 8px 8px 0 0;
+  border-radius:var(--radius-control) 8px 0 0;
   background: var(--oim-surface);
 }
 
@@ -383,7 +383,7 @@
 .errorBanner {
   margin-top: 16px;
   padding: 14px 16px;
-  border-radius: 8px;
+  border-radius:var(--radius-control);
   font-size: 14px;
   line-height: 20px;
 }
@@ -538,7 +538,7 @@
   padding: 0;
   overflow: auto;
   border: 1px solid var(--oim-border);
-  border-radius: 8px;
+  border-radius:var(--radius-control);
   background: var(--oim-surface);
   color: var(--oim-text);
   box-shadow: 0 24px 72px rgb(9 35 51 / 24%);
@@ -721,14 +721,14 @@
 
 /* AURORA V3 — nodes 51:54, 51:167, 94:648, 98:433, 98:503, 98:558 */
 .appShell {
-  --oim-bg: #f8f6ec;
+  --oim-bg: var(--brand-pearl);
   --oim-surface: #fff;
-  --oim-border: #d5e0e4;
-  --oim-primary: #0e6b7a;
-  --oim-navy-950: #0b2a4a;
-  --oim-text: #0b2a4a;
-  --oim-muted: #506777;
-  --oim-info: #0e6b7a;
+  --oim-border: var(--border-default);
+  --oim-primary: var(--brand-teal);
+  --oim-navy-950: var(--brand-navy);
+  --oim-text: var(--brand-navy);
+  --oim-muted: var(--text-secondary);
+  --oim-info: var(--brand-teal);
   --oim-info-bg: #edf5ff;
   --oim-success: #2f7d5c;
   --oim-success-bg: #edfaf2;
@@ -743,21 +743,21 @@
 .pageHeader { margin-bottom: 18px; }
 .pageTitle { font-size: 28px; font-weight: 700; line-height: 36px; letter-spacing: -.2px; }
 .pageDescription { margin: 4px 0 0; font-size: 14px; line-height: 20px; }
-.primaryButton,.secondaryButton,.dangerButton { min-height: 42px; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; line-height: 18px; letter-spacing: .4px; text-decoration: none; }
-.primaryButton { border-color: #0e6b7a; background: #0e6b7a; }
-.secondaryButton { border-color: #d5e0e4; color: #0b2a4a; }
+.primaryButton,.secondaryButton,.dangerButton { min-height: 42px; padding: 10px 18px; border-radius:var(--radius-control); font-size: 13px; font-weight: 600; line-height: 18px; letter-spacing: .4px; text-decoration: none; }
+.primaryButton { border-color: var(--brand-teal); background: var(--brand-teal); }
+.secondaryButton { border-color: var(--border-default); color: var(--brand-navy); }
 .metricsGrid { gap: 12px; margin: 12px 0 14px; }
 .metricCard { min-height: 112px; padding: 16px; border-radius: 14px; }
 .eyebrow { margin-bottom: 5px; font-size: 11px; line-height: 16px; text-transform: none; }
 .metricValue { min-height: auto; padding: 0; background: transparent; font-size: 32px; font-weight: 700; line-height: 41px; font-variant-numeric: tabular-nums; }
-.metricHint { color: #506777; font-size: 11px; line-height: 16px; }
+.metricHint { color: var(--text-secondary); font-size: 11px; line-height: 16px; }
 .statusOpen,.severityCritical { background: transparent; color: #c84a4a; }
-.statusProgress { background: transparent; color: #0e6b7a; }
+.statusProgress { background: transparent; color: var(--brand-teal); }
 .statusResolved,.statusClosed,.severityLow { background: transparent; color: #2f7d5c; }
 .severityMedium,.statusReview,.severityHigh { background: transparent; color: #b97820; }
-.filters { grid-template-columns: 280px repeat(5,minmax(120px,1fr)); gap: 10px; margin: 14px 0; padding: 14px; border-radius: 12px; }
+.filters { grid-template-columns: 280px repeat(5,minmax(120px,1fr)); gap: 10px; margin: 14px 0; padding: 14px; border-radius:var(--radius-panel); }
 .field { gap: 4px; font-size: 10px; line-height: 15px; }
-.field input,.field select,.field textarea { min-height: 36px; padding: 9px 10px; border-radius: 8px; font-size: 12px; line-height: 17px; }
+.field input,.field select,.field textarea { min-height: 36px; padding: 9px 10px; border-radius:var(--radius-control); font-size: 12px; line-height: 17px; }
 .filterActions { grid-column: 1 / -1; }
 .filterGap { grid-column: 1 / -1; margin: 0; color: #b97820; font-size: 11px; }
 .tableViewport { border-radius: 14px; }
@@ -765,12 +765,12 @@
 .table th { padding: 10px 14px; background: #f5f2e9; font-size: 11px; }
 .table td { padding: 14px; border-top: 0; }
 .table tbody tr:nth-child(even) { background: #f5f2e9; }
-.issueLink,.issueName { color: #0b2a4a; font-weight: 600; text-decoration: none; }
+.issueLink,.issueName { color: var(--brand-navy); font-weight: 600; text-decoration: none; }
 .statusBadge { min-height: 28px; padding: 5px 10px; border: 1px solid currentColor; border-radius: 999px; background: #fff; font-size: 11px; line-height: 16px; }
 .tableBadge { min-width: 100px; }
 .detailGrid { grid-template-columns: minmax(0,760px) minmax(300px,392px); gap: 16px; }
 .detailMain { display: grid; gap: 12px; }
-.actionRail { display: flex; flex-direction: column; gap: 10px; align-self: start; padding: 16px; border: 1px solid #d5e0e4; border-radius: 14px; background: #fff; }
+.actionRail { display: flex; flex-direction: column; gap: 10px; align-self: start; padding: 16px; border: 1px solid var(--border-default); border-radius: 14px; background: #fff; }
 .actionRail .panel { padding: 0; border: 0; }
 .panel,.statePanel { border-radius: 14px; }
 .panel { padding: 18px; }
@@ -823,7 +823,7 @@
 .panel,.statePanel,.actionRail { padding:24px; }
 .eyebrow,.metricHint { font-size:13px; line-height:1.5; }
 .field :is(input,select,textarea) { min-height:44px; border-radius:var(--ui-radius); font:400 14px/1.5 var(--ui-font); }
-.tableViewport { max-width:100%; overflow-x:auto; border:1px solid var(--ui-border); border-radius:12px; }
+.tableViewport { max-width:100%; overflow-x:auto; border:1px solid var(--ui-border); border-radius:var(--radius-panel); }
 .table th { padding:16px; background:var(--ui-subtle); color:var(--ui-muted); font-weight:600; }
 .table td { padding:16px; border-bottom:1px solid var(--ui-border); line-height:1.55; overflow-wrap:anywhere; }
 .table tbody tr:nth-child(even) { background:var(--ui-surface); }
@@ -836,7 +836,7 @@
 .headerActions,.readonlySummary { display:flex; flex-wrap:wrap; align-items:center; gap:12px; min-width:0; }
 .readonlySummary { margin-bottom:24px; gap:16px; }
 .readonlySummary > span { min-width:0; overflow-wrap:anywhere; }
-.permissionNote { border-radius:12px; padding:12px 16px; font-size:13px; line-height:1.5; }
+.permissionNote { border-radius:var(--radius-panel); padding:12px 16px; font-size:13px; line-height:1.5; }
 @media(max-width:1100px) { .formGrid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:760px) { .formGrid { grid-template-columns:minmax(0,1fr); } }
 
@@ -844,3 +844,13 @@
 .formGrid { align-items:start; gap:16px 24px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }
 
 .field { align-content:start; }
+
+.metricsGrid { gap:16px; margin:0 0 24px; }
+.metricCard { padding:24px; gap:14px; border-top:3px solid var(--brand-teal); }
+.metricCard:has(.statusOpen),.metricCard:has(.statusReview) { border-top-color:var(--oim-error); }
+.metricValue { font-family:var(--font-family-heading); letter-spacing:-.03em; }
+.metricHint { font-size:12px; line-height:1.6; }
+.detailGrid { align-items:start; }
+.actionRail { position:sticky; top:var(--workspace-sticky-top,24px); }
+@media(max-width:900px) { .actionRail { position:static; } }
+@media(max-width:600px) { .metricsGrid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; } .metricCard { padding:20px 16px; } }

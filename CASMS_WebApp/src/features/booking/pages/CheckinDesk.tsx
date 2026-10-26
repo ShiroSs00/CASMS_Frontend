@@ -1,7 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { ApiError, apiRequest } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, DataTable, Field, Modal, Notice, Panel } from '@/shared/ui'
+import { Button, DataTable, Empty, Field, Modal, Notice, Panel } from '@/shared/ui'
 import { decodeBookingDetail, type BookingDetail } from '../api/real-booking-api'
 import { bookingMoney } from '../model/booking-presentation'
 import styles from '../components/LiveBooking.module.css'
@@ -46,7 +46,7 @@ export function CheckinDesk() {
     finally { lock.current = false; setBusy(false) }
   }
   return <>
-    <Panel title="Tra cứu hành khách tại quầy"><form onSubmit={lookup} className={styles.stack}><Field htmlFor="desk-reference" label="Mã đặt chỗ"><input id="desk-reference" required disabled={busy} value={reference} onChange={e => setReference(e.target.value)} /></Field><Field htmlFor="desk-email" label="Email người đại diện"><input id="desk-email" required type="email" disabled={busy} value={email} onChange={e => setEmail(e.target.value)} /></Field><Button type="submit" disabled={busy}>Tra cứu đặt chỗ</Button></form></Panel>
+    <Panel title="Tra cứu hành khách tại quầy"><form onSubmit={lookup} className={styles.deskLookup}><Field htmlFor="desk-reference" label="Mã đặt chỗ"><input id="desk-reference" required disabled={busy} value={reference} onChange={e => setReference(e.target.value)} /></Field><Field htmlFor="desk-email" label="Email người đại diện"><input id="desk-email" required type="email" disabled={busy} value={email} onChange={e => setEmail(e.target.value)} /></Field><Button type="submit" disabled={busy}>Tra cứu đặt chỗ</Button></form></Panel>
     {error && <Notice title="Chưa thực hiện được" tone="error">{error}</Notice>}
     {selected && access.canDo('CHECKIN_READ') && <Button tone="secondary" disabled={busy} onClick={() => void status(selected)}>Tải lại trạng thái hành khách</Button>}
     {uncertain && <Notice title="Cần đối chiếu hồ sơ check-in" tone="warning">Tải lại trạng thái hành khách để kiểm tra kết quả trước khi tiếp tục.</Notice>}
@@ -54,7 +54,8 @@ export function CheckinDesk() {
       <DataTable label="Hành khách làm thủ tục" headers={['Khách', 'Cabin', 'Thao tác']}>{booking.passengers.map(p => <tr key={p.bookingPassengerId}><td>{p.fullName}</td><td>{p.cabinNumber || '—'}</td><td>{access.canDo('CHECKIN_READ') && <Button tone="secondary" disabled={busy || p.participationStatus !== 'Active'} onClick={() => void status(p.bookingPassengerId)}>Chọn / xem trạng thái</Button>}</td></tr>)}</DataTable>
       {selected && <><p>Hành khách: {booking.passengers.find(p => p.bookingPassengerId === selected)?.fullName} · {result?.checkinStatus ?? 'Chưa đọc được hồ sơ check-in'}</p>{result?.boardingBlockReason && <Notice title="Điều kiện còn thiếu" tone="warning">{result.boardingBlockReason}</Notice>}{access.canDo('CHECKIN_CREATE') && canStart && (!result || result.checkinStatus === 'NotStarted') && <Button disabled={busy || uncertain || booking.bookingStatus !== 'Confirmed'} onClick={() => setAction('start')}>Bắt đầu check-in</Button>}{access.canDo('CHECKIN_UPDATE') && result?.checkinStatus === 'InProgress' && <Button disabled={busy || uncertain || booking.bookingStatus !== 'Confirmed'} onClick={() => setAction('complete')}>Xác nhận hoàn tất kiểm tra</Button>}</>}
     </Panel>}
-    <Notice title="Trạng thái lên tàu">BoardingReady là trạng thái sẵn sàng do máy chủ trả về. Chưa có API cấp thẻ, quét QR hoặc ghi nhận khách đã lên tàu.</Notice>
+    {!booking && !busy && !error && <Panel title="Hồ sơ hành khách"><Empty title="Chưa chọn hành khách"><p>Tra cứu bằng mã đặt chỗ và email người đại diện để mở danh sách hành khách.</p></Empty></Panel>}
+    <Notice title="Trạng thái lên tàu">Trạng thái sẵn sàng lên tàu được xác nhận bởi hệ thống. Cấp thẻ, quét QR và ghi nhận khách đã lên tàu chưa khả dụng trên webapp.</Notice>
     {action && <Modal title={action === 'start' ? 'Bắt đầu thủ tục' : 'Hoàn tất thủ tục'} busy={busy} onClose={() => setAction(null)}><p>Đối chiếu hành khách, hợp đồng, chứng từ và yêu cầu an toàn tại quầy trước khi xác nhận.</p>{error && <Notice title="Chưa cập nhật được" tone="error">{error}</Notice>}<Button disabled={busy} onClick={() => void submit()}>Xác nhận</Button></Modal>}
   </>
 }

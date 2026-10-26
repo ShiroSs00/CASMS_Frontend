@@ -1,3 +1,4 @@
+import { RecordFacts } from '@/shared/ui'
 import { journeyTime } from '@/shared/lib/journey-time'
 import { PermissionLink as Link } from '@/shared/ui'
 import { CruiseOperations } from '../components/CruiseOperations'
@@ -89,7 +90,10 @@ export function CruiseDetailPage() {
           <section className={styles.detailMetrics} aria-label="Trạng thái chuyến đi"><div><span>CHUYẾN ĐI</span><CruiseStatusBadge status={cruise.status} /></div><div><span>LỊCH TRÌNH</span><Badge label={detail.itinerary ? itineraryStatusLabels[detail.itinerary.status] : 'Chưa xác định'} tone={detail.readiness.checks.find((check) => check.key === 'ITINERARY')?.state === 'PASS' ? 'success' : 'warning'} /></div><div><span>TÀU</span><Badge label={detail.ship?.shipName ?? (cruise.shipId ? 'Chưa tải được thông tin tàu' : 'Chưa phân công')} tone={detail.ship?.status === 'ACTIVE' ? 'info' : 'warning'} /></div><div><span>HÀNH KHÁCH</span><Badge label={detail.capacity.activePassengerCount === null ? 'Chưa xác định' : `${detail.capacity.activePassengerCount} khách`} tone={detail.bookingHasData ? 'warning' : 'neutral'} /></div></section>
           <div className={styles.detailColumns}>
             <div>
-              <Panel title="Thông tin chuyến"><dl className={styles.definitionGrid}><dt>Mã chuyến</dt><dd>{cruise.cruiseCode}</dd><dt>Thời lượng chuyến</dt><dd>{cruiseTypeLabels[cruise.cruiseType]}</dd><dt>Khởi hành</dt><dd>{formatDateTime(cruise.departureDatetime)}</dd><dt>Kết thúc</dt><dd>{formatDateTime(cruise.returnDatetime)}</dd><dt>Cảng đi</dt><dd>{detail.departurePort.portName}</dd><dt>Cảng về</dt><dd>{detail.returnPort.portName}</dd></dl></Panel>
+              <Panel title="Thông tin chuyến"><RecordFacts entries={[
+      ['Mã chuyến', cruise.cruiseCode], ['Thời lượng chuyến', cruiseTypeLabels[cruise.cruiseType]], ['Khởi hành', formatDateTime(cruise.departureDatetime)],
+      ['Kết thúc', formatDateTime(cruise.returnDatetime)], ['Cảng đi', detail.departurePort.portName], ['Cảng về', detail.returnPort.portName],
+    ]} /></Panel>
               {access.canDo('ITINERARY_READ') && <Panel title="Lịch trình" subtitle="Ngày, lần ghé cảng và trạng thái phê duyệt được quản lý trong lịch trình của chuyến đi.">
                 {detail.itinerary ? <><p>{detail.itinerary.itineraryName} · {detail.itinerary.startDate} → {detail.itinerary.endDate}</p><ButtonLink to={`/admin/itineraries/${detail.itinerary.itineraryId}`}>Mở lịch trình của chuyến</ButtonLink></>
                   : !detail.supplementaryLoading && !detail.supplementaryErrors?.itinerary ? <><p>Chuyến chưa có lịch trình.</p><ButtonLink to={`/admin/itineraries/new?cruiseId=${cruise.cruiseId}`}>Tạo lịch trình cho chuyến này</ButtonLink></> : <p>Chưa xác định được lịch trình liên kết.</p>}

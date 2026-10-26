@@ -25,15 +25,25 @@
 .editor :is(input,select,textarea) { width:100%; }
 .editor textarea { min-height:120px; resize:vertical; }
 .editor > :is(section,aside,[role='alert'],[role='status']), .fullRow { grid-column:1/-1; }
-.editorActions { grid-column:1/-1; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:12px; padding-top:16px; border-top:1px solid #d5e0e4; }
+.editorActions { grid-column:1/-1; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:12px; padding-top:16px; border-top:1px solid var(--border-default); }
 .editorActions button { width:auto; }
 .stack { display:grid; gap:16px; align-content:start; }
 .detailActions { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
 .detailActions > :is(button,a) { width:auto; flex:0 0 auto; }
-.backLink { display:inline-flex; align-items:center; min-height:44px; margin-bottom:8px; color:var(--ui-brand,#0b2a4a); font-size:14px; font-weight:600; text-underline-offset:4px; }
+.backLink { display:inline-flex; align-items:center; min-height:44px; margin-bottom:8px; color:var(--ui-brand,var(--brand-navy)); font-size:14px; font-weight:600; text-underline-offset:4px; }
 .detailToolbar { display:flex; width:100%; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px 24px; }
-.recordStatus { display:flex; flex-wrap:wrap; align-items:center; gap:10px; color:var(--ui-muted,#506777); font-size:13px; }
+.recordStatus { display:flex; flex-wrap:wrap; align-items:center; gap:10px; color:var(--ui-muted,var(--text-secondary)); font-size:13px; }
 @media(max-width:700px) { .editor { grid-template-columns:minmax(0,1fr); } .definition { grid-template-columns:1fr; gap:6px; } .definition dd { margin-bottom:12px; } }
 
 .editor { gap:16px 24px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }
 .editor > div:has(> textarea), .editor > p { grid-column:1/-1; }
+
+.recordName { display:block; color:var(--brand-navy); font-weight:600; line-height:1.6; }
+.recordCode { display:block; color:var(--text-secondary); font-size:12px; margin-top:4px; font-weight:400; }
+
+.definition { margin:0; gap:0 24px; grid-template-columns:minmax(140px,.65fr) minmax(0,2fr); }
+.definition dt,.definition dd { padding:16px 0; border-bottom:1px solid var(--border-default); line-height:1.7; }
+.definition dt { color:var(--text-secondary); font-size:13px; font-weight:400; }
+.definition dd { font-weight:500; }
+.editor > section { min-width:0; }
+@media(max-width:600px) { .definition { grid-template-columns:minmax(0,1fr); } .definition dt { padding-bottom:4px; border-bottom:0; } .definition dd { padding-top:0; } }

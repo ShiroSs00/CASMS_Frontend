@@ -22,4 +22,19 @@
 .form { align-items:start; gap:16px 24px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }
 
 .form > div:has(> textarea) { grid-column:1/-1; }
-form .actions { justify-content:flex-end; padding-top:16px; border-top:1px solid var(--ui-border,#d5e0e4); }
+form .actions { justify-content:flex-end; padding-top:16px; border-top:1px solid var(--ui-border,var(--border-default)); }
+
+.recordName { display:block; color:var(--brand-navy); font-weight:600; line-height:1.6; }
+.recordCode { display:block; color:var(--text-secondary); font-size:12px; margin-top:4px; font-weight:400; }
+
+.detailLayout { display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,320px); gap:24px; align-items:start; }
+.actionRail { min-width:0; position:sticky; top:var(--workspace-sticky-top,24px); }
+.actionRail:empty { display:none; }
+.detailLayout:has(.actionRail:empty) { grid-template-columns:minmax(0,1fr); }
+.definition { margin:0; gap:0 24px; grid-template-columns:minmax(130px,.7fr) minmax(0,1.8fr); }
+.definition dt,.definition dd { padding:15px 0; border-bottom:1px solid var(--border-default); line-height:1.7; }
+.definition dt { color:var(--text-secondary); font-weight:400; font-size:13px; }
+.definition dd { font-weight:500; }
+.form > section { min-width:0; }
+@media(max-width:1100px) { .detailLayout { grid-template-columns:minmax(0,1fr); } .actionRail { position:static; } }
+@media(max-width:600px) { .definition { grid-template-columns:minmax(0,1fr); } .definition dt { padding-bottom:4px; border-bottom:0; } .definition dd { padding-top:0; } }

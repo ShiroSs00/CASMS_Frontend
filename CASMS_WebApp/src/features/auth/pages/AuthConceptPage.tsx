@@ -3,6 +3,7 @@ import { AuthPageShell } from '../components/AuthPageShell'
 import { authConcepts, type AuthConcept } from '../model/auth-concepts'
 import locked from '../assets/account-locked.png'
 import s from '../components/Auth.module.css'
+import { ButtonLink } from '@/shared/ui'
 
 export function AuthConceptPage({kind}:{kind:AuthConcept}) {
   if (kind === 'reservation-lookup') return <Navigate to="/booking/lookup" replace />
@@ -16,7 +17,8 @@ export function AuthConceptPage({kind}:{kind:AuthConcept}) {
   }
   return <AuthPageShell image={locked} editorialTitle="Hành trình của bạn cùng OceVie" editorialDescription="Quản lý thông tin chuyến đi và chuẩn bị cho kỳ nghỉ."><div className={s.loginCard}>
     <p className={s.eyebrow}>{content.eyebrow}</p><h1>{content.title}</h1><p>{descriptions[kind]}</p>
-    <Link className={s.center} to="/login">Về đăng nhập</Link>
-    <Link className={s.center} to="/booking/lookup">Tra cứu đặt chỗ</Link>
+    <div className={s.conceptNote}><strong>Hỗ trợ từ OceVie</strong><p>Vui lòng liên hệ quản trị viên hoặc bộ phận đặt chỗ để được hỗ trợ trực tiếp.</p></div>
+    <ButtonLink fullWidth to="/login">Về đăng nhập</ButtonLink>
+    <Link className={s.help} to="/booking/lookup">Tra cứu đặt chỗ →</Link>
   </div></AuthPageShell>
 }

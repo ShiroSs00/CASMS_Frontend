@@ -1,3 +1,4 @@
+import { EditorLayout } from '@/shared/ui'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useEffect, useState } from 'react'
 import { useSessionAccess } from '@/shared/auth'
@@ -127,7 +128,7 @@ export function SupplierFormPage() {
                   : 'Cập nhật hồ sơ đối tác và thông tin liên hệ chính.'}
               </p>
             </header>
-            <SupplierForm
+            <EditorLayout guidance={[{title:"Hồ sơ đối tác",description:"Kiểm tra tên và thông tin nhận diện nhà cung cấp."},{title:"Đầu mối liên hệ",description:"Rà soát địa chỉ, số điện thoại và email trước khi lưu."}]}><SupplierForm
               key={supplier ? supplier.id : 'new'}
               mode={mode}
               initialValues={supplier ? supplierToForm(supplier) : emptySupplierForm}
@@ -141,7 +142,7 @@ export function SupplierFormPage() {
                     : '/admin/suppliers',
                 )
               }
-            />
+            /></EditorLayout>
           </>
         )}
       </div>

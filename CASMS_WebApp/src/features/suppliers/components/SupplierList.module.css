@@ -1,9 +1,9 @@
 .content { min-width:0; }
-.name { display:inline-block; min-width:170px; max-width:300px; color:var(--ui-ink,#0b2a4a); font-weight:600; line-height:1.5; white-space:normal; overflow-wrap:anywhere; text-decoration:none; }
+.name { display:inline-block; min-width:170px; max-width:300px; color:var(--ui-ink,var(--brand-navy)); font-weight:600; line-height:1.5; white-space:normal; overflow-wrap:anywhere; text-decoration:none; }
 .name:hover { text-decoration:underline; text-underline-offset:4px; }
 .type { display:block; min-width:110px; max-width:180px; white-space:normal; overflow-wrap:anywhere; }
 .contact { display:grid; gap:4px; min-width:180px; max-width:280px; font-size:13px; line-height:1.5; white-space:normal; overflow-wrap:anywhere; }
 .contact strong { font-size:14px; font-weight:500; }
-.contact span { color:var(--ui-muted,#506777); }
+.contact span { color:var(--ui-muted,var(--text-secondary)); }
 .date { white-space:nowrap; font-variant-numeric:tabular-nums; }
-.rowAction { display:inline-flex; align-items:center; min-height:44px; color:var(--ui-ink,#0b2a4a); font-weight:600; white-space:nowrap; text-underline-offset:4px; }
+.rowAction { display:inline-flex; align-items:center; min-height:44px; color:var(--ui-ink,var(--brand-navy)); font-weight:600; white-space:nowrap; text-underline-offset:4px; }

@@ -1,10 +1,10 @@
 import { PermissionLink as Link } from '@/shared/ui'
-import { TechnicalDetails } from '@/shared/ui'
+import { TechnicalDetails, RecordFacts } from '@/shared/ui'
 import { useCallback, type FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, ButtonLink, DataTable, Empty, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Button, ButtonLink, CollectionSummary, DataTable, Empty, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
 import { shoreExcursionApi } from '../api/shore-excursion-api'
 import { excursionContextApi } from '../api/excursion-context-api'
 import { ExcursionActions, ExcursionAvailability } from '../components/ExcursionActions'
@@ -37,6 +37,7 @@ export function ShoreExcursionListPage() {
   }
   return <ShoreLayout>
     <PageHeader breadcrumb="Dịch vụ bờ" title="Chuyến tham quan bờ" description="Quản lý chuyến tham quan theo điểm dừng, nhà cung cấp và trạng thái." actions={access.canDo("EXCURSION_CREATE") && <ButtonLink to={`${root}/new`}>Tạo chuyến tham quan</ButtonLink>} />
+    <CollectionSummary count={query.loading || query.error ? null : query.data?.length ?? null} filtered={Boolean(cruiseStopId || supplierId || rawStatus)} label="Chuyến tham quan" scope="Kết quả trả về theo bộ lọc" />
     <Panel title="Bộ lọc">
       <form key={search.toString()} onSubmit={filter}>
         <div className={styles.filters}>
@@ -92,7 +93,7 @@ function ExcursionFacts({ item }: { item: ShoreExcursion }) {
     ['Giá', item.price === null ? 'Chưa đặt' : `${item.price.toLocaleString('vi-VN')}${item.currencyCode ? ` ${item.currencyCode}` : ''}`],
     ['Lý do hủy', item.cancellationReason ?? '—'], ['Ngày tạo', displayTime(item.createdAt)], ['Cập nhật', displayTime(item.updatedAt)],
   ]
-  return <Panel title="Thông tin chuyến tham quan"><dl className={styles.facts}>{facts.map(([label, value]) => <div key={label} style={{ display: 'contents' }}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><TechnicalDetails entries={[["Chuyến tham quan", item.shoreExcursionId], ["Điểm dừng", item.cruiseStopId], ["Nhà cung cấp", item.supplierId]]} /></Panel>
+  return <Panel title="Thông tin chuyến tham quan"><RecordFacts entries={facts} /><TechnicalDetails entries={[["Chuyến tham quan", item.shoreExcursionId], ["Điểm dừng", item.cruiseStopId], ["Nhà cung cấp", item.supplierId]]} /></Panel>
 }
 
 export function ShoreExcursionFormPage() {

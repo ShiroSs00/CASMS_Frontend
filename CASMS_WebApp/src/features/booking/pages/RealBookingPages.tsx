@@ -4,7 +4,7 @@ import { useParams, useSearchParams } from 'react-router'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Badge, Button, ButtonLink, DataTable, Empty, Field, ListFilters, ListFooter, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Badge, Button, ButtonLink, CollectionSummary, DataTable, Empty, Field, ListFilters, ListFooter, Modal, Notice, PageHeader, Panel, RecordFacts } from '@/shared/ui'
 import { realBookingApi, type BookingDetail } from '../api/real-booking-api'
 import { BookingReadState, RealBookingFrame } from '../components/RealBookingUI'
 import { bookingMutationFailure } from '../model/booking-mutation'
@@ -29,6 +29,7 @@ export function RealBookingList({ admin = false }: { admin?: boolean }) {
       description="Theo dõi đặt chỗ theo chuyến đi và trạng thái xác nhận."
       actions={<><ButtonLink tone="secondary" to={admin ? root + '/lookup' : '/booking/lookup'}>Tra cứu bằng mã</ButtonLink>
         {(!admin || access.canDo('BOOKING_CREATE')) && <ButtonLink to={admin ? root + '/new' : '/booking/cabin-experience'}>Tạo đặt chỗ</ButtonLink>}</>} />
+    <CollectionSummary count={list.loading || list.error ? null : list.data?.totalElements ?? null} visible={list.data?.content.length} filtered={filtered} label="Đặt chỗ trong kết quả" scope="Tổng kết quả từ hệ thống" />
     <Panel title="Bộ lọc" subtitle="Chọn chuyến đi hoặc trạng thái để thu hẹp danh sách.">
       <ListFilters label="Bộ lọc đặt chỗ" actions={<Button tone="secondary" disabled={!filtered} onClick={resetFilters}>Xóa bộ lọc</Button>}>
         <Field htmlFor="booking-cruise" label="Chuyến đi"><select id="booking-cruise" value={cruiseId} onChange={event => { setCruiseId(event.target.value); setPage(0) }}>
@@ -72,7 +73,13 @@ export function RealBookingDetail({ admin = false, related, customerIntro, showP
 }
 export function BookingRecord({ booking, publicView = false, showPassengerDetails = false }: { booking: BookingDetail; publicView?: boolean; showPassengerDetails?: boolean }) {
   if (publicView) return <PublicBookingRecord booking={booking} showPassengerDetails={showPassengerDetails} />
-  return <><Panel title="Chuyến đi và điều khoản thanh toán"><p>{booking.bookingReference} · {bookingStatusName[booking.bookingStatus]} · {booking.cruiseName}</p><p>{bookingWhen(booking.departureDatetime)} → {bookingWhen(booking.returnDatetime)} · Giờ Việt Nam</p><p>Giá vé: {booking.agreedFareAmount} {booking.currency} · Cọc yêu cầu: {booking.requiredDepositAmount} {booking.currency}</p><p>Hạn thanh toán: {bookingWhen(booking.finalPaymentDueAt)}</p><p>Hồ sơ điều khoản: {booking.contractReference ?? 'Chưa có'} · {booking.contractStatus ? ({ Draft: 'Bản nháp', Accepted: 'Đã chấp thuận', Cancelled: 'Đã hủy' } as Record<string, string>)[booking.contractStatus] ?? booking.contractStatus : 'Chưa có trạng thái'}</p>{booking.contractSigningInstructions && <p>{booking.contractSigningInstructions}</p>}{booking.cancellationReason && <p>Lý do hủy: {booking.cancellationReason}</p>}<p>Hình thức: {bookingPlanName(booking.paymentPlan)}</p><BookingInstallments booking={booking} /><p>Thanh toán theo hướng dẫn đã được xác nhận. Trạng thái đặt chỗ được cập nhật sau khi đối soát.</p></Panel><Panel title="Hành khách & phòng"><DataTable label="Hành khách đặt chỗ" headers={['Hành khách', 'Phòng', 'Gói dịch vụ', 'Trạng thái']} >{booking.passengers.map(item => <tr key={item.bookingPassengerId}><td>{item.fullName}</td><td>{item.cabinNumber ?? 'Chưa gán phòng'}</td><td>{item.tourPackageName ?? 'Chưa chọn gói'}</td><td>{item.participationStatus === 'Active' ? 'Tham gia' : 'Đã hủy'}</td></tr>)}</DataTable></Panel></>
+  return <><Panel title="Chuyến đi và điều khoản thanh toán"><RecordFacts entries={[
+    ['Mã đặt chỗ', booking.bookingReference], ['Trạng thái', bookingStatusName[booking.bookingStatus]], ['Chuyến đi', booking.cruiseName],
+    ['Thời gian · giờ Việt Nam', `${bookingWhen(booking.departureDatetime)} → ${bookingWhen(booking.returnDatetime)}`],
+    ['Giá vé', `${booking.agreedFareAmount ?? 'Chưa có'} ${booking.currency ?? ''}`], ['Cọc yêu cầu', `${booking.requiredDepositAmount ?? 'Chưa có'} ${booking.currency ?? ''}`],
+    ['Hạn thanh toán', bookingWhen(booking.finalPaymentDueAt)], ['Hồ sơ điều khoản', booking.contractReference ?? 'Chưa có'],
+    ['Trạng thái hợp đồng', booking.contractStatus ? ({ Draft: 'Bản nháp', Accepted: 'Đã chấp thuận', Cancelled: 'Đã hủy' } as Record<string, string>)[booking.contractStatus] ?? booking.contractStatus : 'Chưa có trạng thái'],
+  ]} />{booking.contractSigningInstructions && <p>{booking.contractSigningInstructions}</p>}{booking.cancellationReason && <p>Lý do hủy: {booking.cancellationReason}</p>}<p>Hình thức: {bookingPlanName(booking.paymentPlan)}</p><BookingInstallments booking={booking} /><p>Thanh toán theo hướng dẫn đã được xác nhận. Trạng thái đặt chỗ được cập nhật sau khi đối soát.</p></Panel><Panel title="Hành khách & phòng"><DataTable label="Hành khách đặt chỗ" headers={['Hành khách', 'Phòng', 'Gói dịch vụ', 'Trạng thái']} >{booking.passengers.map(item => <tr key={item.bookingPassengerId}><td>{item.fullName}</td><td>{item.cabinNumber ?? 'Chưa gán phòng'}</td><td>{item.tourPackageName ?? 'Chưa chọn gói'}</td><td>{item.participationStatus === 'Active' ? 'Tham gia' : 'Đã hủy'}</td></tr>)}</DataTable></Panel></>
 }
 function BookingOperations({ booking, onChanged }: { booking: BookingDetail; onChanged: () => void; publicView?: boolean }) {
   const access = useSessionAccess(), lock = useRef(false)

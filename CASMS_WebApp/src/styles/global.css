@@ -4,3 +4,13 @@ h1,h2,h3,h4 { font-family:var(--font-family-heading); font-weight:600; }
 a { color:inherit; }
 :focus-visible { outline:3px solid var(--brand-teal); outline-offset:4px; }
 ::selection { background:#B7E3E4; color:var(--brand-navy); }
+html { scroll-padding-block:24px; color-scheme:light; }
+body { line-height:1.6; }
+h1,h2,h3,h4 { text-wrap:balance; }
+button,input,select,textarea { font:inherit; }
+button:not(:disabled),summary { cursor:pointer; }
+button:disabled { cursor:not-allowed; }
+input,select,textarea { accent-color:var(--brand-teal); }
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after { scroll-behavior:auto !important; }
+}
