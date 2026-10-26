@@ -1,6 +1,7 @@
 import { BookingJourneyBanner, BookingPhotoNote } from '../components/BookingExperience'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router'
+import { Navigate, useNavigate, useSearchParams } from 'react-router'
+import { PermissionLink as Link } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
 import { useReadQuery } from '@/shared/api'
 import { Button, ButtonLink, Empty, Field, Loading, Modal, Notice, PageHeader, Panel } from '@/shared/ui'

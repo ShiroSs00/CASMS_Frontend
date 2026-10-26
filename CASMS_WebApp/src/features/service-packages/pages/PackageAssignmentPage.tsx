@@ -19,8 +19,8 @@ function dateLabel(value: string | null | undefined, includeTime = false) {
 const bookingLabels = { Draft: 'Chờ xác nhận', Confirmed: 'Đã xác nhận', Cancelled: 'Đã hủy' }
 
 export function PackageAssignmentPage() {
-  return <CatalogFrame><PageHeader breadcrumb="DỊCH VỤ TÀU / PHÂN BỔ GÓI" title="Phân bổ gói dịch vụ"
-    description="Chọn hành khách, xem gói đang sử dụng và cập nhật gói phù hợp."
+  return <CatalogFrame><PageHeader breadcrumb="ĐẶT CHỖ / GÓI CỦA HÀNH KHÁCH" title="Gói dịch vụ của hành khách"
+    description="Xem gói đang sử dụng; gán hoặc thay đổi gói theo quyền được cấp."
     actions={<ButtonLink tone="secondary" to="/admin/service-packages">Danh mục gói</ButtonLink>} />
     <ProcessGuide label="Phân bổ theo hành khách" steps={[{title:"Chọn hồ sơ",description:"Tìm đặt chỗ và xác định đúng hành khách."},{title:"So sánh gói",description:"Xem nội dung, hiệu lực và giá danh mục tham khảo."},{title:"Xem lại phân bổ",description:"Đối chiếu gói đã chọn trước khi xác nhận."}]} />
     <BookingPackageAssignments />
@@ -42,7 +42,7 @@ export function BookingPackageAssignments({ bookingId, onChanged }: { bookingId?
   const selectedPackage = packages.data?.find(item => item.id === packageId && item.status === 'ACTIVE')
   const activePackages = packages.data?.filter(item => item.status === 'ACTIVE') ?? []
   const visiblePackages = activePackages.filter(item => `${item.name} ${item.code}`.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi')))
-  const hasPermission = access.has('TOUR_PACKAGE_ASSIGN')
+  const hasPermission = access.canDo('TOUR_PACKAGE_ASSIGN')
   const allowed = hasPermission && booking?.bookingStatus === 'Draft' && (!bookingId || booking.bookingId === bookingId) && passenger?.participationStatus === 'Active' && !assignments.loading && !assignments.error
   const canSave = Boolean(allowed && selectedPackage && selectedPackage.id !== current?.packageId && !packages.loading && !packages.error)
   const currentName = currentPackage?.name ?? (passenger?.tourPackageId === current?.packageId ? passenger?.tourPackageName : null) ?? 'Gói đã phân bổ'

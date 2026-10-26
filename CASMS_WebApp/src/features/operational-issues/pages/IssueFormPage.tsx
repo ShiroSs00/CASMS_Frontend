@@ -76,7 +76,7 @@ export function IssueFormPage() {
   }, [issueId])
 
   const isBlockedEdit = isEdit && (!existingIssue || existingIssue.id !== issueId || existingIssue.status !== 'OPEN')
-  const allowed = access.has(isEdit ? 'OPERATIONAL_ISSUE_UPDATE' : 'OPERATIONAL_ISSUE_CREATE')
+  const allowed = access.canDo(isEdit ? 'OPERATIONAL_ISSUE_UPDATE' : 'OPERATIONAL_ISSUE_CREATE')
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()

@@ -7,10 +7,11 @@ function unwrap(value: unknown, status: number): unknown {
 }
 function record(value: unknown, status: number): Activity {
   const dto = unwrap(value, status)
-  if (!dto || typeof dto !== 'object' || !('id' in dto) || typeof dto.id !== 'string' || !('name' in dto) || typeof dto.name !== 'string' || !('cruiseId' in dto) || typeof dto.cruiseId !== 'string'
+  if (!dto || typeof dto !== 'object' || !('id' in dto) || typeof dto.id !== 'string' || !('name' in dto) || typeof dto.name !== 'string' || ('cruiseId' in dto && dto.cruiseId !== null && typeof dto.cruiseId !== 'string')
     || !('code' in dto) || typeof dto.code !== 'string' || !('status' in dto) || typeof dto.status !== 'string'
     || !('startTime' in dto) || typeof dto.startTime !== 'string' || !('endTime' in dto) || typeof dto.endTime !== 'string' || !('capacity' in dto) || !Number.isSafeInteger(dto.capacity) || Number(dto.capacity) < 1) throw new ApiError('Không đọc được thông tin hoạt động.', status)
-  return dto as Activity
+  // Jackson may omit null fields. Normalize only the nullable Cruise association.
+  return { ...dto, cruiseId: 'cruiseId' in dto ? dto.cruiseId : null } as Activity
 }
 function list<T>(value: unknown, status: number): T[] {
   const dto = unwrap(value, status)

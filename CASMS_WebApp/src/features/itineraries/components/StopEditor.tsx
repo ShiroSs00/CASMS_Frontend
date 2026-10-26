@@ -8,10 +8,11 @@ import { excursionIssue } from '../model/journey-review'
 import styles from './Itineraries.module.css'
 
 type StopForm = { portId: string; destinationId: string; plannedArrival: string; plannedDeparture: string; allAboardTime: string; callType: CruiseStopDraft['callType']; arrivalMethod: NonNullable<CruiseStopDraft['arrivalMethod']>; tenderTransferMinutes: number }
-export function StopEditor({ itineraryId, stop, days, ports, destinations, stops, excursions, cruise, busy, editable, onSave, onRemove }: {
+export function StopEditor({ itineraryId, stop, days, ports, destinations, stops, excursions, cruise, busy, editable: initialEditable, onSave, onRemove }: {
   itineraryId: string; stop: CruiseStop | null; days: ItineraryDay[]; ports: Port[]; destinations: Destination[]; stops: CruiseStop[]; excursions: ProgramExcursion[]; cruise?: { departureDatetime: string; returnDatetime: string }; busy: boolean; editable: boolean; onSave: (draft: CruiseStopDraft) => void; onRemove: () => void
 }) {
   const access = useSessionAccess()
+  const editable = initialEditable && access.canDo(stop ? 'CRUISE_STOP_UPDATE' : 'CRUISE_STOP_ADD')
   const initialZone = ports.find(port => port.portId === stop?.portId)?.timeZoneId
   const initialTime = (value?: string | null) => value && validTimeZone(initialZone) ? zonedInput(value, initialZone) : ''
   const [draft, setDraft] = useState<StopForm>({ portId: stop?.portId ?? '', destinationId: stop?.destinationId ?? '', plannedArrival: initialTime(stop?.plannedArrival), plannedDeparture: initialTime(stop?.plannedDeparture), allAboardTime: initialTime(stop?.allAboardTime), callType: stop?.callType ?? 'NORMAL', arrivalMethod: stop?.arrivalMethod ?? 'BERTH', tenderTransferMinutes: stop?.tenderTransferMinutes ?? 0 })
@@ -74,6 +75,6 @@ export function StopEditor({ itineraryId, stop, days, ports, destinations, stops
       <Field htmlFor="stop-destination" label="Điểm đến liên quan" hint={stop?.destinationId ? 'Hệ thống hiện chỉ hỗ trợ thay liên kết, chưa hỗ trợ gỡ điểm đến đã lưu.' : undefined}><select id="stop-destination" value={draft.destinationId} onChange={event => update('destinationId', event.target.value)}>{!stop?.destinationId && <option value="">Không chọn</option>}{destinations.map(item => <option key={item.destinationId} value={item.destinationId}>{item.destinationName}</option>)}</select></Field>
     </fieldset>
     {linked.length > 0 && <Notice title={`${linked.length} chuyến tham quan liên quan`}>Thay đổi cảng hoặc thời gian sẽ được kiểm tra với lịch tham quan đã lưu.</Notice>}
-    <div className={styles.editorActions}>{stop && editable && access.has('CRUISE_STOP_REMOVE_DRAFT') && <Button tone="danger" disabled={busy} onClick={onRemove}>Xóa lần ghé cảng</Button>}{editable && <Button type="submit" disabled={busy || !validTimeZone(zone)}>{busy ? 'Đang lưu…' : 'Lưu lần ghé cảng'}</Button>}</div>
+    <div className={styles.editorActions}>{stop && editable && access.canDo('CRUISE_STOP_REMOVE_DRAFT') && <Button tone="danger" disabled={busy} onClick={onRemove}>Xóa lần ghé cảng</Button>}{editable && <Button type="submit" disabled={busy || !validTimeZone(zone)}>{busy ? 'Đang lưu…' : 'Lưu lần ghé cảng'}</Button>}</div>
   </form>
 }

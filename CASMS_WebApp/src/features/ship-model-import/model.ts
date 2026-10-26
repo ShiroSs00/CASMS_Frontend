@@ -1,3 +1,4 @@
+import type { PermissionRequirement } from '@/shared/auth'
 export type ImportJob = {
   jobId: string; shipId: string; modelId: string
   status: 'RUNNING' | 'SUCCEEDED' | 'PARTIAL' | 'FAILED'
@@ -13,7 +14,11 @@ export type ImportSession = {
   registration: Registration | null; job: ImportJob | null
 }
 export const emptySession: ImportSession = { modelKey: '', assetVersion: '', fileName: '', uploaded: false, registration: null, job: null }
-export const importPermissions = ['SHIP_MODEL_CREATE', 'SHIP_CREATE', 'SHIP_UPDATE', 'SHIP_READ'] as const
+export const importRequirements = {
+  upload: { mode: 'ALL', permissions: ['SHIP_UPDATE'] },
+  register: { mode: 'ALL', permissions: ['SHIP_MODEL_CREATE'], anyOf: [{ mode: 'ANY', permissions: ['SHIP_CREATE','SHIP_UPDATE'] }] },
+  import: { mode: 'ALL', permissions: ['SHIP_UPDATE'] },
+} satisfies Record<string, PermissionRequirement>
 export function bundleLabel(session: ImportSession) {
   if (['Gói đã lưu trên hệ thống', 'Gói đã tải (chờ kiểm tra)'].includes(session.fileName)) {
     return session.registration ? 'Gói đã lưu trên hệ thống' : 'Gói đã tải (chờ kiểm tra)'

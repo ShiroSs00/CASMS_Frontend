@@ -9,7 +9,7 @@ import { RealBookingList, RealBookingDetail } from './RealBookingPages'
 function CustomerReadAccess({ children }: { children: ReactNode }) {
   const access = useSessionAccess()
   if (access.status === 'loading') return <RealBookingFrame><Loading label="Đang kiểm tra quyền xem đặt chỗ…" /></RealBookingFrame>
-  if (!access.has('BOOKING_READ')) return <RealBookingFrame><Notice title="Chưa thể xem đặt chỗ của tài khoản" tone="warning"><p>Phiên hiện tại chưa có quyền đọc danh sách và chi tiết đặt chỗ. Bạn có thể tra cứu bằng mã cùng thông tin người đại diện.</p><ButtonLink to="/booking/lookup">Tra cứu bằng mã đặt chỗ</ButtonLink></Notice></RealBookingFrame>
+  if (!access.canDo('BOOKING_READ')) return <RealBookingFrame><Notice title="Chưa thể xem đặt chỗ của tài khoản" tone="warning"><p>Phiên hiện tại chưa có quyền đọc danh sách và chi tiết đặt chỗ. Bạn có thể tra cứu bằng mã cùng thông tin người đại diện.</p><ButtonLink to="/booking/lookup">Tra cứu bằng mã đặt chỗ</ButtonLink></Notice></RealBookingFrame>
   return children
 }
 function CustomerDetail({ unavailable, showPassengerDetails = false }: { unavailable?: string; showPassengerDetails?: boolean }) {

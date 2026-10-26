@@ -5,7 +5,7 @@ import { ApiError, useReadQuery } from '@/shared/api'
 import { Badge, Button, Notice, PageHeader, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { shipImportApi } from './api'
-import { bundleLabel, emptySession, importPermissions, issueMessage, jobLabel, restoreSession, type ImportJob, type ImportSession } from './model'
+import { bundleLabel, emptySession, importRequirements, issueMessage, jobLabel, restoreSession, type ImportJob, type ImportSession } from './model'
 import { ImportDialog } from './ImportDialog'
 import styles from './ShipImport.module.css'
 
@@ -33,8 +33,14 @@ function ShipImportContent({ userId }: { userId: string }) {
   const alive = useRef(true)
   useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
   const resultHeading = useRef<HTMLDivElement>(null)
-  const allowed = importPermissions.every(permission => access.has(permission))
-  const canRead = access.has('SHIP_READ')
+  const permissions = {
+    upload: access.inWorkScope('ship-import') && access.can(importRequirements.upload),
+    register: access.inWorkScope('ship-import') && access.can(importRequirements.register),
+    import: access.inWorkScope('ship-import') && access.can(importRequirements.import),
+  }
+  const canPrepare = permissions.upload || permissions.register
+  const allowed = session.registration ? permissions.import : session.uploaded ? permissions.register : canPrepare
+  const canRead = access.canDo('SHIP_READ')
   const registration = session.registration
   const loadHistory = useCallback((signal: AbortSignal) => registration && canRead && !busy ? shipImportApi.history(registration, signal) : Promise.resolve(null), [registration, canRead, busy])
   const history = useReadQuery(`import-history:${registration?.shipModelId}:${refresh}:${busy}`, loadHistory)
@@ -58,8 +64,8 @@ function ShipImportContent({ userId }: { userId: string }) {
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
   }, [busy])
-  async function run(label: string, action: () => Promise<void>) {
-    if (inFlight.current || !allowed) return
+  async function run(label: string, permitted: boolean, action: () => Promise<void>) {
+    if (inFlight.current || !permitted) return
     inFlight.current = true; setBusy(label); setError('')
     try { await action() }
     catch (failure) {
@@ -72,20 +78,20 @@ function ShipImportContent({ userId }: { userId: string }) {
     }
   }
   async function prepare(draft: ImportSession, file: File | null) {
-    await run(file ? 'Đang tải và kiểm tra gói…' : 'Đang chuẩn bị gói đã tải…', async () => {
+    await run(file ? 'Đang tải và kiểm tra gói…' : 'Đang chuẩn bị gói đã tải…', file ? permissions.upload : permissions.register, async () => {
       if (file) await shipImportApi.upload(draft, file)
       if (alive.current) setSession({ ...draft, uploaded: true })
     })
   }
   async function register() {
-    await run('Đang ghi nhận thông tin tàu…', async () => {
+    await run('Đang ghi nhận thông tin tàu…', permissions.register, async () => {
       const result = await shipImportApi.register(session)
       if (alive.current) setSession(current => ({ ...current, registration: result }))
     })
   }
   async function importStructure() {
     if (!registration || running || !historyReady) return
-    await run('Đang nhập boong và phòng…', async () => {
+    await run('Đang nhập boong và phòng…', permissions.import, async () => {
       const result = await shipImportApi.importStructure(registration)
       if (alive.current) {
         setSession(current => ({ ...current, job: result })); setOpen(false)
@@ -93,18 +99,18 @@ function ShipImportContent({ userId }: { userId: string }) {
       }
     })
   }
-  function startNew() { setSession(emptySession); setError(''); setOpen(true) }
+  function startNew() { if (!canPrepare || inFlight.current) return; setSession(emptySession); setError(''); setOpen(true) }
   function chooseBundle() {
-    if (inFlight.current || session.registration) return
+    if (inFlight.current || session.registration || !canPrepare) return
     setError('')
     setSession(current => ({ ...emptySession, modelKey: current.modelKey, assetVersion: current.assetVersion }))
   }
   const hasSession = session.uploaded
   return <>
     <PageHeader breadcrumb="Hệ thống / Nhập thông tin tàu" title="Nhập thông tin tàu" description="Khởi tạo thông tin tàu, boong và phòng từ gói mô hình 3D." />
-    {!allowed && <Panel><Notice title="Chưa đủ quyền nhập dữ liệu" tone="warning">Tài khoản cần quyền tạo mô hình, tạo tàu, cập nhật tàu và đọc tàu. Nếu vừa cập nhật quyền cục bộ, khởi động lại BE và đăng nhập lại.</Notice></Panel>}
+    {!allowed && <Panel><Notice title="Chưa đủ quyền nhập dữ liệu" tone="warning">Bạn chưa được cấp quyền thực hiện bước hiện tại. Các bước tải gói, ghi nhận tàu và nhập cấu trúc được kiểm tra quyền riêng.</Notice></Panel>}
     {!hasSession ? <>
-      <section className={styles.hero}><div><span className={styles.eyebrow}>DỮ LIỆU TỪ MÔ HÌNH 3D</span><h2>Một gói dữ liệu, đầy đủ cấu trúc tàu</h2><p>Tải gói ZIP chứa thông tin mô hình. Hệ thống kiểm tra dữ liệu trước khi ghi nhận tàu, boong và phòng.</p><Button disabled={!allowed} onClick={() => { setError(''); setOpen(true) }}>Nhập thông tin tàu</Button></div><div className={styles.fileVisual} aria-hidden="true"><span>3D</span><strong>GÓI MÔ HÌNH</strong><small>ZIP · manifest · GLB</small></div></section>
+      <section className={styles.hero}><div><span className={styles.eyebrow}>DỮ LIỆU TỪ MÔ HÌNH 3D</span><h2>Một gói dữ liệu, đầy đủ cấu trúc tàu</h2><p>Tải gói ZIP chứa thông tin mô hình. Hệ thống kiểm tra dữ liệu trước khi ghi nhận tàu, boong và phòng.</p>{canPrepare && <Button onClick={() => { setError(''); setOpen(true) }}>Nhập thông tin tàu</Button>}</div><div className={styles.fileVisual} aria-hidden="true"><span>3D</span><strong>GÓI MÔ HÌNH</strong><small>ZIP · manifest · GLB</small></div></section>
       <div className={styles.steps}>{['Chọn gói dữ liệu', 'Xác nhận thông tin', 'Xem kết quả nhập'].map((title, index) => <section key={title}><span className={styles.stepNumber}>0{index + 1}</span><h3>{title}</h3><p>{['Sử dụng gói ZIP đã xuất, kèm thông tin mô hình và tệp kiểm tra.', 'Ghi nhận thông tin tàu từ manifest, sau đó nhập cấu trúc boong và phòng.', 'Xem số boong, số phòng đã nhập và các mục cần xử lý.'][index]}</p></section>)}</div>
     </> : <Panel>
       <div className={styles.stack} ref={resultHeading} tabIndex={-1}>
@@ -126,12 +132,12 @@ function ShipImportContent({ userId }: { userId: string }) {
         <div className={styles.actions}>
           {registration && <Link to={`/admin/ship-models?${new URLSearchParams({ship:registration.shipId,model:registration.shipModelId})}`}>Xem model 3D ↗</Link>}
           <span className={styles.muted}>Gói: {bundleLabel(session)}</span>
-          {(!job || job.status === 'FAILED' || job.status === 'PARTIAL') && <Button disabled={!allowed || Boolean(busy) || Boolean(running) || !historyReady} onClick={() => { setError(''); setOpen(true) }}>{job ? 'Thử nhập lại' : 'Tiếp tục nhập'}</Button>}
-          {!running && <Button tone={job?.status === 'SUCCEEDED' ? 'primary' : 'secondary'} disabled={!allowed || Boolean(busy) || !historyReady} onClick={startNew}>Nhập gói khác</Button>}
+          {allowed && (!job || job.status === 'FAILED' || job.status === 'PARTIAL') && <Button disabled={ Boolean(busy) || Boolean(running) || !historyReady} onClick={() => { setError(''); setOpen(true) }}>{job ? 'Thử nhập lại' : 'Tiếp tục nhập'}</Button>}
+          {canPrepare && !running && <Button tone={job?.status === 'SUCCEEDED' ? 'primary' : 'secondary'} disabled={Boolean(busy) || !historyReady} onClick={startNew}>Nhập gói khác</Button>}
         </div>
       </div>
     </Panel>}
-    {open && <ImportDialog session={session} busy={busy} error={error || (history.error ? `${history.error.message} Đóng biểu mẫu và chọn “Kiểm tra lại” để cập nhật trạng thái.` : '')} allowed={allowed && historyReady && !running} onPrepare={prepare} onRegister={register} onImport={importStructure} onChooseBundle={chooseBundle} onClose={() => setOpen(false)} />}
+    {open && <ImportDialog session={session} busy={busy} error={error || (history.error ? `${history.error.message} Đóng biểu mẫu và chọn “Kiểm tra lại” để cập nhật trạng thái.` : '')} allowed={historyReady && !running} permissions={permissions} onPrepare={prepare} onRegister={register} onImport={importStructure} onChooseBundle={chooseBundle} onClose={() => setOpen(false)} />}
   </>
 }
 export function ShipImportPage() {

@@ -9,7 +9,7 @@ import { paymentApi, type Payment } from '../api/payment-api'
 
 export function PaymentLedger({ bookingId, currency, onChanged }: { bookingId: string; currency: string; onChanged: () => void }) {
   const access = useSessionAccess()
-  const canRead = access.has('PAYMENT_READ') || access.has('PAYMENT_REPORT'), canWrite = access.has('PAYMENT_PROCESS')
+  const canRead = access.canDo('PAYMENT_READ') || access.canDo('PAYMENT_REPORT'), canWrite = access.canDo('PAYMENT_PROCESS')
   const query = useReadQuery(`payments:${access.userId}:${bookingId}:${canRead}`, useCallback(signal => canRead ? paymentApi.list(bookingId, signal) : Promise.resolve([]), [canRead, bookingId]))
   const [amount, setAmount] = useState(''), [method, setMethod] = useState('Cash'), [reference, setReference] = useState('')
   const [pending, setPending] = useState<Payment | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState('')

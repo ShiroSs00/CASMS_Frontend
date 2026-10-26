@@ -45,7 +45,7 @@ function ShipTracking({ship,cruise,onCruise}:{ship:string;cruise:string;onCruise
 export function PassengerTrackingPage() {
   const access=useSessionAccess()
   const [params,setParams]=useSearchParams()
-  const allowed=access.has('SHIP_READ')&&access.has('BLE_TELEMETRY_READ')
+  const allowed=access.roles.includes('SHIP_MANAGER')&&access.canDo('SHIP_READ')&&access.canDo('BLE_TELEMETRY_READ')
   const load=useCallback((signal:AbortSignal)=>allowed?viewerApi.ships(signal):Promise.resolve([]),[allowed])
   const query=useReadQuery('tracking-ships',load)
   const ship=params.get('ship')??''

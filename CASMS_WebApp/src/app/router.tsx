@@ -15,6 +15,7 @@ function featurePage<T>(load: () => Promise<T>, key: keyof T) {
 }
 
 const adminRoutes = [
+  { path: '/admin/trips/*', lazy: featurePage(() => import('@/features/trip-planning'), 'TripPlanningPage') },
   { path: '/admin/passenger-tracking', lazy: featurePage(() => import('@/features/ship-model-viewer'), 'PassengerTrackingPage') },
   { path: '/admin/ship-models', lazy: featurePage(() => import('@/features/ship-model-viewer'), 'ModelViewerPage') },
   { path: '/admin/fleet-dashboard', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'FleetDashboardPage') },
@@ -124,6 +125,7 @@ export const router = createBrowserRouter([{ ErrorBoundary: RouteErrorPage, Hydr
   { path: '/admin/workflow', element: <Navigate to="/admin" replace /> },
   { path: '/admin/workspaces/:workspaceId', element: <Navigate to="/admin" replace /> },
   { Component: AdminGuard, children: [...adminRoutes, { path: '/admin/*', element: <Navigate to="/admin" replace /> }] },
+  ...(import.meta.env.DEV && import.meta.env.MODE === 'trip-preview' ? [{ path: '/preview/trip-planning/*', lazy: featurePage(() => import('@/features/trip-planning'), 'TripPlanningPage') }] : []),
     { path: '/', Component: PublicLayout, children: [
     { index: true, lazy: featurePage(() => import('@/features/home'), 'HomePage') },
     { path: 'destinations', lazy: featurePage(() => import('@/features/home'), 'DestinationsPage') },

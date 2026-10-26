@@ -29,7 +29,7 @@ export function ShipAssignmentDialog({ detail, mode, onClose, onChanged }: {
   onChanged: () => void
 }) {
   const access = useSessionAccess()
-  const allowed = access.has({ assign: 'CRUISE_ASSIGN_SHIP', change: 'CRUISE_CHANGE_SHIP', unassign: 'CRUISE_UNASSIGN_SHIP' }[mode])
+  const allowed = access.canDo({ assign: 'CRUISE_ASSIGN_SHIP', change: 'CRUISE_CHANGE_SHIP', unassign: 'CRUISE_UNASSIGN_SHIP' }[mode])
   const [candidates, setCandidates] = useState<ShipCandidate[] | null>(null)
   const [selectedId, setSelectedId] = useState('')
   const [busy, setBusy] = useState(false)

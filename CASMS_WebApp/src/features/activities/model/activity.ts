@@ -1,6 +1,6 @@
 export type Activity = {
   id: string; code: string; name: string; description: string | null; startTime: string; endTime: string
-  location: string | null; capacity: number; price: number | null; currencyCode: string | null; status: string; cruiseId: string
+  location: string | null; capacity: number; price: number | null; currencyCode: string | null; status: string; cruiseId: string | null
 }
 export type ActivityDraft = { activityCode: string; activityName: string; description: string; startTime: string; endTime: string; location: string; capacity: number; price: number | null; currencyCode: string; cruiseId: string }
 export type CruiseOption = { cruiseId: string; cruiseCode: string; cruiseName: string; departureDatetime: string; returnDatetime: string }

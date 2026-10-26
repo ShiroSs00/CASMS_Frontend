@@ -1,6 +1,81 @@
 [
   {
     "method": "POST",
+    "path": "/ship-model-assets",
+    "mode": "ALL",
+    "permissions": [
+      "SHIP_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:78"
+  },
+  {
+    "method": "POST",
+    "path": "/ship-model-assets/{modelKey}/{assetVersion}/register",
+    "mode": "ALL",
+    "permissions": [
+      "SHIP_MODEL_CREATE"
+    ],
+    "anyOf": [
+      {
+        "mode": "ANY",
+        "permissions": [
+          "SHIP_CREATE",
+          "SHIP_UPDATE"
+        ]
+      }
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:96"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/models/{modelId}/imports",
+    "mode": "ALL",
+    "permissions": [
+      "SHIP_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:50"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/models/{modelId}/imports",
+    "mode": "ALL",
+    "permissions": [
+      "SHIP_READ"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:59"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/imports/{jobId}",
+    "mode": "ALL",
+    "permissions": [
+      "SHIP_READ"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:65"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/imports/{jobId}/issues",
+    "mode": "ALL",
+    "permissions": [
+      "SHIP_READ"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:71"
+  },
+  {
+    "method": "GET",
+    "path": "/cruises/{cruiseId}/passenger-tracking",
+    "mode": "ALL",
+    "permissions": [
+      "BLE_TELEMETRY_READ"
+    ],
+    "roles": [
+      "SHIP_MANAGER"
+    ],
+    "source": "com/casms/ship/controller/PassengerTrackingController.java:17"
+  },
+  {
+    "method": "POST",
     "path": "/checkin/guidance-sessions/{sessionId}/participants/auto-populate",
     "mode": "ANY",
     "permissions": [
@@ -2567,15 +2642,6 @@
     "source": "com/casms/ship/controller/CruiseController.java:70"
   },
   {
-    "method": "POST",
-    "path": "/ship-model-assets",
-    "mode": "ANY",
-    "permissions": [
-      "SHIP_UPDATE"
-    ],
-    "source": "com/casms/ship/controller/ShipModelController.java:45"
-  },
-  {
     "method": "GET",
     "path": "/shore-excursions",
     "mode": "ANY",
@@ -2931,5 +2997,176 @@
       "SHIP_CREATE"
     ],
     "source": "com/casms/ship/controller/ShipController.java:37"
+  },
+{
+    "method": "GET",
+    "path": "/trips",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_READ"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "POST",
+    "path": "/trips",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_CREATE"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "GET",
+    "path": "/trips/{tripId}",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_READ"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "PATCH",
+    "path": "/trips/{tripId}/draft",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_UPDATE"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "POST",
+    "path": "/trips/{tripId}/clone",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_CREATE"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "POST",
+    "path": "/trips/{tripId}/archive",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_DELETE"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "GET",
+    "path": "/trips/{tripId}/schedule-versions",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_READ"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "POST",
+    "path": "/trips/{tripId}/schedule-versions",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_PLAN_WRITE"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "GET",
+    "path": "/trip-schedule-versions/{versionId}",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_READ"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "PUT",
+    "path": "/trip-schedule-versions/{versionId}/content",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_PLAN_WRITE"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "POST",
+    "path": "/trip-schedule-versions/{versionId}/days/manage",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_PLAN_WRITE"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "POST",
+    "path": "/trip-schedule-versions/{versionId}/validate",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_PLAN_VALIDATE"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "POST",
+    "path": "/trip-schedule-versions/{versionId}/submit",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_PLAN_SUBMIT"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "POST",
+    "path": "/trip-schedule-versions/{versionId}/return",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_PLAN_REVIEW"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "POST",
+    "path": "/trip-schedule-versions/{versionId}/publish",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_PLAN_REVIEW"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "GET",
+    "path": "/trip-schedule-versions/{versionId}/history",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_READ"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "GET",
+    "path": "/trip-planning/catalogs/sources/activities",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_READ"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "GET",
+    "path": "/trip-planning/catalogs/sources/excursions",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_READ"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "method": "GET",
+    "path": "/trip-planning/catalogs/sources/services",
+    "mode": "ALL",
+    "permissions": [
+      "TRIP_READ"
+    ],
+    "source": "com/casms/trip/controller (4ac7ff7)"
   }
 ]
