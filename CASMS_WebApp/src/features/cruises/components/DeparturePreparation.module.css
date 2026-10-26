@@ -1,0 +1,20 @@
+.workspace{display:grid;gap:20px;min-width:0;color:var(--ui-ink,#102e47)}
+.tabs{display:flex;gap:20px;border-bottom:1px solid var(--ui-border,#dce4e8);overflow-x:auto;scrollbar-width:thin}
+.tabs button{flex:none;min-height:42px;padding:8px 0;border:0;border-bottom:2px solid transparent;background:transparent;font:inherit;font-size:14px;color:var(--ui-muted,#52697b);cursor:pointer}
+.tabs button[aria-selected=true]{color:var(--ui-ink,#102e47);border-bottom-color:var(--ui-brand,#102e47);font-weight:600}
+.tabs button:focus-visible,.problem button:focus-visible{outline:2px solid var(--ui-brand,#102e47);outline-offset:3px}
+.content{display:grid;gap:20px;min-width:0}.content>section{box-shadow:none}.summary{display:grid;gap:16px}
+.statusLine{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:16px 20px;background:var(--ui-surface,#fff);border:1px solid var(--ui-border,#dce4e8);border-radius:8px}
+.statusLine p{margin:4px 0 0;color:var(--ui-muted,#52697b);font-size:14px;line-height:1.5}.statusLine strong{font-size:16px}
+.problems{list-style:none;padding:0;margin:0;display:grid}.problem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;padding:14px 0;border-bottom:1px solid var(--ui-border,#dce4e8)}
+.problem:last-child{border:0}.problem strong{font-size:14px}.problem p{margin:5px 0 0;font-size:14px;line-height:1.6;color:var(--ui-muted,#52697b)}
+.problem button{align-self:center}.links{display:grid;gap:0}.linkRow{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 0;border-bottom:1px solid var(--ui-border,#dce4e8)}
+.linkRow:last-child{border:0}.linkRow p{margin:5px 0 0;font-size:14px;line-height:1.6;color:var(--ui-muted,#52697b)}
+.linkRow a{flex:none}.scope{padding:14px 16px;border-radius:8px;background:var(--ui-subtle,#faf8f1);font-size:14px;line-height:1.65;color:var(--ui-muted,#52697b)}
+.scope p{margin:0}.scope p+p{margin-top:8px}.compactActions{display:flex;gap:12px;flex-wrap:wrap}.key{font-variant-numeric:tabular-nums}
+@media(max-width:1100px){.tabs{gap:16px}.linkRow{flex-wrap:wrap}.problem{gap:12px}}
+
+.content[hidden]{display:none}
+
+.workspace>header{padding:0 0 12px;margin:0;border-bottom:0}.workspace>header h1{font-size:24px;line-height:1.35}.workspace{gap:16px}
+.objectToolbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;min-height:36px;font-size:14px}.objectToolbar>a{margin-left:auto}.objectToolbar button{min-height:36px}

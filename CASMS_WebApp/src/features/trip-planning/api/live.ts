@@ -5,13 +5,15 @@ import { PlanningFault, type PlanningGateway } from './gateway'
 import type { Report, Violation } from '../model/plan'
 import { planningSources } from './catalogs'
 import { supportedDuration } from '../model/duration'
+import { businessErrorMessage } from '@/shared/api/business-errors'
 
 const segment=encodeURIComponent
 export function failure(error: unknown): PlanningFault {
   if (error instanceof PlanningFault) return error
   if (error instanceof ApiError) {
-    const details=error.details as {violations?:Violation[]}|Violation[]|undefined
-    return new PlanningFault(error.message,error.status,error.code??'REQUEST_FAILED',Array.isArray(details)?details:Array.isArray(details?.violations)?details.violations:[])
+    const details=error.details as ({violations?:Violation[]}&Partial<Violation>)|Violation[]|undefined
+    const rows:Violation[]=Array.isArray(details)?details:Array.isArray(details?.violations)?details.violations:details&&(typeof details.clientKey==='string'||typeof details.fieldPath==='string'||typeof details.dayNumber==='number')?[{...details,code:error.code??'REQUEST_FAILED',severity:'ERROR',message:error.message}]:[]
+    return new PlanningFault(businessErrorMessage(error.code,error.message),error.status,error.code??'REQUEST_FAILED',rows.map(row=>({...row,message:businessErrorMessage(row.code,row.message)})))
   }
   return new PlanningFault(error instanceof Error?error.message:'Chưa thực hiện được yêu cầu.')
 }
@@ -39,12 +41,12 @@ export const liveGateway: PlanningGateway = {
   },
   async save(version,content) {return versionView(await apiRequest<CurrentVersion>(`/trip-schedule-versions/${segment(version.versionId)}/content`,{method:'PUT',body:contentRequest(version,content)}))},
   async changeDay(trip,version,removeDay) {
-    if(trip.structuralLockedAt||trip.versions?.some(v=>v.status==='PUBLISHED')) throw new PlanningFault('Chuyến đã phát hành, không đổi số ngày. Hãy nhân bản chuyến.',422,'TRIP_DURATION_LOCKED')
+    if(trip.structuralLockedAt||trip.versions?.some(v=>v.status==='PUBLISHED')) throw new PlanningFault('Chuyến có lịch trình đã phát hành nên không thể đổi số ngày. Hãy nhân bản chuyến.',422,'TRIP_DURATION_LOCKED')
     const result=await apiRequest<{trip:CurrentTrip;version:CurrentVersion}>(`/trip-schedule-versions/${segment(version.versionId)}/days/manage`,{method:'POST',body:{expectedTripRevision:trip.revision,expectedVersionRevision:version.revision,action:removeDay===undefined?'ADD':'REMOVE',...(removeDay===undefined?{}:{dayNumber:removeDay})}})
     return {trip:tripView(result.trip),version:versionView(result.version)}
   },
   sources:planningSources,
-  async validate(version) {const report=await apiRequest<Report>(`/trip-schedule-versions/${segment(version.versionId)}/validate`,{method:'POST'});if(typeof report?.validForSubmit!=='boolean'||!Array.isArray(report.violations)||!Array.isArray(report.deferredChecks))throw new PlanningFault('Báo cáo kiểm tra chưa đúng định dạng.',502);return report},
+  async validate(version) {const report=await apiRequest<Report>(`/trip-schedule-versions/${segment(version.versionId)}/validate`,{method:'POST'});if(typeof report?.validForSubmit!=='boolean'||!Array.isArray(report.violations)||!Array.isArray(report.deferredChecks))throw new PlanningFault('Báo cáo kiểm tra chưa đúng định dạng.',502);return {...report,violations:report.violations.map(row=>({...row,message:businessErrorMessage(row.code,row.message)}))}},
   async action(version,action,reason) {
     return versionView(await apiRequest<CurrentVersion>(`/trip-schedule-versions/${segment(version.versionId)}/${action}`,{method:'POST',body:{expectedRevision:version.revision,...(action==='return'?{rejectionReason:reason?.trim()}:action==='withdraw'||action==='cancel'?{reason:reason?.trim()||undefined}:{})}}))
   },

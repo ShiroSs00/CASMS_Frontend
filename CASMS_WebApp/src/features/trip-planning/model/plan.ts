@@ -10,7 +10,7 @@ export type Content = { days: Day[]; stops: Stop[]; entries: Entry[] }
 export type Trip = CurrentTrip & { info: TripInfo; durationIssue?:string }
 export type Version = Omit<CurrentVersion, 'days' | 'stops' | 'entries'> & Content
 export type SourceKind = 'ports' | 'services' | 'activities' | 'excursions' | 'regions' | 'countries' | 'durations' | 'activityCategories'
-export type SourceQuery = { keyword?:string; category?:string; portId?:string; destinationId?:string }
+export type SourceQuery = { keyword?:string; category?:string; portId?:string; destinationId?:string; tripId?:string; countryCode?:string; countryCodes?:readonly string[] }
 export type Source = EntryLocation & { id: string; label: string; name?:string; timeZoneId?: string; portId?: string; countryCode?:string; domesticRegion?:string | null; destinationId?:string; destinationName?:string; supplierName?:string; description?:string; location?:string; meetingPoint?:string; minDays?:number; maxDays?:number; defaultDays?:number }
 export type Violation = { code: string; severity: 'ERROR' | 'WARNING'; message: string; dayNumber?: number; clientKey?: string; field?: string; fieldPath?:string; actionHint?:string; entityType?: string }
 export type Report = { versionId: string; revision: number; validForSubmit: boolean; violations: Violation[]; deferredChecks: string[] }
@@ -26,9 +26,9 @@ export function countryLabel(code?:string){
 export function domesticRegionLabel(code?:string|null){
   return code?({BAC_BO:'Miền Bắc',TRUNG_BO:'Miền Trung',NAM_BO:'Miền Nam'} as Record<string,string>)[code]??'Miền chưa xác định':'Miền chưa xác định'
 }
-export const versionLabels = { DRAFT: 'Bản nháp', IN_REVIEW: 'Chờ duyệt', PUBLISHED: 'Đã phát hành', CANCELLED:'Đã hủy' }
-export const tripLabels = { DRAFT: 'Nháp', READY: 'Sẵn sàng', ARCHIVED: 'Đã lưu trữ' }
-export const kindLabels = { ONBOARD_ACTIVITY: 'Hoạt động trên tàu', SHORE_EXCURSION: 'Tham quan trên bờ', SERVING_WINDOW: 'Khung phục vụ' }
+export const versionLabels = { DRAFT: 'Bản nháp', IN_REVIEW: 'Chờ duyệt', PUBLISHED: 'Đã phát hành lịch trình', CANCELLED:'Đã hủy' }
+export const tripLabels = { DRAFT: 'Nháp', READY: 'Có lịch trình đã phát hành', ARCHIVED: 'Đã lưu trữ' }
+export const kindLabels = { ONBOARD_ACTIVITY: 'Hoạt động trên tàu', SHORE_EXCURSION: 'Tour tham quan trên bờ', SERVING_WINDOW: 'Khung phục vụ' }
 export const emptyInfo = (): TripInfo => ({ name: '', durationBand: 'SHORT', scope: '', regionIds: [], countryCodes: [], description: '' })
 export const contentOf = (v: Version): Content => structuredClone({ days: v.days, stops: v.stops, entries: v.entries })
 export const newKey = () => crypto.randomUUID()

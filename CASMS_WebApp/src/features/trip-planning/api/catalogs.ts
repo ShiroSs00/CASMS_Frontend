@@ -29,7 +29,7 @@ export async function planningSources(kind:SourceKind,signal:AbortSignal,query:S
   }
   if(kind==='activityCategories')return rows(await apiRequest(`${root}/catalogs/activity-categories`,{signal})).map(row=>({...identity(row,'code','name'),description:text(row,'description')}))
   // These endpoints return arrays. Do not fabricate page totals or paging parameters.
-  const values=rows(await apiRequest(`${root}/sources/${kind}`,{signal,query:{keyword:query.keyword?.trim()||undefined,...(kind==='activities'?{category:query.category||undefined}:kind==='excursions'?{portId:query.portId||undefined}:kind==='ports'?{destinationId:query.destinationId||undefined}:{})}}))
+  const values=rows(await apiRequest(`${root}/sources/${kind}`,{signal,query:{keyword:query.keyword?.trim()||undefined,...(kind==='activities'?{category:query.category||undefined}:kind==='excursions'?{portId:query.portId||undefined}:kind==='ports'?{destinationId:query.destinationId||undefined,tripId:query.tripId||undefined,countryCode:query.countryCode||undefined,countryCodes:query.countryCodes?.length?query.countryCodes.join(','):undefined}:{})}}))
   return values.map(row=>{
     const source=identity(row,kind==='ports'?'portId':kind==='activities'?'sourceActivityId':kind==='excursions'?'sourceExcursionId':'serviceId',kind==='ports'?'portName':kind==='activities'?'activityName':kind==='excursions'?'excursionName':'serviceName')
     const code=text(row,kind==='ports'?'portCode':kind==='activities'?'activityCode':kind==='excursions'?'excursionCode':'serviceCode')

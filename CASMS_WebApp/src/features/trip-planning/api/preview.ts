@@ -6,11 +6,11 @@ export function createPreviewGateway(scenario:Scenario):PlanningGateway {
   const trips=new Map<string,Trip>(),versions=new Map<string,Version>(),events:Record<string,History[]>={}
   const sourceData:Record<SourceKind,Source[]>={
     durations:[{id:"SHORT",label:"Ngắn ngày · 1–2 ngày",minDays:1,maxDays:2,defaultDays:1},{id:"LONG",label:"Dài ngày · 3–5 ngày",minDays:3,maxDays:5,defaultDays:3}],activityCategories:[],
-    ports:[{id:'22222222-2222-4222-8222-222222222222',label:'Minh họa · Cảng Hạ Long',timeZoneId:SHIP_ZONE},{id:'33333333-3333-4333-8333-333333333333',label:'Minh họa · Cảng Singapore',timeZoneId:'Asia/Singapore'}],
+    ports:[{id:'22222222-2222-4222-8222-222222222222',label:'Minh họa · Cảng Hạ Long',countryCode:'VN',domesticRegion:'BAC_BO',timeZoneId:SHIP_ZONE},{id:'33333333-3333-4333-8333-333333333333',label:'Minh họa · Cảng Singapore',countryCode:'SG',timeZoneId:'Asia/Singapore'}],
     services:[{id:'44444444-4444-4444-8444-444444444444',label:'Minh họa · Nhà hàng'},{id:'55555555-5555-4555-8555-555555555555',label:'Minh họa · Spa'}],
     activities:[{id:'66666666-6666-4666-8666-666666666666',label:'Minh họa · Chương trình trên tàu'}],
     excursions:[{id:'77777777-7777-4777-8777-777777777777',label:'Minh họa · Tham quan tại cảng'}],
-    regions:[{id:'NORTH',label:'Miền Bắc'},{id:'CENTRAL',label:'Miền Trung'},{id:'SOUTH',label:'Miền Nam'}],
+    regions:[{id:'BAC_BO',label:'Miền Bắc'},{id:'TRUNG_BO',label:'Miền Trung'},{id:'NAM_BO',label:'Miền Nam'}],
     countries:[{id:'VN',label:'Việt Nam'},{id:'SG',label:'Singapore'},{id:'TH',label:'Thái Lan'},{id:'MY',label:'Malaysia'},{id:'JP',label:'Nhật Bản'}],
   }
   function refreshTrip(trip:Trip) {
@@ -25,7 +25,7 @@ export function createPreviewGateway(scenario:Scenario):PlanningGateway {
     versions.set(version.versionId,copy(version));record(version,'CREATE_VERSION');refreshTrip(trip);return copy(version)
   }
   if(scenario!=='empty') {
-    const trip:Trip={tripId:'11111111-1111-4111-8111-111111111111',tripCode:'MINH-HOA-01',name:'Dữ liệu minh họa · Chuyến ba ngày',description:'Chỉ dùng thử giao diện.',durationDays:3,durationNights:2,tripType:null,createdByUserId:'preview-editor',plannedScope:'DOMESTIC',revision:1,status:'DRAFT',info:{name:'Dữ liệu minh họa · Chuyến ba ngày',description:'Chỉ dùng thử giao diện.',durationBand:'LONG',scope:'DOMESTIC',regionIds:['NORTH'],countryCodes:[]}}
+    const trip:Trip={tripId:'11111111-1111-4111-8111-111111111111',tripCode:'MINH-HOA-01',name:'Dữ liệu minh họa · Chuyến ba ngày',description:'Chỉ dùng thử giao diện.',durationDays:3,durationNights:2,tripType:null,createdByUserId:'preview-editor',plannedScope:'DOMESTIC',revision:1,status:'DRAFT',info:{name:'Dữ liệu minh họa · Chuyến ba ngày',description:'Chỉ dùng thử giao diện.',durationBand:'LONG',scope:'DOMESTIC',regionIds:['BAC_BO'],countryCodes:[]}}
     trips.set(trip.tripId,trip);const v=newVersion(trip)
     if(scenario==='422') {v.status='IN_REVIEW';v.submitterId='preview-editor';versions.set(v.versionId,v);refreshTrip(trip)}
   }
@@ -40,7 +40,7 @@ export function createPreviewGateway(scenario:Scenario):PlanningGateway {
       await delay();writable()
       if(previous) {
         const current=needTrip(previous.tripId);if(current.revision!==previous.revision)throw new PlanningFault('Thông tin chuyến đã thay đổi.',409,'STALE_REVISION')
-        if(current.structuralLockedAt&&info.durationBand!==current.info.durationBand)throw new PlanningFault('Chuyến đã phát hành, không đổi số ngày. Hãy nhân bản chuyến.',422)
+        if(current.structuralLockedAt&&info.durationBand!==current.info.durationBand)throw new PlanningFault('Chuyến có lịch trình đã phát hành nên không thể đổi số ngày. Hãy nhân bản chuyến.',422)
         const count=info.durationBand===current.info.durationBand?current.durationDays:info.durationBand==='SHORT'?1:3
         for(const v of versions.values()) if(v.tripId===current.tripId&&v.status==='DRAFT'&&count!==v.days.length) {
           if(v.stops.some(s=>s.departureDayNumber>count)||v.entries.some(e=>e.endDayNumber>count))throw new PlanningFault('Còn nội dung ở ngày bị ảnh hưởng; hãy xử lý trước khi đổi thời lượng.',422)
@@ -58,7 +58,7 @@ export function createPreviewGateway(scenario:Scenario):PlanningGateway {
     async createVersion(trip,sourceId) {await delay();writable();const current=refreshTrip(needTrip(trip.tripId));if(current.versions?.some(v=>v.status!=='PUBLISHED'))throw new PlanningFault('Đã có phiên bản chưa hoàn tất.',409,'DUPLICATE_DRAFT_VERSION');const source=sourceId?needVersion(sourceId):undefined;if(source&&source.tripId!==trip.tripId)throw new PlanningFault('Nguồn phải thuộc cùng chuyến.',422);return newVersion(current,source)},
     async save(version,content) {await delay();writable(version);revision(version);if(scenario==='409')throw new PlanningFault('Xung đột minh họa. Không tự ghi đè bản server.',409,'STALE_REVISION');const v={...copy(version),...copy(content),revision:version.revision+1};versions.set(v.versionId,v);record(v,'SAVE_CONTENT');refreshTrip(needTrip(v.tripId));return copy(v)},
     async changeDay(trip,version,removeDay) {
-      await delay();writable(version);revision(version);const current=needTrip(trip.tripId);if(current.structuralLockedAt)throw new PlanningFault('Chuyến đã phát hành, không đổi số ngày. Hãy nhân bản chuyến.',422)
+      await delay();writable(version);revision(version);const current=needTrip(trip.tripId);if(current.structuralLockedAt)throw new PlanningFault('Chuyến có lịch trình đã phát hành nên không thể đổi số ngày. Hãy nhân bản chuyến.',422)
       if(current.revision!==trip.revision)throw new PlanningFault('Thông tin chuyến minh họa đã thay đổi.',409,'STALE_REVISION')
       const nextCount=version.days.length+(removeDay===undefined?1:-1),limits=current.info.durationBand==='SHORT'?[1,2]:[3,5]
       if(nextCount<limits[0]||nextCount>limits[1])throw new PlanningFault('Số ngày vượt giới hạn thời lượng minh họa.',422)

@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useReadQuery } from '@/shared/api'
 import { Badge, Button, Empty, Field, Loading, Modal, Notice, Panel } from '@/shared/ui'
-import { usePlanning, useUnsavedGuard } from '../hooks'
+import { usePlanning, useSources, useUnsavedGuard } from '../hooks'
 import { failure } from '../api/live'
 import type { PlanningFault } from '../api/gateway'
 import { contentOf, versionLabels, type Content, type Entry, type Stop, type Trip, type Version, type Violation } from '../model/plan'
+import { DepartureSourceSummary } from '../components/DepartureSourceSummary'
 import { DayPane } from '../components/DayPane'
 import { TripSteps } from '../components/TripSteps'
 import { EntryDrawer, StopDrawer } from '../components/PlanDrawers'
@@ -15,6 +16,7 @@ import styles from '../Planning.module.css'
 import { violationTarget } from '../model/violation-target'
 import { versionContext, workingVersionLabel } from '../model/version-context'
 import { durationRules, supportedDuration } from '../model/duration'
+import { stopTimingViolations, portScopeViolations, linkedTourViolations, routeOrderViolations } from '../model/port-rules'
 
 export function TripSchedulePage({id}:{id:string}) {
   const {gateway}=usePlanning()
@@ -26,8 +28,8 @@ export function TripSchedulePage({id}:{id:string}) {
 function Schedule({initial}:{initial:Trip}) {
   const {gateway,can,root}=usePlanning(),[trip,setTrip]=useState(initial)
   const [params,setParams]=useSearchParams()
-  const context=versionContext(initial.versions)
-  const fallback=params.get('view')==='published'?context.published?.versionId??'':context.working?.versionId??initial.versions?.filter(v=>v.status!=='CANCELLED').toSorted((a,b)=>b.versionNumber-a.versionNumber)[0]?.versionId??initial.versions?.toSorted((a,b)=>b.versionNumber-a.versionNumber)[0]?.versionId??''
+  const context=versionContext(trip.versions)
+  const fallback=params.get('view')==='published'?context.published?.versionId??'':context.working?.versionId??trip.versions?.filter(v=>v.status!=='CANCELLED').toSorted((a,b)=>b.versionNumber-a.versionNumber)[0]?.versionId??trip.versions?.toSorted((a,b)=>b.versionNumber-a.versionNumber)[0]?.versionId??''
   const chosen=params.has('versionId')?params.get('versionId')!:fallback
   useEffect(()=>{if(!params.has('versionId')&&fallback){const next=new URLSearchParams(params);next.set('versionId',fallback);setParams(next,{replace:true})}},[fallback,params,setParams])
   const setChosen=(id:string)=>{const next=new URLSearchParams(params);next.set('versionId',id);next.delete('view');setParams(next)}
@@ -73,7 +75,10 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
   const locked=serverLocked||Boolean(trip.structuralLockedAt||trip.versions?.some(v=>v.status==='PUBLISHED'))
   const limits=supportedDuration(trip.info.durationBand)?[durationRules[trip.info.durationBand].minDays,durationRules[trip.info.durationBand].maxDays]:null
   const day=content.days.find(d=>d.dayNumber===selected)??content.days[0]
-  const violationRows=fault?.violations.length?fault.violations:report?.violations??[]
+  const ports=useSources('ports',{tripId:trip.tripId},editable,trip.revision)
+  const scopeIssues=editable&&!ports.loading&&!ports.error?portScopeViolations(content,trip.info,ports.data):[]
+  const timingIssues=[...stopTimingViolations(content),...routeOrderViolations(content),...content.stops.flatMap(stop=>linkedTourViolations(stop,content)),...scopeIssues]
+  const violationRows=[...(fault?.violations.length?fault.violations:report?.violations??[]),...timingIssues]
   const structureAllowed=editable&&!locked&&!trip.durationIssue&&Boolean(limits)
   const removeDay=dayChange?.remove
   const affectedStops=removeDay?content.stops.filter(s=>s.arrivalDayNumber<=removeDay&&s.departureDayNumber>=removeDay):[]
@@ -83,25 +88,30 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
   const makerKnown=Boolean(actorId&&trip.createdByUserId&&version.submitterId)
   const makerDifferent=makerKnown&&actorId!==trip.createdByUserId&&actorId!==version.submitterId
   const blockingRows=violationRows.filter(v=>v.severity==='ERROR')
-  const statusText=uncertain?'Cần đối chiếu dữ liệu':trip.status==='ARCHIVED'?'Chuyến đã lưu trữ':version.status==='DRAFT'?(editable?(dirty?'Có thay đổi chưa lưu':'Đã lưu nháp'):'Bản nháp · Chỉ xem'):version.status==='IN_REVIEW'?'Đang chờ duyệt':version.status==='PUBLISHED'?'Đã phát hành · Chỉ xem':'Bản nháp đã hủy'
+  const statusText=uncertain?'Cần đối chiếu dữ liệu':trip.status==='ARCHIVED'?'Chuyến đã lưu trữ':version.status==='DRAFT'?(editable?(dirty?'Có thay đổi chưa lưu':'Đã lưu nháp'):'Bản nháp · Chỉ xem'):version.status==='IN_REVIEW'?'Đang chờ duyệt':version.status==='PUBLISHED'?'Lịch trình đã phát hành · Chỉ xem':'Bản nháp đã hủy'
   const canSubmit=version.status==='DRAFT'&&can('TRIP_PLAN_SUBMIT')&&!gateway.readOnly
   function showValidation(){requestAnimationFrame(()=>{const section=document.getElementById('planning-validation');if(section instanceof HTMLDetailsElement)section.open=true;section?.scrollIntoView({block:'center'});section?.focus()})}
   async function checkSchedule(){
     if(!can('TRIP_PLAN_VALIDATE')||uncertain||gateway.readOnly||trip.status==='ARCHIVED'||(dirty&&!editable))return
     await run('Đang kiểm tra lịch trình…',async()=>{
       const target=dirty?await save():version
+      setReport(null)
+      if(dirty)setMessage('Đã lưu nháp. Nếu kiểm tra chưa hoàn tất, hãy thử kiểm tra lại.')
       const result=await gateway.validate(target)
       if(result.versionId!==target.versionId||result.revision!==target.revision)throw new Error('Chưa xác nhận được kết quả kiểm tra. Hãy đối chiếu dữ liệu đã lưu.')
-      setReport(result);showValidation()
-    })
+      setReport(result);setMessage('');showValidation()
+    },false)
   }
   function accept(saved:Version){setVersion(saved);setContent(contentOf(saved));setReport(null);setTrip(old=>({...old,versions:old.versions?.map(v=>v.versionId===saved.versionId?saved:v)}))}
   function edit(next:Content){if(!editable||lock.current)return;setContent(next);setReport(null);setFault(null);setLocated(null);setMessage('')}
-  async function run(label:string,work:()=>Promise<void>,mutation=true){
+  async function run(label:string,work:()=>Promise<void>,mutation:boolean|(()=>boolean)=true){
     if(lock.current)return;lock.current=true;setBusy(label);setFault(null);setMessage('')
-    try{await work()}catch(e){const error=failure(e);setFault(error);if(mutation&&(error.status===0||error.status===409||error.status>=500))setUncertain(true)}finally{lock.current=false;setBusy('')}
+    try{await work()}catch(e){const error=failure(e);setFault(error);if((typeof mutation==='function'?mutation():mutation)&&(error.status===0||error.status===409||error.status>=500))setUncertain(true)}finally{lock.current=false;setBusy('')}
   }
-  async function save(){const saved=await gateway.save(version,content);accept(saved);return saved}
+  async function save(){
+    try{const saved=await gateway.save(version,content);accept(saved);return saved}
+    catch(e){const error=failure(e);if(error.status===0||error.status===409||error.status>=500)setUncertain(true);throw error}
+  }
   function locate(v:Violation){
     const target=violationTarget(v),stop=content.stops.find(s=>s.clientKey===target.key),entry=content.entries.find(e=>e.clientKey===target.key)
     const nextDay=target.dayNumber??stop?.arrivalDayNumber??entry?.startDayNumber??selected
@@ -129,22 +139,26 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
     if(action==='submit'&&(!can('TRIP_PLAN_VALIDATE')||(dirty&&!can('TRIP_PLAN_WRITE'))))return
     if(action!=='submit'&&(version.status!=='IN_REVIEW'||!can('TRIP_PLAN_REVIEW')))return
     if(action==='publish'&&!makerDifferent)return
+    if(action==='publish'&&timingIssues.length){setAction(null);showValidation();return}
     if(action==='return'&&(!reason.trim()||reason.trim().length>500))return
-    let savedDraft=false
+    let savedDraft=false,transitionStarted=false
     await run(action==='submit'?'Đang chuẩn bị gửi duyệt…':'Đang xử lý phiên bản…',async()=>{
       try{
         let target=version
         if(action==='submit'){
           if(dirty){setBusy('Đang lưu nháp trước khi gửi duyệt…');target=await save();savedDraft=true}
           setBusy('Đang kiểm tra lịch trình đã lưu…')
+          setReport(null)
+          if(ports.loading||ports.error)throw new Error(ports.error||'Đang tải danh mục cảng để đối chiếu phạm vi. Hãy thử gửi duyệt lại sau khi tải xong.')
           const checked=await gateway.validate(target)
           if(checked.versionId!==target.versionId||checked.revision!==target.revision)throw new Error('Kết quả kiểm tra không khớp bản đã lưu. Chưa gửi duyệt; hãy đối chiếu máy chủ.')
           setReport(checked)
-          if(!checked.validForSubmit||checked.violations.some(v=>v.severity==='ERROR')){
+          if(!checked.validForSubmit||checked.violations.some(v=>v.severity==='ERROR')||timingIssues.length){
             setAction(null);setMessage('');showValidation();return
           }
           setBusy('Đang gửi duyệt phiên bản…')
         }
+        transitionStarted=true
         const saved=await gateway.action(target,action,reason.trim());accept(saved);setAction(null)
         setMessage(action==='submit'?'Đã gửi duyệt':action==='publish'?'Đã phát hành lịch trình':'Đã trả lại để chỉnh sửa')
         try{setTrip(await gateway.getTrip(trip.tripId))}catch(e){setFault(failure(e));setUncertain(true)}
@@ -152,7 +166,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
         if(action==='submit')setMessage(savedDraft?'Đã lưu nháp; chưa hoàn tất kiểm tra hoặc gửi duyệt. Nội dung đã lưu được giữ nguyên.':'Chưa hoàn tất gửi duyệt. Nội dung hiện tại được giữ nguyên.')
         throw e
       }
-    })
+    },()=>transitionStarted)
   }
   async function changeLifecycle(){
     if(!lifecycle||uncertain||gateway.readOnly||trip.status==='ARCHIVED'||lifecycleReason.trim().length>500)return
@@ -175,7 +189,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
         </div>
       </header>
       <div className={styles.versionContext}>
-        <span>{versions.published?`Đã phát hành: V${versions.published.versionNumber}`:'Chưa có bản phát hành'}{versions.working?` · ${workingVersionLabel(versions.working.status)}: V${versions.working.versionNumber}`:''}</span>
+        <span>{versions.published?`Lịch trình đã phát hành: V${versions.published.versionNumber}`:'Chưa có bản phát hành'}{versions.working?` · ${workingVersionLabel(versions.working.status)}: V${versions.working.versionNumber}`:''}</span>
         <div className={styles.actions}>
           {versions.published&&versions.published.versionId!==version.versionId&&<Button tone="text" size="compact" disabled={Boolean(busy)} onClick={()=>switchVersion(versions.published!.versionId)}>Xem bản phát hành · V{versions.published.versionNumber}</Button>}
           {versions.working&&versions.working.versionId!==version.versionId&&<Button tone="secondary" size="compact" disabled={Boolean(busy)} onClick={()=>switchVersion(versions.working!.versionId)}>{can('TRIP_PLAN_WRITE')&&versions.working.status==='DRAFT'?'Tiếp tục bản nháp':versions.working.status==='DRAFT'?'Xem bản nháp':'Xem bản chờ duyệt'} · V{versions.working.versionNumber}</Button>}
@@ -216,13 +230,14 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
       </div>
     </footer>
     {version.status==='IN_REVIEW'&&can('TRIP_PLAN_REVIEW')&&!makerDifferent&&<p className={styles.note}>{makerKnown?'Người tạo chuyến hoặc gửi duyệt không được tự phát hành phiên bản này.':'Chưa có đủ thông tin người tạo chuyến/người gửi duyệt để xác minh quyền phát hành.'}</p>}
+    <DepartureSourceSummary trip={trip} version={version}/>
     {lifecycle&&<Modal title={lifecycle==='cancel'?'Hủy phiên bản nháp?':'Thu hồi yêu cầu duyệt?'} busy={Boolean(busy)} onClose={()=>{if(!busy)setLifecycle(null)}} footer={<><Button tone="secondary" disabled={Boolean(busy)} onClick={()=>setLifecycle(null)}>Giữ nguyên</Button><Button tone={lifecycle==='cancel'?'danger':'primary'} disabled={Boolean(busy)||uncertain||lifecycleReason.trim().length>500} onClick={()=>void changeLifecycle()}>{lifecycle==='cancel'?'Xác nhận hủy bản nháp':'Thu hồi để chỉnh sửa'}</Button></>}>
       <p>{lifecycle==='cancel'?'Bản nháp sẽ ngừng sử dụng, nhưng nội dung đã lưu và lịch sử vẫn được giữ. Bản đã phát hành không bị ảnh hưởng.':'Phiên bản sẽ rời hàng đợi duyệt và trở lại bản nháp. Bạn cần gửi duyệt lại sau khi sửa.'}</p>
       {dirty&&<Notice title="Có nội dung chưa lưu" tone="warning">Các thay đổi trên màn hình sẽ bị bỏ khi hủy thành công. Thao tác này không lưu thay đổi trước.</Notice>}
       <Field htmlFor="version-lifecycle-reason" label="Lý do (tùy chọn)"><textarea id="version-lifecycle-reason" value={lifecycleReason} disabled={Boolean(busy)} maxLength={500} rows={3} onChange={e=>setLifecycleReason(e.target.value)}/></Field>
       {fault&&<Notice title="Chưa thay đổi trạng thái" tone="error">{fault.message}</Notice>}
     </Modal>}
-    {stopDrawer&&day&&<StopDrawer key={stopDrawer.stop?.clientKey??'new-stop'} content={content} dayNumber={day.dayNumber} readOnly={!editable||Boolean(busy)} stop={stopDrawer.stop} violation={stopDrawer.violation} onClose={()=>setStopDrawer(null)} onApply={stop=>{edit({...content,stops:content.stops.some(s=>s.clientKey===stop.clientKey)?content.stops.map(s=>s.clientKey===stop.clientKey?stop:s):[...content.stops,stop]});setStopDrawer(null)}}/>}
+    {stopDrawer&&day&&<StopDrawer tripId={trip.tripId} tripRevision={trip.revision} tripInfo={trip.info} key={stopDrawer.stop?.clientKey??'new-stop'} content={content} dayNumber={day.dayNumber} readOnly={!editable||Boolean(busy)} stop={stopDrawer.stop} violation={stopDrawer.violation} onClose={()=>setStopDrawer(null)} onApply={stop=>{edit({...content,stops:content.stops.some(s=>s.clientKey===stop.clientKey)?content.stops.map(s=>s.clientKey===stop.clientKey?stop:s):[...content.stops,stop]});setStopDrawer(null)}}/>}
     {entryDrawer&&day&&<EntryDrawer key={entryDrawer.entry?.clientKey??`${entryDrawer.kind}:${selected}:${entryDrawer.stopClientKey??'new'}`} content={content} dayNumber={day.dayNumber} readOnly={!editable||Boolean(busy)} kind={entryDrawer.kind} entry={entryDrawer.entry} initialStopClientKey={entryDrawer.stopClientKey} violation={entryDrawer.violation} onClose={()=>setEntryDrawer(null)} onApply={entries=>{const keys=new Set(entries.map(e=>e.clientKey));edit({...content,entries:[...content.entries.filter(e=>!keys.has(e.clientKey)),...entries]});setEntryDrawer(null)}}/>}
     {removal&&<Modal title={removal.kind==='stop'?'Xóa lần ghé cảng?':'Xóa mục chương trình?'} onClose={()=>setRemoval(null)} footer={<><Button tone="secondary" onClick={()=>setRemoval(null)}>Giữ lại</Button><Button tone="danger" disabled={!editable||Boolean(busy)||(removal.kind==='stop'&&content.entries.some(e=>e.stopClientKey===removal.key))} onClick={()=>{edit(removal.kind==='stop'?{...content,stops:content.stops.filter(s=>s.clientKey!==removal.key)}:{...content,entries:content.entries.filter(e=>e.clientKey!==removal.key)});setRemoval(null)}}>Xóa khỏi bản nháp</Button></>}><p>Mục này sẽ được bỏ khỏi bản đang chỉnh. Chọn Lưu nháp để lưu thay đổi.</p>{removal.kind==='stop'&&content.entries.some(e=>e.stopClientKey===removal.key)?<Notice title="Còn nội dung liên quan" tone="warning">Hãy xử lý các tham quan gắn với lần ghé này trước. Không tự xóa nội dung liên quan.</Notice>:<p>Mục qua nhiều ngày sẽ được xóa ở cả các ngày tiếp diễn. Các khung phục vụ lặp khác là những mục riêng.</p>}</Modal>}
     {dayChange&&<Modal title={removeDay?`Xóa Ngày ${removeDay}?`:'Thêm ngày vào chuyến?'} onClose={()=>{if(!busy)setDayChange(null)}} footer={<><Button tone="secondary" disabled={Boolean(busy)} onClick={()=>setDayChange(null)}>Hủy</Button><Button disabled={Boolean(busy)||!structureAllowed||Boolean(affectedStops.length||affectedEntries.length||invalidFinal)} onClick={()=>void changeStructure()}>Lưu nháp rồi cập nhật ngày</Button></>}><p>Nội dung đang chỉnh sẽ được lưu trước. Số ngày sẽ thay đổi ở mọi phiên bản nháp của chuyến.</p>{!gateway.supportsMiddleDayRemoval&&<Notice title="Cập nhật theo API hiện tại" tone="warning">Hai thao tác không nguyên tử: lưu nội dung, sau đó sửa số ngày chuyến và tải lại phiên bản. Sửa số ngày ảnh hưởng mọi phiên bản nháp của chuyến. Nếu bước sau lỗi, nội dung đã lưu vẫn còn trên máy chủ.</Notice>}{removeDay&&<p>Ảnh hưởng: {affectedStops.length} lần ghé cảng, {affectedEntries.length} mục chương trình bao phủ ngày này. Các mục qua ngày cũng được tính.</p>}{Boolean(affectedStops.length||affectedEntries.length)&&<Notice title="Chưa thể xóa ngày" tone="warning">Hãy xử lý các mục liên quan trước. Không tự xóa dữ liệu hoặc cắt mục qua ngày.</Notice>}{invalidFinal&&<Notice title="Điểm trả hiện nằm ở ngày cuối" tone="warning">Bỏ cờ điểm trả trong bản nháp trước khi thêm ngày, rồi đặt lại đúng ngày cuối. Không tự bỏ cờ.</Notice>}</Modal>}

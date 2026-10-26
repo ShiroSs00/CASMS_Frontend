@@ -90,6 +90,9 @@ export type CruiseDetailView = CruiseListItem & {
   capacity: CapacitySummary
   readiness: {
     state: 'READY' | 'BLOCKED' | 'UNKNOWN'
+    evaluatedAt?: string | null
+    cruiseRevision?: number | null
+    stale?: boolean
     checks: ReadinessCheck[]
     issues?: string[]
   }
@@ -101,15 +104,15 @@ export type CruiseDetailView = CruiseListItem & {
 
 export const cruiseStatusLabels: Record<CruiseStatus, string> = {
   DRAFT: 'Nháp',
-  PUBLISHED: 'Đã phát hành',
+  PUBLISHED: 'Đã phát hành lần khởi hành',
   IN_PROGRESS: 'Đang vận hành',
   COMPLETED: 'Hoàn thành',
   CANCELLED: 'Đã hủy',
 }
 
 export const cruiseTypeLabels: Record<CruiseType, string> = {
-  ONE_DAY: 'Chuyến ngắn ngày (1–2 ngày)',
-  MULTI_DAYS: 'Chuyến dài ngày (3–5 ngày)',
+  ONE_DAY: 'Một ngày',
+  MULTI_DAYS: 'Nhiều ngày',
 }
 
 export const itineraryStatusLabels: Record<ItineraryStatus, string> = {

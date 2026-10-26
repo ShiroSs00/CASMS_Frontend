@@ -14,9 +14,10 @@ export function InfoConflictDialog({trip,local,onClose,onReplace}:{trip:Trip;loc
 }
 
 export function ValidationPanel({report,violations,onLocate,serverErrors=false}:{report:Report|null;violations:Violation[];onLocate:(v:Violation)=>void;serverErrors?:boolean}) {
-  const rows=report?.violations??violations
+  const rows=violations.length?violations:report?.violations??[]
+  const valid=Boolean(report?.validForSubmit)&&!rows.some(row=>row.severity==='ERROR')
   return <Panel title="Kiểm tra lịch trình">
-    {report?<p>{report.validForSubmit?'Đã kiểm tra bản lưu. Đủ điều kiện gửi duyệt.':'Sửa các mục bên dưới rồi gửi duyệt lại.'}</p>:<p className={styles.muted}>{serverErrors?'Cần sửa các mục bên dưới.':'Các mục chưa hoàn tất trong bản đang chỉnh.'}</p>}
+    {report?<p>{valid?'Bản đã lưu đủ điều kiện gửi duyệt nội dung lịch trình.':'Sửa các mục bên dưới rồi kiểm tra lại.'}</p>:<p className={styles.muted}>{serverErrors?'Cần sửa các mục bên dưới.':'Các mục chưa hoàn tất trong bản đang chỉnh.'}</p>}
     {rows.length?<ul className={styles.violations}>{rows.map((row,i)=><li key={`${row.code}:${row.clientKey??row.dayNumber??''}:${row.field??''}:${i}`}><strong>{row.severity==='WARNING'?'Cảnh báo':'Lỗi'}{row.dayNumber?` · Ngày ${row.dayNumber}`:''}</strong><p>{row.message}</p>{(row.dayNumber||row.clientKey||row.fieldPath||row.actionHint)&&<Button tone="text" onClick={()=>onLocate(row)}>Xem đúng nội dung</Button>}</li>)}</ul>:<p>Chưa phát hiện lỗi trong phần dữ liệu được đối chiếu.</p>}
     {Boolean(report?.deferredChecks.length)&&<details><summary>Kiểm tra chưa thực hiện ({report!.deferredChecks.length})</summary><ul>{report!.deferredChecks.map(value=><li key={value}>{deferredLabels[value]??value}</li>)}</ul></details>}
   </Panel>
