@@ -1,6 +1,7 @@
 import { getSessionAccess, hasPermissions } from '@/shared/auth'
 import { ApiError, apiRequest } from '@/shared/api'
 import { scheduleInstant } from '../model/cruise-validation'
+import { readinessSnapshot } from '../model/readiness'
 
 import type { CruiseQuery } from '../model/cruise-query'
 import type { CruiseDraft, CruiseRecord, PortRecord, ShipRecord } from '../model/cruise-record'
@@ -10,6 +11,11 @@ import type { CapacityDto, CruiseDto, CruiseSaveRequestDto, PageDto, ReadinessDt
 
 const root = '/cruise'
 const byId = (id: string) => `${root}/${encodeURIComponent(id)}`
+async function readReadiness(id:string,signal?:AbortSignal) {
+  const result=await apiRequest<ReadinessDto>(`${byId(id)}/readiness`,{signal})
+  if(typeof result?.ready!=='boolean'||result.cruiseId&&result.cruiseId!==id)throw new ApiError('Kết quả kiểm tra vận hành chưa đúng lần khởi hành hoặc sai định dạng.',502)
+  return result
+}
 
 type RegulationProjection = {
   source: 'CRUISE' | 'SHIP' | 'GLOBAL'
@@ -18,6 +24,8 @@ type RegulationProjection = {
 
 function cruiseBody(draft: CruiseDraft): CruiseSaveRequestDto {
   return { cruiseName:draft.cruiseName.trim(),
+    ...(draft.shipId ? {shipId:draft.shipId} : {}),
+    ...(draft.sourceVersionId ? {sourceVersionId:draft.sourceVersionId} : {}),
     ...(draft.cruiseType ? {cruiseType:draft.cruiseType} : {}),
     departureDatetime:scheduleInstant(draft.departureDatetime).toISOString(), returnDatetime:scheduleInstant(draft.returnDatetime).toISOString(),
     departurePortId:draft.departurePortId, returnPortId:draft.returnPortId }
@@ -42,6 +50,10 @@ function toCruise(dto: CruiseDto): CruiseRecord {
     status: dto.status,
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
+    sourceTripId: dto.sourceTripId ?? null,
+    sourceTripCode: dto.sourceTripCode ?? null,
+    sourceVersionId: dto.sourceVersionId ?? null,
+    sourceVersionNumber: dto.sourceVersionNumber ?? null,
   }
 }
 
@@ -76,13 +88,15 @@ async function listShips(signal?: AbortSignal) {
 }
 
 function readinessChecks(value: ReadinessDto): ReadinessCheck[] {
-  const issue = (keyword: string, fallback: string) => value.issues?.find((item) => item.toLocaleLowerCase().includes(keyword)) ?? fallback
+  const issue = (keywords:string[], fallback:string) => value.issues?.find(item=>keywords.some(keyword=>item.toLocaleLowerCase('vi').includes(keyword)))??fallback
+  const state=(flag:boolean|undefined):ReadinessCheck['state']=>flag===true?'PASS':flag===false?'BLOCKED':'UNKNOWN'
+  const shipState=value.shipAssigned===false||value.shipActive===false?'BLOCKED':value.shipAssigned===true&&value.shipActive===true?'PASS':'UNKNOWN'
   return [
-    { key: 'SHIP', label: 'Phân công tàu', state: value.shipAssigned && value.shipActive ? 'PASS' : 'BLOCKED', reason: issue('ship', value.shipAssigned ? 'Kiểm tra trạng thái hoạt động của tàu.' : 'Chưa gán tàu.') },
-    { key: 'SCHEDULE', label: 'Lịch chạy', state: value.scheduleValid ? 'PASS' : 'BLOCKED', reason: issue('schedule', value.scheduleValid ? 'Lịch chạy hợp lệ.' : 'Cần kiểm tra lịch chạy.') },
-    { key: 'ITINERARY', label: 'Lịch trình', state: value.itineraryConfigured ? 'PASS' : 'BLOCKED', reason: issue('itinerary', value.itineraryConfigured ? 'Đã cấu hình lịch trình.' : 'Chưa cấu hình lịch trình.') },
-    { key: 'CONFIGURATION', label: 'Cấu hình tàu', state: value.shipConfigurationValid ? 'PASS' : 'BLOCKED', reason: value.shipConfigurationValid ? 'Cấu hình boong và cabin hợp lệ.' : 'Cần hoàn tất cấu hình boong và cabin.' },
-    { key: 'PORTS', label: 'Cảng đi / về', state: value.portsActive ? 'PASS' : 'BLOCKED', reason: value.portsActive ? 'Cảng đang hoạt động.' : 'Cần kiểm tra trạng thái cảng.' },
+    {key:'SHIP',label:'Phân công tàu',state:shipState,reason:shipState==='PASS'?'Tàu đã được phân công và đang hoạt động.':issue(['ship','gán tàu','phân công tàu'],shipState==='UNKNOWN'?'Chưa đủ dữ liệu kiểm tra tàu.':'Chưa có tàu hoạt động được phân công.')},
+    {key:'SCHEDULE',label:'Lịch chạy',state:state(value.scheduleValid),reason:value.scheduleValid?'Lịch chạy đáp ứng kiểm tra hiện có.':issue(['schedule','lịch chạy','thời điểm'],value.scheduleValid===false?'Cần kiểm tra lịch chạy.':'Chưa đủ dữ liệu kiểm tra lịch chạy.')},
+    {key:'ITINERARY',label:'Lịch trình',state:state(value.itineraryConfigured),reason:value.itineraryConfigured?'Lịch trình đáp ứng kiểm tra hiện có.':issue(['itinerary','lịch trình','hải trình'],value.itineraryConfigured===false?'Lịch trình chưa đáp ứng điều kiện vận hành/phát hành.':'Chưa đủ dữ liệu kiểm tra lịch trình.')},
+    {key:'CONFIGURATION',label:'Cấu hình tàu',state:state(value.shipConfigurationValid),reason:value.shipConfigurationValid?'Cấu hình boong và cabin đáp ứng kiểm tra hiện có.':issue(['configuration','boong','cabins','decks'],value.shipConfigurationValid===false?'Cần hoàn tất cấu hình boong và cabin.':'Chưa đủ dữ liệu kiểm tra cấu hình tàu.')},
+    {key:'PORTS',label:'Cảng đi / về',state:state(value.portsActive),reason:value.portsActive?'Cảng đi và cảng về đang hoạt động.':issue(['ports','cảng đi','cảng về'],value.portsActive===false?'Cần kiểm tra trạng thái cảng.':'Chưa đủ dữ liệu kiểm tra cảng.')},
   ]
 }
 
@@ -115,7 +129,7 @@ export const cruiseApi = {
       const result = ships[shipIds.indexOf(item.cruise.shipId ?? '')]
       if (result?.status === 'fulfilled') item.ship = result.value
     }
-    const readinessResults = await Promise.allSettled(items.map((item) => apiRequest<ReadinessDto>(`${byId(item.cruise.cruiseId)}/readiness`, { signal })))
+    const readinessResults = await Promise.allSettled(items.map((item) => readReadiness(item.cruise.cruiseId, signal)))
     readinessResults.forEach((result, index) => {
       if (result.status === 'fulfilled') items[index].readinessSummary = { ready: result.value.ready, issues: result.value.issues ?? [] }
     })
@@ -135,8 +149,10 @@ export const cruiseApi = {
     }
   },
   listShips,
-  async listPorts(signal?: AbortSignal) {
-    const ports = await apiRequest<PortRecord[]>('/ports/active',{signal})
+  async listPorts(signal?: AbortSignal,tripId?:string) {
+    // Planning catalog returns ACTIVE ports only, scoped authoritatively by Trip.
+    const rows = await apiRequest<PortRecord[]>(tripId?'/trip-planning/catalogs/sources/ports':'/ports/active',{signal,...(tripId?{query:{tripId}}:{})})
+    const ports=tripId&&Array.isArray(rows)?rows.map(port=>({...port,status:'ACTIVE' as const})):rows
     if (!Array.isArray(ports) || ports.some(port => !port || typeof port.portId !== 'string' || !port.portId || typeof port.portName !== 'string' || !port.portName.trim() || port.status !== 'ACTIVE') || new Set(ports.map(port=>port.portId)).size !== ports.length) throw new ApiError('Không đọc được danh sách cảng hoạt động. Vui lòng thử lại.',502)
     return [...ports].sort((a,b)=>a.portName.localeCompare(b.portName,'vi'))
   },
@@ -156,7 +172,7 @@ export const cruiseApi = {
       optional('SHIP_READ', () => dto.ship ? Promise.resolve(dto.ship) : getShip(cruise.shipId, signal)),
       optional('PORT_READ', () => dto.departurePort ? Promise.resolve(dto.departurePort) : getPort(cruise.departurePortId, signal)),
       optional('PORT_READ', () => dto.returnPort ? Promise.resolve(dto.returnPort) : getPort(cruise.returnPortId, signal)),
-      optional('CRUISE_VALIDATE', () => apiRequest<ReadinessDto>(`${byId(id)}/readiness`, { signal })),
+      optional('CRUISE_VALIDATE', () => readReadiness(id, signal)),
       cruise.shipId ? optional('CRUISE_VALIDATE', () => apiRequest<CapacityDto>(`${byId(id)}/validate-capacity`, { signal })) : Promise.resolve(null),
       optional('OPERATIONAL_ISSUE_READ', () => apiRequest<CruiseDetailView['issues']>('/operational-issues', { query: { cruiseId: id }, signal })),
       optional('CRUISE_REGULATION_READ', () => apiRequest<{ direct: RegulationProjection[]; inherited: RegulationProjection[] }>(`/cruises/${encodeURIComponent(id)}/regulations/effective`, { signal })),
@@ -182,7 +198,7 @@ export const cruiseApi = {
       itinerary: plan.status === 'fulfilled' ? plan.value : null,
       supplementaryLoading: false, supplementaryErrors,
       capacity: { shipTotalCapacity: capacity?.shipTotalCapacity ?? null, activePassengerCount: capacity?.bookedPassengersCount ?? null, remainingPassengerHeadroom: capacity?.availableCapacity ?? null },
-      readiness: { state: readiness ? readiness.ready ? 'READY' : 'BLOCKED' : 'UNKNOWN', checks: readiness ? readinessChecks(readiness) : [], issues: readiness?.issues },
+      readiness: { ...readinessSnapshot(readiness,cruise.updatedAt), checks: readiness ? readinessChecks(readiness) : [], issues: readiness?.issues },
       regulations: regulationSnapshot ? [...regulationSnapshot.direct, ...regulationSnapshot.inherited].map((item) => ({ regulationId: item.regulation.regulationId, code: item.regulation.regulationCode, name: item.regulation.name, source: item.source, status: item.regulation.status })) : [],
       issues: incidents.status === 'fulfilled' ? incidents.value ?? [] : [],
       bookingHasData: capacity ? capacity.bookedPassengersCount > 0 : null,
@@ -193,8 +209,11 @@ export const cruiseApi = {
       },
     }
   },
-  async createCruise(draft: CruiseDraft) {
-    return toCruise(await apiRequest<CruiseDto>(root, { method: 'POST', body: cruiseBody(draft) }))
+  async createCruise(draft: CruiseDraft, idempotencyKey: string) {
+    if (!idempotencyKey?.trim()) throw new ApiError('Thiếu mã thao tác tạo lần khởi hành.', 400, 'INVALID_INPUT')
+    const saved=await apiRequest<CruiseDto>(root, { method: 'POST', body: cruiseBody(draft), idempotencyKey })
+    if(typeof saved?.cruiseId!=='string'||!saved.cruiseId.trim()||typeof saved.status!=='string')throw new ApiError('Phản hồi tạo chưa xác nhận được bản ghi đã lưu. Giữ mã thao tác để đối chiếu.',502)
+    return toCruise(saved)
   },
   async updateCruise(id: string, draft: CruiseDraft) {
     const body = cruiseBody(draft)
@@ -219,9 +238,14 @@ export const cruiseApi = {
   async unassignShip(id: string) {
     await apiRequest<unknown>(`${byId(id)}/unassign-ship`, { method: 'POST' })
   },
+  async listPackages(id:string,signal?:AbortSignal) {
+    const rows=await apiRequest<Array<{cruiseTourPackageId:string;cruiseId:string;tourPackageId:string;packageCode:string;packageName:string;active:boolean}>>(byId(id)+'/packages',{signal,authenticated:false})
+    if(!Array.isArray(rows)||rows.some(row=>!row||row.cruiseId!==id||typeof row.cruiseTourPackageId!=='string'||typeof row.packageName!=='string'||typeof row.active!=='boolean'))throw new ApiError('Chưa đọc được gói dịch vụ gắn với lần khởi hành.',502)
+    return rows
+  },
   validateSchedule: (id: string) => apiRequest<boolean>(`${byId(id)}/validate-schedule`),
   validateCapacity: (id: string) => apiRequest<CapacityDto>(`${byId(id)}/validate-capacity`),
-  readiness: (id: string) => apiRequest<ReadinessDto>(`${byId(id)}/readiness`),
+  readiness: readReadiness,
   publish: (id: string) => apiRequest<CruiseDto>(`${byId(id)}/publish`, { method: 'POST' }),
   start: (id: string) => apiRequest<CruiseDto>(`${byId(id)}/start`, { method: 'POST' }),
   complete: (id: string) => apiRequest<CruiseDto>(`${byId(id)}/complete`, { method: 'POST' }),

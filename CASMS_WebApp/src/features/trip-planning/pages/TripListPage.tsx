@@ -85,7 +85,7 @@ function TripListRow({trip,onAction}:{trip:Trip;onAction:(kind:'clone'|'archive'
     <td>{trip.durationDays} ngày<span className={styles.cellMeta}>{trip.info.scope==='DOMESTIC'?'Trong nước':trip.info.scope==='INTERNATIONAL'?'Ngoài nước':'Chưa xác định phạm vi'}</span></td>
     <td><Badge tone={trip.status==='READY'?'success':'neutral'} label={tripLabels[trip.status]}/></td>
     <td><div className={styles.versionCell}>
-      {published!==undefined&&<span className={styles.publishedVersion}>Đã phát hành: V{published}</span>}
+      {published!==undefined&&<span className={styles.publishedVersion}>Lịch trình đã phát hành: V{published}</span>}
       {working!==undefined&&<span>{workingVersionLabel(workingStatus)}: V{working}</span>}
       {detail.loading&&needsContext&&<span className={styles.cellMeta}>Đang tải bản phát hành…</span>}
       {detail.error&&<Button tone="text" size="compact" onClick={detail.retry}>Tải lại thông tin phiên bản</Button>}

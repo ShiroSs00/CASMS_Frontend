@@ -25,12 +25,16 @@ export type CruiseRecord = {
   status: CruiseStatus
   createdAt: string
   updatedAt: string
+  sourceTripId?: string | null
+  sourceTripCode?: string | null
+  sourceVersionId?: string | null
+  sourceVersionNumber?: number | null
 }
 
 export type CruiseDraft = Omit<
   CruiseRecord,
-  'cruiseId' | 'status' | 'createdAt' | 'updatedAt' | 'shipId' | 'cruiseType'
-> & { cruiseType: CruiseType | '' }
+  'cruiseId' | 'status' | 'createdAt' | 'updatedAt' | 'shipId' | 'cruiseType' | 'sourceTripId' | 'sourceTripCode' | 'sourceVersionNumber'
+> & { cruiseType: CruiseType | ''; shipId?: string | null }
 
 export type ShipRecord = {
   shipId: string

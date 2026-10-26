@@ -13,7 +13,7 @@ function DetailBody({children,violation,label}:{children:ReactNode;violation?:Vi
     return ()=>cancelAnimationFrame(frame)
   },[violation])
   return <div ref={body} tabIndex={-1} aria-label={label} className={styles.single}>
-    {violation&&<Notice title="Vi phạm từ máy chủ" tone="warning">{violation.message}</Notice>}
+    {violation&&<Notice title="Nội dung cần chỉnh sửa" tone="warning">{violation.message}</Notice>}
     {children}
   </div>
 }
@@ -33,15 +33,15 @@ export function StopDetails({stop,onClose,violation}:{stop?:Stop}&DetailProps) {
         <section className={styles.detailSection} aria-label="Thời gian ghé cảng">
           <p className={styles.timeContext}>Giờ địa phương của cảng · {text(stop.timeZoneId)}</p>
           <dl className={styles.detailGrid}>
-            <Detail label="Đến cảng">{dayTime(stop.arrivalDayNumber,stop.plannedArrivalTime)}</Detail>
-            <Detail label="Rời cảng">{dayTime(stop.departureDayNumber,stop.plannedDepartureTime)}</Detail>
+            <Detail label="Dự kiến đến cảng">{dayTime(stop.arrivalDayNumber,stop.plannedArrivalTime)}</Detail>
+            <Detail label="Dự kiến rời cảng">{dayTime(stop.departureDayNumber,stop.plannedDepartureTime)}</Detail>
             <Detail label="Hạn trở lại tàu" wide>{dayTime(stop.allAboardDayNumber,stop.allAboardTime)}</Detail>
           </dl>
         </section>
         <section className={styles.detailSection} aria-label="Thông tin lần ghé">
           <dl className={styles.detailGrid}>
             <Detail label="Thứ tự trong tuyến">{stop.stopOrder}</Detail>
-            <Detail label="Loại lần ghé">{{NORMAL:'Thông thường',LATE_NIGHT:'Đến khuya',OVERNIGHT:'Qua đêm'}[stop.callType]}</Detail>
+            <Detail label="Loại lần ghé">{{NORMAL:'Thông thường',LATE_NIGHT:'Ghé cảng ban đêm',OVERNIGHT:'Qua đêm'}[stop.callType]}</Detail>
             <Detail label="Cách lên bờ" wide>{stop.arrivalMethod==='TENDER'?'Trung chuyển bằng tàu nhỏ':'Cập bến'}</Detail>
             <Detail label="Điểm đón">{stop.isEmbarkation?'Có':'Không'}</Detail>
             <Detail label="Điểm trả">{stop.isDisembarkation?'Có':'Không'}</Detail>
@@ -61,8 +61,8 @@ export function EntryDetails({content,entry,kind,onClose,violation}:{content:Con
         <section className={styles.detailSection} aria-label="Thời gian thực hiện">
           <p className={styles.timeContext}>{entry.kind==='SHORE_EXCURSION'?`Giờ địa phương của cảng · ${text(entry.timeZoneId||stop?.timeZoneId)}`:'Giờ Việt Nam'}</p>
           <dl className={styles.detailGrid}>
-            <Detail label="Bắt đầu">{dayTime(entry.startDayNumber,entry.plannedStartTime)}</Detail>
-            <Detail label="Kết thúc">{dayTime(entry.endDayNumber,entry.plannedEndTime)}</Detail>
+            <Detail label="Dự kiến bắt đầu">{dayTime(entry.startDayNumber,entry.plannedStartTime)}</Detail>
+            <Detail label="Dự kiến kết thúc">{dayTime(entry.endDayNumber,entry.plannedEndTime)}</Detail>
             {entry.kind==='SHORE_EXCURSION'&&<Detail label="Lần ghé cảng" wide>{stop?`${stop.stopOrder}. ${text(stop.portName)} · Ngày ${stop.arrivalDayNumber}–${stop.departureDayNumber}`:'Chưa có thông tin'}</Detail>}
           </dl>
         </section>

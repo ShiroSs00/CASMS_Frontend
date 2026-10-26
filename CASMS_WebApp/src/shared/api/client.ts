@@ -1,4 +1,5 @@
 import { prepareCreateBody } from './create-body'
+import { businessErrorMessage } from './business-errors'
 import { apiPermissionRequirement, getSessionAccess, hasPermissions } from '@/shared/auth'
 
 type ApiEnvelope<T> = { success: boolean; message?: string; error?: string; code?: string; data?: T; details?: unknown }
@@ -130,7 +131,7 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
       }
       throw new ApiError(response.status === 401 ? 'Cần đăng nhập với JWT hợp lệ hoặc phiên đăng nhập đã hết hạn.'
         : response.status === 403 ? 'Bạn không có quyền thực hiện thao tác này.'
-          : message || `Không thể thực hiện yêu cầu (HTTP ${response.status}).`, response.status, payload?.code ?? payload?.error, payload?.details ?? payload?.data)
+          : businessErrorMessage(payload?.code ?? payload?.error,message) || `Không thể thực hiện yêu cầu (HTTP ${response.status}).`, response.status, payload?.code ?? payload?.error, payload?.details ?? payload?.data)
     }
     if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
     if (required && !hasPermissions(getSessionAccess(), required)) throw new ApiError('Quyền truy cập đã thay đổi. Vui lòng tải lại dữ liệu.', 403, 'ACCESS_DENIED')
@@ -154,7 +155,7 @@ export function apiRequest<T>(path: string, options: RequestOptions = {}): Promi
     if (!payload || typeof payload.success !== 'boolean') throw new ApiError('Response API không đúng định dạng đã công bố.', status)
     const message = typeof payload.message === 'string' ? payload.message
       : typeof payload.error === 'string' ? payload.error : ''
-    if (!payload.success) throw new ApiError(message || 'Backend từ chối thao tác.', status, payload.code ?? payload.error)
+    if (!payload.success) throw new ApiError(businessErrorMessage(payload.code ?? payload.error,message) || 'Backend từ chối thao tác.', status, payload.code ?? payload.error,payload.details??payload.data)
     return payload.data as T
   })
 }

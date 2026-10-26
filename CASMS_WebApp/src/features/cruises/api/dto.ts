@@ -2,6 +2,8 @@ import type { CruiseStatus, CruiseType, PortRecord, ShipRecord } from '../model/
 
 export type CruiseSaveRequestDto = {
   cruiseName: string
+  shipId?: string
+  sourceVersionId?: string
   cruiseType?: CruiseType
   departureDatetime: string
   returnDatetime: string
@@ -19,6 +21,10 @@ export type PageDto<T> = {
 
 export type CruiseDto = {
   cruiseId: string
+  sourceTripId?: string | null
+  sourceTripCode?: string | null
+  sourceVersionId?: string | null
+  sourceVersionNumber?: number | null
   cruiseCode: string
   cruiseName: string
   shipId?: string | null
@@ -40,6 +46,9 @@ export type CruiseDto = {
 }
 
 export type ReadinessDto = {
+  cruiseId?: string
+  evaluatedAt?: string | null
+  cruiseRevision?: number | null
   ready: boolean
   shipAssigned?: boolean
   shipActive?: boolean
