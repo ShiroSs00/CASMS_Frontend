@@ -13,6 +13,7 @@ import { ConflictDialog, HistoryDialog, ValidationPanel } from '../components/Re
 import type { Report } from '../model/plan'
 import styles from '../Planning.module.css'
 import { violationTarget } from '../model/violation-target'
+import { versionContext, workingVersionLabel } from '../model/version-context'
 import { durationRules, supportedDuration } from '../model/duration'
 
 export function TripSchedulePage({id}:{id:string}) {
@@ -25,14 +26,15 @@ export function TripSchedulePage({id}:{id:string}) {
 function Schedule({initial}:{initial:Trip}) {
   const {gateway,can,root}=usePlanning(),[trip,setTrip]=useState(initial)
   const [params,setParams]=useSearchParams()
-  const fallback=initial.versions?.find(v=>v.status==='DRAFT'||v.status==='IN_REVIEW')?.versionId??initial.versions?.filter(v=>v.status!=='CANCELLED').toSorted((a,b)=>a.versionNumber-b.versionNumber).at(-1)?.versionId??initial.versions?.toSorted((a,b)=>a.versionNumber-b.versionNumber).at(-1)?.versionId??''
+  const context=versionContext(initial.versions)
+  const fallback=params.get('view')==='published'?context.published?.versionId??'':context.working?.versionId??initial.versions?.filter(v=>v.status!=='CANCELLED').toSorted((a,b)=>b.versionNumber-a.versionNumber)[0]?.versionId??initial.versions?.toSorted((a,b)=>b.versionNumber-a.versionNumber)[0]?.versionId??''
   const chosen=params.has('versionId')?params.get('versionId')!:fallback
   useEffect(()=>{if(!params.has('versionId')&&fallback){const next=new URLSearchParams(params);next.set('versionId',fallback);setParams(next,{replace:true})}},[fallback,params,setParams])
-  const setChosen=(id:string)=>{const next=new URLSearchParams(params);next.set('versionId',id);setParams(next)}
+  const setChosen=(id:string)=>{const next=new URLSearchParams(params);next.set('versionId',id);next.delete('view');setParams(next)}
   const [create,setCreate]=useState(false),[source,setSource]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('')
   const creating=useRef(false)
   const query=useReadQuery('planning-version:'+chosen,useCallback(async signal=>{
-    if(!chosen){if(params.has('versionId'))throw new Error('Liên kết thiếu mã phiên bản. Hãy chọn lại từ danh sách phiên bản của chuyến.');return null}
+    if(!chosen){if(params.get('view')==='published')throw new Error('Chuyến này hiện chưa có lịch trình đã phát hành. Hãy mở bản nháp để tiếp tục.');if(params.has('versionId'))throw new Error('Liên kết thiếu mã phiên bản. Hãy chọn lại từ danh sách phiên bản của chuyến.');return null}
     const version=await gateway.version(chosen,signal)
     if(version.tripId!==trip.tripId)throw new Error('Phiên bản trong liên kết không thuộc chuyến này. Không tự chuyển sang phiên bản khác.')
     return version
@@ -66,6 +68,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
   const [action,setAction]=useState<'submit'|'return'|'publish'|null>(null),[reason,setReason]=useState('')
   const [lifecycle,setLifecycle]=useState<'cancel'|'withdraw'|null>(null),[lifecycleReason,setLifecycleReason]=useState('')
   const dirty=JSON.stringify(content)!==JSON.stringify(contentOf(version)),guard=useUnsavedGuard(dirty,Boolean(busy))
+  const versions=versionContext(trip.versions)
   const editable=version.status==='DRAFT'&&can('TRIP_PLAN_WRITE')&&!gateway.readOnly&&trip.status!=='ARCHIVED'&&!uncertain
   const locked=serverLocked||Boolean(trip.structuralLockedAt||trip.versions?.some(v=>v.status==='PUBLISHED'))
   const limits=supportedDuration(trip.info.durationBand)?[durationRules[trip.info.durationBand].minDays,durationRules[trip.info.durationBand].maxDays]:null
@@ -163,15 +166,25 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
   }
   const switchNow=(id:string)=>{guard.allowLeave();setPendingSwitch('');onSwitch(id)}
   return <>
-    <header className={styles.heading}><div><span className={styles.eyebrow}>02 / LỊCH TRÌNH CHUYẾN ĐI</span><h1>{trip.name}</h1><p className={styles.muted}>{trip.tripCode} · {content.days.length} ngày</p></div><div className={styles.actions}><Link to={root}>Về danh sách</Link>{can('TRIP_PLAN_REVIEW')&&<Link to={`${root}?view=review`}>Hàng đợi duyệt</Link>}</div></header><TripSteps stage="schedule" tripId={trip.tripId} status={version.status}/>
-    <Panel className={styles.versionPanel}><div className={styles.versionBar}>
-      <div className={styles.versionIdentity}><strong>Lịch trình</strong><Badge tone={version.status==='PUBLISHED'?'success':version.status==='IN_REVIEW'?'warning':'neutral'} label={versionLabels[version.status]}/></div>
-      <div className={styles.actions}>
-        {(trip.versions?.length??0)>1?<Field htmlFor="planning-version" label="Đang xem"><select id="planning-version" value={version.versionId} disabled={Boolean(busy)} onChange={e=>switchVersion(e.target.value)}>{trip.versions?.map(v=><option key={v.versionId} value={v.versionId}>Phiên bản {v.versionNumber} · {versionLabels[v.status]}</option>)}</select></Field>:<span className={styles.muted}>Phiên bản {version.versionNumber}</span>}
-        <Button tone="secondary" disabled={Boolean(busy)} onClick={()=>setHistory(true)}>Lịch sử</Button>
-        {onNew&&!(version.status==='DRAFT'||version.status==='IN_REVIEW')&&<Button disabled={dirty||Boolean(busy)} onClick={onNew}>Tạo bản chỉnh sửa</Button>}
+    <div className={styles.editorTop}>
+      <header className={styles.editorHeading}>
+        <div className={styles.editorTitle}><h1>{trip.name}</h1><div className={styles.editorMeta}><span>{trip.tripCode} · {content.days.length} ngày</span><Badge tone={version.status==='PUBLISHED'?'success':version.status==='IN_REVIEW'?'warning':'neutral'} label={`${versionLabels[version.status]} · V${version.versionNumber}`}/></div></div>
+        <div className={styles.editorVersionTools}>
+          {(trip.versions?.length??0)>1?<Field htmlFor="planning-version" label="Phiên bản lịch trình"><select id="planning-version" value={version.versionId} disabled={Boolean(busy)} onChange={e=>switchVersion(e.target.value)}>{trip.versions?.toSorted((a,b)=>b.versionNumber-a.versionNumber).map(v=><option key={v.versionId} value={v.versionId}>V{v.versionNumber} · {versionLabels[v.status]}</option>)}</select></Field>:<span className={styles.muted}>Phiên bản {version.versionNumber}</span>}
+          <Button tone="text" size="compact" disabled={Boolean(busy)} onClick={()=>setHistory(true)}>Lịch sử</Button><Link to={root}>Danh sách chuyến</Link>
+        </div>
+      </header>
+      <div className={styles.versionContext}>
+        <span>{versions.published?`Đã phát hành: V${versions.published.versionNumber}`:'Chưa có bản phát hành'}{versions.working?` · ${workingVersionLabel(versions.working.status)}: V${versions.working.versionNumber}`:''}</span>
+        <div className={styles.actions}>
+          {versions.published&&versions.published.versionId!==version.versionId&&<Button tone="text" size="compact" disabled={Boolean(busy)} onClick={()=>switchVersion(versions.published!.versionId)}>Xem bản phát hành · V{versions.published.versionNumber}</Button>}
+          {versions.working&&versions.working.versionId!==version.versionId&&<Button tone="secondary" size="compact" disabled={Boolean(busy)} onClick={()=>switchVersion(versions.working!.versionId)}>{can('TRIP_PLAN_WRITE')&&versions.working.status==='DRAFT'?'Tiếp tục bản nháp':versions.working.status==='DRAFT'?'Xem bản nháp':'Xem bản chờ duyệt'} · V{versions.working.versionNumber}</Button>}
+          {onNew&&!versions.working&&!(version.status==='DRAFT'||version.status==='IN_REVIEW')&&<Button tone="secondary" size="compact" disabled={dirty||Boolean(busy)} onClick={onNew}>Tạo bản chỉnh sửa</Button>}
+          {can('TRIP_PLAN_REVIEW')&&<Link to={`${root}?view=review`}>Lịch trình chờ duyệt</Link>}
+        </div>
       </div>
-    </div></Panel>
+      <TripSteps stage="schedule" tripId={trip.tripId} status={version.status} compact/>
+    </div>
     {uncertain&&<Notice title="Cần đối chiếu dữ liệu trước khi tiếp tục" tone="warning"><Button disabled={Boolean(busy)} onClick={()=>setCompare(true)}>Đối chiếu bản đã lưu</Button></Notice>}
     {!editable&&version.status==='DRAFT'&&!uncertain&&<p className={styles.muted}>Chỉ xem · {trip.status==='ARCHIVED'?'Chuyến đã lưu trữ':'Tài khoản không có quyền chỉnh sửa'}</p>}
     {version.rejectionReason&&<Notice title={version.status==='CANCELLED'?'Lý do hủy bản nháp':'Lý do trả lại'} tone="warning">{version.rejectionReason}</Notice>}

@@ -7,6 +7,7 @@ import styles from '../Planning.module.css'
 import { SourcePicker } from './SourcePicker'
 import { selectEntrySource } from '../model/source-selection'
 import { violationTarget, violationFieldId } from '../model/violation-target'
+import { EntryDetails, StopDetails } from './PlanDetails'
 
 function useViolationField(violation:Violation|undefined,formId:string,readOnly:boolean){
   const [dismissed,setDismissed]=useState<Violation|null>(null),target=violation?violationTarget(violation):null
@@ -16,7 +17,14 @@ function useViolationField(violation:Violation|undefined,formId:string,readOnly:
 
 const focusError=(id:string)=>requestAnimationFrame(()=>document.getElementById(id)?.querySelector<HTMLElement>('[aria-invalid=true]')?.focus())
 type DrawerProps={content:Content;dayNumber:number;readOnly:boolean;onClose:()=>void;violation?:Violation}
-export function StopDrawer({content,dayNumber,readOnly,stop,onClose,onApply,violation}:{stop?:Stop;onApply:(stop:Stop)=>void}&DrawerProps) {
+type StopDrawerProps={stop?:Stop;onApply:(stop:Stop)=>void}&DrawerProps
+type EntryDrawerProps={entry?:Entry;initialStopClientKey?:string;kind:Entry['kind'];onApply:(entries:Entry[])=>void}&DrawerProps
+
+export function StopDrawer(props:StopDrawerProps) {
+  return props.readOnly?<StopDetails stop={props.stop} onClose={props.onClose} violation={props.violation}/>:<StopForm {...props}/>
+}
+
+function StopForm({content,dayNumber,readOnly,stop,onClose,onApply,violation}:StopDrawerProps) {
   const server=useViolationField(violation,'stop-draft',readOnly)
   const ports=useSources('ports'),[draft,setDraft]=useState<Stop>(()=>structuredClone(stop??{clientKey:newKey(),portId:'',portName:'',stopOrder:Math.max(0,...content.stops.map(s=>s.stopOrder))+1,arrivalDayNumber:dayNumber,plannedArrivalTime:'',departureDayNumber:dayNumber,plannedDepartureTime:'',callType:'NORMAL',arrivalMethod:'BERTH',allAboardDayNumber:null,allAboardTime:null,isEmbarkation:false,isDisembarkation:false}))
   const [attempted,setAttempted]=useState(false),[touched,setTouched]=useState<Record<string,boolean>>({})
@@ -57,7 +65,11 @@ export function StopDrawer({content,dayNumber,readOnly,stop,onClose,onApply,viol
   </Modal>
 }
 
-export function EntryDrawer({content,dayNumber,readOnly,entry,kind,initialStopClientKey,onClose,onApply,violation}:{entry?:Entry;initialStopClientKey?:string;kind:Entry['kind'];onApply:(entries:Entry[])=>void}&DrawerProps) {
+export function EntryDrawer(props:EntryDrawerProps) {
+  return props.readOnly?<EntryDetails content={props.content} entry={props.entry} kind={props.kind} onClose={props.onClose} violation={props.violation}/>:<EntryForm {...props}/>
+}
+
+function EntryForm({content,dayNumber,readOnly,entry,kind,initialStopClientKey,onClose,onApply,violation}:EntryDrawerProps) {
   const server=useViolationField(violation,'entry-draft',readOnly)
   const [keyword,setKeyword]=useState(''),[categoryFilter,setCategoryFilter]=useState(''),[retained,setRetained]=useState<Source>()
   const categories=useSources('activityCategories',{},kind==='ONBOARD_ACTIVITY')

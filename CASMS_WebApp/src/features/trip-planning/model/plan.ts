@@ -32,7 +32,7 @@ export const kindLabels = { ONBOARD_ACTIVITY: 'Hoạt động trên tàu', SHORE
 export const emptyInfo = (): TripInfo => ({ name: '', durationBand: 'SHORT', scope: '', regionIds: [], countryCodes: [], description: '' })
 export const contentOf = (v: Version): Content => structuredClone({ days: v.days, stops: v.stops, entries: v.entries })
 export const newKey = () => crypto.randomUUID()
-export const shortTime = (time: string | null | undefined) => time?.slice(0, 8) ?? 'Chưa có giờ'
+export const shortTime = (time: string | null | undefined) => time?.slice(0, 5) ?? 'Chưa có giờ'
 export const timeNumber = (day: number, time: string | null) => (day - 1) * 86400 + (time ? time.split(':').reduce((sum, part, index) => sum + Number(part) * [3600,60,1][index], 0) : 0)
 export function infoErrors(form: TripInfo) {
   const errors: Record<string,string> = {}

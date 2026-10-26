@@ -9,6 +9,7 @@ import { tripLabels, versionLabels, type Trip } from '../model/plan'
 import { useTripOperation } from '../useTripOperation'
 import { OperationRecovery } from '../components/OperationNotice'
 import styles from '../Planning.module.css'
+import { versionContext, workingVersionLabel } from '../model/version-context'
 import { supportedDuration } from '../model/duration'
 
 export function TripListPage() {
@@ -41,7 +42,7 @@ export function TripListPage() {
   }
   return <>
     {recovery&&<OperationRecovery operation={operation} onClose={()=>{setRecovery(false);setAction(null)}}/>}<header className={styles.heading}>
-      <div><span className={styles.eyebrow}>QUẢN LÝ LỊCH TRÌNH</span><h1>Chuyến đi</h1><p className={styles.muted}>Tạo thông tin chuyến, xây dựng lịch trình theo ngày và gửi phiên bản để duyệt.</p></div>
+      <div><h1>Chuyến đi</h1><p className={styles.muted}>Tạo thông tin chuyến, xây dựng lịch trình theo ngày và gửi phiên bản để duyệt.</p></div>
       {can('TRIP_CREATE')&&!gateway.readOnly&&<Link className={styles.primaryLink} to={`${root}/new`}>+ Tạo chuyến đi</Link>}
     </header>
     {can('TRIP_PLAN_REVIEW')&&<div className={styles.actions}><Link className={styles.secondaryLink} to={`${root}?view=review`}>Lịch trình chờ duyệt</Link></div>}
@@ -57,13 +58,7 @@ export function TripListPage() {
       {durations.error&&<div id="trip-filter-notice" className={styles.filterNotice} role="status"><span>Chưa tải được bộ lọc thời lượng. Bạn vẫn có thể tìm theo tên, phạm vi và trạng thái.</span><Button type="button" tone="text" size="compact" autoWidth onClick={durations.retry}>Tải lại thời lượng</Button></div>}
       <div className={styles.resultsHead}><h2>Danh sách chuyến đi{list.data&&<span className={styles.resultCount}>{list.data.totalElements}</span>}</h2>{filtered&&<Button tone="text" size="compact" onClick={resetFilters}>Xóa bộ lọc</Button>}</div>
       {list.loading?<Loading label="Đang tải chuyến đi…"/>:list.error?<Notice title="Chưa tải được danh sách" tone="error">{list.error.message}<Button onClick={list.retry}>Thử lại</Button></Notice>:!list.data?.content.length?<Empty title={filtered?'Không tìm thấy chuyến phù hợp':'Chưa có chuyến đi'}><p>{filtered?'Thử đổi từ khóa hoặc xóa bộ lọc.':'Bắt đầu bằng thông tin chuyến; lịch trình sẽ được tổ chức ngay trong chuyến đó.'}</p>{filtered?<Button tone="secondary" onClick={resetFilters}>Xóa bộ lọc</Button>:can('TRIP_CREATE')&&!gateway.readOnly&&<Link className={styles.primaryLink} to={`${root}/new`}>Tạo chuyến đi</Link>}</Empty>:<DataTable label="Danh sách chuyến đi" headers={['Chuyến đi','Thời lượng / phạm vi','Trạng thái chuyến','Phiên bản lịch trình','Thao tác']}>
-        {list.data.content.map(trip=><tr key={trip.tripId}>
-          <th scope="row"><Link className={styles.tripName} to={`${root}/${trip.tripId}/schedule`}>{trip.name}</Link><span className={styles.cellMeta}>{trip.tripCode}{trip.updatedAt?` · Cập nhật ${new Date(trip.updatedAt).toLocaleDateString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'})}`:''}</span></th>
-          <td>{trip.durationDays} ngày<span className={styles.cellMeta}>{trip.info.scope==='DOMESTIC'?'Trong nước':trip.info.scope==='INTERNATIONAL'?'Ngoài nước':'Chưa xác định phạm vi'}</span></td>
-          <td><Badge tone={trip.status==='READY'?'success':'neutral'} label={tripLabels[trip.status]}/></td>
-          <td>{trip.latestVersionStatus?<div className={styles.versionCell}><span>Phiên bản {trip.latestVersionNumber}</span><Badge tone={trip.latestVersionStatus==='IN_REVIEW'?'warning':trip.latestVersionStatus==='PUBLISHED'?'success':'neutral'} label={versionLabels[trip.latestVersionStatus]??'Chưa xác định trạng thái'}/></div>:<span className={styles.muted}>Chưa có phiên bản</span>}</td>
-          <td><div className={styles.tableActions}><Link className={styles.secondaryLink} to={`${root}/${trip.tripId}/schedule`}>Mở lịch trình</Link><details className={styles.rowMenu}><summary aria-label={`Thao tác khác cho ${trip.name}`}>Thêm</summary><div><Link to={`${root}/${trip.tripId}/info`}>Thông tin chuyến</Link>{can('TRIP_CREATE')&&!gateway.readOnly&&<Button tone="text" size="compact" onClick={()=>openAction('clone',trip)}>Nhân bản chuyến</Button>}{can('TRIP_DELETE')&&!gateway.readOnly&&trip.status!=='ARCHIVED'&&<Button tone="text" size="compact" onClick={()=>openAction('archive',trip)}>Lưu trữ chuyến</Button>}</div></details></div></td>
-        </tr>)}
+        {list.data.content.map(trip=><TripListRow key={trip.tripId} trip={trip} onAction={openAction}/>)}
       </DataTable>}
       {list.data&&<div className={styles.pagination}><span>{list.data.totalElements} chuyến · Trang {page+1}/{Math.max(1,list.data.totalPages)}</span><div className={styles.actions}><Button tone="secondary" size="compact" disabled={page===0||list.loading} onClick={()=>setPage(n=>n-1)}>Trang trước</Button><Button tone="secondary" size="compact" disabled={list.loading||page+1>=list.data.totalPages} onClick={()=>setPage(n=>n+1)}>Trang sau</Button></div></div>}
     </Panel>
@@ -73,4 +68,33 @@ export function TripListPage() {
       {error&&<Notice title="Chưa thực hiện được" tone="error">{error}{action.kind==='archive'&&<Button tone="secondary" onClick={()=>{setAction(null);list.retry()}}>Đọc lại danh sách chuyến</Button>}</Notice>}
     </Modal>}
   </>
+}
+
+function TripListRow({trip,onAction}:{trip:Trip;onAction:(kind:'clone'|'archive',trip:Trip)=>void}){
+  const {gateway,root,can}=usePlanning()
+  // Only older published trips with a newer working version need the detail endpoint.
+  // Read the current server page; never load the entire trip catalog or infer a version number.
+  const needsContext=Boolean(trip.structuralLockedAt||trip.status==='READY')&&trip.latestVersionStatus!=='PUBLISHED'&&!trip.versions
+  const detail=useReadQuery(`trip-list-context:${gateway.mode}:${trip.tripId}:${trip.revision}`,useCallback(signal=>needsContext?gateway.getTrip(trip.tripId,signal):Promise.resolve(null),[gateway,needsContext,trip.tripId]))
+  const versions=versionContext(detail.data?.versions??trip.versions)
+  const published=versions.published?.versionNumber??(trip.latestVersionStatus==='PUBLISHED'?trip.latestVersionNumber:undefined)
+  const working=versions.working?.versionNumber??(['DRAFT','IN_REVIEW'].includes(trip.latestVersionStatus??'')?trip.latestVersionNumber:undefined)
+  const workingStatus=versions.working?.status??trip.latestVersionStatus??''
+  return <tr>
+    <th scope="row"><Link className={styles.tripName} to={`${root}/${trip.tripId}/schedule`}>{trip.name}</Link><span className={styles.cellMeta}>{trip.tripCode}{trip.updatedAt?` · Cập nhật ${new Date(trip.updatedAt).toLocaleDateString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'})}`:''}</span></th>
+    <td>{trip.durationDays} ngày<span className={styles.cellMeta}>{trip.info.scope==='DOMESTIC'?'Trong nước':trip.info.scope==='INTERNATIONAL'?'Ngoài nước':'Chưa xác định phạm vi'}</span></td>
+    <td><Badge tone={trip.status==='READY'?'success':'neutral'} label={tripLabels[trip.status]}/></td>
+    <td><div className={styles.versionCell}>
+      {published!==undefined&&<span className={styles.publishedVersion}>Đã phát hành: V{published}</span>}
+      {working!==undefined&&<span>{workingVersionLabel(workingStatus)}: V{working}</span>}
+      {detail.loading&&needsContext&&<span className={styles.cellMeta}>Đang tải bản phát hành…</span>}
+      {detail.error&&<Button tone="text" size="compact" onClick={detail.retry}>Tải lại thông tin phiên bản</Button>}
+      {!published&&!working&&!detail.loading&&!detail.error&&<span className={styles.muted}>Chưa có phiên bản</span>}
+    </div></td>
+    <td><div className={styles.listRowActions}>
+      <Link className={styles.secondaryLink} to={`${root}/${trip.tripId}/schedule`}>{trip.latestVersionStatus==='DRAFT'?'Mở bản nháp':trip.latestVersionStatus==='IN_REVIEW'?'Xem bản chờ duyệt':trip.latestVersionStatus==='PUBLISHED'?'Xem bản phát hành':'Mở lịch trình'}</Link>
+      {published!==undefined&&working!==undefined&&<Link className={styles.versionLink} to={`${root}/${trip.tripId}/schedule?view=published`}>Xem bản phát hành · V{published}</Link>}
+      <details className={styles.rowMenu}><summary aria-label={`Thao tác khác cho ${trip.name}`}>Thao tác khác</summary><div><Link to={`${root}/${trip.tripId}/info`}>Thông tin chuyến</Link>{can('TRIP_CREATE')&&!gateway.readOnly&&<Button tone="text" size="compact" onClick={()=>onAction('clone',trip)}>Nhân bản chuyến</Button>}{can('TRIP_DELETE')&&!gateway.readOnly&&trip.status!=='ARCHIVED'&&<Button tone="text" size="compact" onClick={()=>onAction('archive',trip)}>Lưu trữ chuyến</Button>}</div></details>
+    </div></td>
+  </tr>
 }
