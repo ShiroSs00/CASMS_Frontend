@@ -84,6 +84,7 @@ test('later booking stages expose retry for failed prerequisites rather than an 
     '@/shared/api':{ApiError:Error,useReadQuery:key=>key==='booking-published-cruises'?{error:failure,data:null,loading:false,retry}:{data:key.startsWith('booking-available')?[cabin]:[],loading:false,error:null,retry}},
     '@/shared/ui':Object.fromEntries(['Button','ButtonLink','Empty','Field','Loading','Modal','Notice','PageHeader','Panel'].map(name=>[name,name])),
     '../api/real-booking-api':api,'../components/LiveBookingFields':{},
+    '../components/BookingExperience':{BookingJourneyBanner:'BookingJourneyBanner',BookingPhotoNote:'BookingPhotoNote'},
     '../components/RealBookingUI':{RealBookingFrame:'Frame',BookingReadState:'ReadState'},
     '../model/booking-mutation':{},'../model/live-booking-context':{useLiveBooking:()=>({draft,saved:null,uncertain:false,busy:false,errors:{},submissionLockRef:{current:false}})},
     '../model/booking-progress':{availableBookingStep},'../model/live-booking-navigation':{catalogReturn:()=>'/cruises',bookingStepPaths:['/booking/cabin-experience','/booking/travellers','/booking/review']},

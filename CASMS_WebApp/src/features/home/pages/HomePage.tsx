@@ -1,4 +1,16 @@
-import { HeroSection } from '../components/HeroSection'
-import { OceVieExperience, BookingJourney, CruiseFinder, DestinationDiscovery, FeaturedVoyages, ShipStory, FinalCta } from '../components/LandingSections'
-import styles from '../components/Landing.module.css'
-export function HomePage() { return <div className={styles.home}><HeroSection/><CruiseFinder/><div className={styles.container}><DestinationDiscovery/><OceVieExperience/><FeaturedVoyages/><ShipStory/><BookingJourney/><FinalCta/></div></div> }
+import { Link } from 'react-router'
+import { BookingFaq } from '../components/LandingSections'
+import { DestinationDiscovery } from '../components/PublicDestinations'
+import { HolidayChoices, HomeBookingAccess, HomeFinder, HomeHero, HomeShipInvitation } from '../components/HomeShowcase'
+import landing from '../components/Landing.module.css'
+import styles from '../components/HomeShowcase.module.css'
+
+export function HomePage() {
+  return <div className={`${landing.home} ${styles.page}`}>
+    <HomeHero /><HomeFinder />
+    <div className={styles.content}>
+      <HolidayChoices /><DestinationDiscovery /><HomeShipInvitation /><HomeBookingAccess /><BookingFaq />
+      <div className={styles.closing}><p>Hẹn bạn ở một hành trình mới.</p><Link className={styles.navyButton} to="/cruises">Khám phá các chuyến <span aria-hidden="true">↗</span></Link></div>
+    </div>
+  </div>
+}

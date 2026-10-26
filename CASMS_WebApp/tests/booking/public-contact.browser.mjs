@@ -8,7 +8,7 @@ import path from 'node:path'
 const enabled = Boolean(process.env.CASMS_PLAYWRIGHT_MODULE)
 const base = process.env.CASMS_PREVIEW_URL || 'http://127.0.0.1:5173'
 
-test('public contact supports hover, keyboard, touch and guest lookup; management login rejects passengers', { skip: !enabled }, async () => {
+test('public contact supports stable click, keyboard, touch and guest lookup; management login rejects passengers', { skip: !enabled }, async () => {
   const { chromium } = createRequire(import.meta.url)(process.env.CASMS_PLAYWRIGHT_MODULE)
   const browser = await chromium.launch({ channel: 'msedge', headless: true })
   const page = await browser.newPage()
@@ -25,7 +25,7 @@ test('public contact supports hover, keyboard, touch and guest lookup; managemen
       await page.goto(base + '/booking/lookup')
       const contact = page.getByRole('button', { name: 'Liên hệ', exact: true })
       const panel = page.getByRole('region', { name: 'Liên hệ OceVie' })
-      await contact.hover()
+      await contact.click()
       await panel.waitFor()
       await panel.hover()
       assert.equal(await panel.isVisible(), true)

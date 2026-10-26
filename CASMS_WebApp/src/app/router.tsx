@@ -126,6 +126,9 @@ export const router = createBrowserRouter([{ ErrorBoundary: RouteErrorPage, Hydr
   { Component: AdminGuard, children: [...adminRoutes, { path: '/admin/*', element: <Navigate to="/admin" replace /> }] },
     { path: '/', Component: PublicLayout, children: [
     { index: true, lazy: featurePage(() => import('@/features/home'), 'HomePage') },
+    { path: 'destinations', lazy: featurePage(() => import('@/features/home'), 'DestinationsPage') },
+    { path: 'ships', lazy: featurePage(() => import('@/features/home'), 'ShipsPage') },
+    { path: 'deals', lazy: featurePage(() => import('@/features/home'), 'DealsPage') },
     { path: 'cruises', Component: CruiseSearchPage },
     { path: 'cruises/:cruiseId', Component: CustomerCruiseDetailPage },
     { path: 'booking/lookup', Component: BookingLookupPage },

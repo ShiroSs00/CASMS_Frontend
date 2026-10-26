@@ -45,7 +45,7 @@ export function LiveCruiseSearch() {
   const page=Number.isSafeInteger(requested)&&requested>0?requested:1
   const rawType=params.get('cruiseType')
   const cruiseType=rawType==='ONE_DAY'||rawType==='MULTI_DAYS'?rawType:undefined
-  return <LiveCruiseSearchPage key={`${page}:${cruiseType}`} page={page} cruiseType={cruiseType}/>
+  return <LiveCruiseSearchPage page={page} cruiseType={cruiseType}/>
 }
 
 function LiveCruiseSearchPage({page,cruiseType}:{page:number;cruiseType?:'ONE_DAY'|'MULTI_DAYS'}) {
@@ -60,11 +60,11 @@ function LiveCruiseSearchPage({page,cruiseType}:{page:number;cruiseType?:'ONE_DA
   const result=data?.value
   const issue=data?.issue??(error?{status:0,message:error}:undefined)
   return <div className={s.surface+' '+s.searchSurface+' '+s.liveSurface}>
-    <section className={s.searchHero}><div className={s.container}><div className={s.searchIntro}><p className={s.eyebrow}>KHÁM PHÁ HẢI TRÌNH</p><h1>Hành trình đã công bố</h1><p>Khám phá hành trình đã công bố và lựa chọn phòng phù hợp.</p></div></div></section>
+    <section className={s.searchHero}><div className={s.catalogHeroVisual} aria-hidden="true"><img src={hero} alt="" width="1600" height="1000" /></div><div className={s.container}><div className={s.searchIntro}><p className={s.eyebrow}>KHÁM PHÁ HẢI TRÌNH</p><h1>Hành trình đã công bố</h1><p>Khám phá hành trình đã công bố và lựa chọn phòng phù hợp.</p></div></div></section>
     <div className={s.container}>
       <div className={s.liveModeNotice}><strong>Chuyến du lịch đã công bố</strong><span>Chọn chuyến để xem lịch trình và các phòng còn trống.</span><Link to="/booking/lookup">Tra cứu đặt chỗ</Link></div>
       <div className={s.catalogWorkspace}><div className={s.searchResultsHead}><div><p className={s.eyebrow}>HÀNH TRÌNH SẮP TỚI</p><Heading level={2} title={loading?'Đang tải hành trình…':issue?'Chưa tải được danh mục':`${result?.total??0} hành trình đã công bố`} description="Chọn hành trình để xem lịch trình, phòng còn trống và bắt đầu đặt chỗ."/></div></div>
-      <div className={s.liveFilterBar}><label className={s.liveFilter}><span id="catalog-cruise-type-label">Loại hành trình</span><select aria-labelledby="catalog-cruise-type-label" value={cruiseType??''} onChange={event=>{const query=new URLSearchParams(params);query.delete('page');if(event.target.value)query.set('cruiseType',event.target.value);else query.delete('cruiseType');setParams(query)}}><option value="">Tất cả</option><option value="ONE_DAY">Chuyến ngắn ngày (1–2 ngày)</option><option value="MULTI_DAYS">Chuyến dài ngày (3–5 ngày)</option></select></label><p>Sắp xếp theo ngày khởi hành sớm nhất · Giờ Việt Nam</p>{cruiseType && <Action onClick={()=>{const query=new URLSearchParams(params);query.delete('cruiseType');query.delete('page');setParams(query)}}>Xóa bộ lọc</Action>}</div>
+      <div className={s.liveFilterBar}><label className={s.liveFilter}><span id="catalog-cruise-type-label">Loại hành trình</span><select aria-labelledby="catalog-cruise-type-label" value={cruiseType??''} onChange={event=>{const query=new URLSearchParams(params);query.delete('page');if(event.target.value)query.set('cruiseType',event.target.value);else query.delete('cruiseType');setParams(query,{preventScrollReset:true})}}><option value="">Tất cả</option><option value="ONE_DAY">Chuyến ngắn ngày (1–2 ngày)</option><option value="MULTI_DAYS">Chuyến dài ngày (3–5 ngày)</option></select></label><p>Sắp xếp theo ngày khởi hành sớm nhất · Giờ Việt Nam</p>{cruiseType && <Action onClick={()=>{const query=new URLSearchParams(params);query.delete('cruiseType');query.delete('page');setParams(query,{preventScrollReset:true})}}>Xóa bộ lọc</Action>}</div>
       <div className={s.searchList} aria-live="polite" aria-busy={loading}>
         {loading?<p className={s.searchMessage} role="status">Đang tải hành trình…</p>
           :issue?<LiveError issue={issue} retry={retry}/>
@@ -78,7 +78,7 @@ function LiveCruiseSearchPage({page,cruiseType}:{page:number;cruiseType?:'ONE_DA
 }
 
 function LiveCruiseCard({cruise,from}:{cruise:LiveCruise;from:string}) {
-  return <article className={s.searchCard+' '+s.liveCard} aria-labelledby={'cruise-'+cruise.id}><div className={s.liveImage}><img src={hero} alt="Cảng Marina Bay, Singapore"/></div><div className={s.searchCardBody}><p className={s.eyebrow}>HẢI TRÌNH ĐÃ CÔNG BỐ</p><h2 id={'cruise-'+cruise.id}><Link to={liveDetailLink(cruise.id)+'?from='+encodeURIComponent(from)}>{cruise.title}</Link></h2><p className={s.searchCardMeta}>{cruise.code&&`${cruise.code} · `}{cruise.ship??'Chưa có tên tàu'}</p><p className={s.searchRoute}>{route(cruise)}</p><p className={s.searchDate}>Khởi hành: {when(cruise.departure)} · Giờ Việt Nam</p><p className={s.searchDate}>Trở về: {when(cruise.returnAt)} · Giờ Việt Nam</p></div><div className={s.searchCardPrice+' '+s.liveCardAside}><p className={s.eyebrow}>GIÁ & CABIN</p><strong>Chọn phòng theo chuyến</strong><p>Xem phòng trống khi đặt chỗ; giá và hợp đồng được xác định sau khi gửi.</p><ActionLink to={liveDetailLink(cruise.id)+'?from='+encodeURIComponent(from)}>Xem hành trình</ActionLink></div></article>
+  return <article className={s.searchCard+' '+s.liveCard} aria-labelledby={'cruise-'+cruise.id}><div className={s.liveImage}><img src={hero} alt="Ảnh cảm hứng tại cảng Marina Bay, Singapore" loading="lazy" width="1600" height="1000"/><span className={s.photoCaption}>Ảnh cảm hứng · Singapore</span></div><div className={s.searchCardBody}><p className={s.eyebrow}>HẢI TRÌNH ĐÃ CÔNG BỐ</p><h2 id={'cruise-'+cruise.id}><Link to={liveDetailLink(cruise.id)+'?from='+encodeURIComponent(from)}>{cruise.title}</Link></h2><p className={s.searchCardMeta}>{cruise.code&&`${cruise.code} · `}{cruise.ship??'Chưa có tên tàu'}</p><p className={s.searchRoute}>{route(cruise)}</p><p className={s.searchDate}>Khởi hành: {when(cruise.departure)} · Giờ Việt Nam</p><p className={s.searchDate}>Trở về: {when(cruise.returnAt)} · Giờ Việt Nam</p></div><div className={s.searchCardPrice+' '+s.liveCardAside}><p className={s.eyebrow}>GIÁ & CABIN</p><strong>Chọn phòng theo chuyến</strong><p>Xem phòng trống khi đặt chỗ; giá và hợp đồng được xác định sau khi gửi.</p><ActionLink to={liveDetailLink(cruise.id)+'?from='+encodeURIComponent(from)}>Xem hành trình</ActionLink></div></article>
 }
 
 export function LiveCruiseDetail() {

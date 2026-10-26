@@ -115,3 +115,44 @@
 .publicJourney .rail { background:#EAEDE1; border-radius:4px; box-shadow:none; }
 .publicJourney .resultReference { border-radius:4px; }
 @media(max-width:1000px) { .publicJourney .lookupGrid { grid-template-columns:1fr; gap:24px; } }
+
+@media(min-width:960px) {
+  .publicJourney { padding-block:32px 72px; }
+  .publicJourney > div > .stack { gap:28px; }
+  .publicJourney .layout { grid-template-columns:minmax(0,1fr) 340px; gap:36px; }
+  .publicJourney .rail { display:grid; gap:20px; background:transparent; border:0; }
+  .publicJourney .rail > section { padding:28px; margin:0; border-top:3px solid var(--brand-gold); border-radius:8px; background:white; }
+  .publicJourney .rail > section > strong { font:500 22px/1.5 var(--font-family-heading); }
+  .publicJourney .steps { gap:12px; }
+  .publicJourney .steps a { padding:18px 20px; background:#E9EFEB; border:1px solid #C8D5D0; border-radius:8px; min-height:74px; font-size:13px; }
+  .publicJourney .steps [aria-current='step'] { background:var(--brand-navy); color:white; border-color:var(--brand-navy); }
+  .publicJourney .steps [aria-current='step'] .stepNumber { border-color:var(--brand-gold); background:var(--brand-gold); color:var(--brand-navy); }
+  .publicJourney .stepNumber { width:30px; height:30px; flex:0 0 30px; }
+  .publicJourney .passengerCard { border-radius:10px; border-color:#CADAD5; box-shadow:none; }
+  .publicJourney .passengerCard > div:first-child { padding-bottom:18px; border-bottom:1px solid #D7E0DA; }
+  .publicJourney .selection { padding:20px 24px; border-radius:6px; background:#E7F1EE; border-left:3px solid var(--brand-teal); font-size:13px; line-height:1.9; }
+  .publicJourney .fields { gap:24px; }
+  .publicJourney .actions { padding:22px 0 0; border-color:#C7D6D0; }
+  .publicJourney .actions > button[type='submit'] { margin-left:auto; min-height:50px; padding-inline:28px; background:var(--brand-teal); }
+  .publicJourney .lookupGrid { grid-template-columns:minmax(0,1.35fr) minmax(300px,.8fr); gap:36px; }
+  .publicJourney .lookupHelp { padding:0 0 28px; border:1px solid #C8D8D2; border-radius:10px; background:white; overflow:hidden; gap:20px; }
+  .publicJourney .lookupHelp > :not(figure) { margin-inline:28px; }
+  .publicJourney .lookupHelp > figure { border-radius:0; }
+  .publicJourney .lookupGrid > section { padding:32px; }
+  .publicJourney .lookupGrid button[type='submit'] { min-height:50px; padding-inline:32px; background:var(--brand-teal); }
+  .financeGrid { grid-template-columns:280px minmax(0,1fr); gap:24px; }
+  .financeLookup { grid-column:1; grid-row:1/4; position:sticky; top:var(--workspace-sticky-top,24px); background:var(--brand-pearl); border-top:3px solid var(--brand-gold); }
+  .financeGrid > :not(.financeLookup) { grid-column:2; min-width:0; }
+  .financeGrid:not(:has(.financeLookup)) { grid-template-columns:minmax(0,1fr); }
+  .financeGrid:not(:has(.financeLookup)) > * { grid-column:1; }
+  .financePagination { font-size:12px; }
+  .checkinDesk { display:grid; grid-template-columns:300px minmax(0,1fr); gap:28px; align-items:start; }
+  .checkinSearch { position:sticky; top:var(--workspace-sticky-top,24px); min-width:0; }
+  .checkinSearch > section { background:var(--brand-pearl); border-top:3px solid var(--brand-gold); }
+  .checkinRecords { min-width:0; display:grid; gap:20px; }
+  .checkinRecords > section { margin:0; }
+  .checkinSearch .deskLookup { display:grid; grid-template-columns:1fr; gap:24px; }
+  .checkinSearch .deskLookup > button { justify-self:stretch; grid-column:1; }
+}
+
+@media(min-width:960px) { .recordWorkspace { display:grid; grid-template-columns:minmax(0,1fr) 290px; gap:28px; align-items:start; } .recordWorkspace > div { min-width:0; } .recordActions { min-width:0; position:sticky; top:var(--workspace-sticky-top,24px); } .recordActions:empty { display:none; } .recordWorkspace:has(.recordActions:empty) { grid-template-columns:minmax(0,1fr); } .recordActions > section { background:var(--brand-pearl); border-top:3px solid var(--brand-gold); } .recordActions button { width:100%; } .financeLookup,.checkinSearch,.recordActions { max-height:calc(100dvh - var(--workspace-sticky-top,24px) - 24px); overflow-y:auto; scrollbar-width:thin; } }

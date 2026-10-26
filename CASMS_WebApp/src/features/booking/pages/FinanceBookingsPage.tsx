@@ -1,7 +1,7 @@
 import { useCallback, useState, type FormEvent } from 'react'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, DataTable, Empty, Field, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Button, DataTable, Empty, Field, Notice, PageHeader, Panel, ProcessGuide } from '@/shared/ui'
 import { realBookingApi } from '../api/real-booking-api'
 import { BookingReadState, RealBookingFrame } from '../components/RealBookingUI'
 import { BookingInstallments } from '../components/BookingInstallments'
@@ -34,6 +34,7 @@ function FinanceWorkspace() {
     setSelected({ id, reference: known?.bookingReference ?? 'Đặt chỗ được tra cứu', currency: known?.currency ?? '' }); setError('')
   }
   return <RealBookingFrame admin><PageHeader title="Tài chính & lịch thanh toán" breadcrumb="TÀI CHÍNH" description="Đối chiếu khoản thu, hợp đồng và các đợt thanh toán." />
+    <ProcessGuide label="Đối chiếu khoản thu" steps={[{title:"Mở hồ sơ",description:"Chọn đặt chỗ hoặc tra cứu bằng ID được bàn giao."},{title:"Đối chiếu khoản thu",description:"Xem chứng từ và trạng thái giao dịch của hồ sơ."},{title:"Theo dõi kỳ hạn",description:"Đọc lịch thanh toán theo hợp đồng khi có quyền truy cập."}]} />
     {!canBookings && <Notice title="Danh sách đặt chỗ chưa khả dụng">{access.status === 'loading' ? 'Đang kiểm tra quyền truy cập…' : 'Tài khoản cần quyền xem đặt chỗ để mở danh sách và hợp đồng.'}</Notice>}
     <div className={styles.financeGrid}>
     {canPayments && <Panel className={styles.financeLookup} title="Tra cứu khoản thu" subtitle="Dùng ID đặt chỗ trong hồ sơ bàn giao khi chưa mở được danh sách hoặc hợp đồng."><form onSubmit={openLedger}><Field htmlFor="finance-booking-id" label="ID đặt chỗ"><input id="finance-booking-id" required value={bookingId} onChange={event => setBookingId(event.target.value)} /></Field><Button type="submit">Mở khoản thu</Button></form>{error && <Notice title="Chưa tra cứu được" tone="error">{error}</Notice>}</Panel>}
@@ -43,7 +44,6 @@ function FinanceWorkspace() {
       </DataTable>}
       <div className={styles.financePagination}><Button tone="secondary" disabled={page === 0} onClick={() => setPage(value => value - 1)}>Trang trước</Button><span> Trang {page + 1} </span><Button tone="secondary" disabled={page + 1 >= list.data.totalPages} onClick={() => setPage(value => value + 1)}>Trang sau</Button></div>
     </>}</Panel>}
-    </div>
     {!selected && canBookings && !list.loading && !list.error && Boolean(list.data?.content.length) && <Panel title="Chi tiết khoản thu"><Empty title="Chọn đặt chỗ để xem khoản thu"><p>Mở một đặt chỗ trong danh sách hoặc tra cứu bằng ID để đối chiếu giao dịch và lịch thanh toán.</p></Empty></Panel>}
     {selected && <section aria-label={`Tài chính ${selected.reference}`}><h2>{selected.reference}</h2>
       <PaymentLedger key={selected.id} bookingId={selected.id} currency={detail.data?.currency ?? selected.currency} onChanged={() => { detail.retry(); list.retry() }} />
@@ -51,5 +51,6 @@ function FinanceWorkspace() {
         {detail.error instanceof ApiError && detail.error.status === 403 && <Notice title="Chưa truy cập được hợp đồng" tone="warning">Tài khoản chưa được phép đọc chi tiết đặt chỗ này. Bạn vẫn có thể tra cứu khoản thu phía trên bằng quyền thanh toán của mình.</Notice>}
       </Panel>}
     </section>}
+    </div>
   </RealBookingFrame>
 }
