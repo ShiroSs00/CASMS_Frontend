@@ -17,7 +17,7 @@ export function useIssueActions(issueId: string, onChanged: () => void) {
   const lock = useRef(false)
 
   async function run(action: IssueAction, operation: () => Promise<unknown>, success: string) {
-    if (lock.current || !access.has(issueActionPermissions[action])) return false
+    if (lock.current || !access.canDo(issueActionPermissions[action])) return false
     lock.current = true
     setPendingAction(action)
     setFeedback(null)

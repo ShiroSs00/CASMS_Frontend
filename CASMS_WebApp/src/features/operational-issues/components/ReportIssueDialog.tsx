@@ -36,7 +36,7 @@ function ReportIssueDialogContent({ open, onClose, onCreated }: Props) {
   const [error, setError] = useState('')
   const lock = useRef(false)
   const locationError = validateIssueLocation(shipId, cruiseId, cabinId, contextReady ? { ships: ships.data ?? [], cruises: cruises.data ?? [], cabins: cabins.data ?? [] } : null)
-  const allowed = access.has('OPERATIONAL_ISSUE_CREATE')
+  const allowed = access.canDo('OPERATIONAL_ISSUE_CREATE')
   const invalid = !allowed || !description.trim() || Boolean(locationError)
 
   async function submit() {

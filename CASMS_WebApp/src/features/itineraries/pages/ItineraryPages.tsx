@@ -15,7 +15,7 @@ export function ItineraryListPage() {
   const [page, setPage] = useState(1)
   const load = useCallback((signal: AbortSignal) => itineraryApi.list(page, signal), [page])
   const { data, error, loading, retry } = useReadQuery(`itineraries:${page}`, load)
-  const canCruises = access.has('CRUISE_READ')
+  const canCruises = access.canDo('CRUISE_READ')
   const cruises = useReadQuery(`itinerary-cruise-names:${canCruises}`, useCallback(signal => canCruises ? itineraryApi.listCruises(signal) : Promise.resolve([]),[canCruises]))
   const cruisesById = new Map(cruises.data?.map(cruise => [cruise.cruiseId, cruise]))
 

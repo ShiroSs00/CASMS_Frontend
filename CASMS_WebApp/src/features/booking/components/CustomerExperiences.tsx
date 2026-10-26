@@ -31,7 +31,7 @@ export function CustomerActivities({ booking }: { booking: BookingDetail }) {
   return <Panel title="Hoạt động trên chuyến đi"><p>Hoạt động dành cho chuyến của bạn. Chọn gói không tự động đăng ký hoạt động.</p><BookingReadState {...list} publicResource="hoạt động" />
     {list.data?.length === 0 && <Empty title="Chưa có hoạt động cho chuyến đi này" />}
     {list.data && <Field htmlFor="customer-activity" label="Chọn hoạt động"><select id="customer-activity" value={selected} onChange={event => select(event.target.value)}><option value="">Chọn để xem chi tiết và chỗ trống</option>{list.data.map(item => <option key={item.id} value={item.id}>{item.name} · {statusName[item.status]}</option>)}</select></Field>}
-    {selected && list.data?.some(item => item.id === selected) && <ActivitySelection key={selected} id={selected} booking={booking} canRegister={access.has('ACTIVITY_REGISTRATION')} />}
+    {selected && list.data?.some(item => item.id === selected) && <ActivitySelection key={selected} id={selected} booking={booking} canRegister={access.canDo('ACTIVITY_REGISTRATION')} />}
   </Panel>
 }
 
@@ -43,7 +43,7 @@ export function CustomerExcursions({ booking }: { booking: BookingDetail }) {
     return lookup.kind === 'found' ? liveCruiseCatalogApi.stops(lookup.itinerary.id, signal) : []
   }, [booking.cruiseId]))
   const [stop, setStop] = useState('')
-  return <Panel title="Tour tham quan trên bờ"><BookingReadState {...query} publicResource="điểm dừng cho tour" />{query.data?.length === 0 && <Empty title="Chưa có điểm dừng liên kết cho chuyến đi" />}{query.data && <Field htmlFor="excursion-stop" label="Điểm dừng của chuyến đi"><select id="excursion-stop" value={stop} onChange={event => setStop(event.target.value)}><option value="">Chọn điểm dừng</option>{query.data.map(item => <option key={item.id} value={item.id}>{item.port || item.destination || (item.order != null ? 'Điểm dừng ' + item.order : 'Điểm dừng chưa có tên')}</option>)}</select></Field>}{query.data?.filter(item => item.id === stop).map(item => <ExcursionList key={item.id} stop={item} booking={booking} canRegister={access.has('EXCURSION_BOOKING')} />)}</Panel>
+  return <Panel title="Tour tham quan trên bờ"><BookingReadState {...query} publicResource="điểm dừng cho tour" />{query.data?.length === 0 && <Empty title="Chưa có điểm dừng liên kết cho chuyến đi" />}{query.data && <Field htmlFor="excursion-stop" label="Điểm dừng của chuyến đi"><select id="excursion-stop" value={stop} onChange={event => setStop(event.target.value)}><option value="">Chọn điểm dừng</option>{query.data.map(item => <option key={item.id} value={item.id}>{item.port || item.destination || (item.order != null ? 'Điểm dừng ' + item.order : 'Điểm dừng chưa có tên')}</option>)}</select></Field>}{query.data?.filter(item => item.id === stop).map(item => <ExcursionList key={item.id} stop={item} booking={booking} canRegister={access.canDo('EXCURSION_BOOKING')} />)}</Panel>
 }
 function ExcursionList({ stop, booking, canRegister }: { stop: LivePortCall; booking: BookingDetail; canRegister: boolean }) {
   const query = useReadQuery('customer-excursions:' + stop.id, useCallback(signal => api.excursions(stop.id, signal), [stop.id]))
@@ -93,7 +93,7 @@ export function CustomerServices({ booking }: { booking: BookingDetail }) {
   return <Panel title="Dịch vụ bổ sung"><p>Yêu cầu riêng cho hồ sơ của tài khoản; chọn gói không tự đặt dịch vụ.</p><BookingReadState {...list} publicResource="dịch vụ" />
     {list.data?.length === 0 && <Empty title="Chưa có dịch vụ hoạt động" />}
     {list.data && <Field htmlFor="customer-service" label="Chọn dịch vụ"><select id="customer-service" value={selected} onChange={event => select(event.target.value)}><option value="">Chọn để xem chi tiết</option>{list.data.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>}
-    {selected && list.data?.some(item => item.id === selected) && <ServiceSelection key={selected} id={selected} booking={booking} canCreate={access.has('SERVICE_REQUEST_CREATE')} />}
+    {selected && list.data?.some(item => item.id === selected) && <ServiceSelection key={selected} id={selected} booking={booking} canCreate={access.canDo('SERVICE_REQUEST_CREATE')} />}
   </Panel>
 }
 function ServiceSelection({ id, booking, canCreate }: { id: string; booking: BookingDetail; canCreate: boolean }) {
@@ -129,7 +129,7 @@ function RecordDetails({ kind, id, booking, refresh }: { kind: 'activity' | 'ser
   const item = query.data
   // A valid ID response must also belong to this Booking, including after retries.
   const belongs = item && booking.passengers.some(person => person.bookingPassengerId === item.bookingPassengerId && person.passengerId === item.passengerId) && (!('bookingId' in item) || item.bookingId === booking.bookingId)
-  const canWrite = access.has(kind === 'activity' ? 'ACTIVITY_REGISTRATION' : 'SERVICE_REQUEST_CREATE') && belongs
+  const canWrite = access.canDo(kind === 'activity' ? 'ACTIVITY_REGISTRATION' : 'SERVICE_REQUEST_CREATE') && belongs
   const pending = item?.status === (kind === 'activity' ? 'PENDING' : 'REQUESTED')
   function after() { query.retry(); refresh() }
   return <div className={styles.stack}><BookingReadState {...query} publicResource="chi tiết yêu cầu" />{item && !belongs && <Notice title="Dữ liệu không thuộc đặt chỗ này" tone="error">Không hiển thị chi tiết hoặc cho phép thao tác.</Notice>}

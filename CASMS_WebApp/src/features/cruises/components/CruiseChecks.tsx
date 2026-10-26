@@ -11,7 +11,7 @@ export function CruiseChecks({ cruiseId }: { cruiseId: string }) {
   const [capacity, setCapacity] = useState<CapacityDto | null>(null)
   const lock = useRef(false)
   async function check(kind: 'schedule' | 'capacity') {
-    if (lock.current || !access.has('CRUISE_VALIDATE')) return
+    if (lock.current || !access.canDo('CRUISE_VALIDATE')) return
     lock.current = true; setBusy(true); setError('')
     try {
       if (kind === 'schedule') {
@@ -29,9 +29,9 @@ export function CruiseChecks({ cruiseId }: { cruiseId: string }) {
     finally { lock.current = false; setBusy(false) }
   }
   return <Panel title="Kiểm tra kế hoạch chuyến" subtitle="Kiểm tra lịch và sức chứa không phát hành hoặc thay đổi trạng thái chuyến.">
-    {access.has('CRUISE_VALIDATE') && <Button tone="secondary" disabled={busy || !access.has('CRUISE_VALIDATE')} onClick={() => void check('schedule')}>Kiểm tra lịch tàu</Button>}{' '}
-    {access.has('CRUISE_VALIDATE') && <Button tone="secondary" disabled={busy || !access.has('CRUISE_VALIDATE')} onClick={() => void check('capacity')}>Kiểm tra sức chứa</Button>}
-    {!access.has('CRUISE_VALIDATE') && <p>Chưa có quyền kiểm tra chuyến.</p>}
+    {access.canDo('CRUISE_VALIDATE') && <Button tone="secondary" disabled={busy || !access.canDo('CRUISE_VALIDATE')} onClick={() => void check('schedule')}>Kiểm tra lịch tàu</Button>}{' '}
+    {access.canDo('CRUISE_VALIDATE') && <Button tone="secondary" disabled={busy || !access.canDo('CRUISE_VALIDATE')} onClick={() => void check('capacity')}>Kiểm tra sức chứa</Button>}
+    {!access.canDo('CRUISE_VALIDATE') && <p>Chưa có quyền kiểm tra chuyến.</p>}
     {error && <Notice tone="error" title="Không kiểm tra được">{error}</Notice>}
     {schedule !== null && <Notice tone={schedule ? 'success' : 'warning'} title="Kết quả lịch tàu">{schedule ? 'Lịch tàu đáp ứng kiểm tra hiện tại.' : 'Lịch tàu chưa đáp ứng điều kiện, cần rà soát phân công.'}</Notice>}
     {capacity && <Notice tone={capacity.capacitySufficient ? 'success' : 'warning'} title="Kết quả sức chứa"><p>{capacity.capacitySufficient ? 'Đáp ứng sức chứa.' : 'Chưa đáp ứng sức chứa.'}</p><p>Đã đặt: {capacity.bookedPassengersCount} · Sức chứa: {capacity.shipTotalCapacity ?? 'Chưa xác định'} · Còn: {capacity.availableCapacity ?? 'Chưa xác định'}.</p></Notice>}

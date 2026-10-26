@@ -49,7 +49,7 @@ export function GroupForm({ initial, initialExcursionId = '', busy, onSave }: { 
   }
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (busy || !access.has(initial ? 'TOUR_GROUP_UPDATE' : 'TOUR_GROUP_CREATE')) return
+    if (busy || !access.canDo(initial ? 'TOUR_GROUP_UPDATE' : 'TOUR_GROUP_CREATE')) return
     if (excursions.loading || excursions.error) { setContextError('Chưa tải được chuyến tham quan. Vui lòng tải lại danh sách trước khi lưu.'); return }
     setContextError('')
     const next = validateGroupForm(values, selected, initial?.assignedPassengers ?? 0)
@@ -116,7 +116,7 @@ export function GroupForm({ initial, initialExcursionId = '', busy, onSave }: { 
         <div className={styles.fullRow}><Field htmlFor="group-notes" label="Ghi chú riêng cho nhóm (không bắt buộc)" error={errors.notes}><textarea id="group-notes" name="notes" maxLength={500} value={values.notes} aria-invalid={!!errors.notes} onChange={event => change('notes', event.target.value)} /></Field></div>
         <p className={`${styles.hint} ${styles.fullRow}`}>Hướng dẫn viên và hành khách được phân công trong trang chi tiết sau khi tạo nhóm.</p>
       </>}
-      <div className={styles.actions}><Link className={styles.link} to={initial ? `/admin/tour-groups/${initial.tourGroupId}` : '/admin/tour-groups'}>Quay lại</Link>{access.has(initial ? 'TOUR_GROUP_UPDATE' : 'TOUR_GROUP_CREATE') && <Button type="submit" disabled={busy || excursions.loading || Boolean(excursions.error) || !selected}>{busy ? 'Đang lưu…' : initial ? 'Lưu thay đổi' : 'Tạo nhóm tour'}</Button>}</div>
+      <div className={styles.actions}><Link className={styles.link} to={initial ? `/admin/tour-groups/${initial.tourGroupId}` : '/admin/tour-groups'}>Quay lại</Link>{access.canDo(initial ? 'TOUR_GROUP_UPDATE' : 'TOUR_GROUP_CREATE') && <Button type="submit" disabled={busy || excursions.loading || Boolean(excursions.error) || !selected}>{busy ? 'Đang lưu…' : initial ? 'Lưu thay đổi' : 'Tạo nhóm tour'}</Button>}</div>
     </fieldset></form>
   </>
 }

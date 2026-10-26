@@ -1,6 +1,7 @@
 import { date, money } from '../model/booking-format'
 import { useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router'
+import { useParams, useSearchParams } from 'react-router'
+import { PermissionLink as Link } from '@/shared/ui'
 import { bookingApi } from '../api/booking-preview-api'
 import { useAdapterData } from '../model/booking-state'
 import { useBookingDraft } from '../model/booking-context'

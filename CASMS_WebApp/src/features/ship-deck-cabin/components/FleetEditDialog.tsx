@@ -11,7 +11,7 @@ import styles from './ShipManagement.module.css'
 export type FleetEditTarget = { kind: 'ships'; item: Ship } | { kind: 'decks'; item: Deck } | { kind: 'cabins'; item: Cabin }
 export function FleetEditDialog({ target, onClose, onSaved }: { target: FleetEditTarget; onClose: () => void; onSaved: (message: string) => void }) {
   const access = useSessionAccess()
-  const permitted = access.has(entityPermission(target.kind, 'UPDATE'))
+  const permitted = access.canDo(entityPermission(target.kind, 'UPDATE'))
   const source = target.item
   const [draft, setDraft] = useState<ShipDraft>(target.kind === 'ships' ? target.item : { code: '', name: '', capacity: 1, totalDecks: 1, commissionDate: '', status: 'ACTIVE' })
   const [deckName, setDeckName] = useState(target.kind === 'decks' ? target.item.name : '')

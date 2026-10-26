@@ -36,7 +36,7 @@ export function TourGroupListPage() {
     setSearch(next)
   }
   return <TourLayout>
-    <PageHeader breadcrumb="Dịch vụ bờ" title="Nhóm tour" description="Quản lý nhóm tham quan, phân công hướng dẫn viên và sức chứa." actions={access.has("TOUR_GROUP_CREATE") && <ButtonLink to={`${root}/new${excursionId ? `?excursionId=${encodeURIComponent(excursionId)}` : ''}`}>Tạo nhóm tour</ButtonLink>} />
+    <PageHeader breadcrumb="Dịch vụ bờ" title="Nhóm tour" description="Quản lý nhóm tham quan, phân công hướng dẫn viên và sức chứa." actions={access.canDo("TOUR_GROUP_CREATE") && <ButtonLink to={`${root}/new${excursionId ? `?excursionId=${encodeURIComponent(excursionId)}` : ''}`}>Tạo nhóm tour</ButtonLink>} />
     <CollectionSummary count={query.loading || query.error ? null : query.data?.length ?? null} filtered={Boolean(excursionId || guideId || rawStatus)} label="Nhóm tour" scope="Kết quả trả về theo bộ lọc" />
     <Panel title="Bộ lọc"><form key={search.toString()} onSubmit={filter}>
       <div className={styles.filters}><label>Chuyến tham quan<select key={`${excursionId}:${excursions.data?.length}`} name="excursionId" defaultValue={excursionId} disabled={excursions.loading || Boolean(excursions.error)}><option value="">Tất cả chuyến tham quan</option>{excursions.data?.map(item => <option key={item.shoreExcursionId} value={item.shoreExcursionId}>{item.excursionName}</option>)}</select></label><label>Hướng dẫn viên<select disabled><option>Chưa có danh mục hướng dẫn viên</option></select></label><label>Trạng thái<select name="status" defaultValue={rawStatus ?? ''}><option value="">Tất cả</option>{groupStatuses.map((value) => <option key={value} value={value}>{groupStatusLabels[value]}</option>)}</select></label></div>
@@ -65,7 +65,7 @@ function GroupDetail({ id }: { id: string }) {
       <PageHeader breadcrumb="Dịch vụ bờ / Nhóm tour" title={`Nhóm ${group.groupCode}`} description={group.excursionName} actions={<div className={styles.detailToolbar}>
         <div className={styles.recordStatus}><span>Trạng thái</span><GroupBadge status={group.status} /></div>
         <GroupControls group={group} onRefresh={query.reload}>
-          {canPrepareGroup(group.status) && access.has('TOUR_GROUP_UPDATE') && <ButtonLink tone="secondary" to={`${root}/${id}/edit`}>Chỉnh sửa</ButtonLink>}
+          {canPrepareGroup(group.status) && access.canDo('TOUR_GROUP_UPDATE') && <ButtonLink tone="secondary" to={`${root}/${id}/edit`}>Chỉnh sửa</ButtonLink>}
           <Button tone="secondary" onClick={query.reload}>Tải lại</Button>
         </GroupControls>
       </div>} />
@@ -102,7 +102,7 @@ function SaveGroup({ initial, initialExcursionId }: { initial?: TourGroup; initi
   const access = useSessionAccess()
   const navigate = useNavigate(), mutation = useTourMutation()
   async function save(request: GroupRequest) {
-    if (!access.has(initial ? 'TOUR_GROUP_UPDATE' : 'TOUR_GROUP_CREATE')) return
+    if (!access.canDo(initial ? 'TOUR_GROUP_UPDATE' : 'TOUR_GROUP_CREATE')) return
     const result = await mutation.run((signal) => initial ? tourGroupApi.update(initial.tourGroupId, request, signal) : tourGroupApi.create(request, signal))
     if (result.ok) navigate(`${root}/${result.value.tourGroupId}`)
   }

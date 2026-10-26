@@ -18,7 +18,7 @@ function ServiceAvailability({ id }: { id: string }) {
   return <Panel title="Khả năng đáp ứng"><CatalogState {...query} />{query.data && <p>{query.data.available ? 'Dịch vụ đáp ứng được yêu cầu 1 đơn vị.' : 'Dịch vụ hiện chưa đáp ứng được yêu cầu 1 đơn vị.'}</p>}</Panel>
 }
 function PackageBenefits({ id }: { id: string }) {
-  const access = useSessionAccess(), canServices = access.has('SERVICE_READ')
+  const access = useSessionAccess(), canServices = access.canDo('SERVICE_READ')
   const names = useReadQuery(`package-service-names:${id}:${canServices}`, useCallback(signal => canServices ? servicePackageApi.benefitOptions('services', signal) : Promise.resolve([]), [canServices]))
   const categories = useReadQuery(`package-categories:${id}:${canServices}`, useCallback(signal => canServices ? apiRequest<{ id: string; name: string }[]>('/servicepackage/service-categories', { signal }) : Promise.resolve([]), [canServices]))
   const query = useReadQuery('package-benefits:' + id, useCallback(signal => servicePackageApi.benefits(id, signal), [id]))

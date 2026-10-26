@@ -8,7 +8,7 @@ import { CatalogState } from './CatalogUI'
 import styles from './Catalog.module.css'
 
 export function ServiceSchedules({ serviceId }: { serviceId: string }) {
-  const access = useSessionAccess(), canCreate = access.has('SERVICE_CREATE'), canCruise = access.has('CRUISE_READ')
+  const access = useSessionAccess(), canCreate = access.canDo('SERVICE_CREATE'), canCruise = access.canDo('CRUISE_READ')
   const slots = useReadQuery(`service-slots:${serviceId}`, useCallback(signal => serviceSlots(serviceId, signal), [serviceId]))
   const cruises = useReadQuery(`service-slot-cruises:${canCreate}:${canCruise}`, useCallback(async signal => {
     const rows: { cruiseId: string; cruiseName: string; status: string }[] = []

@@ -75,9 +75,9 @@ function AssignmentTable({
               <td><StatusBadge status={item.regulation.status} /></td>
               <td>
                 {direct ? (
-                  (access.has(removePermission) ? <button
+                  (access.canDo(removePermission) ? <button
                     className={styles.linkButton}
-                    disabled={!item.capabilities.canRemove.allowed || !access.has(removePermission)}
+                    disabled={!item.capabilities.canRemove.allowed || !access.canDo(removePermission)}
                     onClick={() => onRemove(item)}
                     title={item.capabilities.canRemove.reason}
                     type="button"
@@ -155,7 +155,7 @@ function AssignmentPage({ type }: { type: HostType }) {
   }, [success])
 
   const openAssign = async () => {
-    if (!access.has(`${prefix}_ASSIGN`) || !snapshot) return
+    if (!access.canDo(`${prefix}_ASSIGN`) || !snapshot) return
     requestSequence.current += 1
     setAssignOpen(true)
     setChecking(false)
@@ -186,7 +186,7 @@ function AssignmentPage({ type }: { type: HostType }) {
   }, [candidates, search, status])
 
   const checkCandidate = async (candidate: CandidateRegulation) => {
-    if (!access.has(`${prefix}_READ`)) return
+    if (!access.canDo(`${prefix}_READ`)) return
     const sequence = ++requestSequence.current
     setSelectedId(candidate.regulation.id)
     setConflict(null)
@@ -216,7 +216,7 @@ function AssignmentPage({ type }: { type: HostType }) {
   )
 
   const assign = async () => {
-    if (!selected || !conflict?.canProceed || mutationLock.current || !access.has(`${prefix}_ASSIGN`) || !snapshot) return
+    if (!selected || !conflict?.canProceed || mutationLock.current || !access.canDo(`${prefix}_ASSIGN`) || !snapshot) return
     mutationLock.current = true
     setSubmitting(true)
     setActionError('')
@@ -238,7 +238,7 @@ function AssignmentPage({ type }: { type: HostType }) {
   }
 
   const remove = async () => {
-    if (!removeItem || !removeItem.capabilities.canRemove.allowed || mutationLock.current || !access.has(`${prefix}_REMOVE`) || !snapshot) return
+    if (!removeItem || !removeItem.capabilities.canRemove.allowed || mutationLock.current || !access.canDo(`${prefix}_REMOVE`) || !snapshot) return
     mutationLock.current = true
     setSubmitting(true)
     setActionError('')
@@ -270,7 +270,7 @@ function AssignmentPage({ type }: { type: HostType }) {
       <PageHeader
         title={title}
         description={snapshot?.host.description ?? 'Quy định trực tiếp và kế thừa của đối tượng.'}
-        actions={(access.has(`${prefix}_ASSIGN`) ? <Button disabled={loading || !snapshot || !access.has(`${prefix}_ASSIGN`)} onClick={() => void openAssign()}>Gán quy định</Button> : null)}
+        actions={(access.canDo(`${prefix}_ASSIGN`) ? <Button disabled={loading || !snapshot || !access.canDo(`${prefix}_ASSIGN`)} onClick={() => void openAssign()}>Gán quy định</Button> : null)}
       />
       <div className={styles.twoColumn}>
         <Field label={type === 'ship' ? 'Hiệu lực tại thời điểm' : 'Thời điểm kiểm tra'}>
@@ -311,7 +311,7 @@ function AssignmentPage({ type }: { type: HostType }) {
         </>
       ) : null}
 
-      {assignOpen && access.has(`${prefix}_ASSIGN`) ? (
+      {assignOpen && access.canDo(`${prefix}_ASSIGN`) ? (
         <Modal busy={submitting}
           description={snapshot?.host.name ?? 'Chưa tải được tên đối tượng liên kết'}
           onClose={() => {
@@ -324,8 +324,8 @@ function AssignmentPage({ type }: { type: HostType }) {
           wide
          footer={<div className={styles.modalActions}>
 <Button disabled={submitting} onClick={() => setAssignOpen(false)} tone="secondary" data-overlay-dismiss>Hủy</Button>
-{access.has(`${prefix}_ASSIGN`) && <Button
-              disabled={submitting || !access.has(`${prefix}_ASSIGN`) || checking || !selected?.capabilities.canAssign.allowed || !conflict?.canProceed}
+{access.canDo(`${prefix}_ASSIGN`) && <Button
+              disabled={submitting || !access.canDo(`${prefix}_ASSIGN`) || checking || !selected?.capabilities.canAssign.allowed || !conflict?.canProceed}
               onClick={() => void assign()}
             >
               {submitting ? 'Đang gán…' : 'Gán quy định'}
@@ -400,7 +400,7 @@ function AssignmentPage({ type }: { type: HostType }) {
               {selected.capabilities.canAssign.reason}
             </Notice>
           ) : null}
-          {access.has(`${prefix}_READ`) && <Button tone="secondary" disabled={checking || submitting || !selected || !access.has(`${prefix}_READ`)} onClick={() => { if (selected) void checkCandidate(selected) }}>Kiểm tra trước khi gán</Button>}{checking ? <LoadingPanel label="Đang kiểm tra xung đột…" /> : null}
+          {access.canDo(`${prefix}_READ`) && <Button tone="secondary" disabled={checking || submitting || !selected || !access.canDo(`${prefix}_READ`)} onClick={() => { if (selected) void checkCandidate(selected) }}>Kiểm tra trước khi gán</Button>}{checking ? <LoadingPanel label="Đang kiểm tra xung đột…" /> : null}
           {conflict ? <ConflictCard result={conflict} /> : null}
           {!selectedId && !checking ? (
             <Notice title="Chưa có kết quả kiểm tra" tone="neutral">
@@ -411,7 +411,7 @@ function AssignmentPage({ type }: { type: HostType }) {
         </Modal>
       ) : null}
 
-      {removeItem && access.has(`${prefix}_REMOVE`) ? (
+      {removeItem && access.canDo(`${prefix}_REMOVE`) ? (
         <Modal busy={submitting}
           description="Chỉ gỡ liên kết trực tiếp; không xóa Regulation."
           onClose={() => {
@@ -420,8 +420,8 @@ function AssignmentPage({ type }: { type: HostType }) {
           title={`Gỡ ${removeItem.regulation.code} khỏi ${type === 'ship' ? 'tàu' : 'chuyến'}?`}
          footer={<div className={styles.modalActions}>
 <Button disabled={submitting} onClick={() => setRemoveItem(null)} tone="secondary" data-overlay-dismiss>Hủy</Button>
-{access.has(`${prefix}_REMOVE`) && <Button
-              disabled={submitting || !access.has(`${prefix}_REMOVE`) || !removeItem.capabilities.canRemove.allowed}
+{access.canDo(`${prefix}_REMOVE`) && <Button
+              disabled={submitting || !access.canDo(`${prefix}_REMOVE`) || !removeItem.capabilities.canRemove.allowed}
               onClick={() => void remove()}
               tone="danger"
             >

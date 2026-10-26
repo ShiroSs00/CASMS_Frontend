@@ -58,7 +58,7 @@ function VersionDetail({ship,version}:{ship:string;version:ModelVersion}) {
   const id=version.shipModelId,[tab,setTab]=useState('scene'),[issueJob,setIssueJob]=useState<Job|null>(null)
   const loadInfo=useCallback((signal:AbortSignal)=>viewerApi.info(ship,id,signal),[ship,id]),loadManifest=useCallback((signal:AbortSignal)=>viewerApi.manifest(ship,id,signal),[ship,id]),loadHistory=useCallback((signal:AbortSignal)=>viewerApi.history(ship,id,signal),[ship,id])
   const info=useReadQuery(`viewer-info:${ship}:${id}`,loadInfo),manifest=useReadQuery(`viewer-manifest:${ship}:${id}`,loadManifest),history=useReadQuery(`viewer-history:${ship}:${id}`,loadHistory)
-  return <><nav className={styles.tabs} aria-label="Nội dung model">{[['scene','Khám phá 3D'],['details','Thông tin model'],['history','Lịch sử nhập'],...(access.has('BLE_ANCHOR_READ')?[['ble','Setup BLE']]:[])].map(([value,label])=><button key={value} aria-pressed={tab===value} onClick={()=>setTab(value)}>{label}</button>)}<Badge label={modelStatus[version.status]??version.status} tone={version.status==='READY'?'success':'info'}/></nav>
+  return <><nav className={styles.tabs} aria-label="Nội dung model">{[['scene','Khám phá 3D'],['details','Thông tin model'],['history','Lịch sử nhập'],...(access.canDo('BLE_ANCHOR_READ')?[['ble','Setup BLE']]:[])].map(([value,label])=><button key={value} aria-pressed={tab===value} onClick={()=>setTab(value)}>{label}</button>)}<Badge label={modelStatus[version.status]??version.status} tone={version.status==='READY'?'success':'info'}/></nav>
     {info.error&&<Failure error={info.error} retry={info.retry}/>}
     {tab==='scene'&&<>{manifest.loading&&<Loading label="Đang đọc cấu trúc model…"/>}{manifest.error&&<Failure error={manifest.error} retry={manifest.retry}/>} {manifest.data&&<Explore key={id} ship={ship} model={id} manifest={manifest.data} info={info.data}/>}</>}
     {tab==='details'&&<ModelMetadata version={version} info={info.data} manifest={manifest.data}/>}
@@ -80,13 +80,13 @@ function ShipModels({ship,ships,requested,onVersion,onShip}:{ship:ShipChoice;shi
 }
 export function ModelViewerPage() {
   const access=useSessionAccess(),[params,setParams]=useSearchParams()
-  const canRead=access.has('SHIP_READ')
+  const canRead=access.canDo('SHIP_READ')
   const load=useCallback((signal:AbortSignal)=>canRead?viewerApi.ships(signal):Promise.resolve([]),[canRead])
   const query=useReadQuery('viewer-ships',load),shipId=params.get('ship')??'',ship=query.data?.find(s=>s.shipId===shipId)
   return <AdminShell><div className={styles.page}><header className={styles.pageHeader}><div><span className={styles.eyebrow}>MODEL 3D</span><h1>Không gian mô hình tàu</h1></div><Link className={styles.secondaryLink} to="/admin/ship-import">Nhập mô hình ↗</Link></header>
     {!ship&&<div className={styles.shipBar}><Field htmlFor="viewer-ship" label="Tàu"><select id="viewer-ship" value={shipId} disabled={query.loading||!query.data?.length} onChange={event=>setParams(event.target.value?{ship:event.target.value}:{})}><option value="">Chọn tàu để khám phá</option>{query.data?.map(s=><option key={s.shipId} value={s.shipId}>{s.shipName} · {s.shipCode}</option>)}</select></Field><span className={styles.readOnly}>◉ Chế độ xem</span></div>}
     {query.loading&&<Loading label="Đang tải tàu…"/>}{query.error&&<Failure error={query.error} retry={query.retry}/>}
-    {!access.has('SHIP_READ')&&<Notice title="Chưa có quyền đọc tàu" tone="warning">Cần quyền SHIP_READ để xem mô hình thuộc tàu.</Notice>}
+    {!access.canDo('SHIP_READ')&&<Notice title="Chưa có quyền đọc tàu" tone="warning">Cần quyền SHIP_READ để xem mô hình thuộc tàu.</Notice>}
     {ship?<ShipModels key={shipId} ship={ship} ships={query.data??[]} requested={params.get('model')??''} onVersion={model=>setParams({ship:shipId,model})} onShip={id=>setParams(id?{ship:id}:{})}/>:query.data&&<Panel title="Chọn tàu"><div className={styles.shipCards}>{query.data.map(s=><button key={s.shipId} onClick={()=>setParams({ship:s.shipId})}><span>◈</span><strong>{s.shipName}</strong><small>{s.shipCode}</small><span>Xem các phiên bản →</span></button>)}</div>{!query.data.length&&<Empty title="Chưa có tàu"/>}</Panel>}
   </div></AdminShell>
 }

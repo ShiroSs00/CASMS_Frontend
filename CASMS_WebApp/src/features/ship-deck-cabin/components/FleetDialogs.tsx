@@ -23,9 +23,9 @@ export function FleetDialogs({ dialog, ship, onChange, onSaved }: { dialog: Flee
   const mutation = useMutation()
   if (!dialog) return null
   if (dialog.type === 'deleteShip') {
-    if (!access.has('SHIP_DELETE')) return null
+    if (!access.canDo('SHIP_DELETE')) return null
     return <Modal title="Xóa tàu chưa sử dụng?" description={`${ship.code} · ${ship.name}`} busy={mutation.busy} onClose={() => onChange(null)} protectChanges={false}
-      footer={<><Button tone="secondary" data-overlay-dismiss disabled={mutation.busy} onClick={() => onChange(null)}>Hủy</Button><Button tone="danger" disabled={mutation.busy} onClick={() => void mutation.run(async () => { if (!access.has('SHIP_DELETE')) return; await shipDeckCabinApi.deleteUnused('ships', ship.id); onChange(null); navigate('/admin/ships') })}>{mutation.busy ? 'Đang xóa…' : 'Xác nhận xóa'}</Button></>}>
+      footer={<><Button tone="secondary" data-overlay-dismiss disabled={mutation.busy} onClick={() => onChange(null)}>Hủy</Button><Button tone="danger" disabled={mutation.busy} onClick={() => void mutation.run(async () => { if (!access.canDo('SHIP_DELETE')) return; await shipDeckCabinApi.deleteUnused('ships', ship.id); onChange(null); navigate('/admin/ships') })}>{mutation.busy ? 'Đang xóa…' : 'Xác nhận xóa'}</Button></>}>
       <Notice title="Kiểm tra dữ liệu liên quan" tone="warning">Chỉ xóa tàu chưa được sử dụng. Tàu đã có chuyến đi, boong, phòng hoặc mô hình liên kết có thể bị hệ thống từ chối xóa.</Notice>
       {mutation.error && <Notice title="Chưa xóa được tàu" tone="error">{fleetError(mutation.error)}</Notice>}
     </Modal>
@@ -34,13 +34,13 @@ export function FleetDialogs({ dialog, ship, onChange, onSaved }: { dialog: Flee
     return <FleetEditDialog key={`${dialog.target.kind}:${dialog.target.item.id}`} target={dialog.target} onClose={() => onChange(null)} onSaved={onSaved} />
   }
   if (dialog.type === 'operation') {
-    if (!access.has(operationPermission(dialog.kind, dialog.operation))) return null
+    if (!access.canDo(operationPermission(dialog.kind, dialog.operation))) return null
     return <OperationDialog key={`${dialog.item.id}:${dialog.operation}`} item={dialog.item} kind={dialog.kind} operation={dialog.operation} ships={[ship]} onClose={() => onChange(null)} />
   }
-  if (!access.has('CABIN_READ')) return null
+  if (!access.canDo('CABIN_READ')) return null
   const room = dialog.room
   return <Modal title={`Phòng ${room.number}`} description={`${ship.name} · ${dialog.deckName}`} onClose={() => onChange(null)} protectChanges={false}
-    footer={<><Button tone="secondary" data-overlay-dismiss onClick={() => onChange(null)}>Đóng</Button>{access.has('CABIN_UPDATE') && <Button onClick={() => onChange({ type: 'edit', target: { kind: 'cabins', item: room } })}>Chỉnh sửa phòng</Button>}</>}>
+    footer={<><Button tone="secondary" data-overlay-dismiss onClick={() => onChange(null)}>Đóng</Button>{access.canDo('CABIN_UPDATE') && <Button onClick={() => onChange({ type: 'edit', target: { kind: 'cabins', item: room } })}>Chỉnh sửa phòng</Button>}</>}>
     <dl className={styles.readonly}>
       <div><dt>Loại phòng</dt><dd>{roomTypeLabels[room.type]}</dd></div><div><dt>Trạng thái</dt><dd>{cabinStatuses[room.status]}</dd></div>
       <div><dt>Sức chứa</dt><dd>{room.capacity} khách</dd></div><div><dt>Hỗ trợ người khuyết tật</dt><dd>{room.accessible ? 'Có' : 'Không'}</dd></div>

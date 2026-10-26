@@ -31,7 +31,8 @@ function RequestEditor({ initial }: { initial?: ServiceRequest }) {
   const [quantity, setQuantity] = useState(String(initial?.quantity ?? 1)), [note, setNote] = useState(initial?.note ?? '')
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
   const lock = useRef(false)
-  const allowed = initial ? access.has('SERVICE_REQUEST_CREATE') || access.has('SERVICE_REQUEST_EXECUTE') : access.has('SERVICE_REQUEST_CREATE')
+  const canEditAssigned = access.canDo('SERVICE_REQUEST_EXECUTE') && (access.roles.includes('ACTIVITY_SERVICE_MANAGER') || initial?.assignedUserId === access.userId)
+  const allowed = initial ? access.canDo('SERVICE_REQUEST_CREATE') || canEditAssigned : access.canDo('SERVICE_REQUEST_CREATE')
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (lock.current || !allowed) return
@@ -56,6 +57,6 @@ function RequestEditor({ initial }: { initial?: ServiceRequest }) {
     <Field htmlFor="request-note" label="Ghi chú"><textarea id="request-note" maxLength={500} disabled={busy} value={note} onChange={event => setNote(event.target.value)} /></Field>
     {error && <Notice title="Không lưu được yêu cầu" tone="error">{error}</Notice>}
     {!allowed && <p>Tài khoản chưa có quyền lưu yêu cầu này.</p>}
-    <div className={styles.editorActions}><Button type="submit" disabled={busy || !allowed || (!initial && (!services.data || services.loading || Boolean(services.error)))}>{busy ? 'Đang lưu…' : 'Lưu yêu cầu'}</Button></div>
+    <div className={styles.editorActions}>{allowed && <Button type="submit" disabled={busy || (!initial && (!services.data || services.loading || Boolean(services.error)))}>{busy ? 'Đang lưu…' : 'Lưu yêu cầu'}</Button>}</div>
   </form></EditorLayout></Panel>
 }

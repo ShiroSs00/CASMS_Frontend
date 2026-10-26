@@ -46,7 +46,7 @@ export function CruiseFormPage() {
   const [storedPorts, setStoredPorts] = useState<PortRecord[]>([])
   const [loadedId, setLoadedId] = useState<string | null>(null)
   const submitLock = useRef(false)
-  const canSave = !portsLoading && !portsError && access.has(editing ? 'CRUISE_UPDATE_DRAFT' : 'CRUISE_CREATE') && (!editing || (loadedId === cruiseId && currentStatus === 'DRAFT'))
+  const canSave = !portsLoading && !portsError && access.canDo(editing ? 'CRUISE_UPDATE_DRAFT' : 'CRUISE_CREATE') && (!editing || (loadedId === cruiseId && currentStatus === 'DRAFT'))
 
   useEffect(() => {
     if (!cruiseId) return
@@ -100,7 +100,7 @@ export function CruiseFormPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const nextStep = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'continue'
-    if (submitLock.current || !canSave) return
+    if (submitLock.current || !canSave || (nextStep && !access.canDo('ITINERARY_CREATE'))) return
     setHasSubmitted(true)
     const nextErrors = validateCruiseDraft(draft)
     setErrors(nextErrors)
@@ -152,8 +152,8 @@ export function CruiseFormPage() {
           {detailError && <Notice title="Không tải được chuyến" tone="error"><p>{detailError}</p><Button type="button" tone="secondary" onClick={() => { setLoading(true); setDetailError(''); setDetailAttempt(value=>value+1) }}>Tải lại chuyến</Button></Notice>}
           {editing && loadedId === cruiseId && currentStatus !== 'DRAFT' && <Notice title="Không thể sửa chuyến" tone="warning"><p>Chỉ chuyến ở trạng thái DRAFT mới được chỉnh sửa.</p></Notice>}
           {submitError && <Notice title="Không lưu được chuyến đi" tone="error"><p>{submitError}</p></Notice>}
-          {!access.has('ITINERARY_CREATE') && <p className={styles.muted}>Tài khoản chưa có quyền tạo lịch trình. Bạn vẫn có thể lưu nháp chuyến nếu được cấp quyền.</p>}
-          <div className={styles.formActions}><Button type="submit" tone="secondary" value="draft" disabled={busy || !canSave}>{busy ? 'Đang lưu…' : editing ? 'Lưu thay đổi' : 'Lưu nháp'}</Button><Button type="submit" value="continue" disabled={busy || !canSave || !access.has('ITINERARY_CREATE')}>Tiếp tục lập lịch trình</Button><Button tone="secondary" disabled={busy} onClick={() => navigate(editing && cruiseId ? `/admin/cruises/${cruiseId}` : '/admin/cruises')}>Hủy</Button></div>
+          {!access.canDo('ITINERARY_CREATE') && <p className={styles.muted}>Tài khoản chưa có quyền tạo lịch trình. Bạn vẫn có thể lưu nháp chuyến nếu được cấp quyền.</p>}
+          <div className={styles.formActions}>{access.canDo(editing ? 'CRUISE_UPDATE_DRAFT' : 'CRUISE_CREATE') && <Button type="submit" tone="secondary" value="draft" disabled={busy || !canSave}>{busy ? 'Đang lưu…' : editing ? 'Lưu thay đổi' : 'Lưu nháp'}</Button>}{access.canDo('ITINERARY_CREATE') && <Button type="submit" value="continue" disabled={busy || !canSave || !access.canDo('ITINERARY_CREATE')}>Tiếp tục lập lịch trình</Button>}<Button tone="secondary" disabled={busy} onClick={() => navigate(editing && cruiseId ? `/admin/cruises/${cruiseId}` : '/admin/cruises')}>Hủy</Button></div>
         </Panel>
       </form></EditorLayout>
     </div>

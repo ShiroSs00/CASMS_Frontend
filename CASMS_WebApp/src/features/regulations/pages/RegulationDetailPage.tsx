@@ -9,7 +9,7 @@ import styles from '../components/Regulations.module.css'
 
 export function RegulationDetailPage() {
   const access = useSessionAccess()
-  const canStatus = (status: RegulationStatus) => status === 'ACTIVE' ? access.has('REGULATION_ACTIVATE') && access.has('REGULATION_VALIDATE') : access.has('REGULATION_DEACTIVATE')
+  const canStatus = (status: RegulationStatus) => status === 'ACTIVE' ? access.canDo('REGULATION_ACTIVATE') && access.canDo('REGULATION_VALIDATE') : access.canDo('REGULATION_DEACTIVATE')
   const { regulationId = '' } = useParams()
   const navigate = useNavigate()
   const [data, setData] = useState<Awaited<ReturnType<typeof regulationsApi.get>>>(null)
@@ -31,7 +31,7 @@ export function RegulationDetailPage() {
   }, [regulationId])
 
   async function check(kind: 'validate' | 'conflicts') {
-    if (lock.current || !access.has('REGULATION_VALIDATE')) return
+    if (lock.current || !access.canDo('REGULATION_VALIDATE')) return
     lock.current = true; setBusy(true); setError(''); setSuccess(''); setPrecheck(null)
     try {
       if (kind === 'validate') { await regulationsApi.validate(regulationId); setSuccess('Dữ liệu quy định hợp lệ.') }
@@ -67,7 +67,7 @@ export function RegulationDetailPage() {
   }
 
   async function handleDelete() {
-    if (lock.current || !access.has('REGULATION_DELETE')) return
+    if (lock.current || !access.canDo('REGULATION_DELETE')) return
     lock.current = true; setBusy(true); setError('')
     try {
       await regulationsApi.deleteUnused(regulationId)
@@ -84,7 +84,7 @@ export function RegulationDetailPage() {
     {loading && <LoadingPanel />}
     {!loading && !data && <><PageHeader title={error ? 'Không tải được quy định' : 'Không tìm thấy quy định'} description={error || 'Quy định không tồn tại hoặc đã được xóa.'} /><Button tone="secondary" onClick={() => navigate('/admin/regulations')}>Về danh sách</Button></>}
     {data && <>
-      <PageHeader title={`${data.regulation.code} · ${data.regulation.name}`} description={`${data.regulation.type} · ${data.regulation.scope} scope · ${data.regulation.status}`} actions={(access.has("REGULATION_UPDATE") ? <Button disabled={!access.has("REGULATION_UPDATE")} onClick={() => navigate(`/admin/regulations/${regulationId}/edit`)}>Chỉnh sửa quy định</Button> : null)} />
+      <PageHeader title={`${data.regulation.code} · ${data.regulation.name}`} description={`${data.regulation.type} · ${data.regulation.scope} scope · ${data.regulation.status}`} actions={(access.canDo("REGULATION_UPDATE") ? <Button disabled={!access.canDo("REGULATION_UPDATE")} onClick={() => navigate(`/admin/regulations/${regulationId}/edit`)}>Chỉnh sửa quy định</Button> : null)} />
       <div className={styles.summaryBadges}><StatusBadge status={data.regulation.status} /><span className={styles.scopeBadge}>{data.regulation.scope} SCOPE</span><span className={styles.valueBadge}>{data.regulation.value} {data.regulation.unit}</span></div>
       {error && !nextStatus && !deleteOpen && <Notice title="Chưa thể thực hiện" tone="error">{error}</Notice>}
       {success && <Notice title="Đã cập nhật" tone="success">{success}</Notice>}
@@ -98,13 +98,13 @@ export function RegulationDetailPage() {
           </dl>
         </Panel>
         <aside className={styles.validationRail}>
-          {access.has("REGULATION_VALIDATE") && <Button tone="secondary" disabled={busy || !access.has("REGULATION_VALIDATE")} onClick={() => void check('validate')}>Kiểm tra dữ liệu</Button>}
-          {access.has("REGULATION_VALIDATE") && <Button tone="secondary" disabled={busy || !access.has("REGULATION_VALIDATE")} onClick={() => void check('conflicts')}>Kiểm tra xung đột</Button>}
+          {access.canDo("REGULATION_VALIDATE") && <Button tone="secondary" disabled={busy || !access.canDo("REGULATION_VALIDATE")} onClick={() => void check('validate')}>Kiểm tra dữ liệu</Button>}
+          {access.canDo("REGULATION_VALIDATE") && <Button tone="secondary" disabled={busy || !access.canDo("REGULATION_VALIDATE")} onClick={() => void check('conflicts')}>Kiểm tra xung đột</Button>}
           {data.regulation.status === 'ACTIVE'
             ? canStatus("INACTIVE") && <Button disabled={busy || !canStatus("INACTIVE") || !data.capabilities.canDeactivate.allowed} onClick={() => void openStatus('INACTIVE')}>Ngừng áp dụng</Button>
             : canStatus("ACTIVE") && <Button disabled={busy || !canStatus("ACTIVE") || !data.capabilities.canActivate.allowed} onClick={() => void openStatus('ACTIVE')}>Kích hoạt</Button>}
           {data.regulation.status !== 'ACTIVE' && !data.capabilities.canActivate.allowed && <Notice title="Chưa thể kích hoạt" tone="warning">{data.capabilities.canActivate.reason}</Notice>}
-          {access.has("REGULATION_DELETE") && <Button tone="danger" disabled={busy || !access.has("REGULATION_DELETE")} onClick={() => { setError(''); setDeleteOpen(true) }}>Xóa khi chưa sử dụng</Button>}
+          {access.canDo("REGULATION_DELETE") && <Button tone="danger" disabled={busy || !access.canDo("REGULATION_DELETE")} onClick={() => { setError(''); setDeleteOpen(true) }}>Xóa khi chưa sử dụng</Button>}
           {busy && <p role="status">Đang kiểm tra…</p>}
           {precheck && !nextStatus && <ConflictCard result={precheck} />}
         </aside>
@@ -116,7 +116,7 @@ export function RegulationDetailPage() {
       {error && <Notice title="Không thể cập nhật" tone="error">{error}</Notice>}
 
     </Modal>}
-    {deleteOpen && access.has("REGULATION_DELETE") && data && <Modal busy={busy} title="Xóa quy định?" description={`${data.regulation.code} · ${data.regulation.name}`} onClose={() => { if (!busy) setDeleteOpen(false) }} footer={<div className={styles.modalActions}>
+    {deleteOpen && access.canDo("REGULATION_DELETE") && data && <Modal busy={busy} title="Xóa quy định?" description={`${data.regulation.code} · ${data.regulation.name}`} onClose={() => { if (!busy) setDeleteOpen(false) }} footer={<div className={styles.modalActions}>
         <Button tone="secondary" disabled={busy} onClick={() => setDeleteOpen(false)} data-overlay-dismiss>Quay lại</Button>
         <Button tone="danger" disabled={busy} onClick={() => void handleDelete()}>{busy ? 'Đang xóa…' : 'Xác nhận xóa'}</Button>
       </div>}>

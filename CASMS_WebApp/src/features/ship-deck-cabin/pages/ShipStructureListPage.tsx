@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { useSearchParams } from 'react-router'
+import { PermissionLink as Link } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
 import { Button, Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
@@ -20,9 +21,9 @@ function StructurePage({ view: initialView }: { view: 'decks' | 'cabins' }) {
   const access = useSessionAccess()
   const [params, setParams] = useSearchParams()
   const requestedView = params.get('view') === 'cabins' ? 'cabins' : params.get('view') === 'decks' ? 'decks' : initialView
-  const view = requestedView === 'decks' && !access.has('DECK_READ') && access.has('CABIN_READ') ? 'cabins' : requestedView
+  const view = requestedView === 'decks' && !access.canDo('DECK_READ') && access.canDo('CABIN_READ') ? 'cabins' : requestedView
   const load = useCallback((signal: AbortSignal) => shipDeckCabinApi.listShips(signal), [])
-  const ships = useFleetQuery('structure-ship-choices', load, access.has('SHIP_READ'))
+  const ships = useFleetQuery('structure-ship-choices', load, access.canDo('SHIP_READ'))
   const selectedId = params.get('ship') ?? ''
   const selected = ships.data?.find(ship => ship.id === selectedId)
   return <AdminShell><div className={styles.stack}>
@@ -32,7 +33,7 @@ function StructurePage({ view: initialView }: { view: 'decks' | 'cabins' }) {
       <Link className={styles.textLink} to="/admin/decks">Tất cả tàu <span aria-hidden="true">↗</span></Link>
     </div>
     </Panel>}
-    {!access.has('SHIP_READ') && <Notice title="Chưa có quyền xem tàu" tone="warning">Tài khoản cần quyền đọc tàu để chọn dữ liệu quản lý.</Notice>}
+    {!access.canDo('SHIP_READ') && <Notice title="Chưa có quyền xem tàu" tone="warning">Tài khoản cần quyền đọc tàu để chọn dữ liệu quản lý.</Notice>}
     {ships.loading && !ships.data && <Loading label="Đang tải danh sách tàu…" />}
     {ships.error && <Notice title="Không tải được danh sách tàu" tone="error">{ships.error}<Button tone="text" onClick={ships.retry}>Thử lại</Button></Notice>}
     {!ships.loading && !ships.error && ships.data?.length === 0 && <Notice title="Chưa có tàu" tone="info">Tàu sẽ xuất hiện sau khi quản trị viên hoàn tất nhập dữ liệu.</Notice>}
@@ -52,7 +53,7 @@ function StructurePage({ view: initialView }: { view: 'decks' | 'cabins' }) {
       </Link>)}</div>
     </Panel>}
     {selected && <nav className={styles.structureTabs} aria-label="Cấu trúc tàu">
-      {([['decks', 'Boong', 'DECK_READ'], ['cabins', 'Cabin', 'CABIN_READ']] as const).filter(([, , permission])=>access.has(permission)).map(([tab, label])=><Link key={tab} to={`/admin/decks?${new URLSearchParams({ ship:selected.id, view:tab })}`} aria-current={view===tab?'page':undefined}>{label}</Link>)}
+      {([['decks', 'Boong', 'DECK_READ'], ['cabins', 'Cabin', 'CABIN_READ']] as const).filter(([, , permission])=>access.canDo(permission)).map(([tab, label])=><Link key={tab} to={`/admin/decks?${new URLSearchParams({ ship:selected.id, view:tab })}`} aria-current={view===tab?'page':undefined}>{label}</Link>)}
     </nav>}
     {selected ? <SelectedInventory key={`${view}:${selected.id}:${params.get('deck') ?? ''}`} ship={selected} view={view} deck={params.get('deck') ?? ''} />
       : null}

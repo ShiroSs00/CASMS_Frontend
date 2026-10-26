@@ -4,7 +4,7 @@ import { programApi, type ProgramActivity, type ProgramExcursion, type ProgramSe
 
 export function useJourneyProgram(cruiseId: string) {
   const access = useSessionAccess()
-  const canActivities = access.has('ACTIVITY_READ'), canExcursions = access.has('EXCURSION_READ'), canServices = access.has('SERVICE_READ')
+  const canActivities = access.canDo('ACTIVITY_READ'), canExcursions = access.canDo('EXCURSION_READ'), canServices = access.canDo('SERVICE_READ')
   const [attempt, setAttempt] = useState(0)
   const [result, setResult] = useState<{ cruiseId: string; attempt: number; activities: ProgramActivity[]; excursions: ProgramExcursion[]; services: ProgramService[]; errors: string[]; impactKnown: boolean } | null>(null)
   useEffect(() => {

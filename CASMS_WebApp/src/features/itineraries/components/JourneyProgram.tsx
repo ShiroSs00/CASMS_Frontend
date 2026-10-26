@@ -15,7 +15,7 @@ function ProgramTimeEditor({ activity, excursion, stop, zone, cruise, onSaved, o
   const [errors, setErrors] = useState<Record<string,string>>({}), [error, setError] = useState(''), [busy, setBusy] = useState(false)
   async function submit(event: FormEvent) {
     event.preventDefault()
-    if (lock.current || !access.has(activity ? 'ACTIVITY_UPDATE' : 'EXCURSION_UPDATE')) return
+    if (lock.current || !access.canDo(activity ? 'ACTIVITY_UPDATE' : 'EXCURSION_UPDATE')) return
     const invalid: Record<string,string> = {}
     let startTime = '', endTime = ''
     try { startTime = wallTimeToInstant(start, zone) } catch (reason) { invalid.start = reason instanceof Error ? reason.message : 'Giờ bắt đầu chưa hợp lệ.' }
@@ -56,23 +56,23 @@ export function JourneyProgram({ day, activities, excursions, services, stops, p
   const editingZone = editing?.activity ? SHIP_TIME_ZONE : ports.find(port => port.portId === editingStop?.portId)?.timeZoneId
   return <div className={styles.programStack}>
     {savedNotice && <Notice title="Đã lưu chương trình" tone="success">{savedNotice}</Notice>}
-    {access.has('ACTIVITY_READ') && <Panel title="Hoạt động trên tàu" subtitle="Lịch hoạt động theo giờ Việt Nam. Chọn hoạt động có sẵn của chuyến để chỉnh thời gian.">
-      {editable && access.has('ACTIVITY_UPDATE') && <div className={styles.editorFields}>
+    {access.canDo('ACTIVITY_READ') && <Panel title="Hoạt động trên tàu" subtitle="Lịch hoạt động theo giờ Việt Nam. Chọn hoạt động có sẵn của chuyến để chỉnh thời gian.">
+      {editable && access.canDo('ACTIVITY_UPDATE') && <div className={styles.editorFields}>
         <Field htmlFor="program-search" label="Tìm hoạt động"><input id="program-search" type="search" value={search} onChange={event => setSearch(event.target.value)} /></Field>
         <Field htmlFor="program-picker" label="Hoạt động của chuyến"><select id="program-picker" value={selected} onChange={event => setSelected(event.target.value)}><option value="">Chọn hoạt động</option>{activities.filter(row => row.status === 'PLANNED' && (row.id === selected || row.name.toLocaleLowerCase('vi').includes(search.toLocaleLowerCase('vi')))).map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</select></Field>
         <Button disabled={!selectedActivity} onClick={() => selectedActivity && setEditing({ activity: selectedActivity })}>Chỉnh lịch hoạt động</Button>
       </div>}
       {!dayActivities.length && <Empty title="Chưa có hoạt động trong ngày này" />}
-      {dayActivities.map(row => <article className={styles.programCard} key={row.id}><div><strong>{row.name}</strong><p>{journeyTime(row.startTime)} → {journeyTime(row.endTime)}</p><span>{row.location || 'Chưa có địa điểm'}</span></div>{editable && row.status === 'PLANNED' && access.has('ACTIVITY_UPDATE') && <Button tone="secondary" onClick={() => setEditing({ activity: row })}>Chỉnh sửa</Button>}</article>)}
+      {dayActivities.map(row => <article className={styles.programCard} key={row.id}><div><strong>{row.name}</strong><p>{journeyTime(row.startTime)} → {journeyTime(row.endTime)}</p><span>{row.location || 'Chưa có địa điểm'}</span></div>{editable && row.status === 'PLANNED' && access.canDo('ACTIVITY_UPDATE') && <Button tone="secondary" onClick={() => setEditing({ activity: row })}>Chỉnh sửa</Button>}</article>)}
       <p className={styles.muted}>Danh mục mẫu hoạt động dùng lại cho nhiều chuyến chưa được hỗ trợ. Danh sách trên là các hoạt động đã gắn với chuyến này.</p>
     </Panel>}
-    {access.has('EXCURSION_READ') && <Panel title="Chuyến tham quan trên bờ" subtitle="Các chuyến tham quan đã liên kết với lần ghé cảng. Giờ hiển thị theo địa phương cảng.">
+    {access.canDo('EXCURSION_READ') && <Panel title="Chuyến tham quan trên bờ" subtitle="Các chuyến tham quan đã liên kết với lần ghé cảng. Giờ hiển thị theo địa phương cảng.">
       {!dayExcursions.length && <Empty title="Chưa có chương trình tham quan trong ngày" />}
       {dayExcursions.map(row => { const stop = stops.find(item => item.cruiseStopId === row.cruiseStopId)!; const zone = ports.find(item => item.portId === stop.portId)?.timeZoneId; const issue = excursionIssue(row, stop)
-        return <article className={styles.programCard} key={row.shoreExcursionId}><div><strong>{row.excursionName}</strong><p>{validTimeZone(zone) ? `${journeyTime(row.startTime, zone)} → ${journeyTime(row.plannedReturnTime, zone)} · ${zone}` : 'Cảng thiếu cấu hình múi giờ.'}</p>{issue && <Notice title="Cần điều chỉnh" tone="error">{issue}</Notice>}</div>{editable && ['DRAFT','OPEN'].includes(row.status) && access.has('EXCURSION_UPDATE') && <Button tone="secondary" disabled={!validTimeZone(zone)} onClick={() => setEditing({ excursion: row })}>Chỉnh sửa</Button>}<ButtonLink tone="secondary" to={`/admin/shore-excursions/${row.shoreExcursionId}`}>Chi tiết</ButtonLink></article>
+        return <article className={styles.programCard} key={row.shoreExcursionId}><div><strong>{row.excursionName}</strong><p>{validTimeZone(zone) ? `${journeyTime(row.startTime, zone)} → ${journeyTime(row.plannedReturnTime, zone)} · ${zone}` : 'Cảng thiếu cấu hình múi giờ.'}</p>{issue && <Notice title="Cần điều chỉnh" tone="error">{issue}</Notice>}</div>{editable && ['DRAFT','OPEN'].includes(row.status) && access.canDo('EXCURSION_UPDATE') && <Button tone="secondary" disabled={!validTimeZone(zone)} onClick={() => setEditing({ excursion: row })}>Chỉnh sửa</Button>}<ButtonLink tone="secondary" to={`/admin/shore-excursions/${row.shoreExcursionId}`}>Chi tiết</ButtonLink></article>
       })}
     </Panel>}
-    {access.has('SERVICE_READ') && <Panel title="Khung phục vụ" subtitle="Nhà hàng, spa và các dịch vụ của tàu.">
+    {access.canDo('SERVICE_READ') && <Panel title="Khung phục vụ" subtitle="Nhà hàng, spa và các dịch vụ của tàu.">
       <Notice title="Chưa hỗ trợ lưu khung phục vụ kế hoạch" tone="warning">Hệ thống hiện quản lý lịch đặt chỗ và sức chứa dịch vụ. Chưa thể lưu khung giờ phục vụ theo ngày hoặc áp dụng nhiều ngày trong lịch trình.</Notice>
       <Field htmlFor="service-reference" label="Danh mục dịch vụ hiện có — chỉ tra cứu"><select id="service-reference" defaultValue=""><option value="">Xem danh mục dịch vụ</option>{services.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</select></Field>
     </Panel>}

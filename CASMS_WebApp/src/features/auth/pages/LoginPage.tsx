@@ -21,7 +21,7 @@ export function LoginPage() {
   if (auth.user) {
     if (access.status === 'error') return <AuthPageShell editorialTitle="Quyền truy cập" editorialDescription="Quyền được xác minh theo tài khoản đang đăng nhập."><Notice title="Chưa tải được quyền truy cập" tone="error"><p>{access.error}</p><Button onClick={access.retry}>Thử lại</Button><Button tone="secondary" onClick={() => void auth.logout()}>Đăng xuất</Button></Notice></AuthPageShell>
     if (access.status !== 'ready' || access.userId !== auth.user.id) return <Loading label="Đang xác minh quyền tài khoản…" />
-    return <Navigate to={destination(auth.user.roles)} replace />
+    return <Navigate to={destination(access.roles)} replace />
   }
   return <AuthPageShell expired={expired} editorialTitle="Điều hành hành trình cùng OceVie." editorialDescription="Không gian làm việc dành cho quản trị viên, quản lý và nhân viên đặt chỗ."><LoginForm expired={expired} login={auth.login} onSuccess={() => { /* Navigate only after /auth/me verifies the current permissions. */ }} /></AuthPageShell>
 }

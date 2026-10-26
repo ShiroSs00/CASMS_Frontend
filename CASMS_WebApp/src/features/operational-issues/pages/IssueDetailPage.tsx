@@ -61,7 +61,7 @@ export function IssueDetailPage() {
             description={`${state.issue.cruise ? `${state.issue.cruise.code} · ${state.issue.cruise.name}` : state.issue.ship.name} · tạo ${formatDate(state.issue.reportedAt)}`}
             actions={<>
 
-              {state.issue.status === 'OPEN' && access.has('OPERATIONAL_ISSUE_UPDATE') && (
+              {state.issue.status === 'OPEN' && access.canDo('OPERATIONAL_ISSUE_UPDATE') && (
                 <Link className={styles.secondaryButton} to={`/admin/issues/${state.issue.id}/edit`}>
                   Chỉnh sửa sự cố
                 </Link>

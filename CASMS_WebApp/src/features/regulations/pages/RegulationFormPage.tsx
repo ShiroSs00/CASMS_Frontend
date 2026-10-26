@@ -140,7 +140,7 @@ export function RegulationFormPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     if (submitLock.current || (isEdit && !source)) return
-    if (!access.has(isEdit ? 'REGULATION_UPDATE' : 'REGULATION_CREATE')) { setSubmitError('Tài khoản chưa có quyền lưu quy định.'); return }
+    if (!access.canDo(isEdit ? 'REGULATION_UPDATE' : 'REGULATION_CREATE')) { setSubmitError('Tài khoản chưa có quyền lưu quy định.'); return }
     const nextErrors = validate(draft)
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) {
@@ -317,7 +317,7 @@ export function RegulationFormPage() {
             </div>
           </div>
           <div className={styles.formActions}>
-            {access.has(isEdit ? 'REGULATION_UPDATE' : 'REGULATION_CREATE') && <Button disabled={submitting || !access.has(isEdit ? 'REGULATION_UPDATE' : 'REGULATION_CREATE') || (isEdit && !source)} type="submit">
+            {access.canDo(isEdit ? 'REGULATION_UPDATE' : 'REGULATION_CREATE') && <Button disabled={submitting || !access.canDo(isEdit ? 'REGULATION_UPDATE' : 'REGULATION_CREATE') || (isEdit && !source)} type="submit">
               {submitting ? 'Đang lưu…' : 'Lưu quy định'}
             </Button>}
             <Button

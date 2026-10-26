@@ -20,7 +20,7 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
   const navigate = useNavigate()
   const source = ship ?? deck ?? cabin
   const access = useSessionAccess()
-  const permitted = access.has(entityPermission(kind, source ? 'UPDATE' : 'CREATE'))
+  const permitted = access.canDo(entityPermission(kind, source ? 'UPDATE' : 'CREATE'))
   const [shipDraft, setShip] = useState<ShipDraft>(ship ?? { code: '', name: '', capacity: 0, totalDecks: 0, commissionDate: '', status: 'ACTIVE' })
   const [deckDraft, setDeck] = useState<DeckDraft>(deck ?? { shipId: hostId, number: '', name: '', priceMultiplier: 1.0 })
   const [cabinDraft, setCabin] = useState<CabinDraft>(cabin ?? { shipId: hostId,

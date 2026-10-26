@@ -22,10 +22,10 @@ export function StopOperations({ stop: summary, stops, itineraryStatus, onChange
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const lock = useRef(false)
-  const permittedOperations = (Object.keys(stopOperations) as StopOperation[]).filter(key => access.has(stopOperations[key].permission))
+  const permittedOperations = (Object.keys(stopOperations) as StopOperation[]).filter(key => access.canDo(stopOperations[key].permission))
   const selectedAction = permittedOperations.includes(action) ? action : permittedOperations[0] ?? action
   const spec = stopOperations[selectedAction]
-  const allowed = access.has(spec.permission)
+  const allowed = access.canDo(spec.permission)
   const terminal = ['COMPLETED', 'CANCELLED'].includes(itineraryStatus) || ['OMITTED', 'SUBSTITUTED', 'COMPLETED'].includes(stop.status)
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -56,10 +56,10 @@ export function StopOperations({ stop: summary, stops, itineraryStatus, onChange
     {query.loading && <Loading label="Đang tải chi tiết điểm dừng…" />}
     {query.error && <Notice title="Không tải được điểm dừng" tone="error">{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>}
     <p>Giờ dự kiến và giờ thực tế được quản lý riêng. Khi đổi lịch hoặc bỏ cảng, cần rà soát chuyến tham quan và quyền lợi dịch vụ; không tự động hủy hoặc hoàn tiền.</p>
-    <div className={styles.actions}>{access.has('EXCURSION_READ') && <ButtonLink tone="secondary" to={`/admin/shore-excursions?cruiseStopId=${encodeURIComponent(stop.cruiseStopId)}`}>Rà soát chuyến tham quan</ButtonLink>}</div>
+    <div className={styles.actions}>{access.canDo('EXCURSION_READ') && <ButtonLink tone="secondary" to={`/admin/shore-excursions?cruiseStopId=${encodeURIComponent(stop.cruiseStopId)}`}>Rà soát chuyến tham quan</ButtonLink>}</div>
     <dl><dt>Đến thực tế</dt><dd>{stop.actualArrival ? journeyTime(stop.actualArrival,timeZoneId) : 'Chưa ghi nhận'}</dd><dt>Rời thực tế</dt><dd>{stop.actualDeparture ? journeyTime(stop.actualDeparture,timeZoneId) : 'Chưa ghi nhận'}</dd><dt>Giờ khách lên tàu</dt><dd>{stop.allAboardTime ? journeyTime(stop.allAboardTime,timeZoneId) : 'Chưa đặt'}</dd></dl>
     {allowed && <form onSubmit={submit} className={styles.stopForm}>
-      <Field htmlFor="stop-operation" label="Thao tác vận hành"><select id="stop-operation" value={selectedAction} disabled={busy} onChange={event => { setAction(event.target.value as StopOperation); setValue(''); setConfirmed(false); setError(''); setSuccess('') }}>{Object.entries(stopOperations).filter(([, operation]) => access.has(operation.permission)).map(([key, operation]) => <option key={key} value={key}>{operation.label}</option>)}</select></Field>
+      <Field htmlFor="stop-operation" label="Thao tác vận hành"><select id="stop-operation" value={selectedAction} disabled={busy} onChange={event => { setAction(event.target.value as StopOperation); setValue(''); setConfirmed(false); setError(''); setSuccess('') }}>{Object.entries(stopOperations).filter(([, operation]) => access.canDo(operation.permission)).map(([key, operation]) => <option key={key} value={key}>{operation.label}</option>)}</select></Field>
       {spec.kind === 'stop' ? <Field htmlFor="stop-operation-value" label="Điểm dừng thay thế"><select id="stop-operation-value" value={value} disabled={busy} required onChange={event => { setValue(event.target.value); setConfirmed(false) }}><option value="">Chọn điểm dừng cùng lịch trình</option>{stops.filter(item => item.cruiseStopId !== stop.cruiseStopId && !['OMITTED', 'SUBSTITUTED', 'COMPLETED'].includes(item.status)).map(item => <option key={item.cruiseStopId} value={item.cruiseStopId}>Điểm {item.stopOrder} · {item.portName || 'Cảng ghé'} · {journeyTime(item.plannedArrival,timeZoneId)}</option>)}</select></Field>
         : <Field htmlFor="stop-operation-value" label={spec.kind === 'time' ? `Thời gian (${timeZoneId})` : spec.kind === 'number' ? 'Thứ tự mới' : 'Lý do'}><input id="stop-operation-value" type={spec.kind === 'time' ? 'datetime-local' : spec.kind === 'number' ? 'number' : 'text'} min={spec.kind === 'number' ? 1 : undefined} required value={value} disabled={busy} onChange={event => { setValue(event.target.value); setConfirmed(false) }} /></Field>}
       {access.status === 'error' && <Notice tone="error" title="Chưa xác định được quyền">{access.error}</Notice>}
