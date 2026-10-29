@@ -1,5 +1,6 @@
+import type { ItineraryDayRole } from '@/domain/itinerary-day'
 import { apiRequest, ApiError } from '@/shared/api'
-export type SourceDay={dayNumber:number;dayType:string|null;title:string|null;shipTimeZoneId:string}
+export type SourceDay={dayNumber:number;dayRole?:ItineraryDayRole;departurePortId?:string|null;departurePortName?:string|null;plannedDepartureTime?:string|null;dayType:string|null;title:string|null;shipTimeZoneId:string}
 export type SourceStop={clientKey:string;portName?:string;stopOrder:number;arrivalDayNumber:number;departureDayNumber:number;plannedArrivalTime:string|null;plannedDepartureTime:string|null;timeZoneId?:string}
 export type SourceEntry={clientKey:string;title:string;kind:'ONBOARD_ACTIVITY'|'SHORE_EXCURSION'|'SERVING_WINDOW';startDayNumber:number;endDayNumber:number;plannedStartTime:string;plannedEndTime:string;timeZoneId:string;locationText:string|null;meetingPoint:string|null}
 type SourceVersionDto={versionId:string;versionNumber:number;revision?:number|null;tripId:string;status:string;days:SourceDay[];stops:SourceStop[];entries:SourceEntry[]}

@@ -1,3 +1,4 @@
+import { itineraryDayRole, itineraryDayRoleLabels } from '@/domain/itinerary-day'
 import { TechnicalDetails } from '@/shared/ui'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
@@ -141,7 +142,7 @@ export function ItineraryDetailPage() {
     {step !== 3 ? <div className={styles.journeyGrid}>
       <aside className={styles.daysSidebar} aria-label="Danh sách ngày">
         <h2>Ngày trong lịch trình</h2><p>{days.length}/{maxDays} ngày đã lưu</p>
-        <div className={styles.dayChoices}>{orderedDays.map(day => <button type="button" key={day.itineraryDayId} className={`${styles.dayChoice} ${selectedDay?.itineraryDayId === day.itineraryDayId ? styles.daySelected : ''}`} aria-pressed={selectedDay?.itineraryDayId === day.itineraryDayId} onClick={() => setSelectedDayId(day.itineraryDayId)}><strong>Ngày {day.dayNumber}</strong><span>{day.date}</span><span>{dayTypeLabels[day.dayType] ?? 'Chưa xác định'}</span>{issues.some(issue => issue.dayId === day.itineraryDayId) && <span className={styles.incomplete}>Cần bổ sung</span>}</button>)}
+        <div className={styles.dayChoices}>{orderedDays.map(day => <button type="button" key={day.itineraryDayId} className={`${styles.dayChoice} ${selectedDay?.itineraryDayId === day.itineraryDayId ? styles.daySelected : ''}`} aria-pressed={selectedDay?.itineraryDayId === day.itineraryDayId} onClick={() => setSelectedDayId(day.itineraryDayId)}><strong>Ngày {day.dayNumber}</strong><span>{day.date}</span><span>{itineraryDayRoleLabels[day.dayRole??itineraryDayRole(day.dayNumber,maxDays)]} · {dayTypeLabels[day.dayType] ?? 'Chưa xác định'}</span>{issues.some(issue => issue.dayId === day.itineraryDayId) && <span className={styles.incomplete}>Cần bổ sung</span>}</button>)}
         {pendingDays.map(day => <div className={styles.pendingDay} key={day.date}><strong>Ngày {day.number}</strong><span>Chưa xác định · chưa lưu</span>{day.number === days.length + 1 && <Button tone="secondary" disabled={!canAddDay || busy} onClick={() => setDayEditor({ day: null })}>Chọn loại ngày</Button>}</div>)}
         </div><Button tone="secondary" disabled={!canAddDay || busy} onClick={() => setDayEditor({ day: null })}>Thêm ngày</Button>
         {!canAddDay && <p className={styles.muted}>{!editable ? 'Lịch trình chưa đủ dữ liệu hoặc không ở trạng thái cho phép sửa.' : !access.canDo('ITINERARY_DAY_CREATE') ? 'Tài khoản chưa có quyền thêm ngày.' : days.length >= maxDays ? `Đã đạt giới hạn ${maxDays} ngày.` : 'Đã đến ngày kết thúc. Điều chỉnh khoảng ngày trước khi thêm.'}</p>}
@@ -149,7 +150,7 @@ export function ItineraryDetailPage() {
       </aside>
       <section className={styles.dayContent} aria-label="Nội dung ngày">
         {selectedDay ? <>
-          <div className={styles.dayToolbar}><div><h2>Ngày {selectedDay.dayNumber} · {dayTypeLabels[selectedDay.dayType]}</h2><p>{selectedDay.date} · {selectedDay.description || 'Chưa có giới thiệu ngày'}</p></div><div className={styles.editorTools}>
+          <div className={styles.dayToolbar}><div><h2>Ngày {selectedDay.dayNumber} · {itineraryDayRoleLabels[selectedDay.dayRole??itineraryDayRole(selectedDay.dayNumber,maxDays)]} · {dayTypeLabels[selectedDay.dayType]}</h2><p>{selectedDay.date} · {selectedDay.description || 'Chưa có giới thiệu ngày'}</p></div><div className={styles.editorTools}>
             {editable && access.canDo('ITINERARY_DAY_UPDATE') && <Button tone="secondary" disabled={busy} onClick={() => setDayEditor({ day: selectedDay })}>Chỉnh ngày</Button>}
             {editable && access.canDo('ITINERARY_DAY_DELETE') && <Button tone="danger" disabled={busy} onClick={() => setDeletion({ kind: 'day', id: selectedDay.itineraryDayId })}>Xóa ngày</Button>}
           </div></div>

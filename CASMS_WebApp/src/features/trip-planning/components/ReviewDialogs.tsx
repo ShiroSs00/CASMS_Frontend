@@ -5,6 +5,7 @@ import { Button, Empty, Loading, Modal, Notice, Panel, TechnicalDetails } from '
 import { usePlanning } from '../hooks'
 import { countryLabel, domesticRegionLabel, versionLabels, type Content, type Report, type Trip, type TripInfo, type Version, type Violation } from '../model/plan'
 import styles from '../Planning.module.css'
+import { scheduleDayTypeLabel } from '../model/day-labels'
 const deferredLabels:Record<string,string>={FLEET_COMPATIBILITY_DEFERRED:'Chưa kiểm tra sự phù hợp với tàu được phân công.',NEEDS_SAILING_DATE:'Cần ngày khởi hành thực tế để kiểm tra thời gian tuyệt đối.'}
 
 export function InfoConflictDialog({trip,local,onClose,onReplace}:{trip:Trip;local:TripInfo;onClose:()=>void;onReplace:(trip:Trip)=>void}) {
@@ -38,7 +39,7 @@ export function HistoryDialog({versionId,tripId,onClose}:{versionId:string;tripI
   </Modal>
 }
 function ContentSummary({content}:{content:Content}) {
-  return <div className={styles.cards}>{content.days.map(day=><section className={styles.item} key={day.key}><strong>Ngày {day.dayNumber} · {day.title}</strong><p>{day.dayType==='PORT_DAY'?'Ngày ghé cảng':day.dayType==='SEA_DAY'?'Ngày trên biển':'Chưa chọn loại ngày'}</p>{content.stops.filter(s=>s.arrivalDayNumber<=day.dayNumber&&s.departureDayNumber>=day.dayNumber).map(s=><p key={s.clientKey}>{s.stopOrder}. {s.portName??'Cảng'} · Ngày {s.arrivalDayNumber} → {s.departureDayNumber}</p>)}{content.entries.filter(e=>e.startDayNumber===day.dayNumber).map(e=><p key={e.clientKey}>{e.title} · {e.plannedStartTime} → Ngày {e.endDayNumber} {e.plannedEndTime}</p>)}</section>)}</div>
+  return <div className={styles.cards}>{content.days.map(day=><section className={styles.item} key={day.key}><strong>Ngày {day.dayNumber} · {day.title}</strong><p>{scheduleDayTypeLabel(day.dayNumber,content.days.length,day.dayType)}</p>{content.stops.filter(s=>s.arrivalDayNumber<=day.dayNumber&&s.departureDayNumber>=day.dayNumber).map(s=><p key={s.clientKey}>{s.stopOrder}. {s.portName??'Cảng'} · Ngày {s.arrivalDayNumber} → {s.departureDayNumber}</p>)}{content.entries.filter(e=>e.startDayNumber===day.dayNumber).map(e=><p key={e.clientKey}>{e.title} · {e.plannedStartTime} → Ngày {e.endDayNumber} {e.plannedEndTime}</p>)}</section>)}</div>
 }
 export function ConflictDialog({trip,version,local,onClose,onReplace}:{trip:Trip;version:Version;local:Content;onClose:()=>void;onReplace:(trip:Trip,version:Version)=>void}) {
   const {gateway}=usePlanning(),[confirm,setConfirm]=useState(false)

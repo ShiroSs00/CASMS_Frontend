@@ -4,6 +4,7 @@ import {useSessionAccess} from '@/shared/auth'
 import {businessErrorMessage} from '@/shared/api/business-errors'
 import {businessCopy} from '@/shared/i18n/business-copy'
 import {Button,Field,Loading,Notice,Panel,Modal} from '@/shared/ui'
+import {journeyTime} from '@/shared/lib/journey-time'
 import {programInstant} from '../model/program-time'
 import {mainflowApi} from '../api/mainflow-api'
 import {decodeActivities,type ScopedActivity} from '../api/scoped-activity'
@@ -22,7 +23,7 @@ const titles:Record<Kind,string>={activities:businessCopy('program.onboardActivi
 export function CruisePrograms({cruiseId,itineraryMode,onChanged}:{cruiseId:string;itineraryMode?:'FIXED'|'CUSTOM';onChanged:()=>void}){
  const access=useSessionAccess(),allowed=access.roles.includes('CRUISE_MANAGER')&&access.has('CRUISE_UPDATE_DRAFT'),root=`/cruise-plans/${cruiseId}`
  const [epoch,setEpoch]=useState(0),[kind,setKind]=useState<Kind>('activities'),[editing,setEditing]=useState<{activity:ScopedActivity;revision:number}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false),lock=useRef(false)
- const [creating,setCreating]=useState(false)
+ const [creating,setCreating]=useState(false),[search,setSearch]=useState('')
  const [editingPackage,setEditingPackage]=useState<string|null>(null)
  const [editingExcursion,setEditingExcursion]=useState<{entry:ExcursionCommercial;revision:number}|null>(null)
  const [editingProgram,setEditingProgram]=useState<{kind:'excursions'|'serving-windows';entry:EditableProgram}|null>(null)
@@ -56,14 +57,29 @@ export function CruisePrograms({cruiseId,itineraryMode,onChanged}:{cruiseId:stri
  if(!allowed)return null
  return <Panel className={styles.programPanel} title={businessCopy('program.configuration')}>
   {query.loading&&<Loading/>}{query.error&&<Notice title="Không thể hoàn tất thao tác"><Button onClick={query.retry}>Tải lại dữ liệu</Button></Notice>}
-  {data&&<><Field htmlFor="program-kind" label={businessCopy('program.field.content')}><select id="program-kind" value={kind} disabled={busy||Boolean(editing)||Boolean(editingPackage)||Boolean(editingExcursion)} onChange={e=>{setKind(e.target.value as Kind);setError('')}}>{(Object.keys(titles) as Kind[]).map(k=><option key={k} value={k}>{titles[k]}</option>)}</select></Field>
-   <ul>{data.programs[kind].map(p=><li key={p.id}>{p.name}{kind==='activities'&&p.price==null&&<> · {businessCopy('program.activity.priceUnknown')}</>}{kind==='activities'&&p.capacity==null&&<> · {businessCopy('program.activity.capacityUnknown')}</>}{p.price!=null&&<> · {p.price} {p.currency??businessCopy('program.price.currencyUnknown')}</>}{p.capacity!=null&&<> · {p.capacity} chỗ</>}{kind==='activities'&&editable&&!editing&&<Button disabled={busy||uncertain} onClick={()=>{const activity=data.activities.find(a=>a.id===p.id);if(activity)setEditing({activity,revision:data.plan.windows.expectedRevision})}}>{businessCopy('program.activity.edit')}</Button>}</li>)}</ul>
+  {data&&<><Field htmlFor="program-kind" label={businessCopy('program.field.content')}><select id="program-kind" value={kind} disabled={busy||Boolean(editing)||Boolean(editingPackage)||Boolean(editingExcursion)} onChange={e=>{setKind(e.target.value as Kind);setSearch('');setError('')}}>{(Object.keys(titles) as Kind[]).map(k=><option key={k} value={k}>{titles[k]}</option>)}</select></Field>
+   <div className={styles.programToolbar}><Field htmlFor="program-search" label="Tìm trong danh sách"><input id="program-search" type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nhập tên nội dung…"/></Field><p role="status">{data.programs[kind].filter(p=>p.name.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))).length} / {data.programs[kind].length} mục</p></div>
+   <ul className={styles.programList}>{data.programs[kind].filter(p=>p.name.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))).map(p=>{
+    const activity=kind==='activities'?data.activities.find(a=>a.id===p.id):null
+    return <li key={p.id}><div className={styles.programInfo}><h3>{p.name}</h3>
+      {activity&&<><p>{journeyTime(activity.startTime)} → {journeyTime(activity.endTime)} · Giờ Việt Nam</p><p>{activity.location||'Chưa xác định địa điểm'}</p></>}
+      <div className={styles.programMeta}>{p.price!=null?<span>{new Intl.NumberFormat('vi-VN').format(p.price)} {p.currency??'Chưa xác định tiền tệ'}</span>:kind==='activities'?<span>Chưa có giá</span>:null}{p.capacity!=null?<span>{p.capacity} chỗ</span>:kind==='activities'?<span>Chưa có sức chứa</span>:null}</div></div>
+      {editable&&<div className={styles.sectionActions}>
+       {activity&&!editing&&<Button tone="secondary" aria-label={'Chỉnh sửa hoạt động: '+p.name} disabled={busy||uncertain} onClick={()=>setEditing({activity,revision:data.plan.windows.expectedRevision})}>Chỉnh sửa hoạt động</Button>}
+       {kind==='packages'&&'ownerCruiseId' in p&&p.ownerCruiseId===cruiseId&&!editingPackage&&<Button tone="secondary" aria-label={'Chỉnh sửa gói: '+p.name} disabled={busy||uncertain} onClick={()=>setEditingPackage(p.id)}>Chỉnh sửa gói</Button>}
+       {kind==='excursions'&&!editingExcursion&&<Button tone="secondary" aria-label={'Chỉnh sửa giá và sức chứa: '+p.name} disabled={busy||uncertain} onClick={()=>{const entry=data.excursions.find(e=>e.id===p.id);if(entry)setEditingExcursion({entry,revision:data.plan.windows.expectedRevision})}}>Giá và sức chứa</Button>}
+       {!editingProgram&&(kind==='serving-windows'||kind==='excursions'&&itineraryMode==='CUSTOM')&&<Button tone="secondary" aria-label={'Chỉnh sửa lịch: '+p.name} disabled={busy||uncertain} onClick={()=>setEditingProgram({kind,entry:p})}>Chỉnh sửa lịch</Button>}
+      </div>}
+    </li>
+   })}</ul>
+   {!data.programs[kind].length&&<p className={styles.emptyProgram}>Chưa có {titles[kind].toLocaleLowerCase('vi')} trong lần khởi hành này.</p>}
+   {data.programs[kind].length>0&&!data.programs[kind].some(p=>p.name.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi')))&&<p className={styles.emptyProgram}>Không có nội dung khớp với “{search}”. <Button tone="text" onClick={()=>setSearch('')}>Xóa tìm kiếm</Button></p>}
    {editing&&editable&&<CruiseActivityEditor key={editing.activity.id} activity={editing.activity} venueOptions={data.options} revision={editing.revision} fixed={itineraryMode!=='CUSTOM'} onClose={()=>setEditing(null)} onSaved={()=>{setEditing(null);setEpoch(n=>n+1);onChanged()}}/>}
-   {kind==='packages'&&editable&&!editingPackage&&data.programs.packages.filter(p=>p.ownerCruiseId===cruiseId).map(p=><Button key={p.id} disabled={busy||uncertain} onClick={()=>setEditingPackage(p.id)}>{businessCopy('program.package.edit')}: {p.name}</Button>)}
+
    {editingPackage&&<CruisePackageEditor cruiseId={cruiseId} packageId={editingPackage} onClose={()=>setEditingPackage(null)} onSaved={()=>{setEditingPackage(null);setEpoch(n=>n+1);onChanged()}}/>}
-   {kind==='excursions'&&editable&&!editingExcursion&&data.excursions.map(entry=><Button key={entry.id} disabled={busy||uncertain} onClick={()=>setEditingExcursion({entry,revision:data.plan.windows.expectedRevision})}>{businessCopy('program.excursion.editCommercial')}: {entry.name}</Button>)}
+
    {editingExcursion&&editable&&<CruiseExcursionCommercialEditor key={editingExcursion.entry.id} cruiseId={cruiseId} entry={editingExcursion.entry} revision={editingExcursion.revision} onClose={()=>setEditingExcursion(null)} onSaved={()=>{setEditingExcursion(null);setEpoch(n=>n+1);onChanged()}}/>}
-   {editable&&!editingProgram&&(kind==='serving-windows'||kind==='excursions'&&itineraryMode==='CUSTOM')&&data.programs[kind].map(entry=><Button key={entry.id} disabled={busy||uncertain} onClick={()=>setEditingProgram({kind,entry})}>Chỉnh sửa {kind==='excursions'?'tour':'khung phục vụ'}: {entry.name}</Button>)}
+
    {editingProgram&&editable&&<ScopedProgramEditor cruiseId={cruiseId} kind={editingProgram.kind} entry={editingProgram.entry} options={data.options} revision={data.plan.windows.expectedRevision} onClose={()=>setEditingProgram(null)} onSaved={()=>{setEditingProgram(null);setEpoch(n=>n+1);onChanged()}}/>}
    {!editable&&<Notice title={businessCopy('program.locked')}>{businessErrorMessage('PLAN_FROZEN','')}</Notice>}
    {fixed&&<Notice title={businessCopy('cruise.itinerary.FIXED')}>{businessErrorMessage('FIXED_ITINERARY_READ_ONLY','')}</Notice>}

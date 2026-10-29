@@ -24,8 +24,9 @@ export function allowedDepartureSections(access:ReturnType<typeof useSessionAcce
   return departureSections.filter(([key])=>
     key==='overview'
     ||key==='schedule'&&['ITINERARY_READ','CRUISE_READ'].some(p=>access.has(p))
-    ||key==='resources'&&['SHIP_READ','CRUISE_STAFF_READ','CRUISE_REGULATION_READ'].some(p=>access.has(p))
+    ||key==='resources'&&['SHIP_READ','CRUISE_STAFF_READ','CRUISE_REGULATION_READ','CRUISE_ASSIGN_SHIP','CRUISE_CHANGE_SHIP'].some(p=>access.canDo(p))
     ||key==='program'&&['ACTIVITY_READ','EXCURSION_READ','SERVICE_READ'].some(p=>access.has(p))
     ||key==='sales'&&['CRUISE_READ','BOOKING_READ','CRUISE_MANIFEST_READ','TOUR_PACKAGE_ASSIGN'].some(p=>access.has(p))
     ||key==='checks'&&!manager&&(access.canDo('CRUISE_VALIDATE')||access.has('CRUISE_READ')))
+    .map(([key,label])=>[key,manager&&key==='resources'&&!access.canDo('CRUISE_STAFF_READ')?(access.canDo('CRUISE_REGULATION_READ')?'Tàu và quy định':'Tàu'):manager&&key==='sales'?(access.canDo('CRUISE_MANIFEST_READ')?'Cabin và khách':'Cabin và sức chứa'):label] as const)
 }
