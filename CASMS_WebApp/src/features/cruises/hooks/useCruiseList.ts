@@ -11,6 +11,7 @@ import {
   type CruiseQuery,
 } from '../model/cruise-query'
 import type { CruiseListResult } from '../model/cruise-view'
+import { bookingCruiseView } from '../model/cruise-visibility'
 
 export type CruiseListState =
   | { status: 'loading'; data: CruiseListResult | null; error: null }
@@ -18,10 +19,13 @@ export type CruiseListState =
   | { status: 'error'; data: CruiseListResult | null; error: string }
 
 export function useCruiseList() {
-  const canShips = useSessionAccess().has('SHIP_READ')
+  const access = useSessionAccess()
+  const canShips = access.has('SHIP_READ')
+  const booking = bookingCruiseView(access.roles)
   const [searchParams, setSearchParams] = useSearchParams()
-  const query = useMemo(() => parseCruiseQuery(searchParams), [searchParams])
-  const queryKey = useMemo(() => serializeCruiseQuery(query).toString(), [query])
+  const query = useMemo(() => ({...parseCruiseQuery(searchParams), ...(booking ? {status: '' as const} : {})}), [searchParams, booking])
+  const sessionKey = `${access.userId}:${access.status}:${access.roles.join(',')}:${access.permissions.join(',')}`
+  const queryKey = useMemo(() => `${sessionKey}:${serializeCruiseQuery(query)}`, [query, sessionKey])
   const sequence = useRef(0)
   const [state, setState] = useState<CruiseListState>({ status: 'loading', data: null, error: null })
   const [shipsError, setShipsError] = useState('')
@@ -29,22 +33,24 @@ export function useCruiseList() {
   const [ships, setShips] = useState<ShipRecord[]>([])
 
   const request = useCallback(() => {
+    const controller = new AbortController()
     const current = ++sequence.current
-    void cruiseApi.list(query).then((data) => {
-      if (current !== sequence.current) return
+    void cruiseApi.list(query, controller.signal).then((data) => {
+      if (controller.signal.aborted || current !== sequence.current) return
       if (data.total > 0 && data.items.length === 0 && query.page > 1) {
         setSearchParams(serializeCruiseQuery({ ...query, page: 1 }), { replace: true })
         return
       }
       setState({ status: 'ready', data, error: null, queryKey })
     }).catch((error: unknown) => {
-      if (current !== sequence.current) return
+      if (controller.signal.aborted || current !== sequence.current) return
       setState({
         status: 'error',
         data: null,
         error: error instanceof Error ? error.message : 'Không tải được danh sách cruise.',
       })
     })
+    return () => controller.abort()
   }, [query, queryKey, setSearchParams])
 
   const load = useCallback(() => {
@@ -52,7 +58,7 @@ export function useCruiseList() {
     request()
   }, [request])
 
-  useEffect(() => { request() }, [request])
+  useEffect(() => request(), [request])
   useEffect(() => {
     const controller = new AbortController()
     if (!canShips) return () => controller.abort()

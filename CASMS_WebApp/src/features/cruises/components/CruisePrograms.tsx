@@ -12,6 +12,7 @@ import {CruiseDeckField,type CruiseVenueOptions} from './CruiseDeckField'
 import {CruisePackageEditor} from './CruisePackageEditor'
 import {decodeCommercialExcursions,type ExcursionCommercial} from '../api/scoped-excursion'
 import {CruiseExcursionCommercialEditor} from './CruiseExcursionCommercialEditor'
+import {ScopedProgramEditor,type EditableProgram} from './ScopedProgramEditor'
 import styles from './ManagerWorkspace.module.css'
 type Kind='activities'|'excursions'|'packages'|'serving-windows'
 type Choice={id:string;name:string;sequence?:number;scheduled?:boolean;timeZoneId?:string|null}
@@ -24,6 +25,7 @@ export function CruisePrograms({cruiseId,itineraryMode,onChanged}:{cruiseId:stri
  const [creating,setCreating]=useState(false)
  const [editingPackage,setEditingPackage]=useState<string|null>(null)
  const [editingExcursion,setEditingExcursion]=useState<{entry:ExcursionCommercial;revision:number}|null>(null)
+ const [editingProgram,setEditingProgram]=useState<{kind:'excursions'|'serving-windows';entry:EditableProgram}|null>(null)
  const query=useReadQuery(`scoped-programs:${cruiseId}:${epoch}:${allowed}`,useCallback(async signal=>{
   if(!allowed)return null
   const [plan,options,activityRows,excursionRows,packages,windows]=await Promise.all([mainflowApi.get(cruiseId,signal),apiRequest<Options>(root+'/program-options',{signal}),apiRequest<ScopedActivity[]>(root+'/activities',{signal}),apiRequest<ExcursionCommercial[]>(root+'/excursions',{signal}),apiRequest<Program[]>(root+'/packages',{signal}),apiRequest<Program[]>(root+'/serving-windows',{signal})])
@@ -61,6 +63,8 @@ export function CruisePrograms({cruiseId,itineraryMode,onChanged}:{cruiseId:stri
    {editingPackage&&<CruisePackageEditor cruiseId={cruiseId} packageId={editingPackage} onClose={()=>setEditingPackage(null)} onSaved={()=>{setEditingPackage(null);setEpoch(n=>n+1);onChanged()}}/>}
    {kind==='excursions'&&editable&&!editingExcursion&&data.excursions.map(entry=><Button key={entry.id} disabled={busy||uncertain} onClick={()=>setEditingExcursion({entry,revision:data.plan.windows.expectedRevision})}>{businessCopy('program.excursion.editCommercial')}: {entry.name}</Button>)}
    {editingExcursion&&editable&&<CruiseExcursionCommercialEditor key={editingExcursion.entry.id} cruiseId={cruiseId} entry={editingExcursion.entry} revision={editingExcursion.revision} onClose={()=>setEditingExcursion(null)} onSaved={()=>{setEditingExcursion(null);setEpoch(n=>n+1);onChanged()}}/>}
+   {editable&&!editingProgram&&(kind==='serving-windows'||kind==='excursions'&&itineraryMode==='CUSTOM')&&data.programs[kind].map(entry=><Button key={entry.id} disabled={busy||uncertain} onClick={()=>setEditingProgram({kind,entry})}>Chỉnh sửa {kind==='excursions'?'tour':'khung phục vụ'}: {entry.name}</Button>)}
+   {editingProgram&&editable&&<ScopedProgramEditor cruiseId={cruiseId} kind={editingProgram.kind} entry={editingProgram.entry} options={data.options} revision={data.plan.windows.expectedRevision} onClose={()=>setEditingProgram(null)} onSaved={()=>{setEditingProgram(null);setEpoch(n=>n+1);onChanged()}}/>}
    {!editable&&<Notice title={businessCopy('program.locked')}>{businessErrorMessage('PLAN_FROZEN','')}</Notice>}
    {fixed&&<Notice title={businessCopy('cruise.itinerary.FIXED')}>{businessErrorMessage('FIXED_ITINERARY_READ_ONLY','')}</Notice>}
    {editable&&!editing&&!editingPackage&&!editingExcursion&&<Button disabled={busy||uncertain||fixed} onClick={()=>{setError('');setCreating(true)}}>Thêm {titles[kind].toLocaleLowerCase('vi')}</Button>}

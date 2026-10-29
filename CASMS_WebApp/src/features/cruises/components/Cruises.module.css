@@ -27,7 +27,7 @@
 .capacityValue { font-size:32px; font-weight:600; line-height:40px; }
 .dialogIntro { margin:-8px 0 16px; color:var(--cruise-muted); }
 .candidates { display:flex; max-height:390px; flex-direction:column; gap:10px; overflow-y:auto; margin:16px 0; padding-right:4px; }
-.candidate { display:flex; width:100%; flex-direction:column; gap:8px; padding:14px 16px; border:1px solid var(--cruise-border); border-radius:6px; background:#fff; color:var(--cruise-text); font:inherit; font-size:13px; line-height:20px; text-align:left; cursor:pointer; }
+.candidate { display:flex; flex:0 0 auto; width:100%; min-width:0; flex-direction:column; gap:8px; padding:14px 16px; border:1px solid var(--cruise-border); border-radius:6px; background:#fff; color:var(--cruise-text); font:inherit; font-size:13px; line-height:20px; text-align:left; white-space:normal; overflow-wrap:anywhere; cursor:pointer; }
 .candidate:hover { border-color:#7a8992; }
 .candidateSelected { border:2px solid var(--cruise-navy); padding:13px 15px; background:#f8fbfd; }
 .candidateHeading { display:flex; align-items:center; justify-content:space-between; gap:16px; }

@@ -1,5 +1,8 @@
 import {businessCopy} from '@/shared/i18n/business-copy'
 const messages:Readonly<Record<string,string>>={
+  SERVICE_WINDOW_HAS_REQUESTS:'Khung phục vụ đã có yêu cầu dịch vụ. Không thể sửa hoặc xóa trực tiếp; đối chiếu các yêu cầu đang liên kết.',
+  ITINERARY_CRUISE_DATES_MISMATCH:'Ngày đầu lịch trình phải là ngày khởi hành và ngày cuối phải là ngày kết thúc chuyến theo giờ tàu Việt Nam.',
+  ITINERARY_DAY_DATE_MISMATCH:'Ngày thứ N phải bằng ngày khởi hành cộng N−1 ngày và không vượt ngày kết thúc chuyến.',
   CURRENCY_USD_REQUIRED:businessCopy('pricing.review.usdRequired'),
   PRICING_POLICY_APPROVAL_REQUIRED:businessCopy('pricing.review.approvalRequired'),
   PRICING_POLICY_PENDING:businessCopy('pricing.review.pending'),

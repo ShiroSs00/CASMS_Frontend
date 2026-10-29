@@ -93,7 +93,7 @@ export function ItineraryDetailPage() {
   const { itinerary, cruise, days, stops, ports, destinations } = data
   const orderedDays = [...days].sort((a,b) => a.dayNumber - b.dayNumber)
   const selectedDay = orderedDays.find(day => day.itineraryDayId === selectedDayId) ?? orderedDays[0]
-  const maxDays = cruise?.cruiseType === 'ONE_DAY' ? 2 : 5, minDays = cruise?.cruiseType === 'ONE_DAY' ? 1 : 3
+  const maxDays = Math.max(1,Math.round((Date.parse(itinerary.endDate)-Date.parse(itinerary.startDate))/86400000)+1), minDays = maxDays
   const editable = access.canDo('ITINERARY_UPDATE_DRAFT') && !stale && ['DRAFT','PENDING_APPROVAL'].includes(itinerary.status) && Boolean(cruise) && !data.supplementaryLoading && !Object.keys(data.supplementaryErrors).length
   const activities = program.data?.activities ?? [], excursions = program.data?.excursions ?? []
   const completeProgram = Boolean(program.data?.impactKnown)

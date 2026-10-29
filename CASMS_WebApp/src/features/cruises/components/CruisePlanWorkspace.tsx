@@ -20,7 +20,7 @@ export function CruisePlanWorkspace({cruiseId,refreshKey,onChanged,onSection,sec
     .filter(([section])=>sections.includes(section))
     .map(([section,key],index)=><Button key={section} tone="secondary" onClick={()=>onSection(section)}>{manager&&<span className={styles.stepNumber} aria-hidden="true">0{index+1}</span>}{businessCopy(key)}</Button>)}
   </nav>
+  <DeparturePricingPolicy cruiseId={cruiseId} onChanged={onChanged}/>
   <CruisePlanReview cruiseId={cruiseId} refreshKey={refreshKey}/>
-  {manager?<details className={styles.disclosure}><summary><span>Chính sách giá và thanh toán</span><span className={styles.summaryHint}>Xem giá · soạn chính sách · gửi duyệt</span></summary><div className={styles.disclosureBody}><DeparturePricingPolicy cruiseId={cruiseId} onChanged={onChanged}/></div></details>:<DeparturePricingPolicy cruiseId={cruiseId} onChanged={onChanged}/>}
  </Panel>
 }
