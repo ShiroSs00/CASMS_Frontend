@@ -50,6 +50,7 @@ export function localViolations(content: Content): Violation[] {
   const issue = (message: string, dayNumber?: number, clientKey?: string) => errors.push({ code: 'CLIENT_INPUT', severity: 'ERROR', message, dayNumber, clientKey })
   for (const day of content.days) {
     if (!day.dayType) issue('Chọn loại ngày.', day.dayNumber)
+    if (day.dayNumber === content.days.length && day.dayType !== 'PORT_DAY') issue('Ngày kết thúc phải chọn cảng trả khách.', day.dayNumber)
     if (day.dayType === 'SEA_DAY' && content.stops.some(s => s.arrivalDayNumber <= day.dayNumber && s.departureDayNumber >= day.dayNumber)) issue('Ngày trên biển vẫn có lần ghé cảng bao phủ.', day.dayNumber)
   }
   for (const stop of content.stops) {

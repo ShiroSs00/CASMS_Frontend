@@ -6,7 +6,7 @@ import styles from './Itineraries.module.css'
 
 export function DayEditor({ itineraryId, itinerary, days, day, busy, onSave, maxDays = 5 }: { itineraryId: string; itinerary: Itinerary; days: ItineraryDay[]; day: ItineraryDay | null; busy: boolean; onSave: (value: ItineraryDayDraft) => void; maxDays?: number }) {
   const number = day?.dayNumber ?? Math.max(0, ...days.map(item => item.dayNumber)) + 1
-  const [draft, setDraft] = useState<ItineraryDayDraft>({ itineraryId, dayNumber: number, date: day?.date ?? addCalendarDays(itinerary.startDate, number - 1), dayType: day?.dayType ?? '', shipTimeZoneId: SHIP_TIME_ZONE, description: day?.description ?? '' })
+  const [draft, setDraft] = useState<ItineraryDayDraft>({ itineraryId, dayNumber: number, date: day?.date ?? addCalendarDays(itinerary.startDate, number - 1), dayType: (day?.date ?? addCalendarDays(itinerary.startDate, number - 1)) === itinerary.endDate ? 'PORT_DAY' : day?.dayType ?? '', shipTimeZoneId: SHIP_TIME_ZONE, description: day?.description ?? '' })
   const [error, setError] = useState('')
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -16,9 +16,9 @@ export function DayEditor({ itineraryId, itinerary, days, day, busy, onSave, max
     if (!invalid) onSave(draft)
   }
   return <form className={styles.editorForm} onSubmit={submit} noValidate>
-    <p>Ngày {number} · {draft.date}. Giờ trên tàu luôn theo Việt Nam.</p>
+    <p>{draft.date === itinerary.startDate ? 'Ngày khởi hành · ' : ''}{draft.date === itinerary.endDate ? 'Ngày kết thúc · Cảng trả khách · ' : ''}Ngày {number} · {draft.date}. Giờ trên tàu luôn theo Việt Nam.</p>
     <Field htmlFor="day-type" label="Loại ngày *" error={!draft.dayType && error ? error : undefined}>
-      <select id="day-type" required disabled={busy} value={draft.dayType} onChange={event => setDraft({ ...draft, dayType: event.target.value as ItineraryDayDraft['dayType'] })}>
+      <select id="day-type" required disabled={busy || draft.date === itinerary.endDate} value={draft.dayType} onChange={event => setDraft({ ...draft, dayType: event.target.value as ItineraryDayDraft['dayType'] })}>
         <option value="">Chọn loại ngày</option><option value="PORT_DAY">Ngày ghé cảng</option><option value="SEA_DAY">Ngày trên biển</option>
       </select>
     </Field>

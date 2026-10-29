@@ -1,3 +1,4 @@
+import { itineraryDayRole, itineraryDayRoleLabels } from '@/domain/itinerary-day'
 import { DepartureCommand } from './DepartureCommand'
 
 import {CruiseSale} from './CruiseSale'
@@ -32,7 +33,7 @@ export function ScheduleContents({ schedule, preview = false,cruiseId }: { sched
     {schedule.days.some(day=>day.shipTimeZoneId!==SHIP_TIME_ZONE)&&<Notice title="Cần đối chiếu cơ sở ngày của lịch" tone="warning">Múi giờ trong lịch trả về chưa khớp giờ tàu Việt Nam. Các thời điểm được giữ nguyên; cần xác nhận lịch từ hệ thống trước khi sử dụng.</Notice>}
     <RecordFacts entries={[[preview ? 'Bắt đầu dự kiến' : 'Bắt đầu theo phản hồi', time(schedule.departureDatetime, 'Asia/Ho_Chi_Minh')], ['Kết thúc dự kiến', time(schedule.returnDatetime, 'Asia/Ho_Chi_Minh')]]} />
     {!schedule.days.length && <Empty title="Chưa có ngày trong phản hồi lịch trình" />}
-    {schedule.days.map(day => <Panel key={day.dayNumber} title={`Ngày ${day.dayNumber} · ${day.calendarDate ?? 'Chưa có ngày'}${day.title ? ' · ' + day.title : ''}`} subtitle={(day.dayType ? dayLabels[day.dayType] ?? day.dayType : 'Chưa xác định loại ngày') + ' · Giờ tàu (Việt Nam)'}>
+    {schedule.days.map(day => <Panel key={day.dayNumber} title={`Ngày ${day.dayNumber} · ${day.calendarDate ?? 'Chưa có ngày'}${day.title ? ' · ' + day.title : ''}`} subtitle={itineraryDayRoleLabels[itineraryDayRole(day.dayNumber,schedule.days.length)] + ' · ' + (day.dayType ? dayLabels[day.dayType] ?? day.dayType : 'Chưa xác định loại ngày') + ' · Giờ tàu (Việt Nam)'}>
       {day.stops.map((stop, index) => <div key={stop.sourceStopId ?? `${day.dayNumber}:${stop.stopOrder ?? index}`}>
         <h3>Lần ghé {stop.stopOrder ?? index + 1} · {stop.portName ?? 'Chưa có tên cảng'}</h3>
         <RecordFacts entries={[

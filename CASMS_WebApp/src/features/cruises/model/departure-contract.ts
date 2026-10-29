@@ -20,7 +20,7 @@ export type DepartureSchedule = {
   itineraryId: string | null; itineraryStatus: string | null; materialized: boolean | null; warnings: string[] | null
   sourceTripId: string | null; sourceVersionId: string | null; sourceVersionRevision: number | null
   departureDatetime: string | null; returnDatetime: string | null; departurePortId: string | null; returnPortId: string | null
-  days: { itineraryDayId: string | null; dayNumber: number; calendarDate: string | null; dayType: string | null; title: string | null
+  days: { itineraryDayId: string | null; dayNumber: number; calendarDate: string | null; dayRole?: string | null; dayType: string | null; title: string | null
     shipTimeZoneId: string | null; stops: ScheduleStop[]; entries: ScheduleEntry[] }[]
 }
 export type InventorySummary = {
@@ -154,7 +154,7 @@ export function decodeSchedule(value: unknown): DepartureSchedule {
     if (!dayNumber || !Number.isSafeInteger(dayNumber)) throw invalid()
     const stops = rows(day, 'stops'), entries = rows(day, 'entries')
     if (!stops || !entries) throw invalid()
-    return { itineraryDayId: text(day, 'itineraryDayId'), dayNumber, calendarDate: text(day, 'calendarDate'), dayType: text(day, 'dayType'), title: text(day, 'title'), shipTimeZoneId: text(day, 'shipTimeZoneId'),
+    return { itineraryDayId: text(day, 'itineraryDayId'), dayNumber, calendarDate: text(day, 'calendarDate'), dayRole: text(day, 'dayRole'), dayType: text(day, 'dayType'), title: text(day, 'title'), shipTimeZoneId: text(day, 'shipTimeZoneId'),
       stops: stops.map(stop => ({ cruiseStopId: text(stop, 'cruiseStopId'), portCode: text(stop, 'portCode'), tenderTransferMinutes: number(stop, 'tenderTransferMinutes'), sourceStopId: text(stop, 'sourceStopId'), stopOrder: number(stop, 'stopOrder'), portId: text(stop, 'portId'), portName: text(stop, 'portName'), countryCode: text(stop, 'countryCode'), portTimeZoneId: text(stop, 'portTimeZoneId'), plannedArrival: instant(stop, 'plannedArrival'), plannedDeparture: instant(stop, 'plannedDeparture'), allAboardTime: instant(stop, 'allAboardTime'), callType: text(stop, 'callType'), arrivalMethod: text(stop, 'arrivalMethod') })),
       entries: entries.map(entry => ({ category: text(entry, 'category'), sourceActivityId: text(entry, 'sourceActivityId'), sourceExcursionId: text(entry, 'sourceExcursionId'), targetId: text(entry, 'targetId'), targetCode: text(entry, 'targetCode'), status: text(entry, 'status'), sourceEntryId: text(entry, 'sourceEntryId'), clientKey: text(entry, 'clientKey'), kind: text(entry, 'kind'), plannedStartTime: instant(entry, 'plannedStartTime'), plannedEndTime: instant(entry, 'plannedEndTime'), stopOrder: number(entry, 'stopOrder') })) }
   })

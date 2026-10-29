@@ -16,10 +16,10 @@ import { ConflictDialog, HistoryDialog, ValidationPanel } from '../components/Re
 import type { Report } from '../model/plan'
 import styles from '../Planning.module.css'
 import { violationTarget } from '../model/violation-target'
-import { dayBoundaryLabel } from '../model/day-labels'
+import { normalizeBoundaryDays, scheduleDayTypeLabel } from '../model/day-labels'
 import { versionContext, workingVersionLabel } from '../model/version-context'
 import { durationRules, supportedDuration } from '../model/duration'
-import { stopTimingViolations, portScopeViolations, linkedTourViolations, routeOrderViolations } from '../model/port-rules'
+import { stopTimingViolations, portScopeViolations, linkedTourViolations, routeOrderViolations, portMatchesScope } from '../model/port-rules'
 
 export function TripSchedulePage({id}:{id:string}) {
   const {gateway}=usePlanning()
@@ -66,7 +66,7 @@ function Schedule({initial}:{initial:Trip}) {
 }
 type EditorProps={initial:Version;trip:Trip;setTrip:React.Dispatch<React.SetStateAction<Trip>>;onSwitch:(id:string)=>void;onNew?:()=>void}
 function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
-  const {gateway,root,can}=usePlanning(),[version,setVersion]=useState(initial),[content,setContent]=useState<Content>(()=>contentOf(initial))
+  const {gateway,root,can}=usePlanning(),[version,setVersion]=useState(initial),[content,setContent]=useState<Content>(()=>{const content=contentOf(initial);return initial.status==='DRAFT'&&can('TRIP_PLAN_WRITE')&&!gateway.readOnly&&trip.status!=='ARCHIVED'?{...content,days:normalizeBoundaryDays(content.days)}:content})
   const [tab,setTab]=useState<'route'|'program'>('route'),[selected,setSelected]=useState(1),[busy,setBusy]=useState(''),lock=useRef(false)
   const [fault,setFault]=useState<PlanningFault|null>(null),[message,setMessage]=useState(''),[report,setReport]=useState<Report|null>(null),[uncertain,setUncertain]=useState(false),[serverLocked,setServerLocked]=useState(false)
   const [history,setHistory]=useState(false),[compare,setCompare]=useState(false),[pendingSwitch,setPendingSwitch]=useState('')
@@ -83,7 +83,12 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
   const day=content.days.find(d=>d.dayNumber===selected)??content.days[0]
   const ports=useSources('ports',{tripId:trip.tripId},editable,trip.revision)
   const scopeIssues=editable&&!ports.loading&&!ports.error?portScopeViolations(content,trip.info,ports.data):[]
-  const timingIssues=[...stopTimingViolations(content),...routeOrderViolations(content),...content.stops.flatMap(stop=>linkedTourViolations(stop,content)),...scopeIssues]
+  const departureDay=content.days.find(day=>day.dayNumber===1)
+  const departureIssues:Violation[]=departureDay?[
+    ...(!departureDay.departurePortId?[{code:'DEPARTURE_PORT_REQUIRED',severity:'ERROR' as const,entityType:'DAY',dayNumber:1,fieldPath:'days[1].departurePortId',message:'Chọn cảng khởi hành cho ngày 1.'}]:[]),
+    ...(!departureDay.plannedDepartureTime?[{code:'DEPARTURE_TIME_REQUIRED',severity:'ERROR' as const,entityType:'DAY',dayNumber:1,fieldPath:'days[1].plannedDepartureTime',message:'Nhập giờ khởi hành dự kiến theo giờ Việt Nam.'}]:[]),
+  ]:[]
+  const timingIssues=[...departureIssues,...stopTimingViolations(content),...routeOrderViolations(content),...content.stops.flatMap(stop=>linkedTourViolations(stop,content)),...scopeIssues]
   const violationRows=[...(fault?.violations.length?fault.violations:report?.violations??[]),...timingIssues]
   const structureAllowed=editable&&!locked&&!trip.durationIssue&&Boolean(limits)
   const removeDay=dayChange?.remove
@@ -105,8 +110,8 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
       setReport(result);setMessage('');showValidation()
     },false)
   }
-  function accept(saved:Version){setVersion(saved);setContent(contentOf(saved));setReport(null);setTrip(old=>({...old,versions:old.versions?.map(v=>v.versionId===saved.versionId?saved:v)}))}
-  function edit(next:Content){if(!editable||lock.current)return;setContent(next);setReport(null);setFault(null);setLocated(null);setMessage('')}
+  function accept(saved:Version){setVersion(saved);setContent(saved.status==='DRAFT'&&editable?{...contentOf(saved),days:normalizeBoundaryDays(saved.days)}:contentOf(saved));setReport(null);setTrip(old=>({...old,versions:old.versions?.map(v=>v.versionId===saved.versionId?saved:v)}))}
+  function edit(next:Content){if(!editable||lock.current)return;setContent({...next,days:normalizeBoundaryDays(next.days)});setReport(null);setFault(null);setLocated(null);setMessage('')}
   async function run(label:string,work:()=>Promise<void>,mutation:boolean|(()=>boolean)=true){
     if(lock.current)return;lock.current=true;setBusy(label);setFault(null);setMessage('')
     try{await work()}catch(e){const error=failure(e);setFault(error);if((typeof mutation==='function'?mutation():mutation)&&(error.status===0||error.status===409||error.status>=500))setUncertain(true)}finally{lock.current=false;setBusy('')}
@@ -189,8 +194,8 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
     {fault&&<Notice title="Chưa hoàn tất thao tác" tone="error">{fault.message}{uncertain&&<Button onClick={()=>setCompare(true)} disabled={Boolean(busy)}>Đối chiếu bản đã lưu</Button>}</Notice>}
 
     <div className={styles.tabs} role="tablist" aria-label="Nội dung lịch trình">{(['route','program'] as const).map(value=><button key={value} role="tab" tabIndex={tab===value?0:-1} onKeyDown={e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const next=e.key==='Home'?'route':e.key==='End'?'program':tab==='route'?'program':'route';setTab(next);document.getElementById(`planning-tab-${next}`)?.focus()}}} aria-selected={tab===value} aria-controls="planning-day-panel" id={`planning-tab-${value}`} onClick={()=>setTab(value)}>{value==='route'?'Tuyến tàu':'Chương trình ngày'}</button>)}</div>
-    <div className={styles.layout}><nav className={styles.rail} aria-label="Các ngày của chuyến"><strong className={styles.railTitle}>Các ngày</strong>{content.days.map(d=><button key={d.key} className={styles.dayButton} aria-current={day?.key===d.key} onClick={()=>setSelected(d.dayNumber)}><strong>Ngày {d.dayNumber}</strong>{dayBoundaryLabel(d.dayNumber,content.days.length)&&<small><strong>{dayBoundaryLabel(d.dayNumber,content.days.length)}</strong></small>}<small>{d.dayType==='PORT_DAY'?'Ghé cảng':d.dayType==='SEA_DAY'?'Trên biển':'Chưa chọn loại ngày'}</small><small>{content.entries.filter(e=>e.startDayNumber<=d.dayNumber&&e.endDayNumber>=d.dayNumber).length} mục chương trình</small></button>)}{editable&&<><Button tone="secondary" disabled={Boolean(busy)||!structureAllowed||content.days.length>=(limits?.[1]??0)} title={locked?'Số ngày đã khóa vì khung chuyến có mẫu đã chốt':content.days.length>=(limits?.[1]??0)?'Đã đạt số ngày tối đa của nhóm thời lượng':undefined} onClick={()=>setDayChange({})}>Thêm ngày</Button><Button tone="secondary" disabled={Boolean(busy)||!structureAllowed||content.days.length<=(limits?.[0]??0)||(!gateway.supportsMiddleDayRemoval&&day?.dayNumber!==content.days.length)} title={locked?'Số ngày đã khóa vì khung chuyến có mẫu đã chốt':content.days.length<=(limits?.[0]??0)?'Đã đạt số ngày tối thiểu của nhóm thời lượng':undefined} onClick={()=>setDayChange({remove:day?.dayNumber})}>Xóa ngày đang chọn</Button>{!limits&&<small>Thời lượng hiện có chưa nằm trong nhóm 1–2 hoặc 3–5 ngày.</small>}{!gateway.supportsMiddleDayRemoval&&<small>Chỉ có thể xóa ngày cuối.</small>}</>}</nav>
-      <section id="planning-day-panel" role="tabpanel" aria-labelledby={`planning-tab-${tab}`}>{day?<DayPane content={content} day={day} editable={editable} busy={Boolean(busy)} tab={tab} violation={located}
+    <div className={styles.layout}><nav className={styles.rail} aria-label="Các ngày của chuyến"><strong className={styles.railTitle}>Các ngày</strong>{content.days.map(d=><button key={d.key} className={styles.dayButton} aria-current={day?.key===d.key} onClick={()=>setSelected(d.dayNumber)}><strong>Ngày {d.dayNumber}</strong><small>{scheduleDayTypeLabel(d.dayNumber,content.days.length,d.dayType)}</small><small>{content.entries.filter(e=>e.startDayNumber<=d.dayNumber&&e.endDayNumber>=d.dayNumber).length} mục chương trình</small></button>)}{editable&&<><Button tone="secondary" disabled={Boolean(busy)||!structureAllowed||content.days.length>=(limits?.[1]??0)} title={locked?'Số ngày đã khóa vì khung chuyến có mẫu đã chốt':content.days.length>=(limits?.[1]??0)?'Đã đạt số ngày tối đa của nhóm thời lượng':undefined} onClick={()=>setDayChange({})}>Thêm ngày</Button><Button tone="secondary" disabled={Boolean(busy)||!structureAllowed||content.days.length<=(limits?.[0]??0)||(!gateway.supportsMiddleDayRemoval&&day?.dayNumber!==content.days.length)} title={locked?'Số ngày đã khóa vì khung chuyến có mẫu đã chốt':content.days.length<=(limits?.[0]??0)?'Đã đạt số ngày tối thiểu của nhóm thời lượng':undefined} onClick={()=>setDayChange({remove:day?.dayNumber})}>Xóa ngày đang chọn</Button>{!limits&&<small>Thời lượng hiện có chưa nằm trong nhóm 1–2 hoặc 3–5 ngày.</small>}{!gateway.supportsMiddleDayRemoval&&<small>Chỉ có thể xóa ngày cuối.</small>}</>}</nav>
+      <section id="planning-day-panel" role="tabpanel" aria-labelledby={`planning-tab-${tab}`}>{day?<DayPane content={content} day={day} editable={editable} busy={Boolean(busy)} tab={tab} violation={located} departurePorts={{...ports,data:ports.data.filter(port=>portMatchesScope(port,trip.info))}} onDeparture={value=>edit({...content,days:content.days.map(d=>d.key===day.key?{...d,...value}:d)})}
         onTitle={title=>edit({...content,days:content.days.map(d=>d.key===day.key?{...d,title}:d)})}
         onType={dayType=>{if(dayType==='SEA_DAY'&&content.stops.some(s=>s.arrivalDayNumber<=day.dayNumber&&s.departureDayNumber>=day.dayNumber)){setMessage('Ngày còn lần ghé cảng. Hãy xử lý lần ghé và tham quan liên quan trước khi chuyển thành ngày trên biển.');return}edit({...content,days:content.days.map(d=>d.key===day.key?{...d,dayType}:d)})}}
         onStop={stop=>setStopDrawer({stop})} onEntry={(kind,entry,stopClientKey)=>setEntryDrawer({kind,entry,stopClientKey})}
