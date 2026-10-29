@@ -1,3 +1,4 @@
+import type { ItineraryDayRole } from '@/domain/itinerary-day'
 import { SHIP_TIME_ZONE, zonedInput } from '@/shared/lib/journey-time'
 export type ItineraryStatus =
   | 'DRAFT'
@@ -67,6 +68,7 @@ export type ItineraryDay = {
   dayNumber: number
   date: string
   dayType: ItineraryDayType
+  dayRole?: ItineraryDayRole
   shipTimeZoneId?: string | null
   description?: string | null
 }
@@ -86,6 +88,7 @@ export function validateItineraryDay(draft: ItineraryDayDraft, itinerary: Itiner
   if (numbers.some((number, index) => number !== index + 1)) return 'Ngày hành trình phải liên tục từ 1 và không trùng số ngày.'
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date || date < itinerary.startDate || date > itinerary.endDate) return 'Ngày phải hợp lệ và nằm trong khoảng ngày của lịch trình.'
   if (others.some(day => day.date === date || (day.dayNumber < dayNumber && day.date > date) || (day.dayNumber > dayNumber && day.date < date))) return 'Ngày thực tế phải theo đúng thứ tự và không trùng ngày khác.'
+  if (date === itinerary.endDate && draft.dayType !== 'PORT_DAY') return 'Ngày kết thúc phải chọn cảng trả khách.'
   if (!['SEA_DAY', 'PORT_DAY'].includes(draft.dayType)) return 'Vui lòng chọn ngày trên biển hoặc ngày ghé cảng.'
   if (editingId || draft.shipTimeZoneId) {
     try { new Intl.DateTimeFormat('vi-VN', { timeZone: draft.shipTimeZoneId || 'invalid' }) } catch { return 'Vui lòng nhập múi giờ tàu hợp lệ, ví dụ Asia/Ho_Chi_Minh.' }

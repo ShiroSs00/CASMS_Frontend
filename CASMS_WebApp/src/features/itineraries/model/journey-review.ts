@@ -29,6 +29,7 @@ export function reviewJourney(days: ItineraryDay[], stops: CruiseStop[], ports: 
     if (day.dayNumber !== index + 1) add(`sequence-${day.itineraryDayId}`, 'Thứ tự ngày cần liên tục từ ngày 1.', day.itineraryDayId)
     if (!['SEA_DAY', 'PORT_DAY'].includes(day.dayType)) add(`type-${day.itineraryDayId}`, 'Ngày chưa được xác định loại.', day.itineraryDayId)
     if (day.dayType === 'PORT_DAY' && !linked.length) add(`port-${day.itineraryDayId}`, `Ngày ${day.dayNumber}: chưa có lần ghé cảng.`, day.itineraryDayId)
+    if (index === maxDays - 1 && day.dayType !== 'PORT_DAY') add(`end-${day.itineraryDayId}`, 'Ngày kết thúc phải chọn cảng trả khách.', day.itineraryDayId)
     if (day.dayType === 'SEA_DAY' && linked.length) add(`sea-${day.itineraryDayId}`, `Ngày ${day.dayNumber}: ngày trên biển đang trùng lần ghé cảng.`, day.itineraryDayId)
     if (day.shipTimeZoneId !== SHIP_TIME_ZONE) add(`zone-${day.itineraryDayId}`, `Ngày ${day.dayNumber}: lưu lại ngày để áp dụng giờ Việt Nam.`, day.itineraryDayId)
   }

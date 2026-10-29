@@ -1,6 +1,13 @@
 /* Presentation is limited to the Cruise Manager workspace, including nested editors. */
 .managerRoot { min-width: 0; }
 .modalForm { display: grid; gap: 16px; min-width: 0; }
+.reviewPanel{border:2px solid var(--ui-brand);border-radius:var(--ui-panel-radius)}
+.reviewSummary{padding:20px;margin:16px 0;background:var(--ui-subtle);border-radius:var(--ui-panel-radius);line-height:1.7}.reviewSummary>p{margin:12px 0}.submitReady{color:var(--color-success-300);font-weight:600}.reviewSummary .planActions{margin:16px 0}.reviewSummary .planActions button{min-height:48px}
+@media(max-width:600px){.reviewSummary{padding:16px}.reviewSummary .planActions{flex-direction:column;align-items:stretch}}
+.programToolbar{display:flex;gap:20px;align-items:end;justify-content:space-between;margin:20px 0 16px;flex-wrap:wrap}.programToolbar>div{flex:1;max-width:32rem;min-width:0}.programToolbar p{margin:0 0 12px;color:var(--ui-muted);font-size:13px}
+.programList{display:grid;gap:12px;list-style:none;margin:0 0 20px;padding:0}.programList>li{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px;border:1px solid var(--ui-border);border-radius:var(--ui-panel-radius);background:var(--ui-surface)}
+.programInfo{min-width:0;flex:1}.programInfo h3{margin:0;font-size:15px;line-height:1.6;overflow-wrap:anywhere}.programInfo p{margin:6px 0 0;color:var(--ui-muted);font-size:13px;line-height:1.65;overflow-wrap:anywhere}.programMeta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:10px;font-size:13px;font-variant-numeric:tabular-nums}.programList .sectionActions{flex-shrink:0}.emptyProgram{padding:20px;background:var(--ui-subtle);border-radius:var(--ui-panel-radius);line-height:1.7}
+@media(max-width:768px){.programList>li{align-items:stretch;flex-direction:column;gap:12px}.programToolbar>div{max-width:none;flex-basis:100%}.programToolbar{gap:8px}.programToolbar p{margin:0}.programList .sectionActions button{flex:1}}
 .modalForm > fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }
 .modalForm > fieldset > * { min-width: 0; }
 .sourceSearch { display: flex; gap: 12px; align-items: end; }

@@ -1,3 +1,4 @@
+import { itineraryDayRole, itineraryDayRoleLabels } from '@/domain/itinerary-day'
 import {useLocation} from 'react-router'
 import {Badge,Notice,Panel,PermissionLink} from '@/shared/ui'
 import {businessCopy} from '@/shared/i18n/business-copy'
@@ -16,7 +17,7 @@ export function InheritedSourcePlan({source,returnState}:{source:PublishedSource
    <ol className={styles.inheritedDays}>{source.days.toSorted((a,b)=>a.dayNumber-b.dayNumber).map(day=>{
      const stops=source.stops.filter(v=>v.arrivalDayNumber<=day.dayNumber&&v.departureDayNumber>=day.dayNumber).toSorted((a,b)=>a.stopOrder-b.stopOrder)
      const entries=source.entries.filter(v=>v.startDayNumber<=day.dayNumber&&v.endDayNumber>=day.dayNumber)
-     return <li key={day.dayNumber}><div className={styles.sourceDayHeading}><strong>Ngày {day.dayNumber}</strong><span>{day.dayType==='SEA_DAY'?'Trên biển':day.dayType==='PORT_DAY'?'Ghé cảng':'Chưa xác định loại ngày'}</span></div>{day.title&&<h3>{day.title}</h3>}
+     return <li key={day.dayNumber}><div className={styles.sourceDayHeading}><strong>Ngày {day.dayNumber}</strong><span>{itineraryDayRoleLabels[day.dayRole??itineraryDayRole(day.dayNumber,source.days.length)]} · {day.dayType==='SEA_DAY'?'Trên biển':day.dayType==='PORT_DAY'?'Xuống bờ':'Chưa xác định trạng thái'}</span></div>{day.dayNumber===1&&<p>Cảng khởi hành: {day.departurePortName||'Chưa chọn'} · Giờ dự kiến: {clock(day.plannedDepartureTime??null)} (giờ Việt Nam)</p>}{day.title&&<h3>{day.title}</h3>}
        {stops.map(stop=><p key={stop.clientKey}><strong>Lần ghé {stop.stopOrder} · {stop.portName||'Chưa có tên cảng'}</strong><br/>Ngày {stop.arrivalDayNumber} {clock(stop.plannedArrivalTime)} → Ngày {stop.departureDayNumber} {clock(stop.plannedDepartureTime)} <small>· giờ cảng{stop.timeZoneId?' · '+stop.timeZoneId:''}</small></p>)}
        {entries.length>0&&<details open={entries.length<=3}><summary>Chương trình theo nguồn · {entries.length} mục</summary><ul>{entries.map(entry=><li key={entry.clientKey}><span>{kinds[entry.kind]}</span><strong>{entry.title}</strong><p>Ngày {entry.startDayNumber} {clock(entry.plannedStartTime)} → Ngày {entry.endDayNumber} {clock(entry.plannedEndTime)} · {entry.kind==='SHORE_EXCURSION'?'giờ cảng':'giờ Việt Nam'}</p>{entry.locationText&&<p>{entry.locationText}</p>}</li>)}</ul></details>}
      </li>

@@ -7,7 +7,7 @@ import { decodePricingPolicy } from '../model/pricing-policy'
 import {PricingReview} from './PricingReview'
 import { PricingDraftFields } from './PricingDraftFields'
 
-export function DeparturePricingPolicy({ cruiseId,onChanged }: { cruiseId:string;onChanged?:()=>void }) {
+export function DeparturePricingPolicy({ cruiseId,onChanged,readOnly=false }: { cruiseId:string;onChanged?:()=>void;readOnly?:boolean }) {
   const access=useSessionAccess()
   const allowed=['CRUISE_READ','CRUISE_UPDATE_DRAFT','CRUISE_OPEN_SALE','BOOKING_READ'].some(permission=>access.has(permission))
   const query=useReadQuery(`pricing-policy:${access.userId}:${access.status}:${access.permissions.join(',')}:${cruiseId}:${allowed}`,useCallback(signal=>
@@ -29,7 +29,7 @@ export function DeparturePricingPolicy({ cruiseId,onChanged }: { cruiseId:string
       ['Phí cảng mỗi khách',amount(data.portFeePerPassenger)],['Thuế suất',percent(data.taxRate)],['Tỷ lệ đặt cọc',percent(data.depositPercentage)],
       ['Tất toán trước khởi hành',data.finalPaymentDueDays==null?'Chưa thiết lập':`${data.finalPaymentDueDays} ngày`],['Thanh toán đủ trước khởi hành',data.fullPaymentCutoffDays==null?'Chưa thiết lập':`${data.fullPaymentCutoffDays} ngày`],
     ]}/><p>Điều khoản hủy: {data.cancellationPolicy??'Chưa thiết lập'}</p></>}
-    {data&&<PricingReview policy={data} onSaved={saved}/>}
-    {data?.status!=='PENDING_APPROVAL'&&access.roles.includes('CRUISE_MANAGER')&&access.has('CRUISE_UPDATE_DRAFT')&&<PricingDraftFields cruiseId={cruiseId} policy={data??undefined} onSaved={saved}/>} 
+    {!readOnly&&data&&<PricingReview policy={data} onSaved={saved}/>}
+    {!readOnly&&data?.status!=='PENDING_APPROVAL'&&access.roles.includes('CRUISE_MANAGER')&&access.has('CRUISE_UPDATE_DRAFT')&&<PricingDraftFields cruiseId={cruiseId} policy={data??undefined} onSaved={saved}/>}
   </Panel>
 }

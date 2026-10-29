@@ -26,7 +26,7 @@ export function DepartureTabs({section,onChange}:{section:DepartureSection;onCha
     if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return
     event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length
     onChange(tabs[next][0]);document.getElementById('departure-tab-'+tabs[next][0])?.focus()
-  }}>{manager&&key==='sales'?'Cabin và khách':label}</button>)}</div>
+  }}>{label}</button>)}</div>
 }
 
 export function PreparationOverview({detail,loading,onSection}:{detail:CruiseDetailView;loading:boolean;onSection:(section:DepartureSection)=>void}) {
@@ -46,7 +46,7 @@ export function PreparationOverview({detail,loading,onSection}:{detail:CruiseDet
           {sections.some(([key])=>key===group.destination) ? <Button tone="secondary" onClick={()=>onSection(group.destination)}>Xem công việc liên quan</Button> : <span>Chưa có quyền xem phần liên quan</span>}
         </section>)}
       </div>
-      <div className={styles.workLinks}>{sections.filter(([key])=>key!=='overview').map(([key,label])=><button key={key} type="button" onClick={()=>onSection(key)}><span>{!showChecks&&key==='sales'?'Cabin và khách':label}</span><span aria-hidden="true">→</span></button>)}</div>
+      <div className={styles.workLinks}>{sections.filter(([key])=>key!=='overview').map(([key,label])=><button key={key} type="button" onClick={()=>onSection(key)}><span>{label}</span><span aria-hidden="true">→</span></button>)}</div>
     </Panel>
     {showChecks&&access.canDo('CRUISE_VALIDATE')&&<Panel title="Việc cần xử lý">{loading?<Loading label="Đang đọc kết quả kiểm tra…"/>:problems.length?<ul className={styles.problems}>{problems.slice(0,3).map(check=><li key={check.key} className={styles.problem}><div><strong>{check.label}</strong><p>{check.reason}</p></div><Button tone="text" onClick={()=>onSection(allowedDepartureSections(access).some(([key])=>key===preparationIssueSection(check))?preparationIssueSection(check):'checks')}>Đi xử lý</Button></li>)}</ul>:<p>{detail.readiness.state==='READY'?'Không có vấn đề trong bộ kiểm tra vận hành hiện có.':'Chưa có đủ kết quả để xác định các điều kiện còn thiếu.'}</p>}{problems.length>3&&<Button tone="text" onClick={()=>onSection('checks')}>Xem toàn bộ điều kiện</Button>}</Panel>}
   </div>
@@ -55,7 +55,7 @@ export function PreparationOverview({detail,loading,onSection}:{detail:CruiseDet
 export function ProgramDestinations({detail}:{detail:CruiseDetailView}) {
   const access=useSessionAccess()
   const canOpen=(path:string)=>canRoleOpenAdminPath(access.roles,path,'',access)
-  return <Panel title="Chương trình và dịch vụ"><div className={styles.links}>
+  return <Panel title="Danh mục và công việc liên quan"><div className={styles.links}>
     {access.has('ACTIVITY_READ')&&canOpen('/admin/activities')&&<div className={styles.linkRow}><div><strong>Hoạt động trên tàu</strong><p>Cấu hình hoạt động của lần khởi hành đang xem.</p></div><ButtonLink tone="secondary" to={access.canDo('ACTIVITY_CREATE')&&canOpen('/admin/activities/new')?'/admin/activities/new?'+new URLSearchParams({cruiseId:detail.cruise.cruiseId,returnTo:'/admin/cruises/'+detail.cruise.cruiseId+'?section=program'}):'/admin/activities?'+new URLSearchParams({cruiseId:detail.cruise.cruiseId})}>{access.canDo('ACTIVITY_CREATE')?'Tạo hoạt động cho chuyến':'Mở hoạt động'}</ButtonLink></div>}
     {access.has('EXCURSION_READ')&&<div className={styles.linkRow}><div><strong>Tour tham quan trên bờ</strong><p>Đối chiếu đúng lần ghé và giờ địa phương của cảng; cùng một cảng có thể được ghé nhiều lần.</p></div>{allowedDepartureSections(access).some(([key])=>key==='schedule')?<ButtonLink tone="secondary" to={'/admin/cruises/'+encodeURIComponent(detail.cruise.cruiseId)+'?section=schedule'}>Xem lịch và lần ghé</ButtonLink>:<span>Chưa có quyền xem lịch lần khởi hành</span>}</div>}
     {access.has('SERVICE_READ')&&canOpen('/admin/services')&&<div className={styles.linkRow}><div><strong>Dịch vụ và khung phục vụ</strong><p>Cần đối chiếu kế hoạch phục vụ và bằng chứng với bộ phận phụ trách. Khung phục vụ không mặc nhiên tạo suất đặt hoặc xác nhận hoàn tất.</p></div><ButtonLink tone="secondary" to="/admin/services">Mở dịch vụ</ButtonLink></div>}

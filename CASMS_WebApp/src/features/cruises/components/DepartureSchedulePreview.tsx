@@ -17,7 +17,8 @@ export function DepartureSchedulePreview({ sourceVersionId, departure, contextKe
   const current = request?.key === key ? request : null
   const query = useReadQuery('departure-preview:' + key + ':' + Boolean(current), useCallback(signal => current ? departureApi.preview(current.sourceVersionId, current.instant, signal) : Promise.resolve(null), [current]))
   const validBasis = Boolean(query.data && query.data.sourceVersionRevision != null && query.data.days.length && query.data.days.every(day => day.shipTimeZoneId === SHIP_TIME_ZONE))
-  const canApply = Boolean(current && !disabled && !query.loading && !query.error && validBasis && query.data?.returnDatetime && query.data.departurePortId && query.data.returnPortId)
+  const startsAtSea = query.data?.days.find(day => day.dayNumber === 1)?.dayType === 'SEA_DAY'
+  const canApply = Boolean(current && !disabled && !query.loading && !query.error && validBasis && query.data?.returnDatetime && (query.data.departurePortId || startsAtSea) && query.data.returnPortId)
 
   function preview() {
     try {
@@ -37,7 +38,7 @@ export function DepartureSchedulePreview({ sourceVersionId, departure, contextKe
   return <Panel title="Xem trước lịch theo ngày thực tế" subtitle="Ngày kết thúc và các lần ghé do hệ thống tính từ phiên bản nguồn; xem trước chưa lưu dữ liệu.">
     <Button tone="secondary" disabled={disabled || Boolean(current && query.loading)} onClick={preview}>Xem trước lịch</Button>
     {error && <Notice title="Chưa xem trước được" tone="error">{error}</Notice>}
-    {appliedKey === key && <p className={styles.applied} role="status">Đã áp dụng ngày kết thúc và cảng từ bản xem trước.</p>}
+    {appliedKey === key && <p className={styles.applied} role="status">Đã áp dụng ngày kết thúc và cảng khởi hành từ lịch xem trước.</p>}
     {current && openKey === key && <Modal wide protectChanges={false} title="Xem trước lịch trình" description="Lịch theo ngày thực tế, các lần ghé cảng và chương trình từ phiên bản nguồn. Giờ tàu dùng múi giờ Việt Nam; giờ ghé dùng múi giờ của cảng." onClose={() => setOpenKey(null)} footer={<>
       <Button tone="secondary" onClick={() => setOpenKey(null)}>Đóng</Button>
       <Button disabled={!canApply} onClick={apply}>Áp dụng lịch này</Button>

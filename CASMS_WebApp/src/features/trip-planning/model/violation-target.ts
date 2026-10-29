@@ -7,5 +7,5 @@ export function violationTarget(violation:Violation){
   const path=violation.fieldPath??'',match=/^(stops|entries)\[clientKey=([^\]]+)\]\.([A-Za-z]+)$/.exec(path),day=/^days\[(\d+)\]\.([A-Za-z]+)$/.exec(path)
   const kind=match?.[1]??(violation.entityType==='STOP'?'stops':violation.entityType==='ENTRY'?'entries':day?'days':'')
   const field=match?.[3]??day?.[2]??violation.field??''
-  return {kind,key:violation.clientKey??match?.[2],dayNumber:violation.dayNumber??(day?Number(day[1]):undefined),fieldId:kind==='stops'?stopFields[field]:kind==='entries'?entryFields[field]:kind==='days'?(field==='dayType'?'planning-day-type':field==='title'?'planning-day-title':undefined):undefined}
+  return {kind,key:violation.clientKey??match?.[2],dayNumber:violation.dayNumber??(day?Number(day[1]):undefined),fieldId:kind==='stops'?stopFields[field]:kind==='entries'?entryFields[field]:kind==='days'?(field==='dayType'?'planning-day-type':field==='title'?'planning-day-title':field==='departurePortId'?'planning-departure-port':field==='plannedDepartureTime'?'planning-departure-time':undefined):undefined}
 }
