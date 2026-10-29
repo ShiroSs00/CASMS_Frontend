@@ -51,11 +51,11 @@ export function validateItineraryDraft(draft: ItineraryDraft, context: {
   const endDate = draft.endDate || (!editing ? (cruise ? zonedInput(cruise.returnDatetime, SHIP_TIME_ZONE).slice(0,10) : '') : '') || ''
   const isDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value
   if (!isDate(startDate)) errors.startDate = 'Vui lòng chọn ngày bắt đầu hợp lệ.'
-  if (!isDate(endDate) || endDate <= startDate) errors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu.'
+  if (!isDate(endDate) || endDate < startDate) errors.endDate = 'Ngày kết thúc không được trước ngày khởi hành.'
   if (cruise) {
     const start = zonedInput(cruise.departureDatetime, SHIP_TIME_ZONE).slice(0,10), end = zonedInput(cruise.returnDatetime, SHIP_TIME_ZONE).slice(0,10)
-    if (startDate < start || startDate > end) errors.startDate = 'Ngày bắt đầu phải nằm trong khoảng ngày của chuyến (giờ Việt Nam).'
-    if (endDate > end || endDate < start) errors.endDate = 'Ngày kết thúc phải nằm trong khoảng ngày của chuyến (giờ Việt Nam).'
+    if (startDate !== start) errors.startDate = 'Ngày đầu phải là ngày khởi hành theo giờ tàu Việt Nam.'
+    if (endDate !== end) errors.endDate = 'Ngày cuối phải là ngày kết thúc chuyến theo giờ tàu Việt Nam.'
   }
   if ((editing || draft.itineraryType) && !['ROUND_TRIP', 'ONE_WAY'].includes(draft.itineraryType)) errors.itineraryType = 'Vui lòng chọn loại hành trình hợp lệ.'
   return errors
@@ -80,6 +80,7 @@ export function validateItineraryDay(draft: ItineraryDayDraft, itinerary: Itiner
   const inferredTime = Date.parse(itinerary.startDate) + (dayNumber - 1) * 86400000
   if (!Number.isFinite(inferredTime)) return 'Ngày bắt đầu lịch trình không hợp lệ.'
   const date = !editingId && !draft.date ? new Date(inferredTime).toISOString().slice(0, 10) : draft.date
+  if (date !== new Date(inferredTime).toISOString().slice(0,10)) return 'Ngày thứ N phải bằng ngày khởi hành cộng N−1 ngày.'
   const others = days.filter(day => day.itineraryDayId !== editingId)
   const numbers = [...others.map(day => day.dayNumber), dayNumber].sort((a, b) => a - b)
   if (numbers.some((number, index) => number !== index + 1)) return 'Ngày hành trình phải liên tục từ 1 và không trùng số ngày.'

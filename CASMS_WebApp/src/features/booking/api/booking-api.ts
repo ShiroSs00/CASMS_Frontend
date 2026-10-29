@@ -14,13 +14,13 @@ export const liveCruiseCatalogApi = {
  },
  async list(page:number, signal?:AbortSignal, cruiseType?: 'ONE_DAY' | 'MULTI_DAYS') {
   const data = await apiRequest<LiveCruisePageDto>('/cruise', {
-   query: { status:'PUBLISHED', page:page-1, size:6, sort:'departureDatetime,asc', cruiseType }, signal,
+   query: { status:'PUBLISHED', saleState:'OPEN_FOR_SALE', page:page-1, size:6, sort:'departureDatetime,asc', cruiseType }, signal,
   })
   return toPublishedPage(data)
  },
  async detail(id:string, signal?:AbortSignal) {
   if (!UUID_REGEX.test(id)) return null
-  const data = await apiRequest<LiveCruiseDto>(`/cruise/${encodeURIComponent(id)}`, { signal })
+  const data = await apiRequest<LiveCruiseDto>(`/cruise/${encodeURIComponent(id)}`, { query:{saleState:'OPEN_FOR_SALE'}, signal })
   const cruise = toPublishedCruise(data)
   if (cruise && cruise.id !== id) throw new Error('Chuyến đi trả về không khớp mã yêu cầu.')
   return cruise

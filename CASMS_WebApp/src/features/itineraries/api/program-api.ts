@@ -16,12 +16,18 @@ function activities(value: unknown): ProgramActivity[] {
 }
 export const programApi = {
   updateExcursion: (row: ProgramExcursion, startTime: string, plannedReturnTime: string, meetingPoint: string) => apiRequestRaw(`/shore-excursions/${encodeURIComponent(row.shoreExcursionId)}`, value => rows<ProgramExcursion>([value], ['shoreExcursionId', 'cruiseStopId', 'excursionName', 'startTime', 'plannedReturnTime', 'status'])[0], { method: 'PUT', body: { cruiseStopId: row.cruiseStopId, supplierId: row.supplierId, excursionName: row.excursionName, startTime, plannedReturnTime, meetingPoint, minimumParticipants: row.minimumParticipants, maximumCapacity: row.maximumCapacity, price: row.price, currencyCode: row.currencyCode } }),
-  activities: async (cruiseId: string, signal?: AbortSignal) => activities(await apiRequest<unknown>('/activities', { signal })).filter(row => row.cruiseId === cruiseId),
+  activities: async (cruiseId: string, signal?: AbortSignal, scoped=false) => {
+    const result=activities(await apiRequest<unknown>(scoped?`/cruise-plans/${encodeURIComponent(cruiseId)}/activities`:'/activities', { signal }))
+    if(scoped&&result.some(row=>row.cruiseId!==cruiseId))throw new Error('Hoạt động trả về không thuộc lần khởi hành đang xem.')
+    return result.filter(row => row.cruiseId === cruiseId)
+  },
   excursions: (signal?: AbortSignal) => apiRequestRaw('/shore-excursions', value => {
-    const result = rows<ProgramExcursion>(value, ['shoreExcursionId', 'cruiseStopId', 'excursionName', 'startTime', 'plannedReturnTime', 'status', 'supplierId', 'meetingPoint'])
+    // Port-only catalog tours have no CruiseStop and do not belong to an operational itinerary.
+    const catalog=rows<ProgramExcursion>(value, ['shoreExcursionId', 'excursionName', 'startTime', 'plannedReturnTime', 'status', 'supplierId', 'meetingPoint'])
+    const result = rows<ProgramExcursion>(catalog.filter(row=>row.cruiseStopId!=null), ['shoreExcursionId', 'cruiseStopId', 'excursionName', 'startTime', 'plannedReturnTime', 'status', 'supplierId', 'meetingPoint'])
     if (result.some(row => !Number.isSafeInteger(row.maximumCapacity) || row.maximumCapacity < 1 || !Number.isFinite(Date.parse(row.startTime)) || !Number.isFinite(Date.parse(row.plannedReturnTime)))) throw new Error('Dữ liệu tham quan chưa đầy đủ.')
     return result
-  }, { signal }),
+  }, {signal}),
   services: async (signal?: AbortSignal) => rows<ProgramService>(await apiRequest<unknown>('/servicepackage/services', { signal }), ['id', 'name', 'type']),
   updateActivity: async (id: string, body: ActivityUpdateRequest) => activities([await apiRequest<unknown>(`/activities/${encodeURIComponent(id)}`, { method: 'PUT', body })])[0],
 }

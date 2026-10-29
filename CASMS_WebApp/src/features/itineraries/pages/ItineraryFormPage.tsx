@@ -56,7 +56,7 @@ export function ItineraryFormPage() {
 
   const cruise = context?.cruises.find(item => item.cruiseId === draft.cruiseId)
   const existing = context?.itineraries.find(item => item.cruiseId === draft.cruiseId && item.itineraryId !== itineraryId)
-  const effectiveDraft = { ...draft, startDate: draft.startDate || (cruise ? zonedInput(cruise.departureDatetime, SHIP_TIME_ZONE).slice(0,10) : ''), endDate: draft.endDate || (cruise ? zonedInput(cruise.returnDatetime, SHIP_TIME_ZONE).slice(0,10) : '') }
+  const effectiveDraft = { ...draft, startDate: cruise ? zonedInput(cruise.departureDatetime, SHIP_TIME_ZONE).slice(0,10) : draft.startDate, endDate: cruise ? zonedInput(cruise.returnDatetime, SHIP_TIME_ZONE).slice(0,10) : draft.endDate }
   const eligible = context?.cruises.filter(item => !context.itineraries.some(itinerary => itinerary.cruiseId === item.cruiseId && itinerary.itineraryId !== itineraryId)) ?? []
   const options = eligible.filter(item => item.cruiseId === draft.cruiseId || `${item.cruiseCode} ${item.cruiseName}`.toLocaleLowerCase('vi').includes(search.toLocaleLowerCase('vi')))
   function update<K extends keyof ItineraryDraft>(key: K, value: ItineraryDraft[K]) { setDraft(current => ({ ...current, [key]: value })) }
@@ -87,7 +87,7 @@ export function ItineraryFormPage() {
     {!context && !contextError && <Loading label="Đang tải chuyến và lịch trình…" />}
     {contextError && <Notice title="Chưa tải đủ thông tin chuyến" tone="error"><p>{contextError}</p><Button onClick={() => setAttempt(value => value + 1)}>Thử lại</Button></Notice>}
     {context && !editing && !eligible.length && <Notice title="Chưa có chuyến để tạo lịch trình"><p>Chưa có chuyến đi hoặc các chuyến hiện có đã có lịch trình.</p><ButtonLink to="/admin/cruises/new">Tạo chuyến đi</ButtonLink><ButtonLink to="/admin/itineraries" tone="secondary">Xem lịch trình hiện có</ButtonLink></Notice>}
-    {effectiveDraft.startDate && effectiveDraft.startDate === effectiveDraft.endDate && <Notice title="Lịch trình một ngày chưa được hỗ trợ" tone="warning">Hệ thống hiện yêu cầu ngày kết thúc sau ngày bắt đầu. Chuyến đi đã lưu được giữ nguyên; cần bổ sung hỗ trợ lịch trình một ngày trước khi tiếp tục.</Notice>}
+    <p>Ngày đầu và ngày cuối lấy từ ngày khởi hành và ngày kết thúc của lần khởi hành theo giờ tàu Việt Nam. Lịch trình một ngày có cùng ngày bắt đầu và kết thúc.</p>
     <EditorLayout guidance={[{title:"Chuyến liên kết",description:"Kiểm tra khoảng ngày của chuyến được chọn."},{title:"Tiếp tục lập tuyến",description:"Sau khi lưu, mở lịch trình để cấu hình ngày và cảng ghé."}]}><form ref={form} onSubmit={submit} noValidate><Panel title="Thông tin lịch trình"><div className={styles.formGrid}>
       {!editing && <Field htmlFor="cruise-search" label="Tìm chuyến theo tên hoặc mã"><input id="cruise-search" type="search" value={search} onChange={event => setSearch(event.target.value)} /></Field>}
       <Field htmlFor="itinerary-cruiseId" label="Chuyến đi *" error={errors.cruiseId}>
@@ -97,14 +97,14 @@ export function ItineraryFormPage() {
       {cruise && <p>Khoảng ngày chuyến (giờ Việt Nam): {zonedInput(cruise.departureDatetime, SHIP_TIME_ZONE).slice(0,10)} → {zonedInput(cruise.returnDatetime, SHIP_TIME_ZONE).slice(0,10)}. <ButtonLink to={`/admin/cruises/${cruise.cruiseId}`} tone="secondary">Xem chuyến</ButtonLink></p>}
       <Field htmlFor="itinerary-itineraryName" label="Tên lịch trình" hint={editing ? undefined : "Để trống để tạo tên theo chuyến đi."} error={errors.itineraryName}><input {...field('itineraryName')} maxLength={200} value={draft.itineraryName} onChange={event => update('itineraryName', event.target.value)} required={editing} /></Field>
       <Field htmlFor="itinerary-startDate" label="Ngày bắt đầu" hint={[
-        !editing ? 'Để trống để lấy ngày khởi hành của chuyến.' : '',
+        'Lấy từ ngày khởi hành của chuyến.',
         cruise ? `Khởi hành theo Cruise: ${cruiseTime(cruise.departureDatetime)} (giờ Việt Nam). Giờ tham chiếu, không lưu riêng trong lịch trình.` : '',
-      ].filter(Boolean).join(' ') || undefined} error={errors.startDate}><input {...field('startDate')} type="date" value={effectiveDraft.startDate} onChange={event => update('startDate', event.target.value)} required={editing} /></Field>
+      ].filter(Boolean).join(' ') || undefined} error={errors.startDate}><input {...field('startDate')} type="date" value={effectiveDraft.startDate} readOnly required={editing} /></Field>
       <Field htmlFor="itinerary-endDate" label="Ngày kết thúc" hint={[
-        !editing ? 'Để trống để lấy ngày kết thúc của chuyến.' : '',
+        'Lấy từ ngày kết thúc của chuyến.',
         cruise ? `Kết thúc theo Cruise: ${cruiseTime(cruise.returnDatetime)} (giờ Việt Nam). Giờ tham chiếu, không lưu riêng trong lịch trình.` : '',
-      ].filter(Boolean).join(' ') || undefined} error={errors.endDate}><input {...field('endDate')} type="date" value={effectiveDraft.endDate} onChange={event => update('endDate', event.target.value)} required={editing} /></Field>
+      ].filter(Boolean).join(' ') || undefined} error={errors.endDate}><input {...field('endDate')} type="date" value={effectiveDraft.endDate} readOnly required={editing} /></Field>
       <Field htmlFor="itinerary-itineraryType" label="Loại hành trình" error={errors.itineraryType}><select {...field('itineraryType')} value={draft.itineraryType} onChange={event => update('itineraryType', event.target.value as ItineraryType)}>{!editing && <option value="">Tự xác định theo cảng đi và về</option>}<option value="ROUND_TRIP">Khứ hồi</option><option value="ONE_WAY">Một chiều</option></select></Field>
-    </div>{error && <Notice title="Chưa thể lưu" tone="error"><p>{error}</p></Notice>}<div className={styles.actions}><Button tone="secondary" disabled={busy} onClick={() => navigate(editing && itineraryId ? `/admin/itineraries/${itineraryId}` : '/admin/itineraries')}>Hủy</Button>{access.canDo(editing ? 'ITINERARY_UPDATE_DRAFT' : 'ITINERARY_CREATE') && <Button type="submit" disabled={busy || !access.canDo(editing ? 'ITINERARY_UPDATE_DRAFT' : 'ITINERARY_CREATE') || !recordReady || !context || Boolean(contextError) || Boolean(existing) || effectiveDraft.startDate === effectiveDraft.endDate || (!editing && !eligible.length)}>{busy ? 'Đang lưu…' : 'Lưu lịch trình'}</Button>}</div></Panel></form></EditorLayout>
+    </div>{error && <Notice title="Chưa thể lưu" tone="error"><p>{error}</p></Notice>}<div className={styles.actions}><Button tone="secondary" disabled={busy} onClick={() => navigate(editing && itineraryId ? `/admin/itineraries/${itineraryId}` : '/admin/itineraries')}>Hủy</Button>{access.canDo(editing ? 'ITINERARY_UPDATE_DRAFT' : 'ITINERARY_CREATE') && <Button type="submit" disabled={busy || !access.canDo(editing ? 'ITINERARY_UPDATE_DRAFT' : 'ITINERARY_CREATE') || !recordReady || !context || Boolean(contextError) || Boolean(existing) || (!editing && !eligible.length)}>{busy ? 'Đang lưu…' : 'Lưu lịch trình'}</Button>}</div></Panel></form></EditorLayout>
   </ItineraryFrame>
 }
