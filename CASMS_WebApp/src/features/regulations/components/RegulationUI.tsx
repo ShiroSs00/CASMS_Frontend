@@ -25,7 +25,7 @@ export function PageHeader({
   actions,
 }: {
   title: string
-  description: string
+  description?: string
   actions?: ReactNode
 }) {
   return <SharedPageHeader title={title} description={description} actions={actions} breadcrumb="VẬN HÀNH / QUY ĐỊNH" />

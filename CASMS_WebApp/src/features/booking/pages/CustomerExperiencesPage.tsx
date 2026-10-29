@@ -18,7 +18,7 @@ function Experiences({ bookingId }: { bookingId: string }) {
   const access = useSessionAccess()
   const query = useReadQuery('customer-experience-booking:' + bookingId, useCallback(signal => realBookingApi.get(bookingId, signal), [bookingId]))
   const booking = query.data
-  return <RealBookingFrame><div className={styles.stack}><ButtonLink tone="secondary" to={'/my-bookings/' + encodeURIComponent(bookingId)}>← Về chi tiết đặt chỗ</ButtonLink><PageHeader breadcrumb="ĐẶT CHỖ / TRẢI NGHIỆM" title="Hoạt động & dịch vụ" description="Đăng ký riêng theo tài khoản. Thông tin gói, yêu cầu dịch vụ, đăng ký tham gia và thanh toán là các trạng thái riêng." />
+  return <RealBookingFrame><div className={styles.stack}><ButtonLink tone="secondary" to={'/my-bookings/' + encodeURIComponent(bookingId)}>← Về chi tiết đặt chỗ</ButtonLink><PageHeader breadcrumb="ĐẶT CHỖ / TRẢI NGHIỆM" title="Hoạt động & dịch vụ"  />
     <BookingReadState {...query} publicResource="đặt chỗ" />
     {booking && <><p>Đặt chỗ <strong>{booking.bookingReference}</strong> · {booking.cruiseName}</p>
       {access.canDo('ACTIVITY_READ') ? <CustomerActivities booking={booking} /> : <Notice title="Chưa có quyền xem hoạt động" tone="warning">Phiên hiện tại chưa được cấp quyền đọc hoạt động trên chuyến đi.</Notice>}

@@ -183,7 +183,7 @@ export function RegulationFormPage() {
   if (notFound) {
     return (
       <AdminFrame>
-        <PageHeader title="Không tìm thấy quy định" description="Không thể mở biểu mẫu chỉnh sửa." />
+        <PageHeader title="Không tìm thấy quy định"  />
         <Notice title="Dữ liệu không tồn tại" tone="error">
           <Button onClick={() => navigate('/admin/regulations')} tone="secondary">Về danh sách</Button>
         </Notice>
@@ -210,7 +210,7 @@ export function RegulationFormPage() {
       ) : null}
       {submitError ? <Notice title="Không lưu được dữ liệu" tone="error" role="alert">{submitError}</Notice> : null}
 
-      <EditorLayout guidance={[{title:"Phạm vi áp dụng",description:"Kiểm tra loại, phạm vi, giá trị và đơn vị của quy định."},{title:"Thời gian hiệu lực",description:"Đối chiếu thời điểm bắt đầu và kết thúc trước khi lưu."}]}><form noValidate onSubmit={(event) => void submit(event)}>
+      <EditorLayout ><form noValidate onSubmit={(event) => void submit(event)}>
         <Panel title="Thông tin quy định">
           <FormErrorSummary errors={errors} />
           <div className={styles.formGrid}><FormSection title="01 · Nội dung và phạm vi">

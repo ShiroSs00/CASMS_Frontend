@@ -1,7 +1,7 @@
 import { useCallback, useState, type FormEvent } from 'react'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, DataTable, Empty, Field, Notice, PageHeader, Panel, ProcessGuide } from '@/shared/ui'
+import {Button,DataTable,Empty,Field,Notice,PageHeader,Panel} from '@/shared/ui'
 import { realBookingApi } from '../api/real-booking-api'
 import { BookingReadState, RealBookingFrame } from '../components/RealBookingUI'
 import { BookingInstallments } from '../components/BookingInstallments'
@@ -33,11 +33,11 @@ function FinanceWorkspace() {
     const known = list.data?.content.find(row => row.bookingId.toLowerCase() === id.toLowerCase())
     setSelected({ id, reference: known?.bookingReference ?? 'Đặt chỗ được tra cứu', currency: known?.currency ?? '' }); setError('')
   }
-  return <RealBookingFrame admin><PageHeader title="Tài chính & lịch thanh toán" breadcrumb="TÀI CHÍNH" description="Đối chiếu khoản thu, hợp đồng và các đợt thanh toán." />
-    <ProcessGuide label="Đối chiếu khoản thu" steps={[{title:"Mở hồ sơ",description:"Chọn đặt chỗ hoặc tra cứu bằng ID được bàn giao."},{title:"Đối chiếu khoản thu",description:"Xem chứng từ và trạng thái giao dịch của hồ sơ."},{title:"Theo dõi kỳ hạn",description:"Đọc lịch thanh toán theo hợp đồng khi có quyền truy cập."}]} />
+  return <RealBookingFrame admin><PageHeader title="Tài chính & lịch thanh toán" breadcrumb="TÀI CHÍNH"  />
+
     {!canBookings && <Notice title="Danh sách đặt chỗ chưa khả dụng">{access.status === 'loading' ? 'Đang kiểm tra quyền truy cập…' : 'Tài khoản cần quyền xem đặt chỗ để mở danh sách và hợp đồng.'}</Notice>}
     <div className={styles.financeGrid}>
-    {canPayments && <Panel className={styles.financeLookup} title="Tra cứu khoản thu" subtitle="Dùng ID đặt chỗ trong hồ sơ bàn giao khi chưa mở được danh sách hoặc hợp đồng."><form onSubmit={openLedger}><Field htmlFor="finance-booking-id" label="ID đặt chỗ"><input id="finance-booking-id" required value={bookingId} onChange={event => setBookingId(event.target.value)} /></Field><Button type="submit">Mở khoản thu</Button></form>{error && <Notice title="Chưa tra cứu được" tone="error">{error}</Notice>}</Panel>}
+    {canPayments && <Panel className={styles.financeLookup} title="Tra cứu khoản thu" ><form onSubmit={openLedger}><Field htmlFor="finance-booking-id" label="ID đặt chỗ"><input id="finance-booking-id" required value={bookingId} onChange={event => setBookingId(event.target.value)} /></Field><Button type="submit">Mở khoản thu</Button></form>{error && <Notice title="Chưa tra cứu được" tone="error">{error}</Notice>}</Panel>}
     {canBookings && <Panel className={styles.financeList} title="Đặt chỗ"><BookingReadState {...list} />{list.data && <>
       {!list.data.content.length ? <Empty title="Chưa có đặt chỗ" /> : <DataTable label="Đặt chỗ và giá vé" headers={['Mã đặt chỗ', 'Chuyến đi', 'Trạng thái', 'Tổng giá vé', '']}>
         {list.data.content.map(item => <tr key={item.bookingId}><td>{item.bookingReference}</td><td>{item.cruiseName}</td><td>{bookingStatusName[item.bookingStatus]}</td><td>{item.agreedFareAmount != null && item.currency ? bookingMoney(item.agreedFareAmount, item.currency) : 'Chưa có'}</td><td><Button tone="secondary" onClick={() => setSelected({ id: item.bookingId, reference: item.bookingReference, currency: item.currency ?? '' })}>Xem khoản thu & lịch thanh toán</Button></td></tr>)}

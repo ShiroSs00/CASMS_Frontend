@@ -48,7 +48,7 @@ function PaymentLedgerContent({ bookingId, currency, onChanged }: { bookingId: s
     } catch (reason) { if(mutationOutcomeUnknown(reason)||!confirmation.clear())setConfirmUnknown(true);setError(reason instanceof Error ? reason.message : 'Chưa xác nhận được giao dịch.') }
     finally { lock.current = false; setBusy(false) }
   }
-  return <Panel title="Thu tiền & lịch sử giao dịch" subtitle="Khoản thu được ghi nhận riêng với lịch thanh toán của hợp đồng.">
+  return <Panel title="Thu tiền & lịch sử giao dịch" >
     {frozen&&<Notice title="Cần đối chiếu khoản thu trước khi tiếp tục" tone="warning">{intent.storageError?'Không đọc hoặc lưu được mã yêu cầu trên trình duyệt; chưa gửi yêu cầu mới.':confirmUnknown?'Chưa xác định kết quả xác nhận hoặc không lưu được trạng thái. Đối chiếu lịch sử với bộ phận thanh toán trước khi tiếp tục; không gửi lại xác nhận tự động.':'Khoản thu trước chưa rõ kết quả. Chỉ được gửi lại đúng số tiền, tiền tệ, phương thức và mã yêu cầu đã lưu.'}</Notice>}
     {canReconcile&&<Button tone="secondary" onClick={()=>{if(confirmation.clear())setConfirmUnknown(false)}}>Đã đối chiếu giao dịch đã xác nhận</Button>}
     {canRead ? <Button tone="secondary" disabled={busy || query.loading} onClick={() => { setPending(null); setError(''); query.retry(); onChanged() }}>Tải lại khoản thu</Button> : <Notice title="Chưa có quyền xem khoản thu">Tài khoản cần quyền đọc hoặc báo cáo thanh toán để đối chiếu lịch sử.</Notice>}

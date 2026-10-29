@@ -34,7 +34,7 @@ function DetailPage({ kind }: { kind: EntityKind }) {
   const open = (next: Operation) => { if (!access.canDo(operationPermission(kind, next))) return; mutation.clear(); setOperation(next) }
   const hostId = 'shipId' in item ? item.shipId : ''
   return <>
-    <PageHeader breadcrumb={`Vận hành / Tàu & đội tàu / ${sectionLabels[kind]} / Chi tiết`} title={entityName(item)} description="Thông tin và thao tác quản lý"
+    <PageHeader breadcrumb={`Vận hành / Tàu & đội tàu / ${sectionLabels[kind]} / Chi tiết`} title={entityName(item)}
       actions={<>
         {access.canDo(entityPermission(kind, 'UPDATE')) && <Link className={styles.link} to={`/admin/${kind}/${id}/edit`}>Chỉnh sửa</Link>}
         {'status' in item && (access.canDo(operationPermission(kind, 'status')) ? <Button disabled={!access.canDo(operationPermission(kind, 'status'))} onClick={() => open('status')}>Đổi trạng thái</Button> : null)}

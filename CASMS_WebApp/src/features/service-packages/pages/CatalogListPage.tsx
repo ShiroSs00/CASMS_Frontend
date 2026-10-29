@@ -32,7 +32,7 @@ export function ServiceRequestListPage() {
   const access = useSessionAccess()
   const query = useReadQuery('service-requests', servicePackageApi.requests), [search, setSearch] = useState(''), [status, setStatus] = useState('')
   const items = query.data?.filter(item => (!status || item.status === status) && (item.note ?? '').toLocaleLowerCase('vi').includes(search.toLocaleLowerCase('vi'))) ?? []
-  return <CatalogFrame><PageHeader breadcrumb="DỊCH VỤ TÀU" title="Yêu cầu dịch vụ" description="Theo dõi các yêu cầu, số lượng, phân công và tiến độ thực hiện." actions={access.canDo('SERVICE_REQUEST_CREATE') && <ButtonLink to="/admin/service-requests/new">Tạo yêu cầu dịch vụ</ButtonLink>} />
+  return <CatalogFrame><PageHeader breadcrumb="DỊCH VỤ TÀU" title="Yêu cầu dịch vụ"  actions={access.canDo('SERVICE_REQUEST_CREATE') && <ButtonLink to="/admin/service-requests/new">Tạo yêu cầu dịch vụ</ButtonLink>} />
     <CollectionSummary count={query.loading || query.error ? null : query.data?.length ?? null} visible={items.length} filtered={Boolean(search || status)} label="Yêu cầu đã tải" />
     <Panel title="Bộ lọc"><ListFilters label="Bộ lọc yêu cầu dịch vụ" actions={<Button tone="secondary" disabled={!search && !status} onClick={() => { setSearch(''); setStatus('') }}>Xóa bộ lọc</Button>}>
       <Field htmlFor="request-search" label="Nội dung ghi chú"><input id="request-search" type="search" placeholder="Nhập nội dung cần tìm" value={search} onChange={event => setSearch(event.target.value)} /></Field>

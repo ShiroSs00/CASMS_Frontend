@@ -20,8 +20,8 @@ export function ItineraryListPage() {
   const cruisesById = new Map(cruises.data?.map(cruise => [cruise.cruiseId, cruise]))
 
   return <ItineraryFrame>
-    <PageHeader breadcrumb="VẬN HÀNH / LỊCH TRÌNH" title="Lịch trình chuyến đi" description="Thiết kế ngày đi biển, điểm dừng và luồng phê duyệt cho từng chuyến đi." actions={<><ButtonLink tone="secondary" to="/admin/itinerary-history">Nhật ký điều chỉnh</ButtonLink><ButtonLink to="/admin/itineraries/new">Tạo lịch trình</ButtonLink></>} />
-    <Panel title="Danh sách lịch trình" subtitle="Mỗi chuyến đi có một lịch trình riêng.">
+    <PageHeader breadcrumb="VẬN HÀNH / LỊCH TRÌNH" title="Lịch trình chuyến đi"  actions={<><ButtonLink tone="secondary" to="/admin/itinerary-history">Nhật ký điều chỉnh</ButtonLink><ButtonLink to="/admin/itineraries/new">Tạo lịch trình</ButtonLink></>} />
+    <Panel title="Danh sách lịch trình" >
       {loading && <Loading label="Đang tải lịch trình…" />}
       {error && <Notice title="Không tải được dữ liệu" tone="error"><p>{error.message}</p><Button onClick={retry}>Thử lại</Button></Notice>}
       {cruises.error && <Notice title="Chưa tải được tên chuyến đi" tone="warning"><p>{cruises.error.message} Bạn vẫn có thể mở lịch trình hoặc chuyến tương ứng.</p><Button tone="secondary" onClick={cruises.retry}>Tải lại tên chuyến</Button></Notice>}

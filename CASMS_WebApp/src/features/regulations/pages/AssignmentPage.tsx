@@ -304,7 +304,7 @@ function AssignmentPage({ type }: { type: HostType }) {
           </Panel>
           <Panel
             title={`Kế thừa từ ${type === 'ship' ? 'GLOBAL' : 'SHIP / GLOBAL'} · ${snapshot.inherited.length}`}
-            subtitle="Quy định kế thừa chỉ đọc; không thể gỡ tại màn hình này."
+
           >
             <AssignmentTable direct={false} removePermission={`${prefix}_REMOVE`} onRemove={setRemoveItem} rows={snapshot.inherited} />
           </Panel>

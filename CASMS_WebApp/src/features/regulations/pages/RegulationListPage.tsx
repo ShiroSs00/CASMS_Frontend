@@ -72,7 +72,7 @@ export function RegulationListPage() {
     <AdminFrame>
       <PageHeader
         title="Quy định vận hành"
-        description="Tìm kiếm, theo dõi hiệu lực và quản lý trạng thái quy định."
+
         actions={
           <Button onClick={() => navigate('/admin/regulations/new')}>
             Tạo quy định

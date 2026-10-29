@@ -74,7 +74,7 @@ export function JourneyProgram({ day, activities, excursions, services, stops, p
         return <article className={styles.programCard} key={row.shoreExcursionId}><div><strong>{row.excursionName}</strong><p>{validTimeZone(zone) ? `${journeyTime(row.startTime, zone)} → ${journeyTime(row.plannedReturnTime, zone)} · ${zone}` : 'Cảng thiếu cấu hình múi giờ.'}</p>{issue && <Notice title="Cần điều chỉnh" tone="error">{issue}</Notice>}</div>{editable && ['DRAFT','OPEN'].includes(row.status) && access.canDo('EXCURSION_UPDATE') && <Button tone="secondary" disabled={!validTimeZone(zone)} onClick={() => setEditing({ excursion: row })}>Chỉnh sửa</Button>}<ButtonLink tone="secondary" to={`/admin/shore-excursions/${row.shoreExcursionId}`}>Chi tiết</ButtonLink></article>
       })}
     </Panel>}
-    {access.canDo('SERVICE_READ') && <Panel title="Khung phục vụ" subtitle="Nhà hàng, spa và các dịch vụ của tàu.">
+    {access.canDo('SERVICE_READ') && <Panel title="Khung phục vụ" >
       <Notice title="Chưa hỗ trợ lưu khung phục vụ kế hoạch" tone="warning">Hệ thống hiện quản lý lịch đặt chỗ và sức chứa dịch vụ. Chưa thể lưu khung giờ phục vụ theo ngày hoặc áp dụng nhiều ngày trong lịch trình.</Notice>
       <Field htmlFor="service-reference" label="Danh mục dịch vụ hiện có — chỉ tra cứu"><select id="service-reference" defaultValue=""><option value="">Xem danh mục dịch vụ</option>{services.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</select></Field>
     </Panel>}

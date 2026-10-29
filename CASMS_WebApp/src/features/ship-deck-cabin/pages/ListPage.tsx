@@ -71,7 +71,7 @@ function ListPage({ kind }: { kind: EntityKind }) {
   const visible = rows.slice((currentPage - 1) * 10, currentPage * 10)
   return <>
     <PageHeader title={titles[kind]} breadcrumb={`Vận hành / Tàu & đội tàu / ${sectionLabels[kind]}`}
-      description={kind === 'ships' ? 'Quản lý thông tin và trạng thái đội tàu.' : kind === 'decks' ? 'Theo dõi boong và cabin theo từng tàu.' : 'Quản lý cabin, sức chứa và trạng thái vận hành.'}
+
       actions={<ButtonLink to={`/admin/${kind}/new${initial.ship ? `?ship=${initial.ship}` : ''}`}>{kind === 'ships' ? 'Tạo tàu' : `Thêm ${kindLabels[kind]}`}</ButtonLink>} />
     {mutation.success && <Panel title="Kết quả thao tác"><Notice title="Thao tác thành công" tone="success">{mutation.success}</Notice></Panel>}
     <Panel title="Tìm kiếm & bộ lọc">

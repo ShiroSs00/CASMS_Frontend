@@ -124,7 +124,7 @@ export function IssueFormPage() {
       <PageHeader
         breadcrumb="SỰ CỐ VẬN HÀNH"
         title={isEdit ? `Chỉnh sửa sự cố ${existingIssue ? existingIssue.code : ''}` : 'Báo cáo sự cố mới'}
-        description={isEdit ? 'Chỉnh sửa thông tin sự cố khi còn ở trạng thái OPEN.' : 'Tạo mới hồ sơ sự cố vận hành phát sinh trên tàu hoặc chuyến đi.'}
+
         actions={
           <Link className={styles.secondaryButton} to={isEdit && issueId ? `/admin/issues/${issueId}` : '/admin/issues'}>
             Hủy và quay lại
@@ -154,7 +154,7 @@ export function IssueFormPage() {
       )}
 
       {!loading && (!isEdit || !isBlockedEdit) && (
-        <EditorLayout guidance={[{title:"Vị trí sự cố",description:"Chọn đúng tàu, chuyến và cabin liên quan."},{title:"Mô tả rõ tác động",description:"Ghi nhận hiện tượng và mức độ để hỗ trợ xử lý."}]}><form onSubmit={handleSubmit}>
+        <EditorLayout ><form onSubmit={handleSubmit}>
           <Panel title="Thông tin cơ bản">
             {isEdit && existingIssue && (
               <div className={styles.readonlySummary}>

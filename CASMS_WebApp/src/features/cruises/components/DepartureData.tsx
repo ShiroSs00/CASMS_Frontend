@@ -90,7 +90,7 @@ export function DepartureInventory({ cruise }: { cruise: CruiseRecord }) {
   </>}<Button tone="secondary" onClick={query.retry}>Tải lại tồn</Button></Panel>
 }
 
-export function DepartureSaleReadiness({cruise}:{cruise:CruiseRecord;onSection?:(section:DepartureSection)=>void}) {return <CruiseSale cruise={cruise}/>} 
+export function DepartureSaleReadiness({cruise}:{cruise:CruiseRecord;onSection?:(section:DepartureSection)=>void}) {return <CruiseSale cruise={cruise}/>}
 
 export function DepartureImpact({ cruise,onChanged,view='all' }: { cruise: CruiseRecord;onChanged?:()=>void;view?:'all'|'preview'|'tasks' }) {
   const access = useSessionAccess(), canShips = access.has('SHIP_READ')
@@ -116,7 +116,7 @@ export function DepartureImpact({ cruise,onChanged,view='all' }: { cruise: Cruis
     } catch (error) { setInputError(error instanceof Error ? error.message : 'Kiểm tra lại thời gian.') }
   }
   return <>
-    {view!=='tasks'&&<Panel title="Xem trước tác động thay đổi" subtitle="Chỉ đánh giá; không đổi lịch và không tạo công việc.">
+    {view!=='tasks'&&<Panel title="Xem trước tác động thay đổi">
       <Field htmlFor="impact-departure" label="Bắt đầu mới dự kiến · giờ Việt Nam"><input id="impact-departure" type="datetime-local" value={departure} onChange={e => setDeparture(e.target.value)} /></Field>
       <Field htmlFor="impact-return" label="Kết thúc mới dự kiến · giờ Việt Nam"><input id="impact-return" type="datetime-local" value={returnTime} onChange={e => setReturnTime(e.target.value)} /></Field>
       {canPorts&&<><ReadState {...ports}/>{[['impact-departure-port','Cảng khởi hành mới dự kiến',departurePortId,setDeparturePortId],['impact-return-port','Cảng kết thúc mới dự kiến',returnPortId,setReturnPortId]].map(([id,label,value,setter])=><Field key={String(id)} htmlFor={String(id)} label={String(label)}><select id={String(id)} value={String(value)} disabled={ports.loading||Boolean(ports.error)} onChange={event=>(setter as (value:string)=>void)(event.target.value)}><option value="">Không đề xuất đổi cảng</option>{ports.data?.map(port=><option key={port.portId} value={port.portId}>{port.portCode} · {port.portName}</option>)}</select></Field>)}</>}
@@ -140,7 +140,7 @@ export function DepartureAudit({cruise}:{cruise:CruiseRecord}) {
   const audit=useReadQuery('departure-audit:'+key,useCallback(signal=>allowed?departureApi.auditEvents(cruise.cruiseId,signal):Promise.resolve(null),[allowed,cruise.cruiseId]))
   const notifications=useReadQuery('departure-notifications:'+key,useCallback(signal=>allowed?departureApi.notificationAggregate(cruise.cruiseId,signal):Promise.resolve(null),[allowed,cruise.cruiseId]))
   if(!allowed)return null
-  return <Panel title="Lịch sử và thông báo tác động" subtitle="Thông tin ghi nhận từ hệ thống; tác vụ đã xử lý không xác nhận khách đã nhận thông báo.">
+  return <Panel title="Lịch sử và thông báo tác động" >
     <ReadState {...audit}/>{audit.data&&(!audit.data.length?<Empty title="Chưa có sự kiện được trả về"/>:<ul>{audit.data.map(event=><li key={event.eventId}><strong>{event.eventType??'Chưa xác định loại sự kiện'}</strong><p>{time(event.timestamp,SHIP_TIME_ZONE)} · Người thực hiện: {event.actorUsername??'Chưa xác định'} · Vai trò cần đối chiếu</p>{event.reason&&<p>{event.reason}</p>}</li>)}</ul>)}
     <Button tone="secondary" onClick={audit.retry}>Tải lại lịch sử</Button>
     <ReadState {...notifications}/>{notifications.data&&<><RecordFacts entries={[["Thông báo hệ thống ghi đã gửi",shown(notifications.data.notificationsSentCount)],['Đã đưa vào hộp thư trong ứng dụng',shown(notifications.data.inAppDeliveredCount)],['Đang chờ',shown(notifications.data.notificationsPendingCount)],['Lỗi',shown(notifications.data.notificationsFailedCount)],['Hệ thống ghi đã xác nhận',shown(notifications.data.notificationsAcknowledgedCount)]]}/><p>Số đã gửi là ghi nhận thông báo trong hệ thống, chưa xác nhận email được chuyển hoặc khách đã nhận. Trạng thái xác nhận đang cần đối chiếu.</p></>}
@@ -152,7 +152,7 @@ export function DepartureHandoff({ cruise, onGuests }: { cruise: CruiseRecord; o
   const access = useSessionAccess()
   const query = useReadQuery(`departure-handoff:${cruise.cruiseId}:${cruise.revision ?? cruise.updatedAt}`, useCallback(signal => departureApi.handoff(cruise.cruiseId, signal), [cruise.cruiseId]))
   const data = query.data
-  return <Panel title="Thông tin bàn giao vận hành" subtitle="Chỉ đọc; số đặt chỗ, check-in và lên tàu là các số liệu riêng."><ReadState {...query} />{data && <>
+  return <Panel title="Thông tin bàn giao vận hành" ><ReadState {...query} />{data && <>
     <RecordFacts entries={[["Mã lần khởi hành", shown(data.cruiseCode)], ['Nguồn', `${shown(data.sourceTripCode)} · Phiên bản ${shown(data.sourceVersionNumber)}`], ['Tàu', shown(data.shipName)], ['Tổng booking', shown(data.totalBookingsCount)], ['Booking đã xác nhận', shown(data.confirmedBookingsCount)], ['Booking nháp', shown(data.draftBookingsCount)], ['Booking đã hủy', shown(data.cancelledBookingsCount)], ['Tổng hành khách', shown(data.totalPassengersCount)], ['Hành khách đã check-in', shown(data.checkedInPassengersCount)], ['Hành khách đã lên tàu', shown(data.boardedPassengersCount)], ['Đã phân công thuyền trưởng', yesNo(data.captainAssigned)], ['Danh sách khách đã khóa', yesNo(data.manifestLocked)]]} />
     <p>Kết quả kiểm tra khởi hành trong phản hồi: {yesNo(data.departureClearanceReady)}. Đây chưa phải chứng nhận hoàn tất mọi điều kiện an toàn.</p>
     {onGuests && access.canDo('CRUISE_MANIFEST_READ') && allowedDepartureSections(access).some(([key]) => key === 'sales') && <Button tone="secondary" onClick={onGuests}>Xem danh sách hành khách của lần khởi hành</Button>}

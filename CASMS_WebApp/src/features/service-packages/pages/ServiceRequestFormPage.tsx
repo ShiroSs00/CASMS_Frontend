@@ -15,7 +15,7 @@ export function ServiceRequestFormPage() {
   const { id } = useParams()
   const load = useCallback((signal: AbortSignal) => id ? servicePackageApi.request(id, signal) : Promise.resolve(null), [id])
   const query = useReadQuery(`request-form:${id}`, load)
-  return <CatalogFrame><PageHeader breadcrumb="DỊCH VỤ TÀU / YÊU CẦU" title={id ? 'Chỉnh sửa yêu cầu dịch vụ' : 'Tạo yêu cầu dịch vụ'} description="Số lượng và ghi chú yêu cầu được giữ riêng với hồ sơ sự cố vận hành." actions={<ButtonLink tone="secondary" to={id ? `/admin/service-requests/${id}` : '/admin/service-requests'}>Quay lại</ButtonLink>} />
+  return <CatalogFrame><PageHeader breadcrumb="DỊCH VỤ TÀU / YÊU CẦU" title={id ? 'Chỉnh sửa yêu cầu dịch vụ' : 'Tạo yêu cầu dịch vụ'}  actions={<ButtonLink tone="secondary" to={id ? `/admin/service-requests/${id}` : '/admin/service-requests'}>Quay lại</ButtonLink>} />
     {id && <CatalogState {...query} />}{(!id || query.data) && (query.data && query.data.status !== 'REQUESTED' ? <Notice title="Yêu cầu không còn chờ tiếp nhận">Chỉ yêu cầu đang chờ tiếp nhận mới được chỉnh sửa.</Notice> : <RequestEditor key={id ?? 'new'} initial={query.data ?? undefined} />)}
   </CatalogFrame>
 }
@@ -47,7 +47,7 @@ function RequestEditor({ initial }: { initial?: ServiceRequest }) {
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa lưu được yêu cầu. Dữ liệu đã nhập được giữ lại.') }
     finally { lock.current = false; setBusy(false) }
   }
-  return <Panel title="Nội dung yêu cầu"><EditorLayout guidance={[{title:"Dịch vụ và số lượng",description:"Kiểm tra dịch vụ được chọn, số lượng và ghi chú."},{title:"Khung giờ",description:"Kiểm tra lịch và chỗ trống khi yêu cầu gắn với khung giờ."}]}><form onSubmit={submit} className={styles.editor}>
+  return <Panel title="Nội dung yêu cầu"><EditorLayout ><form onSubmit={submit} className={styles.editor}>
     {!initial && <><CatalogState {...services} /><Field htmlFor="request-service" label="Dịch vụ"><select id="request-service" required value={serviceId} disabled={busy || services.loading || Boolean(services.error)} onChange={event => { setServiceId(event.target.value); setSlotId('') }}><option value="">Chọn dịch vụ</option>{services.data?.map(service => <option key={service.id} value={service.id} disabled={service.status !== 'ACTIVE'}>{service.name} · {service.code}</option>)}</select></Field><BookingPassengerPicker value={bookingPassengerId} disabled={busy} allowedStatuses={['Confirmed']} onChange={passenger => setBookingPassengerId(passenger?.bookingPassengerId ?? '')} /><p>Liên kết đặt chỗ là tùy chọn; nếu chọn, hành khách phải thuộc tài khoản đang yêu cầu.</p></>}
     {initial && <ButtonLink tone="secondary" to={`/admin/services/${initial.serviceId}`}>Xem dịch vụ đã yêu cầu (không đổi)</ButtonLink>}
     {initial?.scheduleId && <Notice title="Yêu cầu đã giữ khung giờ">Khung giờ và số lượng được giữ theo yêu cầu gốc. Bạn có thể cập nhật ghi chú; liên hệ bộ phận dịch vụ nếu cần đổi lịch hoặc số lượng.</Notice>}

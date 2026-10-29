@@ -28,7 +28,7 @@ export function CruiseChecks({ cruiseId }: { cruiseId: string }) {
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không thực hiện được kiểm tra.') }
     finally { lock.current = false; setBusy(false) }
   }
-  return <Panel title="Kiểm tra kế hoạch chuyến" subtitle="Kiểm tra lịch và sức chứa không phát hành hoặc thay đổi trạng thái chuyến.">
+  return <Panel title="Kiểm tra kế hoạch chuyến" >
     {access.canDo('CRUISE_VALIDATE') && <Button tone="secondary" disabled={busy || !access.canDo('CRUISE_VALIDATE')} onClick={() => void check('schedule')}>Kiểm tra lịch tàu</Button>}{' '}
     {access.canDo('CRUISE_VALIDATE') && <Button tone="secondary" disabled={busy || !access.canDo('CRUISE_VALIDATE')} onClick={() => void check('capacity')}>Kiểm tra sức chứa</Button>}
     {!access.canDo('CRUISE_VALIDATE') && <p>Chưa có quyền kiểm tra chuyến.</p>}

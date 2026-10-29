@@ -79,7 +79,7 @@ export function ItineraryFormPage() {
   }
   const field = (name: string) => ({ id: `itinerary-${name}`, name, 'aria-invalid': Boolean(errors[name]), 'aria-describedby': errors[name] ? `itinerary-${name}-hint` : undefined })
   return <ItineraryFrame>
-    <PageHeader breadcrumb="LẬP CHUYẾN ĐI / LỊCH TRÌNH" title={editing ? 'Chỉnh sửa lịch trình' : 'Tạo lịch trình'} description="Chọn chuyến đi trước, sau đó cấu hình ngày và các cảng ghé. Người tạo được xác định từ tài khoản đang đăng nhập." />
+    <PageHeader breadcrumb="LẬP CHUYẾN ĐI / LỊCH TRÌNH" title={editing ? 'Chỉnh sửa lịch trình' : 'Tạo lịch trình'}  />
     <JourneySteps current={1} cruiseId={draft.cruiseId || undefined} itineraryId={itineraryId} />
     {existing && <Notice title="Chuyến đi đã có lịch trình"><p>Tiếp tục chỉnh sửa lịch trình hiện có để tránh tạo trùng.</p><ButtonLink to={`/admin/itineraries/${existing.itineraryId}`}>Mở lịch trình</ButtonLink></Notice>}
     {!access.canDo(editing ? 'ITINERARY_UPDATE_DRAFT' : 'ITINERARY_CREATE') && <Notice title="Chưa có quyền lưu lịch trình" tone="warning">{access.status === 'loading' ? 'Đang tải quyền tài khoản…' : access.error || 'Tài khoản chưa có quyền tạo hoặc sửa lịch trình.'}</Notice>}
@@ -88,7 +88,7 @@ export function ItineraryFormPage() {
     {contextError && <Notice title="Chưa tải đủ thông tin chuyến" tone="error"><p>{contextError}</p><Button onClick={() => setAttempt(value => value + 1)}>Thử lại</Button></Notice>}
     {context && !editing && !eligible.length && <Notice title="Chưa có chuyến để tạo lịch trình"><p>Chưa có chuyến đi hoặc các chuyến hiện có đã có lịch trình.</p><ButtonLink to="/admin/cruises/new">Tạo chuyến đi</ButtonLink><ButtonLink to="/admin/itineraries" tone="secondary">Xem lịch trình hiện có</ButtonLink></Notice>}
     <p>Ngày đầu và ngày cuối lấy từ ngày khởi hành và ngày kết thúc của lần khởi hành theo giờ tàu Việt Nam. Lịch trình một ngày có cùng ngày bắt đầu và kết thúc.</p>
-    <EditorLayout guidance={[{title:"Chuyến liên kết",description:"Kiểm tra khoảng ngày của chuyến được chọn."},{title:"Tiếp tục lập tuyến",description:"Sau khi lưu, mở lịch trình để cấu hình ngày và cảng ghé."}]}><form ref={form} onSubmit={submit} noValidate><Panel title="Thông tin lịch trình"><div className={styles.formGrid}>
+    <EditorLayout ><form ref={form} onSubmit={submit} noValidate><Panel title="Thông tin lịch trình"><div className={styles.formGrid}>
       {!editing && <Field htmlFor="cruise-search" label="Tìm chuyến theo tên hoặc mã"><input id="cruise-search" type="search" value={search} onChange={event => setSearch(event.target.value)} /></Field>}
       <Field htmlFor="itinerary-cruiseId" label="Chuyến đi *" error={errors.cruiseId}>
         {editing ? <input id="itinerary-cruiseId" name="cruiseId" readOnly value={cruise ? `${cruise.cruiseCode} · ${cruise.cruiseName}` : 'Chưa tải được chuyến liên kết'} />

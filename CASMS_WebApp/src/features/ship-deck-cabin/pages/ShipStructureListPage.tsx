@@ -27,7 +27,7 @@ function StructurePage({ view: initialView }: { view: 'decks' | 'cabins' }) {
   const selectedId = params.get('ship') ?? ''
   const selected = ships.data?.find(ship => ship.id === selectedId)
   return <AdminShell><div className={styles.stack}>
-    <div className={styles.dashboardHeading}><PageHeader breadcrumb="Boong & Cabin" title="Boong & Cabin" description="" /></div>
+    <div className={styles.dashboardHeading}><PageHeader breadcrumb="Boong & Cabin" title="Boong & Cabin"  /></div>
     {selected && <Panel className={styles.structureToolbar}><div className={styles.shipPicker}>
       <Field htmlFor="structure-ship" label="Tàu"><select id="structure-ship" value={selectedId} disabled={!ships.data?.length || ships.loading} onChange={event => { const next = new URLSearchParams({ view }); if (event.target.value) next.set('ship', event.target.value); setParams(next) }}><option value="">Chọn tàu</option>{ships.data?.map(ship => <option key={ship.id} value={ship.id}>{ship.name} · {ship.code}</option>)}</select></Field>
       <Link className={styles.textLink} to="/admin/decks">Tất cả tàu <span aria-hidden="true">↗</span></Link>

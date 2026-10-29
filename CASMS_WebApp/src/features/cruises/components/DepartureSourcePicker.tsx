@@ -8,7 +8,7 @@ export function DepartureSourcePicker({value,disabled,onChange}:{value:string|nu
   const [input,setInput]=useState(''),[filter,setFilter]=useState({keyword:'',page:0})
   const query=useReadQuery(`eligible-sources:${filter.keyword}:${filter.page}`,useCallback(signal=>eligibleSources(filter.keyword,filter.page,signal),[filter]))
   const selected=query.data?.content.find(item=>item.versionId===value)
-  return <Panel title="1. Chọn lịch trình đã phát hành" subtitle="Chỉ hiển thị phiên bản được phép dùng cho lần khởi hành. Phát hành lịch trình chưa phải mở bán.">
+  return <Panel title="1. Chọn lịch trình đã phát hành" >
     <form className={styles.sourceSearch} onSubmit={event=>{event.preventDefault();setFilter({keyword:input,page:0})}}>
       <Field htmlFor="departure-source-search" label="Tìm theo tên hoặc mã chuyến"><input id="departure-source-search" type="search" value={input} disabled={disabled} onChange={e=>setInput(e.target.value)}/></Field><Button type="submit" tone="secondary" disabled={disabled||query.loading}>Tìm lịch trình</Button>
     </form>

@@ -39,6 +39,6 @@ export function CruiseGuidance({cruiseId,onChanged}:{cruiseId:string;onChanged:(
    <Button type="submit">{businessCopy('guidance.action.save')}</Button></fieldset></form></details>
   {error&&<Notice title="Không thể hoàn tất thao tác" tone="error">{error}</Notice>}{success&&<Notice title={success}>{success}</Notice>}
   {uncertain&&<Notice title="Hệ thống chưa xác nhận được kết quả">Tải lại trang để đối chiếu trước khi gửi tiếp.</Notice>}
-  <p>{businessCopy('guidance.notReadyConfirmation')}</p>
+
  </Panel>
 }
