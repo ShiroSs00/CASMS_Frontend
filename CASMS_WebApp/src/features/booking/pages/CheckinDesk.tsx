@@ -58,6 +58,6 @@ export function CheckinDesk() {
     {!booking && !busy && !error && <Panel title="Hồ sơ hành khách"><Empty title="Chưa chọn hành khách"><p>Tra cứu bằng mã đặt chỗ và email người đại diện để mở danh sách hành khách.</p></Empty></Panel>}
     <Notice title="Trạng thái lên tàu">Trạng thái sẵn sàng lên tàu được xác nhận bởi hệ thống. Cấp thẻ, quét QR và ghi nhận khách đã lên tàu chưa khả dụng trên webapp.</Notice>
     </div></div>
-    {action && <Modal title={action === 'start' ? 'Bắt đầu thủ tục' : 'Hoàn tất thủ tục'} busy={busy} onClose={() => setAction(null)}><p>Đối chiếu hành khách, hợp đồng, chứng từ và yêu cầu an toàn tại quầy trước khi xác nhận.</p>{error && <Notice title="Chưa cập nhật được" tone="error">{error}</Notice>}<Button disabled={busy} onClick={() => void submit()}>Xác nhận</Button></Modal>}
+    {action && <Modal title={action === 'start' ? 'Bắt đầu thủ tục' : 'Hoàn tất thủ tục'} busy={busy} onClose={() => setAction(null)}><p>Đối chiếu hành khách, hợp đồng, chứng từ và yêu cầu an toàn tại quầy trước khi xác nhận.</p>{error && <Notice title="Chưa cập nhật được" tone="error">{error}</Notice>}<Button disabled={busy} onClick={() => void submit()}>{action === 'start' ? 'Bắt đầu thủ tục' : 'Hoàn tất thủ tục'}</Button></Modal>}
   </>
 }

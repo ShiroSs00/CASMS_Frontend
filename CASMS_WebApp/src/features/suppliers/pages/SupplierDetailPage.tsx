@@ -1,7 +1,8 @@
 import { PermissionLink as Link } from '@/shared/ui'
 import { useEffect, useRef, useState } from 'react'
 import { useSessionAccess } from '@/shared/auth'
-import { useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
+import {readinessContextReturn} from '@/shared/lib/cruise-context'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { ApiError } from '@/shared/api/client'
 import { supplierApi, type SupplierVerificationRequest } from '../api/supplier-api'
@@ -14,6 +15,7 @@ export function SupplierDetailPage() {
   const lock = useRef(false)
   const { supplierId } = useParams<{ supplierId: string }>()
   const navigate = useNavigate()
+  const [params]=useSearchParams(),returnTo=readinessContextReturn(params,'SUPPLIER',supplierId)
   const [supplier, setSupplier] = useState<SupplierListItem | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<{ message: string; isNotFound?: boolean } | null>(null)
@@ -157,6 +159,7 @@ export function SupplierDetailPage() {
 
   return (
     <AdminShell>
+      {returnTo&&<Link to={returnTo} className={styles.returnLink}>Quay về hồ sơ lần khởi hành</Link>}
       {loading ? (
         <div className={styles.loadingPlaceholder}>Đang tải thông tin nhà cung cấp...</div>
       ) : error ? (

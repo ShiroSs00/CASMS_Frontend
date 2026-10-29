@@ -3,9 +3,9 @@ import styles from './OperationalIssues.module.css'
 
 export function IssueMetrics({ totals }: { totals: IssueStatusTotals | null }) {
   const metrics = [
-    { label: 'Đang mở', value: totals?.OPEN, hint: 'Cần xử lý', className: styles.statusOpen },
+    { label: 'Chờ xử lý', value: totals?.OPEN, hint: 'Cần xử lý', className: styles.statusOpen },
     { label: 'Đang xử lý', value: totals?.IN_PROGRESS, hint: 'Đang xử lý', className: styles.statusProgress },
-    { label: 'Đã xử lý', value: totals?.RESOLVED, hint: 'Chờ đóng', className: styles.statusResolved },
+    { label: 'Đã xác minh xử lý', value: totals?.RESOLVED, hint: 'Chờ đóng', className: styles.statusResolved },
     { label: 'Nghiêm trọng', value: totals?.critical, hint: 'Ưu tiên cao nhất', className: styles.statusReview },
   ]
 

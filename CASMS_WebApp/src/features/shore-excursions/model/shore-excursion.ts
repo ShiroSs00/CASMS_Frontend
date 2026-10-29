@@ -1,7 +1,7 @@
 export const excursionStatuses = ['PLANNED', 'OPEN', 'FULL', 'CLOSED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'] as const
 export type ExcursionStatus = typeof excursionStatuses[number]
 export const statusLabels: Record<ExcursionStatus, string> = {
-  PLANNED: 'Đã lên kế hoạch', OPEN: 'Đang mở đăng ký', FULL: 'Đủ khách', CLOSED: 'Đã đóng đăng ký',
+  PLANNED: 'Đã lên kế hoạch', OPEN: 'Đang mở đăng ký', FULL: 'Hết chỗ', CLOSED: 'Đã đóng đăng ký',
   IN_PROGRESS: 'Đang diễn ra', COMPLETED: 'Hoàn thành', CANCELLED: 'Đã hủy',
 }
 export type ShoreExcursion = {

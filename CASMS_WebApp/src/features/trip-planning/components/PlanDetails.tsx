@@ -35,16 +35,16 @@ export function StopDetails({stop,onClose,violation}:{stop?:Stop}&DetailProps) {
           <dl className={styles.detailGrid}>
             <Detail label="Dự kiến đến cảng">{dayTime(stop.arrivalDayNumber,stop.plannedArrivalTime)}</Detail>
             <Detail label="Dự kiến rời cảng">{dayTime(stop.departureDayNumber,stop.plannedDepartureTime)}</Detail>
-            <Detail label="Hạn trở lại tàu" wide>{dayTime(stop.allAboardDayNumber,stop.allAboardTime)}</Detail>
+            <Detail label="Hạn hành khách trở lại tàu" wide>{dayTime(stop.allAboardDayNumber,stop.allAboardTime)}</Detail>
           </dl>
         </section>
         <section className={styles.detailSection} aria-label="Thông tin lần ghé">
           <dl className={styles.detailGrid}>
-            <Detail label="Thứ tự trong tuyến">{stop.stopOrder}</Detail>
+            <Detail label="Thứ tự ghé cảng">{stop.stopOrder}</Detail>
             <Detail label="Loại lần ghé">{{NORMAL:'Thông thường',LATE_NIGHT:'Ghé cảng ban đêm',OVERNIGHT:'Qua đêm'}[stop.callType]}</Detail>
             <Detail label="Cách lên bờ" wide>{stop.arrivalMethod==='TENDER'?'Trung chuyển bằng tàu nhỏ':'Cập bến'}</Detail>
-            <Detail label="Điểm đón">{stop.isEmbarkation?'Có':'Không'}</Detail>
-            <Detail label="Điểm trả">{stop.isDisembarkation?'Có':'Không'}</Detail>
+            <Detail label="Cảng hành khách lên tàu">{stop.isEmbarkation?'Có':'Không'}</Detail>
+            <Detail label="Cảng hành khách kết thúc chuyến">{stop.isDisembarkation?'Có':'Không'}</Detail>
           </dl>
         </section>
       </>:<p className={styles.muted}>Chưa có thông tin lần ghé cảng.</p>}

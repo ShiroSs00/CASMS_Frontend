@@ -6,6 +6,8 @@ import {
 } from './cruise-record.ts'
 
 export type CruiseQuery = {
+  sourceTripId?: string
+  sourceVersionId?: string
   search: string
   status: CruiseStatus | ''
   cruiseType: CruiseType | ''
@@ -45,6 +47,8 @@ export function parseCruiseQuery(params: URLSearchParams): CruiseQuery {
   const cruiseType = params.get('type')
 
   return {
+    ...(params.get('sourceTripId') ? { sourceTripId: params.get('sourceTripId')! } : {}),
+    ...(params.get('sourceVersionId') ? { sourceVersionId: params.get('sourceVersionId')! } : {}),
     search: params.get('q')?.trim() ?? '',
     status: isOneOf(status, CRUISE_STATUSES) ? status : '',
     cruiseType: isOneOf(cruiseType, CRUISE_TYPES) ? cruiseType : '',
@@ -57,6 +61,8 @@ export function parseCruiseQuery(params: URLSearchParams): CruiseQuery {
 
 export function serializeCruiseQuery(query: CruiseQuery) {
   const params = new URLSearchParams()
+  if (query.sourceTripId) params.set('sourceTripId', query.sourceTripId)
+  if (query.sourceVersionId) params.set('sourceVersionId', query.sourceVersionId)
   if (query.search) params.set('q', query.search)
   if (query.status) params.set('status', query.status)
   if (query.cruiseType) params.set('type', query.cruiseType)
@@ -71,6 +77,6 @@ export function serializeCruiseQuery(query: CruiseQuery) {
 
 export function hasActiveCruiseFilters(query: CruiseQuery) {
   return Boolean(
-    query.search || query.status || query.cruiseType || query.departureDate || query.shipId,
+    query.search || query.status || query.cruiseType || query.departureDate || query.shipId || query.sourceTripId || query.sourceVersionId,
   )
 }

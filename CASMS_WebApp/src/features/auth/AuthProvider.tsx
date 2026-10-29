@@ -10,6 +10,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const userId = auth.user?.id
   const [attempt, setAttempt] = useState(0)
   useEffect(() => authSession.start(), [])
+  useEffect(() => () => setSessionAccess({ status: 'anonymous', userId: null, permissions: [], error: '' }), [])
   useEffect(() => subscribeAccessRetry(() => setAttempt(value => value + 1)), [])
   useEffect(() => {
     if (!token || !userId) { setSessionAccess({ status: 'anonymous', userId: null, permissions: [], error: '' }); return }
@@ -22,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }).catch((error: unknown) => {
       if (!controller.signal.aborted) setSessionAccess({ status: 'error', userId: null, permissions: [], error: error instanceof Error ? error.message : 'Không tải được quyền tài khoản.' })
     })
-    return () => { controller.abort(); setSessionAccess({ status: 'anonymous', userId: null, permissions: [], error: '' }) }
+    return () => controller.abort()
   }, [token, userId, attempt])
   return children
 }

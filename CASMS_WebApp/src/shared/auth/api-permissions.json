@@ -1,5 +1,913 @@
 [
   {
+    "method": "PUT",
+    "path": "/cruise/{cruiseId}/preparation/coordinator",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_STAFF_ASSIGN"
+    ],
+    "source": "CruisePreparationController current coordinator decision",
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/preparation/coordinator-candidates",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_STAFF_ASSIGN"
+    ],
+    "source": "CruisePreparationController current coordinator decision",
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/preparation/events",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_PREPARATION_READ"
+    ],
+    "source": "CruisePreparationController current coordinator decision"
+  },
+  {
+    "method": "PUT",
+    "path": "/cruises/{cruiseId}/preparation/coordinator",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_STAFF_ASSIGN"
+    ],
+    "source": "CruisePreparationController current coordinator decision",
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/cruises/{cruiseId}/preparation/coordinator-candidates",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_STAFF_ASSIGN"
+    ],
+    "source": "CruisePreparationController current coordinator decision",
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/cruises/{cruiseId}/preparation/events",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_PREPARATION_READ"
+    ],
+    "source": "CruisePreparationController current coordinator decision"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/cruise/{cruiseId}/preparation/coordinator",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_STAFF_ASSIGN"
+    ],
+    "source": "CruisePreparationController current coordinator decision",
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/api/cruise/{cruiseId}/preparation/coordinator-candidates",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_STAFF_ASSIGN"
+    ],
+    "source": "CruisePreparationController current coordinator decision",
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/api/cruise/{cruiseId}/preparation/events",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_PREPARATION_READ"
+    ],
+    "source": "CruisePreparationController current coordinator decision"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/cruises/{cruiseId}/preparation/coordinator",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_STAFF_ASSIGN"
+    ],
+    "source": "CruisePreparationController current coordinator decision",
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/api/cruises/{cruiseId}/preparation/coordinator-candidates",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_STAFF_ASSIGN"
+    ],
+    "source": "CruisePreparationController current coordinator decision",
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/api/cruises/{cruiseId}/preparation/events",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_PREPARATION_READ"
+    ],
+    "source": "CruisePreparationController current coordinator decision"
+  },
+  {
+    "method": "GET",
+    "path": "/booking/available-cabins",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/booking/controller/BookingController.java:getAvailableCabins"
+  },
+  {
+    "method": "GET",
+    "path": "/booking/3d-available-cabins",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/booking/controller/BookingController.java:getThreeDimensionalAvailableCabins"
+  },
+  {
+    "method": "GET",
+    "path": "/booking/lookup",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/booking/controller/BookingController.java:lookup"
+  },
+  {
+    "method": "GET",
+    "path": "/booking/recovery",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/booking/controller/BookingController.java:recoverBooking"
+  },
+  {
+    "method": "POST",
+    "path": "/booking/quotes",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/booking/controller/BookingController.java:createQuote; service verifies sellability"
+  },
+  {
+    "method": "GET",
+    "path": "/booking/quotes/{quoteId}",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "com/casms/booking/controller/BookingController.java:getQuote; service verifies owner or guest proof"
+  },
+  {
+    "source": "com/casms/ship/controller/CruisePricingPolicyController.java",
+    "method": "GET",
+    "mode": "ALL",
+    "path": "/cruises/{cruiseId}/pricing-policy/history",
+    "permissions": [
+      "CRUISE_READ"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruisePricingPolicyController.java",
+    "method": "PUT",
+    "mode": "ALL",
+    "path": "/cruises/{cruiseId}/pricing-policy",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruisePricingPolicyController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruises/{cruiseId}/pricing-policy/return",
+    "permissions": [
+      "CRUISE_PRICING_APPROVE"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruisePricingPolicyController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruises/{cruiseId}/pricing-policy/approve",
+    "permissions": [
+      "CRUISE_PRICING_APPROVE"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruisePricingPolicyController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruises/{cruiseId}/pricing-policy/submit",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruisePricingPolicyController.java",
+    "method": "GET",
+    "mode": "ALL",
+    "path": "/cruise/{cruiseId}/pricing-policy/history",
+    "permissions": [
+      "CRUISE_READ"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruisePricingPolicyController.java",
+    "method": "PUT",
+    "mode": "ALL",
+    "path": "/cruise/{cruiseId}/pricing-policy",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruisePricingPolicyController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise/{cruiseId}/pricing-policy/return",
+    "permissions": [
+      "CRUISE_PRICING_APPROVE"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruisePricingPolicyController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise/{cruiseId}/pricing-policy/approve",
+    "permissions": [
+      "CRUISE_PRICING_APPROVE"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruisePricingPolicyController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise/{cruiseId}/pricing-policy/submit",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "PATCH",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/excursions/{id}/commercial",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "GET",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/packages/{id}/components",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseMainflowController.java",
+    "permissions": [
+      "CRUISE_ASSIGN_SHIP",
+      "CRUISE_CHANGE_SHIP",
+      "CRUISE_UNASSIGN_SHIP"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ],
+    "path": "/cruise-plans/{cruiseId}/ship-assignment-context",
+    "mode": "ANY",
+    "method": "GET"
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseMainflowController.java",
+    "method": "GET",
+    "mode": "ALL",
+    "path": "/cruise-plans",
+    "permissions": [
+      "CRUISE_READ"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseMainflowController.java",
+    "method": "GET",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}",
+    "permissions": [
+      "CRUISE_READ"
+    ],
+    "roles": [
+      "CRUISE_MANAGER",
+      "OPERATIONS_MANAGER",
+      "SHIP_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseMainflowController.java",
+    "method": "PUT",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/windows",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseMainflowController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/submit",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseMainflowController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/withdraw",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseMainflowController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/approve",
+    "permissions": [
+      "ITINERARY_APPROVE"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseMainflowController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/reject",
+    "permissions": [
+      "ITINERARY_APPROVE"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseMainflowController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/request-revision",
+    "permissions": [
+      "ITINERARY_APPROVE"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseMainflowController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/ready",
+    "permissions": [
+      "CRUISE_VALIDATE"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "GET",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/program-options",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "GET",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/activities",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "GET",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/excursions",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "GET",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/packages",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "GET",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/serving-windows",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/activities",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "PUT",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/activities/{id}",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/excursions",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "PUT",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/excursions/{id}",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/packages",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "PUT",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/packages/{id}",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/serving-windows",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "DELETE",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/activities/{id}",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/packages/{id}/services",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/packages/{id}/activities",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/packages/{id}/excursions",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "PUT",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/pricing-policy",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseGuidanceController.java",
+    "method": "GET",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/guidance",
+    "permissions": [
+      "CRUISE_READ"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseGuidanceController.java",
+    "method": "GET",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/guidance/instructors",
+    "permissions": [
+      "CRUISE_READ"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseGuidanceController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/guidance",
+    "permissions": [
+      "CRUISE_READ"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseGuidanceController.java",
+    "method": "PUT",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/guidance/{id}",
+    "permissions": [
+      "CRUISE_READ"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseGuidanceController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/cruise-plans/{cruiseId}/guidance/{id}/publish",
+    "permissions": [
+      "CRUISE_READ"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseMainflowController.java",
+    "method": "POST",
+    "mode": "ALL",
+    "path": "/trip-schedule-versions/{versionId}/finalize",
+    "permissions": [
+      "TRIP_PLAN_WRITE",
+      "CRUISE_CREATE"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/booking/{bookingId}/contract/accept",
+    "mode": "ANY",
+    "permissions": [
+      "BOOKING_CONTRACT_MANAGE"
+    ],
+    "source": "com/casms/booking/controller/BookingController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/trip-schedule-versions/eligible-sources",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_CREATE",
+      "TRIP_READ"
+    ],
+    "source": "com/casms/trip/controller/TripScheduleVersionController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/ship-compatibility",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_READ",
+      "CRUISE_ASSIGN_SHIP",
+      "CRUISE_CHANGE_SHIP",
+      "SHIP_READ"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/preview-ship-change",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_READ",
+      "CRUISE_CHANGE_SHIP",
+      "SHIP_READ"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/sync-operational-programs",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT",
+      "ACTIVITY_UPDATE",
+      "EXCURSION_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/impact-tasks/generate",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT",
+      "CRUISE_STATUS_CHANGE",
+      "OPERATIONAL_ISSUE_CREATE"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/impact-tasks/{taskId}/resolve",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT",
+      "CRUISE_STATUS_CHANGE",
+      "OPERATIONAL_ISSUE_RESOLVE"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/open-sale",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_OPEN_SALE"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/stop-sale",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_STOP_SALE"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/resume-sale",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_RESUME_SALE"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/preview-schedule",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_CREATE",
+      "CRUISE_READ",
+      "TRIP_READ"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/inventory-summary",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_READ",
+      "BOOKING_READ"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/sale-readiness",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_READ",
+      "CRUISE_VALIDATE"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/preview-change-impact",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_READ",
+      "CRUISE_VALIDATE",
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/schedule",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_READ",
+      "TRIP_READ",
+      "ITINERARY_READ"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/change-impact",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_READ",
+      "CRUISE_VALIDATE",
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/apply-change",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT",
+      "CRUISE_STATUS_CHANGE"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/impact-tasks",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_READ",
+      "OPERATIONAL_ISSUE_READ"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/downstream-handoff",
+    "mode": "ANY",
+    "permissions": [
+      "CRUISE_MANIFEST_READ"
+    ],
+    "source": "com/casms/ship/controller/CruiseController.java"
+  },
+  {
     "method": "POST",
     "path": "/ship-model-assets",
     "mode": "ALL",
@@ -2998,7 +3906,7 @@
     ],
     "source": "com/casms/ship/controller/ShipController.java:37"
   },
-{
+  {
     "method": "GET",
     "path": "/trips",
     "mode": "ALL",

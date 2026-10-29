@@ -6,7 +6,7 @@ type BookingProfile = BookingContext['passengers'][number] & { dateOfBirth: stri
 export type BookingDetail = Omit<BookingContext, 'passengers'> & { passengers: BookingProfile[]; agreedFareAmount: number; currency: string; requiredDepositAmount: number; finalPaymentDueAt: string | null; contractReference: string | null; contractStatus: string | null; paymentPlan: string | null; contractSigningInstructions: string | null; departureDatetime: string | null; returnDatetime: string | null; cancellationReason: string | null; installments: { sequenceNo: number; requiredAmount: number; currency: string; dueAt: string | null; status: string; installmentType: string; description: string | null }[] }
 export type BookingPersonDraft = { fullName: string; dateOfBirth: string; nationality: string; documentType: '' | 'NationalID' | 'Passport'; documentNumber: string; email: string; phoneNumber: string; cabinId: string; tourPackageId: string }
 export type BookingDraft = { cruiseId: string; currency: string; paymentPlan: 'FULL' | 'DEPOSIT' | 'STAGES'; notes: string; passengers: BookingPersonDraft[] }
-export type BookingCruiseOption = { cruiseId: string; cruiseCode: string; cruiseName: string; status: string; shipId: string | null; departureDatetime: string; returnDatetime?: string }
+export type BookingCruiseOption = { sellable?: boolean; cruiseId: string; cruiseCode: string; cruiseName: string; status: string; shipId: string | null; departureDatetime: string; returnDatetime?: string }
 export function decodeBookingDetail(value: unknown): BookingDetail {
   const context = decodeBookingContext(value), row = value as Record<string, unknown>
   if (['agreedFareAmount', 'requiredDepositAmount'].some(key => typeof row[key] !== 'number' || !Number.isFinite(row[key])) || typeof row.currency !== 'string' || !Array.isArray(row.installments)) throw new Error('Thông tin giá và hợp đồng đặt chỗ không đầy đủ.')
@@ -51,7 +51,7 @@ export function bookingFieldErrors(draft: BookingDraft, cruise: BookingCruiseOpt
   const errors: Record<string, string> = {}
   const used = new Map<string, number>(), documents = new Set<string>()
   if (step !== 2) {
-    if (!cruise || cruise.cruiseId !== draft.cruiseId || cruise.status !== 'PUBLISHED' || !cruise.shipId || !Number.isFinite(Date.parse(cruise.departureDatetime)) || Date.parse(cruise.departureDatetime) <= now) errors['real-booking-cruise'] = 'Chọn chuyến đã công bố, có tàu và chưa khởi hành.'
+    if (!cruise || cruise.cruiseId !== draft.cruiseId || cruise.status !== 'PUBLISHED' || cruise.sellable !== true || !cruise.shipId || !Number.isFinite(Date.parse(cruise.departureDatetime)) || Date.parse(cruise.departureDatetime) <= now) errors['real-booking-cruise'] = 'Chọn lần khởi hành đang mở bán và còn chỗ theo dữ liệu máy chủ.'
     if (!cabins || !draft.passengers.length) errors['real-booking-cruise'] = 'Cần danh sách phòng trống và ít nhất một hành khách.'
     draft.passengers.forEach(person => { if (person.cabinId) used.set(person.cabinId, (used.get(person.cabinId) ?? 0) + 1) })
     draft.passengers.forEach((person, index) => {
@@ -106,13 +106,18 @@ export const realBookingApi = {
   async cruises(signal?: AbortSignal) {
     const items: BookingCruiseOption[] = []
     for (let page = 0, pages = 1; page < pages; page++) { const data = await apiRequest<{ content: BookingCruiseOption[]; totalPages: number }>('/cruise', { query: { page, size: 100, status: 'PUBLISHED' }, signal }); if (!Array.isArray(data?.content) || !Number.isSafeInteger(data.totalPages) || data.totalPages < 0 || data.content.some(item => !item || !item.cruiseId || !item.cruiseName || item.status !== 'PUBLISHED' || !Number.isFinite(Date.parse(item.departureDatetime)))) throw new Error('Không tải được chuyến đã công bố.'); items.push(...data.content); pages = data.totalPages }
-    return items
+    const available=await Promise.all(items.map(async item=>{
+      const state=await apiRequest<{cruiseId:string;sellable:boolean}>(`/cruise/${encodeURIComponent(item.cruiseId)}/sellability`,{signal})
+      if(state.cruiseId!==item.cruiseId||typeof state.sellable!=='boolean')throw new ApiError('',502)
+      return {...item,sellable:state.sellable}
+    }))
+    return available.filter(item=>item.sellable===true)
   },
   async packages(signal?: AbortSignal) { const data = await apiRequest<{ id: string; name: string; status: string; price: number; currency: string }[]>('/servicepackage/packages', { signal }); if (!Array.isArray(data) || data.some(item => !item || !item.id || !item.name || typeof item.status !== 'string' || typeof item.price !== 'number' || !Number.isFinite(item.price) || item.price < 0 || typeof item.currency !== 'string' || !/^[A-Z]{3}$/.test(item.currency))) throw new Error('Không tải được gói dịch vụ.'); return data.filter(item => item.status === 'ACTIVE') },
   async create(draft: BookingDraft) {
     if (draft.passengers.some(person => person.tourPackageId)) {
       // This read happens before any write. A failure here is safe to retry.
-      const packages = await realBookingApi.packages().catch(() => { throw new ApiError('Chưa kiểm tra được gói dịch vụ. Đặt chỗ chưa được gửi; hãy tải lại gói và thử lại.', 422) })
+      const packages = await realBookingApi.packagesForCruise(draft.cruiseId).catch(() => { throw new ApiError('Chưa kiểm tra được gói dịch vụ. Đặt chỗ chưa được gửi; hãy tải lại gói và thử lại.', 422) })
       const errors = bookingPackageErrors(draft, packages)
       if (Object.keys(errors).length) throw new ApiError(Object.values(errors)[0], 422)
     }
@@ -120,7 +125,21 @@ export const realBookingApi = {
     if (data.cruiseId !== draft.cruiseId) throw new Error('Chuyến đi trả về không khớp yêu cầu đặt chỗ; cần kiểm tra kết quả trước khi gửi lại.')
     return data
   },
+  async packagesForCruise(cruiseId: string, signal?: AbortSignal) {
+    if (!cruiseId) return []
+    const links = await apiRequest<unknown>('/cruise/' + encodeURIComponent(cruiseId) + '/packages', { signal })
+    if (!Array.isArray(links) || links.some(item => !item || item.cruiseId !== cruiseId || typeof item.tourPackageId !== 'string' || !item.tourPackageId || typeof item.active !== 'boolean')) throw new ApiError('Chưa xác định được gói dịch vụ áp dụng cho lần khởi hành.', 502)
+    const ids = new Set(links.filter(item => item.active).map(item => item.tourPackageId))
+    // Assignment + ACTIVE is a prerequisite, not proof that sale/booking is open.
+    const catalog = await realBookingApi.packages(signal)
+    return catalog.filter(item => ids.has(item.id))
+  },
   confirm: async (id: string) => decodeBookingDetail(await apiRequest<unknown>(path(id) + '/confirm', { method: 'POST' })),
+  acceptContract: async (id:string,documentReference:string,notes?:string) => {
+    const saved=decodeBookingDetail(await apiRequest<unknown>(path(id)+'/contract/accept',{method:'POST',body:{documentReference:documentReference.trim(),...(notes?.trim()?{notes:notes.trim()}:{})}}))
+    if(saved.bookingId!==id||saved.contractStatus!=='Accepted')throw new ApiError('Chưa xác nhận được việc ghi nhận hợp đồng. Tải lại hồ sơ để đối chiếu.',502)
+    return saved
+  },
   cancel: async (id: string, reason: string) => decodeBookingDetail(await apiRequest<unknown>(path(id) + '/cancel', { method: 'POST', body: { reason: reason.trim() } })),
   changeCabin: async (bookingPassengerId: string, newCabinId: string, changeReason: string) => decodeBookingDetail(await apiRequest<unknown>('/booking/change-cabin', { method: 'POST', body: { bookingPassengerId, newCabinId, changeReason: changeReason.trim() || undefined } })),
 }

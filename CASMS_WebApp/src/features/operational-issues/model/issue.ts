@@ -68,10 +68,10 @@ export type OperationalIssue = {
 }
 
 export const issueStatusLabels: Record<IssueStatus, string> = {
-  OPEN: 'OPEN',
-  IN_PROGRESS: 'IN PROGRESS',
-  RESOLVED: 'RESOLVED',
-  CLOSED: 'CLOSED',
+  OPEN: 'Chờ xử lý',
+  IN_PROGRESS: 'Đang xử lý',
+  RESOLVED: 'Đã xác minh xử lý',
+  CLOSED: 'Đã đóng',
 }
 
 export const issueSeverityLabels: Record<IssueSeverity, string> = {

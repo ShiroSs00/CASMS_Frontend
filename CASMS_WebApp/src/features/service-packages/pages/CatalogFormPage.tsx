@@ -1,7 +1,9 @@
+import {businessCopy} from '@/shared/i18n/business-copy'
 import { EditorLayout } from '@/shared/ui'
 import { FormErrorSummary } from '@/shared/ui'
 import { useCallback, useRef, useState, type FormEvent } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
+import {readinessContextReturn} from '@/shared/lib/cruise-context'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { Button, ButtonLink, Field, FormSection, Notice, PageHeader, Panel } from '@/shared/ui'
@@ -13,16 +15,18 @@ import styles from '../components/Catalog.module.css'
 
 function CatalogFormPage({ kind }: { kind: CatalogKind }) {
   const { id } = useParams()
+  const [params]=useSearchParams(),returnTo=readinessContextReturn(params,kind==='packages'?'PACKAGE':kind.toUpperCase(),id)
   const load = useCallback((signal: AbortSignal) => id ? servicePackageApi.get(kind, id, signal) : Promise.resolve(null), [kind, id])
   const query = useReadQuery(`catalog-form:${kind}:${id}`, load)
-  return <CatalogFrame><PageHeader breadcrumb="DỊCH VỤ TÀU / DANH MỤC" title={`${id ? 'Chỉnh sửa' : 'Tạo'} ${catalogConfig[kind].label.toLocaleLowerCase('vi')}`} description="Thông tin cung cấp và giá được lưu theo danh mục riêng; không tự tạo đặt chỗ hoặc bán hàng." actions={<ButtonLink tone="secondary" to={id ? `${catalogConfig[kind].route}/${id}` : catalogConfig[kind].route}>Quay lại</ButtonLink>} />
+  return <CatalogFrame><PageHeader breadcrumb="DỊCH VỤ TÀU / DANH MỤC" title={`${id ? 'Chỉnh sửa' : 'Tạo'} ${catalogConfig[kind].label.toLocaleLowerCase('vi')}`} description="Thông tin cung cấp và giá được lưu theo danh mục riêng; không tự tạo đặt chỗ hoặc bán hàng." actions={<ButtonLink tone="secondary" to={returnTo??(id ? `${catalogConfig[kind].route}/${id}` : catalogConfig[kind].route)}>Quay lại</ButtonLink>} />
     {id && <CatalogState {...query} />}
     {(!id || query.data) && (kind === 'packages' && query.data && query.data.status !== 'DRAFT' ? <Notice title="Không thể sửa gói này">Chỉ gói nháp chưa được phân bổ mới được chỉnh sửa.</Notice> : <CatalogEditor key={`${kind}:${id}`} kind={kind} initial={query.data ?? undefined} />)}
   </CatalogFrame>
 }
 function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: CatalogItem }) {
   const access = useSessionAccess(), navigate = useNavigate()
-  const [draft, setDraft] = useState<CatalogDraft>(() => initial ? catalogDraft(initial) : { ...emptyCatalogDraft })
+  const [params]=useSearchParams(),returnTo=readinessContextReturn(params,kind==='packages'?'PACKAGE':kind.toUpperCase(),initial?.id)
+  const [draft, setDraft] = useState<CatalogDraft>(() => initial ? {...catalogDraft(initial),currency:'USD',price:initial.currency==='USD'?catalogDraft(initial).price:''} : { ...emptyCatalogDraft,currency:'USD' })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [error, setError] = useState(''), [busy, setBusy] = useState(false)
   const lock = useRef(false), form = useRef<HTMLFormElement>(null)
@@ -32,14 +36,14 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
   const typeOptions = new Map(Object.entries(kind === 'packages' ? packageTypes : kind === 'services' ? serviceTypes : productTypes))
   for (const row of knownTypes.data ?? []) if (row.type.trim() && row.type.length <= 50 && !typeOptions.has(row.type)) typeOptions.set(row.type, row.type)
   if (initial?.type && !typeOptions.has(initial.type)) typeOptions.set(initial.type, initial.type)
-  const fields: { key: keyof CatalogDraft; label: string; type?: string; maxLength?: number }[] = [{ key: 'name', label: 'Tên *', maxLength: 200 }, { key: 'type', label: 'Loại *', maxLength: 50 }, { key: 'price', label: kind === 'services' ? 'Giá (không bắt buộc)' : 'Giá *', type: 'number' }, { key: 'currency', label: 'Mã tiền tệ (mặc định USD)', maxLength: 3 }, ...(kind === 'services' ? [{ key: 'capacity' as const, label: 'Sức chứa cấu hình', type: 'number' }] : []), ...(kind === 'packages' ? [{ key: 'startDate' as const, label: 'Có hiệu lực từ', type: 'date' }, { key: 'endDate' as const, label: 'Đến hết ngày', type: 'date' }] : [])]
+  const fields: { key: keyof CatalogDraft; label: string; type?: string; maxLength?: number }[] = [{ key: 'name', label: 'Tên *', maxLength: 200 }, { key: 'type', label: 'Loại *', maxLength: 50 }, { key: 'price', label: businessCopy('program.field.priceUsd'), type: 'number' }, ...(kind === 'services' ? [{ key: 'capacity' as const, label: 'Sức chứa cấu hình', type: 'number' }] : []), ...(kind === 'packages' ? [{ key: 'startDate' as const, label: 'Có hiệu lực từ', type: 'date' }, { key: 'endDate' as const, label: 'Đến hết ngày', type: 'date' }] : [])]
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (lock.current || !allowed) return
     const invalid = validateCatalogDraft(kind, draft); setErrors(invalid); setError('')
     if (Object.keys(invalid).length) { form.current?.querySelector<HTMLElement>(`[name="${Object.keys(invalid)[0]}"]`)?.focus(); return }
     lock.current = true; setBusy(true)
-    try { const saved = await servicePackageApi.save(kind, draft, initial?.id); navigate(`${catalogConfig[kind].route}/${saved.id}`) }
+    try { const saved = await servicePackageApi.save(kind, draft, initial?.id); navigate(returnTo??`${catalogConfig[kind].route}/${saved.id}`) }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa lưu được danh mục. Dữ liệu đã nhập được giữ lại.') }
     finally { lock.current = false; setBusy(false) }
   }

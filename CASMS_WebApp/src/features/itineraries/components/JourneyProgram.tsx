@@ -5,6 +5,7 @@ import { journeyTime, SHIP_TIME_ZONE, validTimeZone, wallTimeToInstant, zonedInp
 import { programApi, type ProgramActivity, type ProgramExcursion, type ProgramService } from '../api/program-api'
 import type { CruiseStop, ItineraryDay, Port } from '../model/itinerary'
 import { excursionIssue, overlapsDay } from '../model/journey-review'
+import {businessCopy} from '@/shared/i18n/business-copy'
 import styles from './Itineraries.module.css'
 
 function ProgramTimeEditor({ activity, excursion, stop, zone, cruise, onSaved, onBusy }: { activity?: ProgramActivity; excursion?: ProgramExcursion; stop?: CruiseStop; zone: string; cruise: { departureDatetime: string; returnDatetime: string }; onSaved: () => void; onBusy: (busy: boolean) => void }) {
@@ -26,9 +27,10 @@ function ProgramTimeEditor({ activity, excursion, stop, zone, cruise, onSaved, o
     if (location.trim().length > 250 || (excursion && !location.trim())) invalid.location = 'Điểm tập trung bắt buộc cho tham quan, tối đa 250 ký tự.'
     setErrors(invalid); setError('')
     if (Object.keys(invalid).length) return
+    if(activity && activity.capacity==null){setError(businessCopy('program.activity.configurationRequired'));return}
     lock.current = true; setBusy(true); onBusy(true)
     try {
-      if (activity) await programApi.updateActivity(activity.id, { activityName: activity.name, description: activity.description, cruiseId: activity.cruiseId, startTime, endTime, location: location.trim(), capacity: activity.capacity, price: activity.price, currencyCode: activity.currencyCode })
+      if (activity) await programApi.updateActivity(activity.id, { activityName: activity.name, description: activity.description, cruiseId: activity.cruiseId, startTime, endTime, location: location.trim(), capacity: activity.capacity, deckId: activity.deckId, cabinId: activity.cabinId, price: activity.price, currencyCode: activity.currencyCode })
       else if (excursion) await programApi.updateExcursion(excursion, startTime, endTime, location.trim())
       onSaved()
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa lưu được chương trình. Nội dung đã nhập được giữ lại.') }
@@ -63,7 +65,7 @@ export function JourneyProgram({ day, activities, excursions, services, stops, p
         <Button disabled={!selectedActivity} onClick={() => selectedActivity && setEditing({ activity: selectedActivity })}>Chỉnh lịch hoạt động</Button>
       </div>}
       {!dayActivities.length && <Empty title="Chưa có hoạt động trong ngày này" />}
-      {dayActivities.map(row => <article className={styles.programCard} key={row.id}><div><strong>{row.name}</strong><p>{journeyTime(row.startTime)} → {journeyTime(row.endTime)}</p><span>{row.location || 'Chưa có địa điểm'}</span></div>{editable && row.status === 'PLANNED' && access.canDo('ACTIVITY_UPDATE') && <Button tone="secondary" onClick={() => setEditing({ activity: row })}>Chỉnh sửa</Button>}</article>)}
+      {dayActivities.map(row => <article className={styles.programCard} key={row.id}><div><strong>{row.name}</strong><p>{journeyTime(row.startTime)} → {journeyTime(row.endTime)}</p><span>{row.location || 'Chưa có địa điểm'}</span>{row.capacity==null&&<Notice title={businessCopy('program.activity.capacityUnknown')}>{businessCopy('program.activity.configurationRequired')}</Notice>}</div>{editable && row.status === 'PLANNED' && row.capacity!=null && access.canDo('ACTIVITY_UPDATE') && <Button tone="secondary" onClick={() => setEditing({ activity: row })}>Chỉnh sửa</Button>}</article>)}
       <p className={styles.muted}>Danh mục mẫu hoạt động dùng lại cho nhiều chuyến chưa được hỗ trợ. Danh sách trên là các hoạt động đã gắn với chuyến này.</p>
     </Panel>}
     {access.canDo('EXCURSION_READ') && <Panel title="Chuyến tham quan trên bờ" subtitle="Các chuyến tham quan đã liên kết với lần ghé cảng. Giờ hiển thị theo địa phương cảng.">

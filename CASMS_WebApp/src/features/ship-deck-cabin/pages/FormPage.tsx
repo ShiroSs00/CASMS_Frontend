@@ -5,6 +5,7 @@ import { useSessionAccess } from '@/shared/auth'
 import { entityPermission } from '../model/permissions'
 import { useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
+import {readinessContextReturn} from '@/shared/lib/cruise-context'
 import { Button, Notice, PageHeader, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { useAdminData, useEntity, useMutation } from '../hooks/useAdminData'
@@ -19,6 +20,7 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
   { kind: EntityKind; data: DataSnapshot; ship?: Ship; deck?: Deck; cabin?: Cabin; hostId: string; deckId: string }) {
   const navigate = useNavigate()
   const source = ship ?? deck ?? cabin
+  const [params]=useSearchParams(),returnTo=readinessContextReturn(params,kind==='ships'?'SHIP':kind==='cabins'?'CABIN':'DECK',source?.id)
   const access = useSessionAccess()
   const permitted = access.canDo(entityPermission(kind, source ? 'UPDATE' : 'CREATE'))
   const [shipDraft, setShip] = useState<ShipDraft>(ship ?? { code: '', name: '', capacity: 0, totalDecks: 0, commissionDate: '', status: 'ACTIVE' })
@@ -45,7 +47,7 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
       const saved = kind === 'ships' ? await shipDeckCabinApi.saveShip(shipDraft, source?.id)
         : kind === 'decks' ? await shipDeckCabinApi.saveDeck(deckDraft, source?.id)
           : await shipDeckCabinApi.saveCabin(cabinDraft, source?.id)
-      navigate(`/admin/${kind}/${saved.id}`, { state: { saved: true } })
+      navigate(returnTo??`/admin/${kind}/${saved.id}`, { state: { saved: true } })
     })
   }
   const hostOptions = <><option value="">Chọn tàu</option>{data.ships.map((row) => <option key={row.id} value={row.id}>{row.code} · {row.name}</option>)}</>

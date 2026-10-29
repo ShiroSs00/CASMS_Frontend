@@ -37,7 +37,7 @@
 .badge_error { background:#fff0ef; color:#b42318; }
 .tableScroll { width:100%; overflow-x:auto; }
 .table { width:100%; min-width:920px; border-collapse:collapse; text-align:left; }
-.table th { padding:14px 12px; background:#f5f7f9; color:var(--text-secondary); font-size:12px; font-weight:600; line-height:18px; }
+.table thead th { padding:14px 12px; background:#f5f7f9; color:var(--text-secondary); font-size:12px; font-weight:600; line-height:18px; }
 .table td { padding:14px 12px; border-bottom:1px solid var(--border-default); font-size:13px; line-height:20px; vertical-align:top; }
 .table tbody tr:last-child td { border:0; }
 .empty { display:flex; flex-direction:column; gap:12px; min-height:160px; align-items:center; justify-content:center; padding:24px; text-align:center; color:var(--text-secondary); }
@@ -106,7 +106,7 @@
 .notice_error { border-color:#e5b5b2; color:var(--ui-danger,#b42318); }
 .tableScroll { border:1px solid var(--ui-border,var(--border-default)); border-radius:var(--radius-panel); max-width:100%; overscroll-behavior-inline:contain; }
 .table { min-width:720px; }
-.table th { font-size:12px; letter-spacing:.025em; padding:16px; color:var(--ui-muted,var(--text-secondary)); }
+.table thead th { font-size:12px; letter-spacing:.025em; padding:16px; color:var(--ui-muted,var(--text-secondary)); }
 .table td { padding:16px; font-size:14px; line-height:1.55; overflow-wrap:anywhere; }
 .table tbody tr:hover { background:var(--surface-tinted); }
 .table tbody tr:focus-within { background:var(--surface-tinted); }
@@ -181,7 +181,7 @@
 .field label { font-size:13px; font-weight:500; }
 .field input,.field select,.field textarea { border-radius:5px; min-height:46px; }
 .tableScroll { border-radius:6px; }
-.table th { background:#EDF3F1; font-size:11px; text-transform:uppercase; letter-spacing:.05em; padding:16px 20px; }
+.table thead th { background:#EDF3F1; font-size:11px; text-transform:uppercase; letter-spacing:.05em; padding:16px 20px; }
 .table td { padding:20px; font-size:13px; }
 .empty { background:#F5F8F6; border:1px dashed #B4C9C8; border-radius:8px; padding:40px 24px; }
 .emptyMark { border-radius:50%; background:white; width:56px; height:56px; }
@@ -190,3 +190,6 @@
 
 .header { opacity:1; transition:opacity var(--motion-fade) var(--ease-out); }
 @starting-style { .header { opacity:0; } }
+
+/* Row names are content, not column headings. Keep their case and row background. */
+.table tbody th{padding:20px;font-size:13px;line-height:1.55;letter-spacing:normal;text-transform:none;background:transparent;color:var(--text-primary);font-weight:600;overflow-wrap:anywhere}

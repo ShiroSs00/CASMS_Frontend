@@ -6,7 +6,7 @@ import { servicePackageApi, type BenefitKind, type BenefitRow } from '../api/ser
 import { benefitLabels } from '../model/catalog'
 import { CatalogState } from './CatalogUI'
 
-const labels = { services: 'Dịch vụ', activities: 'Hoạt động', excursions: 'Tham quan bờ' }
+const labels = { services: 'Dịch vụ', activities: 'Hoạt động', excursions: 'Tour tham quan trên bờ' }
 export function PackageBenefitsEditor({ packageId, status, onChanged }: { packageId: string; status: string; onChanged: () => void }) {
   const access = useSessionAccess()
   const [kind, setKind] = useState<BenefitKind>('services')
@@ -39,7 +39,7 @@ export function PackageBenefitsEditor({ packageId, status, onChanged }: { packag
       {edit.method !== 'DELETE' && <Field htmlFor="package-benefit-type" label="Quyền lợi"><select id="package-benefit-type" value={benefitType} disabled={busy} onChange={event => setBenefitType(event.target.value as typeof benefitType)}><option value="INCLUDED">Đã bao gồm</option><option value="OPTIONAL">Tùy chọn</option></select></Field>}
       <p>Xác nhận thay đổi thành phần gói. Thao tác không đăng ký chỗ hoặc thay đổi trạng thái chuyến tham quan.</p>
       {error && <Notice tone="error" title="Không cập nhật được">{error}</Notice>}
-      <Button tone={edit.method === 'DELETE' ? 'danger' : 'primary'} disabled={busy || !allowed || !entityId} onClick={() => void save()}>Xác nhận</Button>
+      <Button tone={edit.method === 'DELETE' ? 'danger' : 'primary'} disabled={busy || !allowed || !entityId} onClick={() => void save()}>{edit.method === 'DELETE' ? 'Gỡ quyền lợi khỏi gói' : edit.method === 'POST' ? 'Thêm quyền lợi' : 'Lưu quyền lợi'}</Button>
     </Modal>}
   </Panel>
 }

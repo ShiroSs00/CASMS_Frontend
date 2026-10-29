@@ -215,12 +215,18 @@ export default tseslint.config(
     },
   },
   {
-    files: ['eslint.config.js', 'vite.config.ts', '**/*.test.{js,mjs}'],
+    files: ['eslint.config.js', 'vite.config.ts', '**/*.test.{js,mjs}', 'tests/helpers/**/*.mjs'],
     languageOptions: {
       globals: {
         ...globals.node,
         ...globals.browser,
       },
     },
+  },
+  {
+    // Preserve the audited task-pack scanner byte-for-byte; it runs as a Node CLI.
+    files: ['tools/check_vi_business_copy.mjs'],
+    languageOptions: { globals: globals.node },
+    rules: { 'no-useless-escape': 'off' },
   },
 )

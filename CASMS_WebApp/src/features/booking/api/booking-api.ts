@@ -1,9 +1,17 @@
-import { apiRequest } from '@/shared/api'
+import { ApiError, apiRequest } from '@/shared/api'
 import { toPublishedCruise, toPublishedPage, type LiveCruiseDto, type LiveCruisePageDto } from './live-cruise-contract'
 import { lookupItinerary, toLiveDays, toLivePortCalls, toLiveShip } from './live-itinerary-contract'
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export const liveCruiseCatalogApi = {
+ async saleState(id:string,signal?:AbortSignal) {
+  if(!UUID_REGEX.test(id))throw new ApiError('Không xác định được lần khởi hành.',400)
+  const value=await apiRequest<unknown>(`/cruise/${encodeURIComponent(id)}/sellability`,{signal})
+  if(!value||typeof value!=='object'||Array.isArray(value))throw new ApiError('Chưa xác định được trạng thái bán.',502)
+  const row=value as Record<string,unknown>
+  if(row.cruiseId!==id||typeof row.sellable!=='boolean'||typeof row.saleState!=='string')throw new ApiError('Trạng thái bán chưa khớp lần khởi hành.',502)
+  return {saleState:row.saleState,sellable:row.sellable}
+ },
  async list(page:number, signal?:AbortSignal, cruiseType?: 'ONE_DAY' | 'MULTI_DAYS') {
   const data = await apiRequest<LiveCruisePageDto>('/cruise', {
    query: { status:'PUBLISHED', page:page-1, size:6, sort:'departureDatetime,asc', cruiseType }, signal,

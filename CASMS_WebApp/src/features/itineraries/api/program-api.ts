@@ -1,9 +1,9 @@
 import { apiRequest, apiRequestRaw } from '@/shared/api'
 
-export type ProgramActivity = { id: string; cruiseId: string; name: string; description: string | null; startTime: string; endTime: string; location: string | null; capacity: number; price: number | null; currencyCode: string | null; status: string }
+export type ProgramActivity = { id: string; cruiseId: string; name: string; description: string | null; startTime: string; endTime: string; location: string | null; capacity: number | null; deckId: string | null; cabinId: string | null; price: number | null; currencyCode: string | null; status: string }
 export type ProgramExcursion = { shoreExcursionId: string; cruiseStopId: string; excursionName: string; startTime: string; plannedReturnTime: string; status: string; supplierId: string; meetingPoint: string; minimumParticipants: number | null; maximumCapacity: number; price: number | null; currencyCode: string | null }
 export type ProgramService = { id: string; name: string; type: string }
-export type ActivityUpdateRequest = { activityName: string; description: string | null; cruiseId: string; startTime: string; endTime: string; location: string | null; capacity: number; price: number | null; currencyCode: string | null }
+export type ActivityUpdateRequest = { activityName: string; description: string | null; cruiseId: string; startTime: string; endTime: string; location: string | null; capacity: number | null; deckId: string | null; cabinId: string | null; price: number | null; currencyCode: string | null }
 
 function rows<T>(value: unknown, fields: string[]): T[] {
   if (!Array.isArray(value) || value.some(row => !row || fields.some(field => typeof row[field] !== 'string' || !row[field]))) throw new Error('Dữ liệu chương trình không đúng định dạng. Vui lòng tải lại.')
@@ -11,7 +11,7 @@ function rows<T>(value: unknown, fields: string[]): T[] {
 }
 function activities(value: unknown): ProgramActivity[] {
   const result = rows<ProgramActivity>(value, ['id', 'cruiseId', 'name', 'startTime', 'endTime', 'status'])
-  if (result.some(row => !Number.isSafeInteger(row.capacity) || row.capacity < 1 || !Number.isFinite(Date.parse(row.startTime)) || !Number.isFinite(Date.parse(row.endTime)))) throw new Error('Thông tin hoạt động không đầy đủ.')
+  if (result.some(row => row.capacity != null && (!Number.isSafeInteger(row.capacity) || row.capacity < 1) || !Number.isFinite(Date.parse(row.startTime)) || !Number.isFinite(Date.parse(row.endTime)))) throw new Error('Thông tin hoạt động không đầy đủ.')
   return result
 }
 export const programApi = {

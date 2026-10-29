@@ -18,7 +18,7 @@ export interface PlanningGateway {
   changeDay(trip: Trip, version: Version, removeDay?: number): Promise<{ trip: Trip; version: Version }>
   sources(kind: SourceKind, signal: AbortSignal, query?:SourceQuery): Promise<Source[]>
   validate(version: Version): Promise<Report>
-  action(version: Version, action: 'submit' | 'return' | 'publish' | 'withdraw' | 'cancel', reason?: string): Promise<Version>
+  action(version: Version, action: 'submit' | 'return' | 'publish' | 'finalize' | 'withdraw' | 'cancel', reason?: string): Promise<Version>
   history(versionId: string, signal: AbortSignal): Promise<History[]>
   historyPage?(id:string,scope:'trip'|'version',page:number,signal:AbortSignal):Promise<PageResult<History>>
   reviewQueue?(page:number,signal:AbortSignal):Promise<PageResult<ReviewItem>>

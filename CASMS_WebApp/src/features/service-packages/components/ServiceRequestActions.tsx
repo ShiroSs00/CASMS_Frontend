@@ -30,6 +30,6 @@ export function ServiceRequestActions({ request, onChanged }: { request: Service
     {actions.filter(allowed).map(action => <Button key={action} tone={action === 'cancel' || action === 'reject' ? 'danger' : 'secondary'} disabled={busy || !allowed(action)} onClick={() => { setAction(action); setError('') }}>{labels[action]}</Button>)}
     {!ownAssignment && ['ACCEPTED', 'IN_PROGRESS'].includes(request.status) && <p>Chỉ người được phân công mới có thể bắt đầu hoặc hoàn thành yêu cầu.</p>}
     <p>Nhận xử lý gắn yêu cầu với tài khoản của bạn. Chỉ bắt đầu hoặc hoàn thành yêu cầu đã được giao cho bạn.</p>
-    {action && allowed(action) && <Modal title={labels[action]} busy={busy} onClose={() => setAction(null)}><p>Xác nhận {labels[action].toLocaleLowerCase('vi')} cho yêu cầu đang xem?</p>{error && <Notice tone="error" title="Không thực hiện được">{error}</Notice>}<Button disabled={busy || !allowed(action)} onClick={() => void confirm()}>Xác nhận</Button></Modal>}
+    {action && allowed(action) && <Modal title={labels[action]} busy={busy} onClose={() => setAction(null)}><p>Xác nhận {labels[action].toLocaleLowerCase('vi')} cho yêu cầu đang xem?</p>{error && <Notice tone="error" title="Không thực hiện được">{error}</Notice>}<Button disabled={busy || !allowed(action)} onClick={() => void confirm()}>{labels[action]}</Button></Modal>}
   </Panel>
 }
