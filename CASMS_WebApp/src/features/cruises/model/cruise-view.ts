@@ -89,6 +89,8 @@ export type CruiseDetailView = CruiseListItem & {
   supplementaryLoading?: boolean
   capacity: CapacitySummary
   readiness: {
+    validUntil?: string | null
+    details?: import('../api/dto').ReadinessIssueDto[] | null
     state: 'READY' | 'BLOCKED' | 'UNKNOWN'
     evaluatedAt?: string | null
     cruiseRevision?: number | null
@@ -104,7 +106,7 @@ export type CruiseDetailView = CruiseListItem & {
 
 export const cruiseStatusLabels: Record<CruiseStatus, string> = {
   DRAFT: 'Nháp',
-  PUBLISHED: 'Đã phát hành lần khởi hành',
+  PUBLISHED: 'Lần khởi hành đã công bố',
   IN_PROGRESS: 'Đang vận hành',
   COMPLETED: 'Hoàn thành',
   CANCELLED: 'Đã hủy',
@@ -119,7 +121,7 @@ export const itineraryStatusLabels: Record<ItineraryStatus, string> = {
   DRAFT: 'Nháp',
   PENDING_APPROVAL: 'Chờ duyệt',
   APPROVED: 'Đã duyệt',
-  OPEN_FOR_SALE: 'Đã phát hành',
+  OPEN_FOR_SALE: 'Lịch trình đang áp dụng để mở bán',
   ACTIVE: 'Đang hoạt động',
   COMPLETED: 'Hoàn thành',
   REJECTED: 'Từ chối',

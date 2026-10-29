@@ -40,7 +40,7 @@ export function createPreviewGateway(scenario:Scenario):PlanningGateway {
       await delay();writable()
       if(previous) {
         const current=needTrip(previous.tripId);if(current.revision!==previous.revision)throw new PlanningFault('Thông tin chuyến đã thay đổi.',409,'STALE_REVISION')
-        if(current.structuralLockedAt&&info.durationBand!==current.info.durationBand)throw new PlanningFault('Chuyến có lịch trình đã phát hành nên không thể đổi số ngày. Hãy nhân bản chuyến.',422)
+        if(current.structuralLockedAt&&info.durationBand!==current.info.durationBand)throw new PlanningFault('Khung chuyến có mẫu đã chốt nên không thể đổi số ngày. Hãy nhân bản chuyến.',422)
         const count=info.durationBand===current.info.durationBand?current.durationDays:info.durationBand==='SHORT'?1:3
         for(const v of versions.values()) if(v.tripId===current.tripId&&v.status==='DRAFT'&&count!==v.days.length) {
           if(v.stops.some(s=>s.departureDayNumber>count)||v.entries.some(e=>e.endDayNumber>count))throw new PlanningFault('Còn nội dung ở ngày bị ảnh hưởng; hãy xử lý trước khi đổi thời lượng.',422)
@@ -58,7 +58,7 @@ export function createPreviewGateway(scenario:Scenario):PlanningGateway {
     async createVersion(trip,sourceId) {await delay();writable();const current=refreshTrip(needTrip(trip.tripId));if(current.versions?.some(v=>v.status!=='PUBLISHED'))throw new PlanningFault('Đã có phiên bản chưa hoàn tất.',409,'DUPLICATE_DRAFT_VERSION');const source=sourceId?needVersion(sourceId):undefined;if(source&&source.tripId!==trip.tripId)throw new PlanningFault('Nguồn phải thuộc cùng chuyến.',422);return newVersion(current,source)},
     async save(version,content) {await delay();writable(version);revision(version);if(scenario==='409')throw new PlanningFault('Xung đột minh họa. Không tự ghi đè bản server.',409,'STALE_REVISION');const v={...copy(version),...copy(content),revision:version.revision+1};versions.set(v.versionId,v);record(v,'SAVE_CONTENT');refreshTrip(needTrip(v.tripId));return copy(v)},
     async changeDay(trip,version,removeDay) {
-      await delay();writable(version);revision(version);const current=needTrip(trip.tripId);if(current.structuralLockedAt)throw new PlanningFault('Chuyến có lịch trình đã phát hành nên không thể đổi số ngày. Hãy nhân bản chuyến.',422)
+      await delay();writable(version);revision(version);const current=needTrip(trip.tripId);if(current.structuralLockedAt)throw new PlanningFault('Khung chuyến có mẫu đã chốt nên không thể đổi số ngày. Hãy nhân bản chuyến.',422)
       if(current.revision!==trip.revision)throw new PlanningFault('Thông tin chuyến minh họa đã thay đổi.',409,'STALE_REVISION')
       const nextCount=version.days.length+(removeDay===undefined?1:-1),limits=current.info.durationBand==='SHORT'?[1,2]:[3,5]
       if(nextCount<limits[0]||nextCount>limits[1])throw new PlanningFault('Số ngày vượt giới hạn thời lượng minh họa.',422)
@@ -82,11 +82,12 @@ export function createPreviewGateway(scenario:Scenario):PlanningGateway {
         const saved:Version={...version,status:action==='cancel'?'CANCELLED':'DRAFT',revision:version.revision+1,rejectionReason:action==='cancel'?reason:version.rejectionReason}
         versions.set(saved.versionId,copy(saved));record(saved,action==='cancel'?'CANCEL_DRAFT':'WITHDRAW');refreshTrip(needTrip(saved.tripId));return copy(saved)
       }
-      if((action==='submit'&&version.status!=='DRAFT')||(action!=='submit'&&version.status!=='IN_REVIEW'))throw new PlanningFault('Trạng thái không cho phép thao tác.',409,'INVALID_STATE')
-      if(action==='return'&&(!reason?.trim()||reason.length>500))throw new PlanningFault('Nhập lý do từ 1 đến 500 ký tự.',422)
+      if(action!=='finalize')throw new PlanningFault('Quy trình xét duyệt mẫu cũ đã dừng.',410,'TEMPLATE_REVIEW_RETIRED')
+      writable(version)
       const violations=localViolations(version)
-      if(action!=='return'&&(violations.length||scenario==='422'))throw new PlanningFault('Vi phạm minh họa khi kiểm tra lại.',422,'VALIDATION_FAILED',violations.length?violations:[{code:'PREVIEW_422',severity:'ERROR',dayNumber:1,message:'Minh họa: nội dung Ngày 1 cần được đối chiếu lại.'}])
-      const v={...version,status:action==='submit'?'IN_REVIEW' as const:action==='return'?'DRAFT' as const:'PUBLISHED' as const,revision:version.revision+1,submitterId:action==='submit'?'preview-editor':version.submitterId,rejectionReason:action==='return'?reason:undefined};versions.set(v.versionId,copy(v));record(v,action.toUpperCase());const trip=needTrip(v.tripId);if(action==='publish'){trip.structuralLockedAt=new Date().toISOString();trip.status='READY';trip.revision++}refreshTrip(trip);return copy(v)
+      if(violations.length||scenario==='422')throw new PlanningFault('Còn thông tin cần chỉnh sửa.',422,'VALIDATION_FAILED',violations)
+      const v={...version,status:'PUBLISHED' as const,revision:version.revision+1};versions.set(v.versionId,copy(v));record(v,'FINALIZE')
+      const trip=needTrip(v.tripId);trip.structuralLockedAt=new Date().toISOString();trip.status='READY';trip.revision++;refreshTrip(trip);return copy(v)
     },
     async history(id,signal) {await delay(signal);return copy(events[id]??[])},
   }

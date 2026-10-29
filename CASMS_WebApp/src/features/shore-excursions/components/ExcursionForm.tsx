@@ -1,6 +1,9 @@
+import {businessCopy} from '@/shared/i18n/business-copy'
 import { EditorLayout } from '@/shared/ui'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useCallback, useState, type FormEvent } from 'react'
+import {useSearchParams} from 'react-router'
+import {validCruiseContextId} from '@/shared/lib/cruise-context'
 
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
@@ -16,15 +19,16 @@ const fields: { key: keyof ExcursionFormValues; label: string; type?: string; ma
   { key: 'startTime', label: 'Thời gian bắt đầu', type: 'datetime-local', required: true },
   { key: 'plannedReturnTime', label: 'Thời gian trở về dự kiến', type: 'datetime-local', required: true },
   { key: 'maximumCapacity', label: 'Sức chứa tối đa', type: 'number', required: true },
-  { key: 'minimumParticipants', label: 'Số khách tối thiểu', type: 'number' },
-  { key: 'price', label: 'Giá', type: 'text' }, { key: 'currencyCode', label: 'Mã tiền tệ', maxLength: 3 },
+  { key: 'minimumParticipants', label: 'Số khách tối thiểu để tổ chức', type: 'number' },
+  { key: 'price', label: businessCopy('program.field.priceUsd'), type: 'text', required:true },
 ]
 export function ExcursionForm({ initial, busy, onSave }: { initial?: ShoreExcursion; busy: boolean; onSave: (request: ExcursionRequest) => Promise<void> }) {
   const access = useSessionAccess()
-  const stops = useReadQuery('excursion-stop-options', excursionContextApi.stops)
+  const [params]=useSearchParams(),requestedCruise=params.get('cruiseId'),requestedStop=params.get('cruiseStopId')
+  const stops = useReadQuery('excursion-stop-options:'+requestedCruise, useCallback(signal=>excursionContextApi.stops(signal,validCruiseContextId(requestedCruise)?requestedCruise:undefined),[requestedCruise]))
   const suppliers = useReadQuery('excursion-supplier-options', excursionContextApi.suppliers)
   const [contextError, setContextError] = useState('')
-  const [values, setValues] = useState(() => initial ? excursionToForm(initial) : { ...emptyExcursionForm })
+  const [values, setValues] = useState(() => initial ? {...excursionToForm(initial),currencyCode:'USD',price:initial.currencyCode==='USD'?initial.price?.toString()??'':''} : { ...emptyExcursionForm,currencyCode:'USD',...(validCruiseContextId(requestedStop)?{cruiseStopId:requestedStop}:{}) })
   const [errors, setErrors] = useState<Partial<Record<keyof ExcursionFormValues, string>>>({})
   const stopId = values.cruiseStopId
   const schedule = useReadQuery('excursion-stop-schedule:' + stopId, useCallback(signal => stopId ? shoreExcursionApi.list({ cruiseStopId: stopId }, signal) : Promise.resolve([]), [stopId]))
@@ -47,6 +51,7 @@ export function ExcursionForm({ initial, busy, onSave }: { initial?: ShoreExcurs
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (busy || !access.canDo(initial ? 'EXCURSION_UPDATE' : 'EXCURSION_CREATE')) return
+    if(params.has('cruiseStopId')&&(!validCruiseContextId(requestedStop)||stopId!==requestedStop)||params.has('cruiseId')&&(!validCruiseContextId(requestedCruise)||stop?.cruiseId!==requestedCruise)){setContextError('Lần ghé cảng không khớp lần khởi hành trong đường dẫn. Mở lại từ đúng hồ sơ.');return}
     if (stops.error || suppliers.error || stops.loading || suppliers.loading) { setContextError('Chưa tải đủ điểm dừng và nhà cung cấp. Vui lòng thử tải lại.'); return }
     setContextError('')
     const next = { ...validateExcursionForm(values), ...validateExcursionWindow(values.startTime, values.plannedReturnTime, stop) }
@@ -68,7 +73,7 @@ export function ExcursionForm({ initial, busy, onSave }: { initial?: ShoreExcurs
     <EditorLayout guidance={[{title:"Điểm dừng và đối tác",description:"Kiểm tra điểm dừng và nhà cung cấp đã xác minh."},{title:"Lịch tham quan",description:"Đối chiếu giờ lưu cảng và thời hạn trở lại tàu."}]}><form className={styles.form} onSubmit={submit} noValidate>
       <fieldset disabled={busy}>
         <div className={styles.fullRow}><FormErrorSummary errors={errors} /></div>
-        <Field htmlFor="excursion-cruiseStopId" label="Điểm dừng *" error={errors.cruiseStopId}><select id="excursion-cruiseStopId" name="cruiseStopId" required value={values.cruiseStopId} disabled={stops.loading || Boolean(stops.error)} onChange={event => change('cruiseStopId', event.target.value)}><option value="">Chọn lịch trình và cảng ghé</option>{stops.data?.map(item => <option key={item.cruiseStopId} value={item.cruiseStopId}>{item.label}</option>)}</select></Field>
+        <Field htmlFor="excursion-cruiseStopId" label="Điểm dừng *" error={errors.cruiseStopId}><select id="excursion-cruiseStopId" name="cruiseStopId" required value={values.cruiseStopId} disabled={Boolean(requestedStop) || stops.loading || Boolean(stops.error)} onChange={event => change('cruiseStopId', event.target.value)}><option value="">Chọn lịch trình và cảng ghé</option>{stops.data?.map(item => <option key={item.cruiseStopId} value={item.cruiseStopId}>{item.label}</option>)}</select></Field>
         <Field htmlFor="excursion-supplierId" label="Nhà cung cấp *" error={errors.supplierId}><select id="excursion-supplierId" name="supplierId" required value={values.supplierId} disabled={suppliers.loading || Boolean(suppliers.error)} onChange={event => change('supplierId', event.target.value)}><option value="">Chọn nhà cung cấp</option>{suppliers.data?.map(item => <option key={item.supplierId} value={item.supplierId} disabled={item.status !== 'ACTIVE' || item.verificationStatus !== 'VERIFIED'}>{item.supplierName}{item.status !== 'ACTIVE' ? ' · Ngừng hoạt động' : item.verificationStatus !== 'VERIFIED' ? ' · Chưa xác minh' : ''}</option>)}</select></Field>
         {stop && <section className={styles.stopContext} aria-label="Khung giờ điểm dừng">
           <strong>Khung giờ tham quan tại điểm dừng</strong>

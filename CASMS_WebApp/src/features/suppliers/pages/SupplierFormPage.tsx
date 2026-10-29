@@ -2,7 +2,8 @@ import { EditorLayout } from '@/shared/ui'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useEffect, useState } from 'react'
 import { useSessionAccess } from '@/shared/auth'
-import { useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
+import {readinessContextReturn} from '@/shared/lib/cruise-context'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { ApiError } from '@/shared/api/client'
 import { supplierApi } from '../api/supplier-api'
@@ -21,6 +22,7 @@ export function SupplierFormPage() {
   const access = useSessionAccess()
   const { supplierId } = useParams<{ supplierId: string }>()
   const navigate = useNavigate()
+  const [params]=useSearchParams(),returnTo=readinessContextReturn(params,'SUPPLIER',supplierId)
   const mode: SupplierFormMode = supplierId === undefined ? 'create' : 'edit'
 
   const [supplier, setSupplier] = useState<SupplierListItem | null>(null)
@@ -77,7 +79,7 @@ export function SupplierFormPage() {
         navigate(`/admin/suppliers/${created.id}`)
       } else if (supplierId) {
         const updated = await supplierApi.update(supplierId, payload)
-        navigate(`/admin/suppliers/${updated.id}`)
+        navigate(returnTo??`/admin/suppliers/${updated.id}`)
       }
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {

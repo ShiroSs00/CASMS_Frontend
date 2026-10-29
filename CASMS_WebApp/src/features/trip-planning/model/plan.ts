@@ -1,3 +1,4 @@
+import { businessCopy } from '@/shared/i18n/business-copy'
 import type { CurrentTrip, CurrentVersion, CurrentDay, CurrentStop, CurrentEntry, EntryLocation } from '../api/current-contract'
 
 /** Form model; api/mappers and saveInfo map it to the Java DTO field names. */
@@ -26,8 +27,8 @@ export function countryLabel(code?:string){
 export function domesticRegionLabel(code?:string|null){
   return code?({BAC_BO:'Miền Bắc',TRUNG_BO:'Miền Trung',NAM_BO:'Miền Nam'} as Record<string,string>)[code]??'Miền chưa xác định':'Miền chưa xác định'
 }
-export const versionLabels = { DRAFT: 'Bản nháp', IN_REVIEW: 'Chờ duyệt', PUBLISHED: 'Đã phát hành lịch trình', CANCELLED:'Đã hủy' }
-export const tripLabels = { DRAFT: 'Nháp', READY: 'Có lịch trình đã phát hành', ARCHIVED: 'Đã lưu trữ' }
+export const versionLabels = { DRAFT: businessCopy('trip.template.DRAFT'), IN_REVIEW: businessCopy('trip.template.IN_REVIEW_LEGACY'), PUBLISHED: businessCopy('trip.template.PUBLISHED'), CANCELLED:'Đã hủy' }
+export const tripLabels = { DRAFT: businessCopy('trip.DRAFT'), READY: businessCopy('trip.READY'), ARCHIVED: 'Đã lưu trữ' }
 export const kindLabels = { ONBOARD_ACTIVITY: 'Hoạt động trên tàu', SHORE_EXCURSION: 'Tour tham quan trên bờ', SERVING_WINDOW: 'Khung phục vụ' }
 export const emptyInfo = (): TripInfo => ({ name: '', durationBand: 'SHORT', scope: '', regionIds: [], countryCodes: [], description: '' })
 export const contentOf = (v: Version): Content => structuredClone({ days: v.days, stops: v.stops, entries: v.entries })
@@ -54,8 +55,8 @@ export function localViolations(content: Content): Violation[] {
   for (const stop of content.stops) {
     if (orders.has(stop.stopOrder)) issue('Thứ tự lần ghé cảng phải duy nhất.', stop.arrivalDayNumber, stop.clientKey)
     orders.add(stop.stopOrder)
-    if (stop.isEmbarkation && stop.arrivalDayNumber !== 1) issue('Điểm đón phải ở Ngày 1.', stop.arrivalDayNumber, stop.clientKey)
-    if (stop.isDisembarkation && stop.departureDayNumber !== content.days.length) issue('Điểm trả phải ở ngày cuối.', stop.departureDayNumber, stop.clientKey)
+    if (stop.isEmbarkation && stop.arrivalDayNumber !== 1) issue('Cảng hành khách lên tàu phải ở Ngày 1.', stop.arrivalDayNumber, stop.clientKey)
+    if (stop.isDisembarkation && stop.departureDayNumber !== content.days.length) issue('Cảng hành khách kết thúc chuyến phải ở ngày cuối.', stop.departureDayNumber, stop.clientKey)
     if (content.entries.some(e => e.kind === 'SHORE_EXCURSION' && e.stopClientKey === stop.clientKey) && (!stop.allAboardTime || !stop.allAboardDayNumber)) issue('Lần ghé có tham quan cần hạn trở lại tàu.', stop.arrivalDayNumber, stop.clientKey)
   }
   for (const entry of content.entries) if (timeNumber(entry.endDayNumber,entry.plannedEndTime) <= timeNumber(entry.startDayNumber,entry.plannedStartTime)) issue('Giờ kết thúc phải sau giờ bắt đầu.',entry.startDayNumber,entry.clientKey)

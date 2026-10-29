@@ -1,12 +1,12 @@
 import { apiRequest } from '@/shared/api'
 import { displayTime, toLocalTime, type ExcursionFormValues, type ShoreExcursion } from '../model/shore-excursion'
 
-export type StopOption = { cruiseStopId: string; label: string; plannedArrival: string; plannedDeparture: string; allAboardTime?: string | null; arrivalMethod?: string | null; tenderTransferMinutes?: number | null }
+export type StopOption = { cruiseStopId: string; cruiseId?:string|null; label: string; plannedArrival: string; plannedDeparture: string; allAboardTime?: string | null; arrivalMethod?: string | null; tenderTransferMinutes?: number | null }
 export type SupplierOption = { supplierId: string; supplierName: string; status: string; verificationStatus: string }
 async function plans(signal?: AbortSignal) {
-  const items: { itineraryId: string; itineraryName: string }[] = []
+  const items: { itineraryId: string; itineraryName: string;cruiseId?:string|null }[] = []
   for (let page = 0, count = 1; page < count; page++) {
-    const data = await apiRequest<{ content: { itineraryId: string; itineraryName: string }[]; totalPages: number }>('/itineraries', { query: { page, size: 100 }, signal })
+    const data = await apiRequest<{ content: { itineraryId: string; itineraryName: string;cruiseId?:string|null }[]; totalPages: number }>('/itineraries', { query: { page, size: 100 }, signal })
     if (!data || !Array.isArray(data.content) || !Number.isSafeInteger(data.totalPages) || data.content.some(item => !item?.itineraryId || !item.itineraryName)) throw new Error('Danh sách lịch trình không đầy đủ.')
     items.push(...data.content); count = data.totalPages
   }
@@ -18,13 +18,13 @@ export const excursionContextApi = {
     if (!Array.isArray(data) || data.some(item => !item?.supplierId || !item.supplierName || typeof item.status !== 'string' || typeof item.verificationStatus !== 'string')) throw new Error('Danh sách nhà cung cấp không đầy đủ.')
     return data
   },
-  async stops(signal?: AbortSignal): Promise<StopOption[]> {
+  async stops(signal?: AbortSignal,cruiseId?:string): Promise<StopOption[]> {
     const [itineraries, ports] = await Promise.all([plans(signal), apiRequest<{ portId: string; portName: string }[]>('/ports/active', { signal })])
     if (!Array.isArray(ports)) throw new Error('Không đọc được tên cảng.')
-    return (await Promise.all(itineraries.map(async itinerary => {
+    return (await Promise.all(itineraries.filter(item=>!cruiseId||item.cruiseId===cruiseId).map(async itinerary => {
       const rows = await apiRequest<(Omit<StopOption, 'label'> & { portId: string; stopOrder: number })[]>(`/cruise-stops/by-itinerary/${encodeURIComponent(itinerary.itineraryId)}`, { signal })
       if (!Array.isArray(rows) || rows.some(item => !item?.cruiseStopId || !Number.isFinite(Date.parse(item.plannedArrival)) || !Number.isFinite(Date.parse(item.plannedDeparture)))) throw new Error('Thông tin điểm dừng chưa đầy đủ.')
-      return rows.map(item => ({ ...item, label: `${itinerary.itineraryName} · Điểm ${item.stopOrder ?? 'chưa có thứ tự'} · ${ports.find(port => port.portId === item.portId)?.portName ?? 'Chưa tải được tên cảng'} · ${displayTime(item.plannedArrival)}` }))
+      return rows.map(item => ({ ...item,cruiseId:itinerary.cruiseId, label: `${itinerary.itineraryName} · Lần ghé ${item.stopOrder ?? 'chưa có thứ tự'} · ${ports.find(port => port.portId === item.portId)?.portName ?? 'Chưa tải được tên cảng'} · ${displayTime(item.plannedArrival)}` }))
     }))).flat()
   },
 }

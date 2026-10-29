@@ -10,7 +10,9 @@ type RequestOptions = {
   signal?: AbortSignal
   authenticated?: boolean
   timeoutMs?: number
+  ifMatch?: number
   idempotencyKey?: string
+  guestToken?: string
 }
 export class ApiError extends Error {
   status: number
@@ -99,7 +101,9 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
     if (value !== undefined) query.set(key, String(value))
   }
   const headers: Record<string, string> = { Accept: 'application/json' }
+  if (options.ifMatch !== undefined) headers['If-Match'] = String(options.ifMatch)
   if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey
+  if (options.guestToken) headers['X-Guest-Token'] = options.guestToken
   const multipart = typeof FormData !== 'undefined' && options.body instanceof FormData
   if (options.body !== undefined && !multipart) headers['Content-Type'] = 'application/json'
   const requestToken = options.authenticated === false ? null : accessToken
@@ -129,7 +133,7 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
       if (response.status === 401 && requestToken && requestToken === accessToken) {
         unauthorizedListeners.forEach((listener) => listener())
       }
-      throw new ApiError(response.status === 401 ? 'Cần đăng nhập với JWT hợp lệ hoặc phiên đăng nhập đã hết hạn.'
+      throw new ApiError(response.status === 401 ? 'Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.'
         : response.status === 403 ? 'Bạn không có quyền thực hiện thao tác này.'
           : businessErrorMessage(payload?.code ?? payload?.error,message) || `Không thể thực hiện yêu cầu (HTTP ${response.status}).`, response.status, payload?.code ?? payload?.error, payload?.details ?? payload?.data)
     }
@@ -139,8 +143,8 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
   } catch (error) {
     if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
     if (error instanceof ApiError || options.signal?.aborted) throw error
-    if (controller.signal.aborted) throw new ApiError('Yêu cầu quá thời gian. Hãy thử lại.', 0)
-    throw new ApiError('Không kết nối được backend. Kiểm tra server và cấu hình API.', 0)
+    if (controller.signal.aborted) throw new ApiError(options.method && options.method !== 'GET' ? 'Chưa nhận được kết quả thao tác. Kiểm tra dữ liệu đã lưu trước khi gửi lại để tránh tạo trùng.' : 'Tải dữ liệu quá thời gian. Vui lòng tải lại.', 0)
+    throw new ApiError(options.method && options.method !== 'GET' ? 'Kết nối bị gián đoạn. Chưa xác định được kết quả thao tác; kiểm tra dữ liệu đã lưu trước khi gửi lại.' : 'Không thể kết nối hệ thống. Kiểm tra kết nối mạng rồi tải lại dữ liệu.', 0)
   } finally {
     activeRequests.delete(controller)
     clearTimeout(timeout)
@@ -152,10 +156,10 @@ export function apiRequest<T>(path: string, options: RequestOptions = {}): Promi
   return request(path, options, (value, status) => {
     if (status === 204) return undefined as T
     const payload = value as ApiEnvelope<T> | null
-    if (!payload || typeof payload.success !== 'boolean') throw new ApiError('Response API không đúng định dạng đã công bố.', status)
+    if (!payload || typeof payload.success !== 'boolean') throw new ApiError('Dữ liệu hệ thống trả về chưa hợp lệ. Chưa thể xác nhận kết quả thao tác.', status)
     const message = typeof payload.message === 'string' ? payload.message
       : typeof payload.error === 'string' ? payload.error : ''
-    if (!payload.success) throw new ApiError(businessErrorMessage(payload.code ?? payload.error,message) || 'Backend từ chối thao tác.', status, payload.code ?? payload.error,payload.details??payload.data)
+    if (!payload.success) throw new ApiError(businessErrorMessage(payload.code ?? payload.error,message) || 'Hệ thống chưa chấp nhận thao tác này.', status, payload.code ?? payload.error,payload.details??payload.data)
     return payload.data as T
   })
 }

@@ -1,5 +1,60 @@
+import {businessCopy} from '@/shared/i18n/business-copy'
 const messages:Readonly<Record<string,string>>={
-  VERSION_NOT_PUBLISHED:'Phiên bản lịch trình nguồn chưa ở trạng thái đã phát hành. Mở lại đúng phiên bản được phép sử dụng.',
+  CURRENCY_USD_REQUIRED:businessCopy('pricing.review.usdRequired'),
+  PRICING_POLICY_APPROVAL_REQUIRED:businessCopy('pricing.review.approvalRequired'),
+  PRICING_POLICY_PENDING:businessCopy('pricing.review.pending'),
+  PRICING_SNAPSHOT_STALE:businessCopy('pricing.review.reload'),
+  INVALID_PRICING_TRANSITION:businessCopy('pricing.review.reload'),
+  ACTIVITY_VENUE_MISMATCH:businessCopy('program.activity.venueMismatch'),
+  ACTIVITY_CONFIGURATION_REQUIRED:businessCopy('program.activity.configurationRequired'),
+  EXCURSION_CONFIGURATION_REQUIRED:businessCopy('program.excursion.configurationRequired'),
+  ACTIVITY_OUTSIDE_CRUISE:'Hoạt động phải nằm trong thời gian của lần khởi hành. Kiểm tra giờ bắt đầu và kết thúc.',
+  SOURCE_PROGRAM_SCHEDULE_REQUIRED:'Chương trình trong lịch trình nguồn chưa có đầy đủ ngày và giờ. Kiểm tra lịch trình nguồn trước khi tạo lần khởi hành.',
+  PREPARATION_ACTION_FORBIDDEN:'Tài khoản chưa có quyền thực hiện thao tác hồ sơ chuẩn bị này.',
+  READY_ACTION_FORBIDDEN:'Chỉ OPS có quyền xác nhận chuyến sẵn sàng. Kiểm tra quyền tài khoản trước khi tiếp tục.',
+  PREPARATION_CRUISE_SCOPE_FORBIDDEN:'Bạn chưa được phân công làm đầu mối hồ sơ chuẩn bị cho lần khởi hành này. Cần OPS kiểm tra phân công.',
+  PREPARATION_COORDINATOR_INVALID:'Đầu mối hồ sơ phải là tài khoản điều phối lịch trình đang hoạt động.',
+  PREPARATION_EVIDENCE_REQUIRED:'Bổ sung bằng chứng chuẩn bị trước khi gửi hồ sơ.',
+  PREPARATION_RETURN_REASON_REQUIRED:'Nhập nội dung cần bổ sung trước khi trả lại hồ sơ.',
+  SECTION_ALREADY_SUBMITTED:'Hồ sơ đã được gửi. Tải lại để đối chiếu trạng thái trước khi tiếp tục.',
+  PACKAGE_COMPONENT_DUPLICATE:'Thành phần này đã có trong gói. Giữ bản nhập và đối chiếu danh sách thành phần đã lưu.',
+  CAPACITY_BELOW_ALLOCATED:'Sức chứa không được thấp hơn số suất đã được giữ hoặc đăng ký. Giữ bản nhập và kiểm tra lại sức chứa.',
+  SELF_APPROVAL_FORBIDDEN:'Người nộp không thể tự xác nhận. Cần tài khoản OPS khác kiểm tra.',
+  SECTION_PREREQUISITES_NOT_MET:'Hồ sơ còn thiếu điều kiện. Người phụ trách cần hoàn thiện các hạng mục bắt buộc trước khi OPS xác nhận.',
+  READINESS_FINGERPRINT_STALE:'Điều kiện đã thay đổi. Vui lòng kiểm tra lại với phạm vi đang chọn.',
+  QUOTE_EXPIRED:'Báo giá đã hết hạn. Vui lòng nhận báo giá mới trước khi gửi đặt chỗ.',
+  FIXED_ITINERARY_READ_ONLY:'Lịch trình theo mẫu cố định không cho chỉnh cấu trúc. CRM chỉ có thể cấu hình các thông tin khai thác được phép.',
+  INVALID_WINDOWS:'CRM cần kiểm tra thời gian nhận đặt chỗ và hướng dẫn trước chuyến; mỗi khoảng phải có giờ bắt đầu trước giờ kết thúc và phù hợp thời điểm khởi hành.',
+  INVALID_GUIDANCE_WINDOW:'OPS cần đặt buổi hướng dẫn trong khoảng thời gian hướng dẫn đã cấu hình cho lần khởi hành.',
+  GUIDANCE_STAFF_INELIGIBLE:'OPS cần chọn nhân viên đang hoạt động và đủ vai trò phụ trách hướng dẫn.',
+  GUIDANCE_STAFF_CONFLICT:'Nhân viên bị trùng lịch hướng dẫn. OPS cần chọn giờ hoặc người phụ trách khác.',
+  GUIDANCE_CONTENT_REQUIRED:'OPS cần bổ sung nội dung và sức chứa trước khi công bố buổi hướng dẫn.',
+  PLAN_SNAPSHOT_STALE:'Nội dung kế hoạch đã thay đổi sau khi gửi. Cần đối chiếu và gửi lại trước khi OPS quyết định.',
+  PLAN_INCOMPLETE:'CRM cần hoàn thiện các thông tin kế hoạch được đánh dấu trước khi gửi OPS xét duyệt.',
+  READY_CHECK_FAILED:'Chuyến chưa đủ điều kiện xác nhận sẵn sàng. OPS cần kiểm tra các hồ sơ và nguồn lực còn thiếu.',
+  REASON_REQUIRED:'Cần nhập lý do từ chối hoặc nội dung yêu cầu chỉnh sửa trước khi gửi quyết định.',
+  PROGRAM_PRICE_REQUIRED:'CRM cần nhập giá không âm và mã tiền tệ gồm ba chữ cái viết hoa cho chương trình.',
+  PLAN_APPROVAL_REQUIRED:'Kế hoạch chưa được phê duyệt. CRM cần gửi kế hoạch để OPS xét duyệt trước các bước xác nhận sẵn sàng.',
+  READY_CONFIRMATION_REQUIRED:'Chuyến chưa được xác nhận sẵn sàng. OPS cần xác nhận trước khi mở bán.',
+  PRICING_APPROVER_UNRESOLVED:'Chưa duyệt chính sách giá.',
+  SHIP_REQUIRED:'Chưa gán tàu cho lần khởi hành. CRM cần gán tàu trước khi gửi kế hoạch.',
+  SOURCE_VERSION_REQUIRED:'Mẫu chưa được chốt. Chỉ có thể tạo lần khởi hành từ phiên bản mẫu đã chốt.',
+  BOOKING_WINDOW_REQUIRED:'Chưa cấu hình thời gian nhận đặt chỗ. CRM cần bổ sung trong kế hoạch khởi hành.',
+  GUIDANCE_WINDOW_REQUIRED:'Chưa cấu hình thời gian hướng dẫn trước chuyến. CRM cần bổ sung trong kế hoạch khởi hành.',
+  PRICING_POLICY_CONFIGURATION_REQUIRED:'Cần hoàn thiện chính sách giá và giá các hạng phòng của tàu trước khi gửi kế hoạch.',
+  PRICING_POLICY_REQUIRED:'Chưa thiết lập chính sách giá cho lần khởi hành này.',
+  PREPARATION_CONFIRMATION_REQUIRED:'Hồ sơ còn thiếu điều kiện. OPS cần kiểm tra và xác nhận các hồ sơ chuẩn bị.',
+  CAPTAIN_REQUIRED:'Chưa phân công thuyền trưởng. OPS cần bổ sung nguồn lực cho lần khởi hành.',
+  GUIDANCE_PUBLICATION_REQUIRED:'Buổi hướng dẫn chưa được công bố. OPS cần hoàn thiện nội dung và phân công người phụ trách.',
+  PLAN_FROZEN:'Kế hoạch đã gửi xét duyệt. Cần thu hồi hoặc yêu cầu chỉnh sửa trước khi lưu thay đổi.',
+  STALE_PREVIEW:'Phiên bản nguồn đã đổi sau khi xem trước. Giữ bản nhập, tải lại nguồn và tạo bản xem trước mới trước khi gửi lại.',
+  TRIP_ARCHIVED:'Chuyến đi nguồn đã được lưu trữ. Chọn phiên bản của chuyến đi còn sử dụng.',
+  STALE_REVISION:'Dữ liệu đã được cập nhật bởi thao tác khác. Nội dung đang nhập vẫn được giữ; hãy đối chiếu bản mới trước khi gửi lại.',
+  SALE_SUSPENDED:'Lần khởi hành đang tạm dừng nhận đặt chỗ mới. Lựa chọn của bạn vẫn được giữ để đối chiếu.',
+  PACKAGE_NOT_AVAILABLE_FOR_CRUISE:'Gói đã chọn không còn được áp dụng cho lần khởi hành này. Hãy kiểm tra lại lựa chọn gói.',
+  PACKAGE_NOT_ACTIVE:'Gói đã chọn không còn hoạt động. Hãy kiểm tra lại lựa chọn gói trước khi gửi.',
+  INVALID_CRUISE_STATUS:'Trạng thái lần khởi hành hiện tại chưa cho phép thao tác này. Hãy tải lại thông tin để kiểm tra.',
+  VERSION_NOT_PUBLISHED:'Mẫu chưa được chốt. Chỉ có thể tạo lần khởi hành từ phiên bản mẫu đã chốt.',
   IDEMPOTENCY_CONFLICT:'Chưa đối chiếu được mã thao tác với yêu cầu trước. Giữ nguyên bản nhập và mã thao tác; không tạo yêu cầu mới.',
   SCOPE_COUNTRY_REQUIRED:'Chuyến đi chưa có phạm vi quốc gia hợp lệ. Cập nhật phạm vi trước khi chọn cảng.',
   PORT_OUTSIDE_COUNTRY_SCOPE:'Cảng đã chọn nằm ngoài các quốc gia của chuyến đi.',
@@ -14,10 +69,8 @@ const messages:Readonly<Record<string,string>>={
   EXCURSION_OUTSIDE_PORT_WINDOW:'Tour tham quan đang liên kết không nằm trong khoảng thời gian ghé cảng mới.',
 }
 
-/** Keep distinct BE codes and Vietnamese record-specific details intact. */
-export function businessErrorMessage(code:string|undefined,message:string):string {
-  const translated=code?messages[code]:undefined
-  if(!translated)return message
-  if(message&&/[\u00c0-\u024f\u1e00-\u1eff]/u.test(message))return message
-  return translated
+/** Reviewed business codes only. Free-text server messages cannot supply UI business copy. */
+export function businessErrorMessage(code:string|undefined,_message:string):string {
+  void _message
+  return code&&messages[code]?messages[code]:'Không thể hoàn tất thao tác. Vui lòng tải lại và thử lại.'
 }

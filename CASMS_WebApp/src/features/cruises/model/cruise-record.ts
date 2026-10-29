@@ -13,6 +13,10 @@ export type CruiseStatus = (typeof CRUISE_STATUSES)[number]
 export type ShipStatus = (typeof SHIP_STATUSES)[number]
 
 export type CruiseRecord = {
+  itineraryMode?: 'FIXED' | 'CUSTOM'
+  plannedScope?: 'DOMESTIC' | 'INTERNATIONAL'
+
+  revision?: number | null
   cruiseId: string
   cruiseCode: string
   cruiseName: string
@@ -34,7 +38,7 @@ export type CruiseRecord = {
 export type CruiseDraft = Omit<
   CruiseRecord,
   'cruiseId' | 'status' | 'createdAt' | 'updatedAt' | 'shipId' | 'cruiseType' | 'sourceTripId' | 'sourceTripCode' | 'sourceVersionNumber'
-> & { cruiseType: CruiseType | ''; shipId?: string | null }
+> & { cruiseType: CruiseType | ''; shipId?: string | null; expectedSourceVersionRevision?: number | null }
 
 export type ShipRecord = {
   shipId: string

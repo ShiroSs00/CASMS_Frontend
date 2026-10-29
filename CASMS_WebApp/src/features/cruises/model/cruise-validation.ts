@@ -66,11 +66,7 @@ export function validateCruiseSchedule(
     return errors
   }
 
-  if (!cruiseType || !['ONE_DAY','MULTI_DAYS'].includes(cruiseType)) errors.cruiseType = 'Chọn chuyến ngắn ngày hoặc chuyến dài ngày.'
-  const days = cruiseDurationDays(departureDatetime, returnDatetime)
-  if (days !== null && days > 5) errors.returnDatetime = 'Chuyến du thuyền chỉ được kéo dài từ 1 đến 5 ngày.'
-  else if (days !== null && cruiseType === 'ONE_DAY' && days > 2) errors.returnDatetime = 'Chuyến ngắn ngày chỉ kéo dài 1–2 ngày. Chọn chuyến dài ngày hoặc điều chỉnh thời gian.'
-  else if (days !== null && cruiseType === 'MULTI_DAYS' && days < 3) errors.returnDatetime = 'Chuyến dài ngày cần kéo dài 3–5 ngày. Chọn chuyến ngắn ngày hoặc điều chỉnh thời gian.'
+  if (cruiseType && !['ONE_DAY','MULTI_DAYS'].includes(cruiseType)) errors.cruiseType = 'Loại lần khởi hành chưa hợp lệ.'
 
   return errors
 }

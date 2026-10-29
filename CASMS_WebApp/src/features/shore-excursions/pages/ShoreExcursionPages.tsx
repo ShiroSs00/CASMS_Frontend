@@ -2,6 +2,7 @@ import { PermissionLink as Link } from '@/shared/ui'
 import { TechnicalDetails, RecordFacts } from '@/shared/ui'
 import { useCallback, type FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
+import {cruiseContextReturn} from '@/shared/lib/cruise-context'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { Button, ButtonLink, CollectionSummary, DataTable, Empty, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
@@ -89,7 +90,7 @@ function ExcursionFacts({ item }: { item: ShoreExcursion }) {
   const facts: [string, string | number][] = [
     ['Mã chuyến tham quan', item.excursionCode ?? 'Chưa có mã'], ['Nhà cung cấp', item.supplierName],
     ['Bắt đầu', displayTime(item.startTime)], ['Trở về dự kiến', displayTime(item.plannedReturnTime)], ['Điểm tập trung', item.meetingPoint],
-    ['Số khách tối thiểu', item.minimumParticipants ?? 'Chưa đặt'], ['Sức chứa tối đa', item.maximumCapacity], ['Đã đăng ký', item.registeredParticipants], ['Chỗ còn lại', item.availableCapacity],
+    ['Số khách tối thiểu để tổ chức', item.minimumParticipants ?? 'Chưa đặt'], ['Sức chứa tối đa', item.maximumCapacity], ['Đã đăng ký', item.registeredParticipants], ['Chỗ còn lại', item.availableCapacity],
     ['Giá', item.price === null ? 'Chưa đặt' : `${item.price.toLocaleString('vi-VN')}${item.currencyCode ? ` ${item.currencyCode}` : ''}`],
     ['Lý do hủy', item.cancellationReason ?? '—'], ['Ngày tạo', displayTime(item.createdAt)], ['Cập nhật', displayTime(item.updatedAt)],
   ]
@@ -98,7 +99,8 @@ function ExcursionFacts({ item }: { item: ShoreExcursion }) {
 
 export function ShoreExcursionFormPage() {
   const { excursionId } = useParams()
-  return <ShoreLayout><Link className={styles.link} to={root}>← Chuyến tham quan bờ</Link><PageHeader breadcrumb="Dịch vụ bờ / Chuyến tham quan" title={excursionId ? 'Chỉnh sửa chuyến tham quan' : 'Tạo chuyến tham quan'} description="Lưu thông tin chuyến tham quan và kiểm tra điều kiện từ hệ thống." />{excursionId ? <EditExcursion key={excursionId} id={excursionId} /> : <SaveExcursion />}</ShoreLayout>
+  const [params] = useSearchParams(), contextKey = JSON.stringify([excursionId, params.get('cruiseId'), params.get('cruiseStopId'), params.get('returnTo')])
+  return <ShoreLayout><Link className={styles.link} to={root}>← Chuyến tham quan bờ</Link><PageHeader breadcrumb="Dịch vụ bờ / Chuyến tham quan" title={excursionId ? 'Chỉnh sửa chuyến tham quan' : 'Tạo chuyến tham quan'} description="Lưu thông tin chuyến tham quan và kiểm tra điều kiện từ hệ thống." />{excursionId ? <EditExcursion key={contextKey} id={excursionId} /> : <SaveExcursion key={contextKey} />}</ShoreLayout>
 }
 function EditExcursion({ id }: { id: string }) {
   const load = useCallback((signal: AbortSignal) => shoreExcursionApi.get(id, signal), [id])
@@ -111,11 +113,15 @@ function EditExcursion({ id }: { id: string }) {
 }
 function SaveExcursion({ initial }: { initial?: ShoreExcursion }) {
   const access = useSessionAccess()
-  const navigate = useNavigate(), mutation = useShoreMutation()
+  const navigate = useNavigate(), mutation = useShoreMutation(),[params]=useSearchParams()
   async function save(request: ExcursionRequest) {
     if (!access.canDo(initial ? 'EXCURSION_UPDATE' : 'EXCURSION_CREATE')) return
-    const result = await mutation.run((signal) => initial ? shoreExcursionApi.update(initial.shoreExcursionId, request, signal) : shoreExcursionApi.create(request, signal))
-    if (result.ok) navigate(`${root}/${result.value.shoreExcursionId}`)
+    const result = await mutation.run(async signal => {
+      const saved = initial ? await shoreExcursionApi.update(initial.shoreExcursionId, request, signal) : await shoreExcursionApi.create(request, signal)
+      if (saved.cruiseStopId !== request.cruiseStopId || initial && saved.shoreExcursionId !== initial.shoreExcursionId) throw new ApiError('Phản hồi chưa khớp chuyến tham quan hoặc lần ghé cảng. Đối chiếu kết quả trước khi gửi tiếp.', 502)
+      return saved
+    })
+    if (result.ok) navigate(cruiseContextReturn(params.get('returnTo'),params.get('cruiseId'))??`${root}/${result.value.shoreExcursionId}`)
   }
-  return <Panel title="Thông tin chuyến tham quan">{mutation.error != null && <ShoreError error={mutation.error} />}<ExcursionForm initial={initial} busy={mutation.busy} onSave={save} /></Panel>
+  return <Panel title="Thông tin chuyến tham quan">{mutation.error != null && <ShoreError error={mutation.error} />}<>{mutation.unknown&&<Notice title="Cần kiểm tra kết quả trước khi gửi lại" tone="warning">Chưa xác định được kết quả lưu. Đối chiếu danh sách tour của lần ghé cảng; thao tác gửi lại hiện bị khóa.</Notice>}<ExcursionForm initial={initial} busy={mutation.busy||mutation.unknown} onSave={save} /></></Panel>
 }

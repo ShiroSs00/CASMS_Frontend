@@ -110,7 +110,7 @@ export function RegulationDetailPage() {
         </aside>
       </div>
     </>}
-    {nextStatus && canStatus(nextStatus) && data && <Modal busy={busy} title={nextStatus === 'ACTIVE' ? 'Kích hoạt quy định?' : 'Ngừng kích hoạt quy định?'} description={`${data.regulation.code} · ${data.regulation.name}`} onClose={() => { if (!busy) setNextStatus(null) }} footer={<div className={styles.modalActions}><Button tone="secondary" disabled={busy} onClick={() => setNextStatus(null)} data-overlay-dismiss>Quay lại</Button><Button disabled={busy || (nextStatus === 'ACTIVE' && !precheck?.canProceed)} onClick={() => void confirmStatus()}>Xác nhận</Button></div>}>
+    {nextStatus && canStatus(nextStatus) && data && <Modal busy={busy} title={nextStatus === 'ACTIVE' ? 'Kích hoạt quy định?' : 'Ngừng kích hoạt quy định?'} description={`${data.regulation.code} · ${data.regulation.name}`} onClose={() => { if (!busy) setNextStatus(null) }} footer={<div className={styles.modalActions}><Button tone="secondary" disabled={busy} onClick={() => setNextStatus(null)} data-overlay-dismiss>Quay lại</Button><Button disabled={busy || (nextStatus === 'ACTIVE' && !precheck?.canProceed)} onClick={() => void confirmStatus()}>{nextStatus === 'ACTIVE' ? 'Kích hoạt quy định' : 'Ngừng kích hoạt quy định'}</Button></div>}>
       {busy && <LoadingPanel label="Đang xử lý…" />}
       {precheck && <ConflictCard result={precheck} />}
       {error && <Notice title="Không thể cập nhật" tone="error">{error}</Notice>}

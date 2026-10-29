@@ -2,6 +2,7 @@ import { useSessionAccess } from '@/shared/auth'
 import { AdminShell, canEnterWorkspace, workspaceForPath, canRoleOpenAdminPath, staffRoleHome } from '@/shared/ui/admin-v3'
 import { BrandLogo, Button, ButtonLink, Loading, Notice, PageHeader } from '@/shared/ui'
 import { Navigate, Outlet, useLocation } from 'react-router'
+import { useState } from 'react'
 import { useAuth } from './useAuth'
 import { safeAdminReturnTo, safeCustomerReturnTo } from './model/auth-types'
 import styles from './components/Auth.module.css'
@@ -21,17 +22,23 @@ export function SessionBoundary() {
 
 export function AdminGuard() {
   const auth = useAuth(), access = useSessionAccess(), location = useLocation()
+  const [admission, setAdmission] = useState<string | null>(null)
+  const boundary = auth.user ? JSON.stringify([auth.user.id, location.pathname, location.search]) : null
   const workspace = location.pathname.startsWith('/admin/workspaces/') ? workspaceForPath(location.pathname) : undefined
+  const granted = Boolean(auth.user && auth.isStaff && access.status === 'ready' && access.userId === auth.user.id && canRoleOpenAdminPath(access.roles,location.pathname,location.search,access) && (!workspace || canEnterWorkspace(workspace,access)))
+  const refreshing = Boolean(auth.user && auth.isStaff && access.status === 'loading' && access.userId === auth.user.id && admission === boundary)
+  const nextAdmission = granted || refreshing ? boundary : null
+  if (admission !== nextAdmission) setAdmission(nextAdmission)
   if (!auth.user) return <Navigate to={`/login?${new URLSearchParams({ returnTo: `${location.pathname}${location.search}${location.hash}` })}`} replace />
   if (!auth.isStaff) return <Navigate to="/403" replace />
+  if (refreshing) return <Outlet key={auth.user.id} />
   if (access.status === 'anonymous' || access.status === 'loading') return <AdminShell><Loading label="Đang kiểm tra quyền truy cập…" /></AdminShell>
   if (access.status === 'error') return <AdminShell><Notice title="Chưa tải được quyền truy cập" tone="error"><p>{access.error}</p><Button onClick={access.retry}>Thử lại</Button></Notice></AdminShell>
-  const granted = access.userId === auth.user.id && canRoleOpenAdminPath(access.roles,location.pathname,location.search,access) && (!workspace || canEnterWorkspace(workspace,access))
   if (!granted) {
     const home = staffRoleHome(access.roles,access)
     return <AdminShell><PageHeader breadcrumb="OCEVIE / 403" title="Bạn không có quyền truy cập" description={home ? 'Tài khoản chưa được cấp quyền sử dụng chức năng này.' : 'Tài khoản chưa được cấp quyền truy cập chức năng.'} actions={home ? <ButtonLink to={home}>Về chức năng được phép</ButtonLink> : undefined} /></AdminShell>
   }
-  return <Outlet />
+  return <Outlet key={access.userId} />
 }
 
 export function CustomerGuard() {
