@@ -2,10 +2,11 @@ import {useCallback,useRef,useState,type FormEvent} from 'react'
 import {ApiError,apiRequest,useReadQuery} from '@/shared/api'
 import {businessErrorMessage} from '@/shared/api/business-errors'
 import {businessCopy,domainStatus} from '@/shared/i18n/business-copy'
-import {Button,Field,Loading,Notice,Panel} from '@/shared/ui'
+import {Button,Field,Loading,Notice,Modal} from '@/shared/ui'
 import {mainflowApi} from '../api/mainflow-api'
 import {addScopedPackageComponent,packageComponents,updateScopedPackage,type ComponentKind,type ScopedPackage,type PackageComponent} from '../api/scoped-package'
 import type {ScopedActivity} from '../api/scoped-activity'
+import styles from './ManagerWorkspace.module.css'
 type Choice={id:string;name:string}
 type Workspace={pkg:ScopedPackage;revision:number;editable:boolean;components:PackageComponent[];choices:Record<ComponentKind,Choice[]>}
 export function CruisePackageEditor({cruiseId,packageId,onSaved,onClose}:{cruiseId:string;packageId:string;onSaved:()=>void;onClose:()=>void}){
@@ -15,11 +16,10 @@ export function CruisePackageEditor({cruiseId,packageId,onSaved,onClose}:{cruise
   const pkg=rows.find(p=>p.id===packageId);if(!pkg||pkg.ownerCruiseId!==cruiseId)throw new ApiError('',403,'CROSS_CRUISE_ACCESS')
   return {pkg,revision:plan.windows.expectedRevision,editable:['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(plan.planStatus),components,choices:{services:options.services,activities:activities.map(a=>({id:a.id,name:a.name})),excursions}}
  },[cruiseId,packageId]))
- return <Panel title={businessCopy('program.package.edit')}>
+ if(query.data)return <PackageForms key={packageId} cruiseId={cruiseId} initial={query.data} onSaved={onSaved} onClose={onClose}/>
+ return <Modal wide protectChanges={false} title={businessCopy('program.package.edit')} onClose={onClose} footer={<Button tone="secondary" onClick={onClose}>Đóng</Button>}>
   {query.loading&&<Loading/>}{query.error&&<Notice title={businessCopy('program.package.loadFailed')}><Button onClick={query.retry}>{businessCopy('program.package.retry')}</Button></Notice>}
-  {query.data&&<PackageForms key={packageId} cruiseId={cruiseId} initial={query.data} onSaved={onSaved} onClose={onClose}/>}
-  {!query.data&&<Button onClick={onClose}>{businessCopy('program.package.close')}</Button>}
- </Panel>
+ </Modal>
 }
 function PackageForms({cruiseId,initial,onSaved,onClose}:{cruiseId:string;initial:Workspace;onSaved:()=>void;onClose:()=>void}){
  // Capture the loaded revision with the form; a later query response cannot renew a stale edit.
@@ -35,11 +35,11 @@ function PackageForms({cruiseId,initial,onSaved,onClose}:{cruiseId:string;initia
    onSaved()
   }catch(reason){setError(businessErrorMessage(reason instanceof ApiError?reason.code:undefined,''));if(!(reason instanceof ApiError)||reason.status===0||reason.status>=500)setUncertain(true)}finally{lock.current=false;setBusy(false)}
  }
- return <>
+ return <Modal wide busy={busy} title={businessCopy('program.package.edit')} onClose={onClose} footer={<><Button tone="secondary" disabled={busy} data-overlay-dismiss onClick={onClose}>Hủy</Button><Button type="submit" form="package-edit-form" disabled={locked}>{busy?'Đang lưu…':businessCopy(mode==='details'?'program.action.saveDraft':'program.package.addComponent')}</Button></>}>
   <h3>{base.pkg.name}</h3><ul>{base.components.map(c=><li key={c.kind+':'+c.referenceId}>{c.name} · {domainStatus('program.package.benefit',c.benefitType)}</li>)}</ul>
   {!base.editable&&<Notice title={businessCopy('program.locked')}>{businessErrorMessage('PLAN_FROZEN','')}</Notice>}
   <Field htmlFor="package-edit-mode" label={businessCopy('program.package.operation')}><select id="package-edit-mode" value={mode} disabled={locked} onChange={e=>setMode(e.target.value as 'details'|'components')}><option value="details">{businessCopy('program.package.details')}</option><option value="components">{businessCopy('program.package.addComponent')}</option></select></Field>
-  <form key={mode} onSubmit={save}><fieldset disabled={locked}>
+  <form id="package-edit-form" className={styles.modalForm} key={mode} onSubmit={save}><fieldset disabled={locked}>
    {mode==='details'?<>
     <Field htmlFor="package-edit-name" label={businessCopy('program.field.name')}><input id="package-edit-name" name="name" defaultValue={base.pkg.name} required/></Field>
     <Field htmlFor="package-edit-description" label={businessCopy('program.field.description')}><textarea id="package-edit-description" name="description" defaultValue={base.pkg.description??''}/></Field>
@@ -49,10 +49,9 @@ function PackageForms({cruiseId,initial,onSaved,onClose}:{cruiseId:string;initia
     <Field htmlFor="package-component-reference" label={businessCopy('program.package.component')}><select key={kind} id="package-component-reference" name="referenceId" required><option value="">{businessCopy('program.package.chooseComponent')}</option>{base.choices[kind].filter(c=>!base.components.some(p=>p.kind===kind&&p.referenceId===c.id)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
     <Field htmlFor="package-component-benefit" label={businessCopy('program.package.benefitType')}><select id="package-component-benefit" name="benefitType" required><option value="">{businessCopy('program.package.chooseBenefit')}</option><option value="INCLUDED">{businessCopy('program.package.benefit.INCLUDED')}</option><option value="OPTIONAL">{businessCopy('program.package.benefit.OPTIONAL')}</option></select></Field>
    </>}
-   <Button type="submit">{businessCopy(mode==='details'?'program.action.saveDraft':'program.package.addComponent')}</Button>
+
   </fieldset></form>
   {error&&<Notice title={businessCopy('program.package.saveFailed')} tone="error">{error}</Notice>}
   {uncertain&&<Notice title={businessCopy('program.package.unconfirmed')}>{businessCopy('program.package.reloadBeforeRetry')}</Notice>}
-  <Button disabled={busy} onClick={onClose}>{businessCopy('program.package.close')}</Button>
- </>
+ </Modal>
 }

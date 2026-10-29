@@ -3,7 +3,7 @@ import {ApiError,apiRequest,useReadQuery} from '@/shared/api'
 import {useSessionAccess} from '@/shared/auth'
 import {businessErrorMessage} from '@/shared/api/business-errors'
 import {businessCopy} from '@/shared/i18n/business-copy'
-import {Button,Field,Loading,Notice,Panel} from '@/shared/ui'
+import {Button,Field,Loading,Notice,Panel,Modal} from '@/shared/ui'
 import {programInstant} from '../model/program-time'
 import {mainflowApi} from '../api/mainflow-api'
 import {decodeActivities,type ScopedActivity} from '../api/scoped-activity'
@@ -12,6 +12,7 @@ import {CruiseDeckField,type CruiseVenueOptions} from './CruiseDeckField'
 import {CruisePackageEditor} from './CruisePackageEditor'
 import {decodeCommercialExcursions,type ExcursionCommercial} from '../api/scoped-excursion'
 import {CruiseExcursionCommercialEditor} from './CruiseExcursionCommercialEditor'
+import styles from './ManagerWorkspace.module.css'
 type Kind='activities'|'excursions'|'packages'|'serving-windows'
 type Choice={id:string;name:string;sequence?:number;scheduled?:boolean;timeZoneId?:string|null}
 type Program={id:string;name:string;ownerCruiseId?:string|null;price?:number|null;currency?:string|null;currencyCode?:string|null;capacity?:number|null;location?:string;startsAt?:string;endsAt?:string}
@@ -20,6 +21,7 @@ const titles:Record<Kind,string>={activities:businessCopy('program.onboardActivi
 export function CruisePrograms({cruiseId,itineraryMode,onChanged}:{cruiseId:string;itineraryMode?:'FIXED'|'CUSTOM';onChanged:()=>void}){
  const access=useSessionAccess(),allowed=access.roles.includes('CRUISE_MANAGER')&&access.has('CRUISE_UPDATE_DRAFT'),root=`/cruise-plans/${cruiseId}`
  const [epoch,setEpoch]=useState(0),[kind,setKind]=useState<Kind>('activities'),[editing,setEditing]=useState<{activity:ScopedActivity;revision:number}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false),lock=useRef(false)
+ const [creating,setCreating]=useState(false)
  const [editingPackage,setEditingPackage]=useState<string|null>(null)
  const [editingExcursion,setEditingExcursion]=useState<{entry:ExcursionCommercial;revision:number}|null>(null)
  const query=useReadQuery(`scoped-programs:${cruiseId}:${epoch}:${allowed}`,useCallback(async signal=>{
@@ -46,11 +48,11 @@ export function CruisePrograms({cruiseId,itineraryMode,onChanged}:{cruiseId:stri
    const saved=await apiRequest<{id?:string;shoreExcursionId?:string}>(root+'/'+kind,{method:'POST',ifMatch:data.plan.windows.expectedRevision,body})
    const rows=await apiRequest<Program[]>(root+'/'+kind),id=saved.id??saved.shoreExcursionId
    if(!id||!rows.some(row=>row.id===id))throw new ApiError('',502)
-   setEpoch(n=>n+1);onChanged()
+   setCreating(false);setEpoch(n=>n+1);onChanged()
   }catch(reason){setError(businessErrorMessage(reason instanceof ApiError?reason.code:undefined,''));if(!(reason instanceof ApiError)||reason.status===0||reason.status>=500)setUncertain(true)}finally{lock.current=false;setBusy(false)}
  }
  if(!allowed)return null
- return <Panel title={businessCopy('program.configuration')}>
+ return <Panel className={styles.programPanel} title={businessCopy('program.configuration')}>
   {query.loading&&<Loading/>}{query.error&&<Notice title="Không thể hoàn tất thao tác"><Button onClick={query.retry}>Tải lại dữ liệu</Button></Notice>}
   {data&&<><Field htmlFor="program-kind" label={businessCopy('program.field.content')}><select id="program-kind" value={kind} disabled={busy||Boolean(editing)||Boolean(editingPackage)||Boolean(editingExcursion)} onChange={e=>{setKind(e.target.value as Kind);setError('')}}>{(Object.keys(titles) as Kind[]).map(k=><option key={k} value={k}>{titles[k]}</option>)}</select></Field>
    <ul>{data.programs[kind].map(p=><li key={p.id}>{p.name}{kind==='activities'&&p.price==null&&<> · {businessCopy('program.activity.priceUnknown')}</>}{kind==='activities'&&p.capacity==null&&<> · {businessCopy('program.activity.capacityUnknown')}</>}{p.price!=null&&<> · {p.price} {p.currency??businessCopy('program.price.currencyUnknown')}</>}{p.capacity!=null&&<> · {p.capacity} chỗ</>}{kind==='activities'&&editable&&!editing&&<Button disabled={busy||uncertain} onClick={()=>{const activity=data.activities.find(a=>a.id===p.id);if(activity)setEditing({activity,revision:data.plan.windows.expectedRevision})}}>{businessCopy('program.activity.edit')}</Button>}</li>)}</ul>
@@ -61,7 +63,9 @@ export function CruisePrograms({cruiseId,itineraryMode,onChanged}:{cruiseId:stri
    {editingExcursion&&editable&&<CruiseExcursionCommercialEditor key={editingExcursion.entry.id} cruiseId={cruiseId} entry={editingExcursion.entry} revision={editingExcursion.revision} onClose={()=>setEditingExcursion(null)} onSaved={()=>{setEditingExcursion(null);setEpoch(n=>n+1);onChanged()}}/>}
    {!editable&&<Notice title={businessCopy('program.locked')}>{businessErrorMessage('PLAN_FROZEN','')}</Notice>}
    {fixed&&<Notice title={businessCopy('cruise.itinerary.FIXED')}>{businessErrorMessage('FIXED_ITINERARY_READ_ONLY','')}</Notice>}
-   {editable&&!editing&&!editingPackage&&!editingExcursion&&<form key={kind} onSubmit={create}><fieldset disabled={busy||uncertain||fixed}>
+   {editable&&!editing&&!editingPackage&&!editingExcursion&&<Button disabled={busy||uncertain||fixed} onClick={()=>{setError('');setCreating(true)}}>Thêm {titles[kind].toLocaleLowerCase('vi')}</Button>}
+   {creating&&editable&&<Modal wide busy={busy} title={'Thêm '+titles[kind].toLocaleLowerCase('vi')} onClose={()=>setCreating(false)} footer={<><Button tone="secondary" disabled={busy} data-overlay-dismiss onClick={()=>setCreating(false)}>Hủy</Button><Button type="submit" form="cruise-program-create" disabled={busy||uncertain||fixed}>{busy?'Đang lưu…':businessCopy('program.action.saveDraft')}</Button></>}>
+   <form id="cruise-program-create" className={styles.modalForm} key={kind} onSubmit={create}><fieldset disabled={busy||uncertain||fixed}>
     {kind!=='serving-windows'&&<Field htmlFor="program-name" label={businessCopy('program.field.name')}><input id="program-name" name="name" required/></Field>}
     {(kind==='activities'||kind==='packages')&&<Field htmlFor="program-description" label={businessCopy('program.field.description')}><textarea id="program-description" name="description"/></Field>}
     {kind==='activities'&&<CruiseDeckField options={data.options}/>}
@@ -78,7 +82,10 @@ export function CruisePrograms({cruiseId,itineraryMode,onChanged}:{cruiseId:stri
      <Field htmlFor="program-capacity" label={businessCopy('program.field.capacity')}><input id="program-capacity" name="capacity" type="number" min={1} step={1} required/></Field>
     </>}
     {kind!=='serving-windows'&&<Field htmlFor="program-price" label={businessCopy('program.field.priceUsd')}><input id="program-price" name="price" type="number" min={0} step="any" required/></Field>}
-    <Button type="submit">{businessCopy('program.action.saveDraft')}</Button></fieldset></form>}
+    </fieldset></form>
+    {error&&<Notice title="Chưa lưu được nội dung" tone="error">{error}</Notice>}
+    {uncertain&&<Notice title="Hệ thống chưa xác nhận được kết quả">Đối chiếu bản đã lưu trước khi gửi tiếp.</Notice>}
+   </Modal>}
   </>}{error&&<Notice title="Không thể hoàn tất thao tác" tone="error">{error}</Notice>}{uncertain&&<Notice title="Hệ thống chưa xác nhận được kết quả">Tải lại trang để đối chiếu trước khi gửi tiếp.</Notice>}
  </Panel>
 }

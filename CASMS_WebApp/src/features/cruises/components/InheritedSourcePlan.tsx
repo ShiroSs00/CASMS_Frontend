@@ -1,3 +1,4 @@
+import {useLocation} from 'react-router'
 import {Badge,Notice,Panel,PermissionLink} from '@/shared/ui'
 import {businessCopy} from '@/shared/i18n/business-copy'
 import {SHIP_TIME_ZONE} from '@/shared/lib/journey-time'
@@ -5,7 +6,8 @@ import type {PublishedSource} from '../api/source-version'
 import styles from './Cruises.module.css'
 const kinds={ONBOARD_ACTIVITY:'Hoạt động trên tàu',SHORE_EXCURSION:'Tour tham quan trên bờ',SERVING_WINDOW:'Khung phục vụ'}
 const clock=(value:string|null)=>value?(value.length>5&&value.endsWith(':00')?value.slice(0,5):value):'Chưa có giờ'
-export function InheritedSourcePlan({source}:{source:PublishedSource}){
+export function InheritedSourcePlan({source,returnState}:{source:PublishedSource;returnState?:unknown}){
+ const location=useLocation()
  return <Panel title="Hành trình kế thừa" className={styles.inheritedPlan}>
    <div className={styles.sourceIdentity}><Badge label={businessCopy('trip.template.PUBLISHED')} tone="success"/><span>{source.tripCode} · Phiên bản {source.versionNumber}</span><h2>{source.tripName}</h2></div>
    {source.description&&<p className={styles.sourceDescription}>{source.description}</p>}
@@ -19,6 +21,6 @@ export function InheritedSourcePlan({source}:{source:PublishedSource}){
        {entries.length>0&&<details open={entries.length<=3}><summary>Chương trình theo nguồn · {entries.length} mục</summary><ul>{entries.map(entry=><li key={entry.clientKey}><span>{kinds[entry.kind]}</span><strong>{entry.title}</strong><p>Ngày {entry.startDayNumber} {clock(entry.plannedStartTime)} → Ngày {entry.endDayNumber} {clock(entry.plannedEndTime)} · {entry.kind==='SHORE_EXCURSION'?'giờ cảng':'giờ Việt Nam'}</p>{entry.locationText&&<p>{entry.locationText}</p>}</li>)}</ul></details>}
      </li>
    })}</ol>
-   <PermissionLink target="_blank" rel="noopener noreferrer" to={'/admin/trips/'+encodeURIComponent(source.tripId)+'/schedule?versionId='+encodeURIComponent(source.versionId)}>Xem toàn bộ phiên bản nguồn</PermissionLink>
+   <PermissionLink state={returnState} to={'/admin/trips/'+encodeURIComponent(source.tripId)+'/schedule?'+new URLSearchParams({versionId:source.versionId,returnTo:location.pathname+location.search})}>Xem toàn bộ phiên bản nguồn</PermissionLink>
  </Panel>
 }

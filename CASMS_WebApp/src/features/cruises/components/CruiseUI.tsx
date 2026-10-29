@@ -4,6 +4,8 @@ import type { ReactNode } from 'react'
 
 import { Badge, Button, DataTable, Empty, Field, Loading, Notice } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
+import { useSessionAccess } from '@/shared/auth'
+import managerStyles from './ManagerWorkspace.module.css'
 
 import { serializeCruiseQuery } from '../model/cruise-query'
 import type { CruiseQuery } from '../model/cruise-query'
@@ -18,7 +20,9 @@ import {
 import styles from './Cruises.module.css'
 
 export function CruiseFrame({ children }: { children: ReactNode }) {
-  return <AdminShell><div className={styles.cruiseShell}>{children}</div></AdminShell>
+  const access = useSessionAccess()
+  const manager = access.roles.includes('CRUISE_MANAGER') && !access.roles.includes('OPERATIONS_MANAGER')
+  return <AdminShell><div className={`${styles.cruiseShell} ${manager ? managerStyles.managerRoot : ''}`}>{children}</div></AdminShell>
 }
 
 function statusTone(status: CruiseStatus) {

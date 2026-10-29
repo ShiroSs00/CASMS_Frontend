@@ -2,10 +2,11 @@ import {useEffect,useRef,useState,type FormEvent} from 'react'
 import {ApiError} from '@/shared/api'
 import {businessErrorMessage} from '@/shared/api/business-errors'
 import {businessCopy} from '@/shared/i18n/business-copy'
-import {Button,Field,Notice} from '@/shared/ui'
+import {Button,Field,Notice,Modal} from '@/shared/ui'
 import {activityCapacityConflict,activityScheduleConflict,updateScopedActivity,type ScopedActivity,type ActivityInput} from '../api/scoped-activity'
 import {SHIP_TIME_ZONE,zonedInput,wallTimeToInstant} from '@/shared/lib/journey-time'
 import {CruiseDeckField,type CruiseVenueOptions} from './CruiseDeckField'
+import styles from './ManagerWorkspace.module.css'
 
 const shipTime=(value:string)=>zonedInput(value,SHIP_TIME_ZONE)
 export function CruiseActivityEditor({activity,venueOptions,revision,fixed,onSaved,onClose}:{activity:ScopedActivity;venueOptions:CruiseVenueOptions;revision:number;fixed:boolean;onSaved:()=>void;onClose:()=>void}){
@@ -25,7 +26,7 @@ export function CruiseActivityEditor({activity,venueOptions,revision,fixed,onSav
   catch(reason){setError(businessErrorMessage(reason instanceof ApiError?reason.code:undefined,''));setAllocated(activityCapacityConflict(reason));setScheduleField(activityScheduleConflict(reason));if(!(reason instanceof ApiError)||reason.status===0||reason.status>=500)setUncertain(true)}
   finally{lock.current=false;setBusy(false)}
  }
- return <form onSubmit={save} aria-label={businessCopy('program.activity.edit')}>
+ return <Modal wide busy={busy} title={businessCopy('program.activity.edit')} onClose={onClose} footer={<><Button tone="secondary" disabled={busy} data-overlay-dismiss onClick={onClose}>Hủy</Button><Button type="submit" form="activity-edit-form" disabled={busy||uncertain}>{busy?'Đang lưu…':businessCopy('program.action.saveDraft')}</Button></>}><form id="activity-edit-form" className={styles.modalForm} onSubmit={save} aria-label={businessCopy('program.activity.edit')}>
   {fixed&&<Notice title={businessCopy('cruise.itinerary.FIXED')}>{businessCopy('program.activity.fixedEdit')}</Notice>}
   <fieldset disabled={busy||uncertain}>
    <Field htmlFor="activity-edit-name" label={businessCopy('program.field.name')}><input id="activity-edit-name" name="name" defaultValue={activity.name} disabled={fixed} required/></Field>
@@ -36,10 +37,10 @@ export function CruiseActivityEditor({activity,venueOptions,revision,fixed,onSav
    <Field htmlFor="activity-edit-end" label={businessCopy('program.field.endShip')} error={scheduleField==='endTime'?businessErrorMessage('ACTIVITY_OUTSIDE_CRUISE',''):undefined}><input ref={endField} id="activity-edit-end" name="end" type="datetime-local" step={1} defaultValue={shipTime(activity.endTime)} disabled={fixed} required/></Field>
    <Field htmlFor="activity-edit-capacity" label={businessCopy('program.field.capacity')} error={allocated===null?undefined:businessCopy('program.activity.capacityAllocated')+': '+allocated}><input ref={capacityField} id="activity-edit-capacity" name="capacity" type="number" min={1} step={1} defaultValue={activity.capacity??''} required/></Field>
    <Field htmlFor="activity-edit-price" label={businessCopy('program.field.priceUsd')}><input id="activity-edit-price" name="price" type="number" min={0} step="any" defaultValue={activity.currencyCode==='USD'?activity.price??'':''} required/></Field>
-   <Button type="submit">{businessCopy('program.action.saveDraft')}</Button>
+
   </fieldset>
-  <Button disabled={busy} onClick={onClose}>{businessCopy('program.activity.closeEdit')}</Button>
+
   {error&&<Notice title={businessCopy('program.activity.saveFailed')} tone="error">{error}</Notice>}
   {uncertain&&<Notice title={businessCopy('program.activity.unconfirmed')}>{businessCopy('program.activity.reloadBeforeRetry')}</Notice>}
- </form>
+ </form></Modal>
 }

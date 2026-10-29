@@ -13,7 +13,7 @@ import { PermissionLink as Link } from '@/shared/ui'
 import { DepartureScheduleRead, DepartureInventory, DepartureSaleReadiness, DepartureImpact, DepartureHandoff,DepartureAudit } from '../components/DepartureData'
 import { CruiseOperations } from '../components/CruiseOperations'
 import { CruiseSourceDetails } from '../components/CruiseSourceDetails'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router'
 import { useSessionAccess } from '@/shared/auth'
 
@@ -49,7 +49,13 @@ export function CruiseDetailPage() {
   const [params,setParams]=useSearchParams(),[checkEpoch,setCheckEpoch]=useState(0)
   const requestedSection=preparationSection(params.get('section'))
   const section=allowedDepartureSections(access).some(([key])=>key===requestedSection)?requestedSection:'overview'
-  const goSection=(next:DepartureSection)=>{const query=new URLSearchParams(params);query.set('section',next);setParams(query)}
+  const canViewChecks=allowedDepartureSections(access).some(([key])=>key==='checks')
+  useEffect(()=>{
+    if(access.status==='ready'&&params.has('section')&&params.get('section')!==section){
+      const query=new URLSearchParams(params);query.set('section',section);setParams(query,{replace:true})
+    }
+  },[access.status,params,section,setParams])
+  const goSection=(next:DepartureSection)=>{const query=new URLSearchParams(params);query.set('section',allowedDepartureSections(access).some(([key])=>key===next)?next:'overview');setParams(query)}
   const reload=()=>{setCheckEpoch(value=>value+1);return refresh()}
   const [assignmentMode, setAssignmentMode] = useState<AssignmentMode | null>(null)
   const [lifecycleAction, setLifecycleAction] = useState<'publish' | 'start' | 'complete' | 'cancel' | null>(null)
@@ -146,7 +152,7 @@ export function CruiseDetailPage() {
               <CruiseOperations key={cruise.cruiseId+':guests'} cruiseId={cruise.cruiseId} view="guests"/>
               {access.can({mode:'ANY',permissions:['CHECKIN_READ','CHECKIN_CREATE','CHECKIN_UPDATE']})&&<details><summary>Đón khách và hướng dẫn an toàn</summary><CruiseOperations cruiseId={cruise.cruiseId} view="guidance"/></details>}
             </section>
-            <section id={"departure-panel-checks"} role={"tabpanel"} aria-labelledby={"departure-tab-checks"} hidden={section!=='checks'} className={preparationStyles.content}>{section==='checks'&&access.has('CRUISE_READ')&&<DepartureSaleReadiness key={cruise.cruiseId+':'+checkEpoch} cruise={cruise} onSection={goSection}/>}{section==='checks'&&access.canDo('CRUISE_VALIDATE')&&<ReadinessIssues items={detail.readiness.details} cruiseId={cruise.cruiseId} shipId={cruise.shipId}/>}
+            {canViewChecks&&<section id={"departure-panel-checks"} role={"tabpanel"} aria-labelledby={"departure-tab-checks"} hidden={section!=='checks'} className={preparationStyles.content}>{section==='checks'&&access.has('CRUISE_READ')&&<DepartureSaleReadiness key={cruise.cruiseId+':'+checkEpoch} cruise={cruise} onSection={goSection}/>}{section==='checks'&&access.canDo('CRUISE_VALIDATE')&&<ReadinessIssues items={detail.readiness.details} cruiseId={cruise.cruiseId} shipId={cruise.shipId}/>}
               {state.status==='loading'?<Loading label="Đang cập nhật điều kiện vận hành…"/>:<>{access.canDo('CRUISE_VALIDATE') && <><CruiseChecks key={cruise.cruiseId+':'+checkEpoch} cruiseId={cruise.cruiseId} /><Panel title="Điều kiện sẵn sàng vận hành" subtitle="Theo bộ kiểm tra vận hành/phát hành hiện có; không phải kiểm tra mở bán."><>{detail.readiness.evaluatedAt&&<p>Kiểm tra lúc {formatDateTime(detail.readiness.evaluatedAt)}{detail.readiness.cruiseRevision!=null?` · Revision ${detail.readiness.cruiseRevision}`:""}</p>}{detail.readiness.stale&&<Notice title="Kết quả cần kiểm tra lại" tone="warning">Dữ liệu lần khởi hành đã thay đổi sau thời điểm đánh giá. Tải lại để lấy kết quả mới.</Notice>}</><ul className={styles.compactList}>{detail.readiness.checks.map((check) => <li key={check.key}><span><Badge label={check.state === 'PASS' ? 'Đạt' : check.state === 'BLOCKED' ? 'Chưa đạt' : 'Chưa xác định'} tone={checkTone(check.state)} /> <strong>{check.label}</strong></span><span>{check.reason}</span>{check.state!=='PASS'&&<Button tone="text" onClick={()=>goSection(allowedDepartureSections(access).some(([key])=>key===preparationIssueSection(check))?preparationIssueSection(check):'checks')}>Đi xử lý</Button>}</li>)}</ul>{detail.readiness.issues?.map((issue) => <Notice key={issue} title="Cần kiểm tra" tone="warning">{issue}</Notice>)}</Panel></>}
 </>}
               {((cruise.status==='DRAFT'&&!cruise.sourceVersionId&&access.canDo('CRUISE_PUBLISH'))||(cruise.status==='PUBLISHED'&&access.canDo('CRUISE_START'))||(cruise.status==='IN_PROGRESS'&&access.canDo('CRUISE_COMPLETE'))||(!['COMPLETED','CANCELLED'].includes(cruise.status)&&access.canDo('CRUISE_CANCEL'))) && <Panel title="Điều khiển vòng đời" subtitle="Mỗi chuyển trạng thái đều cần xác nhận.">
@@ -164,7 +170,7 @@ export function CruiseDetailPage() {
             <Link className={styles.inlineLink} to={`/admin/issues?cruise=${cruise.cruiseId}`}>Xem danh sách sự cố →</Link>
           </Panel>}
 
-            </section>
+            </section>}
           </div>
           {assignmentMode && access.canDo(assignmentMode === 'assign' ? 'CRUISE_ASSIGN_SHIP' : assignmentMode === 'change' ? 'CRUISE_CHANGE_SHIP' : 'CRUISE_UNASSIGN_SHIP') && <ShipAssignmentDialog detail={detail} mode={assignmentMode} onClose={() => setAssignmentMode(null)} onChanged={() => { void reload(); setLifecycleSuccess('Đã cập nhật phân công tàu.') }} />}
           {lifecycleAction && access.canDo(lifecyclePermissions[lifecycleAction]) && <Modal busy={lifecycleBusy} title='Xác nhận chuyển trạng thái' onClose={() => { if (!lifecycleBusy) setLifecycleAction(null) }} footer={<div className={styles.dialogActions}>

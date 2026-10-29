@@ -1,6 +1,7 @@
+import { departureReturn } from '@/shared/lib/departure-return'
 import { businessCopy } from '@/shared/i18n/business-copy'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useLocation, useSearchParams } from 'react-router'
 import { useReadQuery } from '@/shared/api'
 import { Badge, Button, Empty, Field, Loading, Modal, Notice, Panel } from '@/shared/ui'
 import { usePlanning, useSources, useUnsavedGuard } from '../hooks'
@@ -15,6 +16,7 @@ import { ConflictDialog, HistoryDialog, ValidationPanel } from '../components/Re
 import type { Report } from '../model/plan'
 import styles from '../Planning.module.css'
 import { violationTarget } from '../model/violation-target'
+import { dayBoundaryLabel } from '../model/day-labels'
 import { versionContext, workingVersionLabel } from '../model/version-context'
 import { durationRules, supportedDuration } from '../model/duration'
 import { stopTimingViolations, portScopeViolations, linkedTourViolations, routeOrderViolations } from '../model/port-rules'
@@ -22,9 +24,12 @@ import { stopTimingViolations, portScopeViolations, linkedTourViolations, routeO
 export function TripSchedulePage({id}:{id:string}) {
   const {gateway}=usePlanning()
   const query=useReadQuery('planning-trip:'+id,useCallback(signal=>gateway.getTrip(id,signal),[gateway,id]))
-  if(query.loading)return <Loading label="Đang tải chuyến và các phiên bản…"/>
-  if(query.error)return <Notice title="Chưa tải được chuyến" tone="error">{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>
-  return query.data?<Schedule key={`${gateway.mode}:${id}`} initial={query.data}/>:null
+  const [params]=useSearchParams(),location=useLocation()
+  const returnTo=departureReturn(params.get('returnTo'))
+  return <>
+    {returnTo&&<p className={styles.note}><Link to={returnTo} state={location.state}>← Quay lại lần khởi hành</Link></p>}
+    {query.loading?<Loading label="Đang tải chuyến và các phiên bản…"/>:query.error?<Notice title="Chưa tải được chuyến" tone="error">{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>:query.data?<Schedule key={`${gateway.mode}:${id}`} initial={query.data}/>:null}
+  </>
 }
 function Schedule({initial}:{initial:Trip}) {
   const {gateway,can,root}=usePlanning(),[trip,setTrip]=useState(initial)
@@ -184,7 +189,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
     {fault&&<Notice title="Chưa hoàn tất thao tác" tone="error">{fault.message}{uncertain&&<Button onClick={()=>setCompare(true)} disabled={Boolean(busy)}>Đối chiếu bản đã lưu</Button>}</Notice>}
 
     <div className={styles.tabs} role="tablist" aria-label="Nội dung lịch trình">{(['route','program'] as const).map(value=><button key={value} role="tab" tabIndex={tab===value?0:-1} onKeyDown={e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const next=e.key==='Home'?'route':e.key==='End'?'program':tab==='route'?'program':'route';setTab(next);document.getElementById(`planning-tab-${next}`)?.focus()}}} aria-selected={tab===value} aria-controls="planning-day-panel" id={`planning-tab-${value}`} onClick={()=>setTab(value)}>{value==='route'?'Tuyến tàu':'Chương trình ngày'}</button>)}</div>
-    <div className={styles.layout}><nav className={styles.rail} aria-label="Các ngày của chuyến"><strong className={styles.railTitle}>Các ngày</strong>{content.days.map(d=><button key={d.key} className={styles.dayButton} aria-current={day?.key===d.key} onClick={()=>setSelected(d.dayNumber)}><strong>Ngày {d.dayNumber}</strong><small>{d.dayType==='PORT_DAY'?'Ghé cảng':d.dayType==='SEA_DAY'?'Trên biển':'Chưa chọn loại ngày'}</small><small>{content.entries.filter(e=>e.startDayNumber<=d.dayNumber&&e.endDayNumber>=d.dayNumber).length} mục chương trình</small></button>)}{editable&&<><Button tone="secondary" disabled={Boolean(busy)||!structureAllowed||content.days.length>=(limits?.[1]??0)} title={locked?'Số ngày đã khóa vì khung chuyến có mẫu đã chốt':content.days.length>=(limits?.[1]??0)?'Đã đạt số ngày tối đa của nhóm thời lượng':undefined} onClick={()=>setDayChange({})}>Thêm ngày</Button><Button tone="secondary" disabled={Boolean(busy)||!structureAllowed||content.days.length<=(limits?.[0]??0)||(!gateway.supportsMiddleDayRemoval&&day?.dayNumber!==content.days.length)} title={locked?'Số ngày đã khóa vì khung chuyến có mẫu đã chốt':content.days.length<=(limits?.[0]??0)?'Đã đạt số ngày tối thiểu của nhóm thời lượng':undefined} onClick={()=>setDayChange({remove:day?.dayNumber})}>Xóa ngày đang chọn</Button>{!limits&&<small>Thời lượng hiện có chưa nằm trong nhóm 1–2 hoặc 3–5 ngày.</small>}{!gateway.supportsMiddleDayRemoval&&<small>Chỉ có thể xóa ngày cuối.</small>}</>}</nav>
+    <div className={styles.layout}><nav className={styles.rail} aria-label="Các ngày của chuyến"><strong className={styles.railTitle}>Các ngày</strong>{content.days.map(d=><button key={d.key} className={styles.dayButton} aria-current={day?.key===d.key} onClick={()=>setSelected(d.dayNumber)}><strong>Ngày {d.dayNumber}</strong>{dayBoundaryLabel(d.dayNumber,content.days.length)&&<small><strong>{dayBoundaryLabel(d.dayNumber,content.days.length)}</strong></small>}<small>{d.dayType==='PORT_DAY'?'Ghé cảng':d.dayType==='SEA_DAY'?'Trên biển':'Chưa chọn loại ngày'}</small><small>{content.entries.filter(e=>e.startDayNumber<=d.dayNumber&&e.endDayNumber>=d.dayNumber).length} mục chương trình</small></button>)}{editable&&<><Button tone="secondary" disabled={Boolean(busy)||!structureAllowed||content.days.length>=(limits?.[1]??0)} title={locked?'Số ngày đã khóa vì khung chuyến có mẫu đã chốt':content.days.length>=(limits?.[1]??0)?'Đã đạt số ngày tối đa của nhóm thời lượng':undefined} onClick={()=>setDayChange({})}>Thêm ngày</Button><Button tone="secondary" disabled={Boolean(busy)||!structureAllowed||content.days.length<=(limits?.[0]??0)||(!gateway.supportsMiddleDayRemoval&&day?.dayNumber!==content.days.length)} title={locked?'Số ngày đã khóa vì khung chuyến có mẫu đã chốt':content.days.length<=(limits?.[0]??0)?'Đã đạt số ngày tối thiểu của nhóm thời lượng':undefined} onClick={()=>setDayChange({remove:day?.dayNumber})}>Xóa ngày đang chọn</Button>{!limits&&<small>Thời lượng hiện có chưa nằm trong nhóm 1–2 hoặc 3–5 ngày.</small>}{!gateway.supportsMiddleDayRemoval&&<small>Chỉ có thể xóa ngày cuối.</small>}</>}</nav>
       <section id="planning-day-panel" role="tabpanel" aria-labelledby={`planning-tab-${tab}`}>{day?<DayPane content={content} day={day} editable={editable} busy={Boolean(busy)} tab={tab} violation={located}
         onTitle={title=>edit({...content,days:content.days.map(d=>d.key===day.key?{...d,title}:d)})}
         onType={dayType=>{if(dayType==='SEA_DAY'&&content.stops.some(s=>s.arrivalDayNumber<=day.dayNumber&&s.departureDayNumber>=day.dayNumber)){setMessage('Ngày còn lần ghé cảng. Hãy xử lý lần ghé và tham quan liên quan trước khi chuyển thành ngày trên biển.');return}edit({...content,days:content.days.map(d=>d.key===day.key?{...d,dayType}:d)})}}

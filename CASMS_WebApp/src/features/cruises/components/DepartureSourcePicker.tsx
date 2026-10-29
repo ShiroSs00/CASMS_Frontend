@@ -2,13 +2,14 @@ import {useCallback,useState} from 'react'
 import {useReadQuery} from '@/shared/api'
 import {Button,Field,Loading,Notice,Panel} from '@/shared/ui'
 import {eligibleSources} from '../api/source-version'
+import styles from './ManagerWorkspace.module.css'
 
 export function DepartureSourcePicker({value,disabled,onChange}:{value:string|null;disabled:boolean;onChange:(id:string,name?:string)=>void}){
   const [input,setInput]=useState(''),[filter,setFilter]=useState({keyword:'',page:0})
   const query=useReadQuery(`eligible-sources:${filter.keyword}:${filter.page}`,useCallback(signal=>eligibleSources(filter.keyword,filter.page,signal),[filter]))
   const selected=query.data?.content.find(item=>item.versionId===value)
   return <Panel title="1. Chọn lịch trình đã phát hành" subtitle="Chỉ hiển thị phiên bản được phép dùng cho lần khởi hành. Phát hành lịch trình chưa phải mở bán.">
-    <form onSubmit={event=>{event.preventDefault();setFilter({keyword:input,page:0})}} style={{display:'flex',gap:12,alignItems:'end'}}>
+    <form className={styles.sourceSearch} onSubmit={event=>{event.preventDefault();setFilter({keyword:input,page:0})}}>
       <Field htmlFor="departure-source-search" label="Tìm theo tên hoặc mã chuyến"><input id="departure-source-search" type="search" value={input} disabled={disabled} onChange={e=>setInput(e.target.value)}/></Field><Button type="submit" tone="secondary" disabled={disabled||query.loading}>Tìm lịch trình</Button>
     </form>
     {query.loading?<Loading label="Đang tải lịch trình đã phát hành…"/>:query.error?<Notice title="Chưa tải được lịch trình nguồn" tone="error">{query.error.message}<Button tone="secondary" onClick={query.retry}>Tải lại</Button></Notice>:query.data&&<>
