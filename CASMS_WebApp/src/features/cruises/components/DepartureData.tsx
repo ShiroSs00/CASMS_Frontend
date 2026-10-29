@@ -4,7 +4,7 @@ import { DepartureCommand } from './DepartureCommand'
 import {CruiseSale} from './CruiseSale'
 import { departureManagementApi } from '../api/departure-management-api'
 import { useCallback, useState } from 'react'
-import { ApiError, useReadQuery } from '@/shared/api'
+import { ApiError, apiRequest, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { journeyTime, validTimeZone, SHIP_TIME_ZONE } from '@/shared/lib/journey-time'
 import { Button, ButtonLink, DataTable, Empty, Field, Loading, Notice, Panel, RecordFacts } from '@/shared/ui'
@@ -13,6 +13,9 @@ import { cruiseApi } from '../api/cruise-api'
 import { type ChangeInput, type DepartureSchedule } from '../model/departure-contract'
 import type { CruiseRecord } from '../model/cruise-record'
 import { scheduleInstant } from '../model/cruise-validation'
+import { decodeActivities, type ScopedActivity } from '../api/scoped-activity'
+import { decodeCommercialExcursions, type ExcursionCommercial } from '../api/scoped-excursion'
+import scheduleStyles from './DepartureSchedulePreview.module.css'
 import { allowedDepartureSections, type DepartureSection } from '../model/preparation'
 
 const shown = (value: string | number | null | undefined) => value ?? 'Chưa xác định'
@@ -27,13 +30,15 @@ export function ReadState({ loading, error, retry }: { loading: boolean; error: 
   return null
 }
 
-export function ScheduleContents({ schedule, preview = false,cruiseId }: { schedule: DepartureSchedule; preview?: boolean;cruiseId?:string }) {
+export function ScheduleContents({ schedule, preview = false,cruiseId,entryTitles={},allowActions=true }: { schedule: DepartureSchedule; preview?: boolean;cruiseId?:string;entryTitles?:Record<string,string>;allowActions?:boolean }) {
   const access=useSessionAccess()
-  return <div>
+  return <div className={scheduleStyles.scheduleDays}>
     {schedule.days.some(day=>day.shipTimeZoneId!==SHIP_TIME_ZONE)&&<Notice title="Cần đối chiếu cơ sở ngày của lịch" tone="warning">Múi giờ trong lịch trả về chưa khớp giờ tàu Việt Nam. Các thời điểm được giữ nguyên; cần xác nhận lịch từ hệ thống trước khi sử dụng.</Notice>}
     <RecordFacts entries={[[preview ? 'Bắt đầu dự kiến' : 'Bắt đầu theo phản hồi', time(schedule.departureDatetime, 'Asia/Ho_Chi_Minh')], ['Kết thúc dự kiến', time(schedule.returnDatetime, 'Asia/Ho_Chi_Minh')]]} />
     {!schedule.days.length && <Empty title="Chưa có ngày trong phản hồi lịch trình" />}
-    {schedule.days.map(day => <Panel key={day.dayNumber} title={`Ngày ${day.dayNumber} · ${day.calendarDate ?? 'Chưa có ngày'}${day.title ? ' · ' + day.title : ''}`} subtitle={itineraryDayRoleLabels[itineraryDayRole(day.dayNumber,schedule.days.length)] + ' · ' + (day.dayType ? dayLabels[day.dayType] ?? day.dayType : 'Chưa xác định loại ngày') + ' · Giờ tàu (Việt Nam)'}>
+    {schedule.days.map(day => <details className={scheduleStyles.scheduleDay} key={day.dayNumber} open={day.dayNumber===1}>
+      <summary><span className={scheduleStyles.dayNumber}>Ngày {day.dayNumber}</span><span className={scheduleStyles.dayHeading}><strong>{day.title||itineraryDayRoleLabels[itineraryDayRole(day.dayNumber,schedule.days.length)]}</strong><span>{day.calendarDate?.split('-').reverse().join('/')??'Chưa có ngày'} · {day.dayType ? dayLabels[day.dayType]??day.dayType : 'Chưa xác định loại ngày'} · {day.entries.length} mục chương trình</span></span></summary>
+      <div className={scheduleStyles.dayBody}><p>{itineraryDayRoleLabels[itineraryDayRole(day.dayNumber,schedule.days.length)]} · Giờ tàu (Việt Nam)</p>
       {day.stops.map((stop, index) => <div key={stop.sourceStopId ?? `${day.dayNumber}:${stop.stopOrder ?? index}`}>
         <h3>Lần ghé {stop.stopOrder ?? index + 1} · {stop.portName ?? 'Chưa có tên cảng'}</h3>
         <RecordFacts entries={[
@@ -41,22 +46,31 @@ export function ScheduleContents({ schedule, preview = false,cruiseId }: { sched
           ['Hạn trở lại tàu', time(stop.allAboardTime, stop.portTimeZoneId)], ['Giờ cảng', stop.portTimeZoneId ?? 'Chưa xác định'],
           ['Tiếp cận', stop.arrivalMethod === 'BERTH' ? 'Cập bến' : stop.arrivalMethod === 'ANCHOR_TENDER' ? 'Neo và trung chuyển' : shown(stop.arrivalMethod)],
         ]} />
-        {!preview&&cruiseId&&stop.cruiseStopId&&access.canDo('EXCURSION_CREATE')&&<ButtonLink tone="secondary" to={'/admin/shore-excursions/new?'+new URLSearchParams({cruiseId,cruiseStopId:stop.cruiseStopId,returnTo:'/admin/cruises/'+cruiseId+'?section=schedule'})}>Tạo tour cho lần ghé này</ButtonLink>}
+        {allowActions&&!preview&&cruiseId&&stop.cruiseStopId&&access.canDo('EXCURSION_CREATE')&&<ButtonLink tone="secondary" to={'/admin/shore-excursions/new?'+new URLSearchParams({cruiseId,cruiseStopId:stop.cruiseStopId,returnTo:'/admin/cruises/'+cruiseId+'?section=schedule'})}>Tạo tour cho lần ghé này</ButtonLink>}
       </div>)}
-      {day.entries.length > 0 && <><h3>{preview ? 'Chương trình từ lịch trình nguồn' : 'Chương trình trong phản hồi lịch'}</h3><ul>{day.entries.map((entry, index) => {
+      {day.entries.length > 0 && <><h3>{preview ? 'Chương trình từ lịch trình nguồn' : 'Chương trình theo lịch'}</h3><ul className={scheduleStyles.scheduleEntries}>{day.entries.map((entry, index) => {
         const zone=entry.kind==='SHORE_EXCURSION'?day.stops.find(stop=>stop.stopOrder===entry.stopOrder)?.portTimeZoneId??null:SHIP_TIME_ZONE
-        return <li key={entry.sourceEntryId ?? entry.clientKey ?? `${day.dayNumber}:${index}`}><strong>{entry.kind ? kindLabels[entry.kind] ?? entry.kind : 'Chưa xác định loại'}</strong><p>{time(entry.plannedStartTime, zone)} → {time(entry.plannedEndTime, zone)} · {entry.kind==='SHORE_EXCURSION'?'Giờ cảng':'Giờ tàu (Việt Nam)'}{entry.stopOrder != null ? ` · Lần ghé ${entry.stopOrder}` : ''}</p></li>
+        return <li key={entry.sourceEntryId ?? entry.clientKey ?? `${day.dayNumber}:${index}`}><strong>{entryTitles[entry.targetId??entry.clientKey??'']||`${entry.kind ? kindLabels[entry.kind] ?? entry.kind : 'Chương trình'} ${index+1}`}</strong>{entryTitles[entry.targetId??entry.clientKey??'']&&<span className={scheduleStyles.entryKind}>{entry.kind?kindLabels[entry.kind]??entry.kind:''}</span>}<p>{time(entry.plannedStartTime, zone)} → {time(entry.plannedEndTime, zone)} · {entry.kind==='SHORE_EXCURSION'?'Giờ cảng':'Giờ tàu (Việt Nam)'}{entry.stopOrder != null ? ` · Lần ghé ${entry.stopOrder}` : ''}</p></li>
       })}</ul></>}
-    </Panel>)}
+    </div></details>)}
   </div>
 }
 
-export function DepartureScheduleRead({ cruise }: { cruise: CruiseRecord }) {
+export function DepartureScheduleRead({ cruise,readOnly=false }: { cruise: CruiseRecord;readOnly?:boolean }) {
+  const access=useSessionAccess()
   const query = useReadQuery(`departure-schedule:${cruise.cruiseId}:${cruise.revision ?? cruise.updatedAt}`, useCallback(signal => departureApi.schedule(cruise.cruiseId, signal), [cruise.cruiseId]))
+  const canReadPrograms=access.roles.includes('CRUISE_MANAGER')&&access.has('CRUISE_UPDATE_DRAFT')
+  const programNames=useReadQuery(`schedule-program-names:${access.userId}:${cruise.cruiseId}:${cruise.revision}:${canReadPrograms}`,useCallback(async signal=>{
+    if(!canReadPrograms)return null
+    const root=`/cruise-plans/${encodeURIComponent(cruise.cruiseId)}`
+    const [activities,excursions]=await Promise.all([apiRequest<ScopedActivity[]>(root+'/activities',{signal}),apiRequest<ExcursionCommercial[]>(root+'/excursions',{signal})])
+    return Object.fromEntries([...decodeActivities(activities,cruise.cruiseId),...decodeCommercialExcursions(excursions)].map(entry=>[entry.id,entry.name]))
+  },[canReadPrograms,cruise.cruiseId]))
+  const entryTitles=programNames.data??{}
   const mismatch = query.data && (query.data.sourceVersionId !== (cruise.sourceVersionId??null) || !query.data.departureDatetime || Date.parse(query.data.departureDatetime)!==Date.parse(cruise.departureDatetime) || !query.data.returnDatetime || Date.parse(query.data.returnDatetime)!==Date.parse(cruise.returnDatetime))
   return <Panel title="Lịch theo ngày thực tế" subtitle="Các mốc dự kiến do hệ thống trả về; giờ cảng và giờ tàu được ghi riêng.">
     <ReadState {...query} />
-    {mismatch ? <Notice title="Lịch chưa khớp nguồn" tone="error">Phiên bản nguồn hoặc mốc thời gian trong lịch chưa khớp hồ sơ lần khởi hành. Tải lại để đối chiếu.</Notice> : query.data && <><RecordFacts entries={[["Lịch thực tế đã khởi tạo",yesNo(query.data.materialized)],['Trạng thái lịch thực tế',shown(query.data.itineraryStatus)],['Revision nguồn',shown(query.data.sourceVersionRevision)]]}/><ScheduleContents schedule={query.data} cruiseId={cruise.cruiseId}/><p>Lịch này chưa xác nhận các chương trình vận hành đã được tạo đầy đủ. Kiểm tra riêng tại Chương trình và dịch vụ.</p></>}
+    {mismatch ? <Notice title="Lịch chưa khớp nguồn" tone="error">Phiên bản nguồn hoặc mốc thời gian trong lịch chưa khớp hồ sơ lần khởi hành. Tải lại để đối chiếu.</Notice> : query.data && <><details><summary>Thông tin đối chiếu lịch</summary><RecordFacts entries={[["Lịch thực tế đã khởi tạo",yesNo(query.data.materialized)],['Trạng thái lịch thực tế',query.data.itineraryStatus==='DRAFT'?'Nháp':shown(query.data.itineraryStatus)],['Revision nguồn',shown(query.data.sourceVersionRevision)]]}/></details>{programNames.error&&<Notice title="Chưa tải được tên chương trình">Giờ và lần ghé vẫn hiển thị theo lịch thực tế.<Button tone="text" onClick={programNames.retry}>Thử tải lại tên</Button></Notice>}<ScheduleContents schedule={query.data} cruiseId={cruise.cruiseId} entryTitles={entryTitles} allowActions={!readOnly}/><p>Lịch này chưa xác nhận các chương trình vận hành đã được tạo đầy đủ. Kiểm tra riêng tại Chương trình và dịch vụ.</p></>}
     <Button tone="secondary" onClick={query.retry}>Tải lại lịch</Button>
   </Panel>
 }
@@ -67,18 +81,18 @@ export function DepartureInventory({ cruise }: { cruise: CruiseRecord }) {
   const query = useReadQuery(`departure-inventory:${cruise.cruiseId}:${cruise.revision ?? cruise.updatedAt}:${allowed}`, useCallback(signal => allowed ? departureApi.inventory(cruise.cruiseId, signal) : Promise.resolve(null), [allowed, cruise.cruiseId]))
   if (!allowed) return null
   const data = query.data
-  return <Panel title="Tồn và sức chứa"><ReadState {...query} />{data && <>
-    <RecordFacts entries={[["Sức chứa vật lý của tàu", shown(data.physicalCapacity)], ['Hành khách đã đặt', shown(data.bookedPassengersCount)], ['Hành khách đang giữ chỗ', shown(data.heldPassengersCount)], ['Phần sức chứa còn lại', shown(data.remainingCapacity)], ['Tổng cabin', shown(data.totalCabins)], ['Cabin đang hoạt động', shown(data.operationalCabins)], ['Cabin bảo trì hoặc ngừng sử dụng', shown(data.blockedCabins)]]} />
+  return <Panel title="Cabin và sức chứa"><ReadState {...query} />{data && <>
+    <div className={scheduleStyles.inventoryFacts}><RecordFacts entries={[["Sức chứa vật lý của tàu", shown(data.physicalCapacity)], ['Hành khách đã đặt', shown(data.bookedPassengersCount)], ['Hành khách đang giữ chỗ', shown(data.heldPassengersCount)], ['Phần sức chứa còn lại', shown(data.remainingCapacity)], ['Tổng cabin', shown(data.totalCabins)], ['Cabin đang hoạt động', shown(data.operationalCabins)], ['Cabin bảo trì hoặc ngừng sử dụng', shown(data.blockedCabins)]]} /></div>
     <p>Thông tin sức chứa chưa loại đầy đủ cabin bị khóa hoặc bảo trì. Các con số này không xác nhận số cabin hoặc suất được phép bán.</p>
     {data.cabinTypeInventory == null ? <p>Chưa có dữ liệu theo hạng cabin.</p> : !data.cabinTypeInventory.length ? <Empty title="Chưa có dữ liệu hạng cabin" /> : <DataTable label="Tồn theo hạng cabin" headers={['Hạng cabin', 'Tổng cabin', 'Cabin hoạt động', 'Bảo trì / ngừng sử dụng', 'Tổng suất hệ thống', 'Suất đã phân', 'Suất còn theo hệ thống']}>
-      {data.cabinTypeInventory.map((item, index) => <tr key={item.cabinType ?? index}><td>{shown(item.cabinType)}</td><td>{shown(item.totalCabins)}</td><td>{shown(item.operationalCabins)}</td><td>{shown(item.blockedCabins)}</td><td>{shown(item.totalSlots)}</td><td>{shown(item.occupiedSlots)}</td><td>{shown(item.remainingSlots)}</td></tr>)}
+      {data.cabinTypeInventory.map((item, index) => <tr key={item.cabinType ?? index}><td>{item.cabinType?({INTERIOR:'Phòng trong',OCEAN_VIEW:'Phòng hướng biển',BALCONY:'Phòng ban công',SUITE:'Suite'} as Record<string,string>)[item.cabinType]??item.cabinType:'Chưa xác định'}</td><td>{shown(item.totalCabins)}</td><td>{shown(item.operationalCabins)}</td><td>{shown(item.blockedCabins)}</td><td>{shown(item.totalSlots)}</td><td>{shown(item.occupiedSlots)}</td><td>{shown(item.remainingSlots)}</td></tr>)}
     </DataTable>}
   </>}<Button tone="secondary" onClick={query.retry}>Tải lại tồn</Button></Panel>
 }
 
 export function DepartureSaleReadiness({cruise}:{cruise:CruiseRecord;onSection?:(section:DepartureSection)=>void}) {return <CruiseSale cruise={cruise}/>} 
 
-export function DepartureImpact({ cruise,onChanged }: { cruise: CruiseRecord;onChanged?:()=>void }) {
+export function DepartureImpact({ cruise,onChanged,view='all' }: { cruise: CruiseRecord;onChanged?:()=>void;view?:'all'|'preview'|'tasks' }) {
   const access = useSessionAccess(), canShips = access.has('SHIP_READ')
   const canPorts=access.has('PORT_READ')
   const ports=useReadQuery('impact-ports:'+canPorts+':'+cruise.sourceTripId,useCallback(signal=>canPorts?cruiseApi.listPorts(signal,cruise.sourceTripId??undefined):Promise.resolve(null),[canPorts,cruise.sourceTripId]))
@@ -102,7 +116,7 @@ export function DepartureImpact({ cruise,onChanged }: { cruise: CruiseRecord;onC
     } catch (error) { setInputError(error instanceof Error ? error.message : 'Kiểm tra lại thời gian.') }
   }
   return <>
-    <Panel title="Xem trước tác động thay đổi" subtitle="Chỉ đánh giá; không đổi lịch và không tạo công việc.">
+    {view!=='tasks'&&<Panel title="Xem trước tác động thay đổi" subtitle="Chỉ đánh giá; không đổi lịch và không tạo công việc.">
       <Field htmlFor="impact-departure" label="Bắt đầu mới dự kiến · giờ Việt Nam"><input id="impact-departure" type="datetime-local" value={departure} onChange={e => setDeparture(e.target.value)} /></Field>
       <Field htmlFor="impact-return" label="Kết thúc mới dự kiến · giờ Việt Nam"><input id="impact-return" type="datetime-local" value={returnTime} onChange={e => setReturnTime(e.target.value)} /></Field>
       {canPorts&&<><ReadState {...ports}/>{[['impact-departure-port','Cảng khởi hành mới dự kiến',departurePortId,setDeparturePortId],['impact-return-port','Cảng kết thúc mới dự kiến',returnPortId,setReturnPortId]].map(([id,label,value,setter])=><Field key={String(id)} htmlFor={String(id)} label={String(label)}><select id={String(id)} value={String(value)} disabled={ports.loading||Boolean(ports.error)} onChange={event=>(setter as (value:string)=>void)(event.target.value)}><option value="">Không đề xuất đổi cảng</option>{ports.data?.map(port=><option key={port.portId} value={port.portId}>{port.portCode} · {port.portName}</option>)}</select></Field>)}</>}
@@ -112,11 +126,11 @@ export function DepartureImpact({ cruise,onChanged }: { cruise: CruiseRecord;onC
       {requested&&<Button tone="text" onClick={()=>{setRequested(null);setInputError('')}}>Bỏ kết quả xem trước</Button>}
       {inputError && <Notice title="Chưa xem trước được" tone="error">{inputError}</Notice>}
       {current && <><ReadState {...preview} />{preview.data && <><RecordFacts entries={[["Booking bị ảnh hưởng", shown(preview.data.affectedBookingsCount)], ['Hành khách đã đặt',shown(preview.data.bookedPassengersCount)], ['Hoạt động bị ảnh hưởng', shown(preview.data.affectedActivitiesCount)], ['Tour bờ bị ảnh hưởng', shown(preview.data.affectedExcursionsCount)]]} />{[...(preview.data.blockers ?? []), ...(preview.data.warnings ?? [])].map((item, index) => <p key={index}>{item}</p>)}<p>{preview.data.generatedTasks?.length ?? 'Chưa xác định'} công việc được đề xuất; chưa lưu vào hệ thống.</p><DepartureCommand key={current.key} label="Tạo công việc từ đánh giá này" disabledReason="Cần nhập lý do và có đánh giá khớp revision hiện tại trước khi tạo công việc." permissions={['CRUISE_UPDATE_DRAFT','CRUISE_STATUS_CHANGE','OPERATIONAL_ISSUE_CREATE']} disabled={preview.loading||Boolean(preview.error)||cruise.revision==null||preview.data.currentRevision==null||preview.data.currentRevision!==cruise.revision||!reason.trim()} run={()=>departureManagementApi.generateTasks(cruise.cruiseId,current.input)} onChanged={()=>{tasks.retry();onChanged?.()}} explanation="Lưu các công việc đề xuất; không tự đổi ngày hoặc tàu."/></>}</>}
-    </Panel>
-    <Panel title="Công việc xử lý tác động"><p>Hoàn tất công việc không xác nhận khách đã được thông báo. Chưa có xác nhận gửi/nhận thông báo từ hệ thống.</p>
+    </Panel>}
+    {view!=='preview'&&<Panel title="Công việc xử lý tác động"><p>Hoàn tất công việc không xác nhận khách đã được thông báo. Chưa có xác nhận gửi/nhận thông báo từ hệ thống.</p>
       <Field htmlFor="impact-task-status" label="Lọc trạng thái"><select id="impact-task-status" value={status} onChange={e => setStatus(e.target.value)}><option value="">Tất cả</option><option value="PENDING">Chờ xử lý</option><option value="RESOLVED">Đã xử lý</option></select></Field>
       <ReadState {...tasks} />{tasks.data && (!tasks.data.length ? <Empty title="Chưa có công việc trong bộ lọc này" /> : <ul>{tasks.data.map(task => <li key={task.taskId}><strong>{task.title ?? 'Chưa có tiêu đề'}</strong><p>{task.description}</p><p>{task.status ? taskLabels[task.status] ?? task.status : 'Chưa xác định trạng thái'} · Phụ trách: {shown(task.assignedToUsername)}</p>{task.evidence && <p>{task.evidence}</p>}{task.resolutionNotes && <p>Kết quả xử lý: {task.resolutionNotes}</p>}<p>{time(task.updatedAt, 'Asia/Ho_Chi_Minh')}</p>{task.taskId&&task.status==='PENDING'&&task.revision!=null&&<DepartureCommand key={task.taskId+':'+task.updatedAt} label="Ghi nhận đã xử lý" permissions={['CRUISE_UPDATE_DRAFT','CRUISE_STATUS_CHANGE','OPERATIONAL_ISSUE_RESOLVE']} reasonRequired run={notes=>departureManagementApi.resolveTask(cruise.cruiseId,task.taskId!,notes,task.revision??undefined)} onChanged={()=>{tasks.retry();onChanged?.()}} explanation="Chỉ ghi nhận sau khi đã hoàn tất phần việc thực tế. Thao tác này không tự sửa chương trình hoặc phân công."/>}</li>)}</ul>)}
-    </Panel>
+    </Panel>}
   </>
 }
 

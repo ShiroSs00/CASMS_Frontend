@@ -3,13 +3,14 @@
 .tabs button{flex:none;min-height:42px;padding:8px 0;border:0;border-bottom:2px solid transparent;background:transparent;font:inherit;font-size:14px;color:var(--ui-muted,#52697b);cursor:pointer}
 .tabs button[aria-selected=true]{color:var(--ui-ink,#102e47);border-bottom-color:var(--ui-brand,#102e47);font-weight:600}
 .tabs button:focus-visible,.problem button:focus-visible{outline:2px solid var(--ui-brand,#102e47);outline-offset:3px}
-.tabs.managerTabs{position:sticky;top:var(--workspace-sticky-top,24px);z-index:10;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding:6px;overflow:visible;border:1px solid var(--ui-border);border-radius:12px;background:var(--ui-subtle);box-shadow:0 4px 12px #102e4710}
-.managerTabs button{min-width:0;min-height:52px;padding:10px 12px;border:0;border-radius:8px;color:var(--ui-ink);line-height:1.45;white-space:normal;text-wrap:balance;scroll-margin-block:100px}
+.tabs.managerTabs{position:sticky;top:96px;z-index:10;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:6px;overflow:visible;border:1px solid var(--ui-border);border-radius:12px;background:var(--ui-surface);box-shadow:var(--shadow-panel)}
+.managerTabs button{min-width:0;min-height:56px;padding:10px 12px;border:0;border-radius:8px;color:var(--ui-ink);line-height:1.5;white-space:normal;text-wrap:balance;scroll-margin-block:100px}
 .managerTabs button:hover:not([aria-selected=true]){background:var(--ui-surface)}
 .managerTabs button[aria-selected=true]{background:var(--ui-brand);color:var(--ui-surface);font-weight:600}
 .managerTabs button:focus-visible{outline:3px solid var(--ui-focus,var(--ui-brand));outline-offset:2px}
-.managerTabs~.content :global(:focus-visible){scroll-margin-top:calc(var(--workspace-sticky-top,24px) + 220px)}
-@media(max-width:1024px){.tabs.managerTabs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.workspace :global(#departure-content){scroll-margin-top:176px}.workspace :global(#departure-content :focus-visible){scroll-margin-top:240px}
+@media(max-width:1024px){.tabs.managerTabs{grid-template-columns:repeat(3,minmax(0,1fr))}.workspace :global(#departure-content){scroll-margin-top:240px}}
+@media(max-width:900px){.tabs.managerTabs{position:static}.workspace :global(#departure-content){scroll-margin-top:16px}}
 @media(max-width:600px){.tabs.managerTabs{grid-template-columns:repeat(2,minmax(0,1fr))}.managerTabs button:last-child:nth-child(odd){grid-column:1 / -1}}
 @media(max-height:600px){.tabs.managerTabs{position:static}}
 .content{display:grid;gap:20px;min-width:0}.content>section{box-shadow:none}.summary{display:grid;gap:16px}
@@ -24,6 +25,12 @@
 @media(max-width:1100px){.tabs{gap:16px}.linkRow{flex-wrap:wrap}.problem{gap:12px}}
 
 .content[hidden]{display:none}
+.sectionIntro{padding:4px 0 0;min-width:0}.sectionIntro h2{margin:0;font:600 20px/1.5 var(--font-heading)}.sectionIntro p{margin:6px 0 0;max-width:76ch;color:var(--ui-muted);line-height:1.65}
+.actionGroup{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:16px 0}
+.secondarySection{min-width:0;border:1px solid var(--ui-border);border-radius:var(--ui-panel-radius);background:var(--ui-surface)}
+.secondarySection>summary{padding:16px 20px;font-weight:600;cursor:pointer;min-height:52px}.secondaryBody{display:grid;gap:16px;padding:0 20px 20px}.secondaryBody>section{margin:0;border:0;box-shadow:none;padding:0}
+.shipIdentity{margin:0;font:600 22px/1.5 var(--font-heading)}
+@media(max-width:600px){.sectionIntro h2{font-size:18px}.objectToolbar>a{margin-left:0}.preparationGroup{align-items:flex-start;flex-direction:column}.problem{grid-template-columns:1fr}.linkRow a{flex-shrink:1}.workspace>header h1{font-size:20px;overflow-wrap:anywhere}}
 
 .workspace>header{padding:0 0 12px;margin:0;border-bottom:0}.workspace>header h1{font-size:24px;line-height:1.35}.workspace{gap:16px}
 .objectToolbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;min-height:36px;font-size:14px}.objectToolbar>a{margin-left:auto}.objectToolbar button{min-height:36px}
@@ -34,3 +41,5 @@
 .workLinks button{display:flex;justify-content:space-between;gap:16px;align-items:center;min-height:52px;padding:12px 0;border:0;border-bottom:1px solid var(--ui-border,#dce4e8);background:transparent;color:var(--ui-ink,#102e47);font:inherit;text-align:left;cursor:pointer}
 .workLinks button:hover{color:var(--brand-teal,#24777b)}.workLinks button:focus-visible{outline:2px solid var(--ui-brand,#102e47);outline-offset:3px}
 @media(max-width:1100px){.workLinks{grid-template-columns:1fr}}
+.stepNavigation{min-width:0;scroll-margin-top:96px}
+@media(max-width:900px){.stepNavigation{scroll-margin-top:16px}}
