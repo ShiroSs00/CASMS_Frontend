@@ -24,7 +24,7 @@ export function ActivityDetailPage() {
   const { activityId = '' } = useParams()
   const query = useReadQuery('activity:' + activityId, useCallback(signal => activityApi.get(activityId, signal), [activityId]))
   const activity = query.data
-  return <ActivityFrame><PageHeader breadcrumb="DỊCH VỤ TÀU / HOẠT ĐỘNG" title={activity?.name ?? 'Chi tiết hoạt động'} description="Lịch tổ chức, sức chứa và các đăng ký liên quan." actions={<><ButtonLink tone="secondary" to="/admin/activities">Danh sách hoạt động</ButtonLink></>} /><ActivityState {...query} />
+  return <ActivityFrame><PageHeader breadcrumb="DỊCH VỤ TÀU / HOẠT ĐỘNG" title={activity?.name ?? 'Chi tiết hoạt động'}  actions={<><ButtonLink tone="secondary" to="/admin/activities">Danh sách hoạt động</ButtonLink></>} /><ActivityState {...query} />
     {activity && <><div className={styles.detailLayout}><Panel title="Thông tin hoạt động"><RecordFacts entries={[
       ['Mã hoạt động', activity.code], ['Trạng thái', <Badge label={activityStatusLabels[activity.status] ?? activity.status} tone={activity.status === 'IN_PROGRESS' ? 'info' : activity.status === 'COMPLETED' ? 'success' : 'neutral'} />],
       ['Thời gian', `${activityTime(activity.startTime)} → ${activityTime(activity.endTime)}`], ['Địa điểm', activity.location || 'Chưa xác định'],

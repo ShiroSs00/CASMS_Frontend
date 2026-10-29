@@ -14,7 +14,7 @@ export function CruisePlanWorkspace({cruiseId,refreshKey,onChanged,onSection,sec
  const access=useSessionAccess()
  const manager=access.roles.includes('CRUISE_MANAGER')&&!access.roles.includes('OPERATIONS_MANAGER')
  return <Panel title={businessCopy('cruise.plan.workspace.title')}>
-  <p>{businessCopy('cruise.plan.workspace.instructions')}</p>
+
   <nav className={styles.workspaceNav} aria-label={businessCopy('cruise.plan.workspace.inputs')}>
    {([['schedule','cruise.plan.workspace.schedule'],['resources','cruise.plan.workspace.ship'],['program','cruise.plan.workspace.program']] as const)
     .filter(([section])=>sections.includes(section))

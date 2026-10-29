@@ -26,7 +26,7 @@ export function PackageBenefitsEditor({ packageId, status, onChanged }: { packag
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Không cập nhật được thành phần gói.') }
     finally { lock.current = false; setBusy(false) }
   }
-  return <Panel title="Thành phần quyền lợi" subtitle="Quyền lợi gói không tự giữ chỗ trong dịch vụ, hoạt động hoặc chuyến tham quan.">
+  return <Panel title="Thành phần quyền lợi" >
     <Field htmlFor="package-benefit-kind" label="Nhóm quyền lợi"><select id="package-benefit-kind" value={kind} disabled={busy} onChange={event => { setKind(event.target.value as BenefitKind); setEdit(null) }}>{Object.entries(labels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></Field>
     <CatalogState {...components} /><CatalogState {...options} />
     {components.data?.length === 0 && <Empty title="Chưa có thành phần trong nhóm quyền lợi này" />}

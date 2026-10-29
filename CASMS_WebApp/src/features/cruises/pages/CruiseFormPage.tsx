@@ -36,7 +36,7 @@ const EMPTY_DRAFT: CruiseDraft = {
 
 
 function CreationLayout({sourceFlow,children}:{sourceFlow:boolean;children:ReactNode}){
- return sourceFlow?<div>{children}</div>:<EditorLayout guidance={[{title:'Thời gian và cảng',description:'Đối chiếu ngày giờ khởi hành, kết thúc và cảng đi/về.'},{title:'Chuẩn bị lần khởi hành',description:'Phân công tàu và hoàn thiện các phần được giao trong hồ sơ chung.'}]}>{children}</EditorLayout>
+ return sourceFlow?<div>{children}</div>:<EditorLayout >{children}</EditorLayout>
 }
 const calendarLabel=(value:string)=>{if(!value)return 'Chưa áp dụng lịch';const [date,time]=value.split('T');return date.split('-').reverse().join('/')+' · '+time}
 

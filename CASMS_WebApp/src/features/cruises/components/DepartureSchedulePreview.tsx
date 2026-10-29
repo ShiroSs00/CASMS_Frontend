@@ -34,7 +34,7 @@ export function DepartureSchedulePreview({ sourceVersionId, departure, contextKe
     setOpenKey(null)
   }
 
-  return <Panel title="Xem trước lịch theo ngày thực tế" subtitle="Ngày kết thúc và các lần ghé do hệ thống tính từ phiên bản nguồn; xem trước chưa lưu dữ liệu.">
+  return <Panel title="Xem trước lịch theo ngày thực tế" >
     <Button tone="secondary" disabled={disabled || Boolean(current && query.loading)} onClick={preview}>Xem trước lịch</Button>
     {error && <Notice title="Chưa xem trước được" tone="error">{error}</Notice>}
     {appliedKey === key && <p className={styles.applied} role="status">Đã áp dụng ngày kết thúc và cảng từ bản xem trước.</p>}

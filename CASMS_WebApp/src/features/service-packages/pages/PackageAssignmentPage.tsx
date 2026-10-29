@@ -2,7 +2,7 @@ import { useCallback, useId, useRef, useState } from 'react'
 import { BookingPassengerPicker, type BookingContext, type BookingPassenger } from '@/domain/booking-context'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Badge, Button, ButtonLink, Empty, Field, Modal, Notice, PageHeader, Panel, ProcessGuide } from '@/shared/ui'
+import {Badge,Button,ButtonLink,Empty,Field,Modal,Notice,PageHeader,Panel} from '@/shared/ui'
 import { servicePackageApi } from '../api/service-package-api'
 import { CatalogFrame, CatalogState } from '../components/CatalogUI'
 import styles from '../components/PackageAssignment.module.css'
@@ -20,9 +20,9 @@ const bookingLabels = { Draft: 'Chờ xác nhận', Confirmed: 'Đã xác nhận
 
 export function PackageAssignmentPage() {
   return <CatalogFrame><PageHeader breadcrumb="ĐẶT CHỖ / GÓI CỦA HÀNH KHÁCH" title="Gói dịch vụ của hành khách"
-    description="Xem gói đang sử dụng; gán hoặc thay đổi gói theo quyền được cấp."
+
     actions={<ButtonLink tone="secondary" to="/admin/service-packages">Danh mục gói</ButtonLink>} />
-    <ProcessGuide label="Phân bổ theo hành khách" steps={[{title:"Chọn hồ sơ",description:"Tìm đặt chỗ và xác định đúng hành khách."},{title:"So sánh gói",description:"Xem nội dung, hiệu lực và giá danh mục tham khảo."},{title:"Xem lại phân bổ",description:"Đối chiếu gói đã chọn trước khi xác nhận."}]} />
+
     <BookingPackageAssignments />
   </CatalogFrame>
 }
@@ -64,7 +64,7 @@ export function BookingPackageAssignments({ bookingId, onChanged }: { bookingId?
   return <>
     {success && <div className={styles.notice}><Notice title="Đã cập nhật phân bổ" tone="success">{success}</Notice></div>}
     <div className={styles.layout}>
-      <Panel title="1. Chọn hành khách" subtitle="Chọn đặt chỗ và người được sử dụng gói.">
+      <Panel title="1. Chọn hành khách" >
         <div className={styles.picker}><BookingPassengerPicker fixedBookingId={bookingId} initialBookingId={bookingId} value={passengerId ?? ''} disabled={busy}
           onChange={(person, context) => { setPassenger(person); setBooking(context); setMethod(null); setPackageId(''); setSearch(''); setError(''); setSuccess('') }} /></div>
         {passenger && booking && <>
@@ -80,19 +80,19 @@ export function BookingPackageAssignments({ bookingId, onChanged }: { bookingId?
               <h3>{currentName}</h3>
               <dl className={styles.facts}><div><dt>Giá đã chốt</dt><dd>{priceLabel(current.agreedPrice, current.currency)}</dd></div><div><dt>Thời điểm phân bổ</dt><dd>{dateLabel(current.assignedAt, true)}</dd></div></dl>
               {hasPermission && <Button tone="text" autoWidth disabled={busy || !allowed} onClick={() => confirmChange('DELETE')}>Gỡ gói hiện tại</Button>}
-            </> : <><h3>Chưa có gói dịch vụ</h3><p className={styles.hint}>Chọn một gói trong danh sách để phân bổ cho hành khách.</p></>)}
+            </> : <><h3>Chưa có gói dịch vụ</h3></>)}
           </section>
           {!hasPermission && <p className={styles.hint}>Bạn có thể xem phân bổ hiện tại. Cần quyền phân bổ gói để cập nhật.</p>}
           {hasPermission && booking.bookingStatus !== 'Draft' && <p className={styles.hint}>Đặt chỗ {booking.bookingStatus === 'Confirmed' ? 'đã xác nhận' : 'đã hủy'} chỉ cho phép xem. Chỉ đặt chỗ chờ xác nhận mới được gán, đổi hoặc gỡ gói.</p>}
           {passenger.participationStatus !== 'Active' && <p className={styles.hint}>Hành khách đã hủy tham gia nên không thể cập nhật gói.</p>}
         </>}
       </Panel>
-      <Panel title="2. Chọn gói dịch vụ" subtitle="Tìm gói theo tên hoặc mã và xem giá tham khảo trước khi phân bổ.">
+      <Panel title="2. Chọn gói dịch vụ" >
         <div className={styles.search}><Field htmlFor={searchId} label="Tìm gói dịch vụ"><input id={searchId} type="search" placeholder="Nhập tên hoặc mã gói…" value={search} onChange={event => setSearch(event.target.value)} disabled={busy || packages.loading || Boolean(packages.error)} /></Field>
           {packages.data && <p className={styles.count}>{visiblePackages.length} gói đang hoạt động</p>}
         </div>
         <CatalogState {...packages} />
-        {!passenger && <p className={styles.hint}>Chọn hành khách ở phần 1 để bắt đầu phân bổ.</p>}
+        {!passenger && null}
         {packages.data && !packages.error && (visiblePackages.length ? <fieldset className={styles.options} disabled={busy || !allowed}>
           <legend className={styles.legend}>Các gói đang hoạt động</legend>
           {visiblePackages.map(item => <label className={`${styles.option} ${packageId === item.id ? styles.selected : ''}`} key={item.id}>

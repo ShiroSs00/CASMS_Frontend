@@ -20,7 +20,7 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
   const account = useContext(AdminAccountContext)
   let activeTo = pathname.startsWith('/admin/staff/') ? pathname : pathname.split('/').slice(0,3).join('/')
   if (pathname.includes('/regulations')) activeTo = pathname.startsWith('/admin/cruises/') ? '/admin/cruises' : pathname.startsWith('/admin/ships/') ? '/admin/ships' : '/admin/regulations'
-  else if (pathname.startsWith('/admin/itinerary-history')) activeTo = '/admin/itineraries'
+  else if (pathname.startsWith('/admin/itinerary-history')) activeTo = '/admin/cruises'
   else if (pathname.startsWith('/admin/activity-registrations')) activeTo = new URLSearchParams(search).has('excursionId') ? '/admin/shore-excursions' : '/admin/activities'
   const currentGroups = roleNavigationGroups(roles,access)
   if(activeTo==='/admin/cabins'&&currentGroups.some(group=>group.items.some(item=>item.to==='/admin/decks'&&item.label==='Boong & Cabin'))) activeTo='/admin/decks'

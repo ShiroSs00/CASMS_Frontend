@@ -53,7 +53,7 @@ export function SupplierListPage() {
   return (
     <AdminShell>
       <div className={styles.content}>
-        <PageHeader breadcrumb="ĐỐI TÁC / NHÀ CUNG CẤP" title="Nhà cung cấp" description="Quản lý đối tác, thông tin liên hệ và trạng thái hoạt động." actions={access.canDo('SUPPLIER_CREATE') && <ButtonLink to="/admin/suppliers/new">Thêm nhà cung cấp</ButtonLink>} />
+        <PageHeader breadcrumb="ĐỐI TÁC / NHÀ CUNG CẤP" title="Nhà cung cấp"  actions={access.canDo('SUPPLIER_CREATE') && <ButtonLink to="/admin/suppliers/new">Thêm nhà cung cấp</ButtonLink>} />
 
         <SupplierListView
           rows={rows}

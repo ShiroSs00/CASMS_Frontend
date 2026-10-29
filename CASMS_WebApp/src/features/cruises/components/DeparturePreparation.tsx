@@ -36,7 +36,7 @@ export function PreparationOverview({detail,loading,onSection}:{detail:CruiseDet
   const preparation=useReadQuery(`preparation-overview:${access.userId}:${cruiseId}:${detail.cruise.revision}:${canRead}`,useCallback(signal=>canRead?preparationApi.get(cruiseId,signal):Promise.resolve(null),[canRead,cruiseId]))
   return <div className={styles.summary}>
     <div className={styles.statusLine}><div><strong>{!showChecks||!access.canDo('CRUISE_VALIDATE')?'Thông tin lần khởi hành':loading?'Đang cập nhật điều kiện':detail.readiness.stale?'Dữ liệu đã đổi, cần kiểm tra lại':detail.readiness.state==='READY'?'Đạt kiểm tra sẵn sàng vận hành':detail.readiness.state==='BLOCKED'?'Còn điều kiện cần xử lý':'Chưa xác định điều kiện vận hành'}</strong><p>{detail.departurePort.portName+' → '+detail.returnPort.portName}</p></div>{showChecks&&access.canDo('CRUISE_VALIDATE')&&<Button tone="secondary" onClick={()=>onSection('checks')}>Xem điều kiện</Button>}</div>
-    <Panel title="Chuẩn bị lần khởi hành" subtitle="Các phần việc dùng chung hồ sơ; việc phân công tàu không ngăn xem những phần khác.">
+    <Panel title="Chuẩn bị lần khởi hành" >
       {showChecks&&<div className={styles.workspaceIntro}><div><strong>Tình trạng kiểm tra vận hành</strong><p>Kết quả kiểm tra không thay thế xác nhận của từng bộ phận hoặc quyết định mở bán.</p></div>{loading ? <Loading label="Đang cập nhật…"/> : <ReadinessIndicator state={detail.readiness.stale?'UNKNOWN':detail.readiness.state}/>}</div>}
       <p className={styles.workspaceNote}>{businessCopy('preparation.dashboard.responsibility')}</p>
       {preparation.loading&&<Loading/>}{preparation.error&&<Notice title="Chưa tải được hồ sơ chuẩn bị"><Button onClick={preparation.retry}>Thử lại</Button></Notice>}

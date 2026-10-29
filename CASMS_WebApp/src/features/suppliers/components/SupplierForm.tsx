@@ -87,11 +87,11 @@ export function SupplierForm({
       aria-label={mode === 'create' ? 'Thêm nhà cung cấp' : 'Chỉnh sửa nhà cung cấp'}
     >
       {submitted && <FormErrorSummary errors={errors} />}
-      <FormSection title="01 · Nhà cung cấp" description="Thông tin nhận diện và lĩnh vực cung ứng.">
+      <FormSection title="01 · Nhà cung cấp" >
         {input('supplierName')}
         {input('supplierType')}
       </FormSection>
-      <FormSection title="02 · Liên hệ chính" description="Người liên hệ và kênh liên lạc phục vụ điều phối.">
+      <FormSection title="02 · Liên hệ chính" >
         {input('contactName')}
         {input('contactPhone')}
         {input('contactEmail')}

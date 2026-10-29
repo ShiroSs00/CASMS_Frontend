@@ -153,7 +153,7 @@ export function ItineraryDetailPage() {
             {editable && access.canDo('ITINERARY_DAY_UPDATE') && <Button tone="secondary" disabled={busy} onClick={() => setDayEditor({ day: selectedDay })}>Chỉnh ngày</Button>}
             {editable && access.canDo('ITINERARY_DAY_DELETE') && <Button tone="danger" disabled={busy} onClick={() => setDeletion({ kind: 'day', id: selectedDay.itineraryDayId })}>Xóa ngày</Button>}
           </div></div>
-          <Panel title="Lần ghé cảng" subtitle="Cùng một lần ghé qua đêm xuất hiện ở các ngày liên quan; chỉ lưu một bản ghi.">
+          <Panel title="Lần ghé cảng" >
             {!selectedStops.length && <Empty title={selectedDay.dayType === 'PORT_DAY' ? 'Ngày ghé cảng chưa hoàn thiện' : 'Ngày trên biển'}>{selectedDay.dayType === 'PORT_DAY' ? 'Thêm cảng ngay tại đây hoặc bổ sung sau.' : 'Bạn có thể lập chương trình trên tàu cho ngày này.'}</Empty>}
             {selectedStops.map(stop => { const port = ports.find(item => item.portId === stop.portId); return <article className={styles.programCard} key={stop.cruiseStopId}><div><strong>{stop.stopOrder}. {stop.portName ?? port?.portName ?? 'Cảng'}</strong><p>{validTimeZone(port?.timeZoneId) ? `${journeyTime(stop.plannedArrival,port.timeZoneId)} → ${journeyTime(stop.plannedDeparture,port.timeZoneId)} · giờ cảng` : 'Cảng thiếu cấu hình múi giờ.'}</p><p className={styles.muted}>Việt Nam: {journeyTime(stop.plannedArrival)} → {journeyTime(stop.plannedDeparture)}</p><Badge label={callTypeLabels[stop.callType]} /></div><Button tone="secondary" disabled={busy} onClick={() => setStopEditor({ stop })}>{editable && access.canDo('CRUISE_STOP_UPDATE') ? 'Chỉnh sửa' : 'Xem cảng'}</Button></article> })}
             {selectedDay.dayType === 'PORT_DAY' && editable && access.canDo('CRUISE_STOP_ADD') && <Button disabled={busy} onClick={() => setStopEditor({ stop: null })}>Thêm lần ghé cảng</Button>}
@@ -163,7 +163,7 @@ export function ItineraryDetailPage() {
         </> : <Empty title="Bắt đầu với ngày đầu tiên">Chọn loại ngày ở danh sách bên trái để lưu ngày thực tế vào lịch trình.</Empty>}
       </section>
     </div> : <div className={styles.programStack}>
-      <Panel title="Kiểm tra lịch trình" subtitle="Kiểm tra dữ liệu đã lưu; chọn một vấn đề để trở lại đúng ngày hoặc cảng.">
+      <Panel title="Kiểm tra lịch trình" >
         {issues.length ? <ul className={styles.reviewList}>{issues.map(issue => <li key={issue.key}><span>{issue.message}</span>{issue.activityId ? <ButtonLink tone="secondary" to={`/admin/activities/${issue.activityId}`}>Xem hoạt động</ButtonLink> : <Button tone="secondary" onClick={() => { if (issue.dayId) setSelectedDayId(issue.dayId); changeStep(1); if (issue.stopId) { const stop = stops.find(item => item.cruiseStopId === issue.stopId); if (stop) setStopEditor({ stop }) } }}>Xem và sửa</Button>}</li>)}</ul> : <Notice title="Chưa phát hiện lỗi trong dữ liệu đã tải" tone={completeProgram ? 'success' : 'warning'}>Cần kiểm tra hệ thống trước khi gửi duyệt. Khung phục vụ kế hoạch chưa được hỗ trợ lưu.</Notice>}
         <div className={styles.editorTools}>{access.canDo(actionPermissions.validate) && <Button tone="secondary" disabled={busy} onClick={() => setAction('validate')}>Kiểm tra với hệ thống</Button>}</div>
       </Panel>

@@ -62,7 +62,7 @@ function MasterList({ kind }: { kind: Kind }) {
   }, [kind, page, attempt, activeOnly])
 
   return <ItineraryFrame>
-    <PageHeader breadcrumb="DANH MỤC VẬN HÀNH" title={copy.plural} description={kind === 'port' ? 'Quản lý mã cảng, quốc gia, múi giờ và tọa độ phục vụ lịch trình.' : 'Quản lý các điểm đến thương mại được liên kết với cảng ghé.'} actions={access.canDo(`${kind.toUpperCase()}_CREATE`) ? <ButtonLink to={`/admin/${copy.route}/new`}>Thêm {copy.singular}</ButtonLink> : undefined} />
+    <PageHeader breadcrumb="DANH MỤC VẬN HÀNH" title={copy.plural}  actions={access.canDo(`${kind.toUpperCase()}_CREATE`) ? <ButtonLink to={`/admin/${copy.route}/new`}>Thêm {copy.singular}</ButtonLink> : undefined} />
     <CollectionSummary count={loading || error ? null : data?.total ?? null} visible={data?.items.length} filtered={activeOnly} label={`${copy.plural} trong kết quả`} scope="Tổng kết quả từ hệ thống" />
     <Panel title={`Danh sách ${copy.singular}`}><label><input type="checkbox" checked={activeOnly} onChange={event => { setActiveOnly(event.target.checked); setPage(1); setLoading(true) }} /> Chỉ hiển thị đang hoạt động</label>
       {loading && <Loading label={`Đang tải ${copy.singular}…`} />}
@@ -145,8 +145,8 @@ function MasterForm({ kind }: { kind: Kind }) {
   const retryDestination = () => { setLoading(true); setError(''); setLoadAttempt(value => value + 1) }
   return <ItineraryFrame>
     <PageHeader breadcrumb="DANH MỤC VẬN HÀNH" title={`${editing ? 'Chỉnh sửa' : 'Thêm'} ${copy.singular}`}
-      description={kind === 'destination' ? 'Nhập tên điểm đến, quốc gia và mô tả để sử dụng khi lập hành trình.' : 'Dữ liệu này được sử dụng trực tiếp trong trình biên tập lịch trình.'} />
-    {loading ? <Loading label="Đang tải biểu mẫu…" /> : kind === 'destination' && editing && !canSave ? <Notice title="Không tải được điểm đến" tone="error"><p>{error}</p><Button onClick={retryDestination}>Thử lại</Button></Notice> : <EditorLayout guidance={[{title:"Thông tin nhận diện",description:"Rà soát tên, quốc gia và thông tin địa điểm."},{title:"Dữ liệu liên kết",description:"Thông tin cảng và điểm đến được sử dụng trong lịch trình."}]}><form ref={form} noValidate={kind === 'destination'} onSubmit={submit}>
+       />
+    {loading ? <Loading label="Đang tải biểu mẫu…" /> : kind === 'destination' && editing && !canSave ? <Notice title="Không tải được điểm đến" tone="error"><p>{error}</p><Button onClick={retryDestination}>Thử lại</Button></Notice> : <EditorLayout ><form ref={form} noValidate={kind === 'destination'} onSubmit={submit}>
       <Panel title={kind === 'destination' ? 'Thông tin điểm đến' : 'Thông tin cơ bản'}>
         {kind === 'port' && <LocationPicker country={draft.countryCode} city={draft.city} disabled={busy} countryLocked={editing} countryError={fieldErrors.countryCode}
           onCountry={countryCode => { setDraft(current => ({ ...current, countryCode, city: '', latitude: '', longitude: '', timeZoneId: '' })); setFieldErrors(current => ({ ...current, countryCode: '' })) }}

@@ -107,7 +107,7 @@ function ShipImportContent({ userId }: { userId: string }) {
   }
   const hasSession = session.uploaded
   return <>
-    <PageHeader breadcrumb="Hệ thống / Nhập thông tin tàu" title="Nhập thông tin tàu" description="Khởi tạo thông tin tàu, boong và phòng từ gói mô hình 3D." />
+    <PageHeader breadcrumb="Hệ thống / Nhập thông tin tàu" title="Nhập thông tin tàu"  />
     {!allowed && <Panel><Notice title="Chưa đủ quyền nhập dữ liệu" tone="warning">Bạn chưa được cấp quyền thực hiện bước hiện tại. Các bước tải gói, ghi nhận tàu và nhập cấu trúc được kiểm tra quyền riêng.</Notice></Panel>}
     {!hasSession ? <>
       <section className={styles.hero}><div><span className={styles.eyebrow}>DỮ LIỆU TỪ MÔ HÌNH 3D</span><h2>Một gói dữ liệu, đầy đủ cấu trúc tàu</h2><p>Tải gói ZIP chứa thông tin mô hình. Hệ thống kiểm tra dữ liệu trước khi ghi nhận tàu, boong và phòng.</p>{canPrepare && <Button onClick={() => { setError(''); setOpen(true) }}>Nhập thông tin tàu</Button>}</div><div className={styles.fileVisual} aria-hidden="true"><span>3D</span><strong>GÓI MÔ HÌNH</strong><small>ZIP · manifest · GLB</small></div></section>

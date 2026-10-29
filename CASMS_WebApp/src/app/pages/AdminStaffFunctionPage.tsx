@@ -27,5 +27,5 @@ export function AdminStaffFunctionPage() {
   const {area}=useParams()
   if(area==='finance') return <FinanceBookingsPage />
   const label=area==='checkin'?'Làm thủ tục':'Tài chính'
-  return <AdminShell><PageHeader breadcrumb="ĐÓN KHÁCH" title={label} description="Kiểm tra giấy tờ và hướng dẫn hành khách tại cảng." /><CheckinWorkspace /></AdminShell>
+  return <AdminShell><PageHeader breadcrumb="ĐÓN KHÁCH" title={label}  /><CheckinWorkspace /></AdminShell>
 }

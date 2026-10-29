@@ -44,7 +44,7 @@ export function ItineraryHistoryPage() {
     finally { lock.current = false; setBusy(false) }
   }
   return <ItineraryFrame>
-    <PageHeader breadcrumb="LẬP CHUYẾN / NHẬT KÝ" title="Nhật ký thay đổi lịch trình" description="Tra cứu điều chỉnh, lý do và thời điểm; phân biệt nhật ký với thao tác sửa lịch trình." actions={<ButtonLink tone="secondary" to="/admin/itineraries">Danh sách lịch trình</ButtonLink>} />
+    <PageHeader breadcrumb="LẬP CHUYẾN / NHẬT KÝ" title="Nhật ký thay đổi lịch trình"  actions={<ButtonLink tone="secondary" to="/admin/cruises">Danh sách lần khởi hành</ButtonLink>} />
     <Panel title="Tra cứu"><div className={styles.formGrid}>
       <Field htmlFor="history-itinerary" label="Lịch trình"><select id="history-itinerary" value={itineraryId} disabled={busy || plans.loading || Boolean(plans.error)} onChange={event => { setItineraryId(event.target.value); setStopId(''); setSelected(null); setConfirmed(false) }}><option value="">Tất cả lịch trình</option>{plans.data?.map(item => <option key={item.itineraryId} value={item.itineraryId}>{item.itineraryName} · {item.startDate}</option>)}</select></Field>
       <Field htmlFor="history-type" label="Loại thay đổi"><select id="history-type" value={changeType} disabled={busy} onChange={event => { setChangeType(event.target.value); setConfirmed(false) }}><option value="">Tất cả loại thay đổi</option>{Object.entries(types).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></Field>
@@ -55,7 +55,7 @@ export function ItineraryHistoryPage() {
       {history.loading && <Loading label="Đang tải nhật ký…" />}
       {history.error && <Notice title="Không tải được nhật ký" tone="error">{history.error.message}<Button onClick={history.retry}>Thử lại</Button></Notice>}
       {history.data && !history.data.length && <Empty title="Chưa có nhật ký phù hợp" />}
-      {history.data?.map(entry => <article key={entry.changeHistoryId}><h3>{entry.changeSummary || 'Thay đổi lịch trình'}</h3><p>{entry.changeType ? types[entry.changeType] : 'Chưa phân loại'} · {entry.changedAt ? new Date(entry.changedAt).toLocaleString('vi-VN') : 'Chưa có thời gian'}</p><p>{entry.reason || 'Chưa có lý do'}</p><Button tone="text" onClick={() => setSelected(entry.changeHistoryId)}>Xem chi tiết bản ghi</Button><ButtonLink tone="secondary" to={`/admin/itineraries/${entry.itineraryId}`}>Mở lịch trình</ButtonLink></article>)}
+      {history.data?.map(entry => <article key={entry.changeHistoryId}><h3>{entry.changeSummary || 'Thay đổi lịch trình'}</h3><p>{entry.changeType ? types[entry.changeType] : 'Chưa phân loại'} · {entry.changedAt ? new Date(entry.changedAt).toLocaleString('vi-VN') : 'Chưa có thời gian'}</p><p>{entry.reason || 'Chưa có lý do'}</p><Button tone="text" onClick={() => setSelected(entry.changeHistoryId)}>Xem chi tiết bản ghi</Button></article>)}
       {access.canDo('ITINERARY_CHANGE_RECORD') && <Button disabled={!plan || !access.canDo('ITINERARY_CHANGE_RECORD')} onClick={() => { setRecording(true); setConfirmed(false); setError('') }}>Ghi nhận điều chỉnh</Button>}
       {!plan && <p>Chọn một lịch trình có thật để ghi nhận điều chỉnh.</p>}
     </Panel>

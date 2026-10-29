@@ -18,7 +18,7 @@ function CatalogFormPage({ kind }: { kind: CatalogKind }) {
   const [params]=useSearchParams(),returnTo=readinessContextReturn(params,kind==='packages'?'PACKAGE':kind.toUpperCase(),id)
   const load = useCallback((signal: AbortSignal) => id ? servicePackageApi.get(kind, id, signal) : Promise.resolve(null), [kind, id])
   const query = useReadQuery(`catalog-form:${kind}:${id}`, load)
-  return <CatalogFrame><PageHeader breadcrumb="DỊCH VỤ TÀU / DANH MỤC" title={`${id ? 'Chỉnh sửa' : 'Tạo'} ${catalogConfig[kind].label.toLocaleLowerCase('vi')}`} description="Thông tin cung cấp và giá được lưu theo danh mục riêng; không tự tạo đặt chỗ hoặc bán hàng." actions={<ButtonLink tone="secondary" to={returnTo??(id ? `${catalogConfig[kind].route}/${id}` : catalogConfig[kind].route)}>Quay lại</ButtonLink>} />
+  return <CatalogFrame><PageHeader breadcrumb="DỊCH VỤ TÀU / DANH MỤC" title={`${id ? 'Chỉnh sửa' : 'Tạo'} ${catalogConfig[kind].label.toLocaleLowerCase('vi')}`}  actions={<ButtonLink tone="secondary" to={returnTo??(id ? `${catalogConfig[kind].route}/${id}` : catalogConfig[kind].route)}>Quay lại</ButtonLink>} />
     {id && <CatalogState {...query} />}
     {(!id || query.data) && (kind === 'packages' && query.data && query.data.status !== 'DRAFT' ? <Notice title="Không thể sửa gói này">Chỉ gói nháp chưa được phân bổ mới được chỉnh sửa.</Notice> : <CatalogEditor key={`${kind}:${id}`} kind={kind} initial={query.data ?? undefined} />)}
   </CatalogFrame>
@@ -47,16 +47,16 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa lưu được danh mục. Dữ liệu đã nhập được giữ lại.') }
     finally { lock.current = false; setBusy(false) }
   }
-  return <EditorLayout guidance={[{title:"Nhận diện danh mục",description:"Đối chiếu tên, loại và nội dung mô tả."},{title:"Thông tin cung cấp",description:"Kiểm tra giá, đơn vị và các trường cấu hình đang hiển thị."}]}><Panel title="Thông tin danh mục"><form ref={form} onSubmit={submit} noValidate className={styles.editor}>
+  return <EditorLayout ><Panel title="Thông tin danh mục"><form ref={form} onSubmit={submit} noValidate className={styles.editor}>
     <FormErrorSummary errors={errors} />
-    {kind === 'packages' && <p className={styles.fullRow}>Đặt tên gói tùy chỉnh, chọn mức gói rồi thêm dịch vụ và quyền lợi trong trang chi tiết. Chọn Bổ sung (Extra) cho gói mua thêm.</p>}
+    {kind === 'packages' && null}
     {knownTypes.error && <Notice title="Chưa cập nhật được các loại đang dùng" tone="warning">Bạn vẫn có thể chọn các loại có sẵn.<Button tone="secondary" onClick={knownTypes.retry}>Tải lại loại</Button></Notice>}
     {!allowed && <Notice title="Chưa có quyền lưu" tone="warning">{access.error || 'Đang tải quyền hoặc tài khoản chưa được cấp quyền thao tác này.'}</Notice>}
     {[
       { title: '01 · Nhận diện danh mục', description: 'Tên và loại giúp nhân sự tìm đúng thông tin.', keys: ['name', 'type'] },
       { title: '02 · Giá & cấu hình', description: 'Kiểm tra số tiền, mã tiền tệ và các thông tin cấu hình.', keys: ['price', 'currency', 'capacity'] },
       { title: '03 · Thời gian hiệu lực', description: 'Khoảng thời gian áp dụng cho gói dịch vụ.', keys: ['startDate', 'endDate'] },
-    ].filter(group => fields.some(field => group.keys.includes(field.key))).map(group => <FormSection key={group.title} title={group.title} description={group.description}>
+    ].filter(group => fields.some(field => group.keys.includes(field.key))).map(group => <FormSection key={group.title} title={group.title} >
     {fields.filter(field => group.keys.includes(field.key)).map(field => <Field key={field.key} htmlFor={`catalog-${field.key}`} label={field.label} error={errors[field.key]}>
       {field.key === 'type' ? <select id={`catalog-${field.key}`} name={field.key} required aria-invalid={Boolean(errors.type)} value={draft.type} disabled={busy} onChange={event => setDraft({ ...draft, type: event.target.value })}><option value="">Chọn loại {catalogConfig[kind].label.toLocaleLowerCase('vi')}</option>{[...typeOptions].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
         : <input id={`catalog-${field.key}`} name={field.key} type={field.type ?? 'text'} maxLength={field.maxLength} min={field.type === 'number' ? 0 : undefined} step={field.key === 'capacity' ? 1 : field.type === 'number' ? 'any' : undefined} disabled={busy} value={draft[field.key]} aria-invalid={Boolean(errors[field.key])} onChange={event => setDraft({ ...draft, [field.key]: field.key === 'currency' ? event.target.value.toUpperCase() : event.target.value })} />}

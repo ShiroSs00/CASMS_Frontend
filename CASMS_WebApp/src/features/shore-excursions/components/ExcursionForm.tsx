@@ -67,10 +67,10 @@ export function ExcursionForm({ initial, busy, onSave }: { initial?: ShoreExcurs
     <p className={styles.hint}>Chọn điểm dừng của lịch trình và nhà cung cấp đã xác minh. Lịch tham quan phải phù hợp với giờ lưu cảng và giờ khách trở lại tàu.</p>
     {(stops.loading || suppliers.loading) && <Loading label="Đang tải điểm dừng và nhà cung cấp…" />}
     {[stops, suppliers].map((query, index) => query.error && <Notice key={index} tone="error" title={`Không tải được ${index ? 'nhà cung cấp' : 'điểm dừng'}`}>{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>)}
-    {!stops.loading && stops.data?.length === 0 && <Notice title="Chưa có điểm dừng">Cần cấu hình lịch trình và điểm dừng trước khi tạo chuyến tham quan. <Link to="/admin/itineraries">Mở hải trình</Link></Notice>}
+    {!stops.loading && stops.data?.length === 0 && <Notice title="Chưa có điểm dừng">Cần có lần ghé cảng trước khi tạo chuyến tham quan. <Link to="/admin/cruises">Xem lần khởi hành</Link></Notice>}
     {contextError && <Notice tone="error" title="Kiểm tra thông tin liên quan">{contextError}</Notice>}
     <p className={styles.hint}>Thời gian theo múi giờ trình duyệt: {Intl.DateTimeFormat().resolvedOptions().timeZone}. Các trường có dấu * là bắt buộc.</p>
-    <EditorLayout guidance={[{title:"Điểm dừng và đối tác",description:"Kiểm tra điểm dừng và nhà cung cấp đã xác minh."},{title:"Lịch tham quan",description:"Đối chiếu giờ lưu cảng và thời hạn trở lại tàu."}]}><form className={styles.form} onSubmit={submit} noValidate>
+    <EditorLayout ><form className={styles.form} onSubmit={submit} noValidate>
       <fieldset disabled={busy}>
         <div className={styles.fullRow}><FormErrorSummary errors={errors} /></div>
         <Field htmlFor="excursion-cruiseStopId" label="Điểm dừng *" error={errors.cruiseStopId}><select id="excursion-cruiseStopId" name="cruiseStopId" required value={values.cruiseStopId} disabled={Boolean(requestedStop) || stops.loading || Boolean(stops.error)} onChange={event => change('cruiseStopId', event.target.value)}><option value="">Chọn lịch trình và cảng ghé</option>{stops.data?.map(item => <option key={item.cruiseStopId} value={item.cruiseStopId}>{item.label}</option>)}</select></Field>

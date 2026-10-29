@@ -12,7 +12,7 @@ export function FleetDashboardPage() {
   const { state, retry } = useShipList(repository)
   const attention = state.status === 'data' ? state.data.items.filter(ship=>ship.readiness.status==='loaded'&&ship.readiness.data!=='READY') : []
   return <AdminShell><div className={styles.stack}>
-    <PageHeader breadcrumb="VẬN HÀNH / ĐỘI TÀU" title="Điều hành đội tàu" description="Một góc nhìn về trạng thái tàu và cấu trúc không gian trên tàu." actions={<Link className={styles.allShips} to="/admin/ships">Quản lý danh sách <span aria-hidden="true">↗</span></Link>} />
+    <PageHeader breadcrumb="VẬN HÀNH / ĐỘI TÀU" title="Điều hành đội tàu"  actions={<Link className={styles.allShips} to="/admin/ships">Quản lý danh sách <span aria-hidden="true">↗</span></Link>} />
     <section className={styles.overview} aria-label="Tình hình đội tàu"><div className={styles.overviewIntro}><span>FLEET OVERVIEW</span><h2>Sẵn sàng cho <br />hải trình tiếp theo.</h2><p>Số liệu từ hồ sơ đội tàu hiện có.</p></div><div className={styles.metricSummary}><ShipListMetrics metrics={state.status === 'data' ? state.data.metrics : undefined} /></div></section>
     {state.status === 'loading' && <Loading label="Đang tải tổng quan tàu…" />}
     {state.status === 'error' && <Notice title="Chưa tải được tổng quan" tone="error">{state.message}<Button onClick={retry}>Thử lại</Button></Notice>}

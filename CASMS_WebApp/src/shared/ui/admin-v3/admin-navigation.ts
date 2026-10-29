@@ -24,7 +24,6 @@ const tools: readonly AdminNavigationItem[] = [
   { label:'Boong', to:'/admin/decks', permissionMode:'ANY', permissions:['DECK_READ','CABIN_READ'] },
   { label:'Cabin', to:'/admin/cabins', permissionMode:'ANY', permissions:['CABIN_READ'] },
   { label:'Lần khởi hành', to:'/admin/cruises', permissionMode:'ANY', permissions:['CRUISE_READ'] },
-  { label:'Lịch trình lần khởi hành', to:'/admin/itineraries', permissionMode:'ANY', permissions:['ITINERARY_READ'] },
   { label:'Quy định', to:'/admin/regulations', permissionMode:'ANY', permissions:['REGULATION_READ'] },
   { label:'Sự cố vận hành', to:'/admin/issues', permissionMode:'ANY', permissions:['OPERATIONAL_ISSUE_READ'] },
   { label:'Nhà cung cấp', to:'/admin/suppliers', permissionMode:'ANY', permissions:['SUPPLIER_READ'] },
@@ -43,7 +42,7 @@ export const adminWorkspaces: readonly AdminWorkspace[] = [
   { id:'schedule', title:'Điều phối lịch trình', shortTitle:'Lịch trình',
     description:'Lập và chốt lịch trình mẫu; gửi kế hoạch khởi hành để OPS xét duyệt.',
     responsibility:'Chuyến đi · Lịch trình nguồn · Lần khởi hành', permissions:['TRIP_READ','CRUISE_READ'],
-    tools:['trips','cruises','itineraries'],
+    tools:['trips','cruises'],
     steps:['Tạo thông tin chuyến và chọn thời lượng, phạm vi.','Sắp xếp các ngày và lần ghé cảng.','Bổ sung hoạt động, tham quan và khung phục vụ.',businessCopy('workspace.crm.finalizeStep'),businessCopy('workspace.crm.departureStep')],
     action:{label:'Tạo chuyến đi',to:'/admin/trips/new',permission:'TRIP_CREATE'} },
   { id:'operations', title:'Quản lý vận hành', shortTitle:'Vận hành',
@@ -183,7 +182,7 @@ export function roleNavigationItems(roles: readonly string[], access: AdminAcces
   const orderedRoles = [primaryRole, ...currentRoles.filter(role => role !== primaryRole)].filter((role): role is string => Boolean(role))
   const sections = [...new Set(orderedRoles.flatMap(role => ROLE_WORK_MODULES[role] ?? []))]
   const ordered = sections.flatMap(section => tools.filter(item => item.to === '/admin/' + section))
-  return ordered.filter(item=>canOpenAdminItem(item,access)&&canRoleOpenAdminPath(currentRoles,item.to!,'',access))
+  return ordered.filter(item=>!(primaryRole==='OPERATIONS_MANAGER'&&item.to==='/admin/trips')&&canOpenAdminItem(item,access)&&canRoleOpenAdminPath(currentRoles,item.to!,'',access))
     .map(item=>primaryRole==='SHIP_MANAGER'&&item.to==='/admin/decks'?{...item,label:'Boong & Cabin'}:item)
 }
 export type AdminNavigationGroup = { id: string; label: string; items: AdminNavigationItem[]; direct?: boolean }
@@ -193,7 +192,7 @@ const navigationGroups = [
   {id:'locations',label:'Điểm đến và đối tác',sections:['destinations','ports','suppliers']},
   {id:'fleet',label:'Đội tàu',sections:['ships','decks','cabins']},
   {id:'schedule',label:'Lập lịch trình',sections:['trips']},
-  {id:'cruise-operations',label:'Lần khởi hành',sections:['cruises','itineraries']},
+  {id:'cruise-operations',label:'Lần khởi hành',sections:['cruises']},
   {id:'bookings',label:'Đặt chỗ và đón khách',sections:['bookings','staff/checkin']},
   {id:'operations',label:'Vận hành và tuân thủ',sections:['issues','regulations']},
 ]

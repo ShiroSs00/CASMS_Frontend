@@ -40,7 +40,7 @@ function CatalogDetail({ kind }: { kind: CatalogKind }) {
   const back=canRoleOpenAdminPath(roles,config.route,'',access)?config.route:staffRoleHome(roles,access)??'/admin'
   const query = useReadQuery(kind + ':' + id, useCallback(signal => servicePackageApi.get(kind, id, signal), [kind, id]))
   const item = query.data
-  return <CatalogFrame><Link className={styles.backLink} to={back}>← {back === config.route ? config.label : 'Về trang quản lý'}</Link><PageHeader breadcrumb={'DỊCH VỤ TÀU / ' + config.label.toLocaleUpperCase('vi')} title={item?.name ?? 'Chi tiết ' + config.label.toLocaleLowerCase('vi')} description="Thông tin cung cấp, giá và các quan hệ đã được cấu hình." actions={item && <div className={styles.detailToolbar}><div className={styles.recordStatus}><span>Trạng thái</span><Badge label={statusLabels[item.status] ?? item.status} tone={item.status === 'ACTIVE' ? 'success' : 'neutral'} /></div><CatalogActions kind={kind} item={item} onChanged={query.retry} /></div>} /><CatalogState {...query} />
+  return <CatalogFrame><Link className={styles.backLink} to={back}>← {back === config.route ? config.label : 'Về trang quản lý'}</Link><PageHeader breadcrumb={'DỊCH VỤ TÀU / ' + config.label.toLocaleUpperCase('vi')} title={item?.name ?? 'Chi tiết ' + config.label.toLocaleLowerCase('vi')}  actions={item && <div className={styles.detailToolbar}><div className={styles.recordStatus}><span>Trạng thái</span><Badge label={statusLabels[item.status] ?? item.status} tone={item.status === 'ACTIVE' ? 'success' : 'neutral'} /></div><CatalogActions kind={kind} item={item} onChanged={query.retry} /></div>} /><CatalogState {...query} />
     {item && <><Panel title="Thông tin chi tiết"><RecordFacts entries={[
       ['Mã', item.code], ['Loại', item.type], ['Trạng thái', <Badge label={statusLabels[item.status] ?? item.status} tone={item.status === 'ACTIVE' ? 'success' : 'neutral'} />],
       ['Giá', item.price == null ? 'Chưa cấu hình' : `${item.price.toLocaleString('vi-VN')} ${item.currency ?? ''}`],
@@ -60,7 +60,7 @@ export function ServiceRequestDetailPage() {
   const { id = '' } = useParams()
   const query = useReadQuery('service-request:' + id, useCallback(signal => servicePackageApi.request(id, signal), [id]))
   const request = query.data
-  return <CatalogFrame><Link className={styles.backLink} to="/admin/service-requests">← Yêu cầu dịch vụ</Link><PageHeader breadcrumb="DỊCH VỤ TÀU / YÊU CẦU" title="Chi tiết yêu cầu dịch vụ" description="Số lượng, nội dung yêu cầu và tiến độ xử lý." /><CatalogState {...query} />
+  return <CatalogFrame><Link className={styles.backLink} to="/admin/service-requests">← Yêu cầu dịch vụ</Link><PageHeader breadcrumb="DỊCH VỤ TÀU / YÊU CẦU" title="Chi tiết yêu cầu dịch vụ"  /><CatalogState {...query} />
     {request && <><ServiceRequestActions request={request} onChanged={query.retry} /><Panel title="Thông tin yêu cầu"><RecordFacts entries={[
       ['Trạng thái', statusLabels[request.status] ?? request.status], ['Số lượng', request.quantity],
       ['Đơn giá lúc đặt', request.unitPriceSnapshot != null && request.currencySnapshot ? `${request.unitPriceSnapshot} ${request.currencySnapshot}` : 'Chưa ghi nhận'],

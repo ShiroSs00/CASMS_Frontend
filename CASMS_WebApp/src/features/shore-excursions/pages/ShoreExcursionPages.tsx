@@ -37,7 +37,7 @@ export function ShoreExcursionListPage() {
     setSearch(next)
   }
   return <ShoreLayout>
-    <PageHeader breadcrumb="Dịch vụ bờ" title="Chuyến tham quan bờ" description="Quản lý chuyến tham quan theo điểm dừng, nhà cung cấp và trạng thái." actions={access.canDo("EXCURSION_CREATE") && <ButtonLink to={`${root}/new`}>Tạo chuyến tham quan</ButtonLink>} />
+    <PageHeader breadcrumb="Dịch vụ bờ" title="Chuyến tham quan bờ"  actions={access.canDo("EXCURSION_CREATE") && <ButtonLink to={`${root}/new`}>Tạo chuyến tham quan</ButtonLink>} />
     <CollectionSummary count={query.loading || query.error ? null : query.data?.length ?? null} filtered={Boolean(cruiseStopId || supplierId || rawStatus)} label="Chuyến tham quan" scope="Kết quả trả về theo bộ lọc" />
     <Panel title="Bộ lọc">
       <form key={search.toString()} onSubmit={filter}>
@@ -100,7 +100,7 @@ function ExcursionFacts({ item }: { item: ShoreExcursion }) {
 export function ShoreExcursionFormPage() {
   const { excursionId } = useParams()
   const [params] = useSearchParams(), contextKey = JSON.stringify([excursionId, params.get('cruiseId'), params.get('cruiseStopId'), params.get('returnTo')])
-  return <ShoreLayout><Link className={styles.link} to={root}>← Chuyến tham quan bờ</Link><PageHeader breadcrumb="Dịch vụ bờ / Chuyến tham quan" title={excursionId ? 'Chỉnh sửa chuyến tham quan' : 'Tạo chuyến tham quan'} description="Lưu thông tin chuyến tham quan và kiểm tra điều kiện từ hệ thống." />{excursionId ? <EditExcursion key={contextKey} id={excursionId} /> : <SaveExcursion key={contextKey} />}</ShoreLayout>
+  return <ShoreLayout><Link className={styles.link} to={root}>← Chuyến tham quan bờ</Link><PageHeader breadcrumb="Dịch vụ bờ / Chuyến tham quan" title={excursionId ? 'Chỉnh sửa chuyến tham quan' : 'Tạo chuyến tham quan'}  />{excursionId ? <EditExcursion key={contextKey} id={excursionId} /> : <SaveExcursion key={contextKey} />}</ShoreLayout>
 }
 function EditExcursion({ id }: { id: string }) {
   const load = useCallback((signal: AbortSignal) => shoreExcursionApi.get(id, signal), [id])

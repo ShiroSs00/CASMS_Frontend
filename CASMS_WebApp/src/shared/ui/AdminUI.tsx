@@ -33,7 +33,7 @@ export function ButtonLink({ to, children, tone = 'primary', size = 'regular', a
   return <PermissionLink hideWhenDenied to={to} className={`${styles.button} ${styles[tone]} ${styles.buttonLink} ${sizeClass} ${widthClass} ${className}`.trim()}>{children}</PermissionLink>
 }
 export function PageHeader({ title, description, breadcrumb, actions }:
-  { title: string; description: string; breadcrumb: string; actions?: ReactNode }) {
+  { title: string; description?: string; breadcrumb: string; actions?: ReactNode }) {
   const segments = breadcrumb.split('/').map(segment => segment.trim()).filter(Boolean)
   return <header className={styles.header}>
     {segments.length > 0 && <nav className={styles.breadcrumb} aria-label="Đường dẫn trang"><ol>{segments.map((segment, index) => <li key={`${segment}-${index}`} aria-current={index === segments.length - 1 ? 'page' : undefined}>{segment}</li>)}</ol></nav>}
