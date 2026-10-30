@@ -70,7 +70,7 @@ export function DepartureScheduleRead({ cruise,readOnly=false }: { cruise: Cruis
   const mismatch = query.data && (query.data.sourceVersionId !== (cruise.sourceVersionId??null) || !query.data.departureDatetime || Date.parse(query.data.departureDatetime)!==Date.parse(cruise.departureDatetime) || !query.data.returnDatetime || Date.parse(query.data.returnDatetime)!==Date.parse(cruise.returnDatetime))
   return <Panel title="Lịch theo ngày thực tế" subtitle="Các mốc dự kiến do hệ thống trả về; giờ cảng và giờ tàu được ghi riêng.">
     <ReadState {...query} />
-    {mismatch ? <Notice title="Lịch chưa khớp nguồn" tone="error">Phiên bản nguồn hoặc mốc thời gian trong lịch chưa khớp hồ sơ lần khởi hành. Tải lại để đối chiếu.</Notice> : query.data && <><details><summary>Thông tin đối chiếu lịch</summary><RecordFacts entries={[["Lịch thực tế đã khởi tạo",yesNo(query.data.materialized)],['Trạng thái lịch thực tế',query.data.itineraryStatus==='DRAFT'?'Nháp':shown(query.data.itineraryStatus)],['Revision nguồn',shown(query.data.sourceVersionRevision)]]}/></details>{programNames.error&&<Notice title="Chưa tải được tên chương trình">Giờ và lần ghé vẫn hiển thị theo lịch thực tế.<Button tone="text" onClick={programNames.retry}>Thử tải lại tên</Button></Notice>}<ScheduleContents schedule={query.data} cruiseId={cruise.cruiseId} entryTitles={entryTitles} allowActions={!readOnly}/><p>Lịch này chưa xác nhận các chương trình vận hành đã được tạo đầy đủ. Kiểm tra riêng tại Chương trình và dịch vụ.</p></>}
+    {mismatch ? <Notice title="Lịch chưa khớp nguồn" tone="error">Phiên bản nguồn hoặc mốc thời gian trong lịch chưa khớp hồ sơ lần khởi hành. Tải lại để đối chiếu.</Notice> : query.data && <><details><summary>Thông tin đối chiếu lịch</summary><RecordFacts entries={[["Lịch thực tế đã khởi tạo",yesNo(query.data.materialized)],['Trạng thái lịch thực tế',query.data.itineraryStatus==='DRAFT'?'Nháp':shown(query.data.itineraryStatus)],['Phiên bản lịch trình nguồn',shown(query.data.sourceVersionRevision)]]}/></details>{programNames.error&&<Notice title="Chưa tải được tên chương trình">Giờ và lần ghé vẫn hiển thị theo lịch thực tế.<Button tone="text" onClick={programNames.retry}>Thử tải lại tên</Button></Notice>}<ScheduleContents schedule={query.data} cruiseId={cruise.cruiseId} entryTitles={entryTitles} allowActions={!readOnly}/><p>Lịch này chưa xác nhận các chương trình vận hành đã được tạo đầy đủ. Kiểm tra riêng tại Chương trình và dịch vụ.</p></>}
     <Button tone="secondary" onClick={query.retry}>Tải lại lịch</Button>
   </Panel>
 }
@@ -90,7 +90,7 @@ export function DepartureInventory({ cruise }: { cruise: CruiseRecord }) {
   </>}<Button tone="secondary" onClick={query.retry}>Tải lại tồn</Button></Panel>
 }
 
-export function DepartureSaleReadiness({cruise}:{cruise:CruiseRecord;onSection?:(section:DepartureSection)=>void}) {return <CruiseSale cruise={cruise}/>}
+export function DepartureSaleReadiness({cruise,onSection,onReview,onChanged}:{cruise:CruiseRecord;onSection?:(section:DepartureSection)=>void;onReview?:()=>void;onChanged?:()=>void}) {return <CruiseSale cruise={cruise} onSection={onSection} onReview={onReview} onChanged={onChanged}/>}
 
 export function DepartureImpact({ cruise,onChanged,view='all' }: { cruise: CruiseRecord;onChanged?:()=>void;view?:'all'|'preview'|'tasks' }) {
   const access = useSessionAccess(), canShips = access.has('SHIP_READ')
@@ -153,8 +153,8 @@ export function DepartureHandoff({ cruise, onGuests }: { cruise: CruiseRecord; o
   const query = useReadQuery(`departure-handoff:${cruise.cruiseId}:${cruise.revision ?? cruise.updatedAt}`, useCallback(signal => departureApi.handoff(cruise.cruiseId, signal), [cruise.cruiseId]))
   const data = query.data
   return <Panel title="Thông tin bàn giao vận hành" ><ReadState {...query} />{data && <>
-    <RecordFacts entries={[["Mã lần khởi hành", shown(data.cruiseCode)], ['Nguồn', `${shown(data.sourceTripCode)} · Phiên bản ${shown(data.sourceVersionNumber)}`], ['Tàu', shown(data.shipName)], ['Tổng booking', shown(data.totalBookingsCount)], ['Booking đã xác nhận', shown(data.confirmedBookingsCount)], ['Booking nháp', shown(data.draftBookingsCount)], ['Booking đã hủy', shown(data.cancelledBookingsCount)], ['Tổng hành khách', shown(data.totalPassengersCount)], ['Hành khách đã check-in', shown(data.checkedInPassengersCount)], ['Hành khách đã lên tàu', shown(data.boardedPassengersCount)], ['Đã phân công thuyền trưởng', yesNo(data.captainAssigned)], ['Danh sách khách đã khóa', yesNo(data.manifestLocked)]]} />
-    <p>Kết quả kiểm tra khởi hành trong phản hồi: {yesNo(data.departureClearanceReady)}. Đây chưa phải chứng nhận hoàn tất mọi điều kiện an toàn.</p>
+    <RecordFacts entries={[["Mã lần khởi hành", shown(data.cruiseCode)], ['Nguồn', `${shown(data.sourceTripCode)} · Phiên bản ${shown(data.sourceVersionNumber)}`], ['Tàu', shown(data.shipName)], ['Tổng booking', shown(data.totalBookingsCount)], ['Booking đã xác nhận', shown(data.confirmedBookingsCount)], ['Booking nháp', shown(data.draftBookingsCount)], ['Booking đã hủy', shown(data.cancelledBookingsCount)], ['Tổng hành khách', shown(data.totalPassengersCount)], ['Hành khách đã check-in', shown(data.checkedInPassengersCount)], ['Hành khách đã lên tàu', shown(data.boardedPassengersCount)], ['Đã phân công Onboard Staff', yesNo(data.onboardStaffAssigned)], ['Danh sách khách đã khóa', yesNo(data.manifestLocked)]]} />
+    <p>Kiểm tra điều kiện rời cảng: {yesNo(data.departureClearanceReady)}.</p>
     {onGuests && access.canDo('CRUISE_MANIFEST_READ') && allowedDepartureSections(access).some(([key]) => key === 'sales') && <Button tone="secondary" onClick={onGuests}>Xem danh sách hành khách của lần khởi hành</Button>}
   </>}</Panel>
 }

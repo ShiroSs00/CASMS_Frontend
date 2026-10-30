@@ -16,5 +16,5 @@ export function planReviewActions(data: PlanView, access: ReturnType<typeof useS
   return (['submit','withdraw','approve','reject','request-revision','ready'] as const).filter(action=>
     data.allowedActions.includes(action==='ready'?'SET_READY':action.toUpperCase().replace('-','_'))
     && (action==='ready'?access.roles.includes('OPERATIONS_MANAGER')&&access.canDo('CRUISE_VALIDATE'):action==='submit'||action==='withdraw'?crm:ops)
-    && (action!=='approve'||data.submittedBy!==access.userId))
+    && (action!=='approve'||data.submittedBy!==access.userId&&data.planBlockers.length===0))
 }

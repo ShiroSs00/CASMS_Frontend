@@ -62,7 +62,6 @@ export function DayPane({departurePorts,onDeparture,content,day,editable,tab,bus
       {editable&&<div className={styles.agendaToolbar}><div className={styles.actions}>
         <Button disabled={busy} onClick={()=>onEntry('ONBOARD_ACTIVITY')}>Thêm hoạt động trên tàu</Button>
         <Button tone="secondary" disabled={busy||!stops.length} aria-describedby={!stops.length?'planning-shore-reason':undefined} onClick={()=>onEntry('SHORE_EXCURSION',undefined,stops.length===1?stops[0].clientKey:undefined)}>Thêm tour tham quan trên bờ</Button>
-        <Button tone="secondary" disabled={busy} onClick={()=>onEntry('SERVING_WINDOW')}>Thêm khung phục vụ</Button>
       </div>{!stops.length&&<p id="planning-shore-reason" className={styles.muted}>Thêm lần ghé cảng trong Tuyến tàu để lập tour tham quan trên bờ.</p>}</div>}
       {agenda.length>1&&<p className={styles.muted}>Chương trình được xếp theo giờ trong từng múi giờ. Các nhóm dùng đồng hồ địa phương khác nhau.</p>}
       {!agenda.length?<p className={styles.empty}>Chưa có chương trình hoặc mốc ghé cảng trong ngày.</p>:<div className={styles.agenda}>{agenda.map(group=>{

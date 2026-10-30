@@ -1,5 +1,5 @@
 import {ApiError,apiRequest} from '@/shared/api'
-export type ExcursionCommercial={id:string;name:string;capacity:number;price:number|null;currency:string|null}
+export type ExcursionCommercial={id:string;name:string;capacity:number;cruiseStopId?:string|null;startsAt?:string;endsAt?:string;location?:string|null;price:number|null;currency:string|null}
 export function decodeCommercialExcursions(rows:ExcursionCommercial[]):ExcursionCommercial[]{
  if(!Array.isArray(rows)||rows.some(e=>!e||typeof e.id!=='string'||!e.id||typeof e.name!=='string'||!Number.isSafeInteger(e.capacity)||e.capacity<1||(e.price!==null&&(typeof e.price!=='number'||!Number.isFinite(e.price)||e.price<0))||(e.currency!==null&&typeof e.currency!=='string')))throw new ApiError('',502)
  return rows

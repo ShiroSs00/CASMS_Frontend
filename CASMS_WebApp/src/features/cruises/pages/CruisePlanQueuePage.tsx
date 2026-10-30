@@ -1,3 +1,4 @@
+import {journeyTime,SHIP_TIME_ZONE} from '@/shared/lib/journey-time'
 import {useCallback} from 'react'
 import {useReadQuery} from '@/shared/api'
 import {useSessionAccess} from '@/shared/auth'
@@ -15,7 +16,7 @@ export function CruisePlanQueuePage(){
    {query.loading&&<Loading/>}{query.error&&<Notice title="Chưa tải được kế hoạch chờ xét duyệt"><Button onClick={query.retry}>Tải lại dữ liệu</Button></Notice>}
    {!query.loading&&!query.error&&query.data?.length===0&&<Empty title="Chưa có kế hoạch chờ xét duyệt">Các kế hoạch CRM gửi xét duyệt sẽ xuất hiện tại đây. Bạn vẫn có thể xem các lần khởi hành trong menu.</Empty>}
    {!query.loading&&!query.error&&Boolean(query.data?.length)&&<DataTable label="Kế hoạch chờ OPS xét duyệt" headers={['Lần khởi hành','Phiên bản đã gửi','Người gửi','Thời điểm gửi','Trạng thái kế hoạch']}>
-    {query.data!.map(plan=><tr key={plan.cruiseId}><td><Link to={`/admin/cruises/${encodeURIComponent(plan.cruiseId)}`}>{plan.cruiseCode}</Link></td><td>{plan.submittedRevision}</td><td>{plan.submittedByName??'Chưa xác định'}</td><td>{plan.submittedAt?new Date(plan.submittedAt).toLocaleString('vi-VN'):'Chưa xác định'}</td><td>{domainStatus('cruise.plan',plan.planStatus)}</td></tr>)}
+    {query.data!.map(plan=><tr key={plan.cruiseId}><td><Link to={`/admin/cruises/${encodeURIComponent(plan.cruiseId)}?step=review&section=overview`}>{plan.cruiseCode}</Link></td><td>{plan.submittedRevision}</td><td>{plan.submittedByName??'Chưa xác định'}</td><td>{plan.submittedAt?journeyTime(plan.submittedAt,SHIP_TIME_ZONE):'Chưa xác định'}</td><td>{domainStatus('cruise.plan',plan.planStatus)}</td></tr>)}
    </DataTable>}
   </Panel>}
  </div></CruiseFrame>

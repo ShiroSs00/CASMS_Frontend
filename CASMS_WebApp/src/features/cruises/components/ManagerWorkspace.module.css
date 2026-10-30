@@ -1,8 +1,8 @@
-/* Presentation is limited to the Cruise Manager workspace, including nested editors. */
-.managerRoot { min-width: 0; }
+/* Shared layout for CRM editors and OPS review tasks; permissions remain in components. */
+:is(.managerRoot,.operationsRoot) { min-width: 0; }
 .modalForm { display: grid; gap: 16px; min-width: 0; }
-.reviewPanel{border:2px solid var(--ui-brand);border-radius:var(--ui-panel-radius)}
-.reviewSummary{padding:20px;margin:16px 0;background:var(--ui-subtle);border-radius:var(--ui-panel-radius);line-height:1.7}.reviewSummary>p{margin:12px 0}.submitReady{color:var(--color-success-300);font-weight:600}.reviewSummary .planActions{margin:16px 0}.reviewSummary .planActions button{min-height:48px}
+.reviewPanel{min-width:0}
+.reviewSummary{padding:0;margin:16px 0;line-height:1.7}.reviewSummary>p{margin:12px 0}.submitReady{color:var(--color-success-300);font-weight:600}.reviewSummary .planActions{margin:16px 0}.reviewSummary .planActions button{min-height:48px}
 @media(max-width:600px){.reviewSummary{padding:16px}.reviewSummary .planActions{flex-direction:column;align-items:stretch}}
 .programToolbar{display:flex;gap:20px;align-items:end;justify-content:space-between;margin:20px 0 16px;flex-wrap:wrap}.programToolbar>div{flex:1;max-width:32rem;min-width:0}.programToolbar p{margin:0 0 12px;color:var(--ui-muted);font-size:13px}
 .programList{display:grid;gap:12px;list-style:none;margin:0 0 20px;padding:0}.programList>li{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px;border:1px solid var(--ui-border);border-radius:var(--ui-panel-radius);background:var(--ui-surface)}
@@ -11,49 +11,64 @@
 .modalForm > fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }
 .modalForm > fieldset > * { min-width: 0; }
 .sourceSearch { display: flex; gap: 12px; align-items: end; }
-.managerRoot .workspaceNav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
-.managerRoot .workspaceNav button { justify-content: flex-start; min-height: 64px; padding: 14px 16px; text-align: left; white-space: normal; }
-.managerRoot .stepNumber { display: grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--ui-subtle); color: var(--ui-brand); font-size: 12px; font-variant-numeric: tabular-nums; }
-.managerRoot .disclosure { min-width: 0; margin-top: 16px; border: 1px solid var(--ui-border); border-radius: var(--ui-panel-radius); background: var(--ui-surface); }
-.managerRoot .disclosure > summary { min-height: 56px; padding: 16px 20px; cursor: pointer; color: var(--ui-ink); font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
-.managerRoot .disclosure > summary:hover { background: var(--ui-subtle); }
-.managerRoot .disclosure > summary:focus-visible { outline: 2px solid var(--ui-brand); outline-offset: 3px; border-radius: var(--ui-radius); }
-.managerRoot .disclosure[open] > summary { border-bottom: 1px solid var(--ui-border); }
-.managerRoot .summaryHint { display: block; margin: 4px 0 0 18px; color: var(--ui-muted); font-size: 13px; font-weight: 400; }
-.managerRoot .disclosureBody { display: grid; gap: 16px; min-width: 0; padding: 20px; }
-.managerRoot .disclosureBody > section { margin: 0; padding: 0; border: 0; box-shadow: none; }
-.managerRoot .sectionHeading { display: inline; margin: 0; font-size: 15px; font-weight: 600; }
-.managerRoot .sectionStatus { display: inline-flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-left: 12px; vertical-align: middle; font-size: 13px; font-weight: 400; }
-.managerRoot .evidenceList { display: grid; gap: 12px; margin-top: 20px; }
-.managerRoot .evidenceList .disclosure { margin: 0; }
-.managerRoot .evidenceChecks { display: grid; gap: 10px; margin: 0; padding-left: 20px; line-height: 1.6; }
-.managerRoot .evidenceChecks p { margin: 4px 0; color: var(--ui-muted); overflow-wrap: anywhere; }
-.managerRoot .sectionActions { display: flex; flex-wrap: wrap; gap: 12px; }
-.managerRoot .sectionMeta { margin: 0; font-size: 13px; line-height: 1.6; color: var(--ui-muted); }
-.managerRoot .formGroup { min-width: 0; margin: 20px 0 0; padding: 20px; border: 1px solid var(--ui-border); border-radius: var(--ui-radius); }
-.managerRoot .formGroup > legend { padding: 0 8px; font-size: 14px; font-weight: 600; }
-.managerRoot .formGroup .formGroup { padding: 16px 0 0; border-width: 1px 0 0; border-radius: 0; }
-.managerRoot .disclosure .disclosure > .disclosureBody { padding: 16px; }
-.managerRoot .fieldGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; min-width: 0; margin: 12px 0 20px; }
-.managerRoot .fieldGrid > * { min-width: 0; }
-.managerRoot .sourceSearch { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; margin-bottom: 20px; }
-.managerRoot .sourceSearch > * { min-width: 0; }
-.managerRoot .sourceSearch button { min-height: 44px; }
-.managerRoot .help { margin: 12px 0; color: var(--ui-muted); line-height: 1.6; font-size: 14px; }
-.managerRoot .planStatuses { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 16px 0; }
-.managerRoot .planActions { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0; }
-.managerRoot .programPanel > form > fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 20px; min-width: 0; padding: 20px; margin-top: 20px; border: 1px solid var(--ui-border); border-radius: var(--ui-radius); }
-.managerRoot .programPanel > form > fieldset > * { min-width: 0; }
-.managerRoot .programPanel > form > fieldset > button { grid-column: 1 / -1; justify-self: start; width: auto; min-width: 160px; }
+:is(.managerRoot,.operationsRoot) .workspaceNav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+:is(.managerRoot,.operationsRoot) .workspaceNav button { justify-content: flex-start; min-height: 64px; padding: 14px 16px; text-align: left; white-space: normal; }
+:is(.managerRoot,.operationsRoot) .stepNumber { display: grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--ui-subtle); color: var(--ui-brand); font-size: 12px; font-variant-numeric: tabular-nums; }
+:is(.managerRoot,.operationsRoot) .disclosure { min-width: 0; margin-top: 16px; border: 1px solid var(--ui-border); border-radius: var(--ui-panel-radius); background: var(--ui-surface); }
+:is(.managerRoot,.operationsRoot) .disclosure > summary { min-height: 56px; padding: 16px 20px; cursor: pointer; color: var(--ui-ink); font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
+:is(.managerRoot,.operationsRoot) .disclosure > summary:hover { background: var(--ui-subtle); }
+:is(.managerRoot,.operationsRoot) .disclosure > summary:focus-visible { outline: 2px solid var(--ui-brand); outline-offset: 3px; border-radius: var(--ui-radius); }
+:is(.managerRoot,.operationsRoot) .disclosure[open] > summary { border-bottom: 1px solid var(--ui-border); }
+:is(.managerRoot,.operationsRoot) .summaryHint { display: block; margin: 4px 0 0 18px; color: var(--ui-muted); font-size: 13px; font-weight: 400; }
+:is(.managerRoot,.operationsRoot) .disclosureBody { display: grid; gap: 16px; min-width: 0; padding: 20px; }
+:is(.managerRoot,.operationsRoot) .disclosureBody > section { margin: 0; padding: 0; border: 0; box-shadow: none; }
+:is(.managerRoot,.operationsRoot) .sectionHeading { display: inline; margin: 0; font-size: 15px; font-weight: 600; }
+:is(.managerRoot,.operationsRoot) .sectionStatus { display: inline-flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-left: 12px; vertical-align: middle; font-size: 13px; font-weight: 400; }
+:is(.managerRoot,.operationsRoot) .evidenceList { display: grid; gap: 12px; margin-top: 20px; }
+:is(.managerRoot,.operationsRoot) .evidenceList .disclosure { margin: 0; }
+:is(.managerRoot,.operationsRoot) .evidenceChecks { display: grid; gap: 10px; margin: 0; padding-left: 20px; line-height: 1.6; }
+:is(.managerRoot,.operationsRoot) .evidenceChecks p { margin: 4px 0; color: var(--ui-muted); overflow-wrap: anywhere; }
+:is(.managerRoot,.operationsRoot) .sectionActions { display: flex; flex-wrap: wrap; gap: 12px; }
+:is(.managerRoot,.operationsRoot) .sectionMeta { margin: 0; font-size: 13px; line-height: 1.6; color: var(--ui-muted); }
+:is(.managerRoot,.operationsRoot) .formGroup { min-width: 0; margin: 20px 0 0; padding: 20px; border: 1px solid var(--ui-border); border-radius: var(--ui-radius); }
+:is(.managerRoot,.operationsRoot) .formGroup > legend { padding: 0 8px; font-size: 14px; font-weight: 600; }
+:is(.managerRoot,.operationsRoot) .formGroup .formGroup { padding: 16px 0 0; border-width: 1px 0 0; border-radius: 0; }
+:is(.managerRoot,.operationsRoot) .disclosure .disclosure > .disclosureBody { padding: 16px; }
+:is(.managerRoot,.operationsRoot) .fieldGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; min-width: 0; margin: 12px 0 20px; }
+:is(.managerRoot,.operationsRoot) .fieldGrid > * { min-width: 0; }
+:is(.managerRoot,.operationsRoot) .sourceSearch { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; margin-bottom: 20px; }
+:is(.managerRoot,.operationsRoot) .sourceSearch > * { min-width: 0; }
+:is(.managerRoot,.operationsRoot) .sourceSearch button { min-height: 44px; }
+:is(.managerRoot,.operationsRoot) .help { margin: 12px 0; color: var(--ui-muted); line-height: 1.6; font-size: 14px; }
+:is(.managerRoot,.operationsRoot) .planStatuses { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 16px 0; }
+:is(.managerRoot,.operationsRoot) .planActions { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0; }
+:is(.managerRoot,.operationsRoot) .programPanel > form > fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 20px; min-width: 0; padding: 20px; margin-top: 20px; border: 1px solid var(--ui-border); border-radius: var(--ui-radius); }
+:is(.managerRoot,.operationsRoot) .programPanel > form > fieldset > * { min-width: 0; }
+:is(.managerRoot,.operationsRoot) .programPanel > form > fieldset > button { grid-column: 1 / -1; justify-self: start; width: auto; min-width: 160px; }
 @media (max-width: 1024px) {
-  .managerRoot .workspaceNav { grid-template-columns: 1fr; }
-  .managerRoot .workspaceNav button { min-height: 48px; }
+  :is(.managerRoot,.operationsRoot) .workspaceNav { grid-template-columns: 1fr; }
+  :is(.managerRoot,.operationsRoot) .workspaceNav button { min-height: 48px; }
 }
 @media (max-width: 600px) {
   .modalForm > fieldset { grid-template-columns: minmax(0, 1fr); }
-  .managerRoot .fieldGrid, .managerRoot .sourceSearch, .managerRoot .programPanel > form > fieldset { grid-template-columns: minmax(0, 1fr); }
-  .managerRoot .sourceSearch button, .managerRoot .sectionActions button { width: 100%; }
-  .managerRoot .disclosure > summary, .managerRoot .disclosureBody, .managerRoot .formGroup { padding: 16px; }
-  .managerRoot .sectionStatus { display: flex; margin: 8px 0 0 18px; }
-  .managerRoot .fieldGrid { gap: 16px; }
+  :is(.managerRoot,.operationsRoot) .fieldGrid, :is(.managerRoot,.operationsRoot) .sourceSearch, :is(.managerRoot,.operationsRoot) .programPanel > form > fieldset { grid-template-columns: minmax(0, 1fr); }
+  :is(.managerRoot,.operationsRoot) .sourceSearch button, :is(.managerRoot,.operationsRoot) .sectionActions button { width: 100%; }
+  :is(.managerRoot,.operationsRoot) .disclosure > summary, :is(.managerRoot,.operationsRoot) .disclosureBody, :is(.managerRoot,.operationsRoot) .formGroup { padding: 16px; }
+  :is(.managerRoot,.operationsRoot) .sectionStatus { display: flex; margin: 8px 0 0 18px; }
+  :is(.managerRoot,.operationsRoot) .fieldGrid { gap: 16px; }
 }
+
+.operationsRoot{min-width:0}
+.conditionList{display:grid;gap:0;list-style:none;margin:16px 0;padding:0}
+.conditionList>li{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--ui-border);line-height:1.6}
+.conditionList>li:last-child{border-bottom:0}
+.conditionList>li>span{min-width:0;overflow-wrap:anywhere}
+.conditionList button{flex-shrink:0}
+@media(max-width:600px){.conditionList>li{align-items:flex-start;flex-direction:column;gap:4px}}
+
+.conditionBody{flex:1;min-width:0;overflow-wrap:anywhere}
+.conditionBody>p{margin:0}
+.issueDetails{display:grid;gap:12px;margin:12px 0 0;padding-inline-start:20px;font-size:14px}
+.issueDetails p{margin:4px 0 0;line-height:1.65;font-variant-numeric:tabular-nums}
+
+.conditionBody>.issueHint{margin-top:12px;font-size:14px;line-height:1.65}

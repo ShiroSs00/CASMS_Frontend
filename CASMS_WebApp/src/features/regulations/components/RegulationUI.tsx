@@ -47,7 +47,7 @@ export function StatusBadge({
       : effectiveLabels[status as EffectiveStatus]
   const tone = status === 'ACTIVE' || status === 'EFFECTIVE' ? 'success'
     : status === 'DRAFT' || status === 'UPCOMING' ? 'info' : 'neutral'
-  return <Badge label={label} tone={tone} />
+  return <Badge label={label??'Chưa xác định'} tone={tone} />
 }
 
 export function TableScroll({ children }: { children: ReactNode }) {

@@ -19,5 +19,6 @@ const keys:Readonly<Record<string,BusinessCopyKey>>={
  PREPARATION_SECTION_UNCONFIRMED:'cruise.readiness.PREPARATION_SECTION_UNCONFIRMED',
 }
 export function readinessMessage(code:string|null|undefined):string {
+ if(code==='MISSING_ONBOARD_STAFF'||code==='ONBOARD_STAFF_REQUIRED')return 'Chưa phân công Onboard Staff cho lần khởi hành.'
  return businessCopy(code&&keys[code]?keys[code]:'cruise.readiness.unknown')
 }

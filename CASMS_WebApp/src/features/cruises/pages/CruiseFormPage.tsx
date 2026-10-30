@@ -94,6 +94,8 @@ export function CruiseFormPage() {
       if (controller.signal.aborted) return
       setDraft({
         revision: detail.cruise.revision,
+        plannedScope: detail.cruise.plannedScope??undefined,
+        itineraryMode: detail.cruise.itineraryMode,
         cruiseCode: detail.cruise.cruiseCode,
         cruiseName: detail.cruise.cruiseName,
         cruiseType: detail.cruise.cruiseType,
@@ -147,6 +149,7 @@ export function CruiseFormPage() {
   async function saveDraft(replay=false) {
     const mayReplay=!editing&&replay&&createIntent.record?.status==='unknown'&&!createIntent.storageError&&createIntent.owner===(access.userId??'')&&access.canDo('CRUISE_CREATE')
     if (submitLock.current || (!canSave&&!mayReplay)) return
+    if(editing&&storedCruise&&!storedCruise.sourceVersionId&&!storedCruise.sourceTripId&&!['DOMESTIC','INTERNATIONAL'].includes(draft.plannedScope??'')){setSubmitError('Chọn phạm vi hành trình trước khi lưu lần khởi hành nhập trực tiếp.');return}
     const input=mayReplay?createIntent.record!.payload:{...draft,cruiseName:displayName,...(!editing&&sourceId?{sourceVersionId:sourceId,expectedSourceVersionRevision:previewRevision}:{})}
     if(sourceEditing&&storedCruise&&(draft.departureDatetime!==localCruiseInput(storedCruise.departureDatetime)||draft.returnDatetime!==localCruiseInput(storedCruise.returnDatetime)||draft.departurePortId!==storedCruise.departurePortId||draft.returnPortId!==storedCruise.returnPortId)){setSubmitError('Thay đổi ngày hoặc cảng của lịch đã tạo cần được xử lý cùng các chương trình liên quan. Hiện chỉ lưu thông tin nhận diện tại đây.');return}
     setHasSubmitted(true)
@@ -198,6 +201,10 @@ export function CruiseFormPage() {
           <div className={styles.journeyForm}><FormSection title={sourceId?'Thông tin riêng':'01 · Nhận diện lần khởi hành'}>
             <Field htmlFor="cruise-name" label="Tên lần khởi hành *" error={errors.cruiseName}><input id="cruise-name" value={displayName} aria-invalid={Boolean(errors.cruiseName)} aria-describedby={errors.cruiseName ? 'cruise-name-hint' : undefined} onChange={(event) => update('cruiseName', event.target.value)} /></Field>
             {!sourceId&&<Field htmlFor="cruise-type-form" label="Thời lượng chuyến" error={errors.cruiseType}><select id="cruise-type-form" value={draft.cruiseType} onChange={(event) => update('cruiseType', event.target.value as CruiseType)}><option value="">Hệ thống xác định theo ngày giờ</option><option value="ONE_DAY">Một ngày</option><option value="MULTI_DAYS">Nhiều ngày</option></select></Field>}
+            {editing&&storedCruise&&!storedCruise.sourceVersionId&&!storedCruise.sourceTripId&&<>
+              <Field htmlFor="legacy-scope" label="Phạm vi hành trình"><select id="legacy-scope" value={draft.plannedScope??''} onChange={e=>update('plannedScope',e.target.value as 'DOMESTIC'|'INTERNATIONAL')} required><option value="">Chọn phạm vi</option><option value="DOMESTIC">Nội địa</option><option value="INTERNATIONAL">Quốc tế</option></select></Field>
+              <Field htmlFor="legacy-mode" label="Chỉnh sửa lịch trình"><select id="legacy-mode" value={draft.itineraryMode??'FIXED'} onChange={e=>update('itineraryMode',e.target.value as 'FIXED'|'CUSTOM')}><option value="FIXED">Giữ cố định lịch trình hiện có</option><option value="CUSTOM">Cho phép chỉnh sửa lịch trình</option></select></Field>
+            </>}
             {!editing&&sourceId&&<Field htmlFor="itinerary-mode" label="Lịch trình lần khởi hành"><select id="itinerary-mode" disabled={busy||uncertain} value={draft.itineraryMode??'FIXED'} onChange={e=>update('itineraryMode',e.target.value as 'FIXED'|'CUSTOM')}><option value="FIXED">{businessCopy('cruise.itinerary.FIXED')}</option><option value="CUSTOM">{businessCopy('cruise.itinerary.CUSTOM')}</option></select></Field>}
             </FormSection><p className={styles.muted}>{sourceId?'Nhập ngày bắt đầu, xem trước và áp dụng lịch để lưu nháp.':'Nhập ngày giờ và cảng đi/về để lưu nháp lần khởi hành.'}</p>
             {sourceEditing&&<Notice title="Lịch đã được tạo từ nguồn" tone="warning">Hiện chỉ sửa thông tin nhận diện. Đổi ngày hoặc cảng cần xử lý cùng lịch và chương trình liên quan.</Notice>}

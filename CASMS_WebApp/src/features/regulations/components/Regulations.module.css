@@ -333,3 +333,9 @@
 .regulationFacts > div { padding:16px 0; border-bottom:1px solid var(--ui-border); }
 .regulationFacts dt { font-size:12px; line-height:1.6; color:var(--ui-muted); }
 .regulationFacts dd { line-height:1.7; }
+
+.validationRail button{text-align:left;justify-content:flex-start}
+.candidateRow{min-width:0;align-items:start}
+.candidateRow>span{min-width:0;overflow-wrap:anywhere}
+.regulationFacts dd{overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+@media(max-width:600px){.candidateRow{grid-template-columns:auto minmax(0,1fr)}.candidateRow>:last-child{grid-column:2}}
