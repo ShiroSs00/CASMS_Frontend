@@ -20,7 +20,6 @@ export function CruisePlanWorkspace({cruiseId,refreshKey,onChanged,onSection,sec
  </>
  if(access.roles.includes('OPERATIONS_MANAGER'))return <>
   <CruisePlanReview cruiseId={cruiseId} refreshKey={refreshKey} onChanged={onChanged} mode="prepare"/>
-  <DeparturePricingPolicy cruiseId={cruiseId} readOnly/>
  </>
  return <Panel title={businessCopy('cruise.plan.workspace.title')}>
   <nav className={styles.workspaceNav} aria-label={businessCopy('cruise.plan.workspace.inputs')}>

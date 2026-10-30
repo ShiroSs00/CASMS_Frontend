@@ -302,13 +302,28 @@
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "GET",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/packages/{id}/components",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_UPDATE_DRAFT"
+        ],
+        "roles": [
+          "CRUISE_MANAGER"
+        ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_READ"
+        ],
+        "roles": [
+          "OPERATIONS_MANAGER"
+        ]
+      }
     ]
   },
   {
@@ -438,61 +453,136 @@
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "GET",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/program-options",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_UPDATE_DRAFT"
+        ],
+        "roles": [
+          "CRUISE_MANAGER"
+        ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_READ"
+        ],
+        "roles": [
+          "OPERATIONS_MANAGER"
+        ]
+      }
     ]
   },
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "GET",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/activities",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_UPDATE_DRAFT"
+        ],
+        "roles": [
+          "CRUISE_MANAGER"
+        ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_READ"
+        ],
+        "roles": [
+          "OPERATIONS_MANAGER"
+        ]
+      }
     ]
   },
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "GET",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/excursions",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_UPDATE_DRAFT"
+        ],
+        "roles": [
+          "CRUISE_MANAGER"
+        ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_READ"
+        ],
+        "roles": [
+          "OPERATIONS_MANAGER"
+        ]
+      }
     ]
   },
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "GET",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/packages",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_UPDATE_DRAFT"
+        ],
+        "roles": [
+          "CRUISE_MANAGER"
+        ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_READ"
+        ],
+        "roles": [
+          "OPERATIONS_MANAGER"
+        ]
+      }
     ]
   },
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "GET",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/serving-windows",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_UPDATE_DRAFT"
+        ],
+        "roles": [
+          "CRUISE_MANAGER"
+        ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_READ"
+        ],
+        "roles": [
+          "OPERATIONS_MANAGER"
+        ]
+      }
     ]
   },
   {
@@ -4076,5 +4166,32 @@
       "TRIP_READ"
     ],
     "source": "com/casms/trip/controller (4ac7ff7)"
+  },
+  {
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "method": "GET",
+    "mode": "ANY",
+    "path": "/cruise-plans/{cruiseId}/excursions/{id}",
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_UPDATE_DRAFT"
+        ],
+        "roles": [
+          "CRUISE_MANAGER"
+        ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_READ"
+        ],
+        "roles": [
+          "OPERATIONS_MANAGER"
+        ]
+      }
+    ]
   }
 ]

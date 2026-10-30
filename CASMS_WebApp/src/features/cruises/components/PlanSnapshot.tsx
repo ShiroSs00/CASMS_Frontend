@@ -17,7 +17,7 @@ function clock(instant:unknown,zone:unknown=SHIP_TIME_ZONE){
  catch{return `${journeyTime(instant,'UTC')} · UTC — chưa xác định múi giờ cảng`}
 }
 const percentage=(v:unknown)=>{const number=numeric(v);return number==null?'Chưa thiết lập':new Intl.NumberFormat('vi-VN',{style:'percent',maximumFractionDigits:2}).format(number)}
-export function PlanSnapshot({snapshot}:{snapshot:unknown}){
+export function PlanSnapshot({snapshot,includePricing=true}:{snapshot:unknown;includePricing?:boolean}){
  const s=object(snapshot),c=object(s.cruise),ports=rows(s.ports)
  const portFor=(id:unknown)=>ports.find(port=>port.port_id===id)
  return <>
@@ -46,6 +46,7 @@ export function PlanSnapshot({snapshot}:{snapshot:unknown}){
   ]}/>):<p>Chưa có khung giờ phục vụ trong kế hoạch đã gửi.</p>}
   <h4>Gói dịch vụ áp dụng</h4>
   {rows(s.packages).length?rows(s.packages).map((row,index)=>{const p=object(row.package);return <RecordFacts key={String(p.tour_package_id??index)} entries={[["Tên gói",value(p.package_name)],["Giá",money(p.price,p.currency_code)]]}/> }):<p>Chưa gắn gói dịch vụ trong kế hoạch đã gửi.</p>}
+  {includePricing&&<>
   <h4>Chính sách giá đã gửi</h4>
   {rows(s.policy).map((p,index)=><RecordFacts key={String(p.pricing_policy_id??index)} entries={[
    ['Phiên bản',value(p.policy_version)],['Tiền tệ',value(p.currency)],
@@ -54,5 +55,6 @@ export function PlanSnapshot({snapshot}:{snapshot:unknown}){
    ['Hạn thanh toán cuối trước khởi hành',numeric(p.final_payment_due_days)==null?'Chưa thiết lập':`${p.final_payment_due_days} ngày`],
    ['Hạn thanh toán đủ trước khởi hành',numeric(p.full_payment_cutoff_days)==null?'Chưa thiết lập':`${p.full_payment_cutoff_days} ngày`],['Điều khoản hủy',value(p.cancellation_policy)],
   ]}/>)}
+  </>}
  </>
 }
