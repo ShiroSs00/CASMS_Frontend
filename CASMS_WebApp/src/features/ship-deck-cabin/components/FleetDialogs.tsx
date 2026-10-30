@@ -26,7 +26,6 @@ export function FleetDialogs({ dialog, ship, onChange, onSaved }: { dialog: Flee
     if (!access.canDo('SHIP_DELETE')) return null
     return <Modal title="Xóa tàu chưa sử dụng?" description={`${ship.code} · ${ship.name}`} busy={mutation.busy} onClose={() => onChange(null)} protectChanges={false}
       footer={<><Button tone="secondary" data-overlay-dismiss disabled={mutation.busy} onClick={() => onChange(null)}>Hủy</Button><Button tone="danger" disabled={mutation.busy} onClick={() => void mutation.run(async () => { if (!access.canDo('SHIP_DELETE')) return; await shipDeckCabinApi.deleteUnused('ships', ship.id); onChange(null); navigate('/admin/ships') })}>{mutation.busy ? 'Đang xóa…' : 'Xác nhận xóa'}</Button></>}>
-      <Notice title="Kiểm tra dữ liệu liên quan" tone="warning">Chỉ xóa tàu chưa được sử dụng. Tàu đã có chuyến đi, boong, phòng hoặc mô hình liên kết có thể bị hệ thống từ chối xóa.</Notice>
       {mutation.error && <Notice title="Chưa xóa được tàu" tone="error">{fleetError(mutation.error)}</Notice>}
     </Modal>
   }

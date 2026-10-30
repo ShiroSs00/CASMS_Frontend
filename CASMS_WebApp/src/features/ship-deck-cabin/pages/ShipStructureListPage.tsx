@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { useFleetQuery } from '../hooks/useFleetQuery'
@@ -27,7 +27,7 @@ function StructurePage({ view: initialView }: { view: 'decks' | 'cabins' }) {
   const selectedId = params.get('ship') ?? ''
   const selected = ships.data?.find(ship => ship.id === selectedId)
   return <AdminShell><div className={styles.stack}>
-    <div className={styles.dashboardHeading}><PageHeader breadcrumb="Boong & Cabin" title="Boong & Cabin"  /></div>
+    <div className={styles.dashboardHeading}><PageHeader breadcrumb="Boong và phòng" title="Boong và phòng"  /></div>
     {selected && <Panel className={styles.structureToolbar}><div className={styles.shipPicker}>
       <Field htmlFor="structure-ship" label="Tàu"><select id="structure-ship" value={selectedId} disabled={!ships.data?.length || ships.loading} onChange={event => { const next = new URLSearchParams({ view }); if (event.target.value) next.set('ship', event.target.value); setParams(next) }}><option value="">Chọn tàu</option>{ships.data?.map(ship => <option key={ship.id} value={ship.id}>{ship.name} · {ship.code}</option>)}</select></Field>
       <Link className={styles.textLink} to="/admin/decks">Tất cả tàu <span aria-hidden="true">↗</span></Link>
@@ -35,8 +35,8 @@ function StructurePage({ view: initialView }: { view: 'decks' | 'cabins' }) {
     </Panel>}
     {!access.canDo('SHIP_READ') && <Notice title="Chưa có quyền xem tàu" tone="warning">Tài khoản cần quyền đọc tàu để chọn dữ liệu quản lý.</Notice>}
     {ships.loading && !ships.data && <Loading label="Đang tải danh sách tàu…" />}
-    {ships.error && <Notice title="Không tải được danh sách tàu" tone="error">{ships.error}<Button tone="text" onClick={ships.retry}>Thử lại</Button></Notice>}
-    {!ships.loading && !ships.error && ships.data?.length === 0 && <Notice title="Chưa có tàu" tone="info">Tàu sẽ xuất hiện sau khi quản trị viên hoàn tất nhập dữ liệu.</Notice>}
+    {ships.error && <Notice title="Không tải được danh sách tàu" tone="error">{ships.error}</Notice>}
+    {!ships.loading && !ships.error && ships.data?.length === 0 && <p>Chưa có tàu.</p>}
     {!ships.loading && !ships.error && selectedId && ships.data && !selected && <Notice title="Không tìm thấy tàu đã chọn" tone="warning">Vui lòng chọn lại tàu trong danh sách.</Notice>}
     {!selected && Boolean(ships.data?.length) && <Panel className={styles.shipSelection} title="Danh sách tàu">
       <div className={styles.shipChoiceGrid}>{ships.data?.map(ship => <Link key={ship.id} to={`/admin/decks?${new URLSearchParams({ ship: ship.id, view })}`} className={styles.shipChoice} aria-label={`Xem boong và cabin của ${ship.name}`}>

@@ -8,10 +8,10 @@ import styles from './ShipList.module.css'
 
 const readinessLabels: Record<ShipReadiness, string> = { READY: 'Sẵn sàng', ATTENTION: 'Cần chú ý', BLOCKED: 'Chưa sẵn sàng' }
 
-function SupplementValue<T>({ value, children, retry, label }: { value: Supplement<T>; children: (data: T) => ReactNode; retry: () => void; label: string }) {
+function SupplementValue<T>({ value, children }: { value: Supplement<T>; children: (data: T) => ReactNode; retry: () => void; label: string }) {
   if (value.status === 'loaded') return children(value.data)
   if (value.status === 'loading') return <span role="status">Đang tải…</span>
-  return <span title={value.message}>{value.status === 'denied' ? 'Không có quyền' : 'Không khả dụng'} <button type="button" onClick={retry} aria-label={`Thử lại ${label}`}>Thử lại</button></span>
+  return <span title={value.message}>{value.status === 'denied' ? 'Không có quyền' : 'Không khả dụng'}</span>
 }
 
 export function ShipListTable({ items, filtered, onReset, onRetry }: { items: ShipListItem[]; filtered: boolean; onReset: () => void; onRetry: (id: string, field: SupplementField) => void }) {
@@ -30,7 +30,7 @@ export function ShipListTable({ items, filtered, onReset, onRetry }: { items: Sh
     </table>
     {!items.length && <div className={styles.statePanel} role="status">
       <p>{filtered ? 'Không có tàu phù hợp với bộ lọc.' : 'Chưa có tàu trong danh sách.'}</p>
-      {filtered ? <Button tone="secondary" className={styles.button} onClick={onReset}>Xóa bộ lọc</Button> : <p>Tàu sẽ xuất hiện sau khi quản trị viên hoàn tất nhập thông tin tàu từ gói mô hình.</p>}
+      {filtered ? <Button tone="secondary" className={styles.button} onClick={onReset}>Xóa bộ lọc</Button> : null}
     </div>}
   </div>
 }

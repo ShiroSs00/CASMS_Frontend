@@ -13,9 +13,9 @@ const tools: readonly AdminNavigationItem[] = [
   { label:'Kế hoạch chờ OPS xét duyệt', to:'/admin/cruise-plan-reviews', permissionMode:'ALL', permissions:['CRUISE_READ','ITINERARY_APPROVE'] },
   { label:'Chuyến đi', to:'/admin/trips', permissionMode:'ALL', permissions:['TRIP_READ'] },
   { label:'Hành khách trên tàu', to:'/admin/passenger-tracking', permissionMode:'ALL', permissions:['SHIP_READ','BLE_TELEMETRY_READ'] },
-  { label:'Model 3D', to:'/admin/ship-models', permissionMode:'ALL', permissions:['SHIP_READ','SHIP_MODEL_READ'] },
+  { label:'Sơ đồ tàu 3D', to:'/admin/ship-models', permissionMode:'ALL', permissions:['SHIP_READ','SHIP_MODEL_READ'] },
   { label:'Tổng quan đội tàu', to:'/admin/fleet-dashboard', permissionMode:'ANY', permissions:['SHIP_READ'] },
-  { label:'Nhập thông tin tàu', to:'/admin/ship-import', permissionMode:'ANY', permissions:['SHIP_UPDATE','SHIP_MODEL_CREATE'] },
+  { label:'Thiết lập cấu trúc tàu', to:'/admin/ship-import', permissionMode:'ANY', permissions:['SHIP_UPDATE','SHIP_MODEL_CREATE'] },
   { label:'Tài khoản nhân sự', to:'/admin/system', permissionMode:'ANY', permissions:['USER_READ'] },
   { label:'Đặt chỗ', to:'/admin/bookings', permissionMode:'ANY', permissions:['BOOKING_READ'] },
   { label:'Điểm đến', to:'/admin/destinations', permissionMode:'ANY', permissions:['DESTINATION_READ'] },
@@ -141,7 +141,7 @@ export function adminPathRequirements(pathname: string, search = ''): readonly P
   if (section === 'passenger-tracking') requirements.push({ mode: 'ALL', permissions: [], roles: ['SHIP_MANAGER'] })
   if (section === 'ship-import') return [{ mode: 'ALL', permissions: [], anyOf: [
     { mode: 'ALL', permissions: ['SHIP_UPDATE'] },
-    { mode: 'ALL', permissions: ['SHIP_MODEL_CREATE'], anyOf: [{ mode: 'ANY', permissions: ['SHIP_CREATE','SHIP_UPDATE'] }] },
+    { mode: 'ALL', permissions: ['SHIP_MODEL_CREATE','SHIP_CREATE'] },
   ] }]
   // Edit screens load the saved record before exposing mutations: read AND edit.
   const parts = pathname.split('/')
@@ -183,7 +183,7 @@ export function roleNavigationItems(roles: readonly string[], access: AdminAcces
   const sections = [...new Set(orderedRoles.flatMap(role => ROLE_WORK_MODULES[role] ?? []))]
   const ordered = sections.flatMap(section => tools.filter(item => item.to === '/admin/' + section))
   return ordered.filter(item=>!(primaryRole==='OPERATIONS_MANAGER'&&item.to==='/admin/trips')&&canOpenAdminItem(item,access)&&canRoleOpenAdminPath(currentRoles,item.to!,'',access))
-    .map(item=>primaryRole==='SHIP_MANAGER'&&item.to==='/admin/decks'?{...item,label:'Boong & Cabin'}:item)
+    .map(item=>primaryRole==='SHIP_MANAGER'&&item.to==='/admin/decks'?{...item,label:'Boong và phòng'}:item)
     .filter(item=>primaryRole!=='SHIP_MANAGER'||!['/admin/decks','/admin/cabins'].includes(item.to!))
 }
 export type AdminNavigationGroup = { id: string; label: string; items: AdminNavigationItem[]; direct?: boolean }

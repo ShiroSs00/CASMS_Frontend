@@ -1,7 +1,7 @@
 import { PermissionLink as Link } from '@/shared/ui'
 import { useId, type InputHTMLAttributes, type ReactNode } from 'react'
 
-import { Badge, Button, Field, Loading, Notice, RecordFacts } from '@/shared/ui'
+import { Badge, Field, Loading, Notice, RecordFacts } from '@/shared/ui'
 import type { CabinStatus, ShipStatus } from '../model/types'
 import { cabinStatuses, shipStatuses } from '../model/types'
 import styles from './Management.module.css'
@@ -25,9 +25,9 @@ export function StatusBadge({ status }: { status: ShipStatus | CabinStatus }) {
 export function Definition({ rows }: { rows: Array<[string, ReactNode]> }) {
   return <RecordFacts entries={rows} />
 }
-export function DataState({ loading, error, retry }: { loading: boolean; error: string; retry: () => void }) {
+export function DataState({ loading, error }: { loading: boolean; error: string; retry: () => void }) {
   if (loading) return <Loading />
-  if (error) return <Notice title="Không tải được dữ liệu" tone="error"><p>{error}</p><Button tone="secondary" onClick={retry}>Thử lại</Button></Notice>
+  if (error) return <Notice title="Không tải được dữ liệu" tone="error"><p>{error}</p></Notice>
   return null
 }
 export function NotFound({ back }: { back: string }) {

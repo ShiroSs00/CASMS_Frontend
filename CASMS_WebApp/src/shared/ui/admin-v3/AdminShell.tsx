@@ -23,7 +23,7 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
   else if (pathname.startsWith('/admin/itinerary-history')) activeTo = '/admin/cruises'
   else if (pathname.startsWith('/admin/activity-registrations')) activeTo = new URLSearchParams(search).has('excursionId') ? '/admin/shore-excursions' : '/admin/activities'
   const currentGroups = roleNavigationGroups(roles,access)
-  if(activeTo==='/admin/cabins'&&currentGroups.some(group=>group.items.some(item=>item.to==='/admin/decks'&&item.label==='Boong & Cabin'))) activeTo='/admin/decks'
+  if(activeTo==='/admin/cabins'&&currentGroups.some(group=>group.items.some(item=>item.to==='/admin/decks'&&item.label==='Boong và phòng'))) activeTo='/admin/decks'
   const activeLabel = currentGroups.flatMap(group => group.items).find(item => item.to === activeTo)?.label
   const query = navigationQuery.trim().toLocaleLowerCase('vi-VN')
   const visibleGroups = currentGroups.map(group => ({ ...group, items: group.label.toLocaleLowerCase('vi-VN').includes(query) ? group.items : group.items.filter(item => item.label.toLocaleLowerCase('vi-VN').includes(query)) })).filter(group => group.items.length)

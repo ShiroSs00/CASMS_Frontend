@@ -45,3 +45,70 @@
 .tabs > button { border-radius:0; border-bottom:2px solid transparent; }
 .tabs > button[aria-pressed=true] { color:var(--brand-navy); background:transparent; border-bottom-color:var(--brand-teal); }
 @media(max-width:600px) { .pageHeader { padding:0 0 24px; } }
+
+.versionBar { background:var(--ui-surface); padding:16px 20px; }
+.versionBar>div { max-width:600px; }
+.pageHeader h1 { font-size:clamp(26px,2.4vw,36px); }
+.inspector .facts>div { padding:12px 0; }
+@media(prefers-reduced-motion:reduce) { .deckButton,.anchorItem,.cabinList button { transition:none; } }
+
+/* Search and selection share a single, readable list surface. */
+.listSwitch { display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:16px 0 0;padding:4px;background:var(--ui-subtle);border-radius:8px; }
+.listSwitch button { min-height:48px;padding:8px;border:0;border-radius:6px;background:transparent;color:var(--ui-muted);font:500 12px var(--ui-font);text-align:left; }
+.listSwitch button span { display:block;font-size:11px;margin-top:3px; }
+.listSwitch button[aria-pressed=true] { background:var(--brand-navy);color:white; }
+.structure .cabinHeading { border:0;margin:0;padding:16px 0 10px; }
+.structure .cabinHeading h3 { display:none; }
+.structure .cabinList { max-height:420px; }
+.structure .cabinList button { display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;padding:12px;min-height:64px;border-bottom:1px solid var(--ui-border);border-radius:4px; }
+.structure .cabinList strong { font-size:13px;line-height:1.6;overflow-wrap:anywhere; }
+.structure .cabinList small { font-size:12px;line-height:1.5; }
+.structure .cabinList button[aria-pressed=true] { background:#FFF4D9;box-shadow:inset 3px 0 var(--brand-gold); }
+.selectionLabel { position:absolute;top:76px;left:16px;right:16px;z-index:1;display:flex;align-items:center;gap:10px;width:fit-content;max-width:calc(100% - 32px);padding:12px 16px;border:1px solid var(--ui-border);border-radius:8px;background:var(--ui-surface);box-shadow:var(--shadow-panel);pointer-events:none; }
+.selectionLabel strong,.selectionLabel span { display:block;overflow-wrap:anywhere; }
+.selectionLabel strong { font-size:14px; }
+.selectionLabel div>span { margin-top:3px;font-size:12px;color:var(--ui-muted); }
+.locationDot { flex:0 0 12px;height:12px;border:3px solid var(--brand-navy);background:var(--brand-gold);border-radius:50%; }
+.serviceContents { padding-top:16px;border-top:1px solid var(--ui-border); }
+.serviceContents h3 { font-size:14px;margin:0 0 12px; }
+.serviceContents ul { margin:0;padding-left:18px;font-size:13px;line-height:1.8; }
+@media(min-width:1251px) { .workspace { grid-template-columns:260px minmax(0,1fr) 260px; } }
+@media(max-width:760px) { .structure .cabinList { max-height:280px; } .selectionLabel { top:122px; } }
+
+/* Single-line object rows after a deck is selected. */
+.structure .cabinList button { min-height:48px; }
+
+/* Keep the vessel in view; lists and details scroll within their own panels. */
+.page { gap:12px; }
+.pageHeader { padding:0 0 12px; }
+.pageHeader h1 { font-size:26px;margin:0; }
+.versionBar,.shipBar { padding:10px 16px; }
+.versionBar>div:first-child { flex-direction:row;align-items:center;gap:12px;max-width:640px; }
+.versionBar select { min-width:0; }
+.tabs button { min-height:40px;padding:8px 16px; }
+.sceneHeading { min-height:44px;padding-bottom:8px; }
+.sceneHeading h2 { font-size:18px;margin:0; }
+.sceneHeading span { display:none; }
+.canvas { height:clamp(300px,calc(100dvh - 390px),640px); }
+.structure,.inspector { max-height:calc(100dvh - 300px);overflow-y:auto;scrollbar-width:thin; }
+.structure .cabinList { max-height:calc(100dvh - 540px);min-height:120px; }
+.selectionLabel { top:76px; }
+@media(min-width:901px) and (max-width:1250px) { .workspace { grid-template-columns:220px minmax(0,1fr); } .inspector { grid-column:2;max-height:none; } }
+@media(max-width:760px) { .workspace { grid-template-columns:1fr; } .structure { grid-row:1;max-height:none; } .sceneColumn { grid-row:2; } .inspector { grid-row:3;max-height:none; } .structure:has(.listSwitch) .cabinList { max-height:160px; } .canvas { height:360px; } .versionBar>div:first-child { flex-direction:column;align-items:stretch; } }
+
+.pageHeader>div:has(select) { display:flex;align-items:center;gap:12px;flex:1;max-width:500px;min-width:180px; }
+.pageHeader select { min-width:0; }
+.canvas { height:clamp(300px,calc(100dvh - 340px),640px); }
+@media(max-width:760px) { .pageHeader>div:has(select) { flex-basis:100%;order:3;max-width:none; } .canvas { height:360px; } }
+
+/* Vessel identity is the business code; names remain readable for duplicate models. */
+.shipCards { grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px; }
+.shipCards>button { position:relative;flex-direction:row;align-items:center;justify-content:space-between;gap:16px;padding:22px;min-height:116px;border-radius:8px;transition:background-color 200ms ease,border-color 200ms ease,transform 120ms cubic-bezier(.16,1,.3,1); }
+.shipCards .shipIdentity { display:flex;flex-direction:column;gap:8px;min-width:0; }
+.shipCards .shipIdentity strong { font-size:19px;line-height:1.4;font-weight:600;letter-spacing:.01em;overflow-wrap:anywhere; }
+.shipCards .shipIdentity>span { color:var(--ui-muted);font-size:13px;line-height:1.6;overflow-wrap:anywhere; }
+.shipCards button>.shipArrow:last-child { display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;margin:0;border:1px solid var(--ui-border);border-radius:50%;color:var(--brand-teal);font-size:18px;font-weight:400;background:var(--ui-subtle); }
+.shipCards>button:active { transform:scale(.985); }
+@media(hover:hover) and (pointer:fine) { .shipCards>button:hover { border-color:var(--brand-teal);background:#EDF5F5; } }
+@media(max-width:600px) { .shipCards { grid-template-columns:1fr; } .shipCards>button { min-height:96px;padding:18px; } }
+@media(prefers-reduced-motion:reduce) { .shipCards>button { transition:background-color 200ms ease,border-color 200ms ease; } .shipCards>button:active { transform:none; } }
