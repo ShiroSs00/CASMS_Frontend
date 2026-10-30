@@ -13,12 +13,15 @@ import {preparationWallTime,preparationInstant} from '../model/preparation-time'
 import {journeyTime,SHIP_TIME_ZONE,validTimeZone} from '@/shared/lib/journey-time'
 import styles from './ManagerWorkspace.module.css'
 import {planReviewActions,planReviewStates} from '../model/plan-review'
+import {preparationApi} from '../api/preparation-api'
 const actionKeys={submit:'cruise.plan.SUBMIT_ACTION',withdraw:'cruise.plan.WITHDRAW_ACTION',approve:'cruise.plan.APPROVE_ACTION',reject:'cruise.plan.REJECT_ACTION','request-revision':'cruise.plan.REQUEST_REVISION_ACTION',ready:'cruise.ready.SET_READY_ACTION'} as const
 const safeError=(error:unknown)=>businessErrorMessage(error instanceof ApiError?error.code:undefined,'')
 export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onReview,itineraryMode,mode='all'}:{cruiseId:string;refreshKey?:number|string;onChanged?:()=>void;onSection?:(section:DepartureSection)=>void;onReview?:()=>void;itineraryMode?:'FIXED'|'CUSTOM';mode?:'all'|'prepare'|'submit'|'review'|'ready'|'summary'}){
  const access=useSessionAccess(),[epoch,setEpoch]=useState(0)
  const allowed=['CRUISE_MANAGER','OPERATIONS_MANAGER','SHIP_MANAGER'].some(role=>access.roles.includes(role))&&access.has('CRUISE_READ')
  const query=useReadQuery(`plan:${cruiseId}:${epoch}:${refreshKey}:${allowed}`,useCallback(signal=>allowed?mainflowApi.get(cruiseId,signal):Promise.resolve(null),[cruiseId,allowed]))
+ const readPreparation=allowed&&mode==='ready'&&access.has('CRUISE_PREPARATION_READ')
+ const preparation=useReadQuery(`ready-preparation:${cruiseId}:${epoch}:${refreshKey}:${readPreparation}`,useCallback(signal=>readPreparation?preparationApi.get(cruiseId,signal):Promise.resolve(null),[readPreparation,cruiseId]))
  const [action,setAction]=useState<MainflowAction|null>(null),[reason,setReason]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[success,setSuccess]=useState('')
  const [uncertain,setUncertain]=useState(false),lock=useRef(false)
  const crm=access.roles.includes('CRUISE_MANAGER')&&access.canDo('CRUISE_UPDATE_DRAFT'),ops=access.roles.includes('OPERATIONS_MANAGER')&&access.canDo('ITINERARY_APPROVE')
@@ -58,29 +61,36 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
   {query.loading&&<Loading label="Đang kiểm tra điều kiện sẵn sàng…"/>}
   {query.error&&<Notice title="Chưa kiểm tra được điều kiện sẵn sàng" tone="error">{safeError(query.error)}</Notice>}
   {data&&<>
-   <Badge label={domainStatus('cruise.ready',data.readyStatus)}/>
+   <div className={styles.planStatuses}><Badge label={domainStatus('cruise.ready',data.readyStatus)}/></div>
    {data.readyAt&&<p className={styles.sectionMeta}>Xác nhận lúc {journeyTime(data.readyAt,SHIP_TIME_ZONE)} · Giờ tàu (Việt Nam)</p>}
    {data.readyBlockers.length>0?<ul className={styles.conditionList}>{[...new Map(data.readyBlockers.map(code=>[businessErrorMessage(code,''),code])).entries()].map(([message,code])=>{
     const target=operationsConditionTarget(code)
     const destination=target&&target!=='review'?allowedDepartureSections(access).find(([key])=>key===target):null
-    return <li key={message}><ProgramBlocker code={code} data={data} fixed={itineraryMode==='FIXED'}/>{target==='review'&&onReview?<Button tone="text" onClick={onReview}>Xem xét duyệt</Button>:destination&&onSection?<Button tone="text" onClick={()=>onSection(destination[0])}>Mở {destination[1].toLocaleLowerCase('vi-VN')}</Button>:null}</li>
+    const dossier=code==='PREPARATION_CONFIRMATION_REQUIRED'&&!preparation.loading&&!preparation.error?preparation.data:null
+    const awaitingSubmit=dossier?.sections.filter(section=>['NOT_STARTED','IN_PROGRESS','RETURNED'].includes(section.status)).length??0
+    const awaitingConfirm=dossier?.sections.filter(section=>section.status==='SUBMITTED').length??0
+    return <li key={message}>{dossier?<span>{awaitingSubmit>0?`${awaitingSubmit} nhóm hồ sơ cần người phụ trách CRM gửi hoặc bổ sung. `:''}{awaitingConfirm>0?`${awaitingConfirm} nhóm hồ sơ đã gửi, chờ OPS xác nhận. `:''}{awaitingSubmit===0&&awaitingConfirm===0?'Cần kiểm tra lại kết quả xác nhận hồ sơ.':''}</span>:<ProgramBlocker code={code} data={data} fixed={itineraryMode==='FIXED'}/>} {target==='review'&&onReview?<Button tone="text" onClick={onReview}>Xem xét duyệt</Button>:destination&&onSection?<Button tone="text" onClick={()=>onSection(destination[0])}>Mở {destination[1].toLocaleLowerCase('vi-VN')}</Button>:null}</li>
    })}</ul>:data.readyStatus!=='READY'&&<p>Đủ điều kiện kiểm tra. OPS chưa xác nhận sẵn sàng.</p>}
-   <div className={styles.planActions}><Button tone="secondary" disabled={busy||query.loading} onClick={query.retry}>Kiểm tra lại điều kiện</Button>{availableActions.includes('ready')&&data.readyStatus!=='READY'&&<Button disabled={busy||uncertain||query.loading||Boolean(query.error)} onClick={()=>{setAction('ready');setReason('')}}>Xác nhận sẵn sàng vận hành</Button>}</div>
+   <div className={styles.planActions}><Button tone="secondary" disabled={busy||query.loading} onClick={()=>{query.retry();preparation.retry()}}>Kiểm tra lại điều kiện</Button>{availableActions.includes('ready')&&data.readyStatus!=='READY'&&<Button disabled={busy||uncertain||query.loading||Boolean(query.error)} onClick={()=>{setAction('ready');setReason('')}}>Xác nhận sẵn sàng vận hành</Button>}</div>
   </>}
   {success&&<Notice title={success} tone="success">Đã ghi nhận xác nhận sẵn sàng.</Notice>}{error&&<Notice title="Chưa xác nhận được chuyến sẵn sàng" tone="error">{error}</Notice>}
   {uncertain&&<Notice title="Chưa xác định kết quả">Tải lại trang để đối chiếu trước khi thao tác tiếp.</Notice>}
   {actionDialog}
  </Panel>
- return <Panel className={styles.reviewPanel} title={manager?'Kiểm tra và gửi kế hoạch':'Xét duyệt kế hoạch khởi hành'}><Button tone="secondary" disabled={busy||query.loading} onClick={query.retry}>Tải lại kế hoạch</Button>
+ const reviewActions=data&&availableActions.length>0&&<div className={styles.reviewDecision}>
+  {availableActions.length>0&&<p>{manager?'Gửi bản kế hoạch đã kiểm tra để OPS xét duyệt.':'Quyết định kế hoạch'}</p>}
+  <div className={styles.planActions}>{availableActions.map(a=><Button key={a} tone={a==='submit'||a==='approve'?'primary':a==='reject'?'danger':'secondary'} disabled={busy||uncertain||query.loading||Boolean(query.error)||(a==='submit'&&data.planBlockers.length>0)} onClick={()=>{setAction(a);setReason('');setSuccess('')}}>{a==='submit'?(data.planStatus==='DRAFT'?'Gửi kế hoạch cho OPS duyệt':'Gửi lại kế hoạch cho OPS duyệt'):businessCopy(actionKeys[a])}</Button>)}</div>
+ </div>
+ return <Panel className={styles.reviewPanel}>
+  <header className={styles.reviewHeader}><h2>{manager?'Kiểm tra và gửi kế hoạch':'Xét duyệt kế hoạch khởi hành'}</h2><Button tone="text" disabled={busy||query.loading} onClick={query.retry}>Tải lại kế hoạch</Button></header>
   {query.loading&&<Loading/>}{query.error&&<Notice title="Không thể hoàn tất thao tác" tone="error">{safeError(query.error)}<Button onClick={query.retry}>Tải lại dữ liệu</Button></Notice>}
   {data&&<>
    <div className={styles.reviewSummary}>
     <Badge label={approvalNeedsReview?'Phê duyệt trước đó cần xét lại':planReviewStates[data.planStatus].title} tone={approvalNeedsReview?'warning':planReviewStates[data.planStatus].tone}/>
-    <p>{approvalNeedsReview?'Nội dung kế hoạch đã thay đổi hoặc còn thiếu. Cần yêu cầu CRM bổ sung trước khi phê duyệt lại.':readyToSubmit?'Kế hoạch đã đủ thông tin để gửi đến Quản lý vận hành (OPS). Gửi bản kế hoạch hiện tại để chờ phê duyệt.':planReviewStates[data.planStatus].description}</p>
+    <p>{approvalNeedsReview?'Nội dung kế hoạch đã thay đổi hoặc còn thiếu. Cần yêu cầu CRM bổ sung trước khi phê duyệt lại.':readyToSubmit?'Kế hoạch đã đủ thông tin để gửi đến Quản lý vận hành (OPS).':mode==='review'&&data.planStatus==='SUBMITTED'?'Đối chiếu bản kế hoạch đã gửi bên dưới trước khi quyết định.':planReviewStates[data.planStatus].description}</p>
     {data.submittedAt&&<p className={styles.sectionMeta}>Đã gửi lúc {journeyTime(data.submittedAt,SHIP_TIME_ZONE)} · Giờ Việt Nam{data.submittedByName?' · Người gửi: '+data.submittedByName:''}</p>}
     {data.reviewedAt&&<p className={styles.sectionMeta}>Phản hồi lúc {journeyTime(data.reviewedAt,SHIP_TIME_ZONE)} · Giờ Việt Nam</p>}
     {readyToSubmit&&<p className={styles.submitReady}>Sẵn sàng gửi xét duyệt</p>}
-    <div className={styles.planActions}>{availableActions.map(a=><Button key={a} tone={a==='submit'||a==='approve'?'primary':a==='reject'?'danger':'secondary'} disabled={busy||uncertain||query.loading||Boolean(query.error)||(a==='submit'&&data.planBlockers.length>0)} onClick={()=>{setAction(a);setReason('');setSuccess('')}}>{a==='submit'?(data.planStatus==='DRAFT'?'Gửi kế hoạch cho OPS duyệt':'Gửi lại kế hoạch cho OPS duyệt'):businessCopy(actionKeys[a])}</Button>)}</div>
 
    </div>
    {!manager&&mode!=='review'&&<Badge label={domainStatus('cruise.ready',data.readyStatus)}/>}
@@ -88,10 +98,11 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
    {data.planBlockers.length>0&&<Notice title={businessCopy('cruise.plan.missingInputs')}><ul className={styles.conditionList}>{data.planBlockers.map(code=>{const target=manager?code.startsWith('PRICING_')||code.endsWith('WINDOW_REQUIRED')?'overview':operationsConditionTarget(code):null;const destination=target&&target!=='review'?allowedDepartureSections(access).find(([key])=>key===target):null;return <li key={code}><ProgramBlocker code={code} data={data} fixed={itineraryMode==='FIXED'}/>{destination&&onSection&&<Button tone="text" onClick={()=>onSection(destination[0])}>Mở {destination[1].toLocaleLowerCase('vi-VN')}</Button>}</li>})}</ul></Notice>}
 
    {crm&&mode!=='submit'&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.planStatus)&&<PlanWindows key={`${cruiseId}:${data.windows.expectedRevision}`} data={data} onSaved={()=>setEpoch(n=>n+1)} editable/>}
-   <details><summary>Thông tin phiên bản kế hoạch</summary><p>{businessCopy('cruise.plan.revision')}: {data.revision}</p></details>
-   {data.submittedSnapshot!=null&&<details open={mode==='review'}><summary>{businessCopy('cruise.plan.snapshot')}</summary><p>{businessCopy('cruise.plan.submittedRevision')}: {data.submittedRevision}</p><PlanSnapshot snapshot={data.submittedSnapshot} includePricing={mode!=='review'}/></details>}
+   {data.submittedSnapshot!=null&&<details className={styles.snapshotDisclosure} open={mode==='review'}><summary>Nội dung kế hoạch đã gửi <span>Phiên bản {data.submittedRevision??'chưa xác định'}</span></summary><PlanSnapshot snapshot={data.submittedSnapshot} includePricing={mode!=='review'&&mode!=='submit'}/></details>}
+   <details className={styles.revisionDisclosure}><summary>Thông tin phiên bản kế hoạch</summary><p>{businessCopy('cruise.plan.revision')}: {data.revision}</p></details>
+   {reviewActions}
   </>}
-  {success&&<Notice title={success}><span>{success}</span></Notice>} {error&&<Notice title="Không thể hoàn tất thao tác" tone="error">{error}</Notice>}
+  {success&&<Notice title="Đã ghi nhận quyết định" tone="success">{success}</Notice>} {error&&<Notice title="Không thể hoàn tất thao tác" tone="error">{error}</Notice>}
   {uncertain&&<Notice title="Hệ thống chưa xác nhận được kết quả"><Button onClick={()=>{setUncertain(false);setEpoch(n=>n+1)}}>Tải lại dữ liệu</Button></Notice>}
   {actionDialog}
  </Panel>
@@ -114,6 +125,7 @@ function PlanWindows({data,onSaved,editable=true}:{data:PlanView;onSaved:()=>voi
  if(windows.bookingOpensAt&&windows.bookingClosesAt&&Date.parse(windows.bookingOpensAt)>=Date.parse(windows.bookingClosesAt))errors.bookingClosesAt='Đóng nhận đặt chỗ phải sau thời điểm mở nhận đặt chỗ.'
  if(departureAt!==null&&windows.bookingClosesAt&&Date.parse(windows.bookingClosesAt)>=departureAt)errors.bookingClosesAt='Đóng nhận đặt chỗ phải trước giờ khởi hành: '+precise(departure.data!)+'.'
  if(windows.guidanceOpensAt&&windows.guidanceClosesAt&&Date.parse(windows.guidanceOpensAt)>=Date.parse(windows.guidanceClosesAt))errors.guidanceClosesAt='Kết thúc hướng dẫn phải sau thời điểm bắt đầu hướng dẫn.'
+ if(windows.bookingClosesAt&&windows.guidanceOpensAt&&Date.parse(windows.guidanceOpensAt)<Date.parse(windows.bookingClosesAt))errors.guidanceOpensAt='Buổi hướng dẫn phải bắt đầu sau khi đóng nhận đặt chỗ: '+precise(windows.bookingClosesAt)+'.'
  if(departureAt!==null&&windows.guidanceClosesAt&&Date.parse(windows.guidanceClosesAt)>departureAt)errors.guidanceClosesAt='Kết thúc hướng dẫn không được sau giờ khởi hành: '+precise(departure.data!)+'.'
  if(departureAt!==null&&windows.bookingOpensAt&&Date.parse(windows.bookingOpensAt)>=departureAt)errors.bookingOpensAt='Mở nhận đặt chỗ phải trước giờ khởi hành.'
  if(departureAt!==null&&windows.guidanceOpensAt&&Date.parse(windows.guidanceOpensAt)>=departureAt)errors.guidanceOpensAt='Bắt đầu hướng dẫn phải trước giờ khởi hành.'
@@ -135,11 +147,11 @@ function PlanWindows({data,onSaved,editable=true}:{data:PlanView;onSaved:()=>voi
    {departure.error&&<Notice title="Chưa tải được giờ khởi hành" tone="error"><Button tone="secondary" onClick={departure.retry}>Tải lại giờ khởi hành</Button></Notice>}
    {departure.data&&!departure.loading&&!departure.error&&<p><strong>Khởi hành: {precise(departure.data)} · Giờ Việt Nam</strong></p>}
    <form id="plan-windows-form" noValidate onSubmit={event=>{event.preventDefault();void save()}}>
-    <fieldset className={styles.formGroup} disabled={busy||uncertain}><legend>Khung thời gian</legend><div className={styles.fieldGrid}>{fields.map(([key,label])=>{
+    <fieldset className={styles.windowFields} disabled={busy||uncertain}><legend>Lịch nhận đặt chỗ và hướng dẫn</legend>{([['Nhận đặt chỗ',fields.slice(0,2)],['Buổi hướng dẫn trước chuyến',fields.slice(2)]] as const).map(([title,group])=><section className={styles.windowGroup} key={title}><h3>{title}</h3><div className={styles.fieldGrid}>{group.map(([key,label])=>{
      const fieldError=attempted||touched[key]?errors[key]:undefined
-     const hint=key==='bookingClosesAt'?'Phải đóng trước giờ khởi hành.':key==='guidanceClosesAt'?'Kết thúc chậm nhất vào giờ khởi hành.':undefined
-     return <Field key={key} htmlFor={key} label={businessCopy(label)} error={fieldError} hint={hint}><input id={key} type="datetime-local" required step={1} max={departure.data?preparationWallTime(departure.data):undefined} value={preparationWallTime(windows[key])} onBlur={()=>setTouched(current=>({...current,[key]:true}))} onChange={e=>{try{setWindows({...windows,[key]:preparationInstant(e.target.value)});setTouched(current=>({...current,[key]:true}));setError('')}catch{setError(businessCopy('program.time.invalid'))}}}/></Field>
-    })}</div></fieldset>
+     const hint=key==='guidanceOpensAt'?'Sau khi đóng nhận đặt chỗ.':key==='guidanceClosesAt'?'Hoàn tất trước khi khởi hành.':undefined
+     return <Field key={key} htmlFor={key} label={key==='guidanceOpensAt'?'Bắt đầu buổi hướng dẫn':key==='guidanceClosesAt'?'Kết thúc buổi hướng dẫn':businessCopy(label)} error={fieldError} hint={hint}><input id={key} type="datetime-local" required step={1} max={departure.data?preparationWallTime(departure.data):undefined} value={preparationWallTime(windows[key])} onBlur={()=>setTouched(current=>({...current,[key]:true}))} onChange={e=>{try{setWindows({...windows,[key]:preparationInstant(e.target.value)});setTouched(current=>({...current,[key]:true}));setError('')}catch{setError(businessCopy('program.time.invalid'))}}}/></Field>
+    })}</div></section>)}</fieldset>
    </form>
    {error&&<Notice title="Chưa lưu được khung thời gian" tone="error">{error}</Notice>}
    {uncertain&&<Notice title={businessCopy('cruise.window.unconfirmed')}>{businessCopy('cruise.window.reloadBeforeRetry')}</Notice>}

@@ -134,7 +134,7 @@ export const cruiseApi = {
         sourceVersionId: query.sourceVersionId || undefined,
         page: query.page - 1,
         size: query.pageSize,
-        sort: 'departureDatetime,asc',
+        sort: 'createdAt,cruiseId,desc',
       }, signal,
     })
     const items = page.content.map(toItem)

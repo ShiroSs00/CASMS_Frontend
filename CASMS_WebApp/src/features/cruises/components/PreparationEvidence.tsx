@@ -32,6 +32,9 @@ export function PreparationEvidence({cruiseId,onChanged,refreshKey=0}:{cruiseId:
   }catch(e){setError(businessErrorMessage(e instanceof ApiError?e.code:undefined,''));if(!(e instanceof ApiError)||e.status===0||e.status>=500)setUnknown(true)}finally{lock.current=false;setBusy(false)}
  }
  const pending=query.data?.sections.filter(section=>!['SUBMITTED','CONFIRMED'].includes(section.status))??[]
+ const notSubmitted=query.data?.sections.filter(section=>['NOT_STARTED','IN_PROGRESS','RETURNED'].includes(section.status))??[]
+ const awaitingConfirmation=query.data?.sections.filter(section=>section.status==='SUBMITTED')??[]
+ const confirmedCount=query.data?.sections.filter(section=>section.status==='CONFIRMED').length??0
  const canSubmitDossier=manager&&access.has('CRUISE_PREPARATION_SUBMIT')&&query.data?.coordinatorUserId===access.userId&&pending.length>0&&pending.every(section=>section.allowedActions.includes('SUBMIT'))
  async function submitDossier(){
   if(!canSubmitDossier||!access.userId||!text.trim()||lock.current||unknown)return
@@ -56,13 +59,18 @@ export function PreparationEvidence({cruiseId,onChanged,refreshKey=0}:{cruiseId:
   {manager&&<p>Một hồ sơ chuẩn bị chung cho 4 nhóm hồ sơ.</p>}
   {query.data&&<PreparationCoordinator key={`${cruiseId}:${query.data.cruiseRevision}`} view={query.data} onChanged={changed}/>}
   {query.loading&&<Loading/>}{query.error&&<Notice title="Chưa đọc được hồ sơ chuẩn bị" tone="error"><p>{query.error instanceof ApiError&&query.error.code?businessErrorMessage(query.error.code,''):query.error.message}</p><Button onClick={query.retry}>Tải lại hồ sơ</Button></Notice>}
+  {query.data&&!query.loading&&!query.error&&<Notice title={confirmedCount===query.data.sections.length?'Hồ sơ đã được OPS xác nhận':notSubmitted.length>0?'Chờ CRM gửi hồ sơ chuẩn bị':'Chờ OPS kiểm tra hồ sơ'} tone={confirmedCount===query.data.sections.length?'success':'info'}>
+   {notSubmitted.length>0&&<p>{notSubmitted.length} nhóm chưa được gửi. Người phụ trách cần đăng nhập CRM và chọn “Nộp hồ sơ chuẩn bị”.</p>}
+   {awaitingConfirmation.length>0&&<p>{awaitingConfirmation.length} nhóm đã gửi. Mở từng nhóm bên dưới để kiểm tra và xác nhận.</p>}
+  </Notice>}
   {manager&&<div className={styles.sectionActions}><Button disabled={!canSubmitDossier||busy||unknown||query.loading||Boolean(query.error)} onClick={()=>{setDossierOpen(true);setError('');setSuccess('')}}>{query.data&&!pending.length?'Đã nộp hồ sơ chuẩn bị':'Nộp hồ sơ chuẩn bị'}</Button></div>}
-  {manager&&query.data&&pending.length>0&&query.data.coordinatorUserId!==access.userId&&<p className={styles.help}>Chỉ đầu mối được phân công mới có thể nộp hồ sơ chung.</p>}
+  {manager&&query.data&&pending.length>0&&query.data.coordinatorUserId!==access.userId&&<p className={styles.help}>Chỉ người phụ trách được phân công mới có thể nộp hồ sơ chung.</p>}
   {success&&<Notice title="Đã nộp hồ sơ" tone="success">{success}</Notice>}
   <div className={styles.evidenceList}>{query.data?.sections.map(section=>{
    const content=<>
    <p className={styles.sectionMeta}>{businessCopy('preparation.professionalOwner')}: {owners[section.ownerRole]??'Chưa xác định'} · Phiên bản {section.revision}</p>
    {section.checkItems.length===0&&<p>OPS đối chiếu nội dung hồ sơ đã nộp để xác nhận.</p>}
+   {['NOT_STARTED','IN_PROGRESS'].includes(section.status)&&<p className={styles.help}>Người phụ trách cần gửi hồ sơ chung từ tài khoản CRM trước khi OPS xác nhận nhóm này.</p>}
    <ul className={styles.evidenceChecks}>{section.checkItems.map(item=><li key={item.itemCode}>{checks[item.itemCode]??'Hạng mục cần đối chiếu'} · {item.ready?'Đạt':'Chưa đạt'}{item.itemCode!=='SHIP_STATUS_ACTIVE'&&item.evidence&&<p>{item.evidence}</p>}</li>)}</ul>
 
    {section.submittedAt&&<p>{businessCopy('preparation.submittedAt')}: {journeyTime(section.submittedAt,SHIP_TIME_ZONE)} · {businessCopy('preparation.shipTime')}</p>}
@@ -78,12 +86,12 @@ export function PreparationEvidence({cruiseId,onChanged,refreshKey=0}:{cruiseId:
    </>
    const evaluated=section.checkItems.length>0
    const passed=evaluated&&section.checkItems.every(item=>!item.required||item.ready)
-   return <details key={section.sectionCode} className={styles.disclosure} open={section.status==='RETURNED'}><summary><h3 className={styles.sectionHeading}>{sectionNames[section.sectionCode]??'Hồ sơ chuẩn bị'}</h3><span className={styles.sectionStatus}><Badge label={domainStatus('preparation.section',section.status)}/><span>{evaluated?`${section.checkItems.filter(item=>item.ready).length}/${section.checkItems.length} hạng mục đạt`:'Chưa có kết quả kiểm tra'}</span>{evaluated&&!passed&&<span>Cần bổ sung dữ liệu</span>}</span></summary><div className={styles.disclosureBody}>{content}</div></details>
+   return <details key={section.sectionCode} className={styles.disclosure} open={section.status==='RETURNED'}><summary><h3 className={styles.sectionHeading}>{sectionNames[section.sectionCode]??'Hồ sơ chuẩn bị'}</h3><span className={styles.sectionStatus}>{section.status!=='NOT_STARTED'&&<Badge label={domainStatus('preparation.section',section.status)}/>}<span>{evaluated?`${section.checkItems.filter(item=>item.ready).length}/${section.checkItems.length} kiểm tra dữ liệu đạt`:'Chưa có kết quả kiểm tra'}</span>{evaluated&&!passed&&<span>Cần bổ sung dữ liệu</span>}</span></summary><div className={styles.disclosureBody}>{content}</div></details>
   })}</div>
   {error&&<Notice title="Không thể hoàn tất thao tác" tone="error">{error}</Notice>}
   {unknown&&<Notice title="Hệ thống chưa xác nhận được kết quả"><p>Đối chiếu lại 4 nhóm hồ sơ trước khi tiếp tục. Hạng mục đã gửi sẽ không bị gửi lặp.</p><Button disabled={busy} onClick={()=>void reconcile()}>Đối chiếu hồ sơ</Button></Notice>}
   {dossierOpen&&<Modal wide busy={busy} title="Nộp hồ sơ chuẩn bị khởi hành" description="Một nội dung tổng hợp dùng chung cho cả 4 nhóm hồ sơ. Các hạng mục đã nộp hoặc xác nhận được giữ nguyên." onClose={()=>setDossierOpen(false)} footer={<><Button tone="secondary" disabled={busy} data-overlay-dismiss onClick={()=>setDossierOpen(false)}>Hủy</Button><Button disabled={busy||unknown||!canSubmitDossier||!text.trim()} onClick={()=>void submitDossier()}>{busy?'Đang nộp hồ sơ…':'Nộp hồ sơ chung'}</Button></>}>
-   <ul>{query.data?.sections.map(section=><li key={section.sectionCode}>{sectionNames[section.sectionCode]} · {section.checkItems.length?`${section.checkItems.filter(item=>item.ready).length}/${section.checkItems.length} hạng mục đạt`:'Đối chiếu hồ sơ'} · {domainStatus('preparation.section',section.status)}</li>)}</ul>
+   <ul>{query.data?.sections.map(section=><li key={section.sectionCode}>{sectionNames[section.sectionCode]} · {section.checkItems.length?`${section.checkItems.filter(item=>item.ready).length}/${section.checkItems.length} hạng mục đạt`:'Đối chiếu hồ sơ'}{section.status!=='NOT_STARTED'&&<> · {domainStatus('preparation.section',section.status)}</>}</li>)}</ul>
    <Field htmlFor="prep-dossier" label="Nội dung và bằng chứng chuẩn bị chung"><textarea id="prep-dossier" rows={6} value={text} onChange={e=>setText(e.target.value)} disabled={busy||unknown} required/></Field>
    {error&&<Notice title="Chưa nộp xong hồ sơ" tone="error">{error}</Notice>}{unknown&&<Button disabled={busy} onClick={()=>void reconcile()}>Đối chiếu hồ sơ trước khi tiếp tục</Button>}
   </Modal>}

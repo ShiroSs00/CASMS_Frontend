@@ -1,4 +1,6 @@
 import {RecordFacts} from '@/shared/ui'
+import type {ReactNode} from 'react'
+import styles from './PlanSnapshot.module.css'
 import {domainStatus} from '@/shared/i18n/business-copy'
 import {journeyTime,SHIP_TIME_ZONE} from '@/shared/lib/journey-time'
 const object=(v:unknown):Record<string,unknown>=>v!=null&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:{}
@@ -20,34 +22,40 @@ const percentage=(v:unknown)=>{const number=numeric(v);return number==null?'Chư
 export function PlanSnapshot({snapshot,includePricing=true}:{snapshot:unknown;includePricing?:boolean}){
  const s=object(snapshot),c=object(s.cruise),ports=rows(s.ports)
  const portFor=(id:unknown)=>ports.find(port=>port.port_id===id)
- return <>
+ return <div className={styles.snapshot}>
+  <section className={styles.overview} aria-label="Thông tin lần khởi hành đã gửi">
   <RecordFacts entries={[
    ['Mã lần khởi hành',value(c.cruise_code)],['Tên lần khởi hành',value(c.cruise_name)],
    ['Khởi hành',clock(c.departure_datetime)],['Kết thúc',clock(c.return_datetime)],
    ['Phạm vi',domainStatus('source.scope',String(c.planned_scope))],['Cấu trúc lịch',domainStatus('cruise.itinerary',String(c.itinerary_mode))],
   ]}/>
-  <h4>Các lần ghé cảng</h4>
+  </section>
+  <SnapshotGroup title="Lần ghé cảng" count={rows(s.stops).length} unit="lần ghé" initiallyOpen>
   {rows(s.stops).length?rows(s.stops).map((stop,index)=>{const port=portFor(stop.port_id);return <RecordFacts key={String(stop.cruise_stop_id??index)} entries={[
    ['Thứ tự ghé',value(stop.stop_order)],['Cảng',value(port?.port_name)],
    ['Dự kiến đến',clock(stop.planned_arrival,port?.time_zone_id??null)],['Dự kiến rời',clock(stop.planned_departure,port?.time_zone_id??null)],
    ['Hạn hành khách trở lại tàu',clock(stop.all_aboard_time,port?.time_zone_id??null)],
   ]}/> }):<p>Chưa có lần ghé cảng trong kế hoạch đã gửi.</p>}
-  <h4>Hoạt động trên tàu</h4>
+  </SnapshotGroup>
+  <SnapshotGroup title="Hoạt động trên tàu" count={rows(s.activities).length} unit="hoạt động">
   {rows(s.activities).length?rows(s.activities).map((a,index)=><RecordFacts key={String(a.onboard_activity_id??index)} entries={[
    ['Hoạt động',value(a.activity_name)],['Bắt đầu',clock(a.start_time)],['Kết thúc',clock(a.end_time)],['Sức chứa',value(a.capacity)],['Giá',money(a.price,a.currency_code)],
   ]}/>):<p>Chưa có hoạt động trên tàu trong kế hoạch đã gửi.</p>}
-  <h4>Tour tham quan trên bờ</h4>
+  </SnapshotGroup>
+  <SnapshotGroup title="Tour tham quan trên bờ" count={rows(s.excursions).length} unit="tour">
   {rows(s.excursions).length?rows(s.excursions).map((e,index)=>{const stop=rows(s.stops).find(row=>row.cruise_stop_id===e.cruise_stop_id),port=portFor(stop?.port_id);return <RecordFacts key={String(e.shore_excursion_id??index)} entries={[
    ['Tour',value(e.excursion_name)],['Cảng',value(port?.port_name)],['Bắt đầu',clock(e.start_time,port?.time_zone_id??null)],['Dự kiến trở lại tàu',clock(e.planned_return_time,port?.time_zone_id??null)],['Sức chứa tối đa',value(e.maximum_capacity)],['Giá',money(e.price,e.currency_code)],
   ]}/> }):<p>Chưa có tour tham quan trên bờ trong kế hoạch đã gửi.</p>}
-  <h4>Khung giờ phục vụ</h4>
+  </SnapshotGroup>
+  <SnapshotGroup title="Khung giờ phục vụ" count={rows(s.servingWindows).length} unit="khung giờ">
   {rows(s.servingWindows).length?rows(s.servingWindows).map((w,index)=><RecordFacts key={String(w.service_schedule_id??index)} entries={[
    ['Dịch vụ',value(rows(s.services).find(service=>service.service_id===w.service_id)?.service_name)],['Bắt đầu',clock(w.starts_at)],['Kết thúc',clock(w.ends_at)],['Địa điểm',value(w.location)],['Sức chứa',value(w.capacity)],
   ]}/>):<p>Chưa có khung giờ phục vụ trong kế hoạch đã gửi.</p>}
-  <h4>Gói dịch vụ áp dụng</h4>
+  </SnapshotGroup>
+  <SnapshotGroup title="Gói dịch vụ áp dụng" count={rows(s.packages).length} unit="gói">
   {rows(s.packages).length?rows(s.packages).map((row,index)=>{const p=object(row.package);return <RecordFacts key={String(p.tour_package_id??index)} entries={[["Tên gói",value(p.package_name)],["Giá",money(p.price,p.currency_code)]]}/> }):<p>Chưa gắn gói dịch vụ trong kế hoạch đã gửi.</p>}
-  {includePricing&&<>
-  <h4>Chính sách giá đã gửi</h4>
+  </SnapshotGroup>
+  {includePricing&&<SnapshotGroup title="Chính sách giá đã gửi" count={rows(s.policy).length} unit="chính sách">
   {rows(s.policy).map((p,index)=><RecordFacts key={String(p.pricing_policy_id??index)} entries={[
    ['Phiên bản',value(p.policy_version)],['Tiền tệ',value(p.currency)],
    ['Phòng trong',money(p.interior_base_fare,p.currency)],['Phòng hướng biển',money(p.ocean_view_base_fare,p.currency)],['Phòng ban công',money(p.balcony_base_fare,p.currency)],['Phòng Suite',money(p.suite_base_fare,p.currency)],
@@ -55,6 +63,14 @@ export function PlanSnapshot({snapshot,includePricing=true}:{snapshot:unknown;in
    ['Hạn thanh toán cuối trước khởi hành',numeric(p.final_payment_due_days)==null?'Chưa thiết lập':`${p.final_payment_due_days} ngày`],
    ['Hạn thanh toán đủ trước khởi hành',numeric(p.full_payment_cutoff_days)==null?'Chưa thiết lập':`${p.full_payment_cutoff_days} ngày`],['Điều khoản hủy',value(p.cancellation_policy)],
   ]}/>)}
-  </>}
- </>
+  </SnapshotGroup>}
+ </div>
+}
+
+function SnapshotGroup({title,count,unit,initiallyOpen=false,children}:{title:string;count:number;unit:string;initiallyOpen?:boolean;children:ReactNode}){
+ if(count===0)return <div className={styles.emptyGroup}><span>{title}</span><span>Không có trong bản đã gửi</span></div>
+ return <details className={styles.group} open={initiallyOpen}>
+  <summary>{title}<span>{count} {unit}</span></summary>
+  <div className={styles.groupBody}>{children}</div>
+ </details>
 }

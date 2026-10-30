@@ -5,11 +5,11 @@ import {businessCopy} from '@/shared/i18n/business-copy'
 import {Button,Field,Notice,Modal} from '@/shared/ui'
 import {mainflowApi} from '../api/mainflow-api'
 import {decodePricingPolicy,type PricingPolicy} from '../model/pricing-policy'
-import styles from './ManagerWorkspace.module.css'
+import styles from './PricingDraftFields.module.css'
 const fields=[['interiorBaseFare','pricing.field.interior'],['oceanViewBaseFare','pricing.field.oceanView'],['balconyBaseFare','pricing.field.balcony'],['suiteBaseFare','pricing.field.suite'],['portFeePerPassenger','pricing.field.portFee'],['taxRate','pricing.field.taxRate'],['depositPercentage','pricing.field.deposit'],['finalPaymentDueDays','pricing.field.finalDays'],['fullPaymentCutoffDays','pricing.field.cutoffDays']] as const
 export function PricingDraftFields({policy,cruiseId,onSaved}:{policy?:PricingPolicy;cruiseId:string;onSaved:()=>void}){
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[success,setSuccess]=useState(false),[uncertain,setUncertain]=useState(false),lock=useRef(false)
- const [open,setOpen]=useState(false)
+ const [open,setOpen]=useState(false),[errors,setErrors]=useState<Record<string,string>>({})
  const [currentPolicy,setCurrentPolicy]=useState<PricingPolicy|undefined>(policy)
  const [base,setBase]=useState<number|null>(null),[policyRevision,setPolicyRevision]=useState<number|null>(null)
  const [preparing,setPreparing]=useState(false),preparingLock=useRef(false)
@@ -17,6 +17,10 @@ export function PricingDraftFields({policy,cruiseId,onSaved}:{policy?:PricingPol
  async function save(e:FormEvent<HTMLFormElement>){
   e.preventDefault();if(lock.current||uncertain||base==null||policyRevision==null)return
   const data=new FormData(e.currentTarget),body:Record<string,unknown>={currency:'USD',expectedRevision:policyRevision}
+  const invalid:Record<string,string>={}
+  for(const [key] of fields){const raw=String(data.get(key)??'').trim(),value=Number(raw);if(!raw)invalid[key]='Nhập giá trị cho trường này.';else if(!Number.isFinite(value)||value<0)invalid[key]='Nhập số lớn hơn hoặc bằng 0.';else if(['taxRate','depositPercentage'].includes(key)&&value>100)invalid[key]='Nhập tỷ lệ từ 0 đến 100%.';else if(key.endsWith('Days')&&!Number.isSafeInteger(value))invalid[key]='Nhập số ngày nguyên, lớn hơn hoặc bằng 0.'}
+  setErrors(invalid)
+  if(Object.keys(invalid).length){document.getElementById('pricing-'+Object.keys(invalid)[0])?.focus();return}
   for(const [key] of fields){const raw=String(data.get(key)??'').trim();body[key]=raw===''?null:['taxRate','depositPercentage'].includes(key)?Number((Number(raw)/100).toFixed(4)):Number(raw)}
   body.cancellationPolicy=String(data.get('cancellationPolicy')??'')
   lock.current=true;setBusy(true);setError('');setSuccess(false)
@@ -28,16 +32,31 @@ export function PricingDraftFields({policy,cruiseId,onSaved}:{policy?:PricingPol
   }catch(reason){setError(businessErrorMessage(reason instanceof ApiError?reason.code:undefined,''));if(!(reason instanceof ApiError)||reason.status===0||reason.status>=500)setUncertain(true)}finally{lock.current=false;setBusy(false)}
  }
  return <>
-  <Button tone="secondary" disabled={busy||uncertain} onClick={()=>{setOpen(true);setError('');setSuccess(false);void prepare()}}>{policy?businessCopy('pricing.action.edit'):'Thiết lập chính sách giá'}</Button>
+  <Button tone="secondary" disabled={busy||uncertain} onClick={()=>{setOpen(true);setError('');setErrors({});setSuccess(false);void prepare()}}>{policy?businessCopy('pricing.action.edit'):'Thiết lập chính sách giá'}</Button>
   {success&&<Notice title="Đã lưu chính sách giá" tone="success">{businessCopy('pricing.action.saved')}</Notice>}
-  {open&&<Modal wide busy={busy||preparing} title={policy?businessCopy('pricing.action.edit'):'Thiết lập chính sách giá'} description={businessCopy('pricing.review.usd')} onClose={()=>setOpen(false)} footer={<><Button tone="secondary" disabled={busy||preparing} data-overlay-dismiss onClick={()=>setOpen(false)}>Hủy</Button><Button type="submit" form="pricing-draft-form" disabled={busy||preparing||uncertain||base==null}>{busy?'Đang lưu…':businessCopy('pricing.action.saveDraft')}</Button></>}>
+  {open&&<Modal wide busy={busy||preparing} title={policy?businessCopy('pricing.action.edit'):'Thiết lập chính sách giá'} description="Giá mới được lưu bằng USD. Lưu bản nháp trước khi gửi kế hoạch cho OPS duyệt." onClose={()=>setOpen(false)} footer={<><Button tone="secondary" disabled={busy||preparing} data-overlay-dismiss onClick={()=>setOpen(false)}>Hủy</Button><Button type="submit" form="pricing-draft-form" disabled={busy||preparing||uncertain||base==null}>{busy?'Đang lưu…':businessCopy('pricing.action.saveDraft')}</Button></>}>
   {preparing&&<p role="status">Đang tải chính sách giá…</p>}
   {!preparing&&base==null&&!uncertain&&<Button tone="secondary" onClick={()=>void prepare()}>Thử lại</Button>}
-  <form key={base==null?'loading':`${base}:${policyRevision}`} id="pricing-draft-form" onSubmit={e=>void save(e)}><fieldset disabled={busy||preparing||uncertain||base==null} className={styles.formGroup}><legend>Giá và điều kiện thanh toán</legend>
-   {(['Giá cabin và phí cảng (USD)','Thuế và đặt cọc (%)','Thời hạn thanh toán (ngày)'] as const).map((title,index)=><fieldset className={styles.formGroup} key={title}><legend>{title}</legend><div className={styles.fieldGrid}>{fields.slice(index===0?0:index===1?5:7,index===0?5:index===1?7:9).map(([key,label])=><Field key={key} htmlFor={'pricing-'+key} label={key==='taxRate'?'Thuế suất (%)':key==='depositPercentage'?'Tỷ lệ đặt cọc (%)':key==='fullPaymentCutoffDays'?'Bắt buộc trả đủ khi đặt sát ngày khởi hành (ngày)':key==='finalPaymentDueDays'?'Hạn thanh toán phần còn lại (ngày trước khởi hành)':businessCopy(label)}><input id={'pricing-'+key} name={key} defaultValue={(key.endsWith('BaseFare')||key==='portFeePerPassenger')&&currentPolicy?.currency!=='USD'?'':['taxRate','depositPercentage'].includes(key)&&currentPolicy?.[key]!=null?Number((Number(currentPolicy[key])*100).toFixed(8)):currentPolicy?.[key]??''} required type="number" min={0} step={key.endsWith('Days')?'1':['taxRate','depositPercentage'].includes(key)?'0.01':'any'} max={['taxRate','depositPercentage'].includes(key)?100:undefined}/></Field>)}</div></fieldset>)}
-   <Field htmlFor="pricing-cancellationPolicy" label={businessCopy('pricing.field.cancellation')} hint="Mô tả thời hạn hủy đặt chỗ, phí hủy và điều kiện hoàn tiền."><textarea id="pricing-cancellationPolicy" name="cancellationPolicy" rows={5} defaultValue={currentPolicy?.cancellationPolicy??''}/></Field>
+  {!preparing&&base!=null&&<form key={`${base}:${policyRevision}`} id="pricing-draft-form" className={styles.form} noValidate onSubmit={e=>void save(e)}>
+   <fieldset disabled={busy||uncertain} className={styles.fields}>
+    {(['Giá cabin và phí cảng','Thuế và đặt cọc','Thời hạn thanh toán'] as const).map((title,index)=><section className={styles.group} key={title} aria-label={title}>
+     <h3>{title}</h3>
+     {index===0&&<p className={styles.hint}>Tất cả số tiền bên dưới dùng USD.</p>}
+     <div className={styles.grid}>{fields.slice(index===0?0:index===1?5:7,index===0?5:index===1?7:9).map(([key,label])=>{
+      const percent=['taxRate','depositPercentage'].includes(key),days=key.endsWith('Days'),unit=percent?'%':days?'ngày':'USD'
+      const hints:Record<string,string>={taxRate:'Nhập 10 nghĩa là thuế 10%.',depositPercentage:'Nhập 30 nghĩa là đặt cọc 30%.',finalPaymentDueDays:'Số ngày trước khởi hành phải thanh toán hết phần còn lại.',fullPaymentCutoffDays:'Đặt trong khoảng này trước khởi hành thì phải trả đủ ngay.'}
+      const labels:Record<string,string>={taxRate:'Thuế suất',depositPercentage:'Tỷ lệ đặt cọc',finalPaymentDueDays:'Hạn trả phần còn lại',fullPaymentCutoffDays:'Đặt sát ngày phải trả đủ'}
+      return <Field key={key} htmlFor={'pricing-'+key} label={labels[key]??businessCopy(label)} error={errors[key]} hint={hints[key]}>
+       <div className={styles.inputUnit}><input id={'pricing-'+key} name={key} aria-label={`${labels[key]??businessCopy(label)} (${unit})`} aria-invalid={Boolean(errors[key])} aria-describedby={errors[key]||hints[key]?'pricing-'+key+'-hint':undefined} defaultValue={(key.endsWith('BaseFare')||key==='portFeePerPassenger')&&currentPolicy?.currency!=='USD'?'':percent&&currentPolicy?.[key]!=null?Number((Number(currentPolicy[key])*100).toFixed(8)):currentPolicy?.[key]??''} required type="number" min={0} step={days?'1':percent?'0.01':'any'} max={percent?100:undefined} onChange={()=>{if(errors[key])setErrors(previous=>{const next={...previous};delete next[key];return next})}}/><span aria-hidden="true">{unit}</span></div>
+      </Field>
+     })}</div>
+    </section>)}
+    <section className={styles.group} aria-label="Hủy đặt chỗ và hoàn tiền"><h3>Hủy đặt chỗ và hoàn tiền</h3>
+     <Field htmlFor="pricing-cancellationPolicy" label="Nội dung chính sách hủy" hint="Nêu rõ thời hạn hủy, phí hủy và điều kiện hoàn tiền."><textarea id="pricing-cancellationPolicy" name="cancellationPolicy" rows={4} defaultValue={currentPolicy?.cancellationPolicy??''}/></Field>
+    </section>
    </fieldset>
-  </form>{error&&<Notice title="Không thể hoàn tất thao tác" tone="error">{error}</Notice>}{success&&<Notice title={businessCopy('pricing.policy.DRAFT')}>{businessCopy('pricing.action.saved')}</Notice>}
+  </form>}
+  {error&&<Notice title="Chưa lưu được chính sách giá" tone="error">{error}</Notice>}
   {uncertain&&<Notice title="Hệ thống chưa xác nhận được kết quả">Tải lại trang để đối chiếu trước khi gửi tiếp.</Notice>}
  </Modal>}
  </>
