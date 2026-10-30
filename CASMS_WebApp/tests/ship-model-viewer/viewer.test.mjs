@@ -21,12 +21,26 @@ test('manifest identity is required and cabin filtering preserves source geometr
   assert.equal(JSON.stringify(manifest),before)
 })
 test('model viewer requires effective read permission without granting access from role alone',()=>{
-  const nav=load('shared/ui/admin-v3/admin-navigation.ts', {'@/shared/auth':permissionPolicy})
+  const work=load('shared/auth/work-policy.ts'),copy=JSON.parse(readFileSync(new URL('../../src/shared/i18n/vi-business-map.json',import.meta.url),'utf8'))
+  const nav=load('shared/ui/admin-v3/admin-navigation.ts', {'@/shared/auth':{...permissionPolicy,...work},'@/shared/i18n/business-copy':{businessCopy:key=>copy[key]}})
   const access={status:'ready',permissions:['SHIP_MODEL_READ','SHIP_READ']}
   assert.equal(nav.canRoleOpenAdminPath(['ADMIN'],'/admin/ship-models','',access),true)
-  assert.equal(nav.canRoleOpenAdminPath(['SHIP_MANAGER'],'/admin/ship-models','',access),true)
+  assert.equal(nav.canRoleOpenAdminPath(['SHIP_MANAGER'],'/admin/ship-models','',access),false)
+  assert.ok(!nav.roleNavigationItems(['SHIP_MANAGER'],access).some(x=>x.to==='/admin/ship-models'))
   assert.equal(nav.canRoleOpenAdminPath(['ADMIN'],'/admin/ship-models','',{status:'ready',permissions:[]}),false)
   assert.ok(nav.roleNavigationItems(['ADMIN'],access).some(x=>x.to==='/admin/ship-models'))
+})
+
+test('area declarations are scoped to physical decks and preserve source geometry while filtering',()=>{
+ const data={...manifest,areas:[{id:'gym',nodeName:'AREA_Gym',name:'Phòng tập',kind:'gym',deckId:'d1',deckNumber:1,center:[1,2,3],size:[8,3,10]},{id:'lounge',nodeName:'AREA_Lounge',name:'Ocean Lounge',kind:'lounge',deckId:'d2',deckNumber:2}]}
+ assert.equal(model.decodeManifest(data),data)
+ const before=JSON.stringify(data)
+ assert.equal(model.selectedAreas(data,'d1','phong tap')[0].nodeName,'AREA_Gym')
+ assert.equal(model.selectedAreas(data,'d2','gym').length,0)
+ assert.equal(model.selectedAreas(manifest,'','').length,0)
+ assert.equal(JSON.stringify(data),before)
+ for(const area of [{...data.areas[0],deckId:'foreign'},{...data.areas[0],deckNumber:2},{...data.areas[0],center:[1,NaN,3]},{...data.areas[0],size:[1,0,3]}])assert.throws(()=>model.decodeManifest({...manifest,areas:[area]}))
+ assert.throws(()=>model.decodeManifest({...manifest,areas:[data.areas[0],data.areas[0]]}))
 })
 test('asset metadata uses actual backend id/revision fields and rejects a stale model',()=>{
   const dto={id:'v1',revision:'whole-ship-corridors-v10',cabinCount:305,mappedCabinCount:305,deckCount:15,mappedDeckCount:15}

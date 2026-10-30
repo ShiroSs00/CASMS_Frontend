@@ -4,7 +4,7 @@
  */
 export const ROLE_WORK_MODULES: Readonly<Record<string, readonly string[]>> = {
   ADMIN: ['system', 'ship-import', 'ship-models'],
-  SHIP_MANAGER: ['fleet-dashboard', 'ships', 'decks', 'cabins', 'ship-models', 'ship-import', 'passenger-tracking', 'ship-regulations'],
+  SHIP_MANAGER: ['fleet-dashboard', 'ships', 'decks', 'cabins', 'passenger-tracking', 'ship-regulations'],
   CRUISE_MANAGER: ['trips', 'cruises', 'itineraries', 'itinerary-history', 'cruise-regulations'],
   OPERATIONS_MANAGER: ['cruise-plan-reviews', 'issues', 'regulations', 'destinations', 'ports', 'trips', 'cruises', 'itineraries', 'itinerary-history', 'ship-regulations', 'cruise-regulations'],
   ACTIVITY_SERVICE_MANAGER: ['activities', 'shore-excursions', 'tour-groups', 'suppliers', 'services', 'products', 'service-packages', 'service-requests', 'activity-registrations', 'cruises'],

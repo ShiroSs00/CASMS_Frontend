@@ -49,15 +49,17 @@ test('import uses multipart upload and separate register/import endpoints', asyn
   assert.throws(() => decodeJob({ ...job, status: 'DONE' }))
   assert.notEqual(model.jobLabel('PARTIAL'), model.jobLabel('SUCCEEDED'))
 })
-test('import and fleet menus use effective grants independently of the staff role', () => {
-  const nav = load('shared/ui/admin-v3/admin-navigation.ts', {'@/shared/auth':permissionPolicy})
-  const access = { status: 'ready', permissions: ['SHIP_MODEL_CREATE'] }
+test('model import belongs to Admin while Ship Manager retains fleet management', () => {
+  const work=load('shared/auth/work-policy.ts'),copy=JSON.parse(readFileSync(new URL('../../src/shared/i18n/vi-business-map.json',import.meta.url),'utf8'))
+  const nav = load('shared/ui/admin-v3/admin-navigation.ts', {'@/shared/auth':{...permissionPolicy,...work},'@/shared/i18n/business-copy':{businessCopy:key=>copy[key]}})
+  const access = { status: 'ready', permissions: ['SHIP_MODEL_CREATE', 'SHIP_UPDATE'] }
   assert.equal(nav.canRoleOpenAdminPath(['ADMIN'], '/admin/ship-import', '', access), true)
-  assert.equal(nav.canRoleOpenAdminPath(['SHIP_MANAGER'], '/admin/ship-import', '', access), true)
+  assert.equal(nav.canRoleOpenAdminPath(['SHIP_MANAGER'], '/admin/ship-import', '', access), false)
+  assert.ok(!nav.roleNavigationItems(['SHIP_MANAGER'],access).some(item=>item.to==='/admin/ship-import'))
   assert.equal(nav.canRoleOpenAdminPath(['ADMIN'], '/admin/ship-import', '', { ...access, permissions: [] }), false)
   assert.ok(nav.roleNavigationItems(['ADMIN'], access).some(item => item.to === '/admin/ship-import'))
   const fleetAccess = { status: 'ready', permissions: ['SHIP_MODEL_CREATE', 'SHIP_READ', 'DECK_READ', 'CABIN_READ'] }
-  assert.ok(nav.roleNavigationGroups(['ADMIN'], fleetAccess).some(group => group.id === 'fleet'))
+  assert.ok(!nav.roleNavigationGroups(['ADMIN'], fleetAccess).some(group => group.id === 'fleet'))
   assert.ok(nav.roleNavigationGroups(['SHIP_MANAGER'], fleetAccess).some(group => group.items.some(item => item.to === '/admin/ships')))
   assert.ok(nav.roleNavigationGroups(['ADMIN', 'SHIP_MANAGER'], fleetAccess).some(group => group.id === 'fleet'))
 })
