@@ -8,8 +8,8 @@ import styles from './ShipAreas.module.css'
 
 const showVector=(value:AreaVector|null)=>value?[value.x,value.y,value.z].map(n=>n.toLocaleString('vi-VN',{maximumFractionDigits:3})).join(' · '):'Chưa có dữ liệu'
 export function ShipAreas({shipId,initialDeck=''}:{shipId:string;initialDeck?:string}){
- const access=useSessionAccess(),allowed=access.canDo('SHIP_CONFIGURATION_READ')
- const query=useReadQuery(`ship-areas:${access.userId}:${shipId}:${allowed}`,useCallback(signal=>allowed?readShipAreas(shipId,signal):Promise.resolve(null),[allowed,shipId]))
+ const access=useSessionAccess(),allowed=access.canDo('SHIP_CONFIGURATION_READ'),canReadDraft=access.canDo('SHIP_MODEL_READ')&&access.canDo('SHIP_READ')
+ const query=useReadQuery(`ship-areas:${access.userId}:${shipId}:${allowed}:${canReadDraft}`,useCallback(signal=>allowed?readShipAreas(shipId,signal,canReadDraft):Promise.resolve(null),[allowed,shipId,canReadDraft]))
  const [search,setSearch]=useState(''),[deck,setDeck]=useState(initialDeck),[kind,setKind]=useState(''),[limit,setLimit]=useState(50)
  if(!allowed)return null
  const data=query.data,unready=query.error instanceof ApiError&&query.error.code==='SHIP_MODEL_NOT_READY'
@@ -18,10 +18,11 @@ export function ShipAreas({shipId,initialDeck=''}:{shipId:string;initialDeck?:st
  const kinds=data?[...new Set(data.areas.map(area=>area.kind).filter((value):value is string=>Boolean(value)))].sort():[]
  const reset=()=>{setSearch('');setDeck('');setKind('');setLimit(50)}
  return <Panel title="Khu vực trên tàu (Areas)" subtitle="Các khu vực vật lý được nhập từ mô hình tàu và gắn với từng boong, như phòng tập, nhà hàng hoặc khu thư giãn.">
-  <p className={styles.help}>Dữ liệu dưới đây là khu vực vật lý của mô hình đã công bố. Việc gán dịch vụ thương mại được thực hiện trong chức năng dịch vụ.</p>
+  <p className={styles.help}>Dữ liệu khu vực vật lý đã nhập từ mô hình. Việc gán dịch vụ thương mại được thực hiện trong chức năng dịch vụ.</p>
   {query.loading&&<Loading label="Đang tải khu vực của tàu…"/>}
   {unready?<Empty title="Chưa có mô hình tàu sẵn sàng"><p>Công bố mô hình đã nhập để hệ thống trả về các khu vực trên tàu.</p>{access.canDo('SHIP_MODEL_READ')&&<ButtonLink tone="secondary" to={'/admin/ship-models?'+new URLSearchParams({ship:shipId})}>Xem mô hình tàu</ButtonLink>}</Empty>:query.error&&<Notice title={forbidden?'Chưa có quyền đọc cấu hình khu vực':'Chưa tải được khu vực'} tone="error">{query.error.message}{!forbidden&&<Button tone="secondary" onClick={query.retry}>Thử lại</Button>}</Notice>}
   {data&&<>
+   {data.draftVersion&&<Notice title={`Areas đã import · Bản nháp ${data.draftVersion}`} tone="info">Các khu vực dưới đây đã được lưu. Model chưa được công bố để sử dụng làm cấu hình vận hành.</Notice>}
    {!data.supported&&<Notice title="Chưa có dữ liệu khu vực đầy đủ" tone="warning">Phiên bản hệ thống đang trả cấu hình thiếu khu vực ở một số boong. Cần cập nhật hệ thống rồi tải lại để đối chiếu đầy đủ.</Notice>}
    <div className={styles.filters}>
     <Field htmlFor="area-search" label="Tìm khu vực"><input id="area-search" type="search" value={search} placeholder="Tên khu vực hoặc mã mô hình" onChange={event=>{setSearch(event.target.value);setLimit(50)}}/></Field>

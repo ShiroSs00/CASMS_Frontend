@@ -7,7 +7,7 @@ import { Badge, Button, Empty, Field, Loading, Notice, Panel } from '@/shared/ui
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { viewerApi } from './api'
 import { ModelCanvas } from './ModelCanvas'
-import { cabinTypes, formatTime, modelStatus, selectedCabins, type AssetInfo, type Cabin, type Job, type Manifest, type ModelVersion, type ShipChoice } from './model'
+import { cabinTypes, formatTime, modelStatus, selectedAreas, selectedCabins, type Area, type AssetInfo, type Cabin, type Job, type Manifest, type ModelVersion, type ShipChoice } from './model'
 import styles from './Viewer.module.css'
 import {BleSetup} from './BleSetup'
 
@@ -27,30 +27,40 @@ function ModelMetadata({version,info,manifest}:{version:ModelVersion;info:AssetI
 function CabinDetails({cabin,manifest}:{cabin:Cabin;manifest:Manifest}) {const vector=(value?:number[])=>value?.map(v=>v.toLocaleString('vi-VN',{maximumFractionDigits:3})).join(' · ');return <><div className={styles.detailTitle}><span>ĐỐI TƯỢNG ĐANG CHỌN</span><h2>{cabin.cabinNumber}</h2><Badge label={cabinTypes[cabin.cabinType]??cabin.cabinType}/></div><Facts rows={[
   ['Boong',`${cabin.deckNumber} · ${manifest.decks.find(d=>d.id===cabin.deckId)?.name??''}`],['Sức chứa',cabin.capacity!=null?`${cabin.capacity} khách`:undefined],['Hạng phòng',cabin.gradeName],['Hỗ trợ tiếp cận',cabin.isAccessible==null?undefined:cabin.isAccessible?'Có':'Không'],['Diện tích',cabin.areaSquareMetres!=null?`${cabin.areaSquareMetres} m²`:undefined],['Kích thước X · Y · Z',cabin.size?`${vector(cabin.size)} ${manifest.units}`:undefined],['Vị trí X · Y · Z',cabin.position?`${vector(cabin.position)} ${manifest.units}`:undefined],['Node 3D',cabin.nodeName],['Mã nguồn',cabin.id],
   ]}/>{cabin.sourceNumberVerified===false&&<p className={styles.note}>Số cabin trong model chưa được xác minh với số phòng thực tế.</p>}</>}
+function AreaDetails({area,manifest}:{area:Area;manifest:Manifest}) {
+  const vector=(value?:number[])=>value?`${value.map(v=>v.toLocaleString('vi-VN',{maximumFractionDigits:3})).join(' · ')} ${manifest.units}`:undefined
+  return <><div className={styles.detailTitle}><span>KHU VỰC ĐANG CHỌN</span><h2>{area.name}</h2><Badge label={area.kind}/></div><Facts rows={[
+    ['Boong',`${area.deckNumber} · ${[...manifest.decks,...manifest.serviceDecks??[]].find(d=>d.id===area.deckId)?.name??''}`],['Kích thước X · Y · Z',vector(area.size)],['Tâm khu vực X · Y · Z',vector(area.center)],['Node 3D',area.nodeName],['Mã khu vực',area.id],
+  ]}/>{Boolean(area.interiorDetails?.length)&&<div className={styles.areaContents}><h3>Chi tiết trong mô hình</h3><ul>{area.interiorDetails?.map((detail,index)=><li key={index}>{detail}</li>)}</ul></div>}<p className={styles.note}>Thông tin từ gói mô hình đang xem; trạng thái nhập được ghi trong Lịch sử nhập.</p></>
+}
 function Explore({ship,model,manifest,info}:{ship:string;model:string;manifest:Manifest;info:AssetInfo|null}) {
-  const [deckId,setDeck]=useState(''),[cabinId,setCabin]=useState(''),[search,setSearch]=useState(''),[full,setFull]=useState(false)
+  const [deckId,setDeck]=useState(''),[cabinId,setCabin]=useState(''),[areaId,setArea]=useState(''),[areaSearch,setAreaSearch]=useState(''),[search,setSearch]=useState(''),[full,setFull]=useState(false)
   const decks=[...manifest.decks,...manifest.serviceDecks??[]]
   const deck=decks.find(d=>d.id===deckId),cabin=manifest.cabins.find(c=>c.id===cabinId)
   const cabins=selectedCabins(manifest,deckId,search)
+  const areas=selectedAreas(manifest,deckId,areaSearch),area=manifest.areas?.find(a=>a.id===areaId)
   const file=deck?.asset??(full?manifest.assets.full:manifest.assets.exterior??manifest.assets.full)
-  const chooseDeck=(id:string)=>{setDeck(id);setCabin('');setSearch('')}
-  const chooseCabin=(value:Cabin)=>{setCabin(value.id);setDeck(value.deckId)}
-  const pick=(name:string)=>{const found=manifest.cabins.find(c=>c.nodeName===name);if(found)chooseCabin(found)}
+  const chooseDeck=(id:string)=>{setDeck(id);setCabin('');setArea('');setSearch('');setAreaSearch('')}
+  const chooseCabin=(value:Cabin)=>{setCabin(value.id);setArea('');setDeck(value.deckId)}
+  const chooseArea=(value:Area)=>{setArea(value.id);setCabin('');setDeck(value.deckId)}
+  const pick=(name:string)=>{const found=manifest.cabins.find(c=>c.nodeName===name);if(found){chooseCabin(found);return}const foundArea=manifest.areas?.find(a=>a.nodeName===name);if(foundArea)chooseArea(foundArea)}
   return <div className={styles.workspace}>
     <aside className={styles.structure} aria-label="Cấu trúc model"><div className={styles.panelLabel}><h2>Cấu trúc tàu</h2><span>{manifest.decks.length} boong</span></div>
       <button className={styles.deckButton} aria-pressed={!deckId} onClick={()=>chooseDeck('')}><span>Tổng thể tàu</span><span>◈</span></button>
       <div className={styles.deckList}>{[...decks].sort((a,b)=>a.number-b.number).map(value=><button key={value.id} className={styles.deckButton} aria-pressed={deckId===value.id} onClick={()=>chooseDeck(value.id)}><span><strong>{value.number}</strong> {value.name}</span><small>{value.number<=0?'KT':manifest.cabins.filter(c=>c.deckId===value.id).length}</small></button>)}</div>
+      <div className={styles.cabinHeading}><h3>Khu vực (Areas) <span aria-live="polite">{areas.length}</span></h3><input type="search" aria-label="Tìm khu vực trong model" value={areaSearch} placeholder="Tên hoặc loại khu vực" onChange={event=>setAreaSearch(event.target.value)}/></div>
+      <div className={`${styles.cabinList} ${styles.areaList}`} aria-label="Khu vực trong model">{areas.map(value=><button key={value.id} aria-pressed={areaId===value.id} onClick={()=>chooseArea(value)}><strong>{value.name}</strong><small>{value.kind}</small></button>)}{!areas.length&&<p className={styles.note}>{manifest.areas===undefined?'Gói mô hình chưa cung cấp danh sách khu vực.':areaSearch?'Không có khu vực khớp tìm kiếm.':'Boong này chưa khai báo khu vực trong mô hình.'}</p>}</div>
       <div className={styles.cabinHeading}><h3>Cabin <span>{cabins.length}</span></h3><input type="search" aria-label="Tìm cabin trong model" value={search} placeholder="Số cabin hoặc loại phòng" onChange={event=>setSearch(event.target.value)}/></div>
       <div className={styles.cabinList}>{cabins.slice(0,300).map(value=><button key={value.id} aria-pressed={cabinId===value.id} onClick={()=>chooseCabin(value)}><strong>{value.cabinNumber}</strong><small>{cabinTypes[value.cabinType]??value.cabinType}</small></button>)}{!cabins.length&&<p className={styles.note}>Không có cabin phù hợp.</p>}{cabins.length>300&&<p className={styles.note}>Hiển thị 300/{cabins.length} cabin. Tìm kiếm để thu hẹp danh sách.</p>}</div>
     </aside>
     <div className={styles.sceneColumn}><div className={styles.sceneHeading}><div><span>{deck?`${deck.number<=0?'TẦNG KỸ THUẬT':'BOONG'} ${deck.number}`:'TỔNG THỂ'}</span><h2>{deck?.name??manifest.name}</h2></div>{!deck&&<label className={styles.toggle}><input type="checkbox" checked={full} onChange={event=>setFull(event.target.checked)}/>Toàn bộ cấu trúc</label>}</div>
       <select className={styles.mobileDeck} aria-label="Boong đang hiển thị" value={deckId} onChange={event=>chooseDeck(event.target.value)}><option value="">Tổng thể tàu</option>{[...decks].sort((a,b)=>a.number-b.number).map(d=><option key={d.id} value={d.id}>{d.number<=0?'Tầng kỹ thuật':'Boong'} {d.number} · {d.name}</option>)}</select>
-      {file?<ModelCanvas key={`${model}:${file}`} ship={ship} model={model} file={file} selected={cabin?.nodeName??''} onPick={pick}/>:<Notice title="Không có asset 3D" tone="warning">Manifest chưa cung cấp file GLB để hiển thị.</Notice>}
-      <div className={styles.sceneLegend}><span><i/> Cabin được chọn</span><span>{deck?`${cabins.length} cabin trên boong`:'Chọn boong để xem nội thất'} · {manifest.units}</span></div>
+      {file?<ModelCanvas key={`${model}:${file}`} ship={ship} model={model} file={file} selected={area?.nodeName??cabin?.nodeName??''} onPick={pick}/>:<Notice title="Không có asset 3D" tone="warning">Manifest chưa cung cấp file GLB để hiển thị.</Notice>}
+      <div className={styles.sceneLegend}><span><i/> {area?'Khu vực được chọn':cabin?'Cabin được chọn':'Đối tượng được chọn'}</span><span>{deck?`${areas.length} khu vực · ${cabins.length} cabin trên boong`:`${manifest.areas?.length??0} khu vực · Chọn boong để xem nội thất`} · {manifest.units}</span></div>
     </div>
-    <aside className={styles.inspector} aria-label="Chi tiết đối tượng">{cabin?<><button className={styles.clearSelection} onClick={()=>setCabin('')}>← Thông tin boong</button><CabinDetails cabin={cabin} manifest={manifest}/></>:<><div className={styles.detailTitle}><span>{deck?'BOONG ĐANG XEM':'THÔNG TIN TỔNG THỂ'}</span><h2>{deck?.name??manifest.name}</h2></div><Facts rows={deck?[
-      ['Số boong',deck.number],['Cabin trong model',manifest.cabins.filter(c=>c.deckId===deck.id).length],['Cao độ',deck.elevationMetres!=null?`${deck.elevationMetres} m`:undefined],['Node 3D',deck.nodeName],['Asset',deck.asset],
-    ]:[['Boong hành khách',manifest.decks.length],['Tầng kỹ thuật',manifest.serviceDecks?.length??0],['Tổng cabin',manifest.cabins.length],['Tầng đã ánh xạ',info?`${info.mappedDeckCount}/${info.deckCount}`:undefined],['Cabin đã ánh xạ',info?`${info.mappedCabinCount}/${info.cabinCount}`:undefined],['Bản sửa đổi',manifest.revision],['Đơn vị',manifest.units]]}/><div className={styles.inspectorHint}>Chọn cabin trên mô hình hoặc trong danh sách để xem thông tin chi tiết.</div></>}</aside>
+    <aside className={styles.inspector} aria-label="Chi tiết đối tượng">{area?<><button className={styles.clearSelection} onClick={()=>setArea('')}>← Thông tin boong</button><AreaDetails area={area} manifest={manifest}/></>:cabin?<><button className={styles.clearSelection} onClick={()=>setCabin('')}>← Thông tin boong</button><CabinDetails cabin={cabin} manifest={manifest}/></>:<><div className={styles.detailTitle}><span>{deck?'BOONG ĐANG XEM':'THÔNG TIN TỔNG THỂ'}</span><h2>{deck?.name??manifest.name}</h2></div><Facts rows={deck?[
+      ['Số boong',deck.number],['Khu vực trong model',manifest.areas===undefined?undefined:manifest.areas.filter(a=>a.deckId===deck.id).length],['Cabin trong model',manifest.cabins.filter(c=>c.deckId===deck.id).length],['Cao độ',deck.elevationMetres!=null?`${deck.elevationMetres} m`:undefined],['Node 3D',deck.nodeName],['Asset',deck.asset],
+    ]:[['Boong hành khách',manifest.decks.length],['Tầng kỹ thuật',manifest.serviceDecks?.length??0],['Tổng khu vực',manifest.areas?.length],['Tổng cabin',manifest.cabins.length],['Tầng đã ánh xạ',info?`${info.mappedDeckCount}/${info.deckCount}`:undefined],['Cabin đã ánh xạ',info?`${info.mappedCabinCount}/${info.cabinCount}`:undefined],['Bản sửa đổi',manifest.revision],['Đơn vị',manifest.units]]}/><div className={styles.inspectorHint}>Chọn khu vực hoặc cabin trên mô hình hoặc trong danh sách để xem thông tin chi tiết.</div></>}</aside>
   </div>
 }
 function VersionDetail({ship,version}:{ship:string;version:ModelVersion}) {
