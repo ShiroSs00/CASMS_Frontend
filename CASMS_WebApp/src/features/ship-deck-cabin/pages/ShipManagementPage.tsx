@@ -30,7 +30,7 @@ function ShipOverview({ ship }: { ship: Ship }) {
       <div><dt>Phòng sẵn sàng</dt><dd>{capacity.data?.availableCabinCount ?? '—'}</dd></div>
     </dl>
     {capacity.loading && <p role="status" className={styles.muted}>Đang cập nhật số liệu boong và phòng…</p>}
-    {capacity.error && <Notice title="Chưa tải được tổng hợp sức chứa" tone="error">{capacity.error}<Button tone="text" onClick={capacity.retry}>Tải lại số liệu</Button></Notice>}
+    {capacity.error && <Notice title="Chưa tải được tổng hợp sức chứa" tone="error">{capacity.error}</Notice>}
     <Panel title="Thông tin tàu"><dl className={styles.readonly}>
       <div><dt>Mã tàu</dt><dd>{ship.code}</dd></div><div><dt>Tên tàu</dt><dd>{ship.name}</dd></div>
       <div><dt>Trạng thái</dt><dd><StatusBadge status={ship.status} /></dd></div><div><dt>Tổng số boong cấu hình</dt><dd>{ship.totalDecks}</dd></div>
@@ -41,7 +41,7 @@ function ShipOverview({ ship }: { ship: Ship }) {
     </dl></Panel>
     {access.canDo('SHIP_CURRENT_CRUISE') && <Panel title="Chuyến đang vận hành">
       {cruise.loading && !cruise.data && <Loading label="Đang tải chuyến hiện tại…" />}
-      {cruise.error && <Notice title="Chưa tải được chuyến hiện tại" tone="error">{cruise.error}<Button tone="text" onClick={cruise.retry}>Thử lại</Button></Notice>}
+      {cruise.error && <Notice title="Chưa tải được chuyến hiện tại" tone="error">{cruise.error}</Notice>}
       {cruise.data && <dl className={styles.readonly}><div><dt>Mã chuyến</dt><dd>{cruise.data.code}</dd></div><div><dt>Tên chuyến</dt><dd>{cruise.data.name}</dd></div><div><dt>Khởi hành</dt><dd>{formatDate(cruise.data.departure)}</dd></div><div><dt>Kết thúc</dt><dd>{formatDate(cruise.data.returnAt)}</dd></div></dl>}
       {!cruise.loading && !cruise.error && !cruise.data && <p className={styles.muted}>Chưa có chuyến đang vận hành.</p>}
     </Panel>}
@@ -62,24 +62,25 @@ function ShipManagementContent({ id }: { id: string }) {
   }, [id])
   const query = useFleetQuery(`ship-workspace:${id}`, load, access.canDo('SHIP_READ'))
   const ship = query.data
-  if (!ship) return <>{query.loading ? <Loading label="Đang tải thông tin tàu…" /> : query.error ? <Notice title="Không tải được tàu" tone="error">{query.error}<Button onClick={query.retry}>Thử lại</Button></Notice> : <Empty title="Không tìm thấy tàu"><Link to="/admin/ships">Về danh sách tàu</Link></Empty>}</>
+  if (!ship) return <>{query.loading ? <Loading label="Đang tải thông tin tàu…" /> : query.error ? <Notice title="Không tải được tàu" tone="error">{query.error}</Notice> : <Empty title="Không tìm thấy tàu"><Link to="/admin/ships">Về danh sách tàu</Link></Empty>}</>
   const requested = params.get('tab')
   const tab = requested === 'areas' && access.canDo('SHIP_CONFIGURATION_READ') ? 'areas' : requested === 'decks' && access.canDo('DECK_READ') ? 'decks' : requested === 'cabins' && access.canDo('CABIN_READ') ? 'cabins' : 'overview'
   const operationChoices: Array<[Operation, string]> = [['ready', 'Kiểm tra sẵn sàng'], ['schedule', 'Kiểm tra lịch trống'], ['affected', 'Chuyến bị ảnh hưởng'], ['validate', 'Kiểm tra cấu hình']]
   const operations = operationChoices.filter(([operation]) => access.canDo(operationPermission('ships', operation)))
   return <div className={styles.stack}>
-    <div className={styles.shipDetailHeading}><PageHeader breadcrumb="Ship / Chi tiết" title={ship.name} description={ship.code} actions={<>
+    <div className={styles.shipDetailHeading}><PageHeader breadcrumb="Đội tàu / Chi tiết" title={`${ship.code} · ${ship.name}`} actions={<>
       <Link className={styles.textLink} to="/admin/ships">Về danh sách tàu</Link>
       {access.canDo('SHIP_UPDATE') && <Button size="compact" autoWidth disabled={query.loading} onClick={() => { setSaved(''); setDialog({ type: 'edit', target: { kind: 'ships', item: ship } }) }}>Chỉnh sửa</Button>}
       {access.canDo('SHIP_STATUS_CHANGE') && <Button tone="secondary" size="compact" autoWidth disabled={query.loading} onClick={() => setDialog({ type: 'operation', kind: 'ships', item: ship, operation: 'status' })}>Đổi trạng thái</Button>}
       {(operations.length > 0 || access.canDo('SHIP_DELETE')) && <select aria-label="Thao tác khác với tàu" className={styles.operationSelect} value="" disabled={query.loading} onChange={event => { if (event.target.value === 'delete') setDialog({ type: 'deleteShip' }); else if (event.target.value) setDialog({ type: 'operation', kind: 'ships', item: ship, operation: event.target.value as Operation }) }}><option value="">Thao tác khác</option>{operations.map(([value, label]) => <option key={value} value={value}>{label}</option>)}{access.canDo('SHIP_DELETE') && <option value="delete">Xóa tàu chưa sử dụng</option>}</select>}
     </>} /></div>
-    {query.error && <Notice title="Chưa cập nhật được dữ liệu tàu" tone="error">{query.error}<Button tone="text" onClick={query.retry}>Thử lại</Button></Notice>}
+    {query.error && <Notice title="Chưa cập nhật được dữ liệu tàu" tone="error">{query.error}</Notice>}
     {saved && <Notice title="Đã lưu thay đổi" tone="success">{saved}</Notice>}
     <nav className={styles.tabs} aria-label="Thông tin trong tàu">
       <Link to={`/admin/ships/${id}`} aria-current={tab === 'overview' ? 'page' : undefined}>Tổng quan</Link>
-      {access.canDo('SHIP_CONFIGURATION_READ')&&<Link to={`/admin/ships/${id}?tab=areas`} aria-current={tab==='areas'?'page':undefined}>Khu vực (Areas)</Link>}
-      {(access.canDo('DECK_READ') || access.canDo('CABIN_READ')) && <Link to={`/admin/decks?${new URLSearchParams({ship:id})}`}>Boong & Cabin <span aria-hidden="true">↗</span></Link>}
+      {access.canDo('SHIP_CONFIGURATION_READ')&&<Link to={`/admin/ships/${id}?tab=areas`} aria-current={tab==='areas'?'page':undefined}>Khu vực dịch vụ</Link>}
+      {access.canDo('DECK_READ')&&<Link to={`/admin/ships/${id}?tab=decks`} aria-current={tab==='decks'?'page':undefined}>Boong</Link>}
+      {access.canDo('CABIN_READ')&&<Link to={`/admin/ships/${id}?tab=cabins`} aria-current={tab==='cabins'?'page':undefined}>Phòng</Link>}
     </nav>
     {tab==='areas'?<ShipAreas key={id} shipId={id} initialDeck={params.get('deck')??''}/>:tab === 'overview' ? <ShipOverview ship={ship} /> : <ShipInventory key={`${id}:${tab}:${params.get('deck') ?? ''}`} ship={ship} view={tab} initialDeck={params.get('deck') ?? ''} onDialog={setDialog} />}
     <FleetDialogs dialog={dialog} ship={ship} onChange={setDialog} onSaved={setSaved} />

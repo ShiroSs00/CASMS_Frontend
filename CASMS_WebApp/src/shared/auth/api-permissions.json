@@ -1011,16 +1011,8 @@
     "path": "/ship-model-assets/{modelKey}/{assetVersion}/register",
     "mode": "ALL",
     "permissions": [
-      "SHIP_MODEL_CREATE"
-    ],
-    "anyOf": [
-      {
-        "mode": "ANY",
-        "permissions": [
-          "SHIP_CREATE",
-          "SHIP_UPDATE"
-        ]
-      }
+      "SHIP_MODEL_CREATE",
+      "SHIP_CREATE"
     ],
     "source": "com/casms/ship/controller/ShipModelController.java:96"
   },
@@ -4193,5 +4185,25 @@
         ]
       }
     ]
+  },
+  {
+    "method": "GET",
+    "path": "/ship-model-assets",
+    "mode": "ALL",
+    "permissions": [
+      "SHIP_MODEL_CREATE",
+      "SHIP_CREATE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:78"
+  },
+  {
+    "method": "GET",
+    "path": "/ship-model-assets/{modelKey}/{assetVersion}/preview",
+    "mode": "ALL",
+    "permissions": [
+      "SHIP_MODEL_CREATE",
+      "SHIP_CREATE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:78"
   }
 ]

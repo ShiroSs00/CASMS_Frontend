@@ -16,7 +16,7 @@ export type ImportSession = {
 export const emptySession: ImportSession = { modelKey: '', assetVersion: '', fileName: '', uploaded: false, registration: null, job: null }
 export const importRequirements = {
   upload: { mode: 'ALL', permissions: ['SHIP_UPDATE'] },
-  register: { mode: 'ALL', permissions: ['SHIP_MODEL_CREATE'], anyOf: [{ mode: 'ANY', permissions: ['SHIP_CREATE','SHIP_UPDATE'] }] },
+  register: { mode: 'ALL', permissions: ['SHIP_MODEL_CREATE','SHIP_CREATE'] },
   import: { mode: 'ALL', permissions: ['SHIP_UPDATE'] },
 } satisfies Record<string, PermissionRequirement>
 export function bundleLabel(session: ImportSession) {
