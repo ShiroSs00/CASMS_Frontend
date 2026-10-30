@@ -13,7 +13,13 @@ export function portMatchesScope(port: Geography, info: Scope): boolean {
 
 function clock(zone?: string): string | null {
   if (!zone) return null
-  try { return new Intl.DateTimeFormat('vi-VN', { timeZone: zone }).resolvedOptions().timeZone } catch { return null }
+  try {
+    const canonical=new Intl.DateTimeFormat('vi-VN', { timeZone: zone }).resolvedOptions().timeZone
+    // These port clocks both use UTC+08 throughout the year. A source schedule has
+    // day numbers, not a departure date: do not guess DST offsets for other zones.
+    if(['Asia/Kuala_Lumpur','Asia/Kuching','Asia/Singapore','Singapore'].includes(canonical))return 'PORT_CLOCK_UTC_PLUS_08'
+    return canonical
+  } catch { return null }
 }
 export function samePortClock(first?: string, second?: string): boolean {
   const zone = clock(first)
@@ -78,7 +84,11 @@ export function routeOrderViolations(content: Pick<Content, 'stops'>): Violation
     const previous=ordered[index-1],current=interval(stop)
     if(!previous||!current||!samePortClock(previous.timeZoneId,stop.timeZoneId))return []
     const before=interval(previous)
-    if(!before||before[1]<=current[0]||overlappingStops(stop,[previous]).length)return []
+    if(!before||overlappingStops(stop,[previous]).length)return []
+    if(before[1]===current[0]&&previous.portId!==stop.portId)return [{code:'CLIENT_STOP_ORDER_TIME',severity:'ERROR' as const,entityType:'STOP',clientKey:stop.clientKey,
+      dayNumber:stop.arrivalDayNumber,field:'plannedArrivalTime',fieldPath:'stops[clientKey='+stop.clientKey+'].plannedArrivalTime',
+      message:'Lần ghé '+stop.stopOrder+' tại '+(stop.portName||'cảng đã chọn')+' phải đến sau giờ rời lần ghé '+previous.stopOrder+' tại '+(previous.portName||'cảng trước')+'. Hai cảng khác nhau cần có thời gian di chuyển.'}]
+    if(before[1]<=current[0])return []
     return [{code:'CLIENT_STOP_ORDER_TIME',severity:'ERROR' as const,entityType:'STOP',clientKey:stop.clientKey,
       dayNumber:stop.arrivalDayNumber,field:'plannedArrivalTime',fieldPath:'stops[clientKey='+stop.clientKey+'].plannedArrivalTime',
       message:'Lần ghé '+stop.stopOrder+' có giờ dự kiến đến trước khi lần ghé '+previous.stopOrder+' kết thúc. Kiểm tra lại thứ tự tuyến và giờ dự kiến.'}]

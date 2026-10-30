@@ -37,7 +37,7 @@ export function DayPane({departurePorts,onDeparture,content,day,editable,tab,bus
     </article>
   }
   return <div className={styles.dayPane}>
-    {boundary&&<p className={styles.note}><strong>{scheduleDayLabel(day.dayNumber,content.days.length)}</strong> · {content.days.length===1?'Chọn cảng khởi hành và cảng kết thúc cho chuyến trong ngày.':day.dayNumber===1?'Chọn ngày trên biển hoặc xuống bờ. Ngày trên biển không cần thêm cảng.':'Chọn cảng trả khách để hoàn tất chuyến.'}</p>}
+    {boundary&&tab==='route'&&(needsDeparture||needsEnd)&&<p className={styles.note}><strong>{scheduleDayLabel(day.dayNumber,content.days.length)}</strong> · {content.days.length===1?'Chọn cảng khởi hành và cảng kết thúc cho chuyến trong ngày.':day.dayNumber===1?'Chọn ngày trên biển hoặc xuống bờ. Ngày trên biển không cần thêm cảng.':'Chọn cảng trả khách để hoàn tất chuyến.'}</p>}
     {editable&&tab==='route'?<Panel title={scheduleDayLabel(day.dayNumber,content.days.length)}><div className={styles.grid}>
       {boundary&&<Field htmlFor="planning-day-role" label="Vai trò ngày"><input id="planning-day-role" readOnly value={boundary}/></Field>}
       <Field htmlFor="planning-day-type" label={ending?"Cảng kết thúc":"Ngày này ở đâu?"} error={fieldError('planning-day-type')}>
@@ -55,7 +55,7 @@ export function DayPane({departurePorts,onDeparture,content,day,editable,tab,bus
       {!stops.length?<div className={styles.empty}><strong>{!canConfigurePort&&day.dayType==='SEA_DAY'?'Ngày trên biển':canConfigurePort?(needsDeparture||needsEnd?'Chọn cảng cho ngày '+boundary?.toLocaleLowerCase('vi'):'Chọn cảng ghé cho ngày này'):'Bắt đầu bằng loại ngày'}</strong>{editable&&canConfigurePort&&<Button disabled={busy} onClick={()=>onStop()}>{addPortLabel}</Button>}{editable&&!day.dayType&&<Button tone="secondary" disabled={busy} onClick={()=>document.getElementById('planning-day-type')?.focus()}>Chọn loại ngày</Button>}</div>:<div className={styles.cards}>{stops.map(stop=>{
         const index=ordered.findIndex(s=>s.clientKey===stop.clientKey)
         return <article id={`planning-${stop.clientKey}`} key={stop.clientKey} className={styles.item} draggable={editable&&!busy} onDragStart={e=>e.dataTransfer.setData('text/plain',stop.clientKey)} onDragOver={e=>{if(editable&&!busy)e.preventDefault()}} onDrop={e=>{if(editable&&!busy){e.preventDefault();onOrder(e.dataTransfer.getData('text/plain'),stop.clientKey)}}}>
-          <div className={styles.cardHead}><div><h3>{stop.stopOrder}. {stop.portName??'Cảng'}</h3>{(stop.isEmbarkation||stop.isDisembarkation)&&<p><strong>{stopRoleLabel(stop.isEmbarkation,stop.isDisembarkation)}</strong></p>}<p>Dự kiến: Ngày {stop.arrivalDayNumber} {shortTime(stop.plannedArrivalTime)} → Ngày {stop.departureDayNumber} {shortTime(stop.plannedDepartureTime)}</p><p className={styles.muted}>{stop.timeZoneId??'Múi giờ cảng cần đối chiếu'} · {stop.callType==='OVERNIGHT'?'Qua đêm':stop.callType==='LATE_NIGHT'?'Ghé cảng ban đêm':'Thông thường'}{stop.isEmbarkation?' · Hành khách lên tàu':''}{stop.isDisembarkation?' · Hành khách kết thúc chuyến':''}</p>{stop.countryCode==='VN'&&<p className={styles.muted}>{domesticRegionLabel(stop.domesticRegion)}</p>}{stop.allAboardTime&&<p>Hạn hành khách trở lại tàu: Ngày {stop.allAboardDayNumber} {shortTime(stop.allAboardTime)}</p>}{stop.arrivalDayNumber<day.dayNumber&&<p className={styles.muted}>Tiếp diễn cùng lần ghé từ Ngày {stop.arrivalDayNumber}.</p>}</div><div className={styles.actions}><Button tone="text" disabled={busy} onClick={()=>onStop(stop)}>{editable?'Chỉnh sửa':'Xem chi tiết'}</Button>{editable&&<><Button tone="text" disabled={busy||index===0} onClick={()=>onOrder(stop.clientKey,ordered[index-1].clientKey)}>Lên</Button><Button tone="text" disabled={busy||index===ordered.length-1} onClick={()=>onOrder(stop.clientKey,ordered[index+1].clientKey)}>Xuống</Button><Button tone="text" disabled={busy} onClick={()=>onRemoveStop(stop)}>Xóa lần ghé</Button></>}</div></div>
+          <div className={styles.cardHead}><div><h3>{stop.stopOrder}. {stop.portName??'Cảng'}</h3>{(stop.isEmbarkation||stop.isDisembarkation)&&<p><strong>{stopRoleLabel(stop.isEmbarkation,stop.isDisembarkation)}</strong></p>}<p>Dự kiến: Ngày {stop.arrivalDayNumber} {shortTime(stop.plannedArrivalTime)} → Ngày {stop.departureDayNumber} {shortTime(stop.plannedDepartureTime)}</p><p className={styles.muted}>{stop.timeZoneId??'Múi giờ cảng cần đối chiếu'} · {stop.callType==='OVERNIGHT'?'Qua đêm':stop.callType==='LATE_NIGHT'?'Ghé cảng ban đêm':'Thông thường'}{stop.isEmbarkation?' · Hành khách lên tàu':''}{stop.isDisembarkation?' · Hành khách kết thúc chuyến':''}</p>{stop.countryCode==='VN'&&<p className={styles.muted}>{domesticRegionLabel(stop.domesticRegion)}</p>}{stop.allAboardTime&&<p>Hạn hành khách trở lại tàu: Ngày {stop.allAboardDayNumber} {shortTime(stop.allAboardTime)}</p>}{stop.arrivalDayNumber<day.dayNumber&&<p className={styles.muted}>Tiếp diễn cùng lần ghé từ Ngày {stop.arrivalDayNumber}.</p>}</div><div className={styles.actions}><Button tone="text" disabled={busy} onClick={()=>onStop(stop)}>{editable?'Chỉnh sửa':'Xem chi tiết'}</Button>{editable&&<>{ordered.length>1&&<><Button tone="text" aria-label={'Đưa lần ghé '+stop.stopOrder+' · '+(stop.portName??'Cảng')+' lên trước'} disabled={busy||index<=0} onClick={()=>onOrder(stop.clientKey,ordered[index-1].clientKey)}>Đưa lên trước</Button><Button tone="text" aria-label={'Đưa lần ghé '+stop.stopOrder+' · '+(stop.portName??'Cảng')+' xuống sau'} disabled={busy||index<0||index===ordered.length-1} onClick={()=>onOrder(stop.clientKey,ordered[index+1].clientKey)}>Đưa xuống sau</Button></>}<Button tone="text" disabled={busy} onClick={()=>onRemoveStop(stop)}>Xóa lần ghé</Button></>}</div></div>
         </article>
       })}</div>}
     </Panel>):<Panel title="Chương trình trong ngày">
@@ -63,17 +63,26 @@ export function DayPane({departurePorts,onDeparture,content,day,editable,tab,bus
         <Button disabled={busy} onClick={()=>onEntry('ONBOARD_ACTIVITY')}>Thêm hoạt động trên tàu</Button>
         <Button tone="secondary" disabled={busy||!stops.length} aria-describedby={!stops.length?'planning-shore-reason':undefined} onClick={()=>onEntry('SHORE_EXCURSION',undefined,stops.length===1?stops[0].clientKey:undefined)}>Thêm tour tham quan trên bờ</Button>
       </div>{!stops.length&&<p id="planning-shore-reason" className={styles.muted}>Thêm lần ghé cảng trong Tuyến tàu để lập tour tham quan trên bờ.</p>}</div>}
-      {agenda.length>1&&<p className={styles.muted}>Chương trình được xếp theo giờ trong từng múi giờ. Các nhóm dùng đồng hồ địa phương khác nhau.</p>}
-      {!agenda.length?<p className={styles.empty}>Chưa có chương trình hoặc mốc ghé cảng trong ngày.</p>:<div className={styles.agenda}>{agenda.map(group=>{
-        const targetedStops=new Set<string>()
-        return <section className={styles.agendaGroup} key={group.key} aria-label={`Giờ ${group.clocks.join(', ')}`}><h3>{group.timeZoneId===SHIP_ZONE?'Giờ Việt Nam':`Giờ cảng · ${group.clocks.join(', ')}`} {group.timeZoneId!==SHIP_ZONE&&<span className={styles.muted}>{group.timeZoneId??'Chưa có múi giờ cảng'}</span>}</h3>
-          {group.rows.map(row=>{
-            const stopTarget=row.type==='milestone'&&!targetedStops.has(row.stop.clientKey)
-            if(row.type==='milestone')targetedStops.add(row.stop.clientKey)
-            return agendaRow(row,stopTarget)
-          })}
-        </section>
-      })}</div>}
+      {!agenda.some(group=>group.rows.some(row=>row.type==='entry'))&&<p className={styles.empty}>Chưa có hoạt động hoặc tour tham quan trong ngày này.</p>}
+      <div className={styles.agenda}>{agenda.filter(group=>group.rows.some(row=>row.type==='entry')).map(group=><section className={styles.agendaGroup} key={group.key}>
+        <div className={styles.clockHeading}><h3>{group.timeZoneId===SHIP_ZONE?'Chương trình · Giờ Việt Nam':'Tour tham quan · Giờ địa phương của cảng'}</h3><p>{group.timeZoneId===SHIP_ZONE?'Asia/Ho_Chi_Minh':`${group.clocks.filter(clock=>clock!=='Tàu · Giờ Việt Nam').join(', ')} · ${group.timeZoneId??'Chưa có múi giờ'}`}</p></div>
+        {group.rows.filter(row=>row.type==='entry').map(row=>agendaRow(row,false))}
+      </section>)}</div>
+      {agenda.some(group=>group.rows.some(row=>row.type==='milestone'))&&<section className={styles.portMilestones} aria-label="Mốc ghé cảng trong ngày">
+        <h3>Mốc ghé cảng trong ngày</h3>
+        <div className={styles.agenda}>{agenda.filter(group=>group.rows.some(row=>row.type==='milestone')).map(group=>{
+          const targetedStops=new Set<string>()
+          return <section className={styles.agendaGroup} key={group.key}>
+            <div className={styles.clockHeading}><h4>{group.clocks.filter(clock=>clock!=='Tàu · Giờ Việt Nam').join(', ')||'Cảng ghé'}</h4><p>Giờ địa phương của cảng · {group.timeZoneId??'Chưa có múi giờ'}</p></div>
+            {group.rows.filter(row=>row.type==='milestone').map(row=>{
+              const stopTarget=row.type==='milestone'&&!targetedStops.has(row.stop.clientKey)
+              if(row.type==='milestone')targetedStops.add(row.stop.clientKey)
+              return agendaRow(row,stopTarget)
+            })}
+          </section>
+        })}</div>
+      </section>}
+
     </Panel>}
   </div>
 }

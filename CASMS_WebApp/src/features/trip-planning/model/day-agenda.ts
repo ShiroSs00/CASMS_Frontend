@@ -35,7 +35,7 @@ export function dayAgenda(content: Content, dayNumber: number): AgendaGroup[] {
     if (stop.arrivalDayNumber === dayNumber) add('arrival', 'Đến cảng', stop.plannedArrivalTime)
     else add('continuation', 'Tiếp tục ghé cảng', null)
     if (stop.allAboardDayNumber === dayNumber && stop.allAboardTime) add('aboard', 'Hạn trở lại tàu', stop.allAboardTime)
-    if (stop.departureDayNumber === dayNumber) add('departure', 'Rời cảng', stop.plannedDepartureTime)
+    if (stop.departureDayNumber === dayNumber) add('departure', stop.isDisembarkation?'Hoàn tất trả khách':'Rời cảng', stop.plannedDepartureTime)
   }
   for (const item of groups.values()) {
     const rank=(row:AgendaRow)=>row.type==='entry'?1:row.label==='Đến cảng'||row.label==='Tiếp tục ghé cảng'?0:row.label==='Hạn trở lại tàu'?2:3

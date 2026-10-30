@@ -13,7 +13,6 @@ import {businessCopy,domainStatus} from '@/shared/i18n/business-copy'
 const preparationGroups: readonly { code:string; title:string; destination:DepartureSection }[] = [
   { code:'TECHNICAL_NAUTICAL', title:'Kỹ thuật tàu và hàng hải', destination:'resources' },
   { code:'HOTEL_CABIN', title:'Buồng phòng và cabin', destination:'preparation' },
-  { code:'FOOD_BEVERAGE', title:'Ẩm thực và phục vụ', destination:'program' },
   { code:'ENTERTAINMENT_SHORE', title:'Hoạt động và tham quan trên bờ', destination:'program' },
   { code:'SAFETY_CREW', title:'An toàn và thuyền viên', destination:'resources' },
 ]

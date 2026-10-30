@@ -5,7 +5,7 @@ import { useCallback, useRef, useState } from 'react'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { businessErrorMessage } from '@/shared/api/business-errors'
-import { ApiError } from '@/shared/api'
+import { ApiError, apiRequest } from '@/shared/api'
 import { businessCopy, domainStatus } from '@/shared/i18n/business-copy'
 import { Badge, Button, Field, Loading, Modal, Notice, Panel, RecordFacts } from '@/shared/ui'
 import { mainflowApi, type MainflowAction, type PlanView } from '../api/mainflow-api'
@@ -97,16 +97,49 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
  </Panel>
 }
 function PlanWindows({data,onSaved,editable=true}:{data:PlanView;onSaved:()=>void;editable?:boolean}){
- const [open,setOpen]=useState(false)
+ const [open,setOpen]=useState(false),[attempted,setAttempted]=useState(false),[touched,setTouched]=useState<Record<string,boolean>>({})
  const [windows,setWindows]=useState(data.windows),[error,setError]=useState(''),[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),lock=useRef(false)
  const fields=[['bookingOpensAt','cruise.window.bookingOpen'],['bookingClosesAt','cruise.window.bookingClose'],['guidanceOpensAt','cruise.window.guidanceOpen'],['guidanceClosesAt','cruise.window.guidanceClose']] as const
- async function save(){if(lock.current||uncertain)return;lock.current=true;setBusy(true);setError('');try{await mainflowApi.windows(data,windows);setOpen(false);onSaved()}catch(e){setError(safeError(e));if(!(e instanceof ApiError)||e.status===0||e.status>=500)setUncertain(true)}finally{lock.current=false;setBusy(false)}}
+ type WindowField=typeof fields[number][0]
+ const departure=useReadQuery(`window-departure:${data.cruiseId}:${data.windows.expectedRevision}:${open}`,useCallback(async signal=>{
+  if(!open)return null
+  const cruise=await apiRequest<{cruiseId:string;departureDatetime:string}>(`/cruise/${encodeURIComponent(data.cruiseId)}`,{signal})
+  if(cruise.cruiseId!==data.cruiseId||!Number.isFinite(Date.parse(cruise.departureDatetime)))throw new ApiError('Chưa xác định được giờ khởi hành.',502)
+  return cruise.departureDatetime
+ },[open,data.cruiseId]))
+ const errors:Partial<Record<WindowField,string>>={}
+ const departureAt=departure.data?Date.parse(departure.data):null
+ const precise=(instant:string)=>new Intl.DateTimeFormat('vi-VN',{timeZone:SHIP_TIME_ZONE,dateStyle:'short',timeStyle:'medium'}).format(new Date(instant))
+ for(const [key] of fields)if(!windows[key])errors[key]='Nhập đầy đủ ngày và giờ.'
+ if(windows.bookingOpensAt&&windows.bookingClosesAt&&Date.parse(windows.bookingOpensAt)>=Date.parse(windows.bookingClosesAt))errors.bookingClosesAt='Đóng nhận đặt chỗ phải sau thời điểm mở nhận đặt chỗ.'
+ if(departureAt!==null&&windows.bookingClosesAt&&Date.parse(windows.bookingClosesAt)>=departureAt)errors.bookingClosesAt='Đóng nhận đặt chỗ phải trước giờ khởi hành: '+precise(departure.data!)+'.'
+ if(windows.guidanceOpensAt&&windows.guidanceClosesAt&&Date.parse(windows.guidanceOpensAt)>=Date.parse(windows.guidanceClosesAt))errors.guidanceClosesAt='Kết thúc hướng dẫn phải sau thời điểm bắt đầu hướng dẫn.'
+ if(departureAt!==null&&windows.guidanceClosesAt&&Date.parse(windows.guidanceClosesAt)>departureAt)errors.guidanceClosesAt='Kết thúc hướng dẫn không được sau giờ khởi hành: '+precise(departure.data!)+'.'
+ if(departureAt!==null&&windows.bookingOpensAt&&Date.parse(windows.bookingOpensAt)>=departureAt)errors.bookingOpensAt='Mở nhận đặt chỗ phải trước giờ khởi hành.'
+ if(departureAt!==null&&windows.guidanceOpensAt&&Date.parse(windows.guidanceOpensAt)>=departureAt)errors.guidanceOpensAt='Bắt đầu hướng dẫn phải trước giờ khởi hành.'
+ async function save(){
+  if(lock.current||uncertain||departure.loading||departure.error||!departure.data)return
+  setAttempted(true)
+  const invalid=fields.find(([key])=>errors[key])
+  if(invalid){document.getElementById(invalid[0])?.focus();return}
+  lock.current=true;setBusy(true);setError('')
+  try{await mainflowApi.windows(data,windows);setOpen(false);onSaved()}
+  catch(e){setError(e instanceof ApiError&&e.code==='INVALID_WINDOWS'?'Khung thời gian chưa khớp giờ khởi hành hiện tại. Tải lại giờ khởi hành để đối chiếu rồi chỉnh các mốc trước khi lưu.':safeError(e));if(e instanceof ApiError&&e.code==='INVALID_WINDOWS')departure.retry();if(!(e instanceof ApiError)||e.status===0||e.status>=500)setUncertain(true)}
+  finally{lock.current=false;setBusy(false)}
+ }
  return <>
   <RecordFacts entries={fields.map(([key,label])=>[businessCopy(label),data.windows[key]?journeyTime(data.windows[key]!,SHIP_TIME_ZONE):'Chưa thiết lập'] as const)}/>
-  {editable&&<Button tone="secondary" disabled={busy||uncertain} onClick={()=>{setWindows(data.windows);setError('');setOpen(true)}}>Cấu hình thời gian nhận đặt chỗ và hướng dẫn</Button>}
-  {open&&<Modal wide busy={busy} title={businessCopy('cruise.window.title')} description="Các mốc dưới đây dùng giờ tàu (Việt Nam). Lưu khung thời gian trước khi gửi kế hoạch để duyệt." onClose={()=>setOpen(false)} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setOpen(false)} data-overlay-dismiss>Hủy</Button><Button type="submit" form="plan-windows-form" disabled={busy||uncertain}>{busy?'Đang lưu…':businessCopy('cruise.window.save')}</Button></>}>
-   <form id="plan-windows-form" onSubmit={event=>{event.preventDefault();void save()}}>
-    <fieldset className={styles.formGroup} disabled={busy||uncertain}><legend>Khung thời gian</legend><div className={styles.fieldGrid}>{fields.map(([key,label])=><Field key={key} htmlFor={key} label={businessCopy(label)}><input id={key} type="datetime-local" step={1} value={preparationWallTime(windows[key])} onChange={e=>{try{setWindows({...windows,[key]:preparationInstant(e.target.value)});setError('')}catch{setError(businessCopy('program.time.invalid'))}}}/></Field>)}</div></fieldset>
+  {editable&&<Button tone="secondary" disabled={busy||uncertain} onClick={()=>{setWindows(data.windows);setError('');setAttempted(false);setTouched({});setOpen(true)}}>Cấu hình thời gian nhận đặt chỗ và hướng dẫn</Button>}
+  {open&&<Modal wide busy={busy} title={businessCopy('cruise.window.title')} description="Tất cả ngày giờ bên dưới theo giờ Việt Nam." onClose={()=>setOpen(false)} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setOpen(false)} data-overlay-dismiss>Hủy</Button><Button type="submit" form="plan-windows-form" disabled={busy||uncertain||departure.loading||Boolean(departure.error)||!departure.data}>{busy?'Đang lưu…':businessCopy('cruise.window.save')}</Button></>}>
+   {departure.loading&&<Loading label="Đang tải giờ khởi hành để đối chiếu…"/>}
+   {departure.error&&<Notice title="Chưa tải được giờ khởi hành" tone="error"><Button tone="secondary" onClick={departure.retry}>Tải lại giờ khởi hành</Button></Notice>}
+   {departure.data&&!departure.loading&&!departure.error&&<p><strong>Khởi hành: {precise(departure.data)} · Giờ Việt Nam</strong></p>}
+   <form id="plan-windows-form" noValidate onSubmit={event=>{event.preventDefault();void save()}}>
+    <fieldset className={styles.formGroup} disabled={busy||uncertain}><legend>Khung thời gian</legend><div className={styles.fieldGrid}>{fields.map(([key,label])=>{
+     const fieldError=attempted||touched[key]?errors[key]:undefined
+     const hint=key==='bookingClosesAt'?'Phải đóng trước giờ khởi hành.':key==='guidanceClosesAt'?'Kết thúc chậm nhất vào giờ khởi hành.':undefined
+     return <Field key={key} htmlFor={key} label={businessCopy(label)} error={fieldError} hint={hint}><input id={key} type="datetime-local" required step={1} max={departure.data?preparationWallTime(departure.data):undefined} value={preparationWallTime(windows[key])} onBlur={()=>setTouched(current=>({...current,[key]:true}))} onChange={e=>{try{setWindows({...windows,[key]:preparationInstant(e.target.value)});setTouched(current=>({...current,[key]:true}));setError('')}catch{setError(businessCopy('program.time.invalid'))}}}/></Field>
+    })}</div></fieldset>
    </form>
    {error&&<Notice title="Chưa lưu được khung thời gian" tone="error">{error}</Notice>}
    {uncertain&&<Notice title={businessCopy('cruise.window.unconfirmed')}>{businessCopy('cruise.window.reloadBeforeRetry')}</Notice>}

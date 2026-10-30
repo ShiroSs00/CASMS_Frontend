@@ -117,3 +117,9 @@
 .formGroup{min-width:0;margin:0;padding:16px;border:1px solid #dbe3e8;border-radius:8px}.formGroup legend{padding:0 6px;font-size:14px;font-weight:600;color:#102e47}
 
 .portContext{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px;margin:0;padding:12px 16px;background:#f5f8fa;border-radius:8px}.portContext dt{font-size:12px;color:#617183;margin-bottom:4px}.portContext dd{margin:0;font-size:14px;overflow-wrap:anywhere}
+
+.clockHeading{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 20px;margin-top:20px;padding-bottom:10px;border-bottom:1px solid var(--ui-border)}
+.clockHeading h3,.clockHeading h4{margin:0;font-size:14px;font-weight:600;line-height:1.6;color:var(--ui-ink)}
+.clockHeading p{margin:0;font-size:13px;line-height:1.6;color:var(--ui-muted);overflow-wrap:anywhere}
+.portMilestones{margin-top:28px;padding-top:20px;border-top:1px solid var(--ui-border)}
+.portMilestones>h3{margin:0;font-size:15px;line-height:1.6;color:var(--ui-ink)}
