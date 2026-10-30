@@ -1,7 +1,8 @@
+import { CustomerCabinExperiencePage, CustomerShipsPage } from './CustomerShipPages'
 import type { ComponentType } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router'
 
-import { CruiseSearchPage, CustomerCruiseDetailPage, BookingLookupPage, TravellerDetailsPage, CabinExperiencePage, ReviewBookingPage, MyBookingsPage, BookingDetailPage, ManageBookingPage, CustomerExperiencesPage, TravellerDocumentsPage, OnlineCheckinPage, ArrivalTimePage, BoardingPassPage, PaymentContractPage, ChangeRequestPage } from '@/features/booking'
+import { CruiseSearchPage, CustomerCruiseDetailPage, BookingLookupPage, TravellerDetailsPage, ReviewBookingPage, MyBookingsPage, BookingDetailPage, ManageBookingPage, CustomerExperiencesPage, TravellerDocumentsPage, OnlineCheckinPage, ArrivalTimePage, BoardingPassPage, PaymentContractPage, ChangeRequestPage } from '@/features/booking'
 import { AccessDeniedPage, AdminGuard, CustomerGuard, AuthConceptPage, LoginPage, SessionBoundary } from '@/features/auth'
 
 import { PublicLayout } from './layouts/PublicLayout'
@@ -126,13 +127,13 @@ export const router = createBrowserRouter([{ ErrorBoundary: RouteErrorPage, Hydr
     { path: '/', Component: PublicLayout, children: [
     { index: true, lazy: featurePage(() => import('@/features/home'), 'HomePage') },
     { path: 'destinations', lazy: featurePage(() => import('@/features/home'), 'DestinationsPage') },
-    { path: 'ships', lazy: featurePage(() => import('@/features/home'), 'ShipsPage') },
+    { path: 'ships', Component: CustomerShipsPage },
     { path: 'deals', lazy: featurePage(() => import('@/features/home'), 'DealsPage') },
     { path: 'cruises', Component: CruiseSearchPage },
     { path: 'cruises/:cruiseId', Component: CustomerCruiseDetailPage },
     { path: 'booking/lookup', Component: BookingLookupPage },
     { path: 'booking/travellers', Component: TravellerDetailsPage },
-    { path: 'booking/cabin-experience', Component: CabinExperiencePage },
+    { path: 'booking/cabin-experience', Component: CustomerCabinExperiencePage },
     { path: 'booking/review', Component: ReviewBookingPage },
     { Component: CustomerGuard, children: [
       { path: 'my-bookings', Component: MyBookingsPage },
