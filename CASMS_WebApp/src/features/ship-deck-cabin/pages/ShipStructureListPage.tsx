@@ -54,6 +54,7 @@ function StructurePage({ view: initialView }: { view: 'decks' | 'cabins' }) {
     </Panel>}
     {selected && <nav className={styles.structureTabs} aria-label="Cấu trúc tàu">
       {([['decks', 'Boong', 'DECK_READ'], ['cabins', 'Cabin', 'CABIN_READ']] as const).filter(([, , permission])=>access.canDo(permission)).map(([tab, label])=><Link key={tab} to={`/admin/decks?${new URLSearchParams({ ship:selected.id, view:tab })}`} aria-current={view===tab?'page':undefined}>{label}</Link>)}
+      {access.canDo('SHIP_CONFIGURATION_READ')&&<Link to={`/admin/ships/${selected.id}?tab=areas`}>Khu vực (Areas) <span aria-hidden="true">↗</span></Link>}
     </nav>}
     {selected ? <SelectedInventory key={`${view}:${selected.id}:${params.get('deck') ?? ''}`} ship={selected} view={view} deck={params.get('deck') ?? ''} />
       : null}

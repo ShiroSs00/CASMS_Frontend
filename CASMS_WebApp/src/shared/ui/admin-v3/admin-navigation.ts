@@ -184,6 +184,7 @@ export function roleNavigationItems(roles: readonly string[], access: AdminAcces
   const ordered = sections.flatMap(section => tools.filter(item => item.to === '/admin/' + section))
   return ordered.filter(item=>!(primaryRole==='OPERATIONS_MANAGER'&&item.to==='/admin/trips')&&canOpenAdminItem(item,access)&&canRoleOpenAdminPath(currentRoles,item.to!,'',access))
     .map(item=>primaryRole==='SHIP_MANAGER'&&item.to==='/admin/decks'?{...item,label:'Boong & Cabin'}:item)
+    .filter(item=>primaryRole!=='SHIP_MANAGER'||!['/admin/decks','/admin/cabins'].includes(item.to!))
 }
 export type AdminNavigationGroup = { id: string; label: string; items: AdminNavigationItem[]; direct?: boolean }
 const navigationGroups = [
