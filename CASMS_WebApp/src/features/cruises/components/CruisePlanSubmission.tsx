@@ -9,7 +9,7 @@ import {DepartureScheduleRead} from './DepartureData'
 import styles from './DeparturePreparation.module.css'
 
 export function CruisePlanSubmission({detail,refreshKey,onChanged,onPrepare,onSection}:{detail:CruiseDetailView;refreshKey:string;onChanged:()=>void;onPrepare:()=>void;onSection:(section:DepartureSection)=>void}){
- const [showSchedule,setShowSchedule]=useState(false),[showPricing,setShowPricing]=useState(false)
+ const [showSchedule,setShowSchedule]=useState(false),[showPricing,setShowPricing]=useState(true)
  const cruise=detail.cruise
  return <section className={styles.content} aria-label="Bước 3 · Kiểm tra và gửi OPS">
   <div className={styles.sectionIntro}><h2>Bước 3 · Kiểm tra và gửi OPS</h2></div>
@@ -25,8 +25,8 @@ export function CruisePlanSubmission({detail,refreshKey,onChanged,onPrepare,onSe
     <Button tone="text" onClick={onPrepare}>Quay lại hoàn thiện kế hoạch</Button>
    </div>
    <div id="review-schedule">{showSchedule&&<DepartureScheduleRead cruise={cruise} readOnly/>}</div>
-   <div id="review-pricing">{showPricing&&<DeparturePricingPolicy cruiseId={cruise.cruiseId} readOnly/>}</div>
   </Panel>
+  <div id="review-pricing">{showPricing&&<DeparturePricingPolicy cruiseId={cruise.cruiseId} refreshKey={refreshKey} readOnly/>}</div>
   <CruisePlanReview itineraryMode={cruise.itineraryMode} cruiseId={cruise.cruiseId} refreshKey={refreshKey} onChanged={onChanged} mode="submit" onSection={onSection}/>
  </section>
 }

@@ -1,4 +1,6 @@
 .workspace{display:grid;gap:20px;min-width:0;color:var(--ui-ink,#102e47)}
+.scheduleToolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px 24px;min-width:0}
+@media(max-width:600px){.scheduleToolbar{align-items:stretch;flex-direction:column}}
 .tabs{display:flex;gap:20px;border-bottom:1px solid var(--ui-border,#dce4e8);overflow-x:auto;scrollbar-width:thin}
 .tabs button{flex:none;min-height:42px;padding:8px 0;border:0;border-bottom:2px solid transparent;background:transparent;font:inherit;font-size:14px;color:var(--ui-muted,#52697b);cursor:pointer}
 .tabs button[aria-selected=true]{color:var(--ui-ink,#102e47);border-bottom-color:var(--ui-brand,#102e47);font-weight:600}

@@ -178,7 +178,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
         </div>
       </header>
       <div className={styles.versionContext}>
-        <span>{versions.published?`Mẫu đã chốt: V${versions.published.versionNumber}`:'Chưa có mẫu đã chốt'}{versions.working?` · ${workingVersionLabel(versions.working.status)}: V${versions.working.versionNumber}`:''}</span>
+        <span>{[versions.published?versions.published.versionId!==version.versionId?`Mẫu đã chốt: V${versions.published.versionNumber}`:null:'Chưa có mẫu đã chốt',versions.working&&versions.working.versionId!==version.versionId?`${workingVersionLabel(versions.working.status)}: V${versions.working.versionNumber}`:null].filter(Boolean).join(' · ')}</span>
         <div className={styles.actions}>
           {versions.published&&versions.published.versionId!==version.versionId&&<Button tone="text" size="compact" disabled={Boolean(busy)} onClick={()=>switchVersion(versions.published!.versionId)}>Xem mẫu đã chốt · V{versions.published.versionNumber}</Button>}
           {versions.working&&versions.working.versionId!==version.versionId&&<Button tone="secondary" size="compact" disabled={Boolean(busy)} onClick={()=>switchVersion(versions.working!.versionId)}>{can('TRIP_PLAN_WRITE')&&versions.working.status==='DRAFT'?'Tiếp tục bản nháp':versions.working.status==='DRAFT'?'Xem bản nháp':'Xem bản chờ duyệt'} · V{versions.working.versionNumber}</Button>}
