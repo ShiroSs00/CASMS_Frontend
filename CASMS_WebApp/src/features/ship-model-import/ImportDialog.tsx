@@ -34,10 +34,10 @@ export function ImportDialog({ session, busy, error, allowed, permissions, onPre
       {stage === 1 && (permissions.upload || permissions.register) && <Button tone="secondary" disabled={Boolean(busy) || !allowed} onClick={() => { setStored(false); setFile(null); setErrors({}); onChooseBundle(); heading.current?.focus() }}>Chọn lại gói</Button>}
       {stage === 0 && (stored ? permissions.register : permissions.upload) && <Button type="submit" form="ship-import-form" disabled={Boolean(busy) || !allowed}>{busy || (stored ? 'Dùng gói đã tải' : 'Tải gói dữ liệu')}</Button>}
       {stage === 1 && permissions.register && <Button disabled={Boolean(busy) || !allowed} onClick={() => void onRegister()}>{busy || 'Ghi nhận thông tin tàu'}</Button>}
-      {stage === 2 && permissions.import && <Button disabled={Boolean(busy) || !allowed} onClick={() => void onImport()}>{busy || 'Nhập boong và phòng'}</Button>}
+      {stage === 2 && permissions.import && <Button disabled={Boolean(busy) || !allowed} onClick={() => void onImport()}>{busy || 'Nhập boong, cabin và khu vực'}</Button>}
     </>}>
     <div ref={heading} tabIndex={-1} className={styles.stack}>
-      <ol className={styles.progress} aria-label="Các bước nhập dữ liệu">{['Chọn gói dữ liệu', 'Ghi nhận tàu', 'Nhập boong, phòng'].map((label, i) => <li key={label} aria-current={i === stage ? 'step' : undefined} data-done={i < stage}>{i + 1}. {label}</li>)}</ol>
+      <ol className={styles.progress} aria-label="Các bước nhập dữ liệu">{['Chọn gói dữ liệu', 'Ghi nhận tàu', 'Nhập cấu trúc và khu vực'].map((label, i) => <li key={label} aria-current={i === stage ? 'step' : undefined} data-done={i < stage}>{i + 1}. {label}</li>)}</ol>
       {error && <Notice title="Chưa thể tiếp tục" tone="error">{error}</Notice>}
       {busy && <p className={styles.status} role="status">{busy} Gói lớn có thể cần vài phút. Vui lòng giữ trang mở.</p>}
       {stage === 0 ? <form id="ship-import-form" className={styles.stack} onSubmit={event => void prepare(event)} noValidate aria-busy={Boolean(busy)}>
@@ -54,7 +54,7 @@ export function ImportDialog({ session, busy, error, allowed, permissions, onPre
       </form> : <>
         <dl className={styles.summary}><div><dt>Mã mô hình</dt><dd>{session.modelKey}</dd></div><div><dt>Phiên bản</dt><dd>{session.assetVersion}</dd></div><div className={styles.full}><dt>Gói dữ liệu</dt><dd>{bundleLabel(session)}</dd></div></dl>
         {stage === 1 ? <Notice title="Thông tin lấy từ gói mô hình" tone="info">Tên tàu, sức chứa, số boong, chiều dài và chiều rộng được đọc từ manifest. Hệ thống tạo tàu mới hoặc cập nhật tàu đã liên kết với cùng mã mô hình.</Notice>
-          : <Notice title={session.registration?.shipCreated ? 'Đã tạo thông tin tàu' : 'Đã cập nhật thông tin tàu'} tone="success">Bước tiếp theo sẽ tạo hoặc cập nhật boong, phòng và liên kết với mô hình 3D. Boong kỹ thuật chỉ được lưu trong mô hình.</Notice>}
+          : <Notice title={session.registration?.shipCreated ? 'Đã tạo thông tin tàu' : 'Đã cập nhật thông tin tàu'} tone="success">Bước tiếp theo sẽ nhập boong, cabin và các khu vực vật lý (Areas) được khai báo trong gói mô hình, bao gồm boong kỹ thuật. Nhập lại cùng mã mô hình sẽ cập nhật tàu đã liên kết.</Notice>}
         {stage === 2 && <p className={styles.muted}>Với phòng đã có, hệ thống giữ sức chứa và thông tin hỗ trợ người khuyết tật; các dữ liệu hình học và loại phòng được cập nhật từ mô hình.</p>}
       </>}
     </div>

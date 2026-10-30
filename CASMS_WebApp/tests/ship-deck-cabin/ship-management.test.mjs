@@ -6,36 +6,39 @@ import ts from 'typescript'
 import { permissionPolicy } from '../helpers/permission-policy.mjs'
 
 const jsx = (type, props, key) => ({ type, props, key })
+const reviewedCopy = JSON.parse(readFileSync(new URL('../../src/shared/i18n/vi-business-map.json', import.meta.url), 'utf8'))
 function load(path, imports = {}) {
   const module = { exports: {} }
   const source = ts.transpileModule(readFileSync(new URL('../../src/' + path, import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 } }).outputText
   vm.runInNewContext(source, { module, exports: module.exports, URL, URLSearchParams, require(id) {
     if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
     if (id.endsWith('.module.css')) return { default: {} }
+    if (id === '@/shared/i18n/business-copy') return { businessCopy: key => { assert.ok(key in reviewedCopy); return reviewedCopy[key] } }
     assert.ok(id in imports, id); return imports[id]
   } })
   return module.exports
 }
 const types = load('features/ship-deck-cabin/model/types.ts')
 const model = load('features/ship-deck-cabin/model/ship-management.ts')
+const workPolicy = load('shared/auth/work-policy.ts')
 const ship = { id: 's1', code: 'SH-0001', name: 'Conquest', capacity: 610, totalDecks: 13, deckNumberLimit: 14, status: 'ACTIVE', commissionDate: '', lengthMeters: 290, beamMeters: 35 }
 
-test('Ship Manager keeps direct fleet navigation and all verified effective grants', () => {
-  const nav = load('shared/ui/admin-v3/admin-navigation.ts', {'@/shared/auth': permissionPolicy})
+test('Ship Manager hides standalone deck and cabin menus while retaining permitted ship links', () => {
+  const nav = load('shared/ui/admin-v3/admin-navigation.ts', {'@/shared/auth': {...permissionPolicy, ...workPolicy}})
   const access = { status: 'ready', permissions: ['SHIP_READ', 'DECK_READ', 'CABIN_READ', 'BLE_TELEMETRY_READ', 'SHIP_UPDATE'] }
   const groups = nav.roleNavigationGroups(['SHIP_MANAGER'], access)
-  assert.deepEqual(Array.from(groups.slice(0,4), group => group.label), ['Dashboard', 'Tàu', 'Boong & Cabin', 'Hành khách trên tàu'])
+  assert.deepEqual(Array.from(groups.slice(0,2), group => group.label), ['Tổng quan đội tàu', 'Tàu'])
   const cabinOnly = {status:'ready',permissions:['SHIP_READ','CABIN_READ']}
-  assert.ok(nav.roleNavigationItems(['SHIP_MANAGER'],cabinOnly).some(item=>item.to==='/admin/decks'))
+  assert.ok(!nav.roleNavigationItems(['SHIP_MANAGER'],cabinOnly).some(item=>item.to==='/admin/decks'))
   assert.equal(nav.canRoleOpenAdminPath(['SHIP_MANAGER'],'/admin/decks','',cabinOnly),true)
-  assert.ok(nav.roleNavigationItems(['SHIP_MANAGER'],access).some(item=>item.to==='/admin/cabins'))
+  assert.ok(!nav.roleNavigationItems(['SHIP_MANAGER'],access).some(item=>item.to==='/admin/cabins'))
   assert.ok(groups.every(group => group.direct && group.items.length === 1))
   assert.equal(nav.staffRoleHome(['SHIP_MANAGER'], access), '/admin/fleet-dashboard')
   assert.equal(nav.canRoleOpenAdminPath(['SHIP_MANAGER'], '/admin/ships/new', '', access), false)
   assert.equal(nav.canRoleOpenAdminPath(['SHIP_MANAGER'], '/admin/ships/new', '', { ...access, permissions: [...access.permissions, 'SHIP_CREATE'] }), true)
   assert.equal(nav.canRoleOpenAdminPath(['SHIP_MANAGER'], '/admin/ships/s1/edit', '', access), true)
   assert.equal(nav.roleNavigationGroups(['SHIP_MANAGER'], { status: 'ready', permissions: [] }).length, 0)
-  assert.ok(nav.roleNavigationItems(['ADMIN'], { status: 'ready', permissions: ['SHIP_READ'] }).some(item => item.to === '/admin/fleet-dashboard'))
+  assert.ok(!nav.roleNavigationItems(['ADMIN'], { status: 'ready', permissions: ['SHIP_READ'] }).some(item => item.to === '/admin/fleet-dashboard'))
 })
 
 test('ship-scoped reads retrieve every page and reject a response belonging to another ship', async () => {
@@ -91,8 +94,8 @@ test('standalone structure screens do not mount inventory before a valid ship is
     const page = load('features/ship-deck-cabin/pages/ShipStructureListPage.tsx', {
       react: { useState: value => [value, () => {}], useCallback: fn => fn },
       'react-router': { Link: 'Link', useSearchParams: () => [new URLSearchParams(query), () => {}] },
-      '@/shared/auth': { useSessionAccess: () => ({ has: () => true }) },
-      '@/shared/ui': Object.fromEntries(['Button', 'Empty', 'Field', 'Loading', 'Notice', 'PageHeader', 'Panel'].map(key => [key, key])),
+      '@/shared/auth': { useSessionAccess: () => ({ has: () => true, canDo: () => true }) },
+      '@/shared/ui': {...Object.fromEntries(['Button', 'Empty', 'Field', 'Loading', 'Notice', 'PageHeader', 'Panel'].map(key => [key, key])), PermissionLink: 'Link'},
       '@/shared/ui/admin-v3': { AdminShell: 'AdminShell' },
       '../api/ship-deck-cabin-api': { shipDeckCabinApi: {} },
       '../hooks/useFleetQuery': { useFleetQuery: scope => { scopes.push(scope); return { data: [ship], loading: false, error: '' } } },

@@ -9,6 +9,7 @@ import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { useFleetQuery } from '../hooks/useFleetQuery'
 import { FleetDialogs, type FleetDialog } from '../components/FleetDialogs'
 import { ShipInventory } from '../components/ShipInventory'
+import {ShipAreas} from '../components/ShipAreas'
 import { StatusBadge } from '../components/Common'
 import { operationPermission } from '../model/permissions'
 import { formatDate, type Ship } from '../model/types'
@@ -63,7 +64,7 @@ function ShipManagementContent({ id }: { id: string }) {
   const ship = query.data
   if (!ship) return <>{query.loading ? <Loading label="Đang tải thông tin tàu…" /> : query.error ? <Notice title="Không tải được tàu" tone="error">{query.error}<Button onClick={query.retry}>Thử lại</Button></Notice> : <Empty title="Không tìm thấy tàu"><Link to="/admin/ships">Về danh sách tàu</Link></Empty>}</>
   const requested = params.get('tab')
-  const tab = requested === 'decks' && access.canDo('DECK_READ') ? 'decks' : requested === 'cabins' && access.canDo('CABIN_READ') ? 'cabins' : 'overview'
+  const tab = requested === 'areas' && access.canDo('SHIP_CONFIGURATION_READ') ? 'areas' : requested === 'decks' && access.canDo('DECK_READ') ? 'decks' : requested === 'cabins' && access.canDo('CABIN_READ') ? 'cabins' : 'overview'
   const operationChoices: Array<[Operation, string]> = [['ready', 'Kiểm tra sẵn sàng'], ['schedule', 'Kiểm tra lịch trống'], ['affected', 'Chuyến bị ảnh hưởng'], ['validate', 'Kiểm tra cấu hình']]
   const operations = operationChoices.filter(([operation]) => access.canDo(operationPermission('ships', operation)))
   return <div className={styles.stack}>
@@ -77,9 +78,10 @@ function ShipManagementContent({ id }: { id: string }) {
     {saved && <Notice title="Đã lưu thay đổi" tone="success">{saved}</Notice>}
     <nav className={styles.tabs} aria-label="Thông tin trong tàu">
       <Link to={`/admin/ships/${id}`} aria-current={tab === 'overview' ? 'page' : undefined}>Tổng quan</Link>
+      {access.canDo('SHIP_CONFIGURATION_READ')&&<Link to={`/admin/ships/${id}?tab=areas`} aria-current={tab==='areas'?'page':undefined}>Khu vực (Areas)</Link>}
       {(access.canDo('DECK_READ') || access.canDo('CABIN_READ')) && <Link to={`/admin/decks?${new URLSearchParams({ship:id})}`}>Boong & Cabin <span aria-hidden="true">↗</span></Link>}
     </nav>
-    {tab === 'overview' ? <ShipOverview ship={ship} /> : <ShipInventory key={`${id}:${tab}:${params.get('deck') ?? ''}`} ship={ship} view={tab} initialDeck={params.get('deck') ?? ''} onDialog={setDialog} />}
+    {tab==='areas'?<ShipAreas key={id} shipId={id} initialDeck={params.get('deck')??''}/>:tab === 'overview' ? <ShipOverview ship={ship} /> : <ShipInventory key={`${id}:${tab}:${params.get('deck') ?? ''}`} ship={ship} view={tab} initialDeck={params.get('deck') ?? ''} onDialog={setDialog} />}
     <FleetDialogs dialog={dialog} ship={ship} onChange={setDialog} onSaved={setSaved} />
   </div>
 }

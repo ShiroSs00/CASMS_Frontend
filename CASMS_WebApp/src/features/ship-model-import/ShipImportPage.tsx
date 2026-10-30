@@ -121,7 +121,7 @@ function ShipImportContent({ userId }: { userId: string }) {
         {history.error && <Notice title="Chưa xác nhận được trạng thái nhập" tone="error">{history.error.message}<Button tone="text" onClick={history.retry}>Kiểm tra lại</Button></Notice>}
         {job && <>
           <dl className={styles.metrics}><div><dt>Boong đã nhập</dt><dd>{job.decksImported}</dd></div><div><dt>Phòng đã nhập</dt><dd>{job.cabinsImported}</dd></div><div><dt>Mục cần xử lý</dt><dd>{job.objectsFailed}</dd></div></dl>
-          {job.status === 'SUCCEEDED' && <Notice title="Đã ghi nhận cấu trúc tàu" tone="success">Thông tin tàu, boong và phòng đã được lưu. Boong kỹ thuật được lưu riêng trong mô hình.</Notice>}
+          {job.status === 'SUCCEEDED' && <Notice title="Đã ghi nhận cấu trúc tàu" tone="success">Đã hoàn tất nhập gói mô hình. Mở hồ sơ tàu, chọn Khu vực (Areas) để kiểm tra các khu vực vật lý đã nhập.</Notice>}
           {job.status === 'PARTIAL' && <Notice title="Một số mục chưa được nhập" tone="warning">Các mục hợp lệ đã được lưu. Kiểm tra lỗi bên dưới trước khi chuẩn bị gói dữ liệu đã chỉnh sửa.</Notice>}
           {job.status === 'FAILED' && <Notice title="Lượt nhập không thành công" tone="error">Kiểm tra dữ liệu của gói và chi tiết lỗi trước khi thử lại.{job.errorMessage && <details><summary>Chi tiết kỹ thuật</summary><p>{job.errorMessage}</p></details>}</Notice>}
           {running && <p role="status" className={styles.status}>Hệ thống đang xử lý. Trạng thái được cập nhật tự động.</p>}
