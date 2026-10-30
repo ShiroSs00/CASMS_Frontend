@@ -41,13 +41,13 @@ export function subscribeApiUnauthorized(listener: () => void) {
 const baseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 
 /** Authenticated asset bytes; credentials are only sent through the configured API origin. */
-export async function apiAsset(path: string, signal: AbortSignal, progress?: (loaded: number, total: number) => void): Promise<ArrayBuffer> {
-  if (!/^\/ships\/[^/]+\/models\/[^/]+\/assets\//.test(path) || path.includes('..') || /[?#\\]/.test(path)) throw new ApiError('Đường dẫn asset không hợp lệ.', 400)
-  const token = accessToken, generation = sessionGeneration
+export async function apiAsset(path: string, signal: AbortSignal, progress?: (loaded: number, total: number) => void, publicModel = false): Promise<ArrayBuffer> {
+  if (!(publicModel ? /^\/ships\/[^/]+\/public-model\/[^/]+\/assets\/[\w./-]+\.glb$/.test(path) : /^\/ships\/[^/]+\/models\/[^/]+\/assets\//.test(path)) || path.includes('..') || /[?#\\]/.test(path)) throw new ApiError('Đường dẫn asset không hợp lệ.', 400)
+  const token = publicModel ? null : accessToken, generation = sessionGeneration
   const required = apiPermissionRequirement(path)
   const checkAccess = () => {
     if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
-    if (!token || !required || !hasPermissions(getSessionAccess(), required)) throw new ApiError('Bạn chưa được cấp quyền đọc asset mô hình.', token ? 403 : 401, 'ACCESS_DENIED')
+    if (!publicModel && (!token || !required || !hasPermissions(getSessionAccess(), required))) throw new ApiError('Bạn chưa được cấp quyền đọc asset mô hình.', token ? 403 : 401, 'ACCESS_DENIED')
   }
   checkAccess()
   const controller = new AbortController()
@@ -56,7 +56,7 @@ export async function apiAsset(path: string, signal: AbortSignal, progress?: (lo
   signal.addEventListener('abort', abort, { once: true })
   if (signal.aborted) abort()
   try {
-    const response = await fetch(`${baseUrl}${path}`, { signal: controller.signal, headers: { Authorization: `Bearer ${token}` } })
+    const response = await fetch(`${baseUrl}${path}`, { signal: controller.signal, headers: token ? { Authorization: `Bearer ${token}` } : {} })
     checkAccess()
     if (!response.ok) {
       if (response.status === 401 && token === accessToken) unauthorizedListeners.forEach(listener => listener())

@@ -8,3 +8,5 @@ export { RealBookingCreatePage } from './pages/RealBookingCreatePage'
 export { CustomerExperiencesPage } from './pages/CustomerExperiencesPage'
 export { FinanceBookingsPage } from './pages/FinanceBookingsPage'
 export { CheckinDesk } from './pages/CheckinDesk'
+
+export type { BookingModelContext, BookingModelRenderer } from './components/BookingShipModel'

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { BookingFaq, DestinationDiscovery, FinalCta, ShipStory } from '../components/LandingSections'
 import { asianPorts } from '../model/asian-ports'
@@ -33,11 +34,11 @@ export function DestinationsPage() {
   </div>
 }
 
-export function ShipsPage() {
+export function ShipsPage({ explorer }: { explorer?: ReactNode }) {
   return <div className={`${landing.home} ${styles.page}`}>
     <title>Tàu & không gian trên biển | OceVie</title>
     <DiscoveryHeading kind="ships" />
-    <div className={`${landing.container} ${styles.content}`}><ShipStory /><BookingFaq /><FinalCta /></div>
+    <div className={`${landing.container} ${styles.content}`}>{explorer}<ShipStory /><BookingFaq /><FinalCta /></div>
   </div>
 }
 
