@@ -1,3 +1,4 @@
+import {useSessionAccess} from '@/shared/auth'
 import { CollectionSummary, DataTable, Field, ListFilters } from '@/shared/ui'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
@@ -8,6 +9,7 @@ import type {
   RegulationListQuery,
 } from '../model/regulation'
 import {
+  regulationInput,
   formatDateTime,
   scopeLabels,
   typeLabels,
@@ -28,12 +30,13 @@ const emptyQuery: RegulationListQuery = {
   type: 'ALL',
   scope: 'ALL',
   status: 'ALL',
-  effectiveAt: new Date().toISOString().slice(0, 16),
+  effectiveAt: regulationInput(Date.now()),
 }
 export function RegulationListPage() {
   const navigate = useNavigate()
-  const [query, setQuery] = useState(emptyQuery)
-  const [appliedQuery, setAppliedQuery] = useState(emptyQuery)
+  const access=useSessionAccess()
+  const [query, setQuery] = useState(()=>({...emptyQuery,effectiveAt:regulationInput(Date.now())}))
+  const [appliedQuery, setAppliedQuery] = useState(query)
   const [items, setItems] = useState<RegulationListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -59,13 +62,15 @@ export function RegulationListPage() {
   const applyFilters = () => {
     setLoading(true)
     setError('')
-    setAppliedQuery({ ...query })
+    const next={...query,effectiveAt:query.effectiveAt||regulationInput(Date.now())}
+    setQuery(next);setAppliedQuery(next)
   }
   const resetFilters = () => {
     setLoading(true)
     setError('')
-    setQuery(emptyQuery)
-    setAppliedQuery({ ...emptyQuery })
+    const next={...emptyQuery,effectiveAt:regulationInput(Date.now())}
+    setQuery(next)
+    setAppliedQuery(next)
   }
 
   return (
@@ -73,8 +78,8 @@ export function RegulationListPage() {
       <PageHeader
         title="Quy định vận hành"
 
-        actions={
-          <Button onClick={() => navigate('/admin/regulations/new')}>
+        actions={access.canDo('REGULATION_CREATE')&&
+          <Button disabled={!access.canDo('REGULATION_CREATE')} onClick={() => {if(access.canDo('REGULATION_CREATE'))navigate('/admin/regulations/new')}}>
             Tạo quy định
           </Button>
         }
@@ -127,7 +132,7 @@ export function RegulationListPage() {
               <option value="ALL">Tất cả</option>
               <option value="GLOBAL">Toàn hệ thống</option>
               <option value="SHIP">Theo tàu</option>
-              <option value="CRUISE">Theo chuyến</option>
+              <option value="CRUISE">Theo lần khởi hành</option>
             </select>
           </Field>
           <Field htmlFor="reg-status" label="Trạng thái">
@@ -143,12 +148,12 @@ export function RegulationListPage() {
             >
               <option value="ALL">Tất cả</option>
               <option value="DRAFT">Bản nháp</option>
-              <option value="ACTIVE">Đang hoạt động</option>
-              <option value="INACTIVE">Ngừng hoạt động</option>
+              <option value="ACTIVE">Đã kích hoạt</option>
+              <option value="INACTIVE">Đã ngừng kích hoạt</option>
               <option value="EXPIRED">Hết hạn</option>
             </select>
           </Field>
-          <Field htmlFor="reg-effective-at" label="Hiệu lực tại thời điểm">
+          <Field htmlFor="reg-effective-at" label="Tra cứu hiệu lực lúc · Giờ Việt Nam">
             <input
               id="reg-effective-at"
               onChange={(event) =>
@@ -158,13 +163,14 @@ export function RegulationListPage() {
                 }))
               }
               type="datetime-local"
+              step={1}
               value={query.effectiveAt}
             />
           </Field>
         </ListFilters>
       </Panel>
 
-      <Panel title={`Danh sách quy định · ${items.length}`}>
+      <Panel title={loading||error?'Danh sách quy định':`Danh sách quy định · ${items.length}`} >
         {loading ? <LoadingPanel /> : null}
         {!loading && error ? (
           <Notice title="Không tải được dữ liệu" tone="error" role="alert">
@@ -193,9 +199,9 @@ export function RegulationListPage() {
         {!loading && !error && items.length ? (
           <>
             <p className={styles.resultsMeta}>
-              Kết quả tính hiệu lực tại {formatDateTime(appliedQuery.effectiveAt)}.
+              Hiệu lực tại {formatDateTime(appliedQuery.effectiveAt)} · Giờ Việt Nam.
             </p>
-            <DataTable label="Danh sách quy định" headers={['Mã / tên quy định', 'Loại', 'Phạm vi', 'Trạng thái', 'Hiệu lực', 'Thao tác']}>
+            <DataTable label="Danh sách quy định" headers={['Mã / tên quy định', 'Loại', 'Phạm vi', 'Trạng thái kích hoạt', 'Hiệu lực tại thời điểm tra cứu', 'Thao tác']}>
 
                   {items.map((item) => (
                     <tr key={item.id}>

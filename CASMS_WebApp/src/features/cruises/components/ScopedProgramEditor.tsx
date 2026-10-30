@@ -6,7 +6,7 @@ import {SHIP_TIME_ZONE,zonedInput} from '@/shared/lib/journey-time'
 import {programInstant} from '../model/program-time'
 import styles from './ManagerWorkspace.module.css'
 
-export type EditableProgram={id:string;name:string;serviceId?:string;cruiseStopId?:string|null;supplierId?:string|null;startsAt?:string;endsAt?:string;location?:string;capacity?:number|null}
+export type EditableProgram={id:string;name:string;serviceId?:string;cruiseStopId?:string|null;supplierId?:string|null;startsAt?:string;endsAt?:string;location?:string|null;capacity?:number|null}
 type Excursion={shoreExcursionId:string;cruiseStopId:string;supplierId:string;excursionName:string;meetingPoint:string;startTime:string;plannedReturnTime:string;minimumParticipants:number|null;maximumCapacity:number;price:number|null;currencyCode:string|null}
 type Choice={id:string;name:string;scheduled?:boolean;sequence?:number;timeZoneId?:string|null}
 export function ScopedProgramEditor({cruiseId,kind,entry,revision,options,onClose,onSaved}:{cruiseId:string;kind:'excursions'|'serving-windows';entry:EditableProgram;revision:number;options:{services:Choice[];suppliers:Choice[];stops:Choice[]};onClose:()=>void;onSaved:()=>void}){
@@ -24,6 +24,7 @@ export function ScopedProgramEditor({cruiseId,kind,entry,revision,options,onClos
  async function save(event:FormEvent<HTMLFormElement>){
   event.preventDefault();if(lock.current||unknown||!query.data)return
   const form=new FormData(event.currentTarget),text=(key:string)=>String(form.get(key)??'').trim(),stopId=text('stop')||null
+  if(!shore&&!options.services.some(s=>s.id===text('service')&&s.scheduled)){setError('Chọn dịch vụ khả dụng trên tàu. Ship Manager cần cập nhật nếu dịch vụ đang dùng đã bị gỡ.');return}
   let start:string,end:string
   try{const tz=stopId?options.stops.find(s=>s.id===stopId)?.timeZoneId:undefined;start=programInstant(text('start'),Boolean(stopId),tz);end=programInstant(text('end'),Boolean(stopId),tz)}catch{setError('Kiểm tra giờ bắt đầu, kết thúc và múi giờ cảng.');return}
   const body=shore?{cruiseStopId:stopId,supplierId:text('supplier'),excursionName:text('name'),meetingPoint:text('location'),startTime:start,plannedReturnTime:end,minimumParticipants:tour?.minimumParticipants??null,maximumCapacity:Number(text('capacity')),price:Number(text('price')),currencyCode:'USD'}:{serviceId:text('service'),cruiseStopId:stopId,supplierId:text('supplier')||null,startsAt:start,endsAt:end,location:text('location'),capacity:Number(text('capacity'))}
@@ -47,10 +48,10 @@ export function ScopedProgramEditor({cruiseId,kind,entry,revision,options,onClos
  return <Modal wide busy={busy} title={title} onClose={onClose} footer={<><Button tone="secondary" disabled={busy} onClick={onClose}>Đóng</Button>{deleting?<Button tone="danger" disabled={busy||unknown} onClick={()=>void remove()}>Xóa nội dung đã chọn</Button>:<Button type="submit" form="scoped-program-edit" disabled={busy||unknown||!query.data||!zone}>Lưu thay đổi</Button>}</>}>
   {query.loading&&<Loading/>}{query.error&&<Notice title="Chưa tải được nội dung" tone="error">{query.error.message}<Button onClick={query.retry}>Tải lại</Button></Notice>}
   {query.data&&!deleting&&<form id="scoped-program-edit" onSubmit={save} className={styles.modalForm}><fieldset disabled={busy||unknown}>
-   {shore?<Field htmlFor="scoped-name" label="Tên tour"><input id="scoped-name" name="name" defaultValue={tour?.excursionName} required/></Field>:<Field htmlFor="scoped-service" label="Dịch vụ"><select id="scoped-service" name="service" defaultValue={window?.serviceId} required>{options.services.filter(s=>s.scheduled||s.id===window?.serviceId).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>}
+   {shore?<Field htmlFor="scoped-name" label="Tên tour"><input id="scoped-name" name="name" defaultValue={tour?.excursionName} required/></Field>:<Field htmlFor="scoped-service" label="Dịch vụ"><select id="scoped-service" name="service" defaultValue={window?.serviceId} required><option value="">Chọn dịch vụ khả dụng trên tàu</option>{window?.serviceId&&!options.services.some(s=>s.id===window.serviceId)&&<option value={window.serviceId} disabled>Dịch vụ đang dùng không còn khả dụng trên tàu</option>}{options.services.filter(s=>s.scheduled||s.id===window?.serviceId).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>}
    <Field htmlFor="scoped-stop" label="Lần ghé cảng"><select id="scoped-stop" name="stop" defaultValue={stop??''} required={shore}><option value="">{shore?'Chọn lần ghé cảng':'Trên tàu'}</option>{options.stops.map(s=><option key={s.id} value={s.id}>Lần {s.sequence} · {s.name}</option>)}</select></Field>
    <Field htmlFor="scoped-supplier" label="Nhà cung cấp"><select id="scoped-supplier" name="supplier" defaultValue={tour?.supplierId??window?.supplierId??''} required={shore}><option value="">Chưa chọn nhà cung cấp</option>{options.suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>
-   <Field htmlFor="scoped-location" label={shore?'Điểm tập trung':'Địa điểm phục vụ'}><input id="scoped-location" name="location" defaultValue={tour?.meetingPoint??window?.location} required/></Field>
+   <Field htmlFor="scoped-location" label={shore?'Điểm tập trung':'Địa điểm phục vụ'}><input id="scoped-location" name="location" defaultValue={tour?.meetingPoint??window?.location??''} required/></Field>
    <p>{stop?'Giờ địa phương cảng; kiểm tra múi giờ khi đổi lần ghé.':'Giờ tàu Việt Nam.'}</p>
    <Field htmlFor="scoped-start" label="Bắt đầu"><input id="scoped-start" name="start" type="datetime-local" step={1} defaultValue={wall(tour?.startTime??window?.startsAt)} required/></Field>
    <Field htmlFor="scoped-end" label="Kết thúc"><input id="scoped-end" name="end" type="datetime-local" step={1} defaultValue={wall(tour?.plannedReturnTime??window?.endsAt)} required/></Field>

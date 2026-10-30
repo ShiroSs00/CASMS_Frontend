@@ -43,3 +43,6 @@
 @media(max-width:1100px){.workLinks{grid-template-columns:1fr}}
 .stepNavigation{min-width:0;scroll-margin-top:96px}
 @media(max-width:900px){.stepNavigation{scroll-margin-top:16px}}
+
+.reviewFooter{display:flex;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--ui-border)}
+@media(max-width:600px){.reviewFooter button{width:100%}}

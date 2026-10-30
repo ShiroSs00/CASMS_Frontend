@@ -1,6 +1,6 @@
 import {businessCopy} from '@/shared/i18n/business-copy'
 import {Button, Panel} from '@/shared/ui'
-import {allowedDepartureSections, type DepartureSection} from '../model/preparation'
+import {type DepartureSection} from '../model/preparation'
 import {CruisePlanReview} from './CruisePlanReview'
 import {DeparturePricingPolicy} from './DeparturePricingPolicy'
 import {useSessionAccess} from '@/shared/auth'
@@ -13,14 +13,22 @@ export function CruisePlanWorkspace({cruiseId,refreshKey,onChanged,onSection,sec
 }) {
  const access=useSessionAccess()
  const manager=access.roles.includes('CRUISE_MANAGER')&&!access.roles.includes('OPERATIONS_MANAGER')
- return <Panel title={manager?'Bước 2 · Hoàn thiện hồ sơ':businessCopy('cruise.plan.workspace.title')}>
+ if(manager)return <>
+  <CruisePlanReview cruiseId={cruiseId} refreshKey={refreshKey} mode="summary" onReview={onReview}/>
+  <CruisePlanReview cruiseId={cruiseId} refreshKey={refreshKey} onChanged={onChanged} mode="prepare"/>
+  <DeparturePricingPolicy cruiseId={cruiseId} refreshKey={refreshKey} onChanged={onChanged}/>
+ </>
+ if(access.roles.includes('OPERATIONS_MANAGER'))return <>
+  <CruisePlanReview cruiseId={cruiseId} refreshKey={refreshKey} onChanged={onChanged} mode="prepare"/>
+  <DeparturePricingPolicy cruiseId={cruiseId} readOnly/>
+ </>
+ return <Panel title={businessCopy('cruise.plan.workspace.title')}>
   <nav className={styles.workspaceNav} aria-label={businessCopy('cruise.plan.workspace.inputs')}>
    {([['schedule','cruise.plan.workspace.schedule'],['resources','cruise.plan.workspace.ship'],['program','cruise.plan.workspace.program']] as const)
     .filter(([section])=>sections.includes(section))
-    .map(([section,key],index)=><Button key={section} tone="secondary" onClick={()=>onSection(section)}>{manager&&<span className={styles.stepNumber} aria-hidden="true">0{index+1}</span>}{manager?allowedDepartureSections(access).find(([candidate])=>candidate===section)?.[1]:businessCopy(key)}</Button>)}
+    .map(([section,key])=><Button key={section} tone="secondary" onClick={()=>onSection(section)}>{businessCopy(key)}</Button>)}
   </nav>
-  <CruisePlanReview cruiseId={cruiseId} refreshKey={refreshKey} onChanged={onChanged} mode={manager?'prepare':'all'}/>
-  <DeparturePricingPolicy cruiseId={cruiseId} onChanged={onChanged}/>
-  {manager&&onReview&&<div className={styles.planActions}><Button onClick={onReview}>Tiếp tục: Kiểm tra và gửi duyệt</Button></div>}
+  <CruisePlanReview cruiseId={cruiseId} refreshKey={refreshKey} onChanged={onChanged} mode="prepare"/>
+  <DeparturePricingPolicy readOnly cruiseId={cruiseId} onChanged={onChanged}/>
  </Panel>
 }

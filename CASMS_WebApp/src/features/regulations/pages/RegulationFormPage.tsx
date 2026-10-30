@@ -4,6 +4,7 @@ import { useSessionAccess } from '@/shared/auth'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
 
+import { regulationInput,regulationInstant } from '../model/regulation'
 import { ApiError } from '@/shared/api'
 
 import { regulationsApi } from '../api/regulations-api'
@@ -40,6 +41,8 @@ const initialDraft: RegulationDraft = {
   effectiveTo: null,
 }
 
+function validRegulationTime(value:string){try{regulationInstant(value);return true}catch{return false}}
+
 function validate(draft: RegulationDraft) {
   const errors: FormErrors = {}
   const code = draft.code.trim().toUpperCase()
@@ -54,7 +57,7 @@ function validate(draft: RegulationDraft) {
   else if (val.length > 100) errors.value = 'Giá trị quy định không được vượt quá 100 ký tự.'
   else if (draft.type === 'SPEED') {
     const num = Number(val)
-    if (isNaN(num) || num <= 0 || num > 100) errors.value = 'Tốc độ phải là số dương hợp lệ từ 0.1 đến 100 hải lý/h.'
+    if (isNaN(num) || num <= 0 || num > 100) errors.value = 'Tốc độ phải lớn hơn 0 và không vượt quá 100 hải lý/giờ.'
   } else if (draft.type === 'CAPACITY') {
     const num = Number(val)
     if (!Number.isSafeInteger(num) || num <= 0 || num > 100000) errors.value = 'Sức chứa phải là số nguyên dương hợp lệ.'
@@ -64,11 +67,11 @@ function validate(draft: RegulationDraft) {
   }
 
   if (!draft.effectiveFrom) errors.effectiveFrom = 'Vui lòng chọn thời điểm bắt đầu hiệu lực.'
-  else if (Number.isNaN(Date.parse(draft.effectiveFrom))) errors.effectiveFrom = 'Thời điểm bắt đầu không hợp lệ.'
+  else if (!validRegulationTime(draft.effectiveFrom)) errors.effectiveFrom = 'Thời điểm bắt đầu không hợp lệ.'
 
   if (draft.effectiveTo) {
-    if (Number.isNaN(Date.parse(draft.effectiveTo))) errors.effectiveTo = 'Thời điểm kết thúc không hợp lệ.'
-    else if (new Date(draft.effectiveTo).getTime() <= new Date(draft.effectiveFrom).getTime()) {
+    if (!validRegulationTime(draft.effectiveTo)) errors.effectiveTo = 'Thời điểm kết thúc không hợp lệ.'
+    else if (validRegulationTime(draft.effectiveFrom)&&Date.parse(regulationInstant(draft.effectiveTo)) <= Date.parse(regulationInstant(draft.effectiveFrom))) {
       errors.effectiveTo = 'Thời điểm kết thúc phải sau thời điểm bắt đầu.'
     }
   }
@@ -76,10 +79,7 @@ function validate(draft: RegulationDraft) {
 }
 
 function toDraft(regulation: MockRegulation): RegulationDraft {
-  const localTime = (value: string) => {
-    const date = new Date(value)
-    return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
-  }
+
   return {
     code: regulation.code,
     name: regulation.name,
@@ -88,8 +88,8 @@ function toDraft(regulation: MockRegulation): RegulationDraft {
     scope: regulation.scope,
     value: regulation.value,
     unit: regulation.unit,
-    effectiveFrom: localTime(regulation.effectiveFrom),
-    effectiveTo: regulation.effectiveTo ? localTime(regulation.effectiveTo) : null,
+    effectiveFrom: regulationInput(regulation.effectiveFrom),
+    effectiveTo: regulation.effectiveTo ? regulationInput(regulation.effectiveTo) : null,
   }
 }
 
@@ -154,7 +154,6 @@ export function RegulationFormPage() {
       let saved: MockRegulation
       if (source) {
         const update: RegulationUpdate = { ...draft, version: source.version }
-        if (source.hasBeenActive) delete update.value
         saved = await regulationsApi.update(source.id, update)
       } else {
         saved = await regulationsApi.create(draft)
@@ -198,22 +197,15 @@ export function RegulationFormPage() {
         description={
           isEdit
             ? `${source?.code ?? 'Chưa tải được quy định'} · Chỉ các trường được phép mới có thể cập nhật.`
-            : 'Quy định mới được lưu ở trạng thái DRAFT.'
+            : 'Quy định mới được lưu ở trạng thái nháp.'
         }
       />
-      {source?.hasBeenActive ? (
-        <Notice title="Giá trị đã được bảo vệ" tone="warning">
-          <span id="protected-value-note">
-            Quy định từng ACTIVE nên giá trị được giữ nguyên khi cập nhật.
-          </span>
-        </Notice>
-      ) : null}
       {submitError ? <Notice title="Không lưu được dữ liệu" tone="error" role="alert">{submitError}</Notice> : null}
 
       <EditorLayout ><form noValidate onSubmit={(event) => void submit(event)}>
         <Panel title="Thông tin quy định">
           <FormErrorSummary errors={errors} />
-          <div className={styles.formGrid}><FormSection title="01 · Nội dung và phạm vi">
+          <div className={styles.formGrid}><FormSection title="Nội dung và phạm vi">
             <Field error={errors.name} htmlFor="name" label="Tên quy định">
               <input
                 aria-invalid={Boolean(errors.name)}
@@ -244,29 +236,14 @@ export function RegulationFormPage() {
                 onChange={(event) => setValue('scope', event.target.value as RegulationScope)}
                 value={draft.scope}
               >
-                <option value="GLOBAL">GLOBAL · Toàn hệ thống</option>
-                <option value="SHIP">SHIP · Theo tàu</option>
-                <option value="CRUISE">CRUISE · Theo chuyến</option>
+                <option value="GLOBAL">Toàn hệ thống</option>
+                <option value="SHIP">Theo tàu</option>
+                <option value="CRUISE">Theo lần khởi hành</option>
               </select>
             </Field>
-            </FormSection><FormSection title="02 · Giá trị và đơn vị"><Field error={errors.value} htmlFor="value" label="Giá trị">
-              {source?.hasBeenActive ? (
-                <input
-                  aria-describedby="protected-value-note"
-                  id="value"
-                  readOnly
-                  value={source.value}
-                />
-              ) : (
-                <input
-                  aria-invalid={Boolean(errors.value)}
-                  data-form-error={Boolean(errors.value)}
-                  id="value"
-                  onChange={(event) => setValue('value', event.target.value)}
-                  maxLength={100}
-                  value={draft.value}
-                />
-              )}
+            </FormSection><FormSection title="Giá trị và đơn vị"><Field error={errors.value} htmlFor="value" label="Giá trị">
+              <input aria-invalid={Boolean(errors.value)} data-form-error={Boolean(errors.value)} id="value" onChange={event=>setValue('value',event.target.value)} maxLength={100} value={draft.value}/>
+
             </Field>
             <Field htmlFor="unit" label="Đơn vị">
               <select
@@ -277,22 +254,23 @@ export function RegulationFormPage() {
                 value={draft.unit ?? ''}
               >
                 <option value="">Không áp dụng</option>
-                <option value="KNOT">KNOT</option>
-                <option value="KM">KM</option>
-                <option value="METER">METER</option>
-                <option value="PERCENT">PERCENT</option>
-                <option value="PERSON">PERSON</option>
-                <option value="CELSIUS">CELSIUS</option>
-                <option value="NONE">NONE</option>
+                <option value="KNOT">Hải lý/giờ</option>
+                <option value="KM">Kilômét (km)</option>
+                <option value="METER">Mét (m)</option>
+                <option value="PERCENT">Phần trăm (%)</option>
+                <option value="PERSON">Người</option>
+                <option value="CELSIUS">Độ C (°C)</option>
+                <option value="NONE">Không có đơn vị</option>
               </select>
             </Field>
-            </FormSection><FormSection title="03 · Thời gian hiệu lực"><Field error={errors.effectiveFrom} htmlFor="effective-from" label="Bắt đầu hiệu lực">
+            </FormSection><FormSection title="Thời gian hiệu lực · Giờ Việt Nam"><Field error={errors.effectiveFrom} htmlFor="effective-from" label="Bắt đầu hiệu lực">
               <input
                 aria-invalid={Boolean(errors.effectiveFrom)}
                 data-form-error={Boolean(errors.effectiveFrom)}
                 id="effective-from"
                 onChange={(event) => setValue('effectiveFrom', event.target.value)}
                 type="datetime-local"
+                step={1}
                 value={draft.effectiveFrom}
               />
             </Field>
@@ -303,6 +281,7 @@ export function RegulationFormPage() {
                 id="effective-to"
                 onChange={(event) => setValue('effectiveTo', event.target.value || null)}
                 type="datetime-local"
+                step={1}
                 value={draft.effectiveTo ?? ''}
               />
             </Field>

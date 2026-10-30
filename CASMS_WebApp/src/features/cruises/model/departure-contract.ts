@@ -76,7 +76,7 @@ export type DownstreamHandoff = {
   departureDatetime: string | null; returnDatetime: string | null
   totalBookingsCount: number | null; confirmedBookingsCount: number | null; draftBookingsCount: number | null
   cancelledBookingsCount: number | null; totalPassengersCount: number | null; checkedInPassengersCount: number | null
-  boardedPassengersCount: number | null; captainAssigned: boolean | null; departureClearanceReady: boolean | null; manifestLocked: boolean | null
+  boardedPassengersCount: number | null; captainAssigned: boolean | null; onboardStaffAssigned: boolean | null; departureClearanceReady: boolean | null; manifestLocked: boolean | null
 }
 
 type Row = Record<string, unknown>
@@ -196,7 +196,7 @@ export function decodeChange(value: unknown, id: string): ChangePreview {
 }
 export function decodeHandoff(value: unknown, id: string): DownstreamHandoff {
   const r = context(value, id)
-  return { cruiseId: id, cruiseCode: text(r, 'cruiseCode'), cruiseStatus: text(r, 'cruiseStatus'), sourceTripCode: text(r, 'sourceTripCode'), sourceVersionId: text(r, 'sourceVersionId'), sourceVersionNumber: number(r, 'sourceVersionNumber'), shipName: text(r, 'shipName'), departureDatetime: instant(r, 'departureDatetime'), returnDatetime: instant(r, 'returnDatetime'), totalBookingsCount: number(r, 'totalBookingsCount'), confirmedBookingsCount: number(r, 'confirmedBookingsCount'), draftBookingsCount: number(r, 'draftBookingsCount'), cancelledBookingsCount: number(r, 'cancelledBookingsCount'), totalPassengersCount: number(r, 'totalPassengersCount'), checkedInPassengersCount: number(r, 'checkedInPassengersCount'), boardedPassengersCount: number(r, 'boardedPassengersCount'), captainAssigned: flag(r, 'captainAssigned'), departureClearanceReady: flag(r, 'departureClearanceReady'), manifestLocked: flag(r, 'manifestLocked') }
+  return { cruiseId: id, cruiseCode: text(r, 'cruiseCode'), cruiseStatus: text(r, 'cruiseStatus'), sourceTripCode: text(r, 'sourceTripCode'), sourceVersionId: text(r, 'sourceVersionId'), sourceVersionNumber: number(r, 'sourceVersionNumber'), shipName: text(r, 'shipName'), departureDatetime: instant(r, 'departureDatetime'), returnDatetime: instant(r, 'returnDatetime'), totalBookingsCount: number(r, 'totalBookingsCount'), confirmedBookingsCount: number(r, 'confirmedBookingsCount'), draftBookingsCount: number(r, 'draftBookingsCount'), cancelledBookingsCount: number(r, 'cancelledBookingsCount'), totalPassengersCount: number(r, 'totalPassengersCount'), checkedInPassengersCount: number(r, 'checkedInPassengersCount'), boardedPassengersCount: number(r, 'boardedPassengersCount'), captainAssigned: flag(r, 'captainAssigned'), onboardStaffAssigned: flag(r, 'onboardStaffAssigned'), departureClearanceReady: flag(r, 'departureClearanceReady'), manifestLocked: flag(r, 'manifestLocked') }
 }
 
 /** View state only. A readiness response does not authorize sale mutations. */

@@ -5,23 +5,23 @@ import { Notice, Button, ButtonLink, Loading, Panel, ReadinessIndicator } from '
 import { canRoleOpenAdminPath } from '@/shared/ui/admin-v3'
 import { useSessionAccess } from '@/shared/auth'
 import type { CruiseDetailView } from '../model/cruise-view'
-import { allowedDepartureSections, preparationIssueSection, preparationProblems, type DepartureSection } from '../model/preparation'
+import { operationsPreparationSections, allowedDepartureSections, preparationIssueSection, preparationProblems, type DepartureSection } from '../model/preparation'
 import styles from './DeparturePreparation.module.css'
 import {preparationApi} from '../api/preparation-api'
 import {businessCopy,domainStatus} from '@/shared/i18n/business-copy'
 
 const preparationGroups: readonly { code:string; title:string; destination:DepartureSection }[] = [
   { code:'TECHNICAL_NAUTICAL', title:'Kỹ thuật tàu và hàng hải', destination:'resources' },
-  { code:'HOTEL_CABIN', title:'Buồng phòng và cabin', destination:'sales' },
+  { code:'HOTEL_CABIN', title:'Buồng phòng và cabin', destination:'preparation' },
   { code:'FOOD_BEVERAGE', title:'Ẩm thực và phục vụ', destination:'program' },
   { code:'ENTERTAINMENT_SHORE', title:'Hoạt động và tham quan trên bờ', destination:'program' },
   { code:'SAFETY_CREW', title:'An toàn và thuyền viên', destination:'resources' },
 ]
 
-export function DepartureTabs({section,onChange}:{section:DepartureSection;onChange:(section:DepartureSection)=>void}) {
+export function DepartureTabs({section,onChange,operationsStage}:{section:DepartureSection;onChange:(section:DepartureSection)=>void;operationsStage?:1|3}) {
   const access=useSessionAccess()
   const manager=access.roles.includes('CRUISE_MANAGER')&&!access.roles.includes('OPERATIONS_MANAGER')
-  const tabs=allowedDepartureSections(access)
+  const tabs=allowedDepartureSections(access).filter(([key])=>!operationsStage||key!=='changes'&&(operationsStage===3?operationsPreparationSections.includes(key):!operationsPreparationSections.includes(key))).sort((a,b)=>operationsStage===3?operationsPreparationSections.indexOf(a[0])-operationsPreparationSections.indexOf(b[0]):0)
   return <div role="tablist" aria-label="Chuẩn bị lần khởi hành" className={`${styles.tabs} ${manager?styles.managerTabs:''}`}>{tabs.map(([key,label],index)=><button type="button" role="tab" key={key} id={'departure-tab-'+key} aria-selected={section===key} aria-controls={'departure-panel-'+key} tabIndex={section===key?0:-1} onClick={()=>onChange(key)} onKeyDown={event=>{
     if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return
     event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length

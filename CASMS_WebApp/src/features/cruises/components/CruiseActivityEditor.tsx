@@ -26,16 +26,19 @@ export function CruiseActivityEditor({activity,venueOptions,revision,fixed,onSav
   catch(reason){setError(businessErrorMessage(reason instanceof ApiError?reason.code:undefined,''));setAllocated(activityCapacityConflict(reason));setScheduleField(activityScheduleConflict(reason));if(!(reason instanceof ApiError)||reason.status===0||reason.status>=500)setUncertain(true)}
   finally{lock.current=false;setBusy(false)}
  }
- return <Modal wide busy={busy} title={businessCopy('program.activity.edit')} onClose={onClose} footer={<><Button tone="secondary" disabled={busy} data-overlay-dismiss onClick={onClose}>Hủy</Button><Button type="submit" form="activity-edit-form" disabled={busy||uncertain}>{busy?'Đang lưu…':businessCopy('program.action.saveDraft')}</Button></>}><form id="activity-edit-form" className={styles.modalForm} onSubmit={save} aria-label={businessCopy('program.activity.edit')}>
-  {fixed&&<Notice title={businessCopy('cruise.itinerary.FIXED')}>{businessCopy('program.activity.fixedEdit')}</Notice>}
+ const editorTitle=fixed?'Cập nhật giá và số chỗ':businessCopy('program.activity.edit')
+ return <Modal wide={!fixed} busy={busy} title={editorTitle} onClose={onClose} footer={<><Button tone="secondary" disabled={busy} data-overlay-dismiss onClick={onClose}>Hủy</Button><Button type="submit" form="activity-edit-form" disabled={busy||uncertain}>{busy?'Đang lưu…':fixed?'Cập nhật giá và số chỗ':businessCopy('program.action.saveDraft')}</Button></>}><form id="activity-edit-form" className={styles.modalForm} onSubmit={save} aria-label={editorTitle}>
+  {fixed&&<h3>{activity.name}</h3>}
   <fieldset disabled={busy||uncertain}>
+   {!fixed&&<>
    <Field htmlFor="activity-edit-name" label={businessCopy('program.field.name')}><input id="activity-edit-name" name="name" defaultValue={activity.name} disabled={fixed} required/></Field>
    <Field htmlFor="activity-edit-description" label={businessCopy('program.field.description')}><textarea id="activity-edit-description" name="description" defaultValue={activity.description??''} disabled={fixed}/></Field>
    <CruiseDeckField options={venueOptions} value={activity.deckId} disabled={fixed||Boolean(activity.cabinId)}/>
    <Field htmlFor="activity-edit-location" label={businessCopy('program.field.location')}><input id="activity-edit-location" name="location" defaultValue={activity.location} disabled={fixed} required/></Field>
    <Field htmlFor="activity-edit-start" label={businessCopy('program.field.startShip')} error={scheduleField==='startTime'?businessErrorMessage('ACTIVITY_OUTSIDE_CRUISE',''):undefined}><input ref={startField} id="activity-edit-start" name="start" type="datetime-local" step={1} defaultValue={shipTime(activity.startTime)} disabled={fixed} required/></Field>
    <Field htmlFor="activity-edit-end" label={businessCopy('program.field.endShip')} error={scheduleField==='endTime'?businessErrorMessage('ACTIVITY_OUTSIDE_CRUISE',''):undefined}><input ref={endField} id="activity-edit-end" name="end" type="datetime-local" step={1} defaultValue={shipTime(activity.endTime)} disabled={fixed} required/></Field>
-   <Field htmlFor="activity-edit-capacity" label={businessCopy('program.field.capacity')} error={allocated===null?undefined:businessCopy('program.activity.capacityAllocated')+': '+allocated}><input ref={capacityField} id="activity-edit-capacity" name="capacity" type="number" min={1} step={1} defaultValue={activity.capacity??''} required/></Field>
+   </>}
+   <Field htmlFor="activity-edit-capacity" label={fixed?'Số người tham gia tối đa':businessCopy('program.field.capacity')} error={allocated===null?undefined:businessCopy('program.activity.capacityAllocated')+': '+allocated}><input ref={capacityField} id="activity-edit-capacity" name="capacity" type="number" min={1} step={1} defaultValue={activity.capacity??''} required/></Field>
    <Field htmlFor="activity-edit-price" label={businessCopy('program.field.priceUsd')}><input id="activity-edit-price" name="price" type="number" min={0} step="any" defaultValue={activity.currencyCode==='USD'?activity.price??'':''} required/></Field>
 
   </fieldset>

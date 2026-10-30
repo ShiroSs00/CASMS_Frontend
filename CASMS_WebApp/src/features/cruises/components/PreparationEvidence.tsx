@@ -9,9 +9,9 @@ import {PreparationCoordinator} from './PreparationCoordinator'
 import {journeyTime,SHIP_TIME_ZONE} from '@/shared/lib/journey-time'
 import styles from './ManagerWorkspace.module.css'
 const actions={submit:'preparation.section.SUBMIT_ACTION',confirm:'preparation.section.CONFIRM_ACTION',return:'preparation.section.RETURN_ACTION'} as const
-const sectionNames:Record<string,string>={TECHNICAL_NAUTICAL:'Kỹ thuật hàng hải và tàu',HOTEL_CABIN:'Khách sạn và buồng phòng',FOOD_BEVERAGE:'Ẩm thực và dịch vụ',ENTERTAINMENT_SHORE:'Giải trí và tour tham quan trên bờ',SAFETY_CREW:'An toàn và thuyền viên'}
-const owners:Record<string,string>={SHIP_MANAGER:'Quản lý tàu',CRUISE_MANAGER:'Điều phối lịch trình',OPERATIONS_MANAGER:'Điều phối vận hành'}
-const checks:Record<string,string>={SHIP_ASSIGNED:'Tàu đã được gán',SHIP_STATUS_ACTIVE:'Tàu đang hoạt động',SHIP_CONFIG:'Cấu hình boong và cabin',CABIN_INVENTORY:'Kiểm kê buồng phòng',SERVING_WINDOWS:'Khung giờ phục vụ',SHORE_EXCURSIONS:'Hoạt động trên tàu và tour tham quan trên bờ',CAPTAIN_ASSIGNED:'Phân công thuyền trưởng'} 
+const sectionNames:Record<string,string>={TECHNICAL_NAUTICAL:'Kỹ thuật hàng hải và tàu',HOTEL_CABIN:'Buồng phòng',FOOD_BEVERAGE:'Ẩm thực và dịch vụ',ENTERTAINMENT_SHORE:'Giải trí và tour tham quan trên bờ',SAFETY_CREW:'An toàn và thuyền viên'}
+const owners:Record<string,string>={SHIP_MANAGER:'Quản lý tàu',CRUISE_MANAGER:'Điều phối lịch trình',OPERATIONS_MANAGER:'Quản lý vận hành'}
+const checks:Record<string,string>={SHIP_ASSIGNED:'Tàu đã được gán',SHIP_STATUS_ACTIVE:'Tàu đang hoạt động',SHIP_CONFIG:'Cấu hình boong và cabin',CABIN_INVENTORY:'Kiểm kê buồng phòng',SERVING_WINDOWS:'Khung giờ phục vụ',SHORE_EXCURSIONS:'Hoạt động trên tàu và tour tham quan trên bờ',ONBOARD_STAFF_ASSIGNED:'Phân công Onboard Staff'}
 export function PreparationEvidence({cruiseId,onChanged,refreshKey=0}:{cruiseId:string;onChanged:()=>void;refreshKey?:number}){
  const access=useSessionAccess(),allowed=access.has('CRUISE_PREPARATION_READ')
  const manager=access.roles.includes('CRUISE_MANAGER')&&!access.roles.includes('OPERATIONS_MANAGER')
@@ -53,9 +53,9 @@ export function PreparationEvidence({cruiseId,onChanged,refreshKey=0}:{cruiseId:
  }
  if(!allowed)return null
  return <Panel title={businessCopy('preparation.dashboard.title')}>
-  <p>{manager?'Một hồ sơ chuẩn bị chung cho 5 hạng mục. Mở từng nhóm để đối chiếu đạt/chưa đạt và nội dung cần bổ sung.':businessCopy('preparation.dashboard.responsibility')}</p>
+  {manager&&<p>Một hồ sơ chuẩn bị chung cho 5 hạng mục.</p>}
   {query.data&&<PreparationCoordinator key={`${cruiseId}:${query.data.cruiseRevision}`} view={query.data} onChanged={changed}/>}
-  {query.loading&&<Loading/>}{query.error&&<Notice title="Không thể hoàn tất thao tác" tone="error"><Button onClick={query.retry}>Tải lại dữ liệu</Button></Notice>}
+  {query.loading&&<Loading/>}{query.error&&<Notice title="Chưa đọc được hồ sơ chuẩn bị" tone="error"><p>{query.error instanceof ApiError&&query.error.code?businessErrorMessage(query.error.code,''):query.error.message}</p><Button onClick={query.retry}>Tải lại hồ sơ</Button></Notice>}
   {manager&&<div className={styles.sectionActions}><Button disabled={!canSubmitDossier||busy||unknown||query.loading||Boolean(query.error)} onClick={()=>{setDossierOpen(true);setError('');setSuccess('')}}>{query.data&&!pending.length?'Đã nộp hồ sơ chuẩn bị':'Nộp hồ sơ chuẩn bị'}</Button></div>}
   {manager&&query.data&&pending.length>0&&query.data.coordinatorUserId!==access.userId&&<p className={styles.help}>Chỉ đầu mối được phân công mới có thể nộp hồ sơ chung.</p>}
   {success&&<Notice title="Đã nộp hồ sơ" tone="success">{success}</Notice>}
@@ -63,7 +63,7 @@ export function PreparationEvidence({cruiseId,onChanged,refreshKey=0}:{cruiseId:
    const content=<>
    <p className={styles.sectionMeta}>{businessCopy('preparation.professionalOwner')}: {owners[section.ownerRole]??'Chưa xác định'} · Phiên bản {section.revision}</p>
    <ul className={styles.evidenceChecks}>{section.checkItems.map(item=><li key={item.itemCode}>{checks[item.itemCode]??'Hạng mục cần đối chiếu'} · {item.ready?'Đạt':'Chưa đạt'}{item.itemCode!=='SHIP_STATUS_ACTIVE'&&item.evidence&&<p>{item.evidence}</p>}</li>)}</ul>
-   <p>{businessCopy('preparation.systemSource')}</p>
+
    {section.submittedAt&&<p>{businessCopy('preparation.submittedAt')}: {journeyTime(section.submittedAt,SHIP_TIME_ZONE)} · {businessCopy('preparation.shipTime')}</p>}
    {section.confirmedAt&&section.status==='CONFIRMED'&&<p>{businessCopy('preparation.confirmedAt')}: {journeyTime(section.confirmedAt,SHIP_TIME_ZONE)} · {section.confirmedByUsername??'Chưa xác định'}</p>}
    {section.evidence&&<p>{section.evidence}</p>}{section.returnReason&&<Notice title={businessCopy('preparation.section.RETURNED')}>{section.returnReason}</Notice>}
@@ -75,7 +75,9 @@ export function PreparationEvidence({cruiseId,onChanged,refreshKey=0}:{cruiseId:
     {section.checkItems.some(i=>i.required&&!i.ready)&&<p>Các hạng mục bắt buộc chưa đạt. Người phụ trách cần hoàn thiện hồ sơ trước khi xác nhận.</p>}
    </>}</div>
    </>
-   return manager?<details key={section.sectionCode} className={styles.disclosure} open={section.status==='RETURNED'}><summary><h3 className={styles.sectionHeading}>{sectionNames[section.sectionCode]??'Hồ sơ chuẩn bị'}</h3><span className={styles.sectionStatus}><Badge label={section.checkItems.every(item=>!item.required||item.ready)?'Đạt kiểm tra':'Còn mục chưa đạt'} tone={section.checkItems.every(item=>!item.required||item.ready)?'success':'warning'}/><span>{section.checkItems.filter(item=>item.ready).length}/{section.checkItems.length} hạng mục đạt</span></span></summary><div className={styles.disclosureBody}>{content}</div></details>:<section key={section.sectionCode}><h3>{sectionNames[section.sectionCode]??'Hồ sơ chuẩn bị'}</h3><Badge label={domainStatus('preparation.section',section.status)}/>{content}</section>
+   const evaluated=section.checkItems.length>0
+   const passed=evaluated&&section.checkItems.every(item=>!item.required||item.ready)
+   return <details key={section.sectionCode} className={styles.disclosure} open={section.status==='RETURNED'}><summary><h3 className={styles.sectionHeading}>{sectionNames[section.sectionCode]??'Hồ sơ chuẩn bị'}</h3><span className={styles.sectionStatus}><Badge label={domainStatus('preparation.section',section.status)}/><span>{evaluated?`${section.checkItems.filter(item=>item.ready).length}/${section.checkItems.length} hạng mục đạt`:'Chưa có kết quả kiểm tra'}</span>{evaluated&&!passed&&<span>Cần bổ sung dữ liệu</span>}</span></summary><div className={styles.disclosureBody}>{content}</div></details>
   })}</div>
   {error&&<Notice title="Không thể hoàn tất thao tác" tone="error">{error}</Notice>}
   {unknown&&<Notice title="Hệ thống chưa xác nhận được kết quả"><p>Đối chiếu lại 5 hạng mục trước khi tiếp tục. Hạng mục đã gửi sẽ không bị gửi lặp.</p><Button disabled={busy} onClick={()=>void reconcile()}>Đối chiếu hồ sơ</Button></Notice>}

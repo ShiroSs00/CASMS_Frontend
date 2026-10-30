@@ -22,7 +22,7 @@ import styles from './Cruises.module.css'
 export function CruiseFrame({ children }: { children: ReactNode }) {
   const access = useSessionAccess()
   const manager = access.roles.includes('CRUISE_MANAGER') && !access.roles.includes('OPERATIONS_MANAGER')
-  return <AdminShell><div className={`${styles.cruiseShell} ${manager ? managerStyles.managerRoot : ''}`}>{children}</div></AdminShell>
+  return <AdminShell><div className={`${styles.cruiseShell} ${manager ? managerStyles.managerRoot : access.roles.includes('OPERATIONS_MANAGER')?managerStyles.operationsRoot:''}`}>{children}</div></AdminShell>
 }
 
 function statusTone(status: CruiseStatus) {

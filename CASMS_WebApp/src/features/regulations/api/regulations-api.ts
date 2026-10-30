@@ -15,7 +15,7 @@ import type {
   RegulationTargetAssignment,
   RegulationUpdate,
 } from '../model/regulation'
-import { getEffectiveStatus } from '../model/regulation'
+import { regulationInstant,regulationSource,regulationValue,getEffectiveStatus } from '../model/regulation'
 import type { AssignmentDto, ConflictDto, RegulationDto, SnapshotDto, SnapshotItemDto } from './dto'
 
 const root = '/operational-regulations'
@@ -48,8 +48,8 @@ function body(draft: RegulationDraft) {
     scope: draft.scope,
     value: draft.value,
     unit: draft.unit,
-    effectiveFrom: new Date(draft.effectiveFrom).toISOString(),
-    effectiveTo: draft.effectiveTo ? new Date(draft.effectiveTo).toISOString() : null,
+    effectiveFrom: regulationInstant(draft.effectiveFrom),
+    effectiveTo: draft.effectiveTo ? regulationInstant(draft.effectiveTo) : null,
   }
 }
 
@@ -57,7 +57,7 @@ const capability = (allowed: boolean, reason?: string) => ({ allowed, ...(reason
 function capabilitiesFor(regulation: MockRegulation): RegulationCapabilities {
   const now = Date.now()
   const activationBlockedReason = regulation.status !== 'DRAFT' && regulation.status !== 'INACTIVE'
-    ? 'Chỉ quy định DRAFT hoặc INACTIVE mới có thể kích hoạt.'
+    ? 'Chỉ quy định nháp hoặc đã ngừng kích hoạt mới có thể kích hoạt.'
     : new Date(regulation.effectiveFrom).getTime() > now
       ? 'Chưa đến thời điểm bắt đầu hiệu lực. Hãy chờ đến thời điểm đó hoặc chỉnh lại thời gian hiệu lực.'
       : regulation.effectiveTo && new Date(regulation.effectiveTo).getTime() < now
@@ -65,22 +65,23 @@ function capabilitiesFor(regulation: MockRegulation): RegulationCapabilities {
         : undefined
   return {
     canActivate: capability(!activationBlockedReason, activationBlockedReason),
-    canDeactivate: capability(regulation.status === 'ACTIVE', 'Chỉ ACTIVE có thể deactivate.'),
-    canAssign: capability(regulation.status === 'ACTIVE', 'Chỉ regulation ACTIVE mới có hiệu lực để gán.'),
+    canDeactivate: capability(regulation.status === 'ACTIVE', 'Chỉ quy định đã kích hoạt mới có thể ngừng kích hoạt.'),
+    canAssign: capability(regulation.status === 'ACTIVE', 'Cần kích hoạt quy định trước khi gán.'),
     canRemove: capability(true),
     canProceed: capability(true),
   }
 }
 
 function normalizeConflict(dto: ConflictDto): ConflictResult {
+  if(!dto||typeof dto.canProceed!=='boolean'||!['CLEAR','WARNING','BLOCKING'].includes(dto.severity)||!Array.isArray(dto.comparedWith))throw new ApiError('Phản hồi kiểm tra xung đột chưa đầy đủ. Chưa thể tiếp tục thao tác.',502,'REGULATION_CONFLICT_RESPONSE_INVALID')
   const blocking = dto.canProceed !== true || dto.severity === 'BLOCKING'
   const hasConflict = dto.severity === 'WARNING'
   return {
     severity: blocking ? 'blocking' : hasConflict ? 'warning' : 'clear',
     title: blocking ? 'Xung đột chặn thao tác' : hasConflict ? 'Cảnh báo xung đột' : 'Không phát hiện xung đột',
-    message: `${dto.message} (${dto.context} · ${dto.code})`,
+    message: dto.message,
     canProceed: !blocking,
-    comparedWith: dto.comparedWith.map((item) => ({ code: item.code, source: item.scope, content: `${item.value} ${item.unit ?? ''}`.trim() })),
+    comparedWith: dto.comparedWith.map((item) => ({ code: item.code, source: regulationSource(item.scope), content: regulationValue({value:item.value,unit:item.unit as import('../model/regulation').RegulationUnit|null}) })),
   }
 }
 
@@ -166,15 +167,16 @@ export const regulationsApi = {
       apiRequest<SnapshotDto>(`${base}/effective`),
     ])
     const direct = await Promise.all(directDtos.map((item) => apiRequest<RegulationDto>(byId(item.regulationId))))
+    if(!snapshot?.host||snapshot.host.id!==hostId||!Array.isArray(snapshot.direct)||!Array.isArray(snapshot.inherited))throw new ApiError('Phản hồi quy định chưa khớp với đối tượng đang xem. Tải lại danh sách.',502,'REGULATION_ASSIGNMENT_RESPONSE_INVALID')
     const fromSnapshot = (item: SnapshotItemDto): AssignedRegulation => ({
-      ...assigned(toRegulation(item.regulation), false, item.sourceLabel), source: item.source,
+      ...assigned(toRegulation(item.regulation), false, regulationSource(item.sourceLabel)), source: item.source,
     })
     return {
       host: { type, id: hostId, name: snapshot.host.name, description: snapshot.host.code },
       checkedAt: snapshot.checkedAt,
-      direct: direct.map((dto) => {
+      direct: direct.filter(dto=>dto.scope!=='GLOBAL').map((dto) => {
         const item = toRegulation(dto)
-        const result = assigned(item, true, `${item.scope} · ${snapshot.host.name}`)
+        const result = assigned(item, true, `${regulationSource(item.scope)} · ${snapshot.host.name}`)
         const permission = snapshot.direct.find((entry) => entry.regulation.regulationId === item.id)
         if (permission) result.capabilities.canRemove = capability(permission.canRemove, permission.removeBlockedReason)
         return result
@@ -195,17 +197,23 @@ export const regulationsApi = {
     const id = regulationId ?? hostId
     const base = assignmentPath(type, regulationId ? hostId : '')
     if (!regulationId) {
-      return { severity: 'blocking', title: 'Xung đột chặn thao tác', message: 'Thiếu host ID cho precheck.', canProceed: false, comparedWith: [] } satisfies ConflictResult
+      return { severity: 'blocking', title: 'Xung đột chặn thao tác', message: 'Chưa xác định tàu hoặc lần khởi hành cần kiểm tra.', canProceed: false, comparedWith: [] } satisfies ConflictResult
     }
     return normalizeConflict(await apiRequest<ConflictDto>(`${base}/precheck`, { method: 'POST', body: { regulationId: id } }))
   },
   async assign(type: HostType, hostId: string, regulationId: string) {
     const body = type === 'ship' ? { shipId: hostId, regulationId } : { cruiseId: hostId, regulationId }
     await apiRequest<unknown>(assignmentPath(type, hostId), { method: 'POST', body })
-    return { message: 'Đã gán quy định thành công.' }
+    let actual:AssignmentSnapshot
+    try{actual=await this.getAssignments(type,hostId)}catch{throw new ApiError('Đã gửi yêu cầu gán nhưng chưa đọc lại được liên kết. Tải lại danh sách trước khi thao tác tiếp.',502,'REGULATION_READBACK_UNCONFIRMED')}
+    if(!actual.direct.some(item=>item.regulation.id===regulationId))throw new ApiError('Chưa xác nhận được liên kết sau khi gán. Tải lại danh sách trước khi thao tác tiếp.',502,'REGULATION_READBACK_UNCONFIRMED')
+    return { message: 'Đã gán quy định.' }
   },
   async remove(type: HostType, hostId: string, regulationId: string) {
     await apiRequest<void>(`${assignmentPath(type, hostId)}/${encodeURIComponent(regulationId)}`, { method: 'DELETE' })
-    return { message: 'Đã gỡ liên kết quy định.' }
+    let actual:AssignmentSnapshot
+    try{actual=await this.getAssignments(type,hostId)}catch{throw new ApiError('Đã gửi yêu cầu gỡ nhưng chưa đọc lại được liên kết. Tải lại danh sách trước khi thao tác tiếp.',502,'REGULATION_READBACK_UNCONFIRMED')}
+    if(actual.direct.some(item=>item.regulation.id===regulationId))throw new ApiError('Chưa xác nhận được việc gỡ liên kết. Tải lại danh sách trước khi thao tác tiếp.',502,'REGULATION_READBACK_UNCONFIRMED')
+    return { message: 'Đã gỡ quy định khỏi đối tượng.' }
   },
 }

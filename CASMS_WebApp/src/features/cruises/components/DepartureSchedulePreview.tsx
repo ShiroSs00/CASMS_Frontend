@@ -1,6 +1,6 @@
 import { SHIP_TIME_ZONE } from '@/shared/lib/journey-time'
 import { useCallback, useState } from 'react'
-import { useReadQuery } from '@/shared/api'
+import { ApiError, useReadQuery } from '@/shared/api'
 import { Button, Modal, Notice, Panel } from '@/shared/ui'
 import { departureApi } from '../api/departure-api'
 import type { DepartureSchedule } from '../model/departure-contract'
@@ -16,6 +16,8 @@ export function DepartureSchedulePreview({ sourceVersionId, departure, contextKe
   const key = JSON.stringify([sourceVersionId, departure, contextKey])
   const current = request?.key === key ? request : null
   const query = useReadQuery('departure-preview:' + key + ':' + Boolean(current), useCallback(signal => current ? departureApi.preview(current.sourceVersionId, current.instant, signal) : Promise.resolve(null), [current]))
+  const sourceError=query.error instanceof ApiError&&['SOURCE_PROGRAM_SCHEDULE_REQUIRED','SOURCE_PROGRAM_OUTSIDE_CRUISE','SOURCE_EXCURSION_OUTSIDE_PORT_CALL'].includes(query.error.code??'')?query.error:null
+  const sourceName=sourceError?.details&&typeof sourceError.details==='object'&&'name' in sourceError.details&&typeof sourceError.details.name==='string'?sourceError.details.name:null
   const validBasis = Boolean(query.data && query.data.sourceVersionRevision != null && query.data.days.length && query.data.days.every(day => day.shipTimeZoneId === SHIP_TIME_ZONE))
   const startsAtSea = query.data?.days.find(day => day.dayNumber === 1)?.dayType === 'SEA_DAY'
   const canApply = Boolean(current && !disabled && !query.loading && !query.error && validBasis && query.data?.returnDatetime && (query.data.departurePortId || startsAtSea) && query.data.returnPortId)
@@ -43,7 +45,7 @@ export function DepartureSchedulePreview({ sourceVersionId, departure, contextKe
       <Button tone="secondary" onClick={() => setOpenKey(null)}>Đóng</Button>
       <Button disabled={!canApply} onClick={apply}>Áp dụng lịch này</Button>
     </>}>
-      <ReadState {...query} />
+      {sourceError?<Notice title="Lịch trình nguồn chưa hợp lệ" tone="error"><p>{sourceError.message}</p>{sourceName&&<p>Chương trình: <strong>{sourceName}</strong></p>}</Notice>:<ReadState {...query} />}
       {!query.loading && !query.error && query.data && <div className={styles.content}>
         {!validBasis && <Notice title="Chưa thể áp dụng lịch xem trước" tone="warning">Cơ sở giờ tàu hoặc phiên dữ liệu nguồn chưa đầy đủ. Cần hệ thống xác nhận lại lịch trước khi tạo lần khởi hành.</Notice>}
         <ScheduleContents schedule={query.data} preview />
