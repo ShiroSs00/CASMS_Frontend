@@ -605,3 +605,20 @@
 
 /* Stable result space prevents the footer jumping up during catalog requests. */
 .liveSurface .searchList { min-height:320px; align-content:start; }
+
+/* Safe container padding to prevent text from touching screen borders */
+.liveSurface .searchHero .container {
+  padding-inline: max(48px, calc((100% - 1200px) / 2)) !important;
+  box-sizing: border-box;
+}
+.liveSurface .container {
+  max-width: 1280px;
+  padding-inline: max(48px, calc((100% - 1200px) / 2)) !important;
+  box-sizing: border-box;
+}
+@media(max-width: 800px) {
+  .liveSurface .searchHero .container,
+  .liveSurface .container {
+    padding-inline: 24px !important;
+  }
+}

@@ -31,11 +31,11 @@ export function cruiseDurationDays(departureDatetime: string, returnDatetime: st
   return (endDay - startDay) / 86400000 + 1
 }
 
-/** The form sends an explicit category using the existing API enum values. */
+/** Match CruiseService's whole-hour inference; duration limits belong to BE. */
 export function inferCruiseType(departureDatetime: string, returnDatetime: string): CruiseType | '' {
-  const days = cruiseDurationDays(departureDatetime, returnDatetime)
-  if (days === null || days > 5) return ''
-  return days <= 2 ? 'ONE_DAY' : 'MULTI_DAYS'
+  const duration = scheduleInstant(returnDatetime).getTime() - scheduleInstant(departureDatetime).getTime()
+  if (!Number.isFinite(duration) || duration <= 0) return ''
+  return Math.floor(duration / 3600000) <= 24 ? 'ONE_DAY' : 'MULTI_DAYS'
 }
 
 export function localCruiseInput(value: string) {

@@ -1,75 +1,237 @@
-.pageShell { color-scheme:light; background:var(--brand-pearl); color:var(--brand-navy); font-family:var(--font-family-body); }
-.header { height:82px; padding:0 72px; display:flex; align-items:center; justify-content:space-between; gap:24px; background:white; }
-.header a { text-decoration:none; }
-.brandNav { display:flex; gap:40px; align-items:center; }
-.brand { color:var(--brand-navy); font-size:22px; line-height:32px; font-weight:600; }
-.brandNav nav { display:flex; gap:40px; }
-.brandNav nav a { color:var(--text-secondary); font-size:14px; line-height:20px; font-weight:400; }
-.accountNav { display:flex; align-items:center; justify-content:flex-end; gap:24px; flex:none; }
-.accountNav > button { border:0; background:none; color:inherit; font:500 14px/20px var(--font-family-body); cursor:pointer; }
+.pageShell { color-scheme:light; background:var(--brand-pearl); color:var(--brand-navy); font-family:var(--font-family-body); display:flex; flex-direction:column; min-height:100dvh; }
+.pageShell > main { flex:1; min-width:0; }
 .skipLink { position:absolute; left:16px; top:-100px; z-index:50; padding:12px; background:white; color:var(--brand-navy); }
 .skipLink:focus { top:12px; }
-.notice { position:relative; background:white; border-bottom:1px solid var(--border-default); padding:12px 72px; font-size:14px; }
-.notice button { margin-left:16px; border:0; background:none; cursor:pointer; }
-@media(max-width:1200px) { .header { padding:0 32px; } .brandNav { gap:20px; } .brand { width:auto; } .brandNav nav { gap:20px; } .brandNav nav a { width:auto; } .accountNav { width:auto; } }
-@media(max-width:720px) { .header { height:auto; min-height:116px; padding:16px 20px; flex-wrap:wrap; gap:12px; } .brandNav { display:contents; } .brand { order:0; } .accountNav { order:1; } .accountNav > button { display:none; } .brandNav nav { order:2; width:100%; justify-content:space-between; gap:8px; } .brandNav nav a { font-size:12px; } .notice { padding:12px 20px; } }
 
-.accountNav > a { display:inline-flex; align-items:center; min-height:44px; font-size:14px; }
-.contact { position:relative; }
-.contactLink { min-height:44px; padding:10px 20px; border:1px solid var(--border-default); border-radius:8px; color:var(--brand-navy); background:white; font:600 14px/20px var(--font-family-body); cursor:pointer; }
-.contactDetails { position:absolute; right:0; top:100%; z-index:30; width:min(300px,calc(100vw - 40px)); padding:20px; border:1px solid var(--border-default); border-radius:16px; background:white; color:var(--brand-navy); box-shadow:var(--shadow-floating); overflow-wrap:anywhere; display:flex; flex-direction:column; gap:8px; }
-.contactDetails > span { margin-top:8px; font-size:12px; color:var(--text-secondary); }
-.contactDetails > p { margin:0; font-size:14px; }
-.contactDetails > a { display:flex; align-items:center; min-height:44px; text-decoration:underline; text-underline-offset:4px; }
+/* Main Header */
+.header {
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:24px;
+  background:white;
+  padding:18px max(32px,calc((100% - 1280px)/2));
+  min-height:86px;
+  border-bottom:1px solid #D8E0E4;
+  box-shadow:0 2px 16px rgba(6,26,43,0.04);
+  flex-wrap:wrap;
+}
 
-/* Presentation only; existing links, session and booking navigation stay intact. */
-.pageShell { display:flex; flex-direction:column; min-height:100dvh; font-family:var(--ui-font); }
-.pageShell > main { flex:1; min-width:0; }
-.header { min-height:80px; height:auto; padding-block:14px; border-bottom:1px solid #e5e0d4; box-shadow:0 2px 16px #061a2b05; flex-wrap:wrap; }
-.brandNav, .accountNav { min-width:0; flex-wrap:wrap; }
-.brandNav nav { flex-wrap:wrap; }
-.header nav a { display:inline-flex; align-items:center; min-height:44px; border-bottom:2px solid transparent; }
-.header nav a:hover { color:var(--ui-ink); border-bottom-color:var(--ui-accent); }
-.header a:focus-visible, .header button:focus-visible { outline:3px solid var(--ui-focus); outline-offset:3px; }
+@media(min-width:960px) {
+  .pageShell { --public-anchor-offset:160px; }
+  .header { position:sticky; top:0; z-index:40; }
+  .pageShell > main :where(section[id]) { scroll-margin-top:var(--public-anchor-offset); }
+}
 
-/* P2 current location uses the real link state, not a duplicate menu. */
-.header nav a[aria-current='page'] { color:var(--ui-ink); border-bottom-color:var(--ui-accent); font-weight:600; }
-.brandNav nav a:active, .accountNav > a:active { background:var(--ui-subtle); border-radius:6px; }
-@media(max-width:1180px) { .brandNav { flex:1 1 100%; justify-content:space-between; } .accountNav { margin-left:auto; } }
+.brandNav { display:flex; gap:40px; align-items:center; min-width:0; flex-wrap:wrap; }
+.brand { display:inline-flex; align-items:center; flex-shrink:0; text-decoration:none; color:var(--brand-navy); }
+.brand img { width:160px; }
 
-.brand { display:inline-flex; align-items:center; flex-shrink:0; }
-@media(min-width:1181px) { .header { padding-inline:max(32px,calc((100% - 1280px)/2)); } .brandNav { gap:28px; } .brandNav nav { gap:24px; } }
-@media(max-width:720px) { .brandNav { display:contents; } .accountNav { margin-left:0; gap:16px; width:100%; justify-content:space-between; order:2; } .brandNav nav { order:1; } }
-.contactDetails { opacity:1; transition:opacity var(--motion-surface) var(--ease-soft); }
-@starting-style { .contactDetails { opacity:0; } }
+.brandNav nav { display:flex; gap:28px; align-items:center; flex-wrap:wrap; }
+.header nav a {
+  display:inline-flex;
+  align-items:center;
+  min-height:48px;
+  color:var(--brand-navy);
+  font-size:13px;
+  font-weight:600;
+  border-bottom:2px solid transparent;
+  text-decoration:none;
+  transition:all 0.15s ease;
+}
+.header nav a:hover { color:var(--ui-ink); border-bottom-color:var(--brand-gold); }
+.header nav a[aria-current='page'] { color:var(--ui-ink); border-bottom-color:var(--brand-gold); font-weight:700; }
 
-.brandLine { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; padding:10px max(24px,calc((100% - 1280px)/2)); background:var(--brand-midnight); color:#E0E8EA; font-size:9px; letter-spacing:.13em; }
-.brandLine a { font-size:10px; letter-spacing:normal; text-underline-offset:4px; }
-.header { padding:20px max(24px,calc((100% - 1280px)/2)); min-height:100px; border-bottom:1px solid #C8CFCC; box-shadow:none; background:var(--brand-pearl); }
-.brand img { width:170px; }
-.brandNav { gap:48px; }
-.brandNav nav { gap:28px; }
-.header nav a { font-size:12px; }
-.accountNav { gap:20px; }
-.accountNav > a { border:1px solid var(--brand-navy); padding:10px 16px; border-radius:3px; font-size:12px; }
-@media(max-width:1180px) { .brandNav { flex:1; flex-wrap:wrap; } .header { gap:12px; padding-inline:28px; } .brandNav nav { gap:18px; } }
-@media(max-width:760px) { .header { padding:20px; } .brandNav { display:contents; } .brandNav nav { order:2; width:100%; gap:14px; justify-content:flex-start; } .brandNav nav a { font-size:11px; } .accountNav { width:auto; margin-left:auto; order:1; } .accountNav > a { font-size:11px; padding:8px 12px; } .brand img { width:136px; } .brandLine { padding-inline:20px; } }
+.navContactWrap { display:inline-flex; align-items:center; }
+.navContactLink {
+  border:0 !important;
+  background:transparent !important;
+  padding:0 !important;
+  min-height:48px !important;
+  color:var(--brand-navy) !important;
+  font:600 13px/48px var(--font-family-body) !important;
+  border-bottom:2px solid transparent !important;
+  border-radius:0 !important;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  transition:all 0.15s ease;
+}
+.navContactLink:hover { color:var(--ui-ink) !important; border-bottom-color:var(--brand-gold) !important; }
 
-/* Keep the public frame visible while the router resolves the next screen. */
+/* Right Account Nav (Royal Caribbean Style) */
+.accountNav {
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:20px;
+  flex:none;
+}
+
+.contactWrap { position:relative; }
+.pillContactBtn {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:42px;
+  padding:8px 20px;
+  border:1.5px solid var(--brand-navy);
+  border-radius:999px;
+  background:white;
+  color:var(--brand-navy);
+  font:600 13px/1.2 var(--font-family-body);
+  cursor:pointer;
+  transition:all 0.2s ease;
+}
+.pillContactBtn:hover {
+  background:#F2F6F8;
+  border-color:var(--brand-midnight);
+}
+.chevronIcon { transition:transform 0.2s ease; }
+.pillContactBtn[aria-expanded='true'] .chevronIcon { transform:rotate(180deg); }
+
+.loginLink {
+  display:inline-flex;
+  align-items:center;
+  min-height:42px;
+  padding:8px 12px;
+  font-size:14px;
+  font-weight:600;
+  color:var(--brand-navy);
+  text-decoration:none;
+  transition:color 0.15s ease;
+}
+.loginLink:hover {
+  color:var(--brand-gold);
+  text-decoration:underline;
+  text-underline-offset:4px;
+}
+
+.header :is(a,button):focus-visible { outline:3px solid var(--brand-gold); outline-offset:3px; }
+
+/* Royal Caribbean Contact Support Modal Popup */
+.contactModalBackdrop {
+  position:fixed;
+  inset:0;
+  z-index:999;
+  background:rgba(6,26,43,0.5);
+  backdrop-filter:blur(3px);
+  display:grid;
+  place-items:center;
+  padding:20px;
+  animation:fadeIn 0.2s ease-out;
+}
+
+.contactModalCard {
+  position:relative;
+  width:100%;
+  max-width:440px;
+  background:white;
+  border-radius:24px;
+  padding:36px 32px 28px;
+  box-shadow:0 24px 60px rgba(6,26,43,0.3);
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  animation:popScale 0.25s cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes fadeIn {
+  from { opacity:0; }
+  to { opacity:1; }
+}
+
+@keyframes popScale {
+  from { opacity:0; transform:scale(0.94) translateY(8px); }
+  to { opacity:1; transform:scale(1) translateY(0); }
+}
+
+.modalHeader { display:flex; justify-content:space-between; align-items:center; }
+.modalTitle { font-size:24px; font-weight:700; color:#0B253A; margin:0; font-family:var(--font-family-heading); }
+.modalCloseBtn {
+  border:0;
+  background:transparent;
+  font-size:18px;
+  color:#6B7D8A;
+  cursor:pointer;
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  transition:all 0.15s ease;
+}
+.modalCloseBtn:hover { color:#0B253A; background:#EDF2F5; }
+.modalSubtitle { font-size:14px; color:#5A6E7C; margin:0 0 8px; line-height:1.5; }
+
+.modalActions { display:flex; flex-direction:column; gap:14px; }
+.modalCallBtn {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  min-height:50px;
+  padding:12px 24px;
+  border:1.5px solid #0E3752;
+  border-radius:999px;
+  background:white;
+  color:#0E3752 !important;
+  font-size:15px;
+  font-weight:700;
+  text-decoration:none !important;
+  transition:all 0.2s ease;
+}
+.modalCallBtn:hover { background:#F0F6FA; transform:translateY(-1px); }
+
+.modalChatBtn {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  min-height:50px;
+  padding:12px 24px;
+  border:1.5px solid #0E3752;
+  border-radius:999px;
+  background:#0E3752;
+  color:white !important;
+  font-size:15px;
+  font-weight:700;
+  text-decoration:none !important;
+  box-shadow:0 4px 14px rgba(14,55,82,0.2);
+  transition:all 0.2s ease;
+}
+.modalChatBtn:hover { background:#082436; transform:translateY(-1px); box-shadow:0 6px 18px rgba(14,55,82,0.3); }
+
+.modalFooterNote { text-align:center; margin-top:8px; font-size:12px; color:#7E909C; }
+
+/* Loading Bar */
 .navigationStatus { position:absolute; inset:auto 0 0; height:3px; pointer-events:none; }
 .navigationStatus > span { display:block; width:100%; height:100%; overflow:hidden; color:transparent; background:var(--brand-teal); animation:pendingVisibility 0s 180ms both; }
 @keyframes pendingVisibility { from { opacity:0; } to { opacity:1; } }
-.header nav a[aria-current='location'] { color:var(--brand-navy); border-bottom-color:var(--brand-gold); }
-.header { position:relative; }
-.header nav a { font-weight:600; }
-@media(min-width:960px) { .pageShell { --public-anchor-offset:160px; } .header { position:sticky; top:0; z-index:40; } .pageShell > main :where(section[id]) { scroll-margin-top:var(--public-anchor-offset); } }
-@media(prefers-reduced-motion:reduce) { .contactDetails { transition:none; } .navigationStatus > span { animation:none; } }
 
-/* Four clear destinations, with booking management kept separate. */
-.header { background:white; border-bottom-color:#D8E0E4; }
-.brandNav nav { gap:28px; }
-.header nav a { min-height:48px; color:var(--brand-navy); font-size:13px; }
-.header nav a[aria-current='page'] { border-bottom-color:var(--brand-gold); }
-.accountNav > a { background:var(--brand-navy); color:white; border-color:var(--brand-navy); }
-@media(min-width:1181px) { .header { padding-block:16px; } .brandNav { gap:40px; } }
-@media(max-width:760px) { .header nav a { font-size:12px; } .brandNav nav { gap:20px; } }
+/* Responsive adjustments */
+@media(max-width:1180px) {
+  .header { padding-inline:24px; gap:16px; }
+  .brandNav { gap:24px; }
+  .brandNav nav { gap:18px; }
+}
+
+@media(max-width:880px) {
+  .header { padding:16px 20px; }
+  .brandNav { display:contents; }
+  .brand { order:0; }
+  .accountNav { order:1; margin-left:auto; }
+  .brandNav nav { order:2; width:100%; justify-content:flex-start; gap:16px; margin-top:8px; }
+  .brandNav nav a { font-size:12px; min-height:40px; }
+  .navContactLink { font-size:12px !important; min-height:40px !important; }
+}
+
+@media(max-width:520px) {
+  .brand img { width:130px; }
+  .pillContactBtn { padding:6px 14px; font-size:12px; min-height:36px; }
+  .loginLink { font-size:13px; }
+  .contactModalCard { padding:28px 20px 20px; border-radius:18px; }
+  .modalTitle { font-size:20px; }
+}

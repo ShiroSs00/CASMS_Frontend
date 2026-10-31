@@ -1,6 +1,5 @@
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { asianPorts } from '../model/asian-ports'
-const haLong = asianPorts[0].image
 const editorial = asianPorts[2].image
 import { featuredVoyages, homeCruiseSearch, homeCruiseType } from '../model/public-booking'
 import styles from './Landing.module.css'
@@ -30,7 +29,16 @@ export function OceVieExperience() {
   return <section className={styles.experience} id="experience" aria-labelledby="experience-title"><img src={editorial} alt="Cảng Ōsanbashi, Yokohama lúc hoàng hôn"/><div><p className={styles.eyebrow}>CHUẨN BỊ TRẢI NGHIỆM</p><h2 id="experience-title">Từng lựa chọn, theo nhịp nghỉ của bạn.</h2><p>Xem lịch trình, chọn phòng cho từng hành khách và cân nhắc gói dịch vụ tùy chọn trước khi gửi yêu cầu.</p><ul><li>Phòng trống được hiển thị theo hành trình.</li><li>Gói dịch vụ có thể bỏ qua khi đặt chỗ.</li><li>Kiểm tra và sửa thông tin trước khi gửi.</li></ul><Link className={styles.primary} to="/cruises">Tìm hành trình & chọn phòng</Link></div></section>
 }
 export function ShipStory() {
-  return <section className={styles.ship} aria-labelledby="ship-title"><div><p className={styles.eyebrow}>TÀU & KHÔNG GIAN</p><h2 id="ship-title">Tìm hiểu con tàu của từng hành trình.</h2><p>Khám phá không gian trên tàu, lịch trình và những điểm dừng trong từng chuyến đi.</p><p className={styles.detail}>Ảnh cảng Marina Bay, Singapore.</p><Link className={styles.primary} to="/cruises">Xem chuyến & thông tin tàu</Link></div><img src={haLong} alt="Cảng Marina Bay, Singapore; không xác định tàu của chuyến đi"/></section>
+  return <section className={styles.ship} aria-labelledby="ship-title">
+    <div>
+      <p className={styles.eyebrow}>TÀU & KHÔNG GIAN</p>
+      <h2 id="ship-title">Tìm hiểu con tàu của từng hành trình.</h2>
+      <p>Khám phá không gian trên tàu, lịch trình và những điểm dừng trong từng chuyến đi.</p>
+      <p className={styles.detail}>Ảnh cảng Yokohama, Nhật Bản.</p>
+      <Link className={styles.primary} to="/ships">Khám phá tàu & không gian</Link>
+    </div>
+    <img src="/images/ports/yokohama-osanbashi.webp" alt="Tàu du lịch và nhà ga hành khách quốc tế Ōsanbashi tại cảng Yokohama, Nhật Bản"/>
+  </section>
 }
 export function BookingJourney() {
   return <section className={styles.journey} id="journey" aria-labelledby="journey-title"><p className={styles.eyebrow}>ĐÃ CÓ MÃ ĐẶT CHỖ?</p><h2 id="journey-title">Chuẩn bị cho chuyến đi, không bỏ sót bước nào.</h2><div className={styles.manage}><div><h3>Theo dõi thông tin trước ngày khởi hành.</h3><p>Xem mã đặt chỗ, hành khách, phòng và hướng dẫn hợp đồng. Dùng mã đặt chỗ cùng email hoặc số điện thoại đại diện để tra cứu, không cần đăng nhập.</p><Link className={styles.primary} to="/booking/lookup">Tra cứu đặt chỗ</Link></div><ol>{[['Thông tin đặt chỗ','Kiểm tra mã đặt chỗ và danh sách hành khách.'],['Phòng & gói','Xem phòng và gói đã ghi nhận.'],['Hợp đồng','Đọc hướng dẫn ký và lịch yêu cầu thanh toán.']].map(([t,d],i)=><li key={t}><span>0{i+1}</span><div>{t}<small>{d}</small></div></li>)}</ol></div></section>
@@ -40,9 +48,19 @@ export function FinalCta() {
 }
 
 export function BookingFaq() {
-  return <section className={styles.faq} id="booking-faq" aria-labelledby="booking-faq-title"><div><p className={styles.eyebrow}>TRƯỚC KHI BẠN ĐẶT CHỖ</p><h2 id="booking-faq-title">Thông tin cần biết<br />trước khi đặt chuyến.</h2><Link className={styles.textLink} to="/cruises">Tìm hành trình phù hợp ↗</Link></div><div>{[
-    ['Tôi có cần đăng nhập để đặt chuyến?', 'Bạn có thể xem hành trình đã công bố, chọn phòng và gửi thông tin đặt chỗ mà không cần tài khoản. Sau khi có mã, dùng thông tin người đại diện để tra cứu.'],
-    ['Tôi xem giá vé và lịch thanh toán ở đâu?', 'Thông tin giá vé, tiền tệ áp dụng và lịch thanh toán nằm trong kết quả đặt chỗ. Giá gói và giá tham chiếu của phòng được hiển thị riêng khi có dữ liệu; chúng không phải tổng giá vé đã xác nhận.'],
-    ['Làm sao để xem lại thông tin đã đặt?', 'Mở trang tra cứu, nhập mã đặt chỗ cùng email hoặc số điện thoại của người đại diện. Bạn có thể xem thông tin hành khách, phòng và hướng dẫn hợp đồng được hệ thống trả về.'],
-  ].map(([question,answer])=><details key={question}><summary>{question}<span aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</div></section>
+  return <section className={styles.faq} id="booking-faq" aria-labelledby="booking-faq-title">
+    <div>
+      <p className={styles.eyebrow}>TRƯỚC KHI BẠN ĐẶT CHỖ</p>
+      <h2 id="booking-faq-title">Thông tin cần biết<br />trước khi đặt chuyến.</h2>
+      <Link className={styles.faqButton} to="/cruises">
+        <span>Tìm hành trình phù hợp</span>
+        <span aria-hidden="true">→</span>
+      </Link>
+    </div>
+    <div>{[
+      ['Tôi có cần đăng nhập để đặt chuyến?', 'Bạn có thể xem hành trình đã công bố, chọn phòng và gửi thông tin đặt chỗ mà không cần tài khoản. Sau khi có mã, dùng thông tin người đại diện để tra cứu.'],
+      ['Tôi xem giá vé và lịch thanh toán ở đâu?', 'Thông tin giá vé, tiền tệ áp dụng và lịch thanh toán nằm trong kết quả đặt chỗ. Giá gói và giá tham chiếu của phòng được hiển thị riêng khi có dữ liệu; chúng không phải tổng giá vé đã xác nhận.'],
+      ['Làm sao để xem lại thông tin đã đặt?', 'Mở trang tra cứu, nhập mã đặt chỗ cùng email hoặc số điện thoại của người đại diện. Bạn có thể xem thông tin hành khách, phòng và hướng dẫn hợp đồng được hệ thống trả về.'],
+    ].map(([question,answer])=><details key={question}><summary>{question}<span aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</div>
+  </section>
 }
