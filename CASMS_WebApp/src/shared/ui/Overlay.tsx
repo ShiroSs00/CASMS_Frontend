@@ -65,10 +65,13 @@ export function Modal({ title, description, onClose, busy = false, wide = false,
       <div className={styles.body} inert={confirmDiscard}>{children}</div>
       {footer && <footer className={styles.footer} inert={confirmDiscard}>{footer}</footer>}
       {confirmDiscard && <section className={styles.discard} aria-label="Thay đổi chưa lưu">
-        <p id={discardId}>Biểu mẫu có thay đổi chưa lưu. Đóng sẽ bỏ những thay đổi này.</p>
+        <div className={styles.discardHeading}>
+          <span className={styles.discardIcon} aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m10.3 3.9-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3.1l-8-14a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4m0 4h.01"/></svg></span>
+          <p id={discardId}>Bỏ thay đổi chưa lưu?</p>
+        </div>
         <div className={styles.discardActions}>
           <button ref={dismiss} type="button" className={styles.keepEditing} aria-describedby={discardId} disabled={busy} onClick={continueEditing}>Tiếp tục chỉnh sửa</button>
-          <button type="button" className={styles.discardButton} aria-describedby={discardId} disabled={busy} onClick={onClose}>Bỏ thay đổi và đóng</button>
+          <button type="button" className={styles.discardButton} aria-describedby={discardId} disabled={busy} onClick={onClose}>Bỏ thay đổi</button>
         </div>
       </section>}
     </div>

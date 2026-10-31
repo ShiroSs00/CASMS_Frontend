@@ -1,5 +1,12 @@
 [
   {
+    "method": "GET",
+    "path": "/ships/{shipId}/areas",
+    "mode": "ANY",
+    "permissions": ["SHIP_CONFIGURATION_READ"],
+    "source": "com/casms/ship/controller/ShipController.java"
+  },
+  {
     "method": "PUT",
     "path": "/cruise/{cruiseId}/preparation/coordinator",
     "mode": "ALL",

@@ -23,7 +23,7 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
   const [params]=useSearchParams(),returnTo=readinessContextReturn(params,kind==='ships'?'SHIP':kind==='cabins'?'CABIN':'DECK',source?.id)
   const access = useSessionAccess()
   const permitted = access.canDo(entityPermission(kind, source ? 'UPDATE' : 'CREATE'))
-  const [shipDraft, setShip] = useState<ShipDraft>(ship ?? { code: '', name: '', capacity: 0, totalDecks: 0, commissionDate: '', status: 'ACTIVE' })
+  const [shipDraft, setShip] = useState<ShipDraft>(ship ?? { code: '', name: '', capacity: 0, totalDecks: 0, commissionDate: '', status: 'DRAFT' })
   const [deckDraft, setDeck] = useState<DeckDraft>(deck ?? { shipId: hostId, number: '', name: '', priceMultiplier: 1.0 })
   const [cabinDraft, setCabin] = useState<CabinDraft>(cabin ?? { shipId: hostId,
     deckId: data.decks.some(row => row.id === deckId && row.shipId === hostId) ? deckId : '',

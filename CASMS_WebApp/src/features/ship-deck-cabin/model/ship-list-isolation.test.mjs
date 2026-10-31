@@ -22,7 +22,7 @@ const deferred = () => { let resolve, reject; const promise = new Promise((yes, 
 const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve() }
 const fields = ['capacity', 'readiness', 'currentCruise']
 const values = { capacity: { deckCount: 2, cabinCount: 3 }, readiness: 'READY', currentCruise: null }
-const base = () => model.shipListState(['one', 'two'].map(id => ({ id, name: id, code: id, status: 'ACTIVE', capacity: { status: 'loading' }, readiness: { status: 'loading' }, currentCruise: { status: 'loading' } })))
+const base = () => model.shipListState(['one', 'two'].map(id => ({ id, name: id, code: id, status: 'READY', capacity: { status: 'loading' }, readiness: { status: 'loading' }, currentCruise: { status: 'loading' } })))
 
 function hook(repository) {
   const slots = []; let index = 0, revision = 0; const effects = []
@@ -108,7 +108,7 @@ test('base adapter requests only Ships; malformed capacity/readiness and unrecog
   let response
   const { shipDeckCabinApi: api } = load('api/ship-deck-cabin-api.ts', { '@/shared/api': { ApiError, apiRequest: async path => {
     requests.push(path)
-    if (path === '/ships') return { content: [{ shipId: 'one', shipName: 'One', shipCode: 'S1', status: 'ACTIVE' }], totalPages: 1, totalElements: 1 }
+    if (path === '/ships') return { content: [{ shipId: 'one', shipName: 'One', shipCode: 'S1', status: 'READY' }], totalPages: 1, totalElements: 1 }
     if (response instanceof Error) throw response
     return response
   } } })

@@ -14,12 +14,19 @@
 .body :where(form) { min-width:0; }
 .body :where(input,select,textarea) { max-width:100%; }
 .footer { flex:0 0 auto; display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:12px; padding:16px 24px; border-top:1px solid var(--ui-border); background:var(--ui-subtle); }
-.discard { flex:0 0 auto; border-top:1px solid #d9bd88; padding:16px 24px; background:#fff8eb; color:#754d00; }
-.discard p { margin:0 0 12px; font-size:14px; line-height:1.5; }
-.discardActions { display:flex; flex-wrap:wrap; gap:12px; }
-.keepEditing,.discardButton { min-height:44px; border:1px solid var(--border-control); border-radius:10px; padding:10px 14px; font:500 14px/1.5 var(--ui-font); cursor:pointer; }
-.keepEditing { background:#fff; color:var(--ui-ink); }
-.discardButton { background:var(--ui-danger); border-color:var(--ui-danger); color:#fff; }
+.discard { flex:0 0 auto; border-top:1px solid var(--ui-border); padding:24px 28px; background:var(--ui-surface); color:var(--ui-ink); animation:discardEnter 180ms var(--ease-out) both; }
+.discardHeading { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+.discardIcon { display:grid; place-items:center; flex:0 0 40px; width:40px; height:40px; border:1px solid var(--ui-border); border-radius:10px; color:var(--ui-danger); background:var(--ui-subtle); }
+.discard p { margin:0; font-size:16px; font-weight:600; line-height:1.5; }
+.discardActions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:12px; }
+.keepEditing,.discardButton { min-height:44px; border:1px solid var(--border-control); border-radius:6px; padding:10px 16px; font:600 14px/1.5 var(--ui-font); cursor:pointer; }
+.keepEditing { background:var(--brand-navy); border-color:var(--brand-navy); color:white; }
+.discardButton { background:var(--ui-surface); border-color:var(--ui-danger); color:var(--ui-danger); }
+.keepEditing:disabled,.discardButton:disabled { opacity:.5; cursor:not-allowed; }
+@media(hover:hover) and (pointer:fine) { .keepEditing:hover:not(:disabled) { background:var(--brand-teal); border-color:var(--brand-teal); } .discardButton:hover:not(:disabled) { background:var(--ui-danger); color:white; } }
+@keyframes discardEnter { from { opacity:0; } to { opacity:1; } }
+@media(prefers-reduced-motion:reduce) { .discard { animation:none; } }
+@media(max-width:420px) { .discardActions { flex-direction:column; } .discardActions>button { width:100%; } }
 .drawer { width:min(640px,calc(100vw - 24px)); height:100dvh; max-height:100dvh; margin:0 0 0 auto; border-radius:16px 0 0 16px; }
 .drawer .frame { height:100%; }
 @media(max-width:600px) { .header,.body { padding:20px 16px; } .footer,.discard { padding:16px; } .dialog { max-height:92dvh; } .drawer { max-height:100dvh; } }

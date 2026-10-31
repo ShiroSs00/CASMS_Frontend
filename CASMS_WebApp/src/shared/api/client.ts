@@ -19,8 +19,9 @@ export class ApiError extends Error {
   status: number
   code?: string
   details?: unknown
-  constructor(message: string, status: number, code?: string, details?: unknown) {
-    super(message); this.name = 'ApiError'; this.status = status; this.code = code; this.details = details
+  serverMessage?: string
+  constructor(message: string, status: number, code?: string, details?: unknown, serverMessage?: string) {
+    super(message); this.name = 'ApiError'; this.status = status; this.code = code; this.details = details; this.serverMessage = serverMessage
   }
 }
 
@@ -136,7 +137,7 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
       }
       throw new ApiError(response.status === 401 ? 'Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.'
         : response.status === 403 ? 'Bạn không có quyền thực hiện thao tác này.'
-          : (shipModelErrorMessage(path,message) ?? businessErrorMessage(payload?.code ?? payload?.error,message)) || `Không thể thực hiện yêu cầu (HTTP ${response.status}).`, response.status, payload?.code ?? payload?.error, payload?.details ?? payload?.data)
+          : (shipModelErrorMessage(path,message) ?? businessErrorMessage(payload?.code ?? payload?.error,message)) || `Không thể thực hiện yêu cầu (HTTP ${response.status}).`, response.status, payload?.code ?? payload?.error, payload?.details ?? payload?.data,message)
     }
     if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
     if (required && !hasPermissions(getSessionAccess(), required)) throw new ApiError('Quyền truy cập đã thay đổi. Vui lòng tải lại dữ liệu.', 403, 'ACCESS_DENIED')
@@ -160,7 +161,7 @@ export function apiRequest<T>(path: string, options: RequestOptions = {}): Promi
     if (!payload || typeof payload.success !== 'boolean') throw new ApiError('Dữ liệu hệ thống trả về chưa hợp lệ. Chưa thể xác nhận kết quả thao tác.', status)
     const message = typeof payload.message === 'string' ? payload.message
       : typeof payload.error === 'string' ? payload.error : ''
-    if (!payload.success) throw new ApiError((shipModelErrorMessage(path,message) ?? businessErrorMessage(payload.code ?? payload.error,message)) || 'Hệ thống chưa chấp nhận thao tác này.', status, payload.code ?? payload.error,payload.details??payload.data)
+    if (!payload.success) throw new ApiError((shipModelErrorMessage(path,message) ?? businessErrorMessage(payload.code ?? payload.error,message)) || 'Hệ thống chưa chấp nhận thao tác này.', status, payload.code ?? payload.error,payload.details??payload.data,message)
     return payload.data as T
   })
 }

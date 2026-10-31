@@ -1,18 +1,16 @@
-import type { ShipListMetrics as Metrics } from '../model/ship-list-types'
-import styles from './ShipList.module.css'
+import type {ShipListMetrics as Metrics} from '../model/ship-list-types'
+import {shipStatuses,type ShipStatus} from '../model/types'
+import styles from './ShipListMetrics.module.css'
 
 const cards = [
-  { key: 'activeCount', label: 'Đang hoạt động', note: 'tàu đang hoạt động', tone: 'success' },
-  { key: 'maintenanceCount', label: 'Bảo trì', note: 'tàu đang bảo trì', tone: 'warning' },
-  { key: 'attentionCount', label: 'Cần chú ý', note: 'chưa sẵn sàng vận hành', tone: 'danger' },
+  ['DRAFT','draftCount'],['READY','readyCount'],['IN_SERVICE','inServiceCount'],
+  ['MAINTENANCE','maintenanceCount'],['SUSPENDED','suspendedCount'],['RETIRED','retiredCount'],
 ] as const
-
-export function ShipListMetrics({ metrics, showNotes = true }: { metrics?: Metrics; showNotes?: boolean }) {
-  return <dl className={styles.metrics} aria-label="Tổng hợp đội tàu">
-    {cards.map(card => <div key={card.key} className={styles.metric}>
-      <dt>{card.label}</dt>
-      <dd className={`${styles.metricValue} ${styles[card.tone]}`}>{metrics && metrics[card.key] !== null ? String(metrics[card.key]).padStart(2, '0') : <span aria-label="Chưa có dữ liệu">—</span>}</dd>
-      {showNotes && <dd className={styles.metricNote}>{card.note}</dd>}
-    </div>)}
-  </dl>
+export function ShipListMetrics({metrics,selected,onSelect}:{metrics?:Metrics;selected:ShipStatus|'ALL';onSelect:(status:ShipStatus)=>void}) {
+  return <div className={styles.metrics} role="group" aria-label="Lọc tàu theo trạng thái">
+    {cards.map(([status,key])=><button type="button" key={status} className={styles.metric} data-status={status} aria-pressed={selected===status} disabled={!metrics} onClick={()=>onSelect(status)}>
+      <span className={styles.label}><i aria-hidden="true"/>{shipStatuses[status]}</span>
+      <strong>{metrics?metrics[key].toLocaleString('vi-VN'):'—'}</strong>
+    </button>)}
+  </div>
 }

@@ -265,7 +265,7 @@ export const cruiseApi = {
   async getShipCandidates(id: string,changing=false,signal?:AbortSignal) {
     const ships = await listShips(signal)
     return Promise.all(ships.map(async (ship): Promise<ShipCandidate> => {
-      if (ship.status !== 'ACTIVE') return { ship, state: 'UNAVAILABLE', reasons: ['Tàu chưa hoạt động.'] }
+      if (!['READY','IN_SERVICE'].includes(ship.status)) return { ship, state: 'UNAVAILABLE', reasons: ['Trạng thái tàu chưa cho phép khai thác.'] }
       try{
         const result=await cruiseApi.checkShip(id,ship.shipId,changing,signal)
         return {ship,state:result.allowed?'AVAILABLE':'UNAVAILABLE',compatibility:result.compatibility,impact:result.impact,reasons:result.reasons.length?result.reasons:['Tàu đáp ứng kiểm tra lịch, cấu hình và sức chứa hiện có.']}

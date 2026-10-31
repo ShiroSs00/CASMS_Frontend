@@ -14,7 +14,7 @@ export function ShipListFilters({ value, onChange, onApply, onReset, disabled, c
     </label>
     <label className={styles.field}><span id={`${id}-status`}>Trạng thái</span>
       <select aria-labelledby={`${id}-status`} value={value.status} disabled={disabled} onChange={event => onChange({ ...value, status: event.target.value as Filters['status'] })}>
-        <option value="ALL">Tất cả</option><option value="ACTIVE">{shipStatuses.ACTIVE}</option><option value="MAINTENANCE">{shipStatuses.MAINTENANCE}</option><option value="INACTIVE">{shipStatuses.INACTIVE}</option>
+        <option value="ALL">Tất cả</option>{Object.entries(shipStatuses).map(([value,label])=><option key={value} value={value}>{label}</option>)}
       </select>
     </label>
     <Button className={`${styles.button} ${styles.filterButton}`} type="submit" disabled={disabled}>Lọc</Button>

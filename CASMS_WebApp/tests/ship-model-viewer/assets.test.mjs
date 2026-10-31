@@ -6,7 +6,7 @@ import ts from 'typescript'
 import { apiRules, permissionPolicy } from '../helpers/permission-policy.mjs'
 function client(fetch, access = { status: 'ready', permissions: apiRules.flatMap(rule => rule.permissions) }) {
   const source=readFileSync(new URL('../../src/shared/api/client.ts',import.meta.url),'utf8').replaceAll('import.meta.env','({})'),module={exports:{}}
-  vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2023}}).outputText,{module,exports:module.exports,fetch,AbortController,Uint8Array,FormData,URLSearchParams,setTimeout,clearTimeout,require:id=>id==='@/shared/auth'?{...permissionPolicy,getSessionAccess:()=>access}:{prepareCreateBody:(_path,_method,body)=>body}})
+  vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2023}}).outputText,{module,exports:module.exports,fetch,AbortController,Uint8Array,FormData,URLSearchParams,setTimeout,clearTimeout,require:id=>id==='@/shared/auth'?{...permissionPolicy,getSessionAccess:()=>access}:{prepareCreateBody:(_path,_method,body)=>body,businessErrorMessage:()=> 'Thông báo đã dịch',shipModelErrorMessage:()=>undefined}})
   return module.exports
 }
 const path='/ships/s1/models/v1/assets/decks/deck_01.glb'
@@ -62,4 +62,11 @@ test('multipart upload preserves FormData and custom timeout while using session
   assert.equal(options.body,body)
   assert.equal(options.headers['Content-Type'],undefined)
   assert.equal(options.headers.Authorization,'Bearer unit-only-token')
+})
+
+test('API errors retain exact backend reason alongside translated display copy',async()=>{
+ const reason='No active cruise found for ship currently'
+ const api=client(async()=>new Response(JSON.stringify({success:false,error:reason,code:'NOT_FOUND'}),{status:404,headers:{'Content-Type':'application/json'}}))
+ api.setApiAccessToken('unit-only-token')
+ await assert.rejects(api.apiRequest('/ships/s1/current-cruise'),error=>error.status===404&&error.code==='NOT_FOUND'&&error.serverMessage===reason&&error.message==='Thông báo đã dịch')
 })

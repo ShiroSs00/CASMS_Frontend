@@ -5,7 +5,7 @@ export type ShipReadiness = 'READY' | 'ATTENTION' | 'BLOCKED'
 export type Supplement<T> = { status: 'loading' } | { status: 'loaded'; data: T }
   | { status: 'unavailable' | 'denied'; message: string }
 export type ShipSupplements = {
-  capacity: { deckCount: number; cabinCount: number }
+  capacity: { deckCount: number; cabinCount: number; serviceAreaCount?: number }
   readiness: ShipReadiness
   currentCruise: { id: string; code: string } | null
 }
@@ -17,7 +17,11 @@ export type ShipListItem = {
   status: ShipStatus
 } & { [K in SupplementField]: Supplement<ShipSupplements[K]> }
 export type ShipListMetrics = {
-  activeCount: number
+  suspendedCount: number
+  draftCount: number
+  inServiceCount: number
+  retiredCount: number
+  readyCount: number
   maintenanceCount: number
   configuredCabinCount: number | null
   attentionCount: number | null
@@ -31,7 +35,11 @@ export interface ShipListRepository {
 
 export function shipListState(items: ShipListItem[]): ShipListState {
   return { items, metrics: {
-    activeCount: items.filter(item => item.status === 'ACTIVE').length,
+    suspendedCount: items.filter(item => item.status === 'SUSPENDED').length,
+    draftCount: items.filter(item => item.status === 'DRAFT').length,
+    inServiceCount: items.filter(item => item.status === 'IN_SERVICE').length,
+    retiredCount: items.filter(item => item.status === 'RETIRED').length,
+    readyCount: items.filter(item => item.status === 'READY').length,
     maintenanceCount: items.filter(item => item.status === 'MAINTENANCE').length,
     configuredCabinCount: items.every(item => item.capacity.status === 'loaded')
       ? items.reduce((total, item) => total + (item.capacity.status === 'loaded' ? item.capacity.data.cabinCount : 0), 0) : null,

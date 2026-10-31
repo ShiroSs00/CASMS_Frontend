@@ -76,7 +76,7 @@ export function createMockCruiseAdapter() {
     const ship = shipFixtures.find((candidate) => candidate.shipId === shipId)
     if (!ship) throw new Error('Không tìm thấy tàu.')
     const reasons: string[] = []
-    if (ship.status !== 'ACTIVE') reasons.push(`${ship.status} · Chỉ tàu ACTIVE mới được phân công.`)
+    if (!['READY','IN_SERVICE'].includes(ship.status)) reasons.push(`${ship.status} · Chỉ phân công tàu sẵn sàng hoặc đang khai thác.`)
     const conflict = cruises.find((candidate) => candidate.cruiseId !== cruiseId && candidate.shipId === shipId && candidate.status !== 'CANCELLED' && overlaps(cruise, candidate))
     if (conflict) reasons.push(`Overlap ${conflict.cruiseCode} · ${conflict.departureDatetime.slice(0, 10)}–${conflict.returnDatetime.slice(0, 10)}.`)
     const passengers = activePassengerCounts[cruiseId] ?? 0
@@ -89,7 +89,7 @@ export function createMockCruiseAdapter() {
         reasons: ['Cruise đã có booking; cần kiểm cabin, facility, activity và service phụ thuộc.'],
       }
     }
-    return { ship: clone(ship), state: 'AVAILABLE', reasons: ['Tàu ACTIVE, đủ sức chứa và không có lịch chồng.'] }
+    return { ship: clone(ship), state: 'AVAILABLE', reasons: ['Tàu đủ điều kiện khai thác, đủ sức chứa và không có lịch chồng.'] }
   }
 
   async function getShipCandidates(cruiseId: string) {
@@ -120,7 +120,7 @@ export function createMockCruiseAdapter() {
     const passengerCount = activePassengerCounts[cruiseId] ?? 0
     const checks: ReadinessCheck[] = []
     checks.push(item.ship
-      ? { key: 'SHIP', label: 'Tàu', state: item.ship.status === 'ACTIVE' ? 'PASS' : 'BLOCKED', reason: item.ship.status === 'ACTIVE' ? 'Tàu ACTIVE và đã được phân công.' : `Tàu đang ở trạng thái ${item.ship.status}.` }
+      ? { key: 'SHIP', label: 'Tàu', state: ['READY','IN_SERVICE'].includes(item.ship.status) ? 'PASS' : 'BLOCKED', reason: ['READY','IN_SERVICE'].includes(item.ship.status) ? 'Tàu đủ điều kiện khai thác và đã được phân công.' : `Tàu đang ở trạng thái ${item.ship.status}.` }
       : { key: 'SHIP', label: 'Tàu', state: 'BLOCKED', reason: 'Chưa phân công tàu.' })
     const scheduleErrors = validateCruiseSchedule(item.cruise.cruiseType, item.cruise.departureDatetime, item.cruise.returnDatetime)
     checks.push({ key: 'SCHEDULE', label: 'Lịch chạy', state: Object.keys(scheduleErrors).length ? 'BLOCKED' : 'PASS', reason: Object.values(scheduleErrors)[0] ?? 'Thời gian phù hợp loại chuyến.' })

@@ -1,40 +1,47 @@
 import {useCallback,useState} from 'react'
-import {ApiError,useReadQuery} from '@/shared/api'
 import {useSessionAccess} from '@/shared/auth'
-import {Badge,Button,ButtonLink,Empty,Field,Loading,Notice,Panel,RecordFacts} from '@/shared/ui'
-import {readShipAreas} from '../api/ship-areas-api'
-import {areaKindLabel,filterShipAreas,type AreaVector} from '../model/ship-areas'
+import {Badge,Button,Empty,Field,Loading,Notice,Panel} from '@/shared/ui'
+import {readShipServiceAreas} from '../api/ship-areas-api'
+import {shipDeckCabinApi} from '../api/ship-deck-cabin-api'
+import {useFleetQuery} from '../hooks/useFleetQuery'
+import {serviceAreaName,serviceType} from '../model/service-area-copy'
+import {paginateFleet} from '../model/fleet-pagination'
+import {FleetPagination} from './FleetPagination'
 import styles from './ShipAreas.module.css'
 
-const showVector=(value:AreaVector|null)=>value?[value.x,value.y,value.z].map(n=>n.toLocaleString('vi-VN',{maximumFractionDigits:3})).join(' · '):'Chưa có dữ liệu'
-export function ShipAreas({shipId,initialDeck=''}:{shipId:string;initialDeck?:string}){
- const access=useSessionAccess(),allowed=access.canDo('SHIP_CONFIGURATION_READ'),canReadDraft=access.canDo('SHIP_MODEL_READ')&&access.canDo('SHIP_READ')
- const query=useReadQuery(`ship-areas:${access.userId}:${shipId}:${allowed}:${canReadDraft}`,useCallback(signal=>allowed?readShipAreas(shipId,signal,canReadDraft):Promise.resolve(null),[allowed,shipId,canReadDraft]))
- const [search,setSearch]=useState(''),[deck,setDeck]=useState(initialDeck),[kind,setKind]=useState(''),[limit,setLimit]=useState(50)
- if(!allowed)return null
- const data=query.data,unready=query.error instanceof ApiError&&query.error.code==='SHIP_MODEL_NOT_READY'
- const forbidden=query.error instanceof ApiError&&query.error.status===403
- const rows=data?filterShipAreas(data.areas,search,deck,kind):[]
- const kinds=data?[...new Set(data.areas.map(area=>area.kind).filter((value):value is string=>Boolean(value)))].sort():[]
- const reset=()=>{setSearch('');setDeck('');setKind('');setLimit(50)}
+const areaKindLabel=(kind:string|null)=>kind?serviceType(kind):'Chưa phân loại'
+const displayName=(area:{name:string|null;kind:string|null})=>serviceAreaName({name:area.name??areaKindLabel(area.kind),kind:area.kind??''})
+
+export function ShipAreas({shipId,initialDeck=''}:{shipId:string;initialDeck?:string}) {
+ const access=useSessionAccess()
+ const [deck,setDeck]=useState(initialDeck),[search,setSearch]=useState(''),[kind,setKind]=useState(''),[page,setPage]=useState(1)
+ const loadDecks=useCallback((signal:AbortSignal)=>shipDeckCabinApi.listShipDecks(shipId,signal),[shipId])
+ const decks=useFleetQuery(`area-decks:${shipId}`,loadDecks,access.canDo('DECK_READ'))
+ const selected=decks.data?.find(value=>value.id===deck)
+ const loadAreas=useCallback((signal:AbortSignal)=>readShipServiceAreas(shipId,signal),[shipId])
+ const areas=useFleetQuery(`service-areas:${shipId}`,loadAreas,access.canDo('SHIP_CONFIGURATION_READ')&&Boolean(selected))
+ const onDeck=areas.data?.filter(area=>area.deckId===selected?.id)??[]
+ const term=search.normalize('NFD').replace(/\p{M}/gu,'').replace(/[đĐ]/g,'d').toLocaleLowerCase('vi').trim()
+ const rows=onDeck.filter(area=>(!kind||area.kind===kind)&&(!term||`${displayName(area)} ${area.name??''} ${areaKindLabel(area.kind)}`.normalize('NFD').replace(/\p{M}/gu,'').replace(/[đĐ]/g,'d').toLocaleLowerCase('vi').includes(term)))
+ const pagination=paginateFleet(rows,page,6)
+ const kinds=[...new Set(onDeck.map(area=>area.kind).filter((value):value is string=>Boolean(value)))].sort()
  return <Panel title="Khu vực dịch vụ">
-  {query.loading&&<Loading label="Đang tải khu vực của tàu…"/>}
-  {unready?<Empty title="Chưa có mô hình tàu sẵn sàng">{access.canDo('SHIP_MODEL_READ')&&<ButtonLink tone="secondary" to={'/admin/ship-models?'+new URLSearchParams({ship:shipId})}>Xem mô hình tàu</ButtonLink>}</Empty>:query.error&&<Notice title={forbidden?'Chưa có quyền đọc cấu hình khu vực':'Chưa tải được khu vực'} tone="error">{query.error.message}</Notice>}
-  {data&&<>
-   <div className={styles.filters}>
-    <Field htmlFor="area-search" label="Tìm khu vực"><input id="area-search" type="search" value={search} placeholder="Tên khu vực hoặc mã mô hình" onChange={event=>{setSearch(event.target.value);setLimit(50)}}/></Field>
-    <Field htmlFor="area-deck" label="Boong"><select id="area-deck" value={deck} onChange={event=>{setDeck(event.target.value);setLimit(50)}}><option value="">Tất cả boong</option>{data.decks.filter(d=>d.id).map(d=><option key={d.key} value={d.id!}>{d.number} · {d.name}</option>)}</select></Field>
-    <Field htmlFor="area-kind" label="Loại khu vực"><select id="area-kind" value={kind} onChange={event=>{setKind(event.target.value);setLimit(50)}}><option value="">Tất cả loại</option>{kinds.map(value=><option key={value} value={value}>{areaKindLabel(value)}</option>)}</select></Field>
-   </div>
-   <div className={styles.toolbar}><p role="status">{rows.length} / {data.areas.length} khu vực{!data.supported?' đã nhận':''}</p><Button tone="text" onClick={reset} disabled={!search&&!deck&&!kind}>Xóa bộ lọc</Button></div>
-   {rows.length>0?<ul className={styles.list}>{rows.slice(0,limit).map(area=><li key={area.objectId}>
-    <div className={styles.heading}><h3>{area.name||area.modelNodeKey}</h3><Badge label={areaKindLabel(area.kind)}/></div>
-      <p>Kích thước X · Y · Z: {showVector(area.dimensions)}{area.dimensions&&data.unit?' '+data.unit:''}</p>
-    <details><summary>Xem chi tiết khu vực {area.name||area.modelNodeKey}</summary><RecordFacts entries={[
-     ['Loại boong',area.serviceLevel?'Tầng kỹ thuật':'Boong thông thường'],['Mã khu vực',area.objectId],['Node mô hình',area.modelNodeKey],['Vị trí X · Y · Z',showVector(area.position)],['Góc xoay X · Y · Z',showVector(area.rotation)],['Tỷ lệ X · Y · Z',showVector(area.scale)],['Đơn vị mô hình',data.unit??'Chưa xác định'],
-    ]}/></details>
-   </li>)}</ul>:data.areas.length||search||deck||kind?<Empty title="Không có khu vực khớp bộ lọc"><Button tone="secondary" onClick={reset}>Xem tất cả khu vực</Button></Empty>:data.supported?<Empty title="Mô hình chưa có khu vực"></Empty>:null}
-   {rows.length>limit&&<Button tone="secondary" onClick={()=>setLimit(value=>value+50)}>Xem thêm khu vực ({Math.min(limit,rows.length)}/{rows.length})</Button>}
-  </>}
+  <div className={styles.stack}>
+   <div className={styles.deckPicker}><Field htmlFor="service-area-deck" label="Boong"><select id="service-area-deck" value={selected?.id??''} disabled={decks.loading||!decks.data?.length} onChange={event=>{setDeck(event.target.value);setSearch('');setKind('');setPage(1)}}><option value="">{decks.loading?'Đang tải boong…':'Chọn boong'}</option>{decks.data?.map(value=><option key={value.id} value={value.id}>Boong {value.number} · {value.name}</option>)}</select></Field></div>
+   {decks.error&&<Notice title="Không tải được danh sách boong" tone="error">{decks.error}</Notice>}
+   {!access.canDo('DECK_READ')&&<Empty title="Chưa có quyền xem boong"/>}
+   {!decks.loading&&!decks.error&&decks.data?.length===0&&<Empty title="Tàu chưa có boong"/>}
+   {selected&&areas.loading&&!areas.data&&<Loading label="Đang tải khu vực dịch vụ…"/>}
+   {selected&&areas.error&&<Notice title="Không tải được khu vực dịch vụ" tone="error">{areas.error}</Notice>}
+   {selected&&areas.data&&<>
+    <div className={styles.filters}>
+     <Field htmlFor="service-area-search" label="Tìm khu vực dịch vụ"><input id="service-area-search" type="search" value={search} placeholder="Tên khu vực dịch vụ" onChange={event=>{setSearch(event.target.value);setPage(1)}}/></Field>
+     <Field htmlFor="service-area-kind" label="Loại khu vực dịch vụ"><select id="service-area-kind" value={kind} onChange={event=>{setKind(event.target.value);setPage(1)}}><option value="">Tất cả loại</option>{kinds.map(value=><option key={value} value={value}>{areaKindLabel(value)}</option>)}</select></Field>
+    </div>
+    {(search||kind)&&<div><Button tone="text" onClick={()=>{setSearch('');setKind('');setPage(1)}}>Xóa bộ lọc</Button></div>}
+    {rows.length?<ul className={styles.list}>{pagination.items.map(area=><li key={area.id}><h3>{displayName(area)}</h3><Badge label={areaKindLabel(area.kind)}/></li>)}</ul>:<Empty title={onDeck.length?'Không có khu vực dịch vụ phù hợp':'Boong chưa có khu vực dịch vụ'}/>}
+    <FleetPagination pagination={pagination} onChange={setPage}/>
+   </>}
+  </div>
  </Panel>
 }

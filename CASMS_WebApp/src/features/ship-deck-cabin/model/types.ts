@@ -1,4 +1,4 @@
-export type ShipStatus = 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE'
+export type ShipStatus = 'DRAFT' | 'READY' | 'IN_SERVICE' | 'MAINTENANCE' | 'SUSPENDED' | 'RETIRED'
 export type CabinStatus = 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE' | 'OUT_OF_SERVICE'
 export type CabinType = 'INTERIOR' | 'OCEAN_VIEW' | 'BALCONY' | 'SUITE'
 export type EntityKind = 'ships' | 'decks' | 'cabins'
@@ -26,13 +26,15 @@ export type CheckResult = {
 }
 export type CruisePreview = { id: string; code: string; name: string; departure: string; returnAt: string; status: string }
 export type HistoryEntry = { id: string; passengerId: string; from: string; to: string | null; actorId: string; reason: string }
-export type ShipCapacity = { configuredTotalCapacity: number; configuredTotalDecks: number; actualCabinCount: number; availableCabinCount: number; actualDeckCount: number }
+export type ShipCapacity = { actualServiceAreaCount?: number; configuredTotalCapacity: number; configuredTotalDecks: number; actualCabinCount: number; availableCabinCount: number; actualDeckCount: number }
 export type DeckCapacity = { totalCabins: number; availableCabins: number; totalPassengerCapacity: number }
 export type AvailableCabinQuery = { shipId?: string; deckId?: string; cabinType?: CabinType; minCapacity?: number; isAccessible?: boolean }
 
-export const shipStatuses: Record<ShipStatus, string> = {
-  ACTIVE: 'Hoạt động', MAINTENANCE: 'Bảo trì', INACTIVE: 'Ngừng hoạt động',
+export const shipStatuses: Record<ShipStatus,string> = {
+  DRAFT:'Đang thiết lập',READY:'Sẵn sàng khai thác',IN_SERVICE:'Đang khai thác',
+  MAINTENANCE:'Đang bảo trì',SUSPENDED:'Tạm dừng khai thác',RETIRED:'Đã ngừng khai thác',
 }
+
 export const cabinStatuses: Record<CabinStatus, string> = {
   AVAILABLE: 'Sẵn sàng', OCCUPIED: 'Đang có khách',
   MAINTENANCE: 'Bảo trì', OUT_OF_SERVICE: 'Ngừng phục vụ',

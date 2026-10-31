@@ -13,7 +13,7 @@ export function FleetEditDialog({ target, onClose, onSaved }: { target: FleetEdi
   const access = useSessionAccess()
   const permitted = access.canDo(entityPermission(target.kind, 'UPDATE'))
   const source = target.item
-  const [draft, setDraft] = useState<ShipDraft>(target.kind === 'ships' ? target.item : { code: '', name: '', capacity: 1, totalDecks: 1, commissionDate: '', status: 'ACTIVE' })
+  const [draft, setDraft] = useState<ShipDraft>(target.kind === 'ships' ? target.item : { code: '', name: '', capacity: 1, totalDecks: 1, commissionDate: '', status: 'DRAFT' })
   const [deckName, setDeckName] = useState(target.kind === 'decks' ? target.item.name : '')
   const [multiplier, setMultiplier] = useState(target.kind === 'decks' ? target.item.priceMultiplier ?? 1 : 1)
   const [capacity, setCapacity] = useState(target.kind === 'cabins' ? target.item.capacity : 1)

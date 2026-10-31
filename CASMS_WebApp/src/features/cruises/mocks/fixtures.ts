@@ -5,12 +5,12 @@ const createdAt = '2026-10-01T02:00:00Z'
 const updatedAt = '2026-10-12T06:00:00Z'
 
 export const shipFixtures: ShipRecord[] = [
-  { shipId: '20000000-0000-4000-8000-000000000001', shipCode: 'SH-001', shipName: 'CASMS Aurora', status: 'ACTIVE', totalCapacity: 120, totalDecks: 8, commissionDate: '2020-06-10', createdAt, updatedAt },
-  { shipId: '20000000-0000-4000-8000-000000000002', shipCode: 'SH-002', shipName: 'CASMS Horizon', status: 'ACTIVE', totalCapacity: 140, totalDecks: 9, commissionDate: '2021-03-20', createdAt, updatedAt },
-  { shipId: '20000000-0000-4000-8000-000000000003', shipCode: 'SH-003', shipName: 'CASMS Ocean', status: 'ACTIVE', totalCapacity: 110, totalDecks: 7, commissionDate: '2019-09-02', createdAt, updatedAt },
-  { shipId: '20000000-0000-4000-8000-000000000004', shipCode: 'SH-004', shipName: 'CASMS Breeze', status: 'ACTIVE', totalCapacity: 70, totalDecks: 6, commissionDate: '2018-05-14', createdAt, updatedAt },
+  { shipId: '20000000-0000-4000-8000-000000000001', shipCode: 'SH-001', shipName: 'CASMS Aurora', status: 'READY', totalCapacity: 120, totalDecks: 8, commissionDate: '2020-06-10', createdAt, updatedAt },
+  { shipId: '20000000-0000-4000-8000-000000000002', shipCode: 'SH-002', shipName: 'CASMS Horizon', status: 'READY', totalCapacity: 140, totalDecks: 9, commissionDate: '2021-03-20', createdAt, updatedAt },
+  { shipId: '20000000-0000-4000-8000-000000000003', shipCode: 'SH-003', shipName: 'CASMS Ocean', status: 'READY', totalCapacity: 110, totalDecks: 7, commissionDate: '2019-09-02', createdAt, updatedAt },
+  { shipId: '20000000-0000-4000-8000-000000000004', shipCode: 'SH-004', shipName: 'CASMS Breeze', status: 'READY', totalCapacity: 70, totalDecks: 6, commissionDate: '2018-05-14', createdAt, updatedAt },
   { shipId: '20000000-0000-4000-8000-000000000005', shipCode: 'SH-005', shipName: 'CASMS Pearl', status: 'MAINTENANCE', totalCapacity: 160, totalDecks: 10, commissionDate: '2022-08-01', createdAt, updatedAt },
-  { shipId: '20000000-0000-4000-8000-000000000006', shipCode: 'SH-006', shipName: 'CASMS Legacy', status: 'INACTIVE', totalCapacity: 100, totalDecks: 7, commissionDate: '2012-02-11', createdAt, updatedAt },
+  { shipId: '20000000-0000-4000-8000-000000000006', shipCode: 'SH-006', shipName: 'CASMS Legacy', status: 'SUSPENDED', totalCapacity: 100, totalDecks: 7, commissionDate: '2012-02-11', createdAt, updatedAt },
 ]
 
 export const portFixtures: PortRecord[] = [
