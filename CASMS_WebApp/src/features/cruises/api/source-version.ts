@@ -1,21 +1,21 @@
 import type { ItineraryDayRole } from '@/domain/itinerary-day'
 import { apiRequest, ApiError } from '@/shared/api'
 export type SourceDay={dayNumber:number;dayRole?:ItineraryDayRole;departurePortId?:string|null;departurePortName?:string|null;plannedDepartureTime?:string|null;dayType:string|null;title:string|null;shipTimeZoneId:string}
-export type SourceStop={clientKey:string;portName?:string;stopOrder:number;arrivalDayNumber:number;departureDayNumber:number;plannedArrivalTime:string|null;plannedDepartureTime:string|null;timeZoneId?:string}
-export type SourceEntry={clientKey:string;title:string;kind:'ONBOARD_ACTIVITY'|'SHORE_EXCURSION'|'SERVING_WINDOW';startDayNumber:number;endDayNumber:number;plannedStartTime:string;plannedEndTime:string;timeZoneId:string;locationText:string|null;meetingPoint:string|null}
+export type SourceStop={clientKey:string;portName?:string;stopOrder:number;arrivalDayNumber:number;departureDayNumber:number;plannedArrivalTime:string|null;plannedDepartureTime:string|null;timeZoneId?:string;allAboardDayNumber?:number|null;allAboardTime?:string|null;isEmbarkation?:boolean;isDisembarkation?:boolean;arrivalMethod?:string;callType?:string}
+export type SourceEntry={entryId?:string;clientKey:string;title:string;kind:'ONBOARD_ACTIVITY'|'SHORE_EXCURSION'|'SERVING_WINDOW';startDayNumber:number;endDayNumber:number;plannedStartTime:string;plannedEndTime:string;timeZoneId:string;locationText:string|null;meetingPoint:string|null;notes?:string|null;displayLocation?:string|null;categoryName?:string|null;referenceShipName?:string|null}
 type SourceVersionDto={versionId:string;versionNumber:number;revision?:number|null;tripId:string;status:string;days:SourceDay[];stops:SourceStop[];entries:SourceEntry[]}
 type SourceTripDto={tripId:string;tripCode:string;name:string;status:string;description?:string|null}
 
-export async function readPublishedSource(versionId: string, signal?: AbortSignal) {
+export async function readPublishedSource(versionId: string, signal?: AbortSignal, readOnlyHistory=false) {
   const version = await apiRequest<SourceVersionDto>('/trip-schedule-versions/' + encodeURIComponent(versionId), {signal})
   if (version?.versionId !== versionId || !version.tripId || !Number.isSafeInteger(version.versionNumber)) throw new ApiError('Chưa đọc được đúng phiên bản nguồn đã chọn.',502)
   if (version.status !== 'PUBLISHED') throw new ApiError('Chỉ phiên bản lịch trình đã phát hành mới được dùng làm nguồn.',400,'VERSION_NOT_PUBLISHED')
   const trip = await apiRequest<SourceTripDto>('/trips/' + encodeURIComponent(version.tripId),{signal})
   if (trip?.tripId !== version.tripId || !trip.tripCode || !trip.name) throw new ApiError('Chưa đọc được chuyến đi của phiên bản nguồn.',502)
-  if(trip.status==='ARCHIVED')throw new ApiError('Chuyến đi nguồn đã lưu trữ. Chọn phiên bản của chuyến còn sử dụng.',422,'TRIP_ARCHIVED')
-  if(!Array.isArray(version.days)||!version.days.length||version.days.some(d=>!d||typeof d!=='object'||!Number.isSafeInteger(d.dayNumber))||!Array.isArray(version.stops)||version.stops.some(v=>!v||typeof v!=='object'||!v.clientKey||!Number.isSafeInteger(v.arrivalDayNumber)||!Number.isSafeInteger(v.departureDayNumber))||!Array.isArray(version.entries)||version.entries.some(v=>!v||typeof v!=='object'||!v.clientKey||typeof v.title!=='string'||!['ONBOARD_ACTIVITY','SHORE_EXCURSION','SERVING_WINDOW'].includes(v.kind)))throw new ApiError('Nội dung phiên bản nguồn chưa đầy đủ. Chưa thể tạo lần khởi hành từ bản này.',502)
+  if(trip.status==='ARCHIVED'&&!readOnlyHistory)throw new ApiError('Chuyến đi nguồn đã lưu trữ. Chọn phiên bản của chuyến còn sử dụng.',422,'TRIP_ARCHIVED')
+  if(!Array.isArray(version.days)||!version.days.length||version.days.some(d=>!d||typeof d!=='object'||!Number.isSafeInteger(d.dayNumber))||!Array.isArray(version.stops)||version.stops.some(v=>!v||typeof v!=='object'||!v.clientKey||!Number.isSafeInteger(v.arrivalDayNumber)||!Number.isSafeInteger(v.departureDayNumber))||!Array.isArray(version.entries)||version.entries.some(v=>!v||typeof v!=='object'||!v.clientKey||typeof v.title!=='string'||!['ONBOARD_ACTIVITY','SHORE_EXCURSION','SERVING_WINDOW'].includes(v.kind)))throw new ApiError('Nội dung phiên bản nguồn chưa đầy đủ. Chưa thể tạo chuyến khởi hành từ bản này.',502)
   if(version.revision!=null&&(!Number.isSafeInteger(version.revision)||version.revision<0))throw new ApiError('Revision nguồn chưa hợp lệ.',502)
-  return {revision:version.revision??null,description:trip.description??null,days:version.days,stops:version.stops,entries:version.entries,versionId:version.versionId,versionNumber:version.versionNumber,status:version.status,tripId:trip.tripId,tripCode:trip.tripCode,tripName:trip.name}
+  return {tripStatus:trip.status,revision:version.revision??null,description:trip.description??null,days:version.days,stops:version.stops,entries:version.entries,versionId:version.versionId,versionNumber:version.versionNumber,status:version.status,tripId:trip.tripId,tripCode:trip.tripCode,tripName:trip.name}
 }
 
 export type EligibleSource = {

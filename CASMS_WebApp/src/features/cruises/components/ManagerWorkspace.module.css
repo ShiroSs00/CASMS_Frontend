@@ -2,6 +2,22 @@
 :is(.managerRoot,.operationsRoot) { min-width: 0; }
 .modalForm { display: grid; gap: 16px; min-width: 0; }
 .reviewPanel{min-width:0}
+.planWorkspace{min-width:0;padding:24px;background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:var(--ui-panel-radius)}
+.planWorkspace>h2{font-size:18px;line-height:1.5;margin:0 0 12px}
+.planTaskList{display:grid;min-width:0}
+.planTaskRow{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 0;border-bottom:1px solid var(--ui-border)}
+.planTaskRow>div{min-width:0}
+.planTaskRow h3{font-size:15px;line-height:1.5;margin:0}
+.planTaskRow p{margin:4px 0 0;font-size:13px;line-height:1.6;color:var(--ui-muted)}
+.planTaskRow>button{flex:none;width:auto;min-width:120px}
+.workspaceDisclosure{min-width:0;border-bottom:1px solid var(--ui-border)}
+.workspaceDisclosure:last-child{border-bottom:0}
+.workspaceDisclosure>summary{min-height:56px;padding:18px 0;font-size:15px;font-weight:600;cursor:pointer;line-height:1.5}
+.workspaceDisclosure>summary:focus-visible{outline:2px solid var(--ui-brand);outline-offset:3px}
+.workspaceBody{padding-bottom:20px;min-width:0}
+.workspaceBody>section{border:0;box-shadow:none;padding:0;margin:0;background:transparent}
+.workspaceFooter{display:flex;justify-content:flex-end;padding:0 0 12px}
+@media(max-width:600px){.planWorkspace{padding:18px}.planTaskRow{flex-wrap:wrap}.planTaskRow>button{min-width:0}.workspaceFooter>button{width:100%}}
 .windowFields{min-width:0;border:0;padding:0;margin:0}
 .windowFields>legend{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
 .windowGroup{min-width:0}

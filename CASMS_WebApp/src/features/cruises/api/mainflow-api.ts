@@ -1,4 +1,6 @@
 import { ApiError, apiRequest } from '@/shared/api'
+import {preparationApi, type PreparationDashboard} from './preparation-api'
+export type DossierSubmission={preparationEvidence:string;preparationRevisions:Record<string,number>;pendingPreparationCodes:string[]}
 export type MainflowAction='submit'|'withdraw'|'approve'|'reject'|'request-revision'|'ready'
 export type ProgramIssue={code:string;kind:'ACTIVITY'|'EXCURSION';itemId:string;name:string;startsAt:string|null;endsAt:string|null;earliestStart:string|null;latestEnd:string|null;timeZoneId:string|null}
 export type PlanView={cruiseId:string;revision:number;submittedRevision:number|null;cruiseCode:string;submittedByName:string|null;planStatus:'DRAFT'|'SUBMITTED'|'APPROVED'|'REJECTED'|'REVISION_REQUESTED'|'WITHDRAWN';submittedBy:string|null;submittedAt:string|null;reviewedBy:string|null;reviewedAt:string|null;reason:string|null;submittedSnapshot:unknown;fingerprint:string;readyStatus:'NOT_READY'|'READY'|'INVALIDATED';readyBy:string|null;readyAt:string|null;programIssues?:ProgramIssue[];planBlockers:string[];readyBlockers:string[];allowedActions:string[];windows:{expectedRevision:number;bookingOpensAt:string|null;bookingClosesAt:string|null;guidanceOpensAt:string|null;guidanceClosesAt:string|null}}
@@ -17,10 +19,17 @@ export function decodePlan(value:PlanView,id:string):PlanView{
 export const mainflowApi={
  async get(id:string,signal?:AbortSignal){return decodePlan(await apiRequest<PlanView>(path(id),{signal}),id)},
  async queue(signal?:AbortSignal){const rows=await apiRequest<PlanView[]>('/cruise-plans',{signal});return rows.map(row=>decodePlan(row,row.cruiseId))},
- async action(view:PlanView,action:MainflowAction,reason:string){
-  const saved=decodePlan(await apiRequest<PlanView>(`${path(view.cruiseId)}/${action}`,{method:'POST',body:{expectedRevision:view.revision,reason,fingerprint:view.fingerprint}}),view.cruiseId)
-  const readback=await this.get(view.cruiseId)
-  if(readback.revision!==saved.revision||readback.planStatus!==saved.planStatus||readback.readyStatus!==saved.readyStatus)throw new ApiError('Hệ thống chưa xác nhận được kết quả. Vui lòng kiểm tra lại trạng thái trước khi gửi tiếp.',409)
+ async action(view:PlanView,action:MainflowAction,reason:string,dossier?:DossierSubmission){
+  if(action==='submit'&&!dossier)throw new ApiError('Tải lại hồ sơ trước khi gửi.',422,'PREPARATION_REVISIONS_REQUIRED')
+  const saved=decodePlan(await apiRequest<PlanView>(`${path(view.cruiseId)}/${action}`,{method:'POST',body:{expectedRevision:view.revision,reason,fingerprint:view.fingerprint,...(action==='submit'&&dossier?{preparationEvidence:dossier.preparationEvidence,preparationRevisions:dossier.preparationRevisions}:{})}}),view.cruiseId)
+  let readback:PlanView
+  try{readback=await this.get(view.cruiseId)}catch{throw new ApiError('Chưa đối chiếu được kết quả. Tải lại hồ sơ trước khi tiếp tục.',502)}
+  if(readback.revision!==saved.revision||readback.planStatus!==saved.planStatus||readback.readyStatus!==saved.readyStatus)throw new ApiError('Hệ thống chưa xác nhận được kết quả. Vui lòng kiểm tra lại trạng thái trước khi gửi tiếp.',502)
+  if(action==='submit'&&dossier){
+   let preparation:PreparationDashboard
+   try{preparation=await preparationApi.get(view.cruiseId)}catch{throw new ApiError('Chưa đối chiếu được kết quả gửi hồ sơ. Tải lại dữ liệu trước khi tiếp tục.',502)}
+   if(preparation.sections.some(section=>!['SUBMITTED','CONFIRMED'].includes(section.status)||section.revision<dossier.preparationRevisions[section.sectionCode]+(dossier.pendingPreparationCodes.includes(section.sectionCode)?1:0)||dossier.pendingPreparationCodes.includes(section.sectionCode)&&section.evidence!==dossier.preparationEvidence))throw new ApiError('Kết quả hồ sơ đã thay đổi. Đối chiếu lại trước khi gửi tiếp.',502)
+  }
   return readback
  },
  async windows(view:PlanView,windows:PlanView['windows']){

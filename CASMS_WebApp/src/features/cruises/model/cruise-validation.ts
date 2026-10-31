@@ -66,7 +66,7 @@ export function validateCruiseSchedule(
     return errors
   }
 
-  if (cruiseType && !['ONE_DAY','MULTI_DAYS'].includes(cruiseType)) errors.cruiseType = 'Loại lần khởi hành chưa hợp lệ.'
+  if (cruiseType && !['ONE_DAY','MULTI_DAYS'].includes(cruiseType)) errors.cruiseType = 'Loại chuyến khởi hành chưa hợp lệ.'
 
   return errors
 }

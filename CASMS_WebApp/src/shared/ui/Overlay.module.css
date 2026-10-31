@@ -52,3 +52,5 @@
 .body { padding:28px; }
 .footer { background:#EEF3F0; padding:20px 28px; }
 @media(max-width:600px) { .header,.body { padding:24px 20px; } .footer { padding:20px; } }
+
+.large { width:min(1120px,calc(100vw - 32px)); }

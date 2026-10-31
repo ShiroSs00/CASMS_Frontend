@@ -1,27 +1,24 @@
-import { itineraryDayRole, itineraryDayRoleLabels } from '@/domain/itinerary-day'
-import {useLocation} from 'react-router'
-import {Badge,Notice,Panel,PermissionLink} from '@/shared/ui'
-import {businessCopy} from '@/shared/i18n/business-copy'
-import {SHIP_TIME_ZONE} from '@/shared/lib/journey-time'
-import type {PublishedSource} from '../api/source-version'
+import {useCallback,useState} from 'react'
+import {useReadQuery} from '@/shared/api'
+import {Button,Loading,Modal,Notice,Panel} from '@/shared/ui'
+import {TemplateSchedule} from '@/domain/itinerary-day'
+import {readPublishedSource,type PublishedSource} from '../api/source-version'
 import styles from './Cruises.module.css'
-const kinds={ONBOARD_ACTIVITY:'Hoạt động trên tàu',SHORE_EXCURSION:'Tour tham quan trên bờ',SERVING_WINDOW:'Khung phục vụ'}
-const clock=(value:string|null)=>value?(value.length>5&&value.endsWith(':00')?value.slice(0,5):value):'Chưa có giờ'
-export function InheritedSourcePlan({source,returnState}:{source:PublishedSource;returnState?:unknown}){
- const location=useLocation()
- return <Panel title="Hành trình kế thừa" className={styles.inheritedPlan}>
-   <div className={styles.sourceIdentity}><Badge label={businessCopy('trip.template.PUBLISHED')} tone="success"/><span>{source.tripCode} · Phiên bản {source.versionNumber}</span><h2>{source.tripName}</h2></div>
-   {source.description&&<p className={styles.sourceDescription}>{source.description}</p>}
-   {source.days.some(day=>day.shipTimeZoneId!==SHIP_TIME_ZONE)&&<Notice title="Cần đối chiếu giờ tàu của nguồn" tone="warning">Múi giờ ngày trong nguồn chưa khớp giờ tàu Việt Nam. Không tự quy đổi giờ địa phương thành lịch khởi hành.</Notice>}
-   <p className={styles.muted}>{source.days.length} ngày · {source.stops.length} lần ghé cảng · {source.entries.length} mục chương trình</p>
-   <ol className={styles.inheritedDays}>{source.days.toSorted((a,b)=>a.dayNumber-b.dayNumber).map(day=>{
-     const stops=source.stops.filter(v=>v.arrivalDayNumber<=day.dayNumber&&v.departureDayNumber>=day.dayNumber).toSorted((a,b)=>a.stopOrder-b.stopOrder)
-     const entries=source.entries.filter(v=>v.startDayNumber<=day.dayNumber&&v.endDayNumber>=day.dayNumber)
-     return <li key={day.dayNumber}><div className={styles.sourceDayHeading}><strong>Ngày {day.dayNumber}</strong><span>{itineraryDayRoleLabels[day.dayRole??itineraryDayRole(day.dayNumber,source.days.length)]} · {day.dayType==='SEA_DAY'?'Trên biển':day.dayType==='PORT_DAY'?'Xuống bờ':'Chưa xác định trạng thái'}</span></div>{day.dayNumber===1&&<p>Cảng khởi hành: {day.departurePortName||'Chưa chọn'} · Giờ dự kiến: {clock(day.plannedDepartureTime??null)} (giờ Việt Nam)</p>}{day.title&&<h3>{day.title}</h3>}
-       {stops.map(stop=><p key={stop.clientKey}><strong>Lần ghé {stop.stopOrder} · {stop.portName||'Chưa có tên cảng'}</strong><br/>Ngày {stop.arrivalDayNumber} {clock(stop.plannedArrivalTime)} → Ngày {stop.departureDayNumber} {clock(stop.plannedDepartureTime)} <small>· giờ cảng{stop.timeZoneId?' · '+stop.timeZoneId:''}</small></p>)}
-       {entries.length>0&&<details open={entries.length<=3}><summary>Chương trình theo nguồn · {entries.length} mục</summary><ul>{entries.map(entry=><li key={entry.clientKey}><span>{kinds[entry.kind]}</span><strong>{entry.title}</strong><p>Ngày {entry.startDayNumber} {clock(entry.plannedStartTime)} → Ngày {entry.endDayNumber} {clock(entry.plannedEndTime)} · {entry.kind==='SHORE_EXCURSION'?'giờ cảng':'giờ Việt Nam'}</p>{entry.locationText&&<p>{entry.locationText}</p>}</li>)}</ul></details>}
-     </li>
-   })}</ol>
-   <PermissionLink state={returnState} to={'/admin/trips/'+encodeURIComponent(source.tripId)+'/schedule?'+new URLSearchParams({versionId:source.versionId,returnTo:location.pathname+location.search})}>Xem toàn bộ phiên bản nguồn</PermissionLink>
+
+export function SourceScheduleDialog({versionId,source,onClose}:{versionId:string;source?:PublishedSource;onClose:()=>void}){
+ const query=useReadQuery(`source-dialog:${versionId}:${source?.revision??''}`,useCallback(signal=>source?Promise.resolve(source):readPublishedSource(versionId,signal,true),[versionId,source]))
+ return <Modal large title={query.data?`Lịch trình đã chốt · ${query.data.tripName}`:'Lịch trình đã chốt'} protectChanges={false} onClose={onClose} footer={<Button tone="secondary" onClick={onClose}>Đóng</Button>}>
+  {query.loading&&<Loading label="Đang tải lịch trình đã chốt…"/>}
+  {query.error&&<Notice title="Chưa tải được lịch trình" tone="error">{query.error.message}<Button tone="secondary" onClick={query.retry}>Tải lại mẫu</Button></Notice>}
+  {query.data&&!query.loading&&!query.error&&<><p>{query.data.tripCode} · Phiên bản {query.data.versionNumber} · {query.data.days.length} ngày</p>{query.data.tripStatus==='ARCHIVED'&&<p>Chuyến đi nguồn đã lưu trữ · Chỉ xem lịch trình đã chốt.</p>}{query.data.description&&<p>{query.data.description}</p>}<TemplateSchedule days={query.data.days} stops={query.data.stops} entries={query.data.entries}/></>}
+ </Modal>
+}
+export function InheritedSourcePlan({source}:{source:PublishedSource}){
+ const [open,setOpen]=useState(false)
+ return <Panel title="Lịch trình được chọn" className={styles.inheritedPlan}>
+  <div className={styles.sourceIdentity}><h2>{source.tripName}</h2><span>{source.tripCode} · Phiên bản {source.versionNumber} · Đã chốt lịch trình</span></div>
+  <p>{source.days.length} ngày · {source.stops.length} lần ghé cảng · {source.entries.length} mục chương trình</p>
+  <Button tone="secondary" onClick={()=>setOpen(true)}>Xem lịch trình đã chốt</Button>
+  {open&&<SourceScheduleDialog versionId={source.versionId} source={source} onClose={()=>setOpen(false)}/>}
  </Panel>
 }

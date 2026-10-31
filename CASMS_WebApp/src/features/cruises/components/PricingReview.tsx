@@ -20,9 +20,9 @@ export function PricingReview({policy,onSaved}:{policy:PricingPolicy;onSaved:()=
  const actions:PricingAction[]=policy.status==='PENDING_APPROVAL'&&ops?['approve','return']:[]
  return <>
   <p className={styles.reviewHint}>Duyệt giá là quyết định riêng với duyệt kế hoạch.</p>{policy.decisionReason&&<Notice title={businessCopy('pricing.policy.RETURNED')}>{policy.decisionReason}</Notice>}
-  {policy.status==='RETURNED'&&<p>Nếu kế hoạch đã được duyệt, chọn “Yêu cầu bổ sung” ở phần xét duyệt kế hoạch để CRM sửa giá và gửi lại.</p>}
+  {policy.status==='RETURNED'&&<p>Nếu kế hoạch đã được duyệt, chọn “Yêu cầu bổ sung” ở phần xét duyệt kế hoạch để Quản lý lịch trình sửa giá và gửi lại.</p>}
   {actions.length>0&&<div className={styles.reviewActions}>{actions.map(a=><Button key={a} tone={a==='approve'?'primary':'secondary'} disabled={busy||unknown||policy.revision==null||a!=='submit'&&policy.submittedBy===access.userId} onClick={()=>{setAction(a);setReason('')}}>{businessCopy(keys[a])}</Button>)}</div>}
-  {actions.length>0&&policy.submittedBy===access.userId&&<p className={styles.reviewHint}>Bạn là người gửi chính sách giá này. Cần một tài khoản OPS khác xét duyệt.</p>}
+  {actions.length>0&&policy.submittedBy===access.userId&&<p className={styles.reviewHint}>Bạn là người gửi chính sách giá này. Cần một tài khoản quản lý vận hành khác xét duyệt.</p>}
   {error&&<Notice tone="error" title={businessCopy('pricing.review.failed')}>{error}</Notice>}
   {unknown&&<Notice title={businessCopy('pricing.review.unconfirmed')}>{businessCopy('pricing.review.reload')}</Notice>}
   {action&&<Modal busy={busy} title={businessCopy(keys[action])} onClose={()=>{if(!busy)setAction(null)}} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setAction(null)}>Quay lại</Button><Button disabled={busy||unknown||action==='return'&&!reason.trim()} onClick={()=>void execute()}>{busy?'Đang lưu…':businessCopy(keys[action])}</Button></>}>

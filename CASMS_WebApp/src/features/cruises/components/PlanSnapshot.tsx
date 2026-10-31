@@ -23,9 +23,9 @@ export function PlanSnapshot({snapshot,includePricing=true}:{snapshot:unknown;in
  const s=object(snapshot),c=object(s.cruise),ports=rows(s.ports)
  const portFor=(id:unknown)=>ports.find(port=>port.port_id===id)
  return <div className={styles.snapshot}>
-  <section className={styles.overview} aria-label="Thông tin lần khởi hành đã gửi">
+  <section className={styles.overview} aria-label="Thông tin chuyến khởi hành đã gửi">
   <RecordFacts entries={[
-   ['Mã lần khởi hành',value(c.cruise_code)],['Tên lần khởi hành',value(c.cruise_name)],
+   ['Mã chuyến khởi hành',value(c.cruise_code)],['Tên chuyến khởi hành',value(c.cruise_name)],
    ['Khởi hành',clock(c.departure_datetime)],['Kết thúc',clock(c.return_datetime)],
    ['Phạm vi',domainStatus('source.scope',String(c.planned_scope))],['Cấu trúc lịch',domainStatus('cruise.itinerary',String(c.itinerary_mode))],
   ]}/>

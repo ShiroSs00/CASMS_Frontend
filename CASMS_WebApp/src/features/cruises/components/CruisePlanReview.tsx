@@ -16,7 +16,7 @@ import {planReviewActions,planReviewStates} from '../model/plan-review'
 import {preparationApi} from '../api/preparation-api'
 const actionKeys={submit:'cruise.plan.SUBMIT_ACTION',withdraw:'cruise.plan.WITHDRAW_ACTION',approve:'cruise.plan.APPROVE_ACTION',reject:'cruise.plan.REJECT_ACTION','request-revision':'cruise.plan.REQUEST_REVISION_ACTION',ready:'cruise.ready.SET_READY_ACTION'} as const
 const safeError=(error:unknown)=>businessErrorMessage(error instanceof ApiError?error.code:undefined,'')
-export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onReview,itineraryMode,mode='all'}:{cruiseId:string;refreshKey?:number|string;onChanged?:()=>void;onSection?:(section:DepartureSection)=>void;onReview?:()=>void;itineraryMode?:'FIXED'|'CUSTOM';mode?:'all'|'prepare'|'submit'|'review'|'ready'|'summary'}){
+export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onReview,itineraryMode,mode='all',embedded=false}:{cruiseId:string;refreshKey?:number|string;onChanged?:()=>void;onSection?:(section:DepartureSection)=>void;onReview?:()=>void;itineraryMode?:'FIXED'|'CUSTOM';embedded?:boolean;mode?:'all'|'prepare'|'submit'|'review'|'ready'|'summary'}){
  const access=useSessionAccess(),[epoch,setEpoch]=useState(0)
  const allowed=['CRUISE_MANAGER','OPERATIONS_MANAGER','SHIP_MANAGER'].some(role=>access.roles.includes(role))&&access.has('CRUISE_READ')
  const query=useReadQuery(`plan:${cruiseId}:${epoch}:${refreshKey}:${allowed}`,useCallback(signal=>allowed?mainflowApi.get(cruiseId,signal):Promise.resolve(null),[cruiseId,allowed]))
@@ -24,6 +24,13 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
  const preparation=useReadQuery(`ready-preparation:${cruiseId}:${epoch}:${refreshKey}:${readPreparation}`,useCallback(signal=>readPreparation?preparationApi.get(cruiseId,signal):Promise.resolve(null),[readPreparation,cruiseId]))
  const [action,setAction]=useState<MainflowAction|null>(null),[reason,setReason]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[success,setSuccess]=useState('')
  const [uncertain,setUncertain]=useState(false),lock=useRef(false)
+ const [evidence,setEvidence]=useState('')
+ const readDossier=allowed&&action==='submit'&&access.has('CRUISE_PREPARATION_READ')
+ const dossier=useReadQuery(`submit-dossier:${access.userId}:${access.status}:${cruiseId}:${epoch}:${refreshKey}:${readDossier}`,useCallback(signal=>readDossier?preparationApi.get(cruiseId,signal):Promise.resolve(null),[readDossier,cruiseId]))
+ const pendingSections=dossier.data?.sections.filter(section=>!['SUBMITTED','CONFIRMED'].includes(section.status))??[]
+ const dossierAllowed=Boolean(dossier.data&&!dossier.loading&&!dossier.error&&dossier.data.coordinatorUserId===access.userId&&access.has('CRUISE_PREPARATION_SUBMIT')&&pendingSections.every(section=>section.allowedActions.includes('SUBMIT')))
+ const dossierValid=dossierAllowed&&(pendingSections.length===0||Boolean(evidence.trim()))
+
  const crm=access.roles.includes('CRUISE_MANAGER')&&access.canDo('CRUISE_UPDATE_DRAFT'),ops=access.roles.includes('OPERATIONS_MANAGER')&&access.canDo('ITINERARY_APPROVE')
  const data=query.data
  const manager=access.roles.includes('CRUISE_MANAGER')&&!access.roles.includes('OPERATIONS_MANAGER')
@@ -33,8 +40,9 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
  async function execute(){
   if(!data||!action||lock.current||uncertain||!availableActions.includes(action))return
   if(action==='ready'?!(access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_VALIDATE')):['submit','withdraw'].includes(action)?!crm:!ops)return
+  if(action==='submit'&&!dossierValid)return
   lock.current=true;setBusy(true);setError('');setSuccess('')
-  try{const actual=await mainflowApi.action(data,action,reason);setAction(null);setSuccess(action==='ready'?domainStatus('cruise.ready',actual.readyStatus):domainStatus('cruise.plan',actual.planStatus));setEpoch(n=>n+1);onChanged?.()}
+  try{const actual=await mainflowApi.action(data,action,reason,action==='submit'&&dossier.data?{preparationEvidence:evidence.trim(),pendingPreparationCodes:pendingSections.map(section=>section.sectionCode),preparationRevisions:Object.fromEntries(dossier.data.sections.map(section=>[section.sectionCode,section.revision]))}:undefined);setAction(null);if(action==='submit')setEvidence('');setSuccess(action==='submit'?'Đã gửi hồ sơ chuyến khởi hành':action==='ready'?domainStatus('cruise.ready',actual.readyStatus):domainStatus('cruise.plan',actual.planStatus));setEpoch(n=>n+1);onChanged?.()}
   catch(e){setError(safeError(e));if(!(e instanceof ApiError)||e.status===0||e.status>=500)setUncertain(true)}finally{lock.current=false;setBusy(false)}
  }
  if(!allowed)return null
@@ -43,18 +51,32 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
   {query.error&&<Notice title="Chưa tải được trạng thái kế hoạch" tone="error"><Button tone="secondary" onClick={query.retry}>Tải lại trạng thái</Button></Notice>}
   {data&&!query.loading&&!query.error&&<>
    <Badge label={planReviewStates[data.planStatus].title} tone={planReviewStates[data.planStatus].tone}/>
-   {data.reason&&<p>Phản hồi OPS: {data.reason}</p>}
-   {!['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.planStatus)&&<p>Kế hoạch hiện chỉ cho xem. Thao tác thu hồi và phản hồi nằm ở bước “Kiểm tra và gửi OPS”.</p>}
-   {onReview&&data.planStatus!=='DRAFT'&&<Button tone="text" onClick={onReview}>Xem kết quả và phản hồi OPS</Button>}
+   {data.reason&&<p>Phản hồi Quản lý vận hành: {data.reason}</p>}
+   {!['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.planStatus)&&<p>Kế hoạch hiện chỉ cho xem. Thao tác thu hồi và phản hồi nằm ở bước “Kiểm tra và gửi hồ sơ”.</p>}
+   {onReview&&data.planStatus!=='DRAFT'&&<Button tone="text" onClick={onReview}>Xem kết quả và phản hồi Quản lý vận hành</Button>}
   </>}
  </Panel>
- if(mode==='prepare')return <Panel title="Thời gian nhận đặt chỗ và hướng dẫn">
+ if(mode==='prepare')return <Panel title={embedded?undefined:"Thời gian nhận đặt chỗ và hướng dẫn"}>
   {query.loading&&<Loading/>}{query.error&&<Notice title="Chưa tải được khung thời gian" tone="error">{safeError(query.error)}<Button tone="secondary" onClick={query.retry}>Thử lại</Button></Notice>}
   {data&&<PlanWindows key={`${cruiseId}:${data.windows.expectedRevision}`} data={data} onSaved={()=>setEpoch(n=>n+1)} editable={crm&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.planStatus)}/>}
  </Panel>
- const actionDialog=action&&<Modal busy={busy} title={action==='submit'?'Gửi kế hoạch cho OPS phê duyệt':businessCopy(actionKeys[action])} onClose={()=>{if(!busy)setAction(null)}} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setAction(null)}>Quay lại</Button><Button disabled={busy||uncertain||(['reject','request-revision'].includes(action)&&!reason.trim())} onClick={()=>void execute()}>{busy?'Đang gửi…':action==='submit'?'Xác nhận gửi kế hoạch':businessCopy(actionKeys[action])}</Button></>}>
-   {action==='submit'&&<><p><strong>{data?.cruiseCode}</strong> sẽ chuyển sang trạng thái <strong>Chờ OPS phê duyệt</strong>.</p><p>OPS sẽ xét duyệt bản kế hoạch hiện tại. Chính sách giá được phê duyệt riêng; thao tác này chưa mở bán chuyến.</p></>}
-   {action==='request-revision'&&data?.planStatus==='APPROVED'&&<p>Kế hoạch sẽ mở lại cho CRM chỉnh sửa và gửi duyệt lại. Xác nhận sẵn sàng trước đó sẽ mất hiệu lực; quyết định giá đã lưu vẫn được giữ riêng.</p>}
+ const supplement=Boolean(data&&['SUBMITTED','APPROVED'].includes(data.planStatus))
+ const submitLabel=supplement?'Gửi bổ sung hồ sơ':'Gửi hồ sơ chuyến khởi hành'
+ const actionDialog=action&&<Modal busy={busy} title={action==='submit'?submitLabel:businessCopy(actionKeys[action])} onClose={()=>{if(!busy)setAction(null)}} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setAction(null)}>Quay lại</Button><Button disabled={busy||uncertain||(action==='submit'&&!dossierValid)||(['reject','request-revision'].includes(action)&&!reason.trim())} onClick={()=>void execute()}>{busy?'Đang gửi…':action==='submit'?submitLabel:businessCopy(actionKeys[action])}</Button></>}>
+   {action==='submit'&&<>
+    <p><strong>{data?.cruiseCode}</strong> · {supplement?'Bổ sung các nhóm hồ sơ được trả lại hoặc chưa gửi.':'Gửi kế hoạch, chính sách giá và hồ sơ chuẩn bị cho Quản lý vận hành.'}</p>
+    {dossier.loading&&<Loading label="Đang đối chiếu hồ sơ chuẩn bị…"/>}
+    {dossier.error&&<Notice title="Chưa đọc được hồ sơ chuẩn bị" tone="error"><Button tone="secondary" onClick={dossier.retry}>Tải lại hồ sơ</Button></Notice>}
+    {dossier.data&&!dossier.loading&&!dossier.error&&<>
+     <ul>{dossier.data.sections.map(section=><li key={section.sectionCode}>{section.sectionName} · {section.status==='CONFIRMED'?'Đã xác nhận':section.status==='SUBMITTED'?'Đã gửi':section.status==='RETURNED'?'Cần bổ sung':'Gửi cùng hồ sơ'}{section.returnReason&&<p>{section.returnReason}</p>}</li>)}</ul>
+     {!dossierAllowed&&<Notice title="Chưa thể gửi hồ sơ">Chỉ Quản lý lịch trình được phân công phụ trách hồ sơ và có quyền gửi mới thực hiện được thao tác này.</Notice>}
+     {pendingSections.length>0&&<Field htmlFor="departure-dossier-evidence" label={supplement?'Nội dung bổ sung hồ sơ':'Nội dung và bằng chứng chuẩn bị'}><textarea id="departure-dossier-evidence" rows={5} value={evidence} onChange={event=>setEvidence(event.target.value)} required disabled={busy||uncertain}/></Field>}
+    </>}
+    <p>Quản lý vận hành duyệt kế hoạch, duyệt giá và xác nhận hồ sơ riêng. Gửi hồ sơ chưa mở bán chuyến.</p>
+   </>}
+   {action==='request-revision'&&data?.planStatus==='APPROVED'&&<p>Kế hoạch sẽ mở lại cho Quản lý lịch trình chỉnh sửa và gửi duyệt lại. Xác nhận sẵn sàng trước đó sẽ mất hiệu lực; quyết định giá đã lưu vẫn được giữ riêng.</p>}
+   {error&&<Notice title="Chưa hoàn tất thao tác" tone="error">{error}</Notice>}
+   {uncertain&&<Notice title="Chưa xác định kết quả">Đóng hộp thoại và tải lại dữ liệu để đối chiếu trước khi gửi tiếp.</Notice>}
    <p>{businessCopy('cruise.plan.revision')}: {data?.revision}</p>{['reject','request-revision'].includes(action)&&<Field htmlFor="plan-reason" label={businessCopy(action==='reject'?'cruise.plan.rejectReason':'cruise.plan.revisionFeedback')}><textarea id="plan-reason" value={reason} onChange={e=>setReason(e.target.value)} required/></Field>}
   </Modal>
  if(mode==='ready')return <Panel title="Xác nhận sẵn sàng vận hành">
@@ -69,8 +91,8 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
     const dossier=code==='PREPARATION_CONFIRMATION_REQUIRED'&&!preparation.loading&&!preparation.error?preparation.data:null
     const awaitingSubmit=dossier?.sections.filter(section=>['NOT_STARTED','IN_PROGRESS','RETURNED'].includes(section.status)).length??0
     const awaitingConfirm=dossier?.sections.filter(section=>section.status==='SUBMITTED').length??0
-    return <li key={message}>{dossier?<span>{awaitingSubmit>0?`${awaitingSubmit} nhóm hồ sơ cần người phụ trách CRM gửi hoặc bổ sung. `:''}{awaitingConfirm>0?`${awaitingConfirm} nhóm hồ sơ đã gửi, chờ OPS xác nhận. `:''}{awaitingSubmit===0&&awaitingConfirm===0?'Cần kiểm tra lại kết quả xác nhận hồ sơ.':''}</span>:<ProgramBlocker code={code} data={data} fixed={itineraryMode==='FIXED'}/>} {target==='review'&&onReview?<Button tone="text" onClick={onReview}>Xem xét duyệt</Button>:destination&&onSection?<Button tone="text" onClick={()=>onSection(destination[0])}>Mở {destination[1].toLocaleLowerCase('vi-VN')}</Button>:null}</li>
-   })}</ul>:data.readyStatus!=='READY'&&<p>Đủ điều kiện kiểm tra. OPS chưa xác nhận sẵn sàng.</p>}
+    return <li key={message}>{dossier?<span>{awaitingSubmit>0?`${awaitingSubmit} nhóm hồ sơ cần Quản lý lịch trình phụ trách hồ sơ gửi hoặc bổ sung. `:''}{awaitingConfirm>0?`${awaitingConfirm} nhóm hồ sơ đã gửi, chờ Quản lý vận hành xác nhận. `:''}{awaitingSubmit===0&&awaitingConfirm===0?'Cần kiểm tra lại kết quả xác nhận hồ sơ.':''}</span>:<ProgramBlocker code={code} data={data} fixed={itineraryMode==='FIXED'}/>} {target==='review'&&onReview?<Button tone="text" onClick={onReview}>Xem xét duyệt</Button>:destination&&onSection?<Button tone="text" onClick={()=>onSection(destination[0])}>Mở {destination[1].toLocaleLowerCase('vi-VN')}</Button>:null}</li>
+   })}</ul>:data.readyStatus!=='READY'&&<p>Đủ điều kiện kiểm tra. Quản lý vận hành chưa xác nhận sẵn sàng.</p>}
    <div className={styles.planActions}><Button tone="secondary" disabled={busy||query.loading} onClick={()=>{query.retry();preparation.retry()}}>Kiểm tra lại điều kiện</Button>{availableActions.includes('ready')&&data.readyStatus!=='READY'&&<Button disabled={busy||uncertain||query.loading||Boolean(query.error)} onClick={()=>{setAction('ready');setReason('')}}>Xác nhận sẵn sàng vận hành</Button>}</div>
   </>}
   {success&&<Notice title={success} tone="success">Đã ghi nhận xác nhận sẵn sàng.</Notice>}{error&&<Notice title="Chưa xác nhận được chuyến sẵn sàng" tone="error">{error}</Notice>}
@@ -78,23 +100,23 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
   {actionDialog}
  </Panel>
  const reviewActions=data&&availableActions.length>0&&<div className={styles.reviewDecision}>
-  {availableActions.length>0&&<p>{manager?'Gửi bản kế hoạch đã kiểm tra để OPS xét duyệt.':'Quyết định kế hoạch'}</p>}
-  <div className={styles.planActions}>{availableActions.map(a=><Button key={a} tone={a==='submit'||a==='approve'?'primary':a==='reject'?'danger':'secondary'} disabled={busy||uncertain||query.loading||Boolean(query.error)||(a==='submit'&&data.planBlockers.length>0)} onClick={()=>{setAction(a);setReason('');setSuccess('')}}>{a==='submit'?(data.planStatus==='DRAFT'?'Gửi kế hoạch cho OPS duyệt':'Gửi lại kế hoạch cho OPS duyệt'):businessCopy(actionKeys[a])}</Button>)}</div>
+  {availableActions.length>0&&<p>{manager?'Gửi hồ sơ chuyến khởi hành cho Quản lý vận hành.':'Quyết định kế hoạch'}</p>}
+  <div className={styles.planActions}>{availableActions.map(a=><Button key={a} tone={a==='submit'||a==='approve'?'primary':a==='reject'?'danger':'secondary'} disabled={busy||uncertain||query.loading||Boolean(query.error)||(a==='submit'&&data.planBlockers.length>0)} onClick={()=>{setAction(a);setReason('');setSuccess('')}}>{a==='submit'?submitLabel:businessCopy(actionKeys[a])}</Button>)}</div>
  </div>
  return <Panel className={styles.reviewPanel}>
-  <header className={styles.reviewHeader}><h2>{manager?'Kiểm tra và gửi kế hoạch':'Xét duyệt kế hoạch khởi hành'}</h2><Button tone="text" disabled={busy||query.loading} onClick={query.retry}>Tải lại kế hoạch</Button></header>
+  <header className={styles.reviewHeader}><h2>{manager?'Gửi hồ sơ chuyến khởi hành':'Xét duyệt kế hoạch khởi hành'}</h2><Button tone="text" disabled={busy||query.loading} onClick={query.retry}>Tải lại kế hoạch</Button></header>
   {query.loading&&<Loading/>}{query.error&&<Notice title="Không thể hoàn tất thao tác" tone="error">{safeError(query.error)}<Button onClick={query.retry}>Tải lại dữ liệu</Button></Notice>}
   {data&&<>
    <div className={styles.reviewSummary}>
     <Badge label={approvalNeedsReview?'Phê duyệt trước đó cần xét lại':planReviewStates[data.planStatus].title} tone={approvalNeedsReview?'warning':planReviewStates[data.planStatus].tone}/>
-    <p>{approvalNeedsReview?'Nội dung kế hoạch đã thay đổi hoặc còn thiếu. Cần yêu cầu CRM bổ sung trước khi phê duyệt lại.':readyToSubmit?'Kế hoạch đã đủ thông tin để gửi đến Quản lý vận hành (OPS).':mode==='review'&&data.planStatus==='SUBMITTED'?'Đối chiếu bản kế hoạch đã gửi bên dưới trước khi quyết định.':planReviewStates[data.planStatus].description}</p>
+    <p>{approvalNeedsReview?'Nội dung kế hoạch đã thay đổi hoặc còn thiếu. Cần yêu cầu Quản lý lịch trình bổ sung trước khi phê duyệt lại.':readyToSubmit?'Kế hoạch đã đủ thông tin. Đối chiếu hồ sơ chuẩn bị trước khi gửi.':mode==='review'&&data.planStatus==='SUBMITTED'?'Đối chiếu bản kế hoạch đã gửi bên dưới trước khi quyết định.':planReviewStates[data.planStatus].description}</p>
     {data.submittedAt&&<p className={styles.sectionMeta}>Đã gửi lúc {journeyTime(data.submittedAt,SHIP_TIME_ZONE)} · Giờ Việt Nam{data.submittedByName?' · Người gửi: '+data.submittedByName:''}</p>}
     {data.reviewedAt&&<p className={styles.sectionMeta}>Phản hồi lúc {journeyTime(data.reviewedAt,SHIP_TIME_ZONE)} · Giờ Việt Nam</p>}
-    {readyToSubmit&&<p className={styles.submitReady}>Sẵn sàng gửi xét duyệt</p>}
+    {readyToSubmit&&<p className={styles.submitReady}>Đủ thông tin kế hoạch</p>}
 
    </div>
    {!manager&&mode!=='review'&&<Badge label={domainStatus('cruise.ready',data.readyStatus)}/>}
-   {data.reason&&<Notice title="Phản hồi từ OPS" tone={data.planStatus==='REJECTED'?'error':'warning'}>{data.reason}</Notice>}
+   {data.reason&&<Notice title="Phản hồi từ Quản lý vận hành" tone={data.planStatus==='REJECTED'?'error':'warning'}>{data.reason}</Notice>}
    {data.planBlockers.length>0&&<Notice title={businessCopy('cruise.plan.missingInputs')}><ul className={styles.conditionList}>{data.planBlockers.map(code=>{const target=manager?code.startsWith('PRICING_')||code.endsWith('WINDOW_REQUIRED')?'overview':operationsConditionTarget(code):null;const destination=target&&target!=='review'?allowedDepartureSections(access).find(([key])=>key===target):null;return <li key={code}><ProgramBlocker code={code} data={data} fixed={itineraryMode==='FIXED'}/>{destination&&onSection&&<Button tone="text" onClick={()=>onSection(destination[0])}>Mở {destination[1].toLocaleLowerCase('vi-VN')}</Button>}</li>})}</ul></Notice>}
 
    {crm&&mode!=='submit'&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.planStatus)&&<PlanWindows key={`${cruiseId}:${data.windows.expectedRevision}`} data={data} onSaved={()=>setEpoch(n=>n+1)} editable/>}
@@ -102,8 +124,8 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
    <details className={styles.revisionDisclosure}><summary>Thông tin phiên bản kế hoạch</summary><p>{businessCopy('cruise.plan.revision')}: {data.revision}</p></details>
    {reviewActions}
   </>}
-  {success&&<Notice title="Đã ghi nhận quyết định" tone="success">{success}</Notice>} {error&&<Notice title="Không thể hoàn tất thao tác" tone="error">{error}</Notice>}
-  {uncertain&&<Notice title="Hệ thống chưa xác nhận được kết quả"><Button onClick={()=>{setUncertain(false);setEpoch(n=>n+1)}}>Tải lại dữ liệu</Button></Notice>}
+  {success&&<Notice title={manager?'Kết quả gửi hồ sơ':'Đã ghi nhận quyết định'} tone="success">{success}</Notice>} {error&&<Notice title="Không thể hoàn tất thao tác" tone="error">{error}</Notice>}
+  {uncertain&&<Notice title="Hệ thống chưa xác nhận được kết quả"><Button onClick={()=>{setUncertain(false);setAction(null);setEpoch(n=>n+1);onChanged?.()}}>Đối chiếu lại hồ sơ</Button></Notice>}
   {actionDialog}
  </Panel>
 }

@@ -10,7 +10,7 @@ export type PricingPolicy = {
 
 /** Decode source-backed fields without replacing absent prices or terms with defaults. */
 export function decodePricingPolicy(value: unknown, cruiseId: string): PricingPolicy {
-  const invalid = () => new ApiError('Không đọc được chính sách giá của lần khởi hành này.', 502)
+  const invalid = () => new ApiError('Không đọc được chính sách giá của chuyến khởi hành này.', 502)
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw invalid()
   const row = value as Record<string, unknown>
   const text = (key:string) => { const v=row[key]; if(v==null)return null; if(typeof v!=='string')throw invalid(); return v }
