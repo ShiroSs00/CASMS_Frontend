@@ -22,7 +22,7 @@ async function currentVersion(id:string,signal?:AbortSignal) {return versionView
 export const liveGateway: PlanningGateway = {
   mode:'api',readOnly:false,supportsMiddleDayRemoval:true,supportsFullInfo:true,
   async list(page,status,signal,filters) {
-    const result=await apiRequest<{content:CurrentTrip[];totalPages:number;totalElements:number}>('/trips',{query:{page,size:20,sort:'createdAt,tripId,desc',status:status||undefined,includeArchived:true,search:filters?.search.trim()||undefined,durationGroup:filters?.durationGroup||undefined,plannedScope:filters?.plannedScope||undefined},signal})
+    const result=await apiRequest<{content:CurrentTrip[];totalPages:number;totalElements:number}>('/trips',{query:{page,size:20,sort:'createdAt,tripId,desc',status:status||undefined,includeArchived:status==='ARCHIVED',search:filters?.search.trim()||undefined,durationGroup:filters?.durationGroup||undefined,plannedScope:filters?.plannedScope||undefined},signal})
     if(!Array.isArray(result.content)||!Number.isSafeInteger(result.totalPages)||!Number.isSafeInteger(result.totalElements)) throw new PlanningFault('Chưa đọc được phân trang chuyến đi.',502)
     return {...result,content:result.content.map(tripView)}
   },

@@ -9,7 +9,7 @@ import {PricingReview} from './PricingReview'
 import { PricingDraftFields } from './PricingDraftFields'
 import styles from './DeparturePricingPolicy.module.css'
 
-export function DeparturePricingPolicy({ cruiseId,onChanged,readOnly=false,refreshKey=0 }: { cruiseId:string;onChanged?:()=>void;readOnly?:boolean;refreshKey?:string|number }) {
+export function DeparturePricingPolicy({ cruiseId,onChanged,readOnly=false,refreshKey=0,embedded=false }: { cruiseId:string;onChanged?:()=>void;readOnly?:boolean;refreshKey?:string|number;embedded?:boolean }) {
   const access=useSessionAccess()
   const allowed=['CRUISE_READ','CRUISE_UPDATE_DRAFT','CRUISE_OPEN_SALE','BOOKING_READ'].some(permission=>access.has(permission))
   const query=useReadQuery(`pricing-policy:${access.userId}:${access.status}:${access.permissions.join(',')}:${cruiseId}:${allowed}:${refreshKey}`,useCallback(signal=>
@@ -24,7 +24,7 @@ export function DeparturePricingPolicy({ cruiseId,onChanged,readOnly=false,refre
   const percent=(value:number|null) => value==null ? 'Chưa thiết lập' : new Intl.NumberFormat('vi-VN',{style:'percent',maximumFractionDigits:2}).format(value)
   const missing=query.error instanceof ApiError&&query.error.status===404&&query.error.code==='PRICING_POLICY_NOT_FOUND'
   const cancellationText=data?.cancellationPolicy?.trim()??''
-  const statusLabels={DRAFT:'Bản nháp',PENDING_APPROVAL:'Chờ OPS duyệt giá',RETURNED:'Cần chỉnh sửa',APPROVED:'Giá đã được duyệt',ARCHIVED:'Đã lưu trữ'} as const
+  const statusLabels={DRAFT:'Bản nháp',PENDING_APPROVAL:'Chờ Quản lý vận hành duyệt giá',RETURNED:'Cần chỉnh sửa',APPROVED:'Giá đã được duyệt',ARCHIVED:'Đã lưu trữ'} as const
   const statusTone=data?.status==='APPROVED'?'success':data?.status==='PENDING_APPROVAL'?'info':data?.status==='RETURNED'?'warning':'neutral'
   const canEdit=editable&&!query.loading&&!query.error&&Boolean(data)&&data?.status!=='PENDING_APPROVAL'
   const cabinFares=data?[
@@ -34,18 +34,18 @@ export function DeparturePricingPolicy({ cruiseId,onChanged,readOnly=false,refre
   return <Panel className={styles.policy}>
     <header className={styles.header}>
       <div className={styles.heading}>
-        <div className={styles.titleRow}><h2>Chính sách giá</h2>{data&&!query.loading&&!query.error&&<Badge label={data.status?statusLabels[data.status]:domainStatus('pricing.policy','UNKNOWN')} tone={statusTone}/>}</div>
+        <div className={styles.titleRow}>{!embedded&&<h2>Chính sách giá</h2>}{data&&!query.loading&&!query.error&&<Badge label={data.status?statusLabels[data.status]:domainStatus('pricing.policy','UNKNOWN')} tone={statusTone}/>}</div>
         {data&&!query.loading&&!query.error&&<p className={styles.version}>Phiên bản: <span>{data.policyVersion??'Chưa xác định'}</span></p>}
       </div>
       {canEdit&&<div className={styles.headerActions}><PricingDraftFields key={cruiseId} cruiseId={cruiseId} policy={data??undefined} onSaved={saved}/></div>}
     </header>
     {query.loading&&<Loading label="Đang tải chính sách giá…"/>}
-    {missing&&<Notice title="Chưa thiết lập chính sách giá">Chưa có chính sách giá cho lần khởi hành này.</Notice>}
+    {missing&&<Notice title="Chưa thiết lập chính sách giá">Chưa có chính sách giá cho chuyến khởi hành này.</Notice>}
     {query.error&&!missing&&<Notice title="Chưa đọc được chính sách giá" tone="error">{query.error.message}<Button tone="secondary" onClick={query.retry}>Thử lại</Button></Notice>}
     {crmEditor&&plan.error&&<Notice title="Chưa xác định được quyền chỉnh sửa giá"><Button tone="secondary" onClick={plan.retry}>Tải lại trạng thái kế hoạch</Button></Notice>}
-    {crmEditor&&data?.status==='RETURNED'&&!query.loading&&!query.error&&<Notice title="OPS yêu cầu chỉnh sửa chính sách giá" tone="warning">
+    {crmEditor&&data?.status==='RETURNED'&&!query.loading&&!query.error&&<Notice title="Quản lý vận hành yêu cầu chỉnh sửa chính sách giá" tone="warning">
       {data.decisionReason&&<p>{data.decisionReason}</p>}
-      <p>{editable?'Sửa và lưu giá tại đây, sau đó gửi lại kế hoạch ở bước “Kiểm tra và gửi OPS”.':'Kế hoạch đang khóa chỉnh sửa. OPS cần chọn “Yêu cầu bổ sung” tại bước xét duyệt kế hoạch để CRM cập nhật giá.'}</p>
+      <p>{editable?'Sửa và lưu giá tại đây, sau đó gửi lại kế hoạch ở bước “Kiểm tra và gửi Quản lý vận hành”.':'Kế hoạch đang khóa chỉnh sửa. Quản lý vận hành cần chọn “Yêu cầu bổ sung” tại bước xét duyệt kế hoạch để Quản lý lịch trình cập nhật giá.'}</p>
     </Notice>}
     {data&&!query.loading&&!query.error&&<>
       <div className={styles.groups}>

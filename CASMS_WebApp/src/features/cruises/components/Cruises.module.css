@@ -83,3 +83,12 @@
 @media(max-width:1100px){.sourceCreationGrid{grid-template-columns:minmax(0,1fr)}}
 .interactiveMilestones{gap:8px 16px;align-items:center}.interactiveMilestones li{min-width:0}.interactiveMilestones button{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 12px;border:1px solid transparent;border-radius:var(--ui-radius);background:transparent;color:var(--ui-muted);font:inherit;font-size:13px;text-align:left;cursor:pointer}.interactiveMilestones button>span{display:grid;place-items:center;flex-shrink:0;width:24px;height:24px;border:1px solid var(--ui-border);border-radius:50%;font-size:12px}.interactiveMilestones button[aria-current=step]{background:var(--ui-brand);color:var(--ui-surface);font-weight:600}.interactiveMilestones button:hover:not([aria-current=step]){background:var(--ui-subtle);color:var(--ui-ink)}.interactiveMilestones button:focus-visible{outline:3px solid var(--ui-focus);outline-offset:2px}
 @media(max-width:600px){.interactiveMilestones{align-items:stretch}.interactiveMilestones li{width:100%}.interactiveMilestones button{width:100%}}
+
+/* Chuyến khởi hành: prioritize the dated trip, keep existing query and table behavior. */
+.tripCell{display:grid;gap:6px;min-width:0}
+.tripCell .rowLink{white-space:normal;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+.tripCell>span{font-size:12px;color:var(--ui-muted);line-height:1.5}
+.tripDates{display:grid;gap:6px;white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1.6}
+.tripDates>time:last-child{color:var(--ui-muted);font-size:13px}
+.saleFilterState{display:grid;gap:12px;align-content:end;justify-items:start;min-height:72px}
+.saleFilterState>span{font-size:13px;color:var(--ui-muted)}

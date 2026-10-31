@@ -11,11 +11,11 @@ export function CruisePlanQueuePage(){
  const access=useSessionAccess(),allowed=access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_READ')
  const query=useReadQuery(`submitted-plans:${access.userId}:${allowed}`,useCallback(signal=>allowed?mainflowApi.queue(signal):Promise.resolve(null),[allowed]))
  return <CruiseFrame><div className={styles.content}>
-  <PageHeader breadcrumb="VẬN HÀNH" title="Kế hoạch chờ OPS xét duyệt"  actions={<ButtonLink to="/admin/cruises">Danh sách lần khởi hành</ButtonLink>}/>
+  <PageHeader breadcrumb="VẬN HÀNH" title="Kế hoạch chờ Quản lý vận hành xét duyệt"  actions={<ButtonLink to="/admin/cruises">Danh sách chuyến khởi hành</ButtonLink>}/>
   {!allowed?<Notice title="Bạn không có quyền thực hiện"><p>Tài khoản hiện tại không được phân quyền cho thao tác này.</p></Notice>:<Panel title="Danh sách chờ xét duyệt">
    {query.loading&&<Loading/>}{query.error&&<Notice title="Chưa tải được kế hoạch chờ xét duyệt"><Button onClick={query.retry}>Tải lại dữ liệu</Button></Notice>}
-   {!query.loading&&!query.error&&query.data?.length===0&&<Empty title="Chưa có kế hoạch chờ xét duyệt">Các kế hoạch CRM gửi xét duyệt sẽ xuất hiện tại đây. Bạn vẫn có thể xem các lần khởi hành trong menu.</Empty>}
-   {!query.loading&&!query.error&&Boolean(query.data?.length)&&<DataTable label="Kế hoạch chờ OPS xét duyệt" headers={['Lần khởi hành','Phiên bản đã gửi','Người gửi','Thời điểm gửi','Trạng thái kế hoạch']}>
+   {!query.loading&&!query.error&&query.data?.length===0&&<Empty title="Chưa có kế hoạch chờ xét duyệt">Các kế hoạch Quản lý lịch trình gửi xét duyệt sẽ xuất hiện tại đây. Bạn vẫn có thể xem các chuyến khởi hành trong menu.</Empty>}
+   {!query.loading&&!query.error&&Boolean(query.data?.length)&&<DataTable label="Kế hoạch chờ Quản lý vận hành xét duyệt" headers={['Chuyến khởi hành','Phiên bản đã gửi','Người gửi','Thời điểm gửi','Trạng thái kế hoạch']}>
     {query.data!.map(plan=><tr key={plan.cruiseId}><td><Link to={`/admin/cruises/${encodeURIComponent(plan.cruiseId)}?step=review&section=overview`}>{plan.cruiseCode}</Link></td><td>{plan.submittedRevision}</td><td>{plan.submittedByName??'Chưa xác định'}</td><td>{plan.submittedAt?journeyTime(plan.submittedAt,SHIP_TIME_ZONE):'Chưa xác định'}</td><td>{domainStatus('cruise.plan',plan.planStatus)}</td></tr>)}
    </DataTable>}
   </Panel>}

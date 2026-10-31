@@ -11,15 +11,17 @@ import { useTripOperation } from '../useTripOperation'
 import { OperationRecovery } from '../components/OperationNotice'
 import styles from '../Planning.module.css'
 import { versionContext, workingVersionLabel } from '../model/version-context'
+import {PublishedTemplateDialog} from '../components/PublishedTemplateDialog'
 import { supportedDuration } from '../model/duration'
 
 export function TripListPage() {
   const {gateway,root,can}=usePlanning(),navigate=useNavigate(),durations=useSources('durations')
+  const [archived,setArchived]=useState(false)
   const [page,setPage]=useState(0),[status,setStatus]=useState(''),[filters,setFilters]=useState<TripFilters>({search:'',durationGroup:'',plannedScope:''}),[searchText,setSearchText]=useState('')
   const [action,setAction]=useState<{kind:'clone'|'archive';trip:Trip}|null>(null),[source,setSource]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('')
   const [recovery,setRecovery]=useState(false)
   const lock=useRef(false),operation=useTripOperation('clone')
-  const list=useReadQuery(`trips:${gateway.mode}:${page}:${status}:${JSON.stringify(filters)}`,useCallback(signal=>gateway.list(page,status,signal,filters),[gateway,page,status,filters]))
+  const list=useReadQuery(`trips:${gateway.mode}:${page}:${archived?'ARCHIVED':status}:${JSON.stringify(filters)}`,useCallback(signal=>gateway.list(page,archived?'ARCHIVED':status,signal,filters),[gateway,page,status,archived,filters]))
   const origin=useReadQuery(`clone-origin:${action?.trip.tripId??''}:${action?.kind??''}`,useCallback(signal=>action?.kind==='clone'?gateway.getTrip(action.trip.tripId,signal):Promise.resolve(null),[gateway,action]))
   const filtered=Boolean(status||filters.search||filters.durationGroup||filters.plannedScope)
   function resetFilters(){setFilters({search:'',durationGroup:'',plannedScope:''});setSearchText('');setStatus('');setPage(0)}
@@ -43,7 +45,7 @@ export function TripListPage() {
   }
   return <>
     {recovery&&<OperationRecovery operation={operation} onClose={()=>{setRecovery(false);setAction(null)}}/>}<header className={styles.heading}>
-      <div><h1>Chuyến đi</h1><p className={styles.muted}>CRM tạo khung chuyến, soạn và tự chốt lịch trình mẫu.</p></div>
+      <div><h1>Chuyến đi</h1></div>
       {can('TRIP_CREATE')&&!gateway.readOnly&&<Link className={styles.primaryLink} to={`${root}/new`}>+ Tạo chuyến đi</Link>}
     </header>
     {message&&<Notice title="Đã cập nhật" tone="success">{message}</Notice>}
@@ -52,11 +54,11 @@ export function TripListPage() {
         <Field htmlFor="trip-search" label="Tìm chuyến đi"><input id="trip-search" placeholder="Nhập mã hoặc tên chuyến" value={searchText} onChange={e=>setSearchText(e.target.value)}/></Field>
         <Field htmlFor="trip-duration-filter" label="Thời lượng"><select id="trip-duration-filter" disabled={durations.loading||Boolean(durations.error)} aria-describedby={durations.error?'trip-filter-notice':undefined} value={filters.durationGroup} onChange={e=>{setFilters(old=>({...old,durationGroup:e.target.value as TripFilters['durationGroup']}));setPage(0)}}><option value="">{durations.loading?'Đang tải…':durations.error?'Chưa tải được':'Tất cả'}</option>{durations.data.filter(item=>supportedDuration(item.id)).map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></Field>
         <Field htmlFor="trip-scope-filter" label="Phạm vi"><select id="trip-scope-filter" value={filters.plannedScope} onChange={e=>{setFilters(old=>({...old,plannedScope:e.target.value as TripFilters['plannedScope']}));setPage(0)}}><option value="">Tất cả</option><option value="DOMESTIC">Trong nước</option><option value="INTERNATIONAL">{businessCopy('source.scope.INTERNATIONAL')}</option></select></Field>
-        <Field htmlFor="trip-status" label="Trạng thái chuyến"><select id="trip-status" value={status} onChange={e=>{setStatus(e.target.value);setPage(0)}}><option value="">Tất cả</option>{Object.entries(tripLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></Field>
+        {!archived&&<Field htmlFor="trip-status" label="Trạng thái lịch trình"><select id="trip-status" value={status} onChange={e=>{setStatus(e.target.value);setPage(0)}}><option value="">Tất cả</option>{Object.entries(tripLabels).filter(([value])=>value!=='ARCHIVED').map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></Field>}
         <Button type="submit" autoWidth>Tìm kiếm</Button>
       </form>
       {durations.error&&<div id="trip-filter-notice" className={styles.filterNotice} role="status"><span>Chưa tải được bộ lọc thời lượng. Bạn vẫn có thể tìm theo tên, phạm vi và trạng thái.</span><Button type="button" tone="text" size="compact" autoWidth onClick={durations.retry}>Tải lại thời lượng</Button></div>}
-      <div className={styles.resultsHead}><h2>Danh sách chuyến đi{list.data&&<span className={styles.resultCount}>{list.data.totalElements}</span>}</h2>{filtered&&<Button tone="text" size="compact" onClick={resetFilters}>Xóa bộ lọc</Button>}</div>
+      <div className={styles.resultsHead}><h2>{archived?'Chuyến đi đã lưu trữ':'Danh sách chuyến đi'}{list.data&&<span className={styles.resultCount}>{list.data.totalElements}</span>}</h2><Button tone="text" size="compact" onClick={()=>{setArchived(value=>!value);setPage(0);setStatus('')}}>{archived?'Quay lại danh sách làm việc':'Xem chuyến đã lưu trữ'}</Button>{filtered&&<Button tone="text" size="compact" onClick={resetFilters}>Xóa bộ lọc</Button>}</div>
       {list.loading?<Loading label="Đang tải chuyến đi…"/>:list.error?<Notice title="Chưa tải được danh sách" tone="error">{list.error.message}<Button onClick={list.retry}>Thử lại</Button></Notice>:!list.data?.content.length?<Empty title={filtered?'Không tìm thấy chuyến phù hợp':'Chưa có chuyến đi'}><p>{filtered?'Thử đổi từ khóa hoặc xóa bộ lọc.':'Bắt đầu bằng thông tin chuyến; lịch trình sẽ được tổ chức ngay trong chuyến đó.'}</p>{filtered?<Button tone="secondary" onClick={resetFilters}>Xóa bộ lọc</Button>:can('TRIP_CREATE')&&!gateway.readOnly&&<Link className={styles.primaryLink} to={`${root}/new`}>Tạo chuyến đi</Link>}</Empty>:<DataTable label="Danh sách chuyến đi" headers={['Chuyến đi','Thời lượng / phạm vi','Trạng thái chuyến','Phiên bản lịch trình','Thao tác']}>
         {list.data.content.map(trip=><TripListRow key={trip.tripId} trip={trip} onAction={openAction}/>)}
       </DataTable>}
@@ -72,6 +74,7 @@ export function TripListPage() {
 
 function TripListRow({trip,onAction}:{trip:Trip;onAction:(kind:'clone'|'archive',trip:Trip)=>void}){
   const {gateway,root,can}=usePlanning()
+  const [preview,setPreview]=useState(false)
   // Only older published trips with a newer working version need the detail endpoint.
   // Read the current server page; never load the entire trip catalog or infer a version number.
   const needsContext=Boolean(trip.structuralLockedAt||trip.status==='READY')&&trip.latestVersionStatus!=='PUBLISHED'&&!trip.versions
@@ -91,9 +94,9 @@ function TripListRow({trip,onAction}:{trip:Trip;onAction:(kind:'clone'|'archive'
       {detail.error&&<Button tone="text" size="compact" onClick={detail.retry}>Tải lại thông tin phiên bản</Button>}
       {!published&&!working&&!detail.loading&&!detail.error&&<span className={styles.muted}>Chưa có phiên bản</span>}
     </div></td>
-    <td><div className={styles.listRowActions}>
-      <Link className={styles.secondaryLink} to={`${root}/${trip.tripId}/schedule`}>{trip.latestVersionStatus==='DRAFT'?'Mở bản nháp':trip.latestVersionStatus==='IN_REVIEW'?'Xem mẫu theo quy trình cũ':trip.latestVersionStatus==='PUBLISHED'?'Xem mẫu đã chốt':'Mở lịch trình'}</Link>
-      {published!==undefined&&working!==undefined&&<Link className={styles.versionLink} to={`${root}/${trip.tripId}/schedule?view=published`}>Xem mẫu đã chốt · V{published}</Link>}
+    <td>{preview&&<PublishedTemplateDialog trip={trip} onClose={()=>setPreview(false)}/>}<div className={styles.listRowActions}>
+      {trip.latestVersionStatus==='PUBLISHED'?<Button tone="secondary" onClick={()=>setPreview(true)}>Xem lịch trình đã chốt</Button>:<Link className={styles.secondaryLink} to={`${root}/${trip.tripId}/schedule`}>{trip.latestVersionStatus==='DRAFT'?'Mở bản nháp':'Mở lịch trình'}</Link>}
+      {published!==undefined&&working!==undefined&&<Button tone="text" size="compact" onClick={()=>setPreview(true)}>Xem lịch trình đã chốt · V{published}</Button>}
       <details className={styles.rowMenu}><summary aria-label={`Thao tác khác cho ${trip.name}`}>Thao tác khác</summary><div><Link to={`${root}/${trip.tripId}/info`}>Thông tin chuyến</Link>{can('TRIP_CREATE')&&!gateway.readOnly&&<Button tone="text" size="compact" onClick={()=>onAction('clone',trip)}>Nhân bản chuyến</Button>}{can('TRIP_DELETE')&&!gateway.readOnly&&trip.status!=='ARCHIVED'&&<Button tone="text" size="compact" onClick={()=>onAction('archive',trip)}>Lưu trữ chuyến</Button>}</div></details>
     </div></td>
   </tr>

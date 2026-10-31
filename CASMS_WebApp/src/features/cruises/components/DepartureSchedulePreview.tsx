@@ -1,3 +1,4 @@
+import {ItineraryDayBrowser} from '@/domain/itinerary-day'
 import { SHIP_TIME_ZONE } from '@/shared/lib/journey-time'
 import { useCallback, useState } from 'react'
 import { ApiError, useReadQuery } from '@/shared/api'
@@ -8,7 +9,8 @@ import { scheduleInstant } from '../model/cruise-validation'
 import { ReadState, ScheduleContents } from './DepartureData'
 import styles from './DepartureSchedulePreview.module.css'
 
-export function DepartureSchedulePreview({ sourceVersionId, departure, contextKey, disabled, onApply }: { sourceVersionId: string; departure: string; contextKey: string; disabled: boolean; onApply: (schedule: DepartureSchedule) => void }) {
+export function DepartureSchedulePreview({ sourceVersionId, departure, contextKey, disabled, onApply, sourceEntries=[] }: { sourceEntries?:readonly {entryId?:string;clientKey:string;title:string}[];sourceVersionId: string; departure: string; contextKey: string; disabled: boolean; onApply: (schedule: DepartureSchedule) => void }) {
+  const entryTitles=Object.fromEntries(sourceEntries.flatMap(entry=>[[entry.clientKey,entry.title],...(entry.entryId?[[entry.entryId,entry.title]]:[])]))
   const [request, setRequest] = useState<{ key: string; sourceVersionId: string; instant: string } | null>(null)
   const [error, setError] = useState('')
   const [openKey, setOpenKey] = useState<string | null>(null)
@@ -41,14 +43,14 @@ export function DepartureSchedulePreview({ sourceVersionId, departure, contextKe
     <Button tone="secondary" disabled={disabled || Boolean(current && query.loading)} onClick={preview}>Xem trước lịch</Button>
     {error && <Notice title="Chưa xem trước được" tone="error">{error}</Notice>}
     {appliedKey === key && <p className={styles.applied} role="status">Đã áp dụng ngày kết thúc và cảng khởi hành từ lịch xem trước.</p>}
-    {current && openKey === key && <Modal wide protectChanges={false} title="Xem trước lịch trình" description="Lịch theo ngày thực tế, các lần ghé cảng và chương trình từ phiên bản nguồn. Giờ tàu dùng múi giờ Việt Nam; giờ ghé dùng múi giờ của cảng." onClose={() => setOpenKey(null)} footer={<>
+    {current && openKey === key && <Modal large protectChanges={false} title="Xem trước lịch trình" description="Ngày thực tế được tính từ lịch trình đã chốt. Giờ cảng theo múi giờ địa phương." onClose={() => setOpenKey(null)} footer={<>
       <Button tone="secondary" onClick={() => setOpenKey(null)}>Đóng</Button>
       <Button disabled={!canApply} onClick={apply}>Áp dụng lịch này</Button>
     </>}>
       {sourceError?<Notice title="Lịch trình nguồn chưa hợp lệ" tone="error"><p>{sourceError.message}</p>{sourceName&&<p>Chương trình: <strong>{sourceName}</strong></p>}</Notice>:<ReadState {...query} />}
       {!query.loading && !query.error && query.data && <div className={styles.content}>
-        {!validBasis && <Notice title="Chưa thể áp dụng lịch xem trước" tone="warning">Cơ sở giờ tàu hoặc phiên dữ liệu nguồn chưa đầy đủ. Cần hệ thống xác nhận lại lịch trước khi tạo lần khởi hành.</Notice>}
-        <ScheduleContents schedule={query.data} preview />
+        {!validBasis && <Notice title="Chưa thể áp dụng lịch xem trước" tone="warning">Cơ sở giờ tàu hoặc phiên dữ liệu nguồn chưa đầy đủ. Cần hệ thống xác nhận lại lịch trước khi tạo chuyến khởi hành.</Notice>}
+        <ItineraryDayBrowser days={query.data.days}>{day=><ScheduleContents schedule={query.data!} preview selectedDay={day} entryTitles={entryTitles}/>}</ItineraryDayBrowser>
       </div>}
     </Modal>}
   </Panel>

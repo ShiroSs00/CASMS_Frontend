@@ -1,3 +1,4 @@
+import {PublishedTemplateDialog} from '../components/PublishedTemplateDialog'
 import { departureReturn } from '@/shared/lib/departure-return'
 import { businessCopy } from '@/shared/i18n/business-copy'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -27,7 +28,7 @@ export function TripSchedulePage({id}:{id:string}) {
   const [params]=useSearchParams(),location=useLocation()
   const returnTo=departureReturn(params.get('returnTo'))
   return <>
-    {returnTo&&<p className={styles.note}><Link to={returnTo} state={location.state}>← Quay lại lần khởi hành</Link></p>}
+    {returnTo&&<p className={styles.note}><Link to={returnTo} state={location.state}>← Quay lại chuyến khởi hành</Link></p>}
     {query.loading?<Loading label="Đang tải chuyến và các phiên bản…"/>:query.error?<Notice title="Chưa tải được chuyến" tone="error">{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>:query.data?<Schedule key={`${gateway.mode}:${id}`} initial={query.data}/>:null}
   </>
 }
@@ -69,6 +70,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
   const {gateway,root,can}=usePlanning(),[version,setVersion]=useState(initial),[content,setContent]=useState<Content>(()=>{const content=contentOf(initial);return initial.status==='DRAFT'&&can('TRIP_PLAN_WRITE')&&!gateway.readOnly&&trip.status!=='ARCHIVED'?{...content,days:normalizeBoundaryDays(content.days)}:content})
   const [tab,setTab]=useState<'route'|'program'>('route'),[selected,setSelected]=useState(1),[busy,setBusy]=useState(''),lock=useRef(false)
   const [fault,setFault]=useState<PlanningFault|null>(null),[message,setMessage]=useState(''),[report,setReport]=useState<Report|null>(null),[uncertain,setUncertain]=useState(false),[serverLocked,setServerLocked]=useState(false)
+  const [templatePreview,setTemplatePreview]=useState(false)
   const [history,setHistory]=useState(false),[compare,setCompare]=useState(false),[pendingSwitch,setPendingSwitch]=useState('')
   const [stopDrawer,setStopDrawer]=useState<{stop?:Stop;violation?:Violation}|null>(null),[entryDrawer,setEntryDrawer]=useState<{kind:Entry['kind'];entry?:Entry;stopClientKey?:string;violation?:Violation}|null>(null)
   const [located,setLocated]=useState<Violation|null>(null)
@@ -169,6 +171,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
   }
   const switchNow=(id:string)=>{guard.allowLeave();setPendingSwitch('');onSwitch(id)}
   return <>
+    {templatePreview&&<PublishedTemplateDialog trip={trip} onClose={()=>setTemplatePreview(false)}/>}
     <div className={styles.editorTop}>
       <header className={styles.editorHeading}>
         <div className={styles.editorTitle}><h1>{trip.name}</h1><div className={styles.editorMeta}><span>{trip.tripCode} · {content.days.length} ngày</span><Badge tone={version.status==='PUBLISHED'?'success':version.status==='IN_REVIEW'?'warning':'neutral'} label={`${versionLabels[version.status]} · V${version.versionNumber}`}/></div></div>
@@ -180,7 +183,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
       <div className={styles.versionContext}>
         <span>{[versions.published?versions.published.versionId!==version.versionId?`Mẫu đã chốt: V${versions.published.versionNumber}`:null:'Chưa có mẫu đã chốt',versions.working&&versions.working.versionId!==version.versionId?`${workingVersionLabel(versions.working.status)}: V${versions.working.versionNumber}`:null].filter(Boolean).join(' · ')}</span>
         <div className={styles.actions}>
-          {versions.published&&versions.published.versionId!==version.versionId&&<Button tone="text" size="compact" disabled={Boolean(busy)} onClick={()=>switchVersion(versions.published!.versionId)}>Xem mẫu đã chốt · V{versions.published.versionNumber}</Button>}
+          {versions.published&&versions.published.versionId!==version.versionId&&<Button tone="text" size="compact" disabled={Boolean(busy)} onClick={()=>setTemplatePreview(true)}>Xem mẫu đã chốt · V{versions.published.versionNumber}</Button>}
           {versions.working&&versions.working.versionId!==version.versionId&&<Button tone="secondary" size="compact" disabled={Boolean(busy)} onClick={()=>switchVersion(versions.working!.versionId)}>{can('TRIP_PLAN_WRITE')&&versions.working.status==='DRAFT'?'Tiếp tục bản nháp':versions.working.status==='DRAFT'?'Xem bản nháp':'Xem bản chờ duyệt'} · V{versions.working.versionNumber}</Button>}
           {onNew&&!versions.working&&!(version.status==='DRAFT'||version.status==='IN_REVIEW')&&<Button tone="secondary" size="compact" disabled={dirty||Boolean(busy)} onClick={onNew}>Tạo bản chỉnh sửa</Button>}
         </div>

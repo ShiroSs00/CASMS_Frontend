@@ -32,7 +32,7 @@ export function cruiseCreateIntent(owner: string, storage?: IntentStorage) {
     execute(payload: CruiseDraft, send: (payload: CruiseDraft, key: string) => Promise<CruiseRecord>) {
       if (inFlight) return inFlight
       if (storageError) return Promise.reject(new ApiError('Chưa đọc hoặc lưu được thông tin thao tác tạo. Đối chiếu danh sách trước khi tiếp tục.', 0))
-      if (record?.status === 'succeeded') return Promise.reject(new ApiError('Yêu cầu này đã tạo lần khởi hành. Hãy mở bản ghi đã lưu.', 409))
+      if (record?.status === 'succeeded') return Promise.reject(new ApiError('Yêu cầu này đã tạo chuyến khởi hành. Hãy mở bản ghi đã lưu.', 409))
       if (record && record.status !== 'rejected' && JSON.stringify(record.payload) !== JSON.stringify(payload)) return Promise.reject(new ApiError('Kết quả tạo trước chưa xác định. Chỉ được gửi lại đúng bản nhập và mã thao tác cũ.', 409))
       if (!record || record.status === 'rejected' && JSON.stringify(record.payload) !== JSON.stringify(payload)) {
         record = { owner, key: crypto.randomUUID(), payload: structuredClone(payload), status: 'sending' }

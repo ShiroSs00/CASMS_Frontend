@@ -10,20 +10,6 @@ export function decodePreparation(value:PreparationDashboard,id:string){
 }
 export const preparationApi={
  async get(id:string,signal?:AbortSignal){return decodePreparation(await apiRequest<PreparationDashboard>(root(id),{signal}),id)},
- async submitDossier(id:string,evidence:string,actorId:string){
-  if(!evidence.trim())throw new ApiError('Nhập nội dung hồ sơ chuẩn bị.',422,'PREPARATION_EVIDENCE_REQUIRED')
-  let actual=await this.get(id)
-  if(actual.coordinatorUserId!==actorId)throw new ApiError('',403,'PREPARATION_ACTION_FORBIDDEN')
-  // Existing APIs persist each section. Reconcile after every response and skip completed submissions.
-  for(const code of preparationCodes){
-   const section=actual.sections.find(item=>item.sectionCode===code)!
-   if(['SUBMITTED','CONFIRMED'].includes(section.status))continue
-   if(!section.allowedActions.includes('SUBMIT'))throw new ApiError('',403,'PREPARATION_ACTION_FORBIDDEN')
-   actual=await this.action(id,section,'submit',evidence)
-  }
-  if(actual.sections.some(section=>!['SUBMITTED','CONFIRMED'].includes(section.status)))throw new ApiError('',502)
-  return actual
- },
  async action(id:string,section:PreparationSection,action:PreparationAction,text:string){
   if(!section.allowedActions.includes(action.toUpperCase()))throw new ApiError('',403,'PREPARATION_ACTION_FORBIDDEN')
   const saved=await apiRequest<PreparationSection>(`${root(id)}/${encodeURIComponent(section.sectionCode)}/${action}`,{method:'POST',body:{expectedRevision:section.revision,...(action==='submit'?{evidence:text}:action==='return'?{reason:text}:{notes:text})}})

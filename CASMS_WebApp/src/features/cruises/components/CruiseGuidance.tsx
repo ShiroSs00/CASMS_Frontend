@@ -45,7 +45,7 @@ export function CruiseGuidance({cruiseId,onChanged,onReview,refreshKey=0}:{cruis
  return <Panel title={businessCopy('guidance.title')}>
   {plan.loading&&<Loading label="Đang đối chiếu kế hoạch đã duyệt…"/>}
   {plan.error&&<Notice title="Chưa đọc được kế hoạch đã duyệt" tone="error"><Button tone="secondary" onClick={plan.retry}>Tải lại kế hoạch</Button></Notice>}
-  {!plan.loading&&!plan.error&&!windows&&<Notice title="Cần phê duyệt kế hoạch trước khi lập buổi hướng dẫn">Thời gian chỉ được lấy từ Cruise Plan đã được OPS phê duyệt và còn hiệu lực.{onReview&&<Button tone="text" onClick={onReview}>Xem xét duyệt kế hoạch</Button>}</Notice>}
+  {!plan.loading&&!plan.error&&!windows&&<Notice title="Cần phê duyệt kế hoạch trước khi lập buổi hướng dẫn">Thời gian chỉ được lấy từ Cruise Plan đã được Quản lý vận hành phê duyệt và còn hiệu lực.{onReview&&<Button tone="text" onClick={onReview}>Xem xét duyệt kế hoạch</Button>}</Notice>}
   {windows&&!plan.loading&&!plan.error&&<RecordFacts entries={[["Bắt đầu hướng dẫn · Kế hoạch đã duyệt",journeyTime(windows.guidanceOpensAt,SHIP_TIME_ZONE)],["Kết thúc hướng dẫn · Giờ Việt Nam",journeyTime(windows.guidanceClosesAt,SHIP_TIME_ZONE)]]}/>}
   {(query.loading||people.loading)&&<Loading/>}{(query.error||people.error)&&<Notice title="Chưa tải được buổi hướng dẫn hoặc danh sách người phụ trách"><Button onClick={()=>{query.retry();people.retry()}}>Tải lại dữ liệu</Button></Notice>}
   {!query.loading&&!query.error&&query.data?.length===0&&<p>Chưa có buổi hướng dẫn trước chuyến.</p>}
@@ -66,7 +66,7 @@ export function CruiseGuidance({cruiseId,onChanged,onReview,refreshKey=0}:{cruis
    {editing?.status==='Published'&&<Notice title="Buổi hướng dẫn sẽ cần công bố lại" tone="warning">Sau khi lưu, buổi hướng dẫn trở về trạng thái đã lên lịch và điều kiện sẵn sàng được kiểm tra lại.</Notice>}
    {!people.loading&&!people.error&&people.data?.length===0&&<Notice title="Chưa có nhân sự đủ điều kiện">Cần có tài khoản nhân sự đang hoạt động để phụ trách buổi hướng dẫn.</Notice>}
    <RecordFacts entries={[["Bắt đầu · Giờ Việt Nam",startsAt?journeyTime(startsAt,SHIP_TIME_ZONE):"Chưa xác định"],["Kết thúc · Giờ Việt Nam",endsAt?journeyTime(endsAt,SHIP_TIME_ZONE):"Chưa xác định"]]}/>
-   {usePlanTimes&&windows&&<p className={styles.sectionMeta}>Thời gian lấy từ kế hoạch đã phê duyệt. OPS bổ sung nội dung và người phụ trách bên dưới.</p>}
+   {usePlanTimes&&windows&&<p className={styles.sectionMeta}>Thời gian lấy từ kế hoạch đã phê duyệt. Quản lý vận hành bổ sung nội dung và người phụ trách bên dưới.</p>}
    {editing&&!usePlanTimes&&windows&&(startsAt!==windows.guidanceOpensAt||endsAt!==windows.guidanceClosesAt)&&<Button tone="secondary" disabled={busy||uncertain} onClick={()=>{setUsePlanTimes(true);setError('')}}>Dùng thời gian từ kế hoạch đã duyệt</Button>}
    {timeError&&<Notice title="Cần đối chiếu thời gian" tone="error">{timeError}</Notice>}
    <form id="guidance-editor" className={styles.modalForm} onSubmit={save}><fieldset disabled={busy||uncertain||people.loading||Boolean(people.error)||plan.loading||Boolean(plan.error)||!windows}>

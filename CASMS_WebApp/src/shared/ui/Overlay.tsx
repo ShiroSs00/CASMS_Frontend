@@ -5,8 +5,8 @@ import styles from './Overlay.module.css'
 let openCount = 0
 let previousOverflow = ''
 
-export function Modal({ title, description, onClose, busy = false, wide = false, children, footer, variant = 'modal', protectChanges = true }:
-  { title: string; description?: string; onClose: () => void; busy?: boolean; wide?: boolean; children: ReactNode; footer?: ReactNode; variant?: 'modal' | 'drawer'; protectChanges?: boolean }) {
+export function Modal({ title, description, onClose, busy = false, wide = false, large = false, children, footer, variant = 'modal', protectChanges = true }:
+  { title: string; description?: string; onClose: () => void; busy?: boolean; wide?: boolean; large?: boolean; children: ReactNode; footer?: ReactNode; variant?: 'modal' | 'drawer'; protectChanges?: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const dirty = useRef(false)
   const lastControl = useRef<HTMLElement | null>(null)
@@ -47,7 +47,7 @@ export function Modal({ title, description, onClose, busy = false, wide = false,
     setConfirmDiscard(false)
   }
   return <dialog ref={dialog} aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined} aria-busy={busy || undefined}
-    className={`${experience.overlay} ${styles.dialog} ${wide ? styles.wide : ''} ${variant === 'drawer' ? styles.drawer : ''}`}
+    className={`${experience.overlay} ${styles.dialog} ${large ? styles.large : wide ? styles.wide : ''} ${variant === 'drawer' ? styles.drawer : ''}`}
     onChangeCapture={event => { dirty.current = true; if (event.target instanceof HTMLElement) lastControl.current = event.target }}
     onClickCapture={event => {
       if (event.target instanceof Element && event.target.closest('[role="radio"][aria-checked="false"]')) {

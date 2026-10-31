@@ -92,7 +92,7 @@ export function ShipAssignmentDialog({ detail, mode, onClose, onChanged }: {
   }
 
   if (mode === 'unassign') {
-    return <Modal title="Gỡ tàu khỏi lần khởi hành" onClose={onClose} busy={busy} footer={<div className={styles.dialogActions}><Button tone="secondary" disabled={busy} onClick={onClose} data-overlay-dismiss>Hủy</Button><Button tone="danger" disabled={busy || !allowed || unknown} onClick={() => void confirm()}>{busy ? 'Đang xử lý…' : 'Xác nhận gỡ tàu'}</Button></div>}>
+    return <Modal title="Gỡ tàu khỏi chuyến khởi hành" onClose={onClose} busy={busy} footer={<div className={styles.dialogActions}><Button tone="secondary" disabled={busy} onClick={onClose} data-overlay-dismiss>Hủy</Button><Button tone="danger" disabled={busy || !allowed || unknown} onClick={() => void confirm()}>{busy ? 'Đang xử lý…' : 'Xác nhận gỡ tàu'}</Button></div>}>
       <Notice title={`${detail.cruise.cruiseCode} · ${detail.ship?.shipName ?? 'Chưa phân công'}`} tone="warning"><p>Sau xác nhận, cruise sẽ chưa có tàu được phân công. Hệ thống sẽ kiểm tra các đặt chỗ trước khi gỡ tàu.</p></Notice>
       {error && <Notice title="Không thể gỡ tàu" tone="error"><p>{error}</p></Notice>}
       {unknown && <Notice title="Chưa xác định kết quả gỡ tàu" tone="warning">Đóng hộp thoại và tải lại hồ sơ để đối chiếu trước khi gửi yêu cầu mới.</Notice>}
@@ -103,7 +103,7 @@ export function ShipAssignmentDialog({ detail, mode, onClose, onChanged }: {
   return <Modal wide title={`${mode === 'assign' ? 'Phân công' : 'Đổi'} tàu cho ${detail.cruise.cruiseCode}`} onClose={onClose} busy={busy} footer={<div className={styles.dialogActions}><Button tone="secondary" disabled={busy} onClick={onClose} data-overlay-dismiss>Hủy</Button><Button disabled={busy || !allowed || unknown || selected?.state !== 'AVAILABLE'} onClick={() => void confirm()}>{busy ? 'Đang xử lý…' : mode === 'assign' ? 'Xác nhận phân công' : 'Xác nhận đổi tàu'}</Button></div>}>
     {unknown&&<Notice title="Cần đối chiếu phân công" tone="warning">Chưa xác định được kết quả. Đóng hộp thoại và tải lại hồ sơ trước khi gửi lại.</Notice>}
     {detail.ship && <Notice title={`Tàu hiện tại · ${detail.ship.shipName}`} tone="warning"><p>{detail.ship.status} · {detail.ship.totalCapacity} khách{detail.bookingHasData ? ' · Đã có đặt chỗ; cần đối chiếu tác động khi đổi tàu.' : ''}</p></Notice>}
-    {!allowed && <Notice title="Chưa thể phân công tàu" tone="warning">Cần quyền phân công và lần khởi hành nháp chưa có đặt chỗ; tải lại hồ sơ để kiểm tra điều kiện hiện tại.</Notice>}
+    {!allowed && <Notice title="Chưa thể phân công tàu" tone="warning">Cần quyền phân công và chuyến khởi hành nháp chưa có đặt chỗ; tải lại hồ sơ để kiểm tra điều kiện hiện tại.</Notice>}
     {error && <Notice title="Chưa hoàn tất kiểm tra hoặc phân công" tone="error"><p>{error}</p>{!unknown&&allowed&&<Button tone="secondary" disabled={busy} onClick={()=>{setCandidates(null);setSelectedId('');setError('');setAttempt(value=>value+1)}}>Tải lại danh sách tàu</Button>}</Notice>}
     {candidates?.length===0&&<Notice title="Chưa có tàu để chọn">Danh sách không có tàu khác phù hợp để kiểm tra. Bộ phận quản lý tàu cần cập nhật hồ sơ và khả dụng tàu.</Notice>}
     {allowed&&!candidates && !error ? <Loading label="Đang kiểm tra các tàu…" /> : <div className={styles.candidates} role="radiogroup" aria-label="Chọn tàu">

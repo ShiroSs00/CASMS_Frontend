@@ -80,7 +80,7 @@ export type DownstreamHandoff = {
 }
 
 type Row = Record<string, unknown>
-const invalid = () => new ApiError('Dữ liệu chuẩn bị lần khởi hành chưa đúng định dạng. Vui lòng tải lại.', 502)
+const invalid = () => new ApiError('Dữ liệu chuẩn bị chuyến khởi hành chưa đúng định dạng. Vui lòng tải lại.', 502)
 export function object(value: unknown): Row { if (!value || typeof value !== 'object' || Array.isArray(value)) throw invalid(); return value as Row }
 export function text(row: Row, key: string): string | null { const value = row[key]; if (value == null) return null; if (typeof value !== 'string') throw invalid(); return value }
 export function number(row: Row, key: string): number | null { const value = row[key]; if (value == null) return null; if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) throw invalid(); return value }
