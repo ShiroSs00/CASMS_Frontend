@@ -146,3 +146,55 @@
 .inventoryFacts dt { color:var(--text-secondary);font-size:12px; }
 .inventoryFacts dd { margin:6px 0 0;font-size:14px;overflow-wrap:anywhere; }
 @media(max-width:600px) { .inventoryCards { grid-template-columns:1fr; } }
+
+.overviewPanels { display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,1fr);gap:20px;align-items:start; }
+.overviewPanels .readonly { grid-template-columns:repeat(2,minmax(0,1fr));gap:20px; }
+.overviewPanels>section { margin:0;min-width:0; }
+.overviewPanels h2 { font-size:18px; }
+.metrics>div { box-shadow:none;border-radius:8px;padding:20px; }
+.metrics dd { font-variant-numeric:tabular-nums; }
+@media(max-width:1100px) { .overviewPanels { grid-template-columns:1fr; } }
+@media(max-width:600px) { .overviewPanels .readonly { grid-template-columns:1fr; } }
+
+.shipDetailHeading h1 { font-size:clamp(24px,2.2vw,32px);line-height:1.4;overflow-wrap:anywhere; }
+
+/* Vessel navigation and editing actions are separate from its identity. */
+.detailToolbar { display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:20px;border-bottom:1px solid var(--ui-border); }
+.backToFleet { display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:10px 14px;border:1px solid var(--ui-border);border-radius:8px;background:var(--ui-surface);color:var(--ui-ink);text-decoration:none;font-size:13px;font-weight:500;transition:background-color 200ms ease,border-color 200ms ease,transform 120ms cubic-bezier(.16,1,.3,1); }
+.backToFleet>span { font-size:18px; }
+.shipActions { display:flex;align-items:center;gap:12px;flex-wrap:wrap; }
+.shipActions button { min-height:44px;padding:10px 18px;border-radius:8px;font-size:13px;transition:background-color 200ms ease,transform 120ms cubic-bezier(.16,1,.3,1); }
+.detailIdentity { display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;padding-top:24px; }
+.detailIdentity>div { min-width:0; }
+.detailIdentity>div>span { color:var(--brand-teal);font-size:13px;font-weight:600; }
+.detailIdentity h1 { margin:8px 0 0;font-size:clamp(24px,2.2vw,32px);line-height:1.4;overflow-wrap:anywhere; }
+.backToFleet:active,.shipActions button:active:not(:disabled) { transform:scale(.97); }
+.backToFleet:focus-visible { outline:2px solid var(--brand-teal);outline-offset:3px; }
+.fleetShipNumbers { grid-template-columns:repeat(3,minmax(0,1fr));gap:16px; }
+.fleetShipActions .manageLink,.fleetShipActions .structureAction { display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:44px;padding:10px 16px;border-radius:8px;font-size:13px;text-decoration:none;transition:background-color 200ms ease,border-color 200ms ease,transform 120ms cubic-bezier(.16,1,.3,1); }
+.fleetShipActions .manageLink { background:var(--brand-navy);border:1px solid var(--brand-navy);color:white; }
+.fleetShipActions .structureAction { background:var(--ui-surface);border:1px solid var(--ui-border);color:var(--brand-navy); }
+.fleetShipActions a:active { transform:scale(.97); }
+@media(hover:hover) and (pointer:fine) { .backToFleet:hover,.fleetShipActions .structureAction:hover { background:#EDF5F5;border-color:var(--brand-teal); } .fleetShipActions .manageLink:hover { background:var(--brand-teal); } }
+@media(max-width:760px) { .detailToolbar { flex-wrap:wrap; } .shipActions { width:100%; } .shipActions button { flex:1; } .detailIdentity { align-items:flex-start; } }
+@media(max-width:440px) { .shipActions { flex-direction:column;align-items:stretch; } .fleetShipActions a { width:100%; } }
+@media(prefers-reduced-motion:reduce) { .backToFleet,.shipActions button,.fleetShipActions a { transition:background-color 200ms ease,border-color 200ms ease; } .backToFleet:active,.shipActions button:active:not(:disabled),.fleetShipActions a:active { transform:none; } }
+
+.fleetShip { animation:fleetCardIn 200ms cubic-bezier(.16,1,.3,1) both; }
+@keyframes fleetCardIn { from { opacity:0; } to { opacity:1; } }
+
+/* Rooms are scoped by the selected deck before filters or cards appear. */
+.roomDeckPicker { padding:18px;background:var(--ui-subtle);border:1px solid var(--ui-border);border-radius:8px; }
+.roomDeckPicker>div { max-width:480px; }
+.roomFilters { display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:16px; }
+.cabinInventory .inventoryCards,.deckInventory .inventoryCards { grid-template-columns:repeat(3,minmax(0,1fr));gap:16px; }
+.cabinInventory .inventoryCards>li { padding:20px;display:flex;flex-direction:column;animation:fleetCardIn 200ms cubic-bezier(.16,1,.3,1) both; }
+.cabinInventory .inventoryHeading h3 { font-size:20px; }
+.cabinInventory .inventoryFacts { gap:16px;margin:20px 0; }
+.cabinInventory .inventoryFacts>div:last-child { grid-column:1/-1; }
+.roomActions { display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:16px;border-top:1px solid var(--ui-border); }
+.roomActions button { min-height:40px;border-radius:6px;transition:background-color 200ms ease,transform 120ms cubic-bezier(.16,1,.3,1); }
+.roomActions button:active:not(:disabled) { transform:scale(.97); }
+@media(max-width:1100px) { .cabinInventory .inventoryCards,.deckInventory .inventoryCards { grid-template-columns:repeat(2,minmax(0,1fr)); } .roomFilters { grid-template-columns:1fr 1fr; } .roomFilters>div:first-child { grid-column:1/-1; } }
+@media(max-width:650px) { .cabinInventory .inventoryCards,.roomFilters { grid-template-columns:1fr; } .roomFilters>div:first-child { grid-column:auto; } }
+@media(prefers-reduced-motion:reduce) { .roomActions button { transition:background-color 200ms ease; } .roomActions button:active:not(:disabled) { transform:none; } }

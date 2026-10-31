@@ -1,3 +1,4 @@
+import {ShipAreaCount} from './ShipAreaCount'
 import { PermissionLink as Link } from '@/shared/ui'
 import { Button, Empty } from '@/shared/ui'
 import type { ShipListItem, SupplementField } from '../model/ship-list-types'
@@ -11,8 +12,9 @@ export function FleetShipCards({ items, filtered, onReset }: { items: ShipListIt
     <h2><Link to={`/admin/ships/${ship.id}`}>{ship.name}</Link></h2>
     <dl className={styles.fleetShipNumbers}>
       {(['deckCount', 'cabinCount'] as const).map((key, index)=><div key={key}><dt>{index ? 'Phòng' : 'Boong'}</dt><dd>{ship.capacity.status==='loaded'?ship.capacity.data[key]:'—'}</dd></div>)}
+      <ShipAreaCount count={ship.capacity.status==='loaded'?ship.capacity.data.serviceAreaCount:undefined}/>
     </dl>
     <div className={styles.fleetShipState}><span>Chuyến hiện tại</span>{ship.currentCruise.status==='loaded'?<strong>{ship.currentCruise.data?.code??'—'}</strong>:ship.currentCruise.status==='loading'?<span role="status">Đang tải…</span>:<span>Không tải được dữ liệu</span>}</div>
-    <div className={styles.fleetShipActions}><Link className={styles.manageLink} to={`/admin/ships/${ship.id}`}>Thông tin tàu</Link><Link className={styles.structureAction} to={`/admin/ships/${ship.id}?tab=decks`}>Boong và phòng <span aria-hidden="true">→</span></Link></div>
+    <div className={styles.fleetShipActions}><Link className={styles.manageLink} to={`/admin/ships/${ship.id}`}>Chi tiết tàu <span aria-hidden="true">→</span></Link><Link className={styles.structureAction} to={`/admin/ships/${ship.id}?tab=cabins`}>Quản lý phòng <span aria-hidden="true">→</span></Link></div>
   </article>)}</div>
 }

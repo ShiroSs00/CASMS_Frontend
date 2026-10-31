@@ -59,6 +59,11 @@ export const shipDeckCabinApi = {
     if (rows.some(row => row.shipId !== shipId)) throw new ApiError('Danh sách boong không khớp với tàu đang xem.', 502)
     return rows.map(deck).sort((a, b) => a.number - b.number)
   },
+  async listDeckCabins(shipId:string,deckId:string,signal:AbortSignal):Promise<Cabin[]> {
+    const rows=await allPages<CabinDto>(`/cabins/by-deck/${encodeURIComponent(deckId)}`,signal)
+    if(rows.some(row=>row.shipId!==shipId||row.deckId!==deckId)) throw new ApiError('Danh sách phòng không khớp với tàu và boong đang chọn.',502)
+    return rows.map(cabin).sort((a,b)=>a.number.localeCompare(b.number,'vi',{numeric:true}))
+  },
   async listShipCabins(shipId: string, signal: AbortSignal): Promise<Cabin[]> {
     const rows = await allPages<CabinDto>(`/cabins/by-ship/${encodeURIComponent(shipId)}`, signal)
     if (rows.some(row => row.shipId !== shipId)) throw new ApiError('Danh sách phòng không khớp với tàu đang xem.', 502)
@@ -77,7 +82,11 @@ export const shipDeckCabinApi = {
       id: dto.shipId, name: dto.shipName, code: dto.shipCode, status: dto.status,
       capacity: { status: 'loading' }, readiness: { status: 'loading' }, currentCruise: { status: 'loading' },
     })), metrics: {
-      activeCount: ships.filter(dto => dto.status === 'ACTIVE').length,
+      suspendedCount: ships.filter(dto => dto.status === 'SUSPENDED').length,
+      draftCount: ships.filter(dto => dto.status === 'DRAFT').length,
+      inServiceCount: ships.filter(dto => dto.status === 'IN_SERVICE').length,
+      retiredCount: ships.filter(dto => dto.status === 'RETIRED').length,
+      readyCount: ships.filter(dto => dto.status === 'READY').length,
       maintenanceCount: ships.filter(dto => dto.status === 'MAINTENANCE').length,
       configuredCabinCount: ships.length ? null : 0, attentionCount: ships.length ? null : 0,
     } }
@@ -89,7 +98,8 @@ export const shipDeckCabinApi = {
         if (!summary || ![summary.actualDeckCount, summary.actualCabinCount].every(value => Number.isInteger(value) && value >= 0)) {
           throw new ApiError('Backend trả số boong/phòng không hợp lệ.', 200)
         }
-        return { deckCount: summary.actualDeckCount, cabinCount: summary.actualCabinCount }
+        if (summary.actualServiceAreaCount !== undefined && (!Number.isSafeInteger(summary.actualServiceAreaCount) || summary.actualServiceAreaCount < 0)) throw new ApiError('Số khu vực dịch vụ không hợp lệ.', 200)
+        return { deckCount: summary.actualDeckCount, cabinCount: summary.actualCabinCount, ...(summary.actualServiceAreaCount === undefined ? {} : {serviceAreaCount: summary.actualServiceAreaCount}) }
       },
       readiness: async () => checkedBoolean(await apiRequest<boolean>(`${idPath('ships', id)}/readiness`, { signal })) ? 'READY' : 'ATTENTION',
       currentCruise: () => shipDeckCabinApi.getCurrentCruise(id, signal),
@@ -164,7 +174,7 @@ export const shipDeckCabinApi = {
       return dto ? cruise(dto) : null
     } catch (error) {
       // Observed backend contract for no current cruise. Other 404/errors remain errors.
-      if (error instanceof ApiError && error.status === 404 && error.message === 'No active cruise found for ship currently') return null
+      if (error instanceof ApiError && error.status === 404 && (error.serverMessage ?? error.message) === 'No active cruise found for ship currently') return null
       throw error
     }
   },

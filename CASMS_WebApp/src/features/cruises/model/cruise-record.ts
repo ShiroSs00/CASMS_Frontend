@@ -6,7 +6,7 @@ export const CRUISE_STATUSES = [
   'COMPLETED',
   'CANCELLED',
 ] as const
-export const SHIP_STATUSES = ['ACTIVE', 'MAINTENANCE', 'INACTIVE'] as const
+export const SHIP_STATUSES = ['DRAFT', 'READY', 'IN_SERVICE', 'MAINTENANCE', 'SUSPENDED', 'RETIRED'] as const
 
 export type CruiseType = (typeof CRUISE_TYPES)[number]
 export type CruiseStatus = (typeof CRUISE_STATUSES)[number]

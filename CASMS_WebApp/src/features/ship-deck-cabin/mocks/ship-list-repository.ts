@@ -16,7 +16,7 @@ export function createShipListRepository(scenario: ShipListScenario = 'data'): S
       if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
       if (failNext) { failNext = false; throw new Error('Không thể tải danh sách tàu. Vui lòng thử lại.') }
       return scenario === 'empty'
-        ? { metrics: { activeCount: 0, maintenanceCount: 0, configuredCabinCount: 0, attentionCount: 0 }, items: [] }
+        ? { metrics: { draftCount: 0, inServiceCount: 0, retiredCount: 0, suspendedCount: 0, readyCount: 0, maintenanceCount: 0, configuredCabinCount: 0, attentionCount: 0 }, items: [] }
         : structuredClone(shipListFixture)
     },
   }

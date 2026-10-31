@@ -118,3 +118,88 @@ test('standalone structure screens do not mount inventory before a valid ship is
     assert.ok(scopes.every(scope => scope === 'structure-ship-choices'))
   }
 })
+
+test('room inventory waits for a valid selected deck before enabling its room read',async()=>{
+ const deck={id:'d1',shipId:'s1',number:1,name:'Main'}
+ for(const initialDeck of ['', 'foreign', 'd1']) {
+  const queries=[],reads=[]
+  const {ShipInventory}=load('features/ship-deck-cabin/components/ShipInventory.tsx',{
+   react:{useState:initial=>[initial,()=>{}],useCallback:fn=>fn},
+   '@/shared/ui':Object.fromEntries(['PermissionLink','Button','Empty','Field','Loading','Notice','Panel','ListFooter'].map(x=>[x,x])),
+   '@/shared/auth':{useSessionAccess:()=>({canDo:()=>true})},
+   '../api/ship-deck-cabin-api':{shipDeckCabinApi:{listDeckCabins:async(...args)=>{reads.push(args);return []}}},
+   '../hooks/useFleetQuery':{useFleetQuery:(scope,read,enabled)=>{queries.push({scope,read,enabled});return {data:scope.startsWith('inventory-decks')?[deck]:null,loading:false,error:''}}},
+   '../model/ship-management':model,'../model/types':types,'./Common':{StatusBadge:'Badge'},
+   '../model/fleet-pagination':load('features/ship-deck-cabin/model/fleet-pagination.ts'),'./FleetPagination':{FleetPagination:'Pagination'},
+  })
+  ShipInventory({ship,view:'cabins',initialDeck,onDialog:()=>{}})
+  const roomRead=queries.find(x=>x.scope.startsWith('inventory-rooms'))
+  assert.equal(roomRead.enabled,initialDeck==='d1')
+  assert.equal(reads.length,0)
+  if(roomRead.enabled){const signal=new AbortController().signal;await roomRead.read(signal);assert.deepEqual(reads[0],['s1','d1',signal])}
+ }
+})
+test('deck cabin reads reject another deck even when the ship matches',async()=>{
+ let deckId='d1'
+ const calls=[]
+ const {shipDeckCabinApi:api}=load('features/ship-deck-cabin/api/ship-deck-cabin-api.ts',{'@/shared/api':{ApiError:class extends Error{},apiRequest:async(path)=>{calls.push(path);return {content:[{cabinId:'r1',shipId:'s1',deckId,cabinNumber:'101',cabinType:'INTERIOR',capacity:2,status:'AVAILABLE',isAccessible:false}],number:0,totalPages:1,totalElements:1}}}})
+ const signal=new AbortController().signal
+ assert.equal((await api.listDeckCabins('s1','d1',signal)).length,1)
+ assert.equal(calls[0],'/cabins/by-deck/d1')
+ deckId='foreign'
+ await assert.rejects(api.listDeckCabins('s1','d1',signal),/không khớp/)
+})
+
+test('only the exact backend no-current-cruise response becomes an empty voyage',async()=>{
+ class ErrorResponse extends Error {constructor(reason,status){super('Thông báo đã dịch');this.serverMessage=reason;this.status=status}}
+ let reason='No active cruise found for ship currently',status=404
+ const {shipDeckCabinApi:api}=load('features/ship-deck-cabin/api/ship-deck-cabin-api.ts',{'@/shared/api':{ApiError:ErrorResponse,apiRequest:async()=>{throw new ErrorResponse(reason,status)}}})
+ assert.equal(await api.getCurrentCruise('s1'),null)
+ reason='Ship missing'
+ await assert.rejects(api.getCurrentCruise('s1'))
+ reason='No active cruise found for ship currently';status=500
+ await assert.rejects(api.getCurrentCruise('s1'))
+})
+
+
+test('fleet counts come from capacity summary without reading 3D configuration',async()=>{
+ const calls=[]
+ const {shipDeckCabinApi:api}=load('features/ship-deck-cabin/api/ship-deck-cabin-api.ts',{'@/shared/api':{ApiError:class extends Error{},apiRequest:async(path)=>{calls.push(path);return {actualDeckCount:15,actualCabinCount:305,actualServiceAreaCount:102}}}})
+ const counts=await api.loadShipListField('s1','capacity',new AbortController().signal)
+ assert.equal(counts.serviceAreaCount,102)
+ assert.deepEqual(calls,['/ships/s1/capacity-summary'])
+ const {ShipAreaCount}=load('features/ship-deck-cabin/components/ShipAreaCount.tsx')
+ assert.ok(ShipAreaCount({count:102}))
+ assert.deepEqual(calls,['/ships/s1/capacity-summary'])
+})
+
+test('service areas use a dedicated ship endpoint and reject duplicate identities',async()=>{
+ const calls=[]
+ let duplicate=false
+ const row={shipId:'s1',id:'a1',name:'Phòng đọc sách',kind:'reading_room',deckId:'d1',deckName:'Main',deckNumber:2}
+ const {readShipServiceAreas}=load('features/ship-deck-cabin/api/ship-areas-api.ts',{'@/shared/api':{ApiError:class extends Error{},apiRequest:async(path)=>{calls.push(path);return duplicate?[row,row]:[row]}},'../model/ship-areas':{}})
+ assert.equal((await readShipServiceAreas('s1'))[0].id,'a1')
+ assert.deepEqual(calls,['/ships/s1/areas'])
+ duplicate=true
+ await assert.rejects(readShipServiceAreas('s1'),/không hợp lệ/)
+})
+
+
+test('service area inventory waits for a valid deck and respects read permission',()=>{
+ for(const [initialDeck,permitted] of [['',true],['foreign',true],['d1',false],['d1',true]]) {
+  const queries=[]
+  const {ShipAreas}=load('features/ship-deck-cabin/components/ShipAreas.tsx',{
+   react:{useState:initial=>[initial,()=>{}],useCallback:fn=>fn},
+   '@/shared/auth':{useSessionAccess:()=>({canDo:permission=>permission==='DECK_READ'||permitted})},
+   '@/shared/ui':Object.fromEntries(['Badge','Button','Empty','Field','Loading','Notice','Panel'].map(x=>[x,x])),
+   '../api/ship-areas-api':{readShipServiceAreas:()=>{throw new Error('Unexpected eager request')}},
+   '../api/ship-deck-cabin-api':{shipDeckCabinApi:{}},
+   '../hooks/useFleetQuery':{useFleetQuery:(scope,read,enabled)=>{queries.push({scope,enabled});return {data:scope.startsWith('area-decks')?[{id:'d1',number:1,name:'Main'}]:null,loading:false,error:''}}},
+   '../model/service-area-copy':{serviceType:()=>'',serviceAreaName:()=>''},
+   '../model/fleet-pagination':load('features/ship-deck-cabin/model/fleet-pagination.ts'),
+   './FleetPagination':{FleetPagination:'Pagination'},
+  })
+  ShipAreas({shipId:'s1',initialDeck})
+  assert.equal(queries.find(q=>q.scope.startsWith('service-areas')).enabled,initialDeck==='d1'&&permitted)
+ }
+})

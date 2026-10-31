@@ -14,3 +14,15 @@ export async function readShipAreas(shipId:string,signal?:AbortSignal,canReadDra
   return decodeImportedAreas(objects,shipId,draft.shipModelId,draft.version,draft.coordinateUnit??null)
  }
 }
+
+export type ServiceArea = {id:string;name:string|null;kind:string|null;deckId:string;deckName:string;deckNumber:number}
+export async function readShipServiceAreas(shipId:string,signal?:AbortSignal):Promise<ServiceArea[]> {
+ const value=await apiRequest<unknown>(`/ships/${encodeURIComponent(shipId)}/areas`,{signal})
+ if(!Array.isArray(value))throw new Error('Danh sách khu vực dịch vụ không hợp lệ.')
+ const ids=new Set<string>()
+ return value.map(row=>{
+  if(!row||typeof row!=='object'||row.shipId!==shipId||typeof row.id!=='string'||!row.id||ids.has(row.id)||typeof row.deckId!=='string'||!row.deckId||typeof row.deckName!=='string'||!Number.isSafeInteger(row.deckNumber)||(row.name!==null&&typeof row.name!=='string')||(row.kind!==null&&typeof row.kind!=='string'))throw new Error('Thông tin khu vực dịch vụ không hợp lệ.')
+  ids.add(row.id)
+  return {id:row.id,name:row.name,kind:row.kind,deckId:row.deckId,deckName:row.deckName,deckNumber:row.deckNumber}
+ })
+}
