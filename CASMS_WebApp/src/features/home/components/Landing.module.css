@@ -281,3 +281,49 @@
 .heroCredit { min-height:30px; }
 .heroSlides img { transition:opacity var(--motion-overlay) var(--ease-soft); }
 @media(prefers-reduced-motion:reduce) { .heroSlides img { transition:none; } }
+
+.ship > div { padding:clamp(24px,4vw,56px); }
+
+/* Generous inner padding for ship section */
+.ship {
+  padding: 36px 40px !important;
+}
+.ship > div {
+  padding-right: 24px;
+}
+@media(max-width: 959px) {
+  .ship {
+    padding: 24px !important;
+  }
+  .ship > div {
+    padding-right: 0;
+  }
+}
+
+.faqButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 32px;
+  min-height: 48px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  background: var(--brand-navy);
+  color: white !important;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none !important;
+  box-shadow: 0 4px 14px rgba(6, 26, 43, 0.15);
+  transition: all 0.2s ease;
+}
+.faqButton:hover {
+  background: var(--brand-midnight);
+  color: white !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(6, 26, 43, 0.25);
+}
+.faqButton:focus-visible {
+  outline: 3px solid var(--brand-gold);
+  outline-offset: 3px;
+}

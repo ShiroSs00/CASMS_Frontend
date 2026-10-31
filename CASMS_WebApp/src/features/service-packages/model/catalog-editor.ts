@@ -27,7 +27,7 @@ export function validateCatalogDraft(kind: CatalogKind, draft: CatalogDraft): Re
 export function serializeCatalogDraft(kind: CatalogKind, draft: CatalogDraft) {
   const money = draft.price.trim() ? Number(draft.price) : null
   const description = draft.description.trim() || null
-  const currencyCode = draft.currency.trim() || 'USD'
+  const currencyCode = draft.currency.trim() || null
   if (kind === 'services') return { serviceCode: draft.code.trim(), serviceName: draft.name.trim(), serviceType: draft.type.trim(), description, price: money, currencyCode, capacity: draft.capacity.trim() ? Number(draft.capacity) : null }
   if (kind === 'products') return { productCode: draft.code.trim(), productName: draft.name.trim(), productType: draft.type.trim(), description, unitPrice: money, currencyCode }
   return { packageCode: draft.code.trim(), packageName: draft.name.trim(), packageType: draft.type, description, price: money, currencyCode, startDate: draft.startDate || null, endDate: draft.endDate || null }
