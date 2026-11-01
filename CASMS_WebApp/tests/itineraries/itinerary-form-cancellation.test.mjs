@@ -1,3 +1,4 @@
+import { reviewedSourceModule, explicitTestAccess } from '../helpers/reviewed-source-modules.mjs'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFileSync } from 'node:fs'
@@ -25,7 +26,7 @@ function mount(itineraryId) {
   vm.runInNewContext(source, { module, exports: module.exports, AbortController, Error, Date, require(id) {
     if (id === 'react') return hooks
     if (id === '@/shared/api') return { ApiError: Error }
-    if (id === '@/shared/auth') return { useSessionAccess: () => ({ has: () => true }) }
+    if (id === '@/shared/auth') return { useSessionAccess: () => explicitTestAccess(['CRUISE_MANAGER'], ['CRUISE_READ','CRUISE_UPDATE_DRAFT','ITINERARY_READ','ITINERARY_UPDATE_DRAFT']) }
     if (id === 'react-router') return { useParams: () => params, useSearchParams: () => [{ get: () => null }], useNavigate: () => () => {} }
     if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
     if (id === '@/shared/ui') return Object.fromEntries(['Button', 'ButtonLink', 'DataTable', 'Empty', 'Field', 'Loading', 'Notice', 'PageHeader', 'Panel'].map((name) => [name, name]))
@@ -34,7 +35,7 @@ function mount(itineraryId) {
     if (id.endsWith('/model/itinerary')) return {}
     if (id.endsWith('.module.css')) return { default: {} }
     if (id === './ItineraryDetailPage') return {}
-    throw new Error('Unexpected import: ' + id)
+    const reviewed = reviewedSourceModule(id); if(reviewed) return reviewed; throw new Error('Unexpected import: ' + id)
   } })
   const render = () => { stateIndex = 0; effectIndex = 0; return module.exports.ItineraryFormPage() }
   const run = () => { for (const index of pending) { effects[index].cleanup?.(); effects[index].cleanup = effects[index].setup() } pending.clear() }

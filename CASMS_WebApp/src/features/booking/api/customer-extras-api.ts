@@ -31,15 +31,23 @@ export function decodeCustomerRegistration(value: unknown): CustomerRegistration
   if (Boolean(activityId) === Boolean(excursionId)) throw new Error('Đăng ký cần đúng một hoạt động hoặc tour tham quan.')
   return { id: text(v.id), passengerId: text(v.passengerId), bookingPassengerId: text(v.bookingPassengerId), activityId, excursionId, quantity: count(v.quantity, 1), status: state(v.status, ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED']), notes: optional(v.notes), registeredAt: time(v.registeredAt) }
 }
-export type CustomerService = { id: string; name: string; description: string | null; type: string; price: number | null; currency: string | null; capacity: number | null; status: string }
+export type CustomerService = { id: string; name: string; description: string | null; type: string; price: number | null; currency: string | null; capacity: number | null; status: string; requiresSchedule: boolean | null; unitCode: string | null; applicabilityScope: string | null }
 export function decodeCustomerService(value: unknown): CustomerService {
   const v = row(value)
-  return { id: text(v.id), name: text(v.name), description: optional(v.description), type: text(v.type), price: money(v.price), currency: currency(v.currency), capacity: v.capacity == null ? null : count(v.capacity, 1), status: state(v.status, ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'CANCELLED']) }
+  if (v.requiresSchedule != null && typeof v.requiresSchedule !== 'boolean') throw new Error('Yêu cầu lịch phục vụ không hợp lệ.')
+  return { id: text(v.id), name: text(v.name), description: optional(v.description), type: text(v.type), price: money(v.price), currency: currency(v.currency), capacity: v.capacity == null ? null : count(v.capacity, 1), status: state(v.status, ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'CANCELLED']), requiresSchedule: v.requiresSchedule == null ? null : v.requiresSchedule as boolean, unitCode: optional(v.unitCode), applicabilityScope: optional(v.applicabilityScope) }
 }
-export type CustomerServiceRequest = { id: string; passengerId: string; serviceId: string; bookingId: string | null; bookingPassengerId: string | null; quantity: number; note: string | null; status: string; requestTime: string; completedAt: string | null }
+export type CustomerServiceRequest = { id: string; passengerId: string; serviceId: string; scheduleId: string | null; bookingId: string | null; bookingPassengerId: string | null; quantity: number; unitPriceSnapshot: number | null; currencySnapshot: string | null; note: string | null; status: string; requestTime: string; completedAt: string | null }
 export function decodeCustomerServiceRequest(value: unknown): CustomerServiceRequest {
   const v = row(value)
-  return { id: text(v.id), passengerId: text(v.passengerId), serviceId: text(v.serviceId), bookingId: optional(v.bookingId), bookingPassengerId: optional(v.bookingPassengerId), quantity: count(v.quantity, 1), note: optional(v.note), status: state(v.status, ['REQUESTED', 'ACCEPTED', 'IN_PROGRESS', 'COMPLETED', 'REJECTED', 'CANCELLED']), requestTime: time(v.requestTime), completedAt: v.completedAt == null ? null : time(v.completedAt) }
+  return { id: text(v.id), passengerId: text(v.passengerId), serviceId: text(v.serviceId), scheduleId: optional(v.scheduleId), bookingId: optional(v.bookingId), bookingPassengerId: optional(v.bookingPassengerId), quantity: count(v.quantity, 1), unitPriceSnapshot: money(v.unitPriceSnapshot), currencySnapshot: currency(v.currencySnapshot), note: optional(v.note), status: state(v.status, ['REQUESTED', 'ACCEPTED', 'IN_PROGRESS', 'COMPLETED', 'REJECTED', 'CANCELLED']), requestTime: time(v.requestTime), completedAt: v.completedAt == null ? null : time(v.completedAt) }
+}
+export type CustomerServiceSchedule = { id: string; serviceId: string; cruiseId: string | null; startsAt: string; endsAt: string; location: string; capacity: number; remainingCapacity: number; status: string }
+export function decodeCustomerServiceSchedule(value: unknown): CustomerServiceSchedule {
+  const v = row(value), capacity = count(v.capacity, 1), remainingCapacity = count(v.remainingCapacity)
+  const startsAt = time(v.startsAt), endsAt = time(v.endsAt)
+  if (remainingCapacity > capacity || Date.parse(endsAt) <= Date.parse(startsAt)) throw new Error('Lịch phục vụ không hợp lệ.')
+  return { id: text(v.id), serviceId: text(v.serviceId), cruiseId: optional(v.cruiseId), startsAt, endsAt, location: text(v.location), capacity, remainingCapacity, status: text(v.status) }
 }
 export type CustomerExcursion = { id: string; cruiseStopId: string; name: string; startTime: string; endTime: string; meetingPoint: string | null; maximumCapacity: number; availableCapacity: number; price: number | null; currency: string | null; status: string }
 export function decodeCustomerExcursion(value: unknown): CustomerExcursion {
@@ -88,7 +96,7 @@ export const customerExtrasApi = {
     // This endpoint has no cruiseId filter and returns a complete, unpaged list.
     return list(await apiRequest<unknown>('/activities', { signal }), decodeCustomerActivity).filter(item => item.cruiseId === cruiseId)
   },
-  async activity(id: string, cruiseId: string, signal?: AbortSignal) { const item = identity(decodeCustomerActivity(await apiRequest<unknown>('/activities/' + part(id), { signal })), id); if (item.cruiseId !== cruiseId) throw new Error('Hoạt động không thuộc chuyến đi này.'); return item },
+  async activity(id: string, cruiseId: string, signal?: AbortSignal) { const item = identity(decodeCustomerActivity(await apiRequest<unknown>('/activities/' + part(id), { signal })), id); if (item.cruiseId !== cruiseId) throw new Error('Hoạt động không thuộc chuyến khởi hành này.'); return item },
   async activityAvailability(id: string, signal?: AbortSignal) {
     const v = row(await apiRequest<unknown>('/activities/' + part(id) + '/availability', { signal }))
     if (v.activityId !== id) throw new Error('Chỗ trống trả về không khớp hoạt động.')
@@ -128,6 +136,11 @@ export const customerExtrasApi = {
   },
   async services(signal?: AbortSignal) { return list(await apiRequest<unknown>('/servicepackage/services', { signal }), decodeCustomerService).filter(item => item.status === 'ACTIVE') },
   async service(id: string, signal?: AbortSignal) { return identity(decodeCustomerService(await apiRequest<unknown>('/servicepackage/services/' + part(id), { signal })), id) },
+  async serviceSchedules(id: string, cruiseId: string, signal?: AbortSignal) {
+    const result = list(await apiRequest<unknown>('/servicepackage/services/' + part(id) + '/schedules', { signal }), decodeCustomerServiceSchedule)
+    if (result.some(item => item.serviceId !== id) || new Set(result.map(item => item.id)).size !== result.length) throw new Error('Lịch phục vụ không khớp dịch vụ yêu cầu.')
+    return result.filter(item => item.cruiseId === cruiseId && item.status === 'OPEN')
+  },
   async serviceAvailability(id: string, quantity: number, signal?: AbortSignal) {
     const v = row(await apiRequest<unknown>('/servicepackage/services/' + part(id) + '/availability', { query: { quantity: positive(quantity) }, signal }))
     if (v.serviceId !== id || v.requestedQuantity !== quantity || typeof v.available !== 'boolean') throw new Error('Thông tin khả dụng không khớp dịch vụ yêu cầu.')
@@ -135,9 +148,9 @@ export const customerExtrasApi = {
   },
   async requests(signal?: AbortSignal) { return list(await apiRequest<unknown>('/servicepackage/requests', { signal }), decodeCustomerServiceRequest) },
   async request(id: string, signal?: AbortSignal) { return identity(decodeCustomerServiceRequest(await apiRequest<unknown>(requestPath(id), { signal })), id) },
-  async createRequest(serviceId: string, bookingPassengerId: string, quantity: number, value: string) {
-    const result = requestResult(await apiRequest<unknown>('/servicepackage/requests', { method: 'POST', body: { serviceId, bookingPassengerId, quantity: positive(quantity), note: note(value) } }), null, 'REQUESTED', quantity)
-    if (result.serviceId !== serviceId || result.bookingPassengerId !== bookingPassengerId) throw new Error('Kết quả dịch vụ không khớp yêu cầu. Kiểm tra trước khi gửi lại.')
+  async createRequest(serviceId: string, bookingPassengerId: string, quantity: number, value: string, serviceScheduleId?: string) {
+    const result = requestResult(await apiRequest<unknown>('/servicepackage/requests', { method: 'POST', body: { serviceId, bookingPassengerId, quantity: positive(quantity), note: note(value), ...(serviceScheduleId ? { serviceScheduleId: text(serviceScheduleId) } : {}) } }), null, 'REQUESTED', quantity)
+    if (result.serviceId !== serviceId || result.bookingPassengerId !== bookingPassengerId || result.scheduleId !== (serviceScheduleId ?? null)) throw new Error('Kết quả dịch vụ không khớp yêu cầu. Kiểm tra trước khi gửi lại.')
     return result
   },
   async updateRequest(id: string, quantity: number, value: string) { return requestResult(await apiRequest<unknown>(requestPath(id), { method: 'PUT', body: { quantity: positive(quantity), note: note(value) } }), id, 'REQUESTED', quantity) },

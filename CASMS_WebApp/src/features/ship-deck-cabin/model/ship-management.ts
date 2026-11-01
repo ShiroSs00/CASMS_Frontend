@@ -1,6 +1,7 @@
 import type { Cabin, CabinStatus, CabinType, Deck, Ship, ShipDraft } from './types'
+import { cabinTypeLabels } from '@/shared/i18n/business-copy'
 
-export const roomTypeLabels: Record<CabinType, string> = { INTERIOR: 'Phòng trong', OCEAN_VIEW: 'Hướng biển', BALCONY: 'Có ban công', SUITE: 'Phòng suite' }
+export const roomTypeLabels: Record<CabinType, string> = cabinTypeLabels
 export type RoomFilters = { search: string; deck: string; status: CabinStatus | ''; type: CabinType | '' }
 export const emptyRoomFilters: RoomFilters = { search: '', deck: '', status: '', type: '' }
 const normalize = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').replace(/[đĐ]/g, 'd').trim().toLocaleLowerCase('vi')

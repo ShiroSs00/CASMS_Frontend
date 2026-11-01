@@ -1,15 +1,12 @@
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+
 import test from 'node:test'
-import vm from 'node:vm'
-import ts from 'typescript'
+
+
 
 const root = new URL('../../src/', import.meta.url)
-function load(file, imports, globals = {}) {
-  const module = { exports: {} }
-  vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2023, jsx: ts.JsxEmit.ReactJSX } }).outputText, { module, exports: module.exports, Date, AbortController, ...globals, require(id) { assert.ok(Object.hasOwn(imports, id), id); return imports[id] } })
-  return module.exports
-}
+function load(file, imports, globals = {}) { return loadSource(new URL(file, root), { 'react/jsx-runtime': { jsx: (type, props, key) => ({type, props, key}), jsxs: (type, props, key) => ({type, props, key}), Fragment: 'Fragment' }, ...imports }, globals); }
 test('activity service manager login response is accepted as a staff session', () => {
   const types = load('features/auth/model/auth-types.ts', {})
   const dto = load('features/auth/api/dto.ts', { '../model/auth-types': types })
@@ -43,13 +40,13 @@ test('Complete: existing auth provider GET /auth/me decodes effective permission
   const session = load('shared/auth/session-access.ts', { react: { useSyncExternalStore: () => {} } })
   const effects = [], states = [], calls = []; let resolve, stopped = 0
   const { AuthProvider } = load('features/auth/AuthProvider.tsx', {
-    react: { useEffect: effect => effects.push(effect) }, './model/auth-session': { authSession: { start: () => {} } }, './useAuth': { useAuth: () => ({ session: { accessToken: 'fixture-only' } }) },
+    react: { useEffect: effect => effects.push(effect), useState: value => [value,()=>{}] }, './model/auth-session': { authSession: { start: () => {} } }, './useAuth': { useAuth: () => ({ session: { accessToken: 'fixture-only' }, user: {id:'u'} }) },
     '@/shared/api': { apiRequest: (path, options) => { calls.push({ path, ...options }); return new Promise(yes => { resolve = yes }) } },
-    '@/shared/auth': { decodeSessionAccess: session.decodeSessionAccess, setSessionAccess: state => states.push(state) },
+    '@/shared/auth': { decodeSessionAccess: session.decodeSessionAccess, setSessionAccess: state => states.push(state), subscribeAccessRetry:()=>()=>{} },
   })
-  AuthProvider({ children: 'children' }); const cleanup = effects[1]()
+  AuthProvider({ children: 'children' }); const cleanup = effects[3](); const unmount = effects[1]()
   assert.equal(calls[0].path, '/auth/me'); assert.equal(calls[0].method, undefined); assert.equal(calls[0].signal.aborted, false)
-  resolve({ userId: 'u', effectivePermissions: ['BOOKING_READ'] }); await new Promise(yes => setImmediate(yes)); assert.equal(states.at(-1).status, 'ready'); assert.equal(states.at(-1).permissions[0], 'BOOKING_READ')
-  calls[0].signal.addEventListener('abort', () => { stopped += 1 }); cleanup(); assert.equal(stopped, 1); assert.equal(states.at(-1).status, 'anonymous')
+  resolve({ userId: 'u', roles:['BOOKING_AGENT'], effectivePermissions: ['BOOKING_READ'] }); await new Promise(yes => setImmediate(yes)); assert.equal(states.at(-1).status, 'ready'); assert.equal(states.at(-1).permissions[0], 'BOOKING_READ')
+  calls[0].signal.addEventListener('abort', () => { stopped += 1 }); cleanup(); unmount(); assert.equal(stopped, 1); assert.equal(states.at(-1).status, 'anonymous')
   for (const malformed of [null, { userId: 'u' }, { userId: 'u', effectivePermissions: [123] }]) assert.throws(() => session.decodeSessionAccess(malformed))
 })

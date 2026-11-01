@@ -1,24 +1,18 @@
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
-import { readFileSync, existsSync } from 'node:fs'
-import vm from 'node:vm'
+import { existsSync } from 'node:fs'
+
 import test from 'node:test'
-import ts from 'typescript'
+
 
 const root=new URL('../../src/',import.meta.url)
 const jsx=(type,props)=>({type,props})
-function load(file,imports={}) {
-  const module={exports:{}}
-  vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file,root),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2023,jsx:ts.JsxEmit.ReactJSX}}).outputText,{
-    module,exports:module.exports,Date,URL,URLSearchParams,
-    require(id){if(id==='react/jsx-runtime')return {jsx,jsxs:jsx};if(id.endsWith('.module.css'))return {default:{}};assert.ok(Object.hasOwn(imports,id),id);return imports[id]},
-  })
-  return module.exports
-}
+function load(file,imports={}) { return loadSource(new URL(file,root), { 'react/jsx-runtime': { jsx: jsx, jsxs: jsx, Fragment: 'Fragment' }, ...imports }, {}); }
 const context=load('domain/booking-context/booking-context-api.ts',{'@/shared/api':{}})
 const api=load('features/booking/api/real-booking-api.ts',{'@/shared/api':{},'@/domain/booking-context':context})
 const live=load('features/booking/model/live-booking-context.ts',{react:{createContext:()=>null}})
 const {availableBookingStep}=load('features/booking/model/booking-progress.ts',{'../api/real-booking-api':api})
-const cruise={cruiseId:'cruise',cruiseName:'Trip',status:'PUBLISHED',shipId:'ship',departureDatetime:'2099-01-01T00:00:00Z'}
+const cruise={cruiseId:'cruise',cruiseName:'Trip',status:'PUBLISHED',sellable:true,shipId:'ship',departureDatetime:'2099-01-01T00:00:00Z'}
 const cabin={cabinId:'cabin',cabinNumber:'100',remainingCapacity:2}
 
 test('booking advances only after earlier choices are valid and retains staged payment on serialization',()=>{
@@ -90,7 +84,7 @@ test('later booking stages expose retry for failed prerequisites rather than an 
     '../model/booking-progress':{availableBookingStep},'../model/live-booking-navigation':{catalogReturn:()=>'/cruises',bookingStepPaths:['/booking/cabin-experience','/booking/travellers','/booking/review']},
     '../model/real-booking-view':{},'../model/booking-feedback':{},'./RealBookingPages':{},
   })
-  const result=RealBookingCreatePage({step:2})
+  const boundary=RealBookingCreatePage({step:2});const result=boundary.type(boundary.props)
   assert.equal(result.type,'Frame')
   const children=result.props.children
   assert.equal(children[0].props.breadcrumb,'ĐẶT CHỖ')
@@ -118,9 +112,9 @@ test('service request tabs respect staff role while management catalog tabs rema
     '@/shared/api':{},'@/shared/auth':{useSessionAccess:()=>({status:'ready',permissions:navigation.backendRolePermissions[roles[0]]})},'@/shared/ui':{},'@/shared/ui/admin-v3':{...navigation,AdminShell:'Shell',AdminRoleContext:{}},
     '../model/catalog':{catalogConfig:{services:{route:'/admin/services',label:'Dịch vụ'},products:{route:'/admin/products',label:'Sản phẩm'},packages:{route:'/admin/service-packages',label:'Gói'}}},
   })
-  const links=()=>CatalogFrame({children:'content'}).props.children.props.children[0].props.children.map(node=>node.props.to)
-  assert.deepEqual(Array.from(links()),['/admin/services','/admin/service-requests'])
-  assert.equal(navigation.canRoleOpenAdminPath(roles,'/admin/services/10000000-0000-4000-8000-000000000001'),true)
+  const links=()=>{const frame=CatalogFrame({children:'content'});assert.equal(frame.type,'Shell');assert.equal(frame.props.children.props.children,'content');return navigation.roleNavigationItems(roles,{status:'ready',roles,permissions:navigation.backendRolePermissions[roles[0]]}).filter(item=>['services','products','service-packages','service-requests'].some(section=>item.to==='/admin/'+section)).map(item=>item.to)}
+  assert.deepEqual(Array.from(links()),['/admin/service-requests'])
+  assert.equal(navigation.canRoleOpenAdminPath(roles,'/admin/services/10000000-0000-4000-8000-000000000001','',{status:'ready',roles,permissions:navigation.backendRolePermissions[roles[0]]}),false)
   roles=['ACTIVITY_SERVICE_MANAGER']
   assert.equal(links().length,4)
 })

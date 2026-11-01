@@ -1,14 +1,11 @@
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import vm from 'node:vm'
+
+
 import test from 'node:test'
-import ts from 'typescript'
+
 const root = new URL('../../src/', import.meta.url)
-function load(file, imports = {}) {
-  const module = { exports: {} }
-  vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2023 } }).outputText, { module, exports: module.exports, Date, require(id) { assert.ok(Object.hasOwn(imports, id), id); return imports[id] } })
-  return module.exports
-}
+function load(file, imports = {}) { return loadSource(new URL(file, root), { 'react/jsx-runtime': { jsx: (type, props, key) => ({type, props, key}), jsxs: (type, props, key) => ({type, props, key}), Fragment: 'Fragment' }, ...imports }, {}); }
 test('Activity guards reflect BE lifecycle and checkout does not skip completion', () => {
   const model = load('features/activities/model/activity-actions.ts'), parent = { status: 'OPEN', startTime: '2026-10-22T10:00:00Z', endTime: '2026-10-22T11:00:00Z' }, now = Date.parse('2026-10-21T10:00:00Z')
   assert.equal(model.activityActions(parent, now).includes('start'), false)
@@ -33,7 +30,7 @@ test('Activity registration/participation adapters use exact methods, query and 
 })
 const passenger = { fullName: 'Nguyen Van QA', dateOfBirth: '1990-01-01', nationality: 'VN', documentType: '', documentNumber: '', email: 'qa@example.test', phoneNumber: '', cabinId: 'c', tourPackageId: '' }
 const draft = { cruiseId: 'cr', currency: 'USD', paymentPlan: 'DEPOSIT', notes: '', passengers: [passenger] }
-const cruise = { cruiseId: 'cr', status: 'PUBLISHED', shipId: 's', departureDatetime: '2026-11-01T00:00:00Z' }, cabins = [{ cabinId: 'c', cabinNumber: '101', capacity: 2, remainingCapacity: 1 }]
+const cruise = { cruiseId: 'cr', status: 'PUBLISHED', sellable:true, shipId: 's', departureDatetime: '2026-11-01T00:00:00Z' }, cabins = [{ cabinId: 'c', cabinNumber: '101', capacity: 2, remainingCapacity: 1 }]
 const context = load('domain/booking-context/booking-context-api.ts', { '@/shared/api': {} })
 test('Booking validates actual eligible Cruise, grouped available capacity, representative contact and DTO boundaries', () => {
   const api = load('features/booking/api/real-booking-api.ts', { '@/shared/api': {}, '@/domain/booking-context': context })
@@ -61,6 +58,6 @@ test('Authoritative session permissions fail closed: ADMIN role alone, missing p
  const auth=load('shared/auth/session-access.ts',{react:{useSyncExternalStore:(_subscribe,get)=>get()}})
  assert.throws(()=>auth.decodeSessionAccess({userId:'u',roles:['ADMIN']}),/không đầy đủ/)
  auth.setSessionAccess({status:'error',userId:'u',permissions:['BOOKING_UPDATE'],error:'HTTP failure'});assert.equal(auth.useSessionAccess().has('BOOKING_UPDATE'),false)
- auth.setSessionAccess(auth.decodeSessionAccess({userId:'u',effectivePermissions:['BOOKING_READ']}));assert.equal(auth.useSessionAccess().has('BOOKING_READ'),true);assert.equal(auth.useSessionAccess().has('BOOKING_UPDATE'),false)
+ auth.setSessionAccess(auth.decodeSessionAccess({userId:'u',roles:['BOOKING_AGENT'],effectivePermissions:['BOOKING_READ']}));assert.equal(auth.useSessionAccess().has('BOOKING_READ'),true);assert.equal(auth.useSessionAccess().has('BOOKING_UPDATE'),false)
  auth.setSessionAccess({status:'anonymous',userId:null,permissions:[],error:''});assert.equal(auth.useSessionAccess().has('BOOKING_READ'),false)
 })

@@ -16,14 +16,14 @@ function CustomerDetail({ unavailable, showPassengerDetails = false }: { unavail
   const { bookingId = '' } = useParams(), location = useLocation()
   const root = '/my-bookings/' + encodeURIComponent(bookingId)
   const links = [['', 'Tổng quan'], ['/manage', 'Quản lý'], ['/travellers', 'Thông tin khách'], ['/experiences', 'Hoạt động & dịch vụ'], ['/payment', 'Hợp đồng & lịch thanh toán'], ['/change-request', 'Thay đổi / hủy']]
-  return <CustomerReadAccess><RealBookingDetail showPassengerDetails={showPassengerDetails} customerIntro={<div className={styles.stack}><nav className={styles.actions} aria-label="Các mục đặt chỗ">{links.map(([suffix, label]) => <Link key={suffix} to={root + suffix} aria-current={location.pathname === root + suffix ? 'page' : undefined}>{label}</Link>)}</nav>{unavailable && <Notice title="Hướng dẫn cho chuyến đi" tone="warning">{unavailable}</Notice>}</div>} /></CustomerReadAccess>
+  return <CustomerReadAccess><RealBookingDetail showPassengerDetails={showPassengerDetails} customerIntro={<div className={styles.stack}><nav className={styles.actions} aria-label="Các mục đặt chỗ">{links.map(([suffix, label]) => <Link key={suffix} to={root + suffix} aria-current={location.pathname === root + suffix ? 'page' : undefined}>{label}</Link>)}</nav>{unavailable && <Notice title="Hướng dẫn cho chuyến khởi hành" tone="warning">{unavailable}</Notice>}</div>} /></CustomerReadAccess>
 }
 export function MyBookingsPage(){return <CustomerReadAccess><RealBookingList/></CustomerReadAccess>}
 export function BookingDetailPage(){return <CustomerDetail/>}
 export function ManageBookingPage(){return <CustomerDetail/>}
 export function TravellerDocumentsPage(){return <CustomerDetail showPassengerDetails unavailable="Liên hệ bộ phận đặt chỗ để cập nhật thông tin hành khách."/>}
 export function OnlineCheckinPage(){return <CustomerDetail unavailable="Vui lòng làm thủ tục và xuất trình giấy tờ tại quầy đón khách ở cảng."/>}
-export function ArrivalTimePage(){return <CustomerDetail unavailable="Kiểm tra giờ có mặt tại cảng trong hướng dẫn trước chuyến đi."/>}
+export function ArrivalTimePage(){return <CustomerDetail unavailable="Kiểm tra giờ có mặt tại cảng trong hướng dẫn trước chuyến khởi hành."/>}
 export function BoardingPassPage(){return <CustomerDetail unavailable="Thẻ lên tàu được cấp sau khi hoàn tất thủ tục tại cảng."/>}
 export function PaymentContractPage(){return <CustomerDetail unavailable="Thanh toán theo từng đợt và hoàn tất ký hợp đồng theo hướng dẫn bên dưới."/>}
 export function ChangeRequestPage(){return <CustomerDetail unavailable="Liên hệ bộ phận đặt chỗ nếu bạn cần hỗ trợ thay đổi hành trình hoặc phòng."/>}

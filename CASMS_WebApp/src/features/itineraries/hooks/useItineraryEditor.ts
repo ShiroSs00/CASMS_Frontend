@@ -19,7 +19,7 @@ export async function fetchEditor(id: string, signal?: AbortSignal, onCore?: (da
   const data: EditorData = { itinerary, days: [], stops: [], ports: [], destinations: [], supplementaryErrors: {}, supplementaryLoading: true }
   onCore?.(data)
   const access = getSessionAccess()
-  const read = <T,>(permission: string, load: () => Promise<T>) => hasPermissions(access,{mode:'ANY',permissions:[permission]}) ? load() : Promise.reject(new Error('Tài khoản chưa được cấp quyền xem ' + ({ITINERARY_DAY_READ:'ngày trong lịch trình',CRUISE_STOP_READ:'lần ghé cảng',PORT_READ:'danh mục cảng',DESTINATION_READ:'điểm đến',CRUISE_READ:'chuyến đi'}[permission] ?? 'dữ liệu liên quan') + '.'))
+  const read = <T,>(permission: string, load: () => Promise<T>) => hasPermissions(access,{mode:'ANY',permissions:[permission]}) ? load() : Promise.reject(new Error('Tài khoản chưa được cấp quyền xem ' + ({ITINERARY_DAY_READ:'ngày trong lịch trình',CRUISE_STOP_READ:'lần ghé cảng',PORT_READ:'danh mục cảng',DESTINATION_READ:'điểm đến',CRUISE_READ:'chuyến khởi hành'}[permission] ?? 'dữ liệu liên quan') + '.'))
   const results = await Promise.allSettled([read('ITINERARY_DAY_READ', () => itineraryApi.listDays(id, signal)), read('CRUISE_STOP_READ', () => itineraryApi.listStops(id, signal)), read('PORT_READ', () => itineraryApi.activePorts(signal)), read('DESTINATION_READ', () => itineraryApi.activeDestinations(signal)), read('CRUISE_READ', () => itineraryApi.getCruise(itinerary.cruiseId, signal))])
   const [days, stops, ports, destinations, cruise] = results
   for (const [index, key] of ['days', 'stops', 'ports', 'destinations', 'cruise'].entries()) {

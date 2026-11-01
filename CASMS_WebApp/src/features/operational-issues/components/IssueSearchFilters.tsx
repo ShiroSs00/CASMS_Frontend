@@ -70,7 +70,7 @@ export function IssueSearchFilters({
           ))}
         </select>
       </Field>
-      <Field htmlFor="issue-filter-cruise" label="Chuyến đi">
+      <Field htmlFor="issue-filter-cruise" label="Chuyến khởi hành">
         <select
           id="issue-filter-cruise"
           value={draft.cruiseId}

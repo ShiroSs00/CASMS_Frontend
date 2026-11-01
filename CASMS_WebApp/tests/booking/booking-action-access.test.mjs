@@ -7,7 +7,7 @@ import ts from 'typescript'
 const module={exports:{}}
 vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../../src/features/booking/model/booking-permissions.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{module,exports:module.exports})
 const {canManageBooking}=module.exports
-const access=(permissions,status='ready')=>({has:p=>status==='ready'&&permissions.includes(p)})
+const access=(permissions,status='ready')=>({has:p=>status==='ready'&&permissions.includes(p),canDo:p=>status==='ready'&&permissions.includes(p)})
 
 test('confirmation requires BOOKING_CONFIRM, never passenger create or customer-service update',()=>{
   for(const permissions of [[],['BOOKING_CREATE'],['BOOKING_UPDATE'],['BOOKING_CREATE','BOOKING_UPDATE']]) assert.equal(canManageBooking('confirm','Draft',access(permissions)),false)

@@ -16,8 +16,8 @@ export function SourceScheduleDialog({versionId,source,onClose}:{versionId:strin
 export function InheritedSourcePlan({source}:{source:PublishedSource}){
  const [open,setOpen]=useState(false)
  return <Panel title="Lịch trình được chọn" className={styles.inheritedPlan}>
-  <div className={styles.sourceIdentity}><h2>{source.tripName}</h2><span>{source.tripCode} · Phiên bản {source.versionNumber} · Đã chốt lịch trình</span></div>
-  <p>{source.days.length} ngày · {source.stops.length} lần ghé cảng · {source.entries.length} mục chương trình</p>
+  <div className={styles.sourceIdentity}><h2>{source.tripName}</h2><span>{source.tripCode} · Phiên bản {source.versionNumber} · Revision {source.revision??'Chưa xác định'} · Đã chốt lịch trình</span></div>
+  <p>{source.durationGroup==='SHORT'?'Chuyến ngắn (1–2 ngày)':source.durationGroup==='LONG'?'Chuyến dài (3–5 ngày)':'Nhóm thời lượng chưa xác định'} · {source.days.length} ngày thực tế · {source.stops.length} lần ghé cảng · {source.entries.length} mục chương trình</p>
   <Button tone="secondary" onClick={()=>setOpen(true)}>Xem lịch trình đã chốt</Button>
   {open&&<SourceScheduleDialog versionId={source.versionId} source={source} onClose={()=>setOpen(false)}/>}
  </Panel>

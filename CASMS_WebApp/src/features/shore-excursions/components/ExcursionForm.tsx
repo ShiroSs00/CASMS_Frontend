@@ -51,7 +51,7 @@ export function ExcursionForm({ initial, busy, onSave }: { initial?: ShoreExcurs
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (busy || !access.canDo(initial ? 'EXCURSION_UPDATE' : 'EXCURSION_CREATE')) return
-    if(params.has('cruiseStopId')&&(!validCruiseContextId(requestedStop)||stopId!==requestedStop)||params.has('cruiseId')&&(!validCruiseContextId(requestedCruise)||stop?.cruiseId!==requestedCruise)){setContextError('Lần ghé cảng không khớp lần khởi hành trong đường dẫn. Mở lại từ đúng hồ sơ.');return}
+    if(params.has('cruiseStopId')&&(!validCruiseContextId(requestedStop)||stopId!==requestedStop)||params.has('cruiseId')&&(!validCruiseContextId(requestedCruise)||stop?.cruiseId!==requestedCruise)){setContextError('Lần ghé cảng không khớp chuyến khởi hành trong đường dẫn. Mở lại từ đúng hồ sơ.');return}
     if (stops.error || suppliers.error || stops.loading || suppliers.loading) { setContextError('Chưa tải đủ điểm dừng và nhà cung cấp. Vui lòng thử tải lại.'); return }
     setContextError('')
     const next = { ...validateExcursionForm(values), ...validateExcursionWindow(values.startTime, values.plannedReturnTime, stop) }
@@ -67,7 +67,7 @@ export function ExcursionForm({ initial, busy, onSave }: { initial?: ShoreExcurs
     <p className={styles.hint}>Chọn điểm dừng của lịch trình và nhà cung cấp đã xác minh. Lịch tham quan phải phù hợp với giờ lưu cảng và giờ khách trở lại tàu.</p>
     {(stops.loading || suppliers.loading) && <Loading label="Đang tải điểm dừng và nhà cung cấp…" />}
     {[stops, suppliers].map((query, index) => query.error && <Notice key={index} tone="error" title={`Không tải được ${index ? 'nhà cung cấp' : 'điểm dừng'}`}>{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>)}
-    {!stops.loading && stops.data?.length === 0 && <Notice title="Chưa có điểm dừng">Cần có lần ghé cảng trước khi tạo chuyến tham quan. <Link to="/admin/cruises">Xem lần khởi hành</Link></Notice>}
+    {!stops.loading && stops.data?.length === 0 && <Notice title="Chưa có điểm dừng">Cần có lần ghé cảng trước khi tạo chuyến tham quan. <Link to="/admin/cruises">Xem chuyến khởi hành</Link></Notice>}
     {contextError && <Notice tone="error" title="Kiểm tra thông tin liên quan">{contextError}</Notice>}
     <p className={styles.hint}>Thời gian theo múi giờ trình duyệt: {Intl.DateTimeFormat().resolvedOptions().timeZone}. Các trường có dấu * là bắt buộc.</p>
     <EditorLayout ><form className={styles.form} onSubmit={submit} noValidate>

@@ -1,10 +1,13 @@
+import { loadSource } from '../helpers/source-loader.mjs'
+import { explicitTestAccess, permissionLinkFor } from '../helpers/reviewed-source-modules.mjs'
+import { navigation } from '../helpers/admin-navigation.mjs'
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { readFileSync } from 'node:fs'
-import vm from 'node:vm'
-import ts from 'typescript'
-import * as validators from '../../src/features/ship-deck-cabin/model/validation.ts'
-import * as model from '../../src/features/ship-deck-cabin/model/types.ts'
+
+
+
+const validators = loadSource('features/ship-deck-cabin/model/validation.ts')
+const model = loadSource('features/ship-deck-cabin/model/types.ts')
 
 const root = new URL('../../src/features/ship-deck-cabin/', import.meta.url)
 const ship = { id: 'ship-1', code: 'S1', name: 'Parent Ship', totalDecks: 2 }
@@ -16,16 +19,7 @@ const snapshot = { ships: [ship, { ...ship, id: 'ship-2' }], decks: [deck, { ...
 const { validateCabin } = validators
 const jsx = (type, props) => ({ type, props })
 class ApiError extends Error { constructor(message, status, code) { super(message); this.status = status; this.code = code } }
-function load(file, imports) {
-  const module = { exports: {} }
-  const code = ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 } }).outputText
-  vm.runInNewContext(code, { module, exports: module.exports, AbortController, Error, requestAnimationFrame: callback => callback(), require(id) { if(id === '@/shared/auth') return {useSessionAccess:()=>({status:'ready',userId:'test-user',has:()=>true})}; if(id === '../model/permissions') return {entityPermission:(kind,action)=>({ships:'SHIP',decks:'DECK',cabins:'CABIN'})[kind]+'_'+action,operationPermission:()=> 'TEST_PERMISSION'};
-    if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
-    if (id.endsWith('.module.css')) return { default: {} }
-    assert.ok(Object.hasOwn(imports, id), 'Unexpected import ' + id); return imports[id]
-  } })
-  return module.exports
-}
+function load(file, imports) { return loadSource(new URL(file, root), { 'react/jsx-runtime': {jsx, jsxs:jsx}, '@/shared/auth': {useSessionAccess:()=>explicitTestAccess(['SHIP_MANAGER'],navigation.backendRolePermissions.SHIP_MANAGER)}, ...imports }, {requestAnimationFrame:callback=>callback()}); }
 const plain = value => JSON.parse(JSON.stringify(value))
 
 test('Cabin validation accepts supported enums, FE capacity boundaries 1 and 20, and unused number', () => {
@@ -101,6 +95,7 @@ function flatten(tree) {
   return [tree, ...flatten(tree.props?.children)]
 }
 const shared = Object.fromEntries(['Button', 'Notice', 'PageHeader', 'Panel', 'Modal', 'DataTable', 'Empty'].map(key => [key, key]))
+  shared.PermissionLink=permissionLinkFor(['SHIP_MANAGER'],navigation.backendRolePermissions.SHIP_MANAGER)
 const common = { ...Object.fromEntries(['InputField', 'SelectField', 'DataState', 'NotFound', 'StatusBadge'].map(key => [key, key])), Definition: ({ rows }) => jsx('Definition', { rows, children: rows.map(row => row[1]) }) }
 function detailHarness({ queryErrors = {}, entity = { data: cabin, loading: false, error: '' }, loadingKey } = {}) {
   const calls = { snapshot: 0, retry: [], loads: [] }

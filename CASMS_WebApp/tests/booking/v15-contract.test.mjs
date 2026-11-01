@@ -1,16 +1,12 @@
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
-import vm from 'node:vm'
-import ts from 'typescript'
+
+
 
 const root = new URL('../../src/', import.meta.url)
-function load(file, imports = {}, globals = {}, dev = false) {
-  const module = { exports: {} }
-  const source = readFileSync(new URL(file, root), 'utf8').replaceAll('import.meta.env.DEV', String(dev))
-  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2023 } }).outputText, { module, exports: module.exports, URLSearchParams, Date, AbortController, structuredClone, ...globals, require(id) { assert.ok(Object.hasOwn(imports, id), id); return imports[id] } })
-  return module.exports
-}
+function load(file, imports = {}, globals = {}, dev = false) { return loadSource(new URL(file,root),{'react/jsx-runtime':{jsx:(type,props)=>({type,props}),jsxs:(type,props)=>({type,props})},...imports},{...globals,__env:{DEV:dev}}); }
 const cruiseId = '11111111-2222-3333-4444-555555555555', shipId = '99999999-8888-7777-6666-555555555555', itineraryId = 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff'
 const cruise = { cruiseId, shipId, cruiseName: 'Contract voyage', status: 'PUBLISHED', departureDatetime: '2099-11-01T00:00:00Z', returnDatetime: '2099-11-03T00:00:00Z' }
 const detail = { bookingId: 'b', bookingReference: 'BK-CONTRACT', bookingStatus: 'Draft', cruiseId, cruiseName: cruise.cruiseName, passengers: [], agreedFareAmount: 125.1234, currency: 'USD', requiredDepositAmount: 37.537, paymentPlan: 'DEPOSIT', contractStatus: 'Draft', installments: [] }
@@ -19,7 +15,7 @@ const draft = { cruiseId, currency: 'USD', paymentPlan: 'DEPOSIT', notes: ' note
 const context = load('domain/booking-context/booking-context-api.ts', { '@/shared/api': {} })
 function booking() {
   const calls = []; let response = detail
-  const api = load('features/booking/api/real-booking-api.ts', { '@/domain/booking-context': context, '@/shared/api': { apiRequest: async (path, options) => { calls.push({ path, options }); return response } } })
+  const api = load('features/booking/api/real-booking-api.ts', { '@/domain/booking-context': context, '@/shared/api': { apiRequest: async (path, options) => { calls.push({ path, options }); return path.endsWith('/sellability')?{cruiseId,saleState:'OPEN_FOR_SALE',sellable:true}:response } } })
   return { ...api, calls, set(value) { response = value } }
 }
 

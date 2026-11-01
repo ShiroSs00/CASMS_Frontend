@@ -22,7 +22,7 @@ export function DepartureSchedulePreview({ sourceVersionId, departure, contextKe
   const sourceName=sourceError?.details&&typeof sourceError.details==='object'&&'name' in sourceError.details&&typeof sourceError.details.name==='string'?sourceError.details.name:null
   const validBasis = Boolean(query.data && query.data.sourceVersionRevision != null && query.data.days.length && query.data.days.every(day => day.shipTimeZoneId === SHIP_TIME_ZONE))
   const startsAtSea = query.data?.days.find(day => day.dayNumber === 1)?.dayType === 'SEA_DAY'
-  const canApply = Boolean(current && !disabled && !query.loading && !query.error && validBasis && query.data?.returnDatetime && (query.data.departurePortId || startsAtSea) && query.data.returnPortId)
+  const canApply = Boolean(current && !disabled && !query.loading && !query.error && validBasis && query.data?.portCallWindowStatus === 'PASS' && !query.data.materializationBlockers?.length && query.data?.returnDatetime && (query.data.departurePortId || startsAtSea) && query.data.returnPortId)
 
   function preview() {
     try {
@@ -49,6 +49,8 @@ export function DepartureSchedulePreview({ sourceVersionId, departure, contextKe
     </>}>
       {sourceError?<Notice title="Lịch trình nguồn chưa hợp lệ" tone="error"><p>{sourceError.message}</p>{sourceName&&<p>Chương trình: <strong>{sourceName}</strong></p>}</Notice>:<ReadState {...query} />}
       {!query.loading && !query.error && query.data && <div className={styles.content}>
+        {query.data.portCallWindowStatus!=='PASS'&&<Notice title="Chưa đủ điều kiện tạo chuyến khởi hành" tone="error">Một hoặc nhiều mốc đến/rời chưa đáp ứng điều kiện cảng. Xem lý do tại từng lần ghé trước khi điều chỉnh lịch hoặc liên hệ Quản lý vận hành.</Notice>}
+        <p>Revision nguồn: {query.data.sourceVersionRevision??'Chưa xác định'}. Các mốc đến/rời cảng là dự kiến, chưa phải thời gian vận hành thực tế.</p>
         {!validBasis && <Notice title="Chưa thể áp dụng lịch xem trước" tone="warning">Cơ sở giờ tàu hoặc phiên dữ liệu nguồn chưa đầy đủ. Cần hệ thống xác nhận lại lịch trước khi tạo chuyến khởi hành.</Notice>}
         <ItineraryDayBrowser days={query.data.days}>{day=><ScheduleContents schedule={query.data!} preview selectedDay={day} entryTitles={entryTitles}/>}</ItineraryDayBrowser>
       </div>}

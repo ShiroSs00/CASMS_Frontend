@@ -1,3 +1,4 @@
+import {PortWindowChecks} from './PortWindowChecks'
 import {allowedDepartureSections,type DepartureSection} from '../model/preparation'
 import {operationsConditionTarget} from '../model/operations-workflow'
 import {PlanSnapshot} from './PlanSnapshot'
@@ -85,6 +86,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
   {data&&<>
    <div className={styles.planStatuses}><Badge label={domainStatus('cruise.ready',data.readyStatus)}/></div>
    {data.readyAt&&<p className={styles.sectionMeta}>Xác nhận lúc {journeyTime(data.readyAt,SHIP_TIME_ZONE)} · Giờ tàu (Việt Nam)</p>}
+   <section><h3>Kiểm tra khung giờ cảng theo ngày thực tế</h3><PortWindowChecks checks={data.portWindowChecks??[]}/></section>
    {data.readyBlockers.length>0?<ul className={styles.conditionList}>{[...new Map(data.readyBlockers.map(code=>[businessErrorMessage(code,''),code])).entries()].map(([message,code])=>{
     const target=operationsConditionTarget(code)
     const destination=target&&target!=='review'?allowedDepartureSections(access).find(([key])=>key===target):null

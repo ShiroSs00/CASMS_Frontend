@@ -172,32 +172,36 @@ export const itineraryApi = {
   checkStopPortAvailability: (id: string, signal?: AbortSignal) => apiRequest<boolean>(`${stopPath(id)}/port-availability`, { signal }),
   validateStop: (id: string) => apiRequest<unknown>(`${stopPath(id)}/validate`, { method: 'POST' }),
 
-  async listPorts(pageNumber = 1, signal?: AbortSignal) {
-    return page(await apiRequest<PageDto<Port>>('/ports', { query: { page: pageNumber - 1, size: 20, sort: 'portName,asc' }, signal }))
+  async listPorts(pageNumber = 1, signal?: AbortSignal, filters: {search?:string;countryCode?:string;status?:string} = {}) {
+    return page(await apiRequest<PageDto<Port>>('/ports', { query: { page: pageNumber - 1, size: 20, sort: 'portName,asc', ...filters }, signal }))
   },
   activePorts: (signal?: AbortSignal) => apiRequest<Port[]>('/ports/active', { signal }),
   getPort: (id: string, signal?: AbortSignal) => apiRequest<Port>(portPath(id), { signal }),
+  portTimeZones: (countryCode: string, signal?: AbortSignal) => apiRequest<{timeZoneId:string;displayName:string}[]>('/ports/timezones',{query:{countryCode:countryCode||undefined},signal}),
   createPort: (draft: PortDraft) => {
-    const { portCode, portName, countryCode, timeZoneId, latitude, longitude, status } = draft
-    return apiRequest<Port>('/ports', { method: 'POST', body: { portCode, portName, countryCode, timeZoneId, latitude, longitude, status } })
+    const { portCode, portName, countryCode, timeZoneId, latitude, longitude, status, description, coordinateSource } = draft
+    return apiRequest<Port>('/ports', { method: 'POST', body: { portCode, portName, countryCode, timeZoneId, latitude, longitude, status, description, coordinateSource } })
   },
-  updatePort: (id: string, draft: PortDraft) => apiRequest<Port>(portPath(id), { method: 'PATCH', body: { portName: draft.portName, description: draft.description ?? undefined, latitude: draft.latitude ?? undefined, longitude: draft.longitude ?? undefined, timeZoneId: draft.timeZoneId } }),
+  updatePort: (id: string, draft: PortDraft, selectedGeocoding=false) => apiRequest<Port>(portPath(id), { method: 'PATCH', body: {
+    portName:draft.portName,description:draft.description??undefined,timeZoneId:draft.timeZoneId,
+    ...(selectedGeocoding?{latitude:draft.latitude,longitude:draft.longitude,coordinateSource:draft.coordinateSource}:{})
+  } }),
   removePort: (id: string) => apiRequest<void>(`${portPath(id)}/unused`, { method: 'DELETE' }),
   activatePort: (id: string) => apiRequest<Port>(`${portPath(id)}/activate`, { method: 'POST' }),
   deactivatePort: (id: string) => apiRequest<Port>(`${portPath(id)}/deactivate`, { method: 'POST' }),
   validatePort: (id: string) => apiRequest<unknown>(`${portPath(id)}/validate`, { method: 'POST' }),
   checkPortAvailability: (id: string, signal?: AbortSignal) => apiRequest<boolean>(`${portPath(id)}/availability`, { signal }),
 
-  async listDestinations(pageNumber = 1, signal?: AbortSignal) {
-    return page(await apiRequest<PageDto<Destination>>('/destinations', { query: { page: pageNumber - 1, size: 20, sort: 'destinationName,asc' }, signal }))
+  async listDestinations(pageNumber = 1, signal?: AbortSignal, filters: {search?:string;countryCode?:string;status?:string} = {}) {
+    return page(await apiRequest<PageDto<Destination>>('/destinations', { query: { page: pageNumber - 1, size: 20, sort: 'destinationName,asc', ...filters }, signal }))
   },
   activeDestinations: (signal?: AbortSignal) => apiRequest<Destination[]>('/destinations/active', { signal }),
   getDestination: (id: string, signal?: AbortSignal) => apiRequest<Destination>(destinationPath(id), { signal }),
   destinationPorts: (id: string, signal?: AbortSignal) => apiRequest<DestinationPortSummary[]>(`${destinationPath(id)}/ports`, { signal }),
   createDestination: (draft: DestinationDraft) => apiRequest<Destination>('/destinations', { method: 'POST', body: {
-    destinationName: draft.destinationName, countryCode: draft.countryCode, description: draft.description, status: draft.status,
+    destinationName: draft.destinationName, countryCode: draft.countryCode, description: draft.description,domesticRegion:draft.domesticRegion,status: draft.status,
   } }),
-  updateDestination: (id: string, draft: DestinationDraft) => apiRequest<Destination>(destinationPath(id), { method: 'PATCH', body: { destinationName: draft.destinationName, description: draft.description ?? undefined } }),
+  updateDestination: (id: string, draft: DestinationDraft) => apiRequest<Destination>(destinationPath(id), { method: 'PATCH', body: { destinationName: draft.destinationName, description: draft.description ?? undefined,domesticRegion:draft.domesticRegion??undefined } }),
   removeDestination: (id: string) => apiRequest<void>(`${destinationPath(id)}/unused`, { method: 'DELETE' }),
   activateDestination: (id: string) => apiRequest<Destination>(`${destinationPath(id)}/activate`, { method: 'PATCH' }),
   deactivateDestination: (id: string) => apiRequest<Destination>(`${destinationPath(id)}/deactivate`, { method: 'PATCH' }),

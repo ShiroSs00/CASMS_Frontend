@@ -8,7 +8,8 @@ export type Manifest = { modelId: string; name: string; revision: string; units:
 export type Job = { jobId: string; status: string; startedAt: string; finishedAt?: string; decksImported: number; cabinsImported: number; objectsFailed: number; requestedBy?: string }
 export type Issue = { issueId: string; objectIdentifier?: string; objectType: string; errorCode: string; message: string }
 export const modelStatus: Record<string, string> = { DRAFT: 'Bản nháp', PROCESSING: 'Đang xử lý', READY: 'Đã công bố', ACTIVE: 'Đang sử dụng', FAILED: 'Lỗi xử lý', ARCHIVED: 'Lưu trữ' }
-export const cabinTypes: Record<string, string> = { INTERIOR: 'Phòng trong', OCEAN_VIEW: 'Hướng biển', BALCONY: 'Ban công', SUITE: 'Phòng cao cấp' }
+import { cabinTypeLabels } from '@/shared/i18n/business-copy'
+export const cabinTypes: Record<string, string> = cabinTypeLabels
 export function assetPath(shipId: string, modelId: string, file: string) {
   if (!file || file.startsWith('/') || file.split('/').some(part=>!part || !/^[\w.-]+$/.test(part) || part==='.' || part==='..') || !/\.(glb|json)$/i.test(file)) throw new Error('Asset không thuộc gói mô hình hợp lệ.')
   return `/ships/${encodeURIComponent(shipId)}/models/${encodeURIComponent(modelId)}/assets/${file.split('/').map(encodeURIComponent).join('/')}`

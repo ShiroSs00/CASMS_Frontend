@@ -1,19 +1,28 @@
 import { ApiError } from '@/shared/api'
 import type { OperationalProgramSyncDto, ReadinessDto, ReadinessIssueDto, ReadinessStatusDto, ShipChangeImpactDto, ShipCompatibilityDto } from '../api/dto'
 
+export type PortWindowCheck={portId:string;movementType:'ARRIVAL'|'DEPARTURE';status:'PASS'|'BLOCK';code:string;message:string;evaluatedLocalDateTime:string|null;portTimeZoneId:string|null;matchedWindowId:string|null;matchedRevision:number|null;sourceReference:string|null;closureId:string|null;closureRevision:number|null;evaluatedAt:string}
+export function decodePortWindowChecks(value:unknown):PortWindowCheck[]{
+ if(value==null)return []
+ if(!Array.isArray(value))throw new ApiError('Chưa đọc được kết quả khung giờ cảng.',502)
+ return value.map(v=>{if(!v||typeof v!=='object'||typeof v.portId!=='string'||!['ARRIVAL','DEPARTURE'].includes(v.movementType)||!['PASS','BLOCK'].includes(v.status)||typeof v.code!=='string'||typeof v.message!=='string'||typeof v.evaluatedAt!=='string')throw new ApiError('Chưa đọc được kết quả khung giờ cảng.',502);return v as PortWindowCheck})
+}
 export type ScheduleStop = {
+  visits?:{visitId:string|null;clientKey:string|null;destinationId:string|null;destinationName:string|null;sequence:number|null}[];portWindowChecks?:PortWindowCheck[];
   cruiseStopId: string | null; portCode: string | null; tenderTransferMinutes: number | null
   sourceStopId: string | null; stopOrder: number | null; portId: string | null; portName: string | null
   countryCode: string | null; portTimeZoneId: string | null; plannedArrival: string | null
   plannedDeparture: string | null; allAboardTime: string | null; callType: string | null; arrivalMethod: string | null
 }
 export type ScheduleEntry = {
+  title?:string|null; locationText?:string|null; meetingPoint?:string|null; notes?:string|null; timeZoneId?:string|null
   category: string | null; sourceActivityId: string | null; sourceExcursionId: string | null
   targetId: string | null; targetCode: string | null; status: string | null
   sourceEntryId: string | null; clientKey: string | null; kind: string | null
   plannedStartTime: string | null; plannedEndTime: string | null; stopOrder: number | null
 }
 export type DepartureSchedule = {
+  portWindowChecks?:PortWindowCheck[];portCallWindowStatus?:'PASS'|'BLOCK'|null; materializationBlockers?:string[]|null; dependency?:string|null; sourceContentHash?:string|null
   sourceTripCode: string | null; sourceTripName: string | null; sourceVersionNumber: number | null
   durationDays: number | null; durationNights: number | null
   departurePortName: string | null; departurePortCode: string | null; returnPortName: string | null; returnPortCode: string | null
@@ -21,7 +30,7 @@ export type DepartureSchedule = {
   sourceTripId: string | null; sourceVersionId: string | null; sourceVersionRevision: number | null
   departureDatetime: string | null; returnDatetime: string | null; departurePortId: string | null; returnPortId: string | null
   days: { itineraryDayId: string | null; dayNumber: number; calendarDate: string | null; dayRole?: string | null; dayType: string | null; title: string | null
-    shipTimeZoneId: string | null; stops: ScheduleStop[]; entries: ScheduleEntry[] }[]
+    description?:string|null; shipTimeZoneId: string | null; stops: ScheduleStop[]; entries: ScheduleEntry[] }[]
 }
 export type InventorySummary = {
   blockedCabins:number|null;canSell:boolean|null;policyVersion:string|null
@@ -154,12 +163,15 @@ export function decodeSchedule(value: unknown): DepartureSchedule {
     if (!dayNumber || !Number.isSafeInteger(dayNumber)) throw invalid()
     const stops = rows(day, 'stops'), entries = rows(day, 'entries')
     if (!stops || !entries) throw invalid()
-    return { itineraryDayId: text(day, 'itineraryDayId'), dayNumber, calendarDate: text(day, 'calendarDate'), dayRole: text(day, 'dayRole'), dayType: text(day, 'dayType'), title: text(day, 'title'), shipTimeZoneId: text(day, 'shipTimeZoneId'),
-      stops: stops.map(stop => ({ cruiseStopId: text(stop, 'cruiseStopId'), portCode: text(stop, 'portCode'), tenderTransferMinutes: number(stop, 'tenderTransferMinutes'), sourceStopId: text(stop, 'sourceStopId'), stopOrder: number(stop, 'stopOrder'), portId: text(stop, 'portId'), portName: text(stop, 'portName'), countryCode: text(stop, 'countryCode'), portTimeZoneId: text(stop, 'portTimeZoneId'), plannedArrival: instant(stop, 'plannedArrival'), plannedDeparture: instant(stop, 'plannedDeparture'), allAboardTime: instant(stop, 'allAboardTime'), callType: text(stop, 'callType'), arrivalMethod: text(stop, 'arrivalMethod') })),
-      entries: entries.map(entry => ({ category: text(entry, 'category'), sourceActivityId: text(entry, 'sourceActivityId'), sourceExcursionId: text(entry, 'sourceExcursionId'), targetId: text(entry, 'targetId'), targetCode: text(entry, 'targetCode'), status: text(entry, 'status'), sourceEntryId: text(entry, 'sourceEntryId'), clientKey: text(entry, 'clientKey'), kind: text(entry, 'kind'), plannedStartTime: instant(entry, 'plannedStartTime'), plannedEndTime: instant(entry, 'plannedEndTime'), stopOrder: number(entry, 'stopOrder') })) }
+    return { itineraryDayId: text(day, 'itineraryDayId'), dayNumber, calendarDate: text(day, 'calendarDate'), description:text(day,'description'), dayRole: text(day, 'dayRole'), dayType: text(day, 'dayType'), title: text(day, 'title'), shipTimeZoneId: text(day, 'shipTimeZoneId'),
+      stops: stops.map(stop => ({ visits:rows(stop,'visits')?.map(v=>({visitId:text(v,'visitId'),clientKey:text(v,'clientKey'),destinationId:text(v,'destinationId'),destinationName:text(v,'destinationName'),sequence:number(v,'sequence')}))??[],portWindowChecks:decodePortWindowChecks(stop.portWindowChecks),cruiseStopId: text(stop, 'cruiseStopId'), portCode: text(stop, 'portCode'), tenderTransferMinutes: number(stop, 'tenderTransferMinutes'), sourceStopId: text(stop, 'sourceStopId'), stopOrder: number(stop, 'stopOrder'), portId: text(stop, 'portId'), portName: text(stop, 'portName'), countryCode: text(stop, 'countryCode'), portTimeZoneId: text(stop, 'portTimeZoneId'), plannedArrival: instant(stop, 'plannedArrival'), plannedDeparture: instant(stop, 'plannedDeparture'), allAboardTime: instant(stop, 'allAboardTime'), callType: text(stop, 'callType'), arrivalMethod: text(stop, 'arrivalMethod') })),
+      entries: entries.map(entry => ({ title:text(entry,'title'),locationText:text(entry,'locationText'),meetingPoint:text(entry,'meetingPoint'),notes:text(entry,'notes'),timeZoneId:text(entry,'timeZoneId'),category: text(entry, 'category'), sourceActivityId: text(entry, 'sourceActivityId'), sourceExcursionId: text(entry, 'sourceExcursionId'), targetId: text(entry, 'targetId'), targetCode: text(entry, 'targetCode'), status: text(entry, 'status'), sourceEntryId: text(entry, 'sourceEntryId'), clientKey: text(entry, 'clientKey'), kind: text(entry, 'kind'), plannedStartTime: instant(entry, 'plannedStartTime'), plannedEndTime: instant(entry, 'plannedEndTime'), stopOrder: number(entry, 'stopOrder') })) }
   })
   if (new Set(decoded.map(day => day.dayNumber)).size !== decoded.length) throw invalid()
   return {
+    portWindowChecks:decodePortWindowChecks(row.portWindowChecks),
+    portCallWindowStatus: text(row,'portCallWindowStatus')==='PASS'?'PASS':text(row,'portCallWindowStatus')==='BLOCK'?'BLOCK':null,
+    materializationBlockers:strings(row,'materializationBlockers'),dependency:text(row,'dependency'),sourceContentHash:text(row,'sourceContentHash'),
     sourceTripCode: text(row, 'sourceTripCode'), sourceTripName: text(row, 'sourceTripName'), sourceVersionNumber: number(row, 'sourceVersionNumber'),
     durationDays: number(row, 'durationDays'), durationNights: number(row, 'durationNights'),
     departurePortName: text(row, 'departurePortName'), departurePortCode: text(row, 'departurePortCode'), returnPortName: text(row, 'returnPortName'), returnPortCode: text(row, 'returnPortCode'),

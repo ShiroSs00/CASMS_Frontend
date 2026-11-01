@@ -1,21 +1,13 @@
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync } from 'node:fs'
-import vm from 'node:vm'
+import { existsSync } from 'node:fs'
+
 import test from 'node:test'
-import ts from 'typescript'
+
 
 const root = new URL('../../src/', import.meta.url)
 const jsx = (type, props, key) => ({ type, props, key })
-function load(file, imports) {
-  const module = { exports: {} }
-  const source = ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 } }).outputText
-  vm.runInNewContext(source, { module, exports: module.exports, require(id) {
-    if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
-    assert.ok(Object.hasOwn(imports, id), 'Unexpected import: ' + id)
-    return imports[id]
-  } })
-  return module.exports
-}
+function load(file, imports) { return loadSource(new URL(file, root), { 'react/jsx-runtime': { jsx: jsx, jsxs: jsx, Fragment: 'Fragment' }, ...imports }, {}); }
 
 // Exercise the actual router root and BookingProvider with instance-scoped hooks.
 // A changed React element identity retires its old state/setters. No API replies,

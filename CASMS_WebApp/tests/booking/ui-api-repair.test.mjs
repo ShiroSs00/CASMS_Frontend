@@ -1,17 +1,12 @@
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+
 import test from 'node:test'
-import vm from 'node:vm'
-import ts from 'typescript'
+
+
 
 const root = new URL('../../src/', import.meta.url)
-function load(file, imports = {}) {
-  const module = { exports: {} }
-  vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2023 } }).outputText, {
-    module, exports: module.exports, Date, require(id) { assert.ok(Object.hasOwn(imports, id), id); return imports[id] },
-  })
-  return module.exports
-}
+function load(file, imports = {}) { return loadSource(new URL(file, root), { 'react/jsx-runtime': { jsx: (type, props, key) => ({type, props, key}), jsxs: (type, props, key) => ({type, props, key}), Fragment: 'Fragment' }, ...imports }, {}); }
 class ApiError extends Error { constructor(message, status) { super(message); this.status = status } }
 const pack = { id: 'package', code: 'PK', name: 'Package', type: 'PREMIUM', price: 120, currency: 'USD', status: 'ACTIVE' }
 
@@ -39,12 +34,12 @@ test('booking refreshes package currency before POST and safely rejects changed,
   const detail = { bookingId: 'booking', bookingReference: 'QA', bookingStatus: 'Draft', cruiseId: 'cruise', cruiseName: 'QA', passengers: [], agreedFareAmount: 245, requiredDepositAmount: 73.5, currency: 'USD', installments: [] }
   const { realBookingApi, bookingPackageErrors } = load('features/booking/api/real-booking-api.ts', {
     '@/domain/booking-context': context,
-    '@/shared/api': { ApiError, apiRequest: async (path, options) => { calls.push({ path, method: options?.method ?? 'GET' }); if (path === '/servicepackage/packages') { if (fail) throw new ApiError('Offline', 0); return packages } return detail } },
+    '@/shared/api': { ApiError, apiRequest: async (path, options) => { calls.push({ path, method: options?.method ?? 'GET' }); if(path==='/cruise/cruise/packages')return [{cruiseId:'cruise',tourPackageId:pack.id,active:true}]; if (path === '/servicepackage/packages') { if (fail) throw new ApiError('Offline', 0); return packages } return detail } },
   })
   const draft = { cruiseId: 'cruise', currency: 'USD', paymentPlan: 'DEPOSIT', notes: '', passengers: [{ fullName: 'QA Guest', nationality: '', documentNumber: '', email: '', phoneNumber: '', cabinId: 'cabin', tourPackageId: pack.id }] }
   assert.equal(Object.keys(bookingPackageErrors(draft, packages)).length, 0)
   await realBookingApi.create(draft)
-  assert.deepEqual(calls.map(call => call.method + ' ' + call.path), ['GET /servicepackage/packages', 'POST /booking'])
+  assert.deepEqual(calls.map(call => call.method + ' ' + call.path), ['GET /cruise/cruise/packages','GET /servicepackage/packages', 'POST /booking'])
   for (const next of [[{ ...pack, currency: 'VND' }], [], [{ ...pack, status: 'INACTIVE' }]]) {
     packages = next; calls.length = 0
     await assert.rejects(realBookingApi.create(draft), error => error.status === 422)

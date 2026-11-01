@@ -40,7 +40,7 @@ export function validateDeck(draft: DeckDraft, data: DataSnapshot | null | undef
   else if (draft.name.length > 50) errors.name = 'Tên boong không được vượt quá 50 ký tự.'
   if (draft.priceMultiplier !== undefined) {
     if (typeof draft.priceMultiplier !== 'number' || Number.isNaN(draft.priceMultiplier) || draft.priceMultiplier < 0.50 || draft.priceMultiplier > 5.00) {
-      errors.priceMultiplier = 'Hệ số giá tầng phải là số từ 0.50 đến 5.00 (mặc định 1.00).'
+      errors.priceMultiplier = 'Hệ số điều chỉnh giá cơ sở theo boong phải là số từ 0.50 đến 5.00; 1.00 giữ nguyên giá cơ sở.'
     }
   }
   const contextError = deckValidationContextError(data)
@@ -75,7 +75,7 @@ export function validateCabin(draft: CabinDraft, data: DataSnapshot | null | und
   if (!number) errors.number = 'Vui lòng nhập số cabin.'
   else if (number.length > 10) errors.number = 'Số cabin không được vượt quá 10 ký tự.'
   if (!positive(draft.capacity) || draft.capacity > 20) errors.capacity = 'Sức chứa cabin phải là số nguyên từ 1 đến 20 khách.'
-  if (!Object.hasOwn(cabinTypes, draft.type)) errors.type = 'Vui lòng chọn loại cabin hợp lệ.'
+  if (!Object.hasOwn(cabinTypes, draft.type)) errors.type = 'Vui lòng chọn loại phòng hợp lệ.'
   if (!Object.hasOwn(cabinStatuses, draft.status)) errors.status = 'Vui lòng chọn trạng thái cabin hợp lệ.'
   if (typeof draft.accessible !== 'boolean') errors.accessible = 'Vui lòng xác nhận thông tin hỗ trợ tiếp cận.'
   const contextError = cabinValidationContextError(data)

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { after, before, test } from 'node:test'
+import { after, before, beforeEach, test } from 'node:test'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createServer } from 'vite'
@@ -22,6 +22,8 @@ before(async () => {
   access = await server.ssrLoadModule('/src/shared/auth/session-access.ts')
   shared.setApiAccessToken('isolated-frontend-test-token')
 })
+beforeEach(() => access.setSessionAccess({status:'ready',userId:'staff',roles:['ACTIVITY_SERVICE_MANAGER','ONBOARD_STAFF'],permissions:['TOUR_GROUP_READ','TOUR_GROUP_PASSENGER_READ','TOUR_GROUP_PASSENGER_ASSIGN','TOUR_GROUP_PASSENGER_VALIDATE','TOUR_GROUP_PASSENGER_MOVE','TOUR_GROUP_PASSENGER_REMOVE','TOUR_GROUP_PASSENGER_ATTENDANCE'],error:''}))
+
 after(async () => { await server?.close() })
 
 async function withResponses(responses, run) {
@@ -47,7 +49,7 @@ test('raw adapter sends exact controller paths, verbs, query parameters and requ
       ['GET', '/tour-group-passengers'], ['GET', `/tour-group-passengers/${id}`], ['POST', '/tour-group-passengers'],
       ['PATCH', `/tour-group-passengers/${id}/move`], ...['remove', 'departure', 'return'].map((action) => ['PATCH', `/tour-group-passengers/${id}/${action}`]),
     ])
-    assert.equal(calls[0].url.searchParams.get('groupId'), id)
+    assert.equal(calls[0].url.searchParams.get('groupId'), null, 'Unfiltered BE workaround scopes decoded rows locally')
     assert.deepEqual(JSON.parse(calls[2].body), { tourGroupId: id, passengerId: id })
     assert.deepEqual(JSON.parse(calls[3].body), { targetTourGroupId: targetId })
     for (const call of calls) assert.equal(new Headers(call.headers).get('Authorization'), 'Bearer isolated-frontend-test-token')
@@ -65,7 +67,8 @@ test('HTTP 401/403/500, network and abort failures remain failures, never empty 
     await withResponses([new TypeError('offline')], async () => { await assert.rejects(api.groupPassengerApi.list(id), (error) => error instanceof shared.ApiError && error.status === 0) })
     const controller = new AbortController(); controller.abort()
     await assert.rejects(api.groupPassengerApi.list(id, controller.signal))
-    for (const response of [json({ success: true, data: [row] }), json([{ ...row, tourGroupId: targetId }]), new Response(null, { status: 204 })]) await withResponses([response], async () => { await assert.rejects(api.groupPassengerApi.list(id)) })
+    for (const response of [json({ success: true, data: [row] }), new Response(null, { status: 204 })]) await withResponses([response], async () => { await assert.rejects(api.groupPassengerApi.list(id)) })
+    await withResponses([json([{...row,tourGroupId:targetId},row])],async()=>{const rows=await api.groupPassengerApi.list(id);assert.equal(rows.length,1);assert.equal(rows[0].tourGroupId,id)})
     await withResponses([json({})], async () => { await assert.rejects(api.groupPassengerApi.assign(id, id)) })
     await withResponses([json(row)], async () => { await assert.rejects(api.groupPassengerApi.action(id, 'departure'), /không khớp/) })
     await withResponses([json(row)], async () => { await assert.rejects(api.groupPassengerApi.move(id, targetId), /không khớp/) })
@@ -113,7 +116,7 @@ test('existing envelope client still rejects raw DTOs and accepts its documented
 })
 
 test('isolated roster render preserves context, escapes raw text and exposes only eligible controls', () => {
-  access.setSessionAccess({ status: 'ready', userId: 'staff', permissions: ['TOUR_GROUP_PASSENGER_MOVE', 'TOUR_GROUP_PASSENGER_REMOVE', 'TOUR_GROUP_PASSENGER_ATTENDANCE'], error: '' })
+  access.setSessionAccess({ status: 'ready', userId: 'staff', roles:['ACTIVITY_SERVICE_MANAGER','ONBOARD_STAFF'], permissions: ['TOUR_GROUP_READ','TOUR_GROUP_PASSENGER_READ','TOUR_GROUP_PASSENGER_MOVE', 'TOUR_GROUP_PASSENGER_REMOVE', 'TOUR_GROUP_PASSENGER_ATTENDANCE'], error: '' })
   const render = (status, assignmentStatus, busy = false) => renderToStaticMarkup(createElement(MemoryRouter, null, createElement(ui.PassengerRoster, { group: { ...group, status }, rows: [{ ...row, groupCode: '<script>unsafe</script>', assignmentStatus }], busy, onAction() {} })))
   const assembling = render('ASSEMBLING', 'ASSIGNED')
   for (const label of ['Chuyển nhóm', 'Gỡ phân công', 'Điểm danh khởi hành']) assert.ok(assembling.includes(label))
@@ -124,7 +127,7 @@ test('isolated roster render preserves context, escapes raw text and exposes onl
   assert.ok(render('ASSEMBLING', 'ASSIGNED', true).includes('disabled=""'))
   assert.ok(render('DEPARTED', 'CHECKED_IN').includes('Điểm danh trở về'))
   for (const status of ['COMPLETED', 'CANCELLED']) assert.ok(render('RETURNED', status).includes('Không có thao tác phù hợp.'))
-  access.setSessionAccess({ status: 'ready', userId: 'reader', permissions: ['TOUR_GROUP_READ'], error: '' })
+  access.setSessionAccess({ status: 'ready', userId: 'reader', roles:['ACTIVITY_SERVICE_MANAGER'], permissions: ['TOUR_GROUP_READ'], error: '' })
   const readonly = render('ASSEMBLING', 'ASSIGNED')
   for (const label of ['Chuyển nhóm', 'Gỡ phân công', 'Điểm danh khởi hành']) assert.ok(!readonly.includes(label))
   assert.ok(readonly.includes(`href="/admin/tour-groups/${id}"`))

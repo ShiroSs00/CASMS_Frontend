@@ -22,7 +22,10 @@ export const paymentApi = {
     if (new Set(result.map(row => row.paymentId)).size !== result.length) throw new Error('Lịch sử có giao dịch bị lặp. Tải lại để kiểm tra.')
     return result
   },
-  create: async (body: { bookingId: string; requestedAmount: number; currency: string; paymentMethod: string; idempotencyKey: string }) => payment(await apiRequest<unknown>('/payment/process', { method: 'POST', body }), body.bookingId),
+  create: async (body: { bookingId: string; requestedAmount: number; currency: string; paymentMethod: string; idempotencyKey: string }) => {
+    if (body.currency !== 'USD') throw new Error('Giao dịch mới chỉ dùng USD. Cần đối chiếu tiền tệ đặt chỗ.')
+    return payment(await apiRequest<unknown>('/payment/process', { method: 'POST', body }), body.bookingId)
+  },
   confirm: async (row: Payment, reference: string) => {
     const saved = payment(await apiRequest<unknown>(`/payment/${encodeURIComponent(row.paymentId)}/confirm`, { method: 'POST', body: { confirmedAmount: row.requestedAmount, processorReference: reference.trim() } }), row.bookingId)
     if (saved.paymentId !== row.paymentId || saved.status !== 'Confirmed' || saved.currency !== row.currency || saved.confirmedAmount !== row.requestedAmount) throw new Error('Chưa xác nhận được kết quả khoản thu. Tải lại lịch sử để đối chiếu.')

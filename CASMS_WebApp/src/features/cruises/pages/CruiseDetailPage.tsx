@@ -101,7 +101,7 @@ export function CruiseDetailPage() {
     try {
       if (lifecycleAction === 'publish') {
         const readiness = await cruiseApi.readiness(cruiseId)
-        if (!readiness.ready) throw new Error(readiness.issues?.join(' · ') || 'Chuyến đi chưa đủ điều kiện công bố.')
+        if (!readiness.ready) throw new Error(readiness.issues?.join(' · ') || 'Chuyến khởi hành chưa đủ điều kiện công bố.')
       }
       if (lifecycleAction === 'cancel') await cruiseApi.cancel(cruiseId, cancelReason.trim())
       else await cruiseApi[lifecycleAction](cruiseId)
@@ -110,7 +110,7 @@ export function CruiseDetailPage() {
       await reload()
       setLifecycleSuccess(lifecycleAction==='publish'?'Chuyến khởi hành đã công bố. Thao tác này chưa xác nhận mở bán.':'Đã cập nhật trạng thái chuyến khởi hành.')
     } catch (error) {
-      setLifecycleError(error instanceof Error ? error.message : 'Không cập nhật được trạng thái chuyến đi.')
+      setLifecycleError(error instanceof Error ? error.message : 'Không cập nhật được trạng thái chuyến khởi hành.')
     } finally {
       mutationLock.current = false
       setLifecycleBusy(false)
@@ -120,8 +120,8 @@ export function CruiseDetailPage() {
   return <CruiseFrame>
     <div className={preparationStyles.workspace}>
       {lifecycleSuccess && <Notice title="Đã cập nhật" tone="success">{lifecycleSuccess}</Notice>}
-      {state.status === 'loading' && !state.data && <Loading label="Đang tải chi tiết chuyến đi…" />}
-      {state.status === 'error' && <Notice title="Không tải được chuyến đi" tone="error"><p>{state.error}</p><Button onClick={()=>void reload()}>Thử lại</Button></Notice>}
+      {state.status === 'loading' && !state.data && <Loading label="Đang tải chi tiết chuyến khởi hành…" />}
+      {state.status === 'error' && <Notice title="Không tải được chuyến khởi hành" tone="error"><p>{state.error}</p><Button onClick={()=>void reload()}>Thử lại</Button></Notice>}
       {state.data && (() => {
         const detail = state.data
         const cruise = detail.cruise
@@ -198,7 +198,7 @@ export function CruiseDetailPage() {
                   {cruise.status === 'PUBLISHED' && (access.canDo('CRUISE_START') ? <Button disabled={lifecycleBusy || !access.canDo('CRUISE_START') || !['READY','IN_SERVICE'].includes(detail.ship?.status??'')} onClick={() => setLifecycleAction('start')}>Bắt đầu vận hành</Button> : null)}
                   {cruise.status === 'IN_PROGRESS' && (access.canDo('CRUISE_COMPLETE') ? <Button disabled={lifecycleBusy || !access.canDo('CRUISE_COMPLETE')} onClick={() => setLifecycleAction('complete')}>Kết thúc chuyến khởi hành</Button> : null)}
                   {!['DRAFT', 'COMPLETED', 'CANCELLED'].includes(cruise.status) && (access.canDo('CRUISE_CANCEL') ? <Button tone="danger" disabled={lifecycleBusy || !access.canDo('CRUISE_CANCEL')} onClick={() => setLifecycleAction('cancel')}>Hủy chuyến khởi hành</Button> : null)}
-                  {['COMPLETED', 'CANCELLED'].includes(cruise.status) && <p className={styles.muted}>Chuyến đi đã kết thúc hoặc đã hủy, không còn thao tác chuyển trạng thái.</p>}
+                  {['COMPLETED', 'CANCELLED'].includes(cruise.status) && <p className={styles.muted}>Chuyến khởi hành đã kết thúc hoặc đã hủy, không còn thao tác chuyển trạng thái.</p>}
                 </div>
               </Panel>}
 

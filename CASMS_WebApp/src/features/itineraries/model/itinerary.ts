@@ -1,3 +1,4 @@
+import type { PortCoordinateSource } from './port-location'
 import type { ItineraryDayRole } from '@/domain/itinerary-day'
 import { SHIP_TIME_ZONE, zonedInput } from '@/shared/lib/journey-time'
 export type ItineraryStatus =
@@ -122,6 +123,8 @@ export type CruiseStop = {
 export type CruiseStopDraft = Omit<CruiseStop, 'cruiseStopId' | 'status' | 'portName' | 'destinationName' | 'stopOrder'> & { stopOrder: number | '' }
 
 export type Port = {
+  coordinateSource?:PortCoordinateSource|null
+  createdAt?:string; updatedAt?:string
   portId: string
   portCode: string
   portName: string
@@ -136,6 +139,7 @@ export type Port = {
 export type PortDraft = Omit<Port, 'portId'>
 
 export type Destination = {
+  domesticRegion?:string|null
   destinationId: string
   destinationName: string
   countryCode: string
@@ -149,7 +153,7 @@ export type Destination = {
 }
 
 export type DestinationPortSummary = Pick<Port, 'portId' | 'portCode' | 'portName'>
-export type DestinationDraft = Pick<Destination, 'destinationName' | 'countryCode' | 'description' | 'status'>
+export type DestinationDraft = Pick<Destination, 'destinationName' | 'countryCode' | 'description' | 'status' | 'domesticRegion'>
 export const destinationStatusLabels: Record<DestinationStatus, string> = { ACTIVE: 'Đang hoạt động', INACTIVE: 'Ngừng hoạt động' }
 
 export function validateDestinationDraft(draft: DestinationDraft, editing = false): Record<string, string> {

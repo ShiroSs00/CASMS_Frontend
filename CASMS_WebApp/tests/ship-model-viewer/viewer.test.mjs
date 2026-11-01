@@ -1,3 +1,4 @@
+import {loadSource} from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 import vm from 'node:vm'
@@ -5,7 +6,7 @@ import test from 'node:test'
 import ts from 'typescript'
 import { permissionPolicy } from '../helpers/permission-policy.mjs'
 function load(path,imports={}) {const module={exports:{}};vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../../src/'+path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2023}}).outputText,{module,exports:module.exports,URLSearchParams,TextDecoder,require:id=>{assert.ok(id in imports,id);return imports[id]}});return module.exports}
-const model=load('features/ship-model-viewer/model.ts')
+const model=loadSource('features/ship-model-viewer/model.ts')
 test('asset references remain inside the selected ship/version and reject traversal and external URLs',()=>{
   assert.equal(model.assetPath('ship 1','version 2','decks/deck_01.glb'),'/ships/ship%201/models/version%202/assets/decks/deck_01.glb')
   for(const file of ['../ship.glb','https://outside.test/a.glb','//outside.test/a.glb','/ship.glb','decks/%2e%2e/ship.glb','decks/./ship.glb','decks\\ship.glb','ship.glb?token=x','ship.html'])assert.throws(()=>model.assetPath('s','m',file))

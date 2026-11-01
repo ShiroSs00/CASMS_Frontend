@@ -1,9 +1,11 @@
+import {explicitTestAccess,permissionLinkFor} from '../helpers/reviewed-source-modules.mjs'
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { readFileSync } from 'node:fs'
-import vm from 'node:vm'
-import ts from 'typescript'
-import * as model from '../../src/features/itineraries/model/itinerary.ts'
+
+
+
+const model=loadSource('features/itineraries/model/itinerary.ts')
 const root = new URL('../../src/features/itineraries/', import.meta.url)
 const destination = { destinationId: 'destination-1', destinationName: 'ABC', countryCode: 'VN', description: 'Original description', status: 'ACTIVE' }
 const summary = { portId: 'port-1', portCode: 'VN-HPH', portName: 'Hải Phòng' }
@@ -11,14 +13,7 @@ class ApiError extends Error { constructor(message, status, code) { super(messag
 const jsx = (type, props) => ({ type, props })
 const plain = value => JSON.parse(JSON.stringify(value))
 const flush = () => new Promise(setImmediate)
-function load(file, imports, globals = {}) {
-  const module = { exports: {} }, code = ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 } }).outputText
-  vm.runInNewContext(code, { module, exports: module.exports, AbortController, Error, ...globals, require(id) { if(id === '@/shared/auth') return imports[id] ?? {useSessionAccess:()=>({status:'ready',userId:'test-user',has:()=>true})}; if(id === '../model/permissions') return {entityPermission:(kind,action)=>({ships:'SHIP',decks:'DECK',cabins:'CABIN'})[kind]+'_'+action,operationPermission:()=> 'TEST_PERMISSION'};
-    if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
-    if (id.endsWith('.module.css')) return { default: {} }
-    assert.ok(Object.hasOwn(imports, id), 'Unexpected import ' + id); return imports[id]
-  } }); return module.exports
-}
+function load(file, imports, globals = {}) { return loadSource(new URL(file,root),{'react/jsx-runtime':{jsx:(type,props)=>({type,props}),jsxs:(type,props)=>({type,props})},...imports},{...globals}); }
 test('Destination validation mirrors create required fields and documented size/enum limits', () => {
   const valid = { destinationName: 'A'.repeat(200), countryCode: 'VN', description: 'A'.repeat(1000), status: 'ACTIVE' }
   assert.deepEqual(model.validateDestinationDraft(valid), {})
@@ -60,8 +55,8 @@ function mount(component, params = { destinationId: destination.destinationId },
     calls.push({ name, args }); let resolve, reject
     const promise = new Promise((yes, no) => { resolve = yes; reject = no }); requests.push({ name, args, resolve, reject }); return promise
   } })
-  const pages = load('pages/MasterDataPages.tsx', { '@/shared/auth': {useSessionAccess:()=>({status:'ready',userId:'test-user',has:()=>granted})}, react, 'react-router': { useSearchParams:()=>[{get:()=>null}], Link: 'Link', useParams: () => params, useNavigate: () => route => calls.push({ name: 'navigate', args: [route] }) }, '@/shared/ui': Object.fromEntries(['Badge','Button','ButtonLink','DataTable','Empty','Field','Loading','Modal','Notice','PageHeader','Panel'].map(key => [key,key])), '@/shared/api': { ApiError }, '../api/itinerary-api': { itineraryApi: api }, '../model/itinerary': model, '../components/ItineraryUI': { ItineraryFrame: 'ItineraryFrame' }, '../components/LocationPicker': { LocationPicker: props => jsx('select', { id: 'master-country', value: props.country, disabled: props.disabled || props.countryLocked, onChange: event => props.onCountry(event.target.value) }) } }, { requestAnimationFrame: callback => callback() })
-  function flatten(tree) { if (Array.isArray(tree)) return tree.flatMap(flatten); if (!tree || typeof tree !== 'object') return []; if (typeof tree.type === 'function') return flatten(tree.type(tree.props)); return [tree, ...flatten(tree.props?.children), ...flatten(tree.props?.footer)] }
+  const pages = load('pages/MasterDataPages.tsx', { '@/shared/auth': {useSessionAccess:()=>explicitTestAccess(['OPERATIONS_MANAGER'],granted?['DESTINATION_READ','DESTINATION_CREATE','DESTINATION_UPDATE','DESTINATION_DELETE','PORT_READ','PORT_CREATE','PORT_UPDATE']:[])}, react, 'react-router': { useSearchParams:()=>[{get:()=>null}], Link: 'Link', useParams: () => params, useNavigate: () => route => calls.push({ name: 'navigate', args: [route] }) }, '@/shared/ui': Object.fromEntries(['PermissionLink','Badge','Button','ButtonLink','DataTable','Empty','Field','Loading','Modal','Notice','PageHeader','Panel'].map(key => [key,key==='PermissionLink'?permissionLinkFor(['OPERATIONS_MANAGER'],granted?['PORT_READ']:[]):key])), '@/domain/port-windows':{PortWindows:'PortWindows'},'../components/DirectoryHistory':{DirectoryHistory:'DirectoryHistory'},'@/shared/api': { ApiError,useReadQuery:()=>({data:[],loading:false,error:null,retry(){}}) }, '../api/itinerary-api': { itineraryApi: api }, '../model/itinerary': model, '../components/ItineraryUI': { ItineraryFrame: 'ItineraryFrame' }, '../components/LocationPicker': { LocationPicker: props => jsx('select', { id: 'master-country', value: props.country, disabled: props.disabled || props.countryLocked, onChange: event => props.onCountry(event.target.value) }) } }, { requestAnimationFrame: callback => callback() })
+  function flatten(tree) { if (Array.isArray(tree)) return tree.flatMap(flatten); if (!tree || typeof tree !== 'object') return []; if (typeof tree.type === 'function') return flatten(tree.type(tree.props)); return [tree, ...flatten(tree.props?.children), ...flatten(tree.props?.footer),...flatten(tree.props?.actions)] }
   const view = () => { index = 0; effectIndex = 0; const tree = flatten(jsx(pages[component], {})); for (const i of pending) { effects[i].cleanup?.(); effects[i].cleanup = effects[i].setup() } pending.clear(); return tree }
   const find = (type, predicate = () => true) => view().find(node => node.type === type && predicate(node.props))
   const change = (id, value) => { find(id === 'master-description' ? 'textarea' : (id === 'master-status' || id === 'master-country') ? 'select' : 'input', props => props.id === id).props.onChange({ target: { value } }) }
@@ -108,11 +103,18 @@ test('Destination Edit load errors offer retry; cleanup cancellation cannot alte
   const app = mount('DestinationFormPage'); app.requests[0].reject(new Error('Network failure')); await flush(); assert.ok(!app.find('form')); app.find('Button', p => p.children === 'Thử lại').props.onClick(); app.view(); app.requests.at(-1).resolve(destination); await flush(); assert.ok(app.find('form'))
   const pending = mount('DestinationFormPage'); const before = pending.writes.length; pending.unmount(); pending.requests[0].reject(new DOMException('aborted','AbortError')); await flush(); assert.equal(pending.writes.length,before)
 })
-test('Port Create/Edit controls, payload, detail fetch and native validation remain unchanged', async () => {
-  const app = mount('PortFormPage', {}); assert.equal(app.find('form').props.noValidate,false); assert.equal(app.find('select', p => p.id === 'master-country').props.disabled,false); assert.equal(app.find('select', p => p.id === 'master-status').props.disabled,false)
-  for (const [id,value] of [['master-code','VN-X'],['master-name','Port Name'],['master-country','VN'],['master-timezone','Asia/Ho_Chi_Minh']]) app.change(id,value)
-  const saving=app.submit(); assert.equal(app.requests[0].name,'createPort'); assert.equal(app.requests[0].args[0].portCode,'VN-X'); app.requests[0].resolve({portId:'port-1'}); await saving
-  const detail=mount('PortDetailPage',{portId:'port-1'}); assert.equal(detail.requests.length,1); assert.equal(detail.requests[0].name,'getPort'); detail.requests[0].resolve({portId:'port-1',portCode:'X',portName:'Port',countryCode:'VN',status:'ACTIVE'}); await flush(); assert.equal(detail.find('PageHeader').props.title,'Port'); assert.ok(!detail.requests.some(r=>r.name==='destinationPorts'))
+test('Port create requires selected provenance and edit locks immutable code/country', async () => {
+  const app=mount('PortFormPage',{});assert.equal(app.find('form').props.noValidate,false)
+  assert.equal(app.find('select',p=>p.id==='port-country').props.disabled,false)
+  assert.equal(app.find('input',p=>p.id==='master-code').props.disabled,false)
+  app.change('master-code','VN-X');app.change('master-name','Port Name')
+  app.find('select',p=>p.id==='port-country').props.onChange({target:{value:'VN'}})
+  app.find('select',p=>p.id==='master-timezone').props.onChange({target:{value:'Asia/Ho_Chi_Minh'}})
+  await app.submit();assert.ok(!app.calls.some(c=>c.name==='createPort'),'No selected source must block create')
+  const edit=mount('PortFormPage',{portId:'port-1'});edit.requests[0].resolve({portId:'port-1',portCode:'X',portName:'Port',countryCode:'VN',timeZoneId:'Asia/Ho_Chi_Minh',status:'ACTIVE'});await flush()
+  assert.equal(edit.find('input',p=>p.id==='master-code').props.disabled,true)
+  assert.equal(edit.find('select',p=>p.id==='port-country').props.disabled,true)
+  const detail=mount('PortDetailPage',{portId:'port-1'});assert.equal(detail.requests[0].name,'getPort');detail.requests[0].resolve({portId:'port-1',portCode:'X',portName:'Port',countryCode:'VN',status:'ACTIVE'});await flush();assert.equal(detail.find('PageHeader').props.title,'Port');assert.ok(!detail.requests.some(r=>r.name==='destinationPorts'))
 })
 
 test('Destination status requires explicit confirmation; failed request retains core data and can be inspected (virtual only)', async () => {

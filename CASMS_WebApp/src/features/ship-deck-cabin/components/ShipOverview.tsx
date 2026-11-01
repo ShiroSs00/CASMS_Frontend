@@ -27,8 +27,8 @@ export function ShipOverview({ship}:{ship:Ship}) {
     <div className={styles.panels}>
       <Panel title="Thông số tàu"><dl className={styles.facts}>{facts.map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></Panel>
       {access.canDo('SHIP_CURRENT_CRUISE')&&<Panel title="Chuyến đang thực hiện">
-        {cruise.loading&&!cruise.data&&<Loading label="Đang tải chuyến đi…"/>}
-        {cruise.error&&<div className={styles.cruiseError} role="alert"><strong>Không tải được chuyến đi</strong><p>{cruise.error}</p></div>}
+        {cruise.loading&&!cruise.data&&<Loading label="Đang tải chuyến khởi hành…"/>}
+        {cruise.error&&<div className={styles.cruiseError} role="alert"><strong>Không tải được chuyến khởi hành</strong><p>{cruise.error}</p></div>}
         {cruise.data&&<div className={styles.cruise}><span className={styles.cruiseCode}>{cruise.data.code}</span><h3>{cruise.data.name}</h3><dl className={styles.facts}><div><dt>Khởi hành</dt><dd>{formatDate(cruise.data.departure)}</dd></div><div><dt>Kết thúc</dt><dd>{formatDate(cruise.data.returnAt)}</dd></div></dl></div>}
         {!cruise.loading&&!cruise.error&&!cruise.data&&<div className={styles.noCruise}><span aria-hidden="true">—</span><strong>Không có chuyến đang thực hiện</strong></div>}
       </Panel>}

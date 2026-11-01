@@ -1,22 +1,13 @@
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { readFileSync } from 'node:fs'
-import vm from 'node:vm'
-import ts from 'typescript'
+
+
+
 
 const root = new URL('../../src/features/trip-planning/', import.meta.url)
 const jsx = (type, props) => ({ type, props })
-function load(file, imports = {}) {
-  const module = { exports: {} }
-  vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 },
-  }).outputText, { module, exports: module.exports, require(id) {
-    if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
-    assert.ok(Object.hasOwn(imports, id), id)
-    return imports[id]
-  } })
-  return module.exports
-}
+function load(file, imports = {}) { return loadSource(new URL(file, root), { 'react/jsx-runtime': { jsx: jsx, jsxs: jsx, Fragment: 'Fragment' }, ...imports }, {}); }
 const roles = load('../../domain/itinerary-day/index.ts')
 const labels = load('model/day-labels.ts', { '@/domain/itinerary-day': roles })
 const { DayPane } = load('components/DayPane.tsx', {
@@ -113,7 +104,7 @@ test('content request sends BE dayRole separately from sea/port state', () => {
   const content = { days: labels.normalizeBoundaryDays(days(3)), stops: [], entries: [] }
   content.days[0].departurePortId='origin'
   content.days[0].plannedDepartureTime='08:15'
-  const request = contentRequest({ revision: 7 }, content)
+  const request = contentRequest({ revision: 7, entries: [] }, content)
   assert.equal(request.expectedRevision, 7)
   assert.equal(request.days[0].dayRole, 'DEPARTURE')
   assert.equal(request.days[0].dayType, 'SEA_DAY')

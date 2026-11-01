@@ -67,6 +67,7 @@ export function CruiseFormPage() {
   const [busy, setBusy] = useState(false)
   const [appliedPreview,setAppliedPreview]=useState(restored?.appliedPreview??'')
   const [previewRevision,setPreviewRevision]=useState<number|null>(restored?.previewRevision??null)
+  const [portWindowPassed,setPortWindowPassed]=useState(false)
   const [uncertain,setUncertain]=useState(() => !editing && (createIntent.storageError || ['unknown','sending','succeeded'].includes(createIntent.record?.status ?? '')))
   const [params,setParams]=useSearchParams()
   const requestedSource=params.get('sourceVersionId')
@@ -89,7 +90,7 @@ export function CruiseFormPage() {
   const [storedPorts, setStoredPorts] = useState<PortRecord[]>([])
   const [loadedId, setLoadedId] = useState<string | null>(null)
   const submitLock = useRef(false)
-  const canSave = (!sourceId||appliedPreview===JSON.stringify([sourceId,draft.departureDatetime])&&previewRevision!=null&&source.data?.revision===previewRevision) && (editing||Boolean(sourceId)) && !uncertain && !invalidSource && createIntent.owner===(access.userId??'') && (!sourceId||!source.loading&&!source.error&&source.data?.versionId===sourceId) && !portsLoading && !portsError && access.canDo(editing ? 'CRUISE_UPDATE_DRAFT' : 'CRUISE_CREATE') && (!editing || (loadedId === cruiseId && currentStatus === 'DRAFT'))
+  const canSave = (!sourceId||portWindowPassed&&appliedPreview===JSON.stringify([sourceId,draft.departureDatetime])&&previewRevision!=null&&source.data?.revision===previewRevision) && (editing||Boolean(sourceId)) && !uncertain && !invalidSource && createIntent.owner===(access.userId??'') && (!sourceId||!source.loading&&!source.error&&source.data?.versionId===sourceId) && !portsLoading && !portsError && access.canDo(editing ? 'CRUISE_UPDATE_DRAFT' : 'CRUISE_CREATE') && (!editing || (loadedId === cruiseId && currentStatus === 'DRAFT'))
 
   useEffect(() => {
     if (!cruiseId) return
@@ -149,7 +150,7 @@ export function CruiseFormPage() {
   function chooseSource(id:string,name?:string){
     const next=new URLSearchParams(params);next.delete('mode')
     if(id)next.set('sourceVersionId',id);else next.delete('sourceVersionId')
-    setParams(next,{replace:true});setAppliedPreview('');setPreviewRevision(null)
+    setParams(next,{replace:true});setAppliedPreview('');setPreviewRevision(null);setPortWindowPassed(false)
     setDraft(old=>({...old,cruiseName:nameEdited?old.cruiseName:name??'',returnDatetime:'',departurePortId:'',returnPortId:''}))
     setErrors({});setSubmitError('')
   }
@@ -162,7 +163,7 @@ export function CruiseFormPage() {
     const mayReplay=!editing&&replay&&createIntent.record?.status==='unknown'&&!createIntent.storageError&&createIntent.owner===(access.userId??'')&&access.canDo('CRUISE_CREATE')
     if (submitLock.current || (!canSave&&!mayReplay)) return
     if(editing&&storedCruise&&!storedCruise.sourceVersionId&&!storedCruise.sourceTripId&&!['DOMESTIC','INTERNATIONAL'].includes(draft.plannedScope??'')){setSubmitError('Chọn phạm vi hành trình trước khi lưu chuyến khởi hành nhập trực tiếp.');return}
-    const input=mayReplay?createIntent.record!.payload:{...draft,cruiseName:displayName,...(!editing&&sourceId?{sourceVersionId:sourceId,expectedSourceVersionRevision:previewRevision}:{})}
+    const input=mayReplay?createIntent.record!.payload:{...draft,cruiseName:displayName,...(!editing&&sourceId&&source.data?{sourceVersionId:sourceId,expectedSourceVersionRevision:previewRevision,cruiseType:source.data.durationDays===1?'ONE_DAY' as const:'MULTI_DAYS' as const}:{})}
     if(sourceEditing&&storedCruise&&(draft.departureDatetime!==localCruiseInput(storedCruise.departureDatetime)||draft.returnDatetime!==localCruiseInput(storedCruise.returnDatetime)||draft.departurePortId!==storedCruise.departurePortId||draft.returnPortId!==storedCruise.returnPortId)){setSubmitError('Thay đổi ngày hoặc cảng của lịch đã tạo cần được xử lý cùng các chương trình liên quan. Hiện chỉ lưu thông tin nhận diện tại đây.');return}
     setHasSubmitted(true)
     const nextErrors = validateCruiseDraft(input)
@@ -193,7 +194,7 @@ export function CruiseFormPage() {
     }
   }
 
-  if (loading) return <CruiseFrame><Loading label="Đang tải chuyến đi…" /></CruiseFrame>
+  if (loading) return <CruiseFrame><Loading label="Đang tải chuyến khởi hành…" /></CruiseFrame>
 
   return <CruiseFrame>
     <div className={styles.content}>
@@ -212,7 +213,9 @@ export function CruiseFormPage() {
           <FormErrorSummary errors={errors} />
           <div className={styles.journeyForm}><FormSection title={sourceId?'Tên và cách áp dụng lịch':'01 · Nhận diện chuyến khởi hành'}>
             <Field htmlFor="cruise-name" label="Tên chuyến khởi hành *" error={errors.cruiseName}><input id="cruise-name" value={displayName} aria-invalid={Boolean(errors.cruiseName)} aria-describedby={errors.cruiseName ? 'cruise-name-hint' : undefined} onChange={(event) => update('cruiseName', event.target.value)} /></Field>
-            {!sourceId&&<Field htmlFor="cruise-type-form" label="Thời lượng chuyến" error={errors.cruiseType}><select id="cruise-type-form" value={draft.cruiseType} onChange={(event) => update('cruiseType', event.target.value as CruiseType)}><option value="">Hệ thống xác định theo ngày giờ</option><option value="ONE_DAY">Một ngày</option><option value="MULTI_DAYS">Nhiều ngày</option></select></Field>}
+            {!sourceId&&!sourceEditing&&<Field htmlFor="cruise-type-form" label="Thời lượng chuyến" error={errors.cruiseType}><select id="cruise-type-form" value={draft.cruiseType} onChange={(event) => update('cruiseType', event.target.value as CruiseType)}><option value="">Hệ thống xác định theo ngày giờ</option><option value="ONE_DAY">Một ngày</option><option value="MULTI_DAYS">Nhiều ngày</option></select></Field>}
+            {sourceId&&source.data&&<p>Thời lượng kế thừa từ chuyến đi nguồn: {source.data.durationDays} ngày · {source.data.durationNights} đêm.</p>}
+            {sourceEditing&&<p>Thời lượng được kế thừa từ lịch trình nguồn đã liên kết.</p>}
             {editing&&storedCruise&&!storedCruise.sourceVersionId&&!storedCruise.sourceTripId&&<>
               <Field htmlFor="legacy-scope" label="Phạm vi hành trình"><select id="legacy-scope" value={draft.plannedScope??''} onChange={e=>update('plannedScope',e.target.value as 'DOMESTIC'|'INTERNATIONAL')} required><option value="">Chọn phạm vi</option><option value="DOMESTIC">Nội địa</option><option value="INTERNATIONAL">Quốc tế</option></select></Field>
               <Field htmlFor="legacy-mode" label="Chỉnh sửa lịch trình"><select id="legacy-mode" value={draft.itineraryMode??'FIXED'} onChange={e=>update('itineraryMode',e.target.value as 'FIXED'|'CUSTOM')}><option value="FIXED">Giữ cố định lịch trình hiện có</option><option value="CUSTOM">Cho phép chỉnh sửa lịch trình</option></select></Field>
@@ -221,7 +224,7 @@ export function CruiseFormPage() {
             </FormSection>
             {sourceEditing&&<Notice title="Lịch đã được tạo từ nguồn" tone="warning">Hiện chỉ sửa thông tin nhận diện. Đổi ngày hoặc cảng cần xử lý cùng lịch và chương trình liên quan.</Notice>}
             <FormSection title={sourceId?'Thời gian khởi hành':'02 · Thời gian'}><Field htmlFor="departure-time" label={sourceId?'Khởi hành · Giờ Việt Nam':'Khởi hành (giờ Việt Nam)'} error={errors.departureDatetime}><input id="departure-time" disabled={sourceEditing} type="datetime-local" step="1" value={draft.departureDatetime} aria-invalid={Boolean(errors.departureDatetime)} aria-describedby={errors.departureDatetime ? 'departure-time-hint' : undefined} onChange={(event) => {const value=event.target.value,clock=source.data?.days.find(day=>day.dayNumber===1)?.plannedDepartureTime;update('departureDatetime',clock&&value&&value.slice(0,10)!==draft.departureDatetime.slice(0,10)?`${value.slice(0,10)}T${clock.slice(0,8)}`:value)}} /></Field>
-      {sourceId && source.data && <DepartureSchedulePreview sourceEntries={source.data.entries} sourceVersionId={sourceId} departure={draft.departureDatetime} contextKey={JSON.stringify([sourceId,source.data.revision])} disabled={busy||uncertain||Boolean(source.error)} onApply={schedule=>{setDraft(current=>({...current,returnDatetime:schedule.returnDatetime?localCruiseInput(schedule.returnDatetime):current.returnDatetime,departurePortId:schedule.departurePortId??current.departurePortId,returnPortId:schedule.returnPortId??current.returnPortId}));setPreviewRevision(schedule.sourceVersionRevision);setAppliedPreview(JSON.stringify([sourceId,draft.departureDatetime]))}}/>}
+      {sourceId && source.data && <DepartureSchedulePreview sourceEntries={source.data.entries} sourceVersionId={sourceId} departure={draft.departureDatetime} contextKey={JSON.stringify([sourceId,source.data.revision])} disabled={busy||uncertain||Boolean(source.error)} onApply={schedule=>{setPortWindowPassed(schedule.portCallWindowStatus==='PASS');setDraft(current=>({...current,returnDatetime:schedule.returnDatetime?localCruiseInput(schedule.returnDatetime):current.returnDatetime,departurePortId:schedule.departurePortId??current.departurePortId,returnPortId:schedule.returnPortId??current.returnPortId}));setPreviewRevision(schedule.sourceVersionRevision);setAppliedPreview(JSON.stringify([sourceId,draft.departureDatetime]))}}/>}
             {!sourceId&&<Field htmlFor="return-time" label="Kết thúc (giờ Việt Nam)" error={errors.returnDatetime}><input id="return-time" disabled={sourceEditing||Boolean(sourceId)} type="datetime-local" value={draft.returnDatetime} aria-invalid={Boolean(errors.returnDatetime)} aria-describedby={errors.returnDatetime ? 'return-time-hint' : undefined} onChange={(event) => update('returnDatetime', event.target.value)} /></Field>}
 
             </FormSection>{sourceId&&!editing&&source.data?.days.find(day=>day.dayNumber===1)?.dayType==='SEA_DAY'&&!source.data?.days.find(day=>day.dayNumber===1)?.departurePortId&&<Field htmlFor="source-departure-port" label="Cảng xuất phát của chuyến khởi hành *" hint="Ngày đầu lịch trình ở trên biển. Cảng này là thông tin xuất phát của chuyến, không tạo lần ghé cảng trong ngày 1." error={errors.departurePortId}><select id="source-departure-port" disabled={busy||uncertain||portsLoading||Boolean(portsError)} value={draft.departurePortId} onChange={event=>update('departurePortId',event.target.value)}><option value="">Chọn cảng xuất phát</option>{portOptions.filter(port=>port.status==='ACTIVE').map(port=><option value={port.portId} key={port.portId}>{port.portName}</option>)}</select></Field>}{sourceId?(appliedPreview===JSON.stringify([sourceId,draft.departureDatetime])&&<dl className={styles.sourceFacts}><div><dt>Thời lượng nguồn</dt><dd>{source.data?.days.length} ngày</dd></div><div><dt>Kết thúc dự kiến</dt><dd>{calendarLabel(draft.returnDatetime)}</dd></div><div><dt>Cảng bắt đầu</dt><dd>{portOptions.find(p=>p.portId===draft.departurePortId)?.portName||'Theo lịch sau khi áp dụng'}</dd></div><div><dt>Cảng kết thúc</dt><dd>{portOptions.find(p=>p.portId===draft.returnPortId)?.portName||'Theo lịch sau khi áp dụng'}</dd></div></dl>):<><FormSection title="03 · Cảng đi và về"><Field htmlFor="departure-port" label="Cảng khởi hành" error={errors.departurePortId}><select id="departure-port" disabled={busy || sourceEditing || Boolean(sourceId) || portsLoading || Boolean(portsError)} value={draft.departurePortId} aria-invalid={Boolean(errors.departurePortId)} aria-describedby={errors.departurePortId ? 'departure-port-hint' : undefined} onChange={(event) => update('departurePortId', event.target.value)}><option value="">Chọn cảng khởi hành</option>{portOptions.map(port => <option value={port.portId} key={port.portId}>{port.portName}{port.countryCode ? ` · ${port.countryCode}` : ''}{port.status === 'INACTIVE' ? ' · Cảng đã lưu, không còn hoạt động' : port.status === 'UNKNOWN' ? ' · Chưa xác định trạng thái' : ''}</option>)}</select></Field>

@@ -1,0 +1,2 @@
+.actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:8px 0 16px; }
+.actions button { width:auto; }

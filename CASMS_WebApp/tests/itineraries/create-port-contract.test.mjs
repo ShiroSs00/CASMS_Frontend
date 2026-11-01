@@ -23,7 +23,7 @@ function loadApi(apiRequest) {
 test('createPort sends the PortCreateRequest fields and preserves the API response', async () => {
   const expectedBody = {
     portCode: 'VN-HPH', portName: 'Hai Phong', countryCode: 'VN', timeZoneId: 'Asia/Ho_Chi_Minh',
-    latitude: 0, longitude: 106.6881, status: 'INACTIVE',
+    latitude: 0, longitude: 106.6881, status: 'INACTIVE',description:'Port description',coordinateSource:{provider:'OPEN_METEO_GEOCODING',dataset:'GEONAMES',externalLocationId:123,locationName:'City',coordinateReferenceType:'GEOCODED_LOCALITY'},
   }
   const response = { portId: 'created-port', ...expectedBody }
   const calls = []
@@ -32,7 +32,7 @@ test('createPort sends the PortCreateRequest fields and preserves the API respon
     return response
   })
 
-  const actual = await api.createPort({ ...expectedBody, description: 'Not supported by PortCreateRequest' })
+  const actual = await api.createPort({ ...expectedBody })
 
   assert.deepEqual(calls, [{ path: '/ports', method: 'POST', body: expectedBody }])
   assert.equal(actual, response)

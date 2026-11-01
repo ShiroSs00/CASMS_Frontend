@@ -13,7 +13,7 @@ export const registrationContextApi = {
     const stop = await apiRequest<{ cruiseStopId: string; itineraryId: string }>('/cruise-stops/' + encodeURIComponent(item.cruiseStopId), { signal })
     if (stop.cruiseStopId !== item.cruiseStopId || !stop.itineraryId) throw new Error('Không xác định được lịch trình của điểm dừng.')
     const itinerary = await apiRequest<{ itineraryId: string; cruiseId: string }>('/itineraries/' + encodeURIComponent(stop.itineraryId), { signal })
-    if (itinerary.itineraryId !== stop.itineraryId || !itinerary.cruiseId) throw new Error('Không xác định được chuyến đi của lịch trình.')
+    if (itinerary.itineraryId !== stop.itineraryId || !itinerary.cruiseId) throw new Error('Không xác định được chuyến khởi hành của lịch trình.')
     return { ...item, cruiseId: itinerary.cruiseId }
   },
 }

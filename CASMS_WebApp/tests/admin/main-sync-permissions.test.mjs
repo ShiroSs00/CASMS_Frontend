@@ -1,18 +1,12 @@
+import { navigation } from '../helpers/admin-navigation.mjs'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import vm from 'node:vm'
-import test from 'node:test'
-import ts from 'typescript'
-import { permissionPolicy } from '../helpers/permission-policy.mjs'
 
-const module = { exports: {} }
-vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../../src/shared/ui/admin-v3/admin-navigation.ts', import.meta.url), 'utf8'), {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2023 },
-}).outputText, { module, exports: module.exports, URL, URLSearchParams, require(id) {
-  assert.equal(id, '@/shared/auth')
-  return permissionPolicy
-} })
-const nav = module.exports
+
+import test from 'node:test'
+
+
+
+const nav = navigation
 const ready = permissions => ({ status: 'ready', permissions })
 
 test('incoming fleet, import, model and BLE routes use verified session grants in menu and guard', () => {
@@ -20,9 +14,10 @@ test('incoming fleet, import, model and BLE routes use verified session grants i
   for (const [section, permission] of Object.entries(routes)) {
     const path = '/admin/' + section
     for (const role of ['ADMIN', 'SHIP_MANAGER', 'OPERATIONS_MANAGER']) {
-      const access = ready([permission])
-      assert.equal(nav.canRoleOpenAdminPath([role], path, '', access), true, role + path)
-      assert.ok(nav.roleNavigationItems([role], access).some(item => item.to === path))
+      const access = ready([permission,...(section==='ship-models'||section==='passenger-tracking'?['SHIP_READ']:section==='ship-import'?['SHIP_CREATE']:[])])
+      const allowed=section==='fleet-dashboard'||section==='passenger-tracking'?role==='SHIP_MANAGER':role==='ADMIN'
+      assert.equal(nav.canRoleOpenAdminPath([role], path, '', access), allowed, role + path)
+      assert.equal(nav.roleNavigationItems([role], access).some(item => item.to === path),allowed)
       assert.equal(nav.canRoleOpenAdminPath([role], path, '', ready([])), false)
       for (const status of ['loading', 'anonymous', 'error']) assert.equal(nav.canRoleOpenAdminPath([role], path, '', { status, permissions: [permission] }), false)
     }
@@ -32,8 +27,8 @@ test('incoming fleet, import, model and BLE routes use verified session grants i
 test('landing waits for permissions and new navigation does not conceal other granted tools', () => {
   assert.equal(nav.staffRoleHome(['SHIP_MANAGER']), null)
   assert.equal(nav.staffRoleHome(['SHIP_MANAGER'], ready(['SHIP_READ'])), '/admin/fleet-dashboard')
-  assert.ok(nav.roleNavigationItems(['SHIP_MANAGER'], ready(['OPERATIONAL_ISSUE_READ'])).some(item => item.to === '/admin/issues'))
-  assert.ok(nav.roleNavigationItems(['ADMIN'], ready(['SHIP_READ'])).some(item => item.to === '/admin/ships'))
+  assert.equal(nav.roleNavigationItems(['SHIP_MANAGER'], ready(['OPERATIONAL_ISSUE_READ'])).some(item => item.to === '/admin/issues'),false)
+  assert.equal(nav.roleNavigationItems(['ADMIN'], ready(['SHIP_READ'])).some(item => item.to === '/admin/ships'),false)
   assert.equal(nav.canRoleOpenAdminPath(['PASSENGER'], '/admin/ship-models', '', ready(['SHIP_MODEL_READ'])), false)
 })
 

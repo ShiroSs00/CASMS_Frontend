@@ -37,11 +37,11 @@ function getCruisePhoto(cruise: LiveCruise, index: number) {
 
 function issueFor(error: unknown): LoadIssue {
   if (error instanceof ApiError) {
-    if (error.status === 401) return { status:401, message:`Chưa thể truy cập thông tin chuyến đi. Vui lòng liên hệ bộ phận hỗ trợ.` }
+    if (error.status === 401) return { status:401, message:`Chưa thể truy cập thông tin chuyến khởi hành. Vui lòng liên hệ bộ phận hỗ trợ.` }
     if (error.status === 403) return { status:403, message:`Bạn chưa được phép xem thông tin này. Vui lòng liên hệ bộ phận hỗ trợ.` }
     return { status:error.status, message:bookingReadFailure(error.status) }
   }
-  return { status:0, message:error instanceof Error ? error.message : 'Không tải được thông tin chuyến đi.' }
+  return { status:0, message:error instanceof Error ? error.message : 'Không tải được thông tin chuyến khởi hành.' }
 }
 
 const vietnamTime = new Intl.DateTimeFormat('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', timeZone:'Asia/Ho_Chi_Minh' })
@@ -49,7 +49,7 @@ const when = (instant:string) => vietnamTime.format(new Date(instant))
 const route = (cruise:LiveCruise) => [cruise.departurePort,cruise.returnPort].filter(Boolean).join(' → ') || 'Chưa có thông tin cảng'
 const liveDetailLink = (id:string) => `/cruises/${encodeURIComponent(id)}`
 function LiveError({issue,retry}:{issue:LoadIssue;retry:()=>void}) {
-  return <div role="alert"><EmptyState title="Không tải được danh mục chuyến đi"><p>{issue.message}</p><Action onClick={retry}>Thử lại</Action>{issue.status===401&&<ActionLink secondary to="/#project-contact">Liên hệ</ActionLink>}</EmptyState></div>
+  return <div role="alert"><EmptyState title="Không tải được danh mục chuyến khởi hành"><p>{issue.message}</p><Action onClick={retry}>Thử lại</Action>{issue.status===401&&<ActionLink secondary to="/#project-contact">Liên hệ</ActionLink>}</EmptyState></div>
 }
 
 export function LiveCruiseSearch() {
@@ -119,7 +119,7 @@ export function LiveCruiseDetail() {
   if(issue)return <div className={s.surface+' '+s.liveSurface}><div className={s.container}><LiveError issue={issue} retry={retry}/><ActionLink secondary to={back}>Về danh mục</ActionLink></div></div>
   if(!cruise)return <div className={s.surface+' '+s.liveSurface}><div className={s.container}><EmptyState title="Không có hành trình đã công bố"><p>Chuyến này chưa được công bố hoặc không còn trong danh mục.</p><ActionLink to={back}>Về danh mục</ActionLink></EmptyState></div></div>
   const detailPhoto = getCruisePhoto(cruise, 0)
-  return <div className={s.surface+' '+s.liveSurface}><section className={s.liveDetailHero}><img src={detailPhoto.image} alt={detailPhoto.caption}/><div><p className={s.eyebrow}>HẢI TRÌNH ĐÃ CÔNG BỐ</p><h1>{cruise.title}</h1><p>{cruise.code&&`${cruise.code} · `}{cruise.ship??'Chưa có tên tàu'}</p><p>{route(cruise)}</p></div></section><div className={s.container}><div className={s.liveModeNotice}><strong>Hành trình của bạn</strong><span>Thông tin công bố không đồng nghĩa lần khởi hành đang mở bán.</span><Link to={back}>← Về danh mục</Link></div><nav className={s.liveAnchors} aria-label="Nội dung hành trình"><a href="#cruise-facts">Thời gian & cảng</a><a href="#cruise-extras">Lịch trình & tàu</a></nav><div className={s.liveDetailGrid}><section id="cruise-facts" className={s.liveInfoPanel}><p className={s.eyebrow}>THỜI GIAN & CẢNG</p><h2>Thông tin hành trình</h2><dl><div><dt>Khởi hành</dt><dd>{when(cruise.departure)} · Giờ Việt Nam</dd></div><div><dt>Trở về</dt><dd>{when(cruise.returnAt)} · Giờ Việt Nam</dd></div><div><dt>Cảng đi</dt><dd>{cruise.departurePort??'Chưa có dữ liệu'}</dd></div><div><dt>Cảng về</dt><dd>{cruise.returnPort??'Chưa có dữ liệu'}</dd></div><div><dt>Tàu</dt><dd>{cruise.ship??'Chưa có dữ liệu'}</dd></div></dl><p>Các ngày và điểm dừng được hiển thị riêng bên dưới khi đã có lịch trình.</p></section><aside className={s.liveInfoPanel}><p className={s.eyebrow}>ĐẶT CHỖ</p><h2>Lên kế hoạch chuyến đi</h2><p>Cần có xác nhận điều kiện bán, báo giá và chính sách trước khi gửi đặt chỗ.</p><PublicCruiseBookingEntry key={cruise.id} cruiseId={cruise.id} back={back}/><ActionLink secondary to={back}>Xem hành trình khác</ActionLink></aside></div><section id="cruise-extras" aria-label="Lịch trình và tàu"><LiveCruiseExtendedDetails cruise={cruise}/></section></div></div>
+  return <div className={s.surface+' '+s.liveSurface}><section className={s.liveDetailHero}><img src={detailPhoto.image} alt={detailPhoto.caption}/><div><p className={s.eyebrow}>HẢI TRÌNH ĐÃ CÔNG BỐ</p><h1>{cruise.title}</h1><p>{cruise.code&&`${cruise.code} · `}{cruise.ship??'Chưa có tên tàu'}</p><p>{route(cruise)}</p></div></section><div className={s.container}><div className={s.liveModeNotice}><strong>Hành trình của bạn</strong><span>Thông tin công bố không đồng nghĩa chuyến khởi hành đang mở bán.</span><Link to={back}>← Về danh mục</Link></div><nav className={s.liveAnchors} aria-label="Nội dung hành trình"><a href="#cruise-facts">Thời gian & cảng</a><a href="#cruise-extras">Lịch trình & tàu</a></nav><div className={s.liveDetailGrid}><section id="cruise-facts" className={s.liveInfoPanel}><p className={s.eyebrow}>THỜI GIAN & CẢNG</p><h2>Thông tin hành trình</h2><dl><div><dt>Khởi hành</dt><dd>{when(cruise.departure)} · Giờ Việt Nam</dd></div><div><dt>Trở về</dt><dd>{when(cruise.returnAt)} · Giờ Việt Nam</dd></div><div><dt>Cảng đi</dt><dd>{cruise.departurePort??'Chưa có dữ liệu'}</dd></div><div><dt>Cảng về</dt><dd>{cruise.returnPort??'Chưa có dữ liệu'}</dd></div><div><dt>Tàu</dt><dd>{cruise.ship??'Chưa có dữ liệu'}</dd></div></dl><p>Các ngày và điểm dừng được hiển thị riêng bên dưới khi đã có lịch trình.</p></section><aside className={s.liveInfoPanel}><p className={s.eyebrow}>ĐẶT CHỖ</p><h2>Lên kế hoạch chuyến khởi hành</h2><p>Cần có xác nhận điều kiện bán, báo giá và chính sách trước khi gửi đặt chỗ.</p><PublicCruiseBookingEntry key={cruise.id} cruiseId={cruise.id} back={back}/><ActionLink secondary to={back}>Xem hành trình khác</ActionLink></aside></div><section id="cruise-extras" aria-label="Lịch trình và tàu"><LiveCruiseExtendedDetails cruise={cruise}/></section></div></div>
 }
 
 function LiveCruiseExtendedDetails({cruise}:{cruise:LiveCruise}) {

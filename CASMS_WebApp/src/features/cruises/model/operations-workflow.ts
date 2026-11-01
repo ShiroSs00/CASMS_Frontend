@@ -2,6 +2,7 @@ import type {DepartureSection} from './preparation'
 
 /** Route each blocker to its actual task without changing the server's decision. */
 export function operationsConditionTarget(code:string):DepartureSection|'review'|null {
+ if(code.startsWith('WINDOW_')||['CLOSED','OUTSIDE_WINDOW','OVERNIGHT_NOT_ALLOWED','MAX_STAY_EXCEEDED','PORT_TIMEZONE_CHANGED','PORT_SNAPSHOT_UNAVAILABLE','PORT_NOT_ACTIVE','INVALID_PORT_CALL_TIME','INVALID_PORT_TIMEZONE'].includes(code))return 'schedule'
  if(code==='GUIDANCE_BEFORE_BOOKING_CLOSE')return 'review'
  if(['PLAN_APPROVAL_REQUIRED','PRICING_APPROVER_UNRESOLVED','PRICING_POLICY_APPROVAL_REQUIRED','PRICING_POLICY_NOT_APPROVED','PRICING_POLICY_MISSING','PRICING_POLICY_FARE_MISSING'].includes(code))return 'review'
  if(code.startsWith('PREPARATION_'))return 'preparation'

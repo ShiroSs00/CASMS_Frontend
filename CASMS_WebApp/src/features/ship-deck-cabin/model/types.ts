@@ -1,3 +1,4 @@
+import { cabinTypeLabels } from '@/shared/i18n/business-copy'
 export type ShipStatus = 'DRAFT' | 'READY' | 'IN_SERVICE' | 'MAINTENANCE' | 'SUSPENDED' | 'RETIRED'
 export type CabinStatus = 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE' | 'OUT_OF_SERVICE'
 export type CabinType = 'INTERIOR' | 'OCEAN_VIEW' | 'BALCONY' | 'SUITE'
@@ -39,9 +40,7 @@ export const cabinStatuses: Record<CabinStatus, string> = {
   AVAILABLE: 'Sẵn sàng', OCCUPIED: 'Đang có khách',
   MAINTENANCE: 'Bảo trì', OUT_OF_SERVICE: 'Ngừng phục vụ',
 }
-export const cabinTypes: Record<CabinType, string> = {
-  INTERIOR: 'Interior', OCEAN_VIEW: 'Ocean View', BALCONY: 'Balcony', SUITE: 'Suite',
-}
+export const cabinTypes: Record<CabinType, string> = cabinTypeLabels
 export const kindLabels: Record<EntityKind, string> = { ships: 'tàu', decks: 'boong', cabins: 'cabin' }
 export const sectionLabels: Record<EntityKind, string> = { ships: 'Ship', decks: 'Deck', cabins: 'Cabin' }
 export function entityName(entity: Entity) {

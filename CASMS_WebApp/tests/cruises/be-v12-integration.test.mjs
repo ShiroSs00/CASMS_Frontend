@@ -1,34 +1,22 @@
+import { cruiseFixture } from '../helpers/cruise-fixture.mjs'
+import { sourceLoader } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import {readFileSync,existsSync} from 'node:fs'
-import {fileURLToPath} from 'node:url'
-import path from 'node:path'
-import vm from 'node:vm'
-import ts from 'typescript'
 
-const root=fileURLToPath(new URL('../../src/',import.meta.url))
+
+
+
+
+
 class ApiError extends Error {constructor(message,status,code,details){super(message);Object.assign(this,{status,code,details})}}
-function loader(overrides={},globals={}) {
- const cache=new Map()
- function load(file) {
-  if(cache.has(file))return cache.get(file)
-  const module={exports:{}},source=ts.transpileModule(readFileSync(file,'utf8').replaceAll('import.meta.env','({})'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2023,jsx:ts.JsxEmit.ReactJSX}}).outputText
-  vm.runInNewContext(source,{module,exports:module.exports,Date,Intl,URL,URLSearchParams,Error,crypto:globalThis.crypto,structuredClone,AbortController,FormData,setTimeout,clearTimeout,...globals,require(id){
-   if(Object.hasOwn(overrides,id))return overrides[id]
-   let target=id.startsWith('@/')?path.join(root,id.slice(2)):path.resolve(path.dirname(file),id)
-   if(!path.extname(target))target=existsSync(target+'.ts')?target+'.ts':existsSync(target+'.tsx')?target+'.tsx':path.join(target,'index.ts')
-   return load(target)
-  }},{filename:file});cache.set(file,module.exports);return module.exports
- }
- return relative=>load(path.join(root,relative))
-}
+function loader(overrides={},globals={}) { return sourceLoader(overrides, globals); }
 const draft={cruiseCode:'',cruiseName:'Lần khởi hành kiểm tra',cruiseType:'MULTI_DAYS',departureDatetime:'2027-01-01T08:00',returnDatetime:'2027-01-03T18:00',departurePortId:'port-a',returnPortId:'port-b'}
 const storage=()=>{const values=new Map();return{getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value)}}
 const intentFactory=()=>loader({'@/shared/api':{ApiError}})('features/cruises/model/create-intent.ts').cruiseCreateIntent
 
 test('POST /cruise passes Idempotency-Key through the real API client to HTTP headers',async()=>{
  const requests=[],auth={apiPermissionRequirement:()=>null,getSessionAccess:()=>({}),hasPermissions:()=>true}
- const loadClient=loader({'@/shared/auth':auth},{fetch:async(url,options)=>{requests.push({url,...options});return{ok:true,status:201,json:async()=>({success:true,data:{cruiseId:'saved',...JSON.parse(options.body),status:'DRAFT'}})}}})
+ const loadClient=loader({'@/shared/auth':auth},{fetch:async(url,options)=>{requests.push({url,...options});return{ok:true,status:201,json:async()=>({success:true,data:cruiseFixture({cruiseId:'saved',...JSON.parse(options.body),status:'DRAFT'})})}}})
  const client=loadClient('shared/api/client.ts')
  const api=loader({'@/shared/api':client,'@/shared/auth':auth})('features/cruises/api/cruise-api.ts').cruiseApi
  const key=crypto.randomUUID();const saved=await api.createCruise(draft,key)
@@ -74,28 +62,28 @@ test('corrupt pending intent blocks creation instead of silently generating a fr
 
 test('create preserves the exact selected source; response-only fields never leak into create or PATCH',async()=>{
  const calls=[],source={sourceTripId:'trip-source',sourceTripCode:'TR-1',sourceVersionId:'published-v1',sourceVersionNumber:1}
- const api=loader({'@/shared/api':{ApiError,apiRequest:async(url,options)=>{calls.push({url,...options});return{cruiseId:'saved',...source,status:'DRAFT'}}},'@/shared/auth':{}})('features/cruises/api/cruise-api.ts').cruiseApi
+ const api=loader({'@/shared/api':{ApiError,apiRequest:async(url,options)=>{calls.push({url,...options});return cruiseFixture({cruiseId:'saved',...source,status:'DRAFT'})}},'@/shared/auth':{}})('features/cruises/api/cruise-api.ts').cruiseApi
  const saved=await api.createCruise({...draft,...source,shipId:'optional-ship'},crypto.randomUUID())
  assert.equal(calls[0].body.sourceVersionId,'published-v1');assert.equal(calls[0].body.sourceTripId,undefined);assert.equal(calls[0].body.sourceTripCode,undefined);assert.equal(calls[0].body.sourceVersionNumber,undefined)
- assert.equal(calls[0].body.shipId,'optional-ship');for(const key of Object.keys(source))assert.equal(saved[key],source[key])
+ assert.equal(calls[0].body.shipId,undefined);for(const key of Object.keys(source))assert.equal(saved[key],source[key])
  await api.updateCruise('saved',{...draft,...source,shipId:'not-updatable'})
  assert.equal(calls[1].body.sourceVersionId,undefined);assert.equal(calls[1].body.shipId,undefined)
 })
 
 test('legacy Cruise response remains readable without source fields',async()=>{
- const api=loader({'@/shared/api':{ApiError,apiRequest:async()=>({cruiseId:'legacy',status:'DRAFT'})},'@/shared/auth':{}})('features/cruises/api/cruise-api.ts').cruiseApi
+ const api=loader({'@/shared/api':{ApiError,apiRequest:async()=>cruiseFixture({cruiseId:'legacy',status:'DRAFT'})},'@/shared/auth':{}})('features/cruises/api/cruise-api.ts').cruiseApi
  const saved=await api.createCruise(draft,crypto.randomUUID())
  assert.equal(saved.cruiseId,'legacy');assert.equal(saved.sourceVersionId,null);assert.equal(saved.sourceTripId,null)
 })
 
 test('source lookup reads exactly the requested published version, never selects latest or copies schedule',async()=>{
  const calls=[]
- const apiRequest=async(url,options)=>{calls.push({url,...options});return url.startsWith('/trips/')?{tripId:'trip',tripCode:'TR-1',name:'Source trip',latestVersionNumber:3}:{versionId:'v1',versionNumber:1,status:'PUBLISHED',tripId:'trip',stops:[{}],entries:[{}]}}
+ const apiRequest=async(url,options)=>{calls.push({url,...options});return url.startsWith('/trips/')?{tripId:'trip',tripCode:'TR-1',name:'Source trip',durationGroup:'SHORT',durationDays:1,durationNights:0,latestVersionNumber:3}:{versionId:'v1',versionNumber:1,revision:1,status:'PUBLISHED',tripId:'trip',days:[{dayNumber:1}],stops:[],entries:[]}}
  const read=loader({'@/shared/api':{ApiError,apiRequest}})('features/cruises/api/source-version.ts').readPublishedSource
  const source=await read('v1',new AbortController().signal)
  assert.equal(source.versionId,'v1');assert.equal(source.versionNumber,1);assert.equal(source.tripCode,'TR-1')
  assert.deepEqual(calls.map(call=>call.url),['/trip-schedule-versions/v1','/trips/trip']);assert.ok(calls.every(call=>!call.method||call.method==='GET'))
- assert.equal(source.stops,undefined);assert.equal(source.entries,undefined)
+ assert.deepEqual(source.stops,[]);assert.deepEqual(source.entries,[])
 })
 
 test('unpublished, mismatched and inaccessible source versions fail without fallback',async()=>{
@@ -132,15 +120,15 @@ test('missing authoritative scope stays an error and never triggers unscoped fal
 
 test('known business errors translate without merging distinct endpoint codes',()=>{
  const message=loader()('shared/api/business-errors.ts').businessErrorMessage
- for(const [code,expected] of [['PORT_CALL_OVERLAP',/chồng/],['NON_POSITIVE_TRANSIT_TIME',/lớn hơn 0/],['INVALID_STOP_SEQUENCE_TIME',/Thứ tự/],['INVALID_PORT_CALL_TIMES',/Ngày giờ/],['SHORE_EXCURSION_OUTSIDE_PORT_WINDOW',/Tour tham quan/],['PORT_OUTSIDE_COUNTRY_SCOPE',/quốc gia/],['PORT_OUTSIDE_DOMESTIC_REGION',/miền/],['SCOPE_COUNTRY_REQUIRED',/phạm vi/],['EXISTING_STOPS_OUTSIDE_NEW_SCOPE',/phạm vi mới/],['PORT_COUNTRY_SCOPE_VIOLATION',/lần khởi hành/]])assert.match(message(code,'Validation failed'),expected)
- assert.equal(message('PORT_CALL_OVERLAP','Cảng A chồng giờ với cảng B.'),'Cảng A chồng giờ với cảng B.')
- assert.equal(message('UNKNOWN_CODE','Unrecognized detail'),'Unrecognized detail')
+ for(const [code,expected] of [['PORT_CALL_OVERLAP',/chồng/],['NON_POSITIVE_TRANSIT_TIME',/lớn hơn 0/],['INVALID_STOP_SEQUENCE_TIME',/Thứ tự/],['INVALID_PORT_CALL_TIMES',/Ngày giờ/],['SHORE_EXCURSION_OUTSIDE_PORT_WINDOW',/Tour tham quan/],['PORT_OUTSIDE_COUNTRY_SCOPE',/quốc gia/],['PORT_OUTSIDE_DOMESTIC_REGION',/miền/],['SCOPE_COUNTRY_REQUIRED',/phạm vi/],['EXISTING_STOPS_OUTSIDE_NEW_SCOPE',/phạm vi mới/],['PORT_COUNTRY_SCOPE_VIOLATION',/chuyến khởi hành/]])assert.match(message(code,'Validation failed'),expected)
+ assert.equal(message('PORT_CALL_OVERLAP','Cảng A chồng giờ với cảng B.'),'Thời gian lưu cảng của các lần ghé bị chồng nhau.')
+ assert.equal(message('UNKNOWN_CODE','Unrecognized detail'),'Không thể hoàn tất thao tác. Vui lòng tải lại và thử lại.')
 })
 
 test('direct save errors retain BE location metadata; messages alone never fabricate a location',async()=>{
  const live=loader({'@/shared/api':{ApiError,apiRequest:async()=>{throw new ApiError('overlap',400,'PORT_CALL_OVERLAP',{clientKey:'call-b',fieldPath:'stops[clientKey=call-b].plannedArrivalTime',dayNumber:2})}}})('features/trip-planning/api/live.ts')
  const content={days:[],stops:[],entries:[]},before=JSON.stringify(content)
- await assert.rejects(live.liveGateway.save({versionId:'version',revision:4},content),error=>{
+ await assert.rejects(live.liveGateway.save({versionId:'version',revision:4,entries:[]},content),error=>{
   const fault=live.failure(error);assert.equal(fault.status,400);assert.equal(fault.code,'PORT_CALL_OVERLAP');assert.equal(fault.violations[0].clientKey,'call-b');assert.equal(fault.violations[0].dayNumber,2);assert.match(fault.message,/chồng/);return true
  })
  assert.equal(JSON.stringify(content),before)

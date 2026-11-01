@@ -1,21 +1,13 @@
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+
 import test from 'node:test'
-import vm from 'node:vm'
-import ts from 'typescript'
+
+
 
 const root = new URL('../../src/features/itineraries/', import.meta.url)
 const jsx = (type, props) => ({ type, props })
-function load(file, imports = {}) {
-  const module = { exports: {} }
-  vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 } }).outputText, {
-    module, exports: module.exports, AbortController, Intl, Date, require(id) {
-      if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
-      if (id.endsWith('.module.css')) return { default: {} }
-      assert.ok(Object.hasOwn(imports, id), id); return imports[id]
-    },
-  }); return module.exports
-}
+function load(file, imports = {}) { return loadSource(new URL(file, root), { 'react/jsx-runtime': { jsx: jsx, jsxs: jsx, Fragment: 'Fragment' }, ...imports }, {}); }
 const stop = { cruiseStopId: 's1', itineraryId: 'i1', stopOrder: 1, status: 'PLANNED', plannedArrival: '2026-01-01T00:00:00Z', plannedDeparture: '2026-01-02T00:00:00Z' }
 const second = { ...stop, cruiseStopId: 's2', stopOrder: 2 }
 const { validateStopOperation, stopOperations } = load('model/stop-operations.ts')
@@ -74,7 +66,7 @@ function mountStop(allowed) {
   const response = new Promise(resolve => { finish = resolve })
   const query = { data: stop, loading: false, error: null, retry() {} }
   const { StopOperations } = load('components/StopOperations.tsx', {
-    react: hooks, '@/shared/api': { useReadQuery: () => query }, '@/shared/auth': { useSessionAccess: () => ({ has: () => allowed, status: 'ready' }) },
+    react: hooks, '@/shared/api': { useReadQuery: () => query }, '@/shared/auth': { useSessionAccess: () => ({ has: () => allowed, canDo:()=>allowed, status: 'ready' }) },
     '@/shared/ui': Object.fromEntries(['Button', 'ButtonLink', 'Field', 'Loading', 'Notice', 'Panel'].map(key => [key, key])),
     '../api/itinerary-api': { itineraryApi: { reorderStop: () => { calls++; return response } } }, '../model/stop-operations': { stopOperations, validateStopOperation },
   })
@@ -101,7 +93,7 @@ test('actual stop form asks confirmation, blocks permission denial and locks dou
 test('permission state comes from auth/me values; missing permissions never become ADMIN bypass', () => {
   const { decodeSessionAccess, setSessionAccess, useSessionAccess } = load(new URL('../../src/shared/auth/session-access.ts', import.meta.url), { react: { useSyncExternalStore: (_, read) => read() } })
   assert.throws(() => decodeSessionAccess({ userId: 'u', roles: ['ADMIN'] }), /không đầy đủ/)
-  setSessionAccess(decodeSessionAccess({ userId: 'u', effectivePermissions: ['CRUISE_STOP_REORDER'] }))
+  setSessionAccess(decodeSessionAccess({ userId: 'u', roles:['OPERATIONS_MANAGER'], effectivePermissions: ['CRUISE_STOP_REORDER'] }))
   assert.equal(useSessionAccess().has('CRUISE_STOP_REORDER'), true); assert.equal(useSessionAccess().has('CRUISE_STOP_OMIT'), false)
   setSessionAccess({ status: 'error', userId: null, permissions: [], error: '403' }); assert.equal(useSessionAccess().has('CRUISE_STOP_REORDER'), false)
 })

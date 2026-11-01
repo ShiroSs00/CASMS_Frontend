@@ -1,14 +1,10 @@
+import { loadSource } from '../helpers/source-loader.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import vm from 'node:vm'
-import ts from 'typescript'
-function load(path, imports = {}) {
-  const module = { exports: {} }
-  const source = readFileSync(new URL('../../src/' + path, import.meta.url), 'utf8')
-  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2023 } }).outputText, { module, exports: module.exports, require(name) { assert.ok(name in imports, name); return imports[name] } })
-  return module.exports
-}
+
+
+
+function load(path, imports = {}) { return loadSource(new URL('../../src/' + path, import.meta.url), { 'react/jsx-runtime': { jsx: (type, props, key) => ({type, props, key}), jsxs: (type, props, key) => ({type, props, key}), Fragment: 'Fragment' }, ...imports }, {}); }
 const plan = load('features/itineraries/model/itinerary.ts')
 const cruise = { cruiseId: 'c', departureDatetime: '2026-11-01T08:00:00Z', returnDatetime: '2026-11-04T18:00:00Z' }
 const draft = { cruiseId: 'c', itineraryName: '', startDate: '', endDate: '', itineraryType: '' }

@@ -5,11 +5,11 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 
 export const liveCruiseCatalogApi = {
  async saleState(id:string,signal?:AbortSignal) {
-  if(!UUID_REGEX.test(id))throw new ApiError('Không xác định được lần khởi hành.',400)
+  if(!UUID_REGEX.test(id))throw new ApiError('Không xác định được chuyến khởi hành.',400)
   const value=await apiRequest<unknown>(`/cruise/${encodeURIComponent(id)}/sellability`,{signal})
   if(!value||typeof value!=='object'||Array.isArray(value))throw new ApiError('Chưa xác định được trạng thái bán.',502)
   const row=value as Record<string,unknown>
-  if(row.cruiseId!==id||typeof row.sellable!=='boolean'||typeof row.saleState!=='string')throw new ApiError('Trạng thái bán chưa khớp lần khởi hành.',502)
+  if(row.cruiseId!==id||typeof row.sellable!=='boolean'||typeof row.saleState!=='string')throw new ApiError('Trạng thái bán chưa khớp chuyến khởi hành.',502)
   return {saleState:row.saleState,sellable:row.sellable}
  },
  async list(page:number, signal?:AbortSignal, cruiseType?: 'ONE_DAY' | 'MULTI_DAYS') {
@@ -22,13 +22,13 @@ export const liveCruiseCatalogApi = {
   if (!UUID_REGEX.test(id)) return null
   const data = await apiRequest<LiveCruiseDto>(`/cruise/${encodeURIComponent(id)}`, { query:{saleState:'OPEN_FOR_SALE'}, signal })
   const cruise = toPublishedCruise(data)
-  if (cruise && cruise.id !== id) throw new Error('Chuyến đi trả về không khớp mã yêu cầu.')
+  if (cruise && cruise.id !== id) throw new Error('Chuyến khởi hành trả về không khớp mã yêu cầu.')
   return cruise
  },
  async ship(id:string, signal?:AbortSignal) {
   if (!UUID_REGEX.test(id)) return null
   const ship=toLiveShip(await apiRequest<unknown>(`/ships/${encodeURIComponent(id)}`, {signal}))
-  if (ship.id!==id) throw new Error('Thông tin tàu trả về không khớp shipId của chuyến đi.')
+  if (ship.id!==id) throw new Error('Thông tin tàu trả về không khớp shipId của chuyến khởi hành.')
   return ship
  },
  async itinerary(cruiseId:string, signal?:AbortSignal) {

@@ -41,15 +41,15 @@ export const liveGateway: PlanningGateway = {
   },
   async save(version,content) {return versionView(await apiRequest<CurrentVersion>(`/trip-schedule-versions/${segment(version.versionId)}/content`,{method:'PUT',body:contentRequest(version,content)}))},
   async changeDay(trip,version,removeDay) {
-    if(trip.structuralLockedAt||trip.versions?.some(v=>v.status==='PUBLISHED')) throw new PlanningFault('Khung chuyến có mẫu đã chốt nên không thể đổi số ngày. Hãy nhân bản chuyến.',422,'TRIP_DURATION_LOCKED')
+    if(trip.structuralLockedAt||trip.versions?.some(v=>v.status==='PUBLISHED')) throw new PlanningFault('Chuyến đi có mẫu đã chốt nên không thể đổi số ngày. Hãy nhân bản chuyến.',422,'TRIP_DURATION_LOCKED')
     const result=await apiRequest<{trip:CurrentTrip;version:CurrentVersion}>(`/trip-schedule-versions/${segment(version.versionId)}/days/manage`,{method:'POST',body:{expectedTripRevision:trip.revision,expectedVersionRevision:version.revision,action:removeDay===undefined?'ADD':'REMOVE',...(removeDay===undefined?{}:{dayNumber:removeDay})}})
     return {trip:tripView(result.trip),version:versionView(result.version)}
   },
   sources:planningSources,
   async validate(version) {const report=await apiRequest<Report>(`/trip-schedule-versions/${segment(version.versionId)}/validate`,{method:'POST'});if(typeof report?.validForSubmit!=='boolean'||!Array.isArray(report.violations)||!Array.isArray(report.deferredChecks))throw new PlanningFault('Báo cáo kiểm tra chưa đúng định dạng.',502);return {...report,violations:report.violations.map(row=>({...row,message:businessErrorMessage(row.code,row.message)}))}},
   async action(version,action,reason) {
-    if(action==='submit'||action==='publish'||action==='return') throw new PlanningFault('Mẫu chờ xử lý theo quy trình cũ',410,'TEMPLATE_REVIEW_RETIRED')
-    const saved=versionView(await apiRequest<CurrentVersion>(`/trip-schedule-versions/${segment(version.versionId)}/${action}`,{method:'POST',body:{expectedRevision:version.revision,...(action==='withdraw'||action==='cancel'?{reason:reason?.trim()||undefined}:{})}}))
+    if(action==='submit'||action==='publish'||action==='return'||action==='withdraw') throw new PlanningFault(businessErrorMessage('TEMPLATE_REVIEW_RETIRED','Quy trình duyệt mẫu đã dừng.'),410,'TEMPLATE_REVIEW_RETIRED')
+    const saved=versionView(await apiRequest<CurrentVersion>(`/trip-schedule-versions/${segment(version.versionId)}/${action}`,{method:'POST',body:{expectedRevision:version.revision,...(action==='cancel'?{reason:reason?.trim()||undefined}:{})}}))
     const readback=await currentVersion(version.versionId)
     if(readback.versionId!==saved.versionId||readback.revision!==saved.revision||readback.status!==saved.status||(action==='finalize'&&readback.status!=='PUBLISHED'))throw new PlanningFault('Hệ thống chưa xác nhận được kết quả. Vui lòng kiểm tra lại trạng thái trước khi gửi tiếp.',502,'READBACK_MISMATCH')
     return readback

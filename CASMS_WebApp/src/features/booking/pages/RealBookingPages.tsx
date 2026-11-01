@@ -34,8 +34,8 @@ export function RealBookingList({ admin = false }: { admin?: boolean }) {
     <CollectionSummary count={list.loading || list.error ? null : list.data?.totalElements ?? null} visible={list.data?.content.length} filtered={filtered} label="Đặt chỗ trong kết quả" scope="Tổng kết quả từ hệ thống" />
     <div className={listStyles.registerWorkspace}><Panel className={listStyles.registerFilters} title="Bộ lọc" >
       <ListFilters label="Bộ lọc đặt chỗ" actions={<Button tone="secondary" disabled={!filtered} onClick={resetFilters}>Xóa bộ lọc</Button>}>
-        <Field htmlFor="booking-cruise" label="Chuyến đi"><select id="booking-cruise" value={cruiseId} onChange={event => { setCruiseId(event.target.value); setPage(0) }}>
-          <option value="">Tất cả chuyến đi</option>{choices.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}
+        <Field htmlFor="booking-cruise" label="Chuyến khởi hành"><select id="booking-cruise" value={cruiseId} onChange={event => { setCruiseId(event.target.value); setPage(0) }}>
+          <option value="">Tất cả chuyến khởi hành</option>{choices.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}
         </select></Field>
         <Field htmlFor="booking-status" label="Trạng thái"><select id="booking-status" value={status} onChange={event => { setStatus(event.target.value); setPage(0) }}>
           <option value="">Tất cả trạng thái</option>{Object.entries(bookingStatusName).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -46,7 +46,7 @@ export function RealBookingList({ admin = false }: { admin?: boolean }) {
     <Panel className={listStyles.registerResults} title="Danh sách đặt chỗ">
       <BookingReadState {...list} publicResource={!admin ? 'danh sách đặt chỗ' : undefined} />
       {list.data && !list.loading && !list.error && (list.data.content.length ? <>
-        <DataTable label="Danh sách đặt chỗ" headers={admin ? ['Mã đặt chỗ', 'Chuyến đi', 'Trạng thái', 'Thao tác'] : ['Mã đặt chỗ', 'Chuyến đi', 'Trạng thái', 'Khởi hành', 'Hành khách', 'Giá vé', 'Thao tác']}>
+        <DataTable label="Danh sách đặt chỗ" headers={admin ? ['Mã đặt chỗ', 'Chuyến khởi hành', 'Trạng thái', 'Thao tác'] : ['Mã đặt chỗ', 'Chuyến khởi hành', 'Trạng thái', 'Khởi hành', 'Hành khách', 'Giá vé', 'Thao tác']}>
           {list.data.content.map(item => <tr key={item.bookingId}>
             <td><Link className={listStyles.reference} to={`${root}/${item.bookingId}`}>{item.bookingReference}</Link></td>
             <td><span className={listStyles.cruise}>{item.cruiseName}</span></td>
@@ -56,7 +56,7 @@ export function RealBookingList({ admin = false }: { admin?: boolean }) {
           </tr>)}
         </DataTable>
       </> : <Empty title={filtered ? 'Không tìm thấy đặt chỗ phù hợp' : 'Chưa có đặt chỗ'}>
-        <p>{filtered ? 'Thử thay đổi chuyến đi hoặc trạng thái.' : 'Các đặt chỗ mới sẽ xuất hiện tại đây.'}</p>
+        <p>{filtered ? 'Thử thay đổi chuyến khởi hành hoặc trạng thái.' : 'Các đặt chỗ mới sẽ xuất hiện tại đây.'}</p>
         {filtered && <Button tone="secondary" onClick={resetFilters}>Xóa bộ lọc</Button>}
       </Empty>)}
       {list.data && !list.loading && !list.error && <ListFooter summary={`${list.data.totalElements.toLocaleString('vi-VN')} đặt chỗ${filtered ? ' phù hợp bộ lọc' : ''}`}>
@@ -75,8 +75,8 @@ export function RealBookingDetail({ admin = false, related, customerIntro, showP
 }
 export function BookingRecord({ booking, publicView = false, showPassengerDetails = false }: { booking: BookingDetail; publicView?: boolean; showPassengerDetails?: boolean }) {
   if (publicView) return <PublicBookingRecord booking={booking} showPassengerDetails={showPassengerDetails} />
-  return <><Panel title="Chuyến đi và điều khoản thanh toán"><RecordFacts entries={[
-    ['Mã đặt chỗ', booking.bookingReference], ['Trạng thái', bookingStatusName[booking.bookingStatus]], ['Chuyến đi', booking.cruiseName],
+  return <><Panel title="Chuyến khởi hành và điều khoản thanh toán"><RecordFacts entries={[
+    ['Mã đặt chỗ', booking.bookingReference], ['Trạng thái', bookingStatusName[booking.bookingStatus]], ['Chuyến khởi hành', booking.cruiseName],
     ['Thời gian · giờ Việt Nam', `${bookingWhen(booking.departureDatetime)} → ${bookingWhen(booking.returnDatetime)}`],
     ['Giá vé', `${booking.agreedFareAmount ?? 'Chưa có'} ${booking.currency ?? ''}`], ['Cọc yêu cầu', `${booking.requiredDepositAmount ?? 'Chưa có'} ${booking.currency ?? ''}`],
     ['Hạn thanh toán', bookingWhen(booking.finalPaymentDueAt)], ['Hồ sơ điều khoản', booking.contractReference ?? 'Chưa có'],
@@ -128,7 +128,7 @@ export function BookingLookupPage({ admin = false }: { admin?: boolean }) {
         <Field htmlFor="lookup-phone" label="Số điện thoại đại diện"><input id="lookup-phone" type="tel" autoComplete="tel" value={phone} aria-describedby="lookup-contact-help" onChange={event => { setPhone(event.target.value); setMissing(current => ({ ...current, email: '' })); setData(null); setError('') }} /></Field>
       </div><Button type="submit" disabled={busy}>{busy ? 'Đang tra cứu…' : 'Tra cứu'}</Button>
     </fieldset></form>{error && <div id="lookup-error-summary" ref={errorSummary} tabIndex={-1} role="region" aria-label="Không tra cứu được"><Notice title="Không tra cứu được" tone="error">{error}</Notice></div>}</Panel>
-    <aside className={styles.lookupHelp}><BookingPhotoNote /><h2>Bạn cần chuẩn bị gì?</h2><p>Mã đặt chỗ và thông tin liên hệ đã dùng khi đặt. Kiểm tra lại ký tự và thông tin người đại diện nếu chưa tìm thấy.</p><p className={styles.helper}>Tra cứu chỉ hiển thị dữ liệu được hệ thống trả về; không tự xác nhận Booking hoặc thanh toán.</p></aside></div>
+    <aside className={styles.lookupHelp}><BookingPhotoNote /><h2>Bạn cần chuẩn bị gì?</h2><p>Mã đặt chỗ và thông tin liên hệ đã dùng khi đặt. Kiểm tra lại ký tự và thông tin người đại diện nếu chưa tìm thấy.</p><p className={styles.helper}>Tra cứu chỉ hiển thị dữ liệu được hệ thống trả về; không tự xác nhận đặt chỗ hoặc thanh toán.</p></aside></div>
     {data && <section className={styles.stack} aria-label="Kết quả tra cứu"><h2 ref={resultHeading} tabIndex={-1}>Kết quả tra cứu · {data.bookingReference}</h2><BookingRecord booking={data} publicView /></section>}
   </div></RealBookingFrame>
   return <RealBookingFrame admin={admin}><PageHeader title="Tra cứu đặt chỗ" breadcrumb="HÀNH TRÌNH / ĐẶT CHỖ"  /><Panel title="Thông tin tra cứu"><form onSubmit={event => { event.preventDefault(); void lookup() }}><fieldset disabled={busy} className={styles.draftFields}>{[['reference', 'Mã đặt chỗ', reference, setReference], ['email', 'Email đại diện', email, setEmail], ['phone', 'Số điện thoại đại diện', phone, setPhone]].map(([key, label, value, setter]) => <Field key={String(key)} htmlFor={'lookup-' + key} label={String(label)}><input id={'lookup-' + key} type={key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'} value={String(value)} onChange={event => { (setter as (value: string) => void)(event.target.value); setData(null); setError('') }} /></Field>)}<Button type="submit" disabled={busy}>{busy ? 'Đang tra cứu…' : 'Tra cứu'}</Button></fieldset></form>{error && <Notice title="Không tra cứu được" tone="error">{error}</Notice>}</Panel>{data && <BookingRecord booking={data} />}</RealBookingFrame>
