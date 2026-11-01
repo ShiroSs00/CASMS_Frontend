@@ -1,8 +1,11 @@
+import { loadSource } from '../helpers/source-loader.mjs'
+import { explicitTestAccess, permissionLinkFor } from '../helpers/reviewed-source-modules.mjs'
+import { navigation } from '../helpers/admin-navigation.mjs'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+
 import test from 'node:test'
-import vm from 'node:vm'
-import ts from 'typescript'
+
+
 const root = new URL('../../src/features/ship-deck-cabin/', import.meta.url)
 const jsx = (type, props) => ({ type, props })
 const ship = { id: 'ship-1', code: 'S1', name: 'Parent Ship', capacity: 24, totalDecks: 2, status: 'ACTIVE' }
@@ -10,16 +13,7 @@ const deck = { id: 'deck-1', shipId: ship.id, number: 2, name: 'Test Deck' }
 const cabin = { id: 'cabin-1', shipId: ship.id, deckId: deck.id, number: '201', type: 'INTERIOR', capacity: 2, status: 'AVAILABLE' }
 const counts = { totalCabins: 1, availableCabins: 1, totalPassengerCapacity: 2 }
 const loaded = data => ({ data, loading: false, error: '', retry() {} })
-function load(file, imports) {
-  const module = { exports: {} }
-  const code = ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 } }).outputText
-  vm.runInNewContext(code, { module, exports: module.exports, AbortController, Error, require(id) { if(id === '@/shared/auth') return {useSessionAccess:()=>({status:'ready',userId:'test-user',has:()=>true})}; if(id === '../model/permissions') return {entityPermission:(kind,action)=>({ships:'SHIP',decks:'DECK',cabins:'CABIN'})[kind]+'_'+action,operationPermission:()=> 'TEST_PERMISSION'};
-    if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
-    if (id.endsWith('.module.css')) return { default: {} }
-    assert.ok(Object.hasOwn(imports, id), 'Unexpected import ' + id); return imports[id]
-  } })
-  return module.exports
-}
+function load(file, imports) { return loadSource(new URL(file, root), { 'react/jsx-runtime': {jsx, jsxs:jsx}, '@/shared/auth': {useSessionAccess:()=>explicitTestAccess(['SHIP_MANAGER'],navigation.backendRolePermissions.SHIP_MANAGER)}, ...imports }, {requestAnimationFrame:callback=>callback()}); }
 function render(tree) {
   if (Array.isArray(tree)) return tree.flatMap(render)
   if (tree == null || typeof tree === 'boolean') return []
@@ -30,6 +24,7 @@ function render(tree) {
 const nodes = tree => tree.flatMap(node => typeof node === 'object' ? [node, ...nodes(node.children)] : [])
 const text = tree => tree.map(node => typeof node === 'object' ? `${node.props?.title ?? ''} ${text(node.children)}` : String(node)).join(' ')
 const shared = Object.fromEntries(['Button', 'Modal', 'Notice', 'PageHeader', 'Panel', 'DataTable', 'Empty'].map(name => [name, name]))
+  shared.PermissionLink=permissionLinkFor(['SHIP_MANAGER'],navigation.backendRolePermissions.SHIP_MANAGER)
 const common = {
   DataState: props => props.loading || props.error ? jsx('DataState', props) : null,
   Definition: ({ rows }) => jsx('Definition', { children: rows }), StatusBadge: ({ status }) => jsx('StatusBadge', { children: status }),

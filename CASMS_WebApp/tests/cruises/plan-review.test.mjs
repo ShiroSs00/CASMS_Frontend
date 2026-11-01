@@ -7,11 +7,11 @@ import ts from 'typescript'
 const module={exports:{}}
 vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../../src/features/cruises/model/plan-review.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{module,exports:module.exports})
 const {planReviewActions,planReviewStates}=module.exports
-const access=(roles,permissions,userId='crm')=>({roles,userId,canDo:key=>permissions.includes(key)})
-const all={allowedActions:['SUBMIT','WITHDRAW','APPROVE','REJECT','REQUEST_REVISION','SET_READY'],submittedBy:'other'}
+const access=(roles,permissions,userId='crm')=>({roles,userId,has:key=>permissions.includes(key),canDo:key=>permissions.includes(key)})
+const all={allowedActions:['SUBMIT','WITHDRAW','APPROVE','REJECT','REQUEST_REVISION','SET_READY'],submittedBy:'other',planBlockers:[]}
 
 test('CRM cannot gain approval or ready commands from server action hints',()=>{
- const crm=access(['CRUISE_MANAGER'],['CRUISE_UPDATE_DRAFT','ITINERARY_APPROVE','CRUISE_VALIDATE'])
+ const crm=access(['CRUISE_MANAGER'],['CRUISE_UPDATE_DRAFT','ITINERARY_APPROVE','CRUISE_VALIDATE','CRUISE_PREPARATION_READ','CRUISE_PREPARATION_SUBMIT'])
  assert.deepEqual(Array.from(planReviewActions(all,crm)),['submit','withdraw'])
 })
 test('CRM without effective write permission receives no mutation controls',()=>{
@@ -27,7 +27,7 @@ test('OPS approval still rejects self approval and separates readiness permissio
  assert.deepEqual(Array.from(planReviewActions(all,ops)),['approve','reject','request-revision'])
 })
 test('pending review has explicit OPS status and never claims sale is open',()=>{
- assert.match(planReviewStates.SUBMITTED.title,/Chờ OPS phê duyệt/)
+ assert.match(planReviewStates.SUBMITTED.title,/Chờ Quản lý vận hành phê duyệt/)
  assert.match(planReviewStates.APPROVED.description,/trước khi xác nhận mở bán/)
  assert.match(planReviewStates.REVISION_REQUESTED.description,/gửi lại/)
 })
@@ -35,11 +35,11 @@ test('pending review has explicit OPS status and never claims sale is open',()=>
 const navigationModule={exports:{}}
 vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../../src/features/cruises/model/preparation.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{module:navigationModule,exports:navigationModule.exports})
 const {allowedDepartureSections}=navigationModule.exports
-const navigationAccess=permissions=>({...access(['CRUISE_MANAGER'],permissions),has:key=>permissions.includes(key)})
+const navigationAccess=(permissions,roles=['CRUISE_MANAGER'])=>({...access(roles,permissions),has:key=>permissions.includes(key)})
 test('CRM tab labels omit personnel and guests when those reads are forbidden',()=>{
  const tabs=allowedDepartureSections(navigationAccess(['CRUISE_READ','CRUISE_REGULATION_READ','ACTIVITY_READ']))
  assert.equal(tabs.find(([key])=>key==='resources')[1],'Tàu và quy định')
- assert.equal(tabs.find(([key])=>key==='sales')[1],'Cabin và sức chứa')
+ assert.ok(!tabs.some(([key])=>key==='sales'))
  assert.ok(!tabs.some(([key])=>key==='checks'))
 })
 test('CRM receives no resource tab without a permitted resource capability',()=>{
@@ -47,7 +47,7 @@ test('CRM receives no resource tab without a permitted resource capability',()=>
  assert.ok(!tabs.some(([key])=>key==='resources'))
 })
 test('authorized personnel and guest readers retain their complete tab labels',()=>{
- const tabs=allowedDepartureSections(navigationAccess(['CRUISE_READ','CRUISE_STAFF_READ','CRUISE_MANIFEST_READ']))
+ const tabs=allowedDepartureSections(navigationAccess(['CRUISE_READ','CRUISE_STAFF_READ','CRUISE_MANIFEST_READ'],['OPERATIONS_MANAGER']))
  assert.equal(tabs.find(([key])=>key==='resources')[1],'Tàu và nhân sự')
- assert.equal(tabs.find(([key])=>key==='sales')[1],'Cabin và khách')
+ assert.equal(tabs.find(([key])=>key==='sales')[1],'Cabin và hành khách')
 })

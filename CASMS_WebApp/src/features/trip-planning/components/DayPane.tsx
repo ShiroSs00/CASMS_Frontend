@@ -28,12 +28,12 @@ export function DayPane({departurePorts,onDeparture,content,day,editable,tab,bus
     const entry=row.entry,continuation=entry.startDayNumber!==day.dayNumber
     return <article id={`planning-${entry.clientKey}`} key={row.key} className={styles.agendaRow}>
       <div className={styles.agendaTime}>{continuation?'Tiếp diễn':shortTime(entry.plannedStartTime)}<span>{entry.endDayNumber===day.dayNumber?`đến ${shortTime(entry.plannedEndTime)}`:`đến Ngày ${entry.endDayNumber} ${shortTime(entry.plannedEndTime)}`}</span></div>
-      <div className={styles.agendaBody}><span className={styles.agendaKind}>{kindLabels[entry.kind]}</span><h3>{entry.title||kindLabels[entry.kind]}</h3>
-        {continuation&&<p className={styles.agendaMeta}>Từ Ngày {entry.startDayNumber} {shortTime(entry.plannedStartTime)} · Chỉnh sửa áp dụng cho toàn bộ mục.</p>}
+      <div className={styles.agendaBody}><span className={styles.agendaKind}>{kindLabels[entry.kind]}{entry.kind==='SERVING_WINDOW'?' · Dữ liệu lịch sử · Chỉ xem':''}</span><h3>{entry.title||kindLabels[entry.kind]}</h3>
+        {continuation&&entry.kind!=='SERVING_WINDOW'&&<p className={styles.agendaMeta}>Từ Ngày {entry.startDayNumber} {shortTime(entry.plannedStartTime)} · Chỉnh sửa áp dụng cho toàn bộ mục.</p>}
         {(entry.meetingPoint||entry.locationText||entry.displayLocation)&&<p className={styles.agendaMeta}>{[entry.meetingPoint?`Tập trung: ${entry.meetingPoint}`:null,(entry.locationText||entry.displayLocation)?.trim()!==entry.meetingPoint?.trim()?entry.locationText||entry.displayLocation:null].filter(Boolean).join(' · ')}</p>}
         {(entry.deckId||entry.cabinId)&&<p className={styles.agendaMeta}>{entry.referenceShipName?`Tàu tham chiếu: ${entry.referenceShipName}`:'Vị trí tham chiếu theo hoạt động nguồn'}</p>}
         {entry.categoryName&&<p className={styles.agendaMeta}>{entry.categoryName}</p>}{entry.notes&&<p>{entry.notes}</p>}
-      </div><div className={styles.actions}><Button tone="text" disabled={busy} onClick={()=>onEntry(entry.kind,entry)}>{editable?'Chỉnh sửa':'Xem chi tiết'}</Button>{editable&&!continuation&&<Button tone="text" disabled={busy} onClick={()=>onRemoveEntry(entry)}>Xóa mục</Button>}</div>
+      </div><div className={styles.actions}><Button tone="text" disabled={busy} onClick={()=>onEntry(entry.kind,entry)}>{editable&&entry.kind!=='SERVING_WINDOW'?'Chỉnh sửa':'Xem chi tiết'}</Button>{editable&&entry.kind!=='SERVING_WINDOW'&&!continuation&&<Button tone="text" disabled={busy} onClick={()=>onRemoveEntry(entry)}>Xóa mục</Button>}</div>
     </article>
   }
   return <div className={styles.dayPane}>

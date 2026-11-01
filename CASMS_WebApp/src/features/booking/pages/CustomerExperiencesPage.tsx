@@ -11,7 +11,7 @@ import styles from '../components/LiveBooking.module.css'
 export function CustomerExperiencesPage() {
   const access = useSessionAccess(), { bookingId = '' } = useParams()
   if (access.status === 'loading') return <RealBookingFrame><Loading label="Đang kiểm tra phiên đăng nhập…" /></RealBookingFrame>
-  if (!access.canDo('BOOKING_READ')) return <RealBookingFrame><Notice title="Chưa có quyền xem đặt chỗ" tone="warning">Cần phiên có quyền đọc Booking để mở hoạt động và dịch vụ gắn với đặt chỗ.</Notice><ButtonLink to="/my-bookings">Về đặt chỗ của tôi</ButtonLink></RealBookingFrame>
+  if (!access.canDo('BOOKING_READ')) return <RealBookingFrame><Notice title="Chưa có quyền xem đặt chỗ" tone="warning">Cần phiên có quyền đọc đặt chỗ để mở hoạt động và dịch vụ gắn với đặt chỗ.</Notice><ButtonLink to="/my-bookings">Về đặt chỗ của tôi</ButtonLink></RealBookingFrame>
   return <Experiences key={access.userId + ':' + bookingId} bookingId={bookingId} />
 }
 function Experiences({ bookingId }: { bookingId: string }) {
@@ -21,7 +21,7 @@ function Experiences({ bookingId }: { bookingId: string }) {
   return <RealBookingFrame><div className={styles.stack}><ButtonLink tone="secondary" to={'/my-bookings/' + encodeURIComponent(bookingId)}>← Về chi tiết đặt chỗ</ButtonLink><PageHeader breadcrumb="ĐẶT CHỖ / TRẢI NGHIỆM" title="Hoạt động & dịch vụ"  />
     <BookingReadState {...query} publicResource="đặt chỗ" />
     {booking && <><p>Đặt chỗ <strong>{booking.bookingReference}</strong> · {booking.cruiseName}</p>
-      {access.canDo('ACTIVITY_READ') ? <CustomerActivities booking={booking} /> : <Notice title="Chưa có quyền xem hoạt động" tone="warning">Phiên hiện tại chưa được cấp quyền đọc hoạt động trên chuyến đi.</Notice>}
+      {access.canDo('ACTIVITY_READ') ? <CustomerActivities booking={booking} /> : <Notice title="Chưa có quyền xem hoạt động" tone="warning">Phiên hiện tại chưa được cấp quyền đọc hoạt động trên chuyến khởi hành.</Notice>}
       {access.canDo('ACTIVITY_REGISTRATION') && <CustomerRegistrations booking={booking} />}
       {access.canDo('SERVICE_READ') ? <CustomerServices booking={booking} /> : <Notice title="Chưa có quyền xem dịch vụ bổ sung" tone="warning">Dịch vụ chưa được mở cho tài khoản này. Quyền trong gói không tự cấp quyền đặt dịch vụ qua tài khoản.</Notice>}
       {(access.canDo('SERVICE_REQUEST_READ') || access.canDo('SERVICE_REQUEST_CREATE')) && <CustomerRequests booking={booking} />}

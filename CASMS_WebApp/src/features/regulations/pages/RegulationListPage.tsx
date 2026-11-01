@@ -132,7 +132,7 @@ export function RegulationListPage() {
               <option value="ALL">Tất cả</option>
               <option value="GLOBAL">Toàn hệ thống</option>
               <option value="SHIP">Theo tàu</option>
-              <option value="CRUISE">Theo lần khởi hành</option>
+              <option value="CRUISE">Theo chuyến khởi hành</option>
             </select>
           </Field>
           <Field htmlFor="reg-status" label="Trạng thái">

@@ -1,16 +1,18 @@
+import { explicitTestAccess } from '../helpers/reviewed-source-modules.mjs'
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
-import { readFileSync, existsSync } from 'node:fs'
+
 import path from 'node:path'
-import vm from 'node:vm'
+
 import test from 'node:test'
-import ts from 'typescript'
+
 
 const root = path.resolve('src')
 const jsx = (type, props) => ({ type, props })
-function harness(permissions = []) {
+function harness(permissions = [], roles = ['ACTIVITY_SERVICE_MANAGER']) {
   let slot = 0
-  const states = [], cache = new Map(), calls = []
-  const access = { userId: 'staff', status: 'ready', has: permission => permissions.includes(permission) }
+  const states = [], calls = []
+  const access = explicitTestAccess(roles, permissions)
   const react = {
     useState(initial) { const index = slot++; if (!(index in states)) states[index] = typeof initial === 'function' ? initial() : initial; return [states[index], next => { states[index] = typeof next === 'function' ? next(states[index]) : next }] },
     useRef: value => ({ current: value }), useCallback: fn => fn, useEffect() {},
@@ -19,7 +21,7 @@ function harness(permissions = []) {
   const query = { data: [], loading: false, error: null, retry() {} }
   const imports = {
     react, 'react/jsx-runtime': { jsx, jsxs: jsx },
-    'react-router': { useNavigate: () => () => {}, useParams: () => ({}), useLocation: () => ({}), Link: 'Link' },
+    'react-router': { useSearchParams:()=>[new URLSearchParams()],useNavigate: () => () => {}, useParams: () => ({}), useLocation: () => ({}), Link: 'Link' },
     '@/shared/auth': { useSessionAccess: () => access }, '@/shared/ui': ui,
     '@/shared/api': { useReadQuery: () => query },
     '../api/shore-excursion-api': { shoreExcursionApi: {} },
@@ -29,23 +31,7 @@ function harness(permissions = []) {
     '../api/service-package-api': { servicePackageApi: {} },
     './CatalogUI': { CatalogState: 'CatalogState' },
   }
-  function load(file) {
-    const absolute = path.resolve(root, file)
-    if (cache.has(absolute)) return cache.get(absolute)
-    const module = { exports: {} }; cache.set(absolute, module.exports)
-    vm.runInNewContext(ts.transpileModule(readFileSync(absolute, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 } }).outputText, {
-      module, exports: module.exports, Intl, Date, Error, require(id) {
-        if (Object.hasOwn(imports, id)) return imports[id]
-        if (id.endsWith('.module.css')) return { default: {} }
-        if (id.startsWith('.')) {
-          const target = path.resolve(path.dirname(absolute), id)
-          return load(path.relative(root, existsSync(target + '.ts') ? target + '.ts' : target + '.tsx'))
-        }
-        throw Error('Unmocked dependency: ' + id)
-      },
-    })
-    return module.exports
-  }
+  function load(file) { return loadSource(path.resolve(root,file), imports); }
   return { load, calls, permissions, render(component, props) { slot = 0; return component(props) } }
 }
 function nodes(tree) {
@@ -60,8 +46,8 @@ const activity = { id: 'activity', name: 'Yoga', status: 'PLANNED' }
 const item = { id: 'service', name: 'Spa', code: 'SPA', status: 'ACTIVE' }
 
 test('read-only excursion retains availability lookup but omits lifecycle, capacity and delete controls', () => {
-  const h = harness(['EXCURSION_READ']), { ExcursionActions } = h.load('features/shore-excursions/components/ExcursionActions.tsx')
-  const tree = h.render(ExcursionActions, { excursion: { ...excursion, status: 'OPEN' }, onRefresh() {} })
+  const h = harness(['EXCURSION_READ']), { ExcursionActions, ExcursionAvailability } = h.load('features/shore-excursions/components/ExcursionActions.tsx')
+  const tree = [h.render(ExcursionActions, { excursion: { ...excursion, status: 'OPEN' }, onRefresh() {} }),h.render(ExcursionAvailability,{excursion:{...excursion,status:'OPEN'}})]
   assert.deepEqual(buttons(tree).map(button => button.props.children), ['Kiểm tra chỗ trống'])
   assert.equal(h.calls.length, 0)
 })
@@ -69,10 +55,10 @@ test('read-only excursion retains availability lookup but omits lifecycle, capac
 test('each BE role only sees excursion actions granted to that role', () => {
   const { backendRolePermissions } = harness().load('shared/ui/admin-v3/admin-navigation.ts')
   for (const [role, permissions] of Object.entries(backendRolePermissions)) {
-    const h = harness([...permissions]), { ExcursionActions } = h.load('features/shore-excursions/components/ExcursionActions.tsx')
+    const h = harness([...permissions],[role]), { ExcursionActions } = h.load('features/shore-excursions/components/ExcursionActions.tsx')
     const tree = h.render(ExcursionActions, { excursion, onRefresh() {} })
     const rendered = text(tree)
-    assert.equal(rendered.includes('Làm mới sức chứa'), permissions.includes('EXCURSION_STATUS_CHANGE'), role)
+    assert.equal(rendered.includes('Mở đăng ký'), permissions.includes('EXCURSION_STATUS_CHANGE'), role)
     assert.equal(rendered.includes('Xóa chuyến tham quan'), permissions.includes('EXCURSION_DELETE_DRAFT'), role)
   }
 })
@@ -121,7 +107,7 @@ test('package readers see benefits without editing fields; managers retain draft
 })
 
 test('day timezone-only permission selects the permitted editor rather than exposing type configuration', () => {
-  const h = harness(['ITINERARY_DAY_READ', 'ITINERARY_DAY_TIMEZONE_SET'])
+  const h = harness(['ITINERARY_DAY_READ', 'ITINERARY_DAY_TIMEZONE_SET'],['CRUISE_MANAGER'])
   const { DayOperations } = h.load('features/itineraries/components/DayOperations.tsx')
   const tree = h.render(DayOperations, { day: { itineraryDayId: 'day', dayNumber: 1 }, editable: true, onChanged() {} })
   assert.ok(!text(tree).includes('value":"type"'))

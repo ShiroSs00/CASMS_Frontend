@@ -1,10 +1,11 @@
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { URLSearchParams } from 'node:url'
 
 async function loadValidation() {
   try {
-    return await import('../../src/features/cruises/model/cruise-validation.ts')
+    return loadSource(new URL('../../src/features/cruises/model/cruise-validation.ts', import.meta.url))
   } catch {
     return {}
   }
@@ -26,7 +27,7 @@ test('Cruise schedule follows BE: positive instants, optional type and no invent
 test('Cruise list query keeps SQL enums and resets invalid URL values', async () => {
   let queryModule = {}
   try {
-    queryModule = await import('../../src/features/cruises/model/cruise-query.ts')
+    queryModule = loadSource(new URL('../../src/features/cruises/model/cruise-query.ts', import.meta.url))
   } catch {
     // The red step reports the missing public behavior below.
   }
@@ -60,7 +61,7 @@ test('Cruise list query keeps SQL enums and resets invalid URL values', async ()
 test('Ship assignment precheck returns authoritative reasons and mutates only allowed cruises', async () => {
   let adapterModule = {}
   try {
-    adapterModule = await import('../../src/features/cruises/mocks/mock-cruise-adapter.ts')
+    adapterModule = loadSource(new URL('../../src/features/cruises/mocks/mock-cruise-adapter.ts', import.meta.url))
   } catch {
     // The red step reports the missing adapter behavior below.
   }
@@ -92,7 +93,7 @@ test('Ship assignment precheck returns authoritative reasons and mutates only al
 })
 
 test('Mock adapter keeps Cruise persistence SQL-shaped and filters combined list criteria', async () => {
-  const { createMockCruiseAdapter } = await import('../../src/features/cruises/mocks/mock-cruise-adapter.ts')
+  const { createMockCruiseAdapter } = loadSource(new URL('../../src/features/cruises/mocks/mock-cruise-adapter.ts', import.meta.url))
   const adapter = createMockCruiseAdapter()
   const port = adapter.ports[0].portId
 

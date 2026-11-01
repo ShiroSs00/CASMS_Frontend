@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import styles from './Auth.module.css'
 
-export function AuthPageShell({ children, expired = false, image = '/images/ports/hong-kong-victoria.webp', editorialTitle = 'Hành trình bắt đầu trước khi lên tàu.', editorialDescription = 'Quản lý booking, thông tin khách và những việc cần hoàn tất trước ngày khởi hành.' }: { children: ReactNode; expired?: boolean; image?: string; editorialTitle?: string; editorialDescription?: string }) {
+export function AuthPageShell({ children, expired = false, image = '/images/ports/hong-kong-victoria.webp', editorialTitle = 'Hành trình bắt đầu trước khi lên tàu.', editorialDescription = 'Quản lý đặt chỗ, thông tin khách và những việc cần hoàn tất trước ngày khởi hành.' }: { children: ReactNode; expired?: boolean; image?: string; editorialTitle?: string; editorialDescription?: string }) {
   return <div className={styles.authPage}>
     <title>OceVie — Tài khoản</title>
     <header className={styles.topbar}><Link className={styles.brand} to="/" aria-label="OceVie"><BrandLogo variant="dark" /></Link><nav><Link to="/cruises">Khám phá chuyến đi</Link><a href="#auth-help">Trợ giúp</a></nav></header>

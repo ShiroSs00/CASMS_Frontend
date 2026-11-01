@@ -1,18 +1,12 @@
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import path from 'node:path'
-import vm from 'node:vm'
-import ts from 'typescript'
-const root=fileURLToPath(new URL('../../src/',import.meta.url)),cache=new Map()
-function load(relative){
- const file=path.join(root,relative);if(cache.has(file))return cache.get(file)
- const module={exports:{}}
- const source=ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2023}}).outputText
- vm.runInNewContext(source,{module,exports:module.exports,Intl,Date,URL,Error,crypto:globalThis.crypto,require(id){if(id.startsWith('.'))return load(path.relative(root,path.resolve(path.dirname(file),id+(path.extname(id)?'':'.ts'))));throw Error(id)}},{filename:file})
- cache.set(file,module.exports);return module.exports
-}
+
+
+
+
+
+function load(relative) { return loadSource(relative, {}); }
 const r=load('features/trip-planning/model/port-rules.ts'),p=load('features/cruises/model/preparation.ts')
 const scope=countryCodes=>({scope:'INTERNATIONAL',countryCodes,regionIds:[]})
 const stop=(key,from='15:30',to='16:40',extra={})=>({clientKey:key,portId:'port-'+key,portName:'Port '+key,stopOrder:key==='a'?1:2,arrivalDayNumber:1,departureDayNumber:1,plannedArrivalTime:from,plannedDepartureTime:to,timeZoneId:'Asia/Ho_Chi_Minh',allAboardDayNumber:1,allAboardTime:to,...extra})
@@ -60,22 +54,24 @@ test('unknown evidence remains a preparation problem',()=>{
  const checks=[{key:'SHIP',state:'BLOCKED'},{key:'SCHEDULE',state:'PASS'},{key:'ITINERARY',state:'UNKNOWN'}]
  assert.equal(p.preparationProblems({readiness:{checks}}).length,2);assert.equal(p.preparationIssueSection(checks[0]),'resources');assert.equal(p.preparationIssueSection(checks[2]),'schedule')
 })
-test('mapper preserves technical enums, sources and revision without inventing API fields',()=>{
- const mapper=load('features/trip-planning/api/mappers.ts'),entry={clientKey:'e',kind:'SERVING_WINDOW',sourceId:'service-id',startDayNumber:2,endDayNumber:2,plannedStartTime:'09:00',plannedEndTime:'18:00',timeZoneId:'Asia/Ho_Chi_Minh',title:'Serving test'}
- const payload=mapper.contentRequest({revision:9},content([stop('a')],[entry]))
- assert.equal(payload.expectedRevision,9);assert.equal(payload.entries[0].kind,'SERVING_WINDOW');assert.equal(payload.entries[0].serviceId,'service-id');assert.equal(payload.entries[0].plannedStartTime,'09:00:00')
- assert.equal(payload.stops[0].timeZoneId,undefined);assert.equal(payload.sourceVersionId,undefined);assert.equal(payload.entries[0].reservationId,undefined)
+test('mapper preserves legacy entries through omission and blocks rewriting them',()=>{
+ const mapper=load('features/trip-planning/api/mappers.ts'),entry={clientKey:'e',kind:'SERVING_WINDOW',serviceId:'service-id',sourceId:'service-id',startDayNumber:2,endDayNumber:2,plannedStartTime:'09:00',plannedEndTime:'18:00',timeZoneId:'Asia/Ho_Chi_Minh',title:'Serving test'}
+ const version={revision:9,entries:[entry]},data=content([stop('a')],[entry]);const payload=mapper.contentRequest(version,data)
+ assert.equal(payload.expectedRevision,9);assert.equal(payload.entries.length,0)
+ assert.equal(payload.stops[0].timeZoneId,undefined);assert.equal(payload.sourceVersionId,undefined)
+ assert.throws(()=>mapper.contentRequest(version,content([stop('a')],[{...entry,title:'Changed'}])),/lịch sử/)
+ assert.equal(data.entries[0],entry)
 })
 
 test('read-only roles see only sections supported by their permissions',()=>{
- const access=permissions=>({has:permission=>permissions.includes(permission),canDo:()=>false})
+ const access=permissions=>({roles:['SHIP_MANAGER'],has:permission=>permissions.includes(permission),canDo:permission=>permissions.includes(permission)&&permission.endsWith('_READ')})
  assert.deepEqual(Array.from(p.allowedDepartureSections(access([])),([key])=>key),['overview'])
  assert.deepEqual(Array.from(p.allowedDepartureSections(access(['SHIP_READ'])),([key])=>key),['overview','resources'])
  assert.deepEqual(Array.from(p.allowedDepartureSections(access(['ITINERARY_READ','CRUISE_MANIFEST_READ'])),([key])=>key),['overview','schedule','sales'])
 })
 
 test('readiness access alone does not expose ship or sales sections',()=>{
- const access={has:()=>false,canDo:permission=>permission==='CRUISE_VALIDATE'}
+ const access={roles:['OPERATIONS_MANAGER'],has:()=>false,canDo:permission=>permission==='CRUISE_VALIDATE'}
  assert.deepEqual(Array.from(p.allowedDepartureSections(access),([key])=>key),['overview','checks'])
 })
 

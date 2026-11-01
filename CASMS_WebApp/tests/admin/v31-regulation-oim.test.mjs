@@ -1,18 +1,13 @@
+import { explicitTestAccess } from '../helpers/reviewed-source-modules.mjs'
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+
 import test from 'node:test'
-import vm from 'node:vm'
-import ts from 'typescript'
+
+
 const root = new URL('../../src/features/', import.meta.url)
 const jsx = (type, props) => ({ type, props })
-function load(file, imports = {}) {
-  const module = { exports: {} }
-  vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 } }).outputText, { module, exports: module.exports, AbortController, Date, Intl, require(id) {
-    if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
-    if (id.endsWith('.module.css')) return { default: {} }
-    assert.ok(Object.hasOwn(imports, id), id); return imports[id]
-  } }); return module.exports
-}
+function load(file, imports = {}) { return loadSource(new URL(file, root), { 'react/jsx-runtime': { jsx: jsx, jsxs: jsx, Fragment: 'Fragment' }, ...imports }, {}); }
 test('OIM edit serializes only mutable severity/description, never relocates issue or changes reporter', async () => {
   let request
   const { operationalIssuesApi } = load('operational-issues/api/operational-issues-api.ts', { '@/shared/api': { apiRequest: async (url, options) => { request = { url, options }; return { issueId: 'i', shipId: 's', issueCode: 'ISS', description: 'Saved' } } } })
@@ -47,7 +42,7 @@ test('OIM action hook cannot issue any mutation without the exact granted permis
   let writes = 0
   const rules = load('operational-issues/model/issue-actions.ts')
   const { useIssueActions } = load('operational-issues/hooks/useIssueActions.ts', {
-    react: { useState: value => [value, () => {}], useRef: current => ({ current }) }, '@/shared/auth': { useSessionAccess: () => ({ has: () => false }) },
+    react: { useState: value => [value, () => {}], useRef: current => ({ current }) }, '@/shared/auth': { useSessionAccess: () => explicitTestAccess(['OPERATIONS_MANAGER'], []) },
     '../api/operational-issues-api': { operationalIssuesApi: new Proxy({}, { get: () => () => { writes++; return Promise.resolve() } }) }, '../model/issue-actions': rules,
   })
   const actions = useIssueActions('i', () => {})
@@ -63,18 +58,18 @@ test('Regulation candidate selection is read-only; explicit precheck and positiv
   const candidate = { regulation: { id: 'r1', code: 'R1', name: 'Safety', type: 'CAPACITY', scope: 'SHIP', status: 'ACTIVE', value: 10 }, capabilities: { canAssign: { allowed: true } } }
   const hooks = { useEffect() {}, useCallback: fn => fn, useMemo: fn => fn(), useState(initial) { const i = index++; if (!(i in state)) state[i] = i === 0 ? snapshot : initial; return [state[i], next => { state[i] = typeof next === 'function' ? next(state[i]) : next }] }, useRef(current) { const i = index++; return refs[i] ??= { current } } }
   const exports = load('regulations/pages/AssignmentPage.tsx', {
-    react: hooks, 'react-router': { useParams: () => ({ shipId: 'ship1' }) }, '@/shared/auth': { useSessionAccess: () => ({ has: () => true }) },
+    react: hooks, 'react-router': { useParams: () => ({ shipId: 'ship1' }) }, '@/shared/auth': { useSessionAccess: () => explicitTestAccess(['SHIP_MANAGER'], ['SHIP_REGULATION_READ','SHIP_REGULATION_ASSIGN']) },
     '../api/regulations-api': { regulationsApi: { getCandidates: async () => [candidate], getAssignments: async () => snapshot, checkConflict: async () => { prechecks++; return { canProceed: false, severity: 'blocking', comparedWith: [] } }, assign: async () => { assignments++; return {} } } },
-    '../model/regulation': { formatDateTime: x => x, scopeLabels: {}, typeLabels: {} },
+    '../model/regulation': load('regulations/model/regulation.ts'),
     '../components/RegulationUI': Object.fromEntries(['AdminFrame', 'Button', 'ConflictCard', 'Field', 'LoadingPanel', 'Modal', 'Notice', 'PageHeader', 'Panel', 'StatusBadge', 'TableScroll'].map(key => [key, key])),
   })
   const element = exports.ShipRegulationsPage()
   const render = () => { index = 0; return nodes(element.type(element.props)) }
   render().find(node => node.type === 'PageHeader').props.actions.props.onClick(); await flush()
   render().find(node => node.type === 'input' && node.props.type === 'radio').props.onChange()
-  assert.equal(prechecks, 0); assert.equal(assignments, 0)
-  const check = render().find(node => node.type === 'Button' && node.props.children === 'Kiểm tra trước khi gán')
-  check.props.onClick(); await flush(); assert.equal(prechecks, 1)
+  assert.equal(prechecks, 1); assert.equal(assignments, 0)
+  const check = render().find(node => node.type === 'Button' && node.props.children === 'Kiểm tra lại trước khi gán')
+  check.props.onClick(); await flush(); assert.equal(prechecks, 2)
   assert.equal(render().find(node => node.type === 'Button' && node.props.children === 'Gán quy định')?.props.disabled, true)
   assert.equal(assignments, 0)
 })

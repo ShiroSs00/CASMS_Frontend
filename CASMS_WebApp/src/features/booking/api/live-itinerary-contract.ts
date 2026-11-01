@@ -66,7 +66,7 @@ export async function lookupItinerary(cruiseId:string, loadPage:(page:number)=>P
     if (expectedPages!==undefined && value.totalPages!==expectedPages) throw new Error('Số trang lịch trình đã thay đổi trong lúc tra cứu.')
     expectedPages=value.totalPages as number
     const matches=value.content.map(toLiveItinerary).filter(item=>item.cruiseId===cruiseId)
-    if (matches.length>1) throw new Error('Có nhiều lịch trình cho cùng một chuyến đi.')
+    if (matches.length>1) throw new Error('Có nhiều lịch trình cho cùng một chuyến khởi hành.')
     if (matches.length===1) return {kind:'found',itinerary:matches[0]}
     const totalPages=value.totalPages as number
     if (page+1>=totalPages) return {kind:'missing'}

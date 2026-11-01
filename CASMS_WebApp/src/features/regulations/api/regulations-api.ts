@@ -197,7 +197,7 @@ export const regulationsApi = {
     const id = regulationId ?? hostId
     const base = assignmentPath(type, regulationId ? hostId : '')
     if (!regulationId) {
-      return { severity: 'blocking', title: 'Xung đột chặn thao tác', message: 'Chưa xác định tàu hoặc lần khởi hành cần kiểm tra.', canProceed: false, comparedWith: [] } satisfies ConflictResult
+      return { severity: 'blocking', title: 'Xung đột chặn thao tác', message: 'Chưa xác định tàu hoặc chuyến khởi hành cần kiểm tra.', canProceed: false, comparedWith: [] } satisfies ConflictResult
     }
     return normalizeConflict(await apiRequest<ConflictDto>(`${base}/precheck`, { method: 'POST', body: { regulationId: id } }))
   },

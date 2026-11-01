@@ -1,27 +1,18 @@
+import { loadSource } from '../helpers/source-loader.mjs'
+import { explicitTestAccess, permissionLinkFor } from '../helpers/reviewed-source-modules.mjs'
+import { navigation } from '../helpers/admin-navigation.mjs'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+
 import test from 'node:test'
-import vm from 'node:vm'
-import ts from 'typescript'
+
+
 
 const root = new URL('../../src/features/ship-deck-cabin/', import.meta.url)
 const jsx = (type, props) => ({ type, props })
 const ship = { id: 'ship-1', code: 'QA-SHIP', name: 'Test Ship', status: 'ACTIVE', capacity: 24, totalDecks: 2, commissionDate: '' }
 const capacity = { configuredTotalCapacity: 24, configuredTotalDecks: 2, actualCabinCount: 3, availableCabinCount: 1, actualDeckCount: 2 }
 
-function load(relative, imports) {
-  const module = { exports: {} }
-  const source = ts.transpileModule(readFileSync(new URL(relative, root), 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 },
-  }).outputText
-  vm.runInNewContext(source, { module, exports: module.exports, require(id) { if(id === '@/shared/auth') return {useSessionAccess:()=>({status:'ready',userId:'test-user',has:()=>true})}; if(id === '../model/permissions') return {entityPermission:(kind,action)=>({ships:'SHIP',decks:'DECK',cabins:'CABIN'})[kind]+'_'+action,operationPermission:()=> 'TEST_PERMISSION'};
-    if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
-    if (id.endsWith('.module.css')) return { default: {} }
-    assert.ok(Object.hasOwn(imports, id), 'Unexpected import: ' + id)
-    return imports[id]
-  } })
-  return module.exports
-}
+function load(relative, imports) { return loadSource(new URL(relative, root), { 'react/jsx-runtime': {jsx, jsxs:jsx}, '@/shared/auth': {useSessionAccess:()=>explicitTestAccess(['SHIP_MANAGER'],navigation.backendRolePermissions.SHIP_MANAGER)}, ...imports }, {requestAnimationFrame:callback=>callback()}); }
 
 function render(tree) {
   if (Array.isArray(tree)) return tree.flatMap(render)
@@ -46,6 +37,7 @@ function setup({ entity = { data: ship, loading: false, error: '' }, snapshotErr
     },
   }
   const shared = Object.fromEntries(['Button', 'Modal', 'Notice', 'PageHeader', 'Panel', 'DataTable', 'Empty'].map(name => [name, name]))
+  shared.PermissionLink=permissionLinkFor(['SHIP_MANAGER'],navigation.backendRolePermissions.SHIP_MANAGER)
   const common = {
     DataState: props => props.loading || props.error ? jsx('DataState', props) : null,
     NotFound: () => jsx('NotFound', {}),

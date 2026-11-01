@@ -51,7 +51,7 @@ export function bookingFieldErrors(draft: BookingDraft, cruise: BookingCruiseOpt
   const errors: Record<string, string> = {}
   const used = new Map<string, number>(), documents = new Set<string>()
   if (step !== 2) {
-    if (!cruise || cruise.cruiseId !== draft.cruiseId || cruise.status !== 'PUBLISHED' || cruise.sellable !== true || !cruise.shipId || !Number.isFinite(Date.parse(cruise.departureDatetime)) || Date.parse(cruise.departureDatetime) <= now) errors['real-booking-cruise'] = 'Chọn lần khởi hành đang mở bán và còn chỗ theo dữ liệu máy chủ.'
+    if (!cruise || cruise.cruiseId !== draft.cruiseId || cruise.status !== 'PUBLISHED' || cruise.sellable !== true || !cruise.shipId || !Number.isFinite(Date.parse(cruise.departureDatetime)) || Date.parse(cruise.departureDatetime) <= now) errors['real-booking-cruise'] = 'Chọn chuyến khởi hành đang mở bán và còn chỗ theo dữ liệu máy chủ.'
     if (!cabins || !draft.passengers.length) errors['real-booking-cruise'] = 'Cần danh sách phòng trống và ít nhất một hành khách.'
     draft.passengers.forEach(person => { if (person.cabinId) used.set(person.cabinId, (used.get(person.cabinId) ?? 0) + 1) })
     draft.passengers.forEach((person, index) => {
@@ -100,7 +100,7 @@ export const realBookingApi = {
   async cabins(cruiseId: string, signal?: AbortSignal, filters?: { cabinType?: string; deckId?: string; minCapacity?: number }): Promise<AvailableCabin[]> {
     const data = await apiRequest<AvailableCabin[]>('/booking/available-cabins', { query: { cruiseId, ...filters }, signal })
     if (!Array.isArray(data) || data.some(item => !item || typeof item.cabinId !== 'string' || !item.cabinId || typeof item.cabinNumber !== 'string' || !item.cabinNumber || !Number.isSafeInteger(item.remainingCapacity) || item.remainingCapacity < 0 || !Number.isSafeInteger(item.capacity) || item.capacity < 1 || item.remainingCapacity > item.capacity)) throw new Error('Thông tin phòng trống chưa đầy đủ.')
-    if (data.some(item => ['estimatedPrice', 'priceMultiplier'].some(key => { const value = item[key as 'estimatedPrice' | 'priceMultiplier']; return value != null && (typeof value !== 'number' || !Number.isFinite(value) || value < 0) }) || (item.deckNumber != null && !Number.isSafeInteger(item.deckNumber)) || (item.isAccessible != null && typeof item.isAccessible !== 'boolean') || ['deckId', 'deckName', 'cabinType'].some(key => { const value = item[key as 'deckId' | 'deckName' | 'cabinType']; return value != null && typeof value !== 'string' }))) throw new Error('Thông tin tầng hoặc giá tham chiếu phòng không hợp lệ.')
+    if (data.some(item => ['estimatedPrice', 'priceMultiplier'].some(key => { const value = item[key as 'estimatedPrice' | 'priceMultiplier']; return value != null && (typeof value !== 'number' || !Number.isFinite(value) || value < 0) }) || (item.deckNumber != null && !Number.isSafeInteger(item.deckNumber)) || (item.isAccessible != null && typeof item.isAccessible !== 'boolean') || ['deckId', 'deckName', 'cabinType'].some(key => { const value = item[key as 'deckId' | 'deckName' | 'cabinType']; return value != null && typeof value !== 'string' }))) throw new Error('Thông tin boong hoặc giá tham chiếu phòng không hợp lệ.')
     return data
   },
   async cruises(signal?: AbortSignal) {
@@ -122,13 +122,13 @@ export const realBookingApi = {
       if (Object.keys(errors).length) throw new ApiError(Object.values(errors)[0], 422)
     }
     const data = decodeBookingDetail(await apiRequest<unknown>('/booking', { method: 'POST', body: serializeBooking(draft) }))
-    if (data.cruiseId !== draft.cruiseId) throw new Error('Chuyến đi trả về không khớp yêu cầu đặt chỗ; cần kiểm tra kết quả trước khi gửi lại.')
+    if (data.cruiseId !== draft.cruiseId) throw new Error('Chuyến khởi hành trả về không khớp yêu cầu đặt chỗ; cần kiểm tra kết quả trước khi gửi lại.')
     return data
   },
   async packagesForCruise(cruiseId: string, signal?: AbortSignal) {
     if (!cruiseId) return []
     const links = await apiRequest<unknown>('/cruise/' + encodeURIComponent(cruiseId) + '/packages', { signal })
-    if (!Array.isArray(links) || links.some(item => !item || item.cruiseId !== cruiseId || typeof item.tourPackageId !== 'string' || !item.tourPackageId || typeof item.active !== 'boolean')) throw new ApiError('Chưa xác định được gói dịch vụ áp dụng cho lần khởi hành.', 502)
+    if (!Array.isArray(links) || links.some(item => !item || item.cruiseId !== cruiseId || typeof item.tourPackageId !== 'string' || !item.tourPackageId || typeof item.active !== 'boolean')) throw new ApiError('Chưa xác định được gói dịch vụ áp dụng cho chuyến khởi hành.', 502)
     const ids = new Set(links.filter(item => item.active).map(item => item.tourPackageId))
     // Assignment + ACTIVE is a prerequisite, not proof that sale/booking is open.
     const catalog = await realBookingApi.packages(signal)

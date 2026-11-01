@@ -238,7 +238,7 @@ export function RegulationFormPage() {
               >
                 <option value="GLOBAL">Toàn hệ thống</option>
                 <option value="SHIP">Theo tàu</option>
-                <option value="CRUISE">Theo lần khởi hành</option>
+                <option value="CRUISE">Theo chuyến khởi hành</option>
               </select>
             </Field>
             </FormSection><FormSection title="Giá trị và đơn vị"><Field error={errors.value} htmlFor="value" label="Giá trị">

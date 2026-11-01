@@ -22,7 +22,7 @@ function ProgramTimeEditor({ activity, excursion, stop, zone, cruise, onSaved, o
     try { startTime = wallTimeToInstant(start, zone) } catch (reason) { invalid.start = reason instanceof Error ? reason.message : 'Giờ bắt đầu chưa hợp lệ.' }
     try { endTime = wallTimeToInstant(end, zone) } catch (reason) { invalid.end = reason instanceof Error ? reason.message : 'Giờ kết thúc chưa hợp lệ.' }
     if (startTime && endTime && Date.parse(endTime) <= Date.parse(startTime)) invalid.end = 'Kết thúc phải sau bắt đầu.'
-    if (activity && (Date.parse(startTime) < Date.parse(cruise.departureDatetime) || Date.parse(endTime) > Date.parse(cruise.returnDatetime))) invalid.end = 'Hoạt động phải nằm trong thời gian chuyến đi.'
+    if (activity && (Date.parse(startTime) < Date.parse(cruise.departureDatetime) || Date.parse(endTime) > Date.parse(cruise.returnDatetime))) invalid.end = 'Hoạt động phải nằm trong thời gian chuyến khởi hành.'
     if (excursion && stop) { const issue = excursionIssue({ ...excursion, startTime, plannedReturnTime: endTime }, stop); if (issue) invalid.end = issue }
     if (location.trim().length > 250 || (excursion && !location.trim())) invalid.location = 'Điểm tập trung bắt buộc cho tham quan, tối đa 250 ký tự.'
     setErrors(invalid); setError('')
@@ -58,7 +58,7 @@ export function JourneyProgram({ day, activities, excursions, services, stops, p
   const editingZone = editing?.activity ? SHIP_TIME_ZONE : ports.find(port => port.portId === editingStop?.portId)?.timeZoneId
   return <div className={styles.programStack}>
     {savedNotice && <Notice title="Đã lưu chương trình" tone="success">{savedNotice}</Notice>}
-    {(access.canDo('ACTIVITY_READ') || access.roles.includes('CRUISE_MANAGER') && access.has('CRUISE_UPDATE_DRAFT')) && <Panel title="Hoạt động trên tàu" subtitle="Hoạt động đã cấu hình cho lần khởi hành. Giờ hiển thị theo giờ Việt Nam.">
+    {(access.canDo('ACTIVITY_READ') || access.roles.includes('CRUISE_MANAGER') && access.has('CRUISE_UPDATE_DRAFT')) && <Panel title="Hoạt động trên tàu" subtitle="Hoạt động đã cấu hình cho chuyến khởi hành. Giờ hiển thị theo giờ Việt Nam.">
       {editable && access.canDo('ACTIVITY_UPDATE') && <div className={styles.editorFields}>
         <Field htmlFor="program-search" label="Tìm hoạt động"><input id="program-search" type="search" value={search} onChange={event => setSearch(event.target.value)} /></Field>
         <Field htmlFor="program-picker" label="Hoạt động của chuyến"><select id="program-picker" value={selected} onChange={event => setSelected(event.target.value)}><option value="">Chọn hoạt động</option>{activities.filter(row => row.status === 'PLANNED' && (row.id === selected || row.name.toLocaleLowerCase('vi').includes(search.toLocaleLowerCase('vi')))).map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</select></Field>

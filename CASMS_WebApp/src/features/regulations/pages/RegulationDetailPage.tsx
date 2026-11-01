@@ -93,7 +93,7 @@ export function RegulationDetailPage() {
         <Panel title="Thông tin quy định">
           <dl className={styles.regulationFacts}>
             <dt>Thời gian hiệu lực · Giờ Việt Nam</dt><dd>{formatDateTime(data.regulation.effectiveFrom)} → {formatDateTime(data.regulation.effectiveTo)}</dd>
-            <dt>Phạm vi áp dụng</dt><dd>{scopeLabels[data.regulation.scope]}{data.regulation.scope==='GLOBAL'?<p className={styles.muted}>Tự động áp dụng khi có hiệu lực; không cần gán riêng.</p>:<p className={styles.muted}>Quản lý liên kết tại phần quy định của tàu hoặc lần khởi hành.</p>}</dd>
+            <dt>Phạm vi áp dụng</dt><dd>{scopeLabels[data.regulation.scope]}{data.regulation.scope==='GLOBAL'?<p className={styles.muted}>Tự động áp dụng khi có hiệu lực; không cần gán riêng.</p>:<p className={styles.muted}>Quản lý liên kết tại phần quy định của tàu hoặc chuyến khởi hành.</p>}</dd>
             <dt>Giá trị quy định</dt><dd>{typeLabels[data.regulation.type]} = {regulationValue(data.regulation)}</dd>
             {data.regulation.description && <><dt>Mô tả</dt><dd>{data.regulation.description}</dd></>}
           </dl>
@@ -122,7 +122,7 @@ export function RegulationDetailPage() {
         <Button tone="secondary" disabled={busy} onClick={() => setDeleteOpen(false)} data-overlay-dismiss>Quay lại</Button>
         <Button tone="danger" disabled={busy} onClick={() => void handleDelete()}>{busy ? 'Đang xóa…' : 'Xác nhận xóa'}</Button>
       </div>}>
-      <p>Chỉ có thể xóa quy định chưa có liên kết với tàu hoặc lần khởi hành.</p>
+      <p>Chỉ có thể xóa quy định chưa có liên kết với tàu hoặc chuyến khởi hành.</p>
       {error && <Notice title="Không thể xóa" tone="error">{error}</Notice>}
 
     </Modal>}

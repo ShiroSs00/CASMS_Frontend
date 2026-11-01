@@ -86,7 +86,7 @@ export function createMockCruiseAdapter() {
       return {
         ship: clone(ship),
         state: 'REQUIRES_IMPACT_CHECK',
-        reasons: ['Cruise đã có booking; cần kiểm cabin, facility, activity và service phụ thuộc.'],
+        reasons: ['Cruise đã có đặt chỗ; cần kiểm cabin, facility, activity và service phụ thuộc.'],
       }
     }
     return { ship: clone(ship), state: 'AVAILABLE', reasons: ['Tàu đủ điều kiện khai thác, đủ sức chứa và không có lịch chồng.'] }

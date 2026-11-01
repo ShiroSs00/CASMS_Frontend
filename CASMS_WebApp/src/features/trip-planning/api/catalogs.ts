@@ -33,7 +33,7 @@ export async function planningSources(kind:SourceKind,signal:AbortSignal,query:S
   return values.map(row=>{
     const source=identity(row,kind==='ports'?'portId':kind==='activities'?'sourceActivityId':kind==='excursions'?'sourceExcursionId':'serviceId',kind==='ports'?'portName':kind==='activities'?'activityName':kind==='excursions'?'excursionName':'serviceName')
     const code=text(row,kind==='ports'?'portCode':kind==='activities'?'activityCode':kind==='excursions'?'excursionCode':'serviceCode')
-    const context=[code,kind==='excursions'?text(row,'portName'):undefined,kind==='excursions'?text(row,'supplierName'):undefined].filter(Boolean)
+    const context=[code,kind==='ports'?text(row,'countryCode'):undefined,kind==='ports'?text(row,'localityName'):undefined,kind==='excursions'?text(row,'portName'):undefined,kind==='excursions'?text(row,'supplierName'):undefined].filter(Boolean)
     return {...source,label:context.length?`${source.name} · ${context.join(' · ')}`:source.name,
       timeZoneId:text(row,'timeZoneId'),portId:text(row,'portId'),countryCode:text(row,'countryCode'),domesticRegion:text(row,'domesticRegion'),
       destinationId:text(row,'destinationId'),destinationName:text(row,'destinationName'),supplierName:text(row,'supplierName'),

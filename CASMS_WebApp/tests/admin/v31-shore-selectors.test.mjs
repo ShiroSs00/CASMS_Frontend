@@ -1,24 +1,18 @@
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+
 import test from 'node:test'
-import vm from 'node:vm'
-import ts from 'typescript'
+
+
 const root = new URL('../../src/features/', import.meta.url)
 const jsx = (type, props) => ({ type, props })
-function load(file, imports = {}) {
-  const module = { exports: {} }
-  vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 } }).outputText, { module, exports: module.exports, Intl, Date, require(id) {
-    if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
-    if (id.endsWith('.module.css')) return { default: {} }
-    assert.ok(Object.hasOwn(imports, id), id); return imports[id]
-  } }); return module.exports
-}
+function load(file, imports = {}) { return loadSource(new URL(file, root), { 'react/jsx-runtime': { jsx: jsx, jsxs: jsx, Fragment: 'Fragment' }, ...imports }, {}); }
 test('excursion window respects planned call, all-aboard deadline and available Tender transfer duration', () => {
   const { validateExcursionWindow } = load('shore-excursions/api/excursion-context-api.ts', { '@/shared/api': {} })
   const stop = { plannedArrival: '2026-10-21T01:00:00Z', plannedDeparture: '2026-10-21T09:00:00Z', allAboardTime: '2026-10-21T08:00:00Z', arrivalMethod: 'TENDER', tenderTransferMinutes: 20 }
   assert.ok(validateExcursionWindow('2026-10-21T01:10:00Z', '2026-10-21T07:00:00Z', stop))
   assert.ok(validateExcursionWindow('2026-10-21T02:00:00Z', '2026-10-21T08:30:00Z', stop))
-  assert.equal(validateExcursionWindow('2026-10-21T02:00:00Z', '2026-10-21T07:00:00Z', stop), '')
+  assert.deepEqual(validateExcursionWindow('2026-10-21T02:00:00Z', '2026-10-21T07:00:00Z', stop), {})
   assert.ok(validateExcursionWindow('bad', 'bad', stop)); assert.ok(validateExcursionWindow('2026-10-21T02:00:00Z', '2026-10-21T07:00:00Z'))
 })
 test('context uses real paged itineraries and stop/port names; missing context never becomes successful empty data', async () => {
@@ -27,17 +21,17 @@ test('context uses real paged itineraries and stop/port names; missing context n
     if (url === '/ports/active') return [{ portId: 'p1', portName: 'Cảng QA' }]
     return [{ cruiseStopId: 's1', portId: 'p1', stopOrder: 1, plannedArrival: '2026-10-21T01:00:00Z', plannedDeparture: '2026-10-21T09:00:00Z' }]
   } } })
-  assert.equal((await excursionContextApi.stops())[0].label, 'Hạ Long · Điểm 1 · Cảng QA')
+  assert.equal((await excursionContextApi.stops())[0].label, 'Hạ Long · Lần ghé 1 · Cảng QA · 08:00:00 21/10/2026')
   const broken = load('shore-excursions/api/excursion-context-api.ts', { '@/shared/api': { apiRequest: async () => { throw Error('HTTP 403') } } })
   await assert.rejects(broken.excursionContextApi.stops(), /403/)
 })
 function nodes(tree) { return Array.isArray(tree) ? tree.flatMap(nodes) : tree && typeof tree === 'object' ? [tree, ...nodes(tree.props?.children), ...nodes(tree.props?.footer)] : [] }
 const primitives = Object.fromEntries(['Button', 'Field', 'Loading', 'Notice'].map(key => [key, key]))
 test('Create forms render real entity selects, no UUID entry, and omit saving without permission', () => {
-  const react = { useState: initial => [typeof initial === 'function' ? initial() : initial, () => {}] }
-  const shared = { react, 'react-router': { Link: 'Link' }, '@/shared/ui': primitives, '@/shared/auth': { useSessionAccess: () => ({ has: () => false }) }, '@/shared/api': { useReadQuery: () => ({ data: null, loading: false, error: Error('403'), retry() {} }) } }
+  const react = {useCallback:fn=>fn,useRef:value=>({current:value}),useEffect(){}, useState: initial => [typeof initial === 'function' ? initial() : initial, () => {}] }
+  const shared = { react, 'react-router': { Link: 'Link',useSearchParams:()=>[new URLSearchParams()] }, '@/shared/ui': primitives, '@/shared/auth': { useSessionAccess: () => ({has:()=>false,canDo:()=>false}) }, '@/shared/api': { useReadQuery: () => ({ data: null, loading: false, error: Error('403'), retry() {} }) } }
   const model = load('shore-excursions/model/shore-excursion.ts')
-  const { ExcursionForm } = load('shore-excursions/components/ExcursionForm.tsx', { ...shared, '../model/shore-excursion': model, '../api/excursion-context-api': { excursionContextApi: {} } })
+  const { ExcursionForm } = load('shore-excursions/components/ExcursionForm.tsx', { ...shared, '../model/shore-excursion': model, '../api/excursion-context-api': load('shore-excursions/api/excursion-context-api.ts',{'@/shared/api':{}}) })
   const excursion = nodes(ExcursionForm({ busy: false, onSave() {} }))
   for (const field of ['cruiseStopId', 'supplierId']) { assert.ok(excursion.some(node => node.type === 'select' && node.props.name === field)); assert.ok(!excursion.some(node => node.type === 'input' && node.props.name === field)) }
   assert.equal(excursion.some(node => node.type === 'Button' && node.props.type === 'submit'), false)
@@ -64,7 +58,7 @@ test('Supplier verification failure keeps the dialog and entered notes; permissi
   const model = load('suppliers/model/supplier-list.ts')
   const { SupplierDetail } = load('suppliers/components/SupplierDetail.tsx', {
     react: { useState(initial) { const i = index++; if (!(i in state)) state[i] = initial; return [state[i], next => { state[i] = next }] } },
-    'react-router': { Link: 'Link' }, '@/shared/ui': { Modal: 'Modal' }, '@/shared/auth': { useSessionAccess: () => ({ has: permission => permission === 'SUPPLIER_VERIFY' }) }, '../model/supplier-list': model,
+    'react-router': { Link: 'Link' }, '@/shared/ui': { Modal: 'Modal' }, '@/shared/auth': { useSessionAccess: () => ({ has: permission => permission === 'SUPPLIER_VERIFY',canDo:permission=>permission==='SUPPLIER_VERIFY' }) }, '../model/supplier-list': model,
   })
   const render = () => { index = 0; return nodes(SupplierDetail({ supplier: { id: 's', supplierName: 'Supplier QA', status: 'ACTIVE', verificationStatus: 'PENDING' }, onVerify: async () => { calls++; throw Error('HTTP 500') } })) }
   render().find(node => node.type === 'button' && node.props.children === 'Xác minh nhà cung cấp').props.onClick()

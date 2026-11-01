@@ -81,21 +81,21 @@ export function ItineraryFormPage() {
   return <ItineraryFrame>
     <PageHeader breadcrumb="LẬP CHUYẾN ĐI / LỊCH TRÌNH" title={editing ? 'Chỉnh sửa lịch trình' : 'Tạo lịch trình'}  />
     <JourneySteps current={1} cruiseId={draft.cruiseId || undefined} itineraryId={itineraryId} />
-    {existing && <Notice title="Chuyến đi đã có lịch trình"><p>Tiếp tục chỉnh sửa lịch trình hiện có để tránh tạo trùng.</p><ButtonLink to={`/admin/itineraries/${existing.itineraryId}`}>Mở lịch trình</ButtonLink></Notice>}
+    {existing && <Notice title="Chuyến khởi hành đã có lịch trình"><p>Tiếp tục chỉnh sửa lịch trình hiện có để tránh tạo trùng.</p><ButtonLink to={`/admin/itineraries/${existing.itineraryId}`}>Mở lịch trình</ButtonLink></Notice>}
     {!access.canDo(editing ? 'ITINERARY_UPDATE_DRAFT' : 'ITINERARY_CREATE') && <Notice title="Chưa có quyền lưu lịch trình" tone="warning">{access.status === 'loading' ? 'Đang tải quyền tài khoản…' : access.error || 'Tài khoản chưa có quyền tạo hoặc sửa lịch trình.'}</Notice>}
     {editing && !recordReady && !error && <Loading label="Đang tải lịch trình…" />}
     {!context && !contextError && <Loading label="Đang tải chuyến và lịch trình…" />}
     {contextError && <Notice title="Chưa tải đủ thông tin chuyến" tone="error"><p>{contextError}</p><Button onClick={() => setAttempt(value => value + 1)}>Thử lại</Button></Notice>}
-    {context && !editing && !eligible.length && <Notice title="Chưa có chuyến để tạo lịch trình"><p>Chưa có chuyến đi hoặc các chuyến hiện có đã có lịch trình.</p><ButtonLink to="/admin/cruises/new">Tạo chuyến đi</ButtonLink><ButtonLink to="/admin/itineraries" tone="secondary">Xem lịch trình hiện có</ButtonLink></Notice>}
-    <p>Ngày đầu và ngày cuối lấy từ ngày khởi hành và ngày kết thúc của lần khởi hành theo giờ tàu Việt Nam. Lịch trình một ngày có cùng ngày bắt đầu và kết thúc.</p>
+    {context && !editing && !eligible.length && <Notice title="Chưa có chuyến để tạo lịch trình"><p>Chưa có chuyến khởi hành hoặc các chuyến hiện có đã có lịch trình.</p><ButtonLink to="/admin/cruises/new">Tạo chuyến khởi hành</ButtonLink><ButtonLink to="/admin/itineraries" tone="secondary">Xem lịch trình hiện có</ButtonLink></Notice>}
+    <p>Ngày đầu và ngày cuối lấy từ ngày khởi hành và ngày kết thúc của chuyến khởi hành theo giờ tàu Việt Nam. Lịch trình một ngày có cùng ngày bắt đầu và kết thúc.</p>
     <EditorLayout ><form ref={form} onSubmit={submit} noValidate><Panel title="Thông tin lịch trình"><div className={styles.formGrid}>
       {!editing && <Field htmlFor="cruise-search" label="Tìm chuyến theo tên hoặc mã"><input id="cruise-search" type="search" value={search} onChange={event => setSearch(event.target.value)} /></Field>}
-      <Field htmlFor="itinerary-cruiseId" label="Chuyến đi *" error={errors.cruiseId}>
+      <Field htmlFor="itinerary-cruiseId" label="Chuyến khởi hành *" error={errors.cruiseId}>
         {editing ? <input id="itinerary-cruiseId" name="cruiseId" readOnly value={cruise ? `${cruise.cruiseCode} · ${cruise.cruiseName}` : 'Chưa tải được chuyến liên kết'} />
-          : <select {...field('cruiseId')} value={draft.cruiseId} disabled={!context || Boolean(contextError)} onChange={event => update('cruiseId', event.target.value)} required><option value="">Chọn chuyến đi</option>{options.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}</select>}
+          : <select {...field('cruiseId')} value={draft.cruiseId} disabled={!context || Boolean(contextError)} onChange={event => update('cruiseId', event.target.value)} required><option value="">Chọn chuyến khởi hành</option>{options.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}</select>}
       </Field>
       {cruise && <p>Khoảng ngày chuyến (giờ Việt Nam): {zonedInput(cruise.departureDatetime, SHIP_TIME_ZONE).slice(0,10)} → {zonedInput(cruise.returnDatetime, SHIP_TIME_ZONE).slice(0,10)}. <ButtonLink to={`/admin/cruises/${cruise.cruiseId}`} tone="secondary">Xem chuyến</ButtonLink></p>}
-      <Field htmlFor="itinerary-itineraryName" label="Tên lịch trình" hint={editing ? undefined : "Để trống để tạo tên theo chuyến đi."} error={errors.itineraryName}><input {...field('itineraryName')} maxLength={200} value={draft.itineraryName} onChange={event => update('itineraryName', event.target.value)} required={editing} /></Field>
+      <Field htmlFor="itinerary-itineraryName" label="Tên lịch trình" hint={editing ? undefined : "Để trống để tạo tên theo chuyến khởi hành."} error={errors.itineraryName}><input {...field('itineraryName')} maxLength={200} value={draft.itineraryName} onChange={event => update('itineraryName', event.target.value)} required={editing} /></Field>
       <Field htmlFor="itinerary-startDate" label="Ngày bắt đầu" hint={[
         'Lấy từ ngày khởi hành của chuyến.',
         cruise ? `Khởi hành theo Cruise: ${cruiseTime(cruise.departureDatetime)} (giờ Việt Nam). Giờ tham chiếu, không lưu riêng trong lịch trình.` : '',

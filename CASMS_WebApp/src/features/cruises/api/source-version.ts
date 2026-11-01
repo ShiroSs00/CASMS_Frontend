@@ -1,10 +1,11 @@
 import type { ItineraryDayRole } from '@/domain/itinerary-day'
 import { apiRequest, ApiError } from '@/shared/api'
+import { validDurationDays } from '@/domain/trip-duration'
 export type SourceDay={dayNumber:number;dayRole?:ItineraryDayRole;departurePortId?:string|null;departurePortName?:string|null;plannedDepartureTime?:string|null;dayType:string|null;title:string|null;shipTimeZoneId:string}
 export type SourceStop={clientKey:string;portName?:string;stopOrder:number;arrivalDayNumber:number;departureDayNumber:number;plannedArrivalTime:string|null;plannedDepartureTime:string|null;timeZoneId?:string;allAboardDayNumber?:number|null;allAboardTime?:string|null;isEmbarkation?:boolean;isDisembarkation?:boolean;arrivalMethod?:string;callType?:string}
 export type SourceEntry={entryId?:string;clientKey:string;title:string;kind:'ONBOARD_ACTIVITY'|'SHORE_EXCURSION'|'SERVING_WINDOW';startDayNumber:number;endDayNumber:number;plannedStartTime:string;plannedEndTime:string;timeZoneId:string;locationText:string|null;meetingPoint:string|null;notes?:string|null;displayLocation?:string|null;categoryName?:string|null;referenceShipName?:string|null}
 type SourceVersionDto={versionId:string;versionNumber:number;revision?:number|null;tripId:string;status:string;days:SourceDay[];stops:SourceStop[];entries:SourceEntry[]}
-type SourceTripDto={tripId:string;tripCode:string;name:string;status:string;description?:string|null}
+type SourceTripDto={tripId:string;tripCode:string;name:string;status:string;description?:string|null;durationGroup?:string|null;durationDays?:number|null;durationNights?:number|null}
 
 export async function readPublishedSource(versionId: string, signal?: AbortSignal, readOnlyHistory=false) {
   const version = await apiRequest<SourceVersionDto>('/trip-schedule-versions/' + encodeURIComponent(versionId), {signal})
@@ -15,7 +16,10 @@ export async function readPublishedSource(versionId: string, signal?: AbortSigna
   if(trip.status==='ARCHIVED'&&!readOnlyHistory)throw new ApiError('Chuyến đi nguồn đã lưu trữ. Chọn phiên bản của chuyến còn sử dụng.',422,'TRIP_ARCHIVED')
   if(!Array.isArray(version.days)||!version.days.length||version.days.some(d=>!d||typeof d!=='object'||!Number.isSafeInteger(d.dayNumber))||!Array.isArray(version.stops)||version.stops.some(v=>!v||typeof v!=='object'||!v.clientKey||!Number.isSafeInteger(v.arrivalDayNumber)||!Number.isSafeInteger(v.departureDayNumber))||!Array.isArray(version.entries)||version.entries.some(v=>!v||typeof v!=='object'||!v.clientKey||typeof v.title!=='string'||!['ONBOARD_ACTIVITY','SHORE_EXCURSION','SERVING_WINDOW'].includes(v.kind)))throw new ApiError('Nội dung phiên bản nguồn chưa đầy đủ. Chưa thể tạo chuyến khởi hành từ bản này.',502)
   if(version.revision!=null&&(!Number.isSafeInteger(version.revision)||version.revision<0))throw new ApiError('Revision nguồn chưa hợp lệ.',502)
-  return {tripStatus:trip.status,revision:version.revision??null,description:trip.description??null,days:version.days,stops:version.stops,entries:version.entries,versionId:version.versionId,versionNumber:version.versionNumber,status:version.status,tripId:trip.tripId,tripCode:trip.tripCode,tripName:trip.name}
+  if(!readOnlyHistory&&(version.revision==null||version.revision<1))throw new ApiError('Phiên bản nguồn chưa có revision hợp lệ. Tải lại nguồn trước khi tạo chuyến.',422,'SOURCE_REVISION_REQUIRED')
+  if(!readOnlyHistory&&version.entries.some(entry=>entry.kind==='SERVING_WINDOW'))throw new ApiError('Mẫu đã chốt có khung phục vụ lịch sử. Chưa thể tạo chuyến từ nguồn này khi CR-REVIEW-04 chưa được quyết định.',409,'LEGACY_SOURCE_MATERIALIZATION_BLOCKED')
+  if(!readOnlyHistory&&(!validDurationDays(trip.durationGroup,trip.durationDays)||trip.durationNights==null||!Number.isSafeInteger(trip.durationNights)||trip.durationNights<0||trip.durationNights>trip.durationDays!||version.days.length!==trip.durationDays||new Set(version.days.map(d=>d.dayNumber)).size!==trip.durationDays||version.days.some(d=>d.dayNumber<1||d.dayNumber>trip.durationDays!)))throw new ApiError('Thời lượng nguồn thiếu hoặc không khớp nhóm và số ngày lịch trình. Kiểm tra lại chuyến đi nguồn trước khi tạo chuyến khởi hành.',422,'SOURCE_DURATION_INVALID')
+  return {tripStatus:trip.status,revision:version.revision??null,description:trip.description??null,durationGroup:trip.durationGroup??null,durationDays:trip.durationDays??null,durationNights:trip.durationNights??null,days:version.days,stops:version.stops,entries:version.entries,versionId:version.versionId,versionNumber:version.versionNumber,status:version.status,tripId:trip.tripId,tripCode:trip.tripCode,tripName:trip.name}
 }
 
 export type EligibleSource = {

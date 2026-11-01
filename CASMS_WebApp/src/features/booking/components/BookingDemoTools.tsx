@@ -12,7 +12,7 @@ export function BookingDemoTools() {
  function choose<K extends keyof BookingScenario>(key:K,value:BookingScenario[K]) {setScenario(old=>({...old,[key]:value}))}
  return <aside className={s.demoTools} aria-label="Môi trường mô phỏng">
   <details><summary>DEMO · Dữ liệu mô phỏng</summary><div>
-   <p>Chuyến, chỗ trống và booking là dữ liệu mẫu. Chưa kết nối dịch vụ đặt chỗ.</p>
+   <p>Chuyến, chỗ trống và đặt chỗ là dữ liệu mẫu. Chưa kết nối dịch vụ đặt chỗ.</p>
    {import.meta.env.DEV&&<>
     <label>Phản hồi mô phỏng<select value={scenario.action} onChange={e=>choose('action',e.target.value as BookingScenario['action'])}>{['missing','received','validation','conflict','network-error','unknown','no-access','expired'].map(x=><option key={x}>{x}</option>)}</select></label>
     <button disabled={!draft.selectedCabinCategory} onClick={()=>choose('unavailableCategory',draft.selectedCabinCategory)}>Mô phỏng cabin đang chọn hết chỗ</button>

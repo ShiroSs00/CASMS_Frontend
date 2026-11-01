@@ -10,7 +10,7 @@ export type AdminWorkspace = {
   action: { label: string; to: string; permission: string };
 }
 const tools: readonly AdminNavigationItem[] = [
-  { label:'Kế hoạch chờ OPS xét duyệt', to:'/admin/cruise-plan-reviews', permissionMode:'ALL', permissions:['CRUISE_READ','ITINERARY_APPROVE'] },
+  { label:'Kế hoạch chờ Quản lý vận hành xét duyệt', to:'/admin/cruise-plan-reviews', permissionMode:'ALL', permissions:['CRUISE_READ','ITINERARY_APPROVE'] },
   { label:'Chuyến đi', to:'/admin/trips', permissionMode:'ALL', permissions:['TRIP_READ'] },
   { label:'Hành khách trên tàu', to:'/admin/passenger-tracking', permissionMode:'ALL', permissions:['SHIP_READ','BLE_TELEMETRY_READ'] },
   { label:'Sơ đồ tàu 3D', to:'/admin/ship-models', permissionMode:'ALL', permissions:['SHIP_READ','SHIP_MODEL_READ'] },
@@ -18,8 +18,8 @@ const tools: readonly AdminNavigationItem[] = [
   { label:'Thiết lập cấu trúc tàu', to:'/admin/ship-import', permissionMode:'ANY', permissions:['SHIP_UPDATE','SHIP_MODEL_CREATE'] },
   { label:'Tài khoản nhân sự', to:'/admin/system', permissionMode:'ANY', permissions:['USER_READ'] },
   { label:'Đặt chỗ', to:'/admin/bookings', permissionMode:'ANY', permissions:['BOOKING_READ'] },
-  { label:'Điểm đến', to:'/admin/destinations', permissionMode:'ANY', permissions:['DESTINATION_READ'] },
-  { label:'Cảng', to:'/admin/ports', permissionMode:'ANY', permissions:['PORT_READ'] },
+  { label:'Quản lý điểm đến', to:'/admin/destinations', permissionMode:'ANY', permissions:['DESTINATION_READ'] },
+  { label:'Quản lý cảng', to:'/admin/ports', permissionMode:'ANY', permissions:['PORT_READ'] },
   { label:'Tàu', to:'/admin/ships', permissionMode:'ANY', permissions:['SHIP_READ'] },
   { label:'Boong', to:'/admin/decks', permissionMode:'ANY', permissions:['DECK_READ','CABIN_READ'] },
   { label:'Cabin', to:'/admin/cabins', permissionMode:'ANY', permissions:['CABIN_READ'] },
@@ -40,7 +40,7 @@ const tools: readonly AdminNavigationItem[] = [
 ]
 export const adminWorkspaces: readonly AdminWorkspace[] = [
   { id:'schedule', title:'Quản lý lịch trình', shortTitle:'Lịch trình',
-    description:'Lập và chốt lịch trình mẫu; gửi kế hoạch khởi hành để OPS xét duyệt.',
+    description:'Lập và chốt lịch trình mẫu; gửi kế hoạch khởi hành để Quản lý vận hành xét duyệt.',
     responsibility:'Chuyến đi · Lịch trình nguồn · Chuyến khởi hành', permissions:['TRIP_READ','CRUISE_READ'],
     tools:['trips','cruises'],
     steps:['Tạo thông tin chuyến và chọn thời lượng, phạm vi.','Sắp xếp các ngày và lần ghé cảng.','Bổ sung hoạt động, tham quan và khung phục vụ.',businessCopy('workspace.crm.finalizeStep'),businessCopy('workspace.crm.departureStep')],
@@ -80,7 +80,7 @@ export const adminToolDescriptions: Record<string,string> = {
   cruises:'Ngày khởi hành, tàu được phân công và vòng đời chuyến đi.', itineraries:'Lịch từng ngày, cảng ghé và thời gian dừng.',
   destinations:'Thông tin điểm đến và quốc gia trong tuyến đi.', ports:'Cảng và thông tin phục vụ lịch trình.',
   ships:'Trạng thái đội tàu và mức sẵn sàng vận hành.', decks:'Cấu trúc boong và liên kết với từng tàu.',
-  cabins:'Loại cabin, sức chứa và trạng thái sử dụng.', bookings:'Đặt chỗ, hành khách và hợp đồng.',
+  cabins:'Loại phòng, sức chứa và trạng thái sử dụng.', bookings:'Đặt chỗ, hành khách và hợp đồng.',
   issues:'Ghi nhận, theo dõi và xử lý sự cố.', regulations:'Quy định áp dụng cho tàu và chuyến đi.',
   suppliers:'Thông tin đối tác và dịch vụ cung ứng.', 'shore-excursions':'Chuyến tham quan theo lịch ghé cảng.',
   'tour-groups':'Nhóm hành khách và điều phối tour.', activities:'Hoạt động, sức chứa và đăng ký trên tàu.',
@@ -138,6 +138,7 @@ export function adminPathRequirements(pathname: string, search = ''): readonly P
   const section = pathname.split('/')[2]
   const tool = tools.find(item => item.to === '/admin/' + section)
   const requirements: PermissionRequirement[] = [{ mode: tool?.permissionMode ?? 'ANY', permissions }]
+  if (['ports','destinations'].includes(section) && (pathname.split('/')[3]==='new'||pathname.split('/')[4]==='edit')) requirements.push({mode:'ALL',permissions:[],roles:['OPERATIONS_MANAGER']})
   if (section === 'passenger-tracking') requirements.push({ mode: 'ALL', permissions: [], roles: ['SHIP_MANAGER'] })
   if (section === 'ship-import') return [{ mode: 'ALL', permissions: [], anyOf: [
     { mode: 'ALL', permissions: ['SHIP_UPDATE'] },

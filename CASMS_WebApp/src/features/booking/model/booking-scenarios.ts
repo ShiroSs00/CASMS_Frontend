@@ -23,7 +23,7 @@ export function previewBooking(booking:Booking, scenario:BookingScenario):Bookin
 export function mockActionResult(capability:MissingCapability, scenario:MockAction):ActionResult {
  if(scenario==='missing'||['payment-start','payment-status','contract-read','contract-accept','boarding-pass'].includes(capability))return {state:'missing',message:'Chức năng này chưa kết nối dịch vụ. Yêu cầu chưa được gửi; thông tin bạn nhập vẫn được giữ lại.'}
  const messages = {
-  received:'Mô phỏng đã tiếp nhận. Yêu cầu chưa được gửi lên hệ thống; booking và thanh toán không thay đổi.',
+  received:'Mô phỏng đã tiếp nhận. Yêu cầu chưa được gửi lên hệ thống; đặt chỗ và thanh toán không thay đổi.',
   validation:'Mô phỏng dữ liệu chưa hợp lệ. Kiểm tra thông tin và gửi lại; bản nháp vẫn được giữ.',
   conflict:'Mô phỏng xung đột dữ liệu. Kiểm tra lại lựa chọn trước khi gửi; bản nháp vẫn được giữ.',
   'network-error':'Mô phỏng lỗi kết nối trước khi gửi. Dữ liệu vẫn được giữ để thử lại.',

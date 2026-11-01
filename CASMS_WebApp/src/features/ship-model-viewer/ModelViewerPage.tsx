@@ -43,7 +43,7 @@ function Explore({ship,model,manifest}:{ship:string;model:string;manifest:Manife
       <div className={styles.cabinList}>{cabins.map(value=><button key={value.id} aria-pressed={cabinId===value.id} onClick={()=>chooseCabin(value)}><strong>{value.cabinNumber}</strong></button>)}{!cabins.length&&<p className={styles.note}>Không tìm thấy phòng.</p>}</div></>}
       </>}
     </aside>
-    <div className={styles.sceneColumn}><div className={styles.sceneHeading}><div><span>{deck?`${deck.number<=0?'TẦNG KỸ THUẬT':'BOONG'} ${deck.number}`:'TỔNG THỂ'}</span><h2>{deck?.name??manifest.name}</h2></div>{!deck&&<label className={styles.toggle}><input type="checkbox" checked={full} onChange={event=>setFull(event.target.checked)}/>Toàn bộ cấu trúc</label>}</div>
+    <div className={styles.sceneColumn}><div className={styles.sceneHeading}><div><span>{deck?`${deck.number<=0?'BOONG KỸ THUẬT':'BOONG'} ${deck.number}`:'TỔNG THỂ'}</span><h2>{deck?.name??manifest.name}</h2></div>{!deck&&<label className={styles.toggle}><input type="checkbox" checked={full} onChange={event=>setFull(event.target.checked)}/>Toàn bộ cấu trúc</label>}</div>
 
       {file?<ModelCanvas key={`${model}:${file}`} ship={ship} model={model} file={file} autoFocusSelection selectionLabel={(area?serviceName(area):undefined)??(cabin?`Phòng ${cabin.cabinNumber}`:deck?.name)} selectionContext={deck?`Boong ${deck.number} · ${deck.name}`:undefined} selected={area?.nodeName??cabin?.nodeName??deck?.nodeName??''} onPick={pick}/>:<Notice title="Chưa có sơ đồ 3D" tone="warning">Không có dữ liệu hiển thị.</Notice>}
       <div className={styles.sceneLegend}><span><i/> {area?'Khu vực dịch vụ được chọn':cabin?'Phòng được chọn':'Đối tượng được chọn'}</span></div>

@@ -1,20 +1,11 @@
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import vm from 'node:vm'
+
+
 import test from 'node:test'
-import ts from 'typescript'
+
 const jsx = (type, props) => ({ type, props })
-function load(file, imports) {
-  const module = { exports: {} }
-  const source = ts.transpileModule(readFileSync(new URL('../../src/' + file, import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 } }).outputText.replaceAll('import.meta.env.DEV','false')
-  vm.runInNewContext(source, { URL, URLSearchParams, module, exports: module.exports, require(id) {
-    if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
-    if (id.endsWith('.module.css')) return { default: {} }
-    assert.ok(Object.hasOwn(imports, id), id)
-    return imports[id]
-  } })
-  return module.exports
-}
+function load(file, imports) { return loadSource(new URL('../../src/' + file, import.meta.url), { 'react/jsx-runtime': { jsx: jsx, jsxs: jsx, Fragment: 'Fragment' }, ...imports }, {}); }
 function nodes(tree) {
   if (Array.isArray(tree)) return tree.flatMap(nodes)
   return tree && typeof tree === 'object' ? [tree, ...nodes(tree.props?.children)] : []
@@ -64,9 +55,9 @@ test('ship list does not offer manual creation even when SHIP_CREATE is granted 
 
 const workspaceModel = load('shared/ui/admin-v3/admin-navigation.ts', {})
 function guard(pathname, permissions, status = 'ready', signedIn = true, staff = true, roles = ['ACTIVITY_SERVICE_MANAGER']) {
-  const access = { status, userId:'fixture', permissions, error:'Offline', has:permission=>permissions.includes(permission) }
+  const access = { status, roles, userId:'fixture', permissions, error:'Offline', has:permission=>permissions.includes(permission) }
   const { AdminGuard } = load('features/auth/guards.tsx', {
-    '@/shared/auth':{useSessionAccess:()=>access}, '@/shared/ui':{Loading:'Loading',Notice:'Notice'},
+    '@/shared/auth':{useSessionAccess:()=>access}, '@/shared/ui':{Loading:'Loading',Notice:'Notice',PageHeader:'PageHeader',ButtonLink:'ButtonLink'},
     '@/shared/ui/admin-v3':{...workspaceModel,AdminShell:'AdminShell'},
     'react-router':{Link:'Link',Outlet:'Outlet',Navigate:'Navigate',useLocation:()=>({pathname,search:'',hash:''})},
     react:{useState:value=>[value,()=>{}]},
@@ -78,11 +69,11 @@ function guard(pathname, permissions, status = 'ready', signedIn = true, staff =
 test('direct department links block unrelated staff before mounting business pages',()=>{
   const result=guard('/admin/ships',['SERVICE_READ'])
   assert.equal(result.type,'AdminShell')
-  assert.ok(nodes(result).some(node=>node.props?.title==='Bạn chưa được cấp quyền vào chức năng này'))
+  assert.ok(nodes(result).some(node=>node.props?.title==='Bạn không có quyền truy cập'))
   assert.ok(!nodes(result).some(node=>node.type==='Outlet'))
   assert.equal(guard('/admin/services',['SERVICE_READ']).type,'Outlet')
   assert.equal(guard('/admin/workspaces/shore',['EXCURSION_READ']).type,'AdminShell')
-  assert.equal(guard('/admin/workspaces/schedule',['ITINERARY_READ'],'ready',true,true,['CRUISE_MANAGER']).type,'Outlet')
+  assert.equal(guard('/admin/trips',['TRIP_READ'],'ready',true,true,['CRUISE_MANAGER']).type,'Outlet')
   assert.equal(guard('/admin',['SERVICE_READ']).type,'Outlet')
 })
 
@@ -103,11 +94,11 @@ test('department boundary preserves anonymous login and passenger denial',()=>{
 test('only assigned roles enter workspace homes, while operations can read and approve itineraries',()=>{
   const all=['ITINERARY_READ','SHIP_READ','EXCURSION_READ','SERVICE_READ']
   const personas={CRUISE_MANAGER:'schedule',SHIP_MANAGER:'operations',OPERATIONS_MANAGER:'operations',ACTIVITY_SERVICE_MANAGER:'services',ADMIN:'system'}
-  for(const [role,own] of Object.entries(personas)) for(const id of ['schedule','operations','services']) {
-    assert.equal(guard('/admin/workspaces/'+id,all,'ready',true,true,[role]).type,own===id?'Outlet':'AdminShell',role+' -> '+id)
+  for(const role of Object.keys(personas)) for(const id of ['schedule','operations','services']) {
+    assert.equal(guard('/admin/workspaces/'+id,all,'ready',true,true,[role]).type,'AdminShell',role+' -> '+id)
   }
   assert.equal(guard('/admin/system',['USER_READ'],'ready',true,true,['ADMIN']).type,'Outlet')
-  assert.equal(guard('/admin/itineraries/fixture',['ITINERARY_READ'],'ready',true,true,['OPERATIONS_MANAGER']).type,'Outlet')
+  assert.equal(guard('/admin/cruises/fixture',['CRUISE_READ'],'ready',true,true,['OPERATIONS_MANAGER']).type,'Outlet')
   assert.equal(guard('/admin/services/new',['SERVICE_READ'],'ready',true,true,['ACTIVITY_SERVICE_MANAGER']).type,'AdminShell')
   assert.equal(guard('/admin/services/new',['SERVICE_CREATE'],'ready',true,true,['ACTIVITY_SERVICE_MANAGER']).type,'Outlet')
 })
@@ -116,7 +107,7 @@ test('same-account permission refresh preserves admitted forms but never admits 
   let admitted='',status='ready',permissions=['SERVICE_READ'],pathname='/admin/services',userId='staff-a'
   const { AdminGuard }=load('features/auth/guards.tsx',{
     react:{useState:()=>[admitted,value=>{admitted=value}]},
-    '@/shared/auth':{useSessionAccess:()=>({status,userId,permissions,error:'',has:permission=>status==='ready'&&permissions.includes(permission)})},
+    '@/shared/auth':{useSessionAccess:()=>({status,userId,roles:['ACTIVITY_SERVICE_MANAGER'],permissions,error:'',has:permission=>status==='ready'&&permissions.includes(permission)})},
     '@/shared/ui':{Loading:'Loading',Notice:'Notice'}, '@/shared/ui/admin-v3':{...workspaceModel,AdminShell:'AdminShell'},
     'react-router':{Link:'Link',Outlet:'Outlet',Navigate:'Navigate',useLocation:()=>({pathname,search:'',hash:''})},
     './useAuth':{useAuth:()=>({user:{id:userId,roles:['ACTIVITY_SERVICE_MANAGER']},isStaff:true})}, './model/auth-types':{},

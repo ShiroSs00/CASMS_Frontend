@@ -44,7 +44,7 @@ export function ItineraryHistoryPage() {
     finally { lock.current = false; setBusy(false) }
   }
   return <ItineraryFrame>
-    <PageHeader breadcrumb="LẬP CHUYẾN / NHẬT KÝ" title="Nhật ký thay đổi lịch trình"  actions={<ButtonLink tone="secondary" to="/admin/cruises">Danh sách lần khởi hành</ButtonLink>} />
+    <PageHeader breadcrumb="LẬP CHUYẾN / NHẬT KÝ" title="Nhật ký thay đổi lịch trình"  actions={<ButtonLink tone="secondary" to="/admin/cruises">Danh sách chuyến khởi hành</ButtonLink>} />
     <Panel title="Tra cứu"><div className={styles.formGrid}>
       <Field htmlFor="history-itinerary" label="Lịch trình"><select id="history-itinerary" value={itineraryId} disabled={busy || plans.loading || Boolean(plans.error)} onChange={event => { setItineraryId(event.target.value); setStopId(''); setSelected(null); setConfirmed(false) }}><option value="">Tất cả lịch trình</option>{plans.data?.map(item => <option key={item.itineraryId} value={item.itineraryId}>{item.itineraryName} · {item.startDate}</option>)}</select></Field>
       <Field htmlFor="history-type" label="Loại thay đổi"><select id="history-type" value={changeType} disabled={busy} onChange={event => { setChangeType(event.target.value); setConfirmed(false) }}><option value="">Tất cả loại thay đổi</option>{Object.entries(types).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></Field>

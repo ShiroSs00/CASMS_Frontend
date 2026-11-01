@@ -54,7 +54,7 @@ export function DeckInfo({ deck }: { deck: Deck }) {
   return <>
     <Panel title="Thông tin boong"><Definition rows={[
       ['Số boong', deck.number], ['Tên boong', deck.name || 'Chưa đặt tên'],
-      ['Hệ số giá tầng', `${deck.priceMultiplier ?? 1.0}x (${(deck.priceMultiplier ?? 1.0) > 1 ? '+' + Math.round(((deck.priceMultiplier ?? 1.0) - 1) * 100) + '%' : 'Giá gốc'})`],
+      ['Hệ số điều chỉnh giá cơ sở theo boong', `${deck.priceMultiplier ?? 1.0} × giá cơ sở theo loại phòng`],
       ['Tàu', <>
         <Link className={styles.link} to={`/admin/ships/${deck.shipId}`}>{parent.data ? `${parent.data.code} · ${parent.data.name}` : 'Xem tàu liên kết'}</Link>
         <DataState loading={parent.loading} error={parent.error} retry={parent.retry} />
@@ -86,7 +86,7 @@ export function CabinInfo({ cabin }: { cabin: Cabin }) {
   const history = useApiQuery(`assignments:${cabin.id}`, load)
   return <>
     <Panel title="Thông tin cabin"><Definition rows={[
-      ['Số cabin', cabin.number], ['Loại cabin', cabinTypes[cabin.type]], ['Trạng thái', <StatusBadge status={cabin.status} />],
+      ['Số cabin', cabin.number], ['Loại phòng', cabinTypes[cabin.type]], ['Trạng thái', <StatusBadge status={cabin.status} />],
       ['Tàu', <><Link className={styles.link} to={`/admin/ships/${cabin.shipId}`}>{parentShip.data ? `${parentShip.data.code} · ${parentShip.data.name}` : 'Xem tàu liên kết'}</Link>
         <DataState loading={parentShip.loading} error={parentShip.error} retry={parentShip.retry} /></>],
       ['Boong', <><Link className={styles.link} to={`/admin/decks/${cabin.deckId}`}>{parentDeck.data ? `Boong ${parentDeck.data.number} · ${parentDeck.data.name || 'Chưa đặt tên'}` : 'Xem boong liên kết'}</Link>

@@ -11,9 +11,10 @@ function render(data, onApply) {
   const key = JSON.stringify(['version', '2026-11-01T08:00', 'context']), state = [{ key, sourceVersionId: 'version', instant: '2026-11-01T01:00:00Z' }, '', key, null]
   let slot = 0
   const module = { exports: {} }, imports = {
+    '@/domain/itinerary-day':{ItineraryDayBrowser:'ItineraryDayBrowser'},
     react: { useCallback: fn => fn, useState: () => [state[slot++], () => {}] },
     '@/shared/lib/journey-time': { SHIP_TIME_ZONE: 'Asia/Ho_Chi_Minh' },
-    '@/shared/api': { useReadQuery: () => ({ data, loading: false, error: null }) },
+    '@/shared/api': { ApiError:Error,useReadQuery: () => ({ data, loading: false, error: null }) },
     '@/shared/ui': { Button: 'Button', Modal: 'Modal', Notice: 'Notice', Panel: 'Panel' },
     '../api/departure-api': {}, '../model/cruise-validation': {},
     './DepartureData': { ReadState: 'ReadState', ScheduleContents: 'ScheduleContents' },
@@ -27,7 +28,7 @@ function render(data, onApply) {
   const modal = nodes(tree).find(node => node.type === 'Modal')
   return nodes(modal.props.footer).find(node => node.type === 'Button' && node.props.children === 'Áp dụng lịch này')
 }
-const schedule = (type = 'SEA_DAY') => ({ sourceVersionRevision: 1, returnDatetime: '2026-11-02T02:00:00Z', departurePortId: null, returnPortId: 'return-port', days: [{ dayNumber: 1, dayType: type, dayRole: 'DEPARTURE', shipTimeZoneId: 'Asia/Ho_Chi_Minh' }] })
+const schedule = (type = 'SEA_DAY') => ({ portCallWindowStatus:'PASS',materializationBlockers:[],sourceVersionRevision: 1, returnDatetime: '2026-11-02T02:00:00Z', departurePortId: null, returnPortId: 'return-port', days: [{ dayNumber: 1, dayType: type, dayRole: 'DEPARTURE', shipTimeZoneId: 'Asia/Ho_Chi_Minh' }] })
 test('sea departure preview can be applied without inventing a departure port', () => {
   const data = schedule(); let applied
   const button = render(data, value => { applied = value })

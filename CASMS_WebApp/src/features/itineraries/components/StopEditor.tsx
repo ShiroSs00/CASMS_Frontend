@@ -38,8 +38,8 @@ export function StopEditor({ itineraryId, stop, days, ports, destinations, stops
     const departureDay = departure ? days.find(day => day.date === zonedInput(departure, SHIP_TIME_ZONE).slice(0,10)) : undefined
     if (arrival && !arrivalDay) invalid.plannedArrival = 'Chưa có ngày lịch trình tương ứng theo giờ Việt Nam. Thêm ngày trước khi lưu cảng.'
     if (departure && !departureDay) invalid.plannedDeparture = 'Chưa có ngày rời tương ứng theo giờ Việt Nam. Thêm ngày trước khi lưu cảng.'
-    if (cruise && arrival && Date.parse(arrival) < Date.parse(cruise.departureDatetime)) invalid.plannedArrival = 'Giờ đến phải nằm trong thời gian chuyến đi.'
-    if (cruise && departure && Date.parse(departure) > Date.parse(cruise.returnDatetime)) invalid.plannedDeparture = 'Giờ rời phải nằm trong thời gian chuyến đi.'
+    if (cruise && arrival && Date.parse(arrival) < Date.parse(cruise.departureDatetime)) invalid.plannedArrival = 'Giờ đến phải nằm trong thời gian chuyến khởi hành.'
+    if (cruise && departure && Date.parse(departure) > Date.parse(cruise.returnDatetime)) invalid.plannedDeparture = 'Giờ rời phải nằm trong thời gian chuyến khởi hành.'
     if (arrival && departure && Date.parse(departure) <= Date.parse(arrival)) invalid.plannedDeparture = 'Giờ rời phải sau giờ đến.'
     if (arrivalDay && departureDay && days.some(day => day.dayNumber >= arrivalDay.dayNumber && day.dayNumber <= departureDay.dayNumber && day.dayType !== 'PORT_DAY')) invalid.plannedDeparture = 'Khoảng ghé cảng đi qua ngày trên biển. Chỉnh loại ngày trước khi lưu.'
     if (aboard && (Date.parse(aboard) <= Date.parse(arrival) || Date.parse(aboard) >= Date.parse(departure))) invalid.allAboardTime = 'Hạn trở lại phải sau giờ đến và trước giờ rời cảng.'

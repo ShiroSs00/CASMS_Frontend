@@ -131,7 +131,7 @@ export const typeLabels: Record<RegulationType, string> = {
 export const scopeLabels: Record<RegulationScope, string> = {
   GLOBAL: 'Toàn hệ thống',
   SHIP: 'Theo tàu',
-  CRUISE: 'Theo lần khởi hành',
+  CRUISE: 'Theo chuyến khởi hành',
 }
 
 export const statusLabels: Record<RegulationStatus, string> = {
@@ -175,7 +175,7 @@ export function regulationValue(regulation:Pick<Regulation,'value'|'unit'>){
  return [regulation.value,unit].filter(Boolean).join(' ')
 }
 export function regulationSource(source:string){
- return source.replace(/^GLOBAL(?=$|\s|\s*·)/,'Toàn hệ thống').replace(/^SHIP(?=$|\s|\s*·)/,'Tàu').replace(/^CRUISE(?=$|\s|\s*·)/,'Lần khởi hành')
+ return source.replace(/^GLOBAL(?=$|\s|\s*·)/,'Toàn hệ thống').replace(/^SHIP(?=$|\s|\s*·)/,'Tàu').replace(/^CRUISE(?=$|\s|\s*·)/,'Chuyến khởi hành')
 }
 
 export function formatDateTime(value:string|null){

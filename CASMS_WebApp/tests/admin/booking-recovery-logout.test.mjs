@@ -1,24 +1,13 @@
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import vm from 'node:vm'
+
+
 import test from 'node:test'
-import ts from 'typescript'
+
 
 const root = new URL('../../src/', import.meta.url)
 const jsx = (type, props) => ({ type, props })
-function load(file, imports, globals = {}) {
-  const module = { exports: {} }
-  const source = ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 },
-  }).outputText
-  vm.runInNewContext(source, { module, exports: module.exports, Date, Error, ...globals, require(id) {
-    if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
-    if (id.endsWith('.module.css')) return { default: {} }
-    assert.ok(Object.hasOwn(imports, id), 'Unexpected import: ' + id)
-    return imports[id]
-  } })
-  return module.exports
-}
+function load(file, imports, globals = {}) { return loadSource(new URL(file, root), { 'react/jsx-runtime': { jsx: jsx, jsxs: jsx, Fragment: 'Fragment' }, ...imports }, globals); }
 function nodes(tree) {
   if (Array.isArray(tree)) return tree.flatMap(nodes)
   if (!tree || typeof tree !== 'object') return []
@@ -44,7 +33,7 @@ const model = load('features/booking/api/real-booking-api.ts', { '@/shared/api':
 
 test('Booking validation rejects invalid dates and grouped overcapacity and keeps step one independent of passenger details', () => {
   const draft = { cruiseId: 'cr', currency: 'USD', paymentPlan: 'DEPOSIT', notes: '', passengers: [{ fullName: '', dateOfBirth: '', nationality: '', documentType: '', documentNumber: '', email: '', phoneNumber: '', cabinId: 'c', tourPackageId: '' }] }
-  const cruise = { cruiseId: 'cr', status: 'PUBLISHED', shipId: 's', departureDatetime: '2099-01-01T00:00:00Z' }
+  const cruise = { cruiseId: 'cr', status: 'PUBLISHED', sellable:true, shipId: 's', departureDatetime: '2099-01-01T00:00:00Z' }
   const cabins = [{ cabinId: 'c', cabinNumber: '101', capacity: 2, remainingCapacity: 1 }]
   assert.equal(Object.keys(model.bookingFieldErrors(draft, cruise, cabins, Date.now(), 1)).length, 0)
   assert.ok(model.bookingFieldErrors(draft, cruise, cabins)['person-0-fullName'])

@@ -1,14 +1,11 @@
+import { cruiseFixture } from '../helpers/cruise-fixture.mjs'
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import {readFileSync} from 'node:fs'
-import vm from 'node:vm'
-import ts from 'typescript'
-function load(file,imports={}) {
-  const module={exports:{}}
-  const source=ts.transpileModule(readFileSync(new URL('../../src/'+file,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2023}}).outputText
-  vm.runInNewContext(source,{module,exports:module.exports,Date,Intl,Error,require:id=>{assert.ok(Object.hasOwn(imports,id),id);return imports[id]}})
-  return module.exports
-}
+
+
+
+function load(file,imports={}) { return loadSource(new URL('../../src/'+file,import.meta.url), { 'react/jsx-runtime': { jsx: (type, props, key) => ({type, props, key}), jsxs: (type, props, key) => ({type, props, key}), Fragment: 'Fragment' }, ...imports }, {}); }
 class ApiError extends Error {constructor(message,status){super(message);this.status=status}}
 const validation=load('features/cruises/model/cruise-validation.ts')
 function client(handler){
@@ -20,16 +17,16 @@ const port=id=>({portId:id,portName:'Cảng '+id,countryCode:'VN',timeZoneId:'As
 const draft={cruiseCode:' ',cruiseName:' Chuyến thử ',cruiseType:'',departureDatetime:'2027-01-01T08:00',returnDatetime:'2027-01-10T18:00',departurePortId:'port-a',returnPortId:'port-d'}
 
 test('create sends scalar endpoint ports, Vietnam instants and lets BE infer omitted optional fields',async()=>{
-  const {api,calls}=client((path,options)=>({cruiseId:'saved',...options.body,status:'DRAFT'}))
-  await api.createCruise({...draft,shipId:'not-an-assignment',status:'PUBLISHED',returnPortIds:['not-a-BE-field']})
+  const {api,calls}=client((path,options)=>cruiseFixture({cruiseId:'saved',...options.body,status:'DRAFT',cruiseType:options.body.cruiseType||'MULTI_DAYS',departureDatetime:options.body.departureDatetime||'2027-01-01T01:00:00Z',returnDatetime:options.body.returnDatetime||'2027-01-10T11:00:00Z',departurePortId:options.body.departurePortId||'port-a',returnPortId:options.body.returnPortId||'port-d'}))
+  await api.createCruise({...draft,sourceVersionId:'v',shipId:'not-an-assignment',status:'PUBLISHED',returnPortIds:['not-a-BE-field']},crypto.randomUUID())
   assert.equal(calls.length,1)
   assert.equal(calls[0].path,'/cruise');assert.equal(calls[0].method,'POST')
-  assert.deepEqual(JSON.parse(JSON.stringify(calls[0].body)),{cruiseName:'Chuyến thử',departureDatetime:'2027-01-01T01:00:00.000Z',returnDatetime:'2027-01-10T11:00:00.000Z',departurePortId:'port-a',returnPortId:'port-d'})
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[0].body)),{cruiseName:'Chuyến thử',sourceVersionId:'v',departureDatetime:'2027-01-01T01:00:00.000Z',returnDatetime:'2027-01-10T11:00:00.000Z',departurePortId:'port-a',returnPortId:'port-d'})
   assert.equal(validation.localCruiseInput('2027-01-01T01:00:00Z'),'2027-01-01T08:00')
 })
 
 test('draft PATCH excludes generated code and ship assignment; explicit type follows BE DTO',async()=>{
-  const {api,calls}=client((path,options)=>({cruiseId:'saved',...options.body,status:'DRAFT'}))
+  const {api,calls}=client((path,options)=>cruiseFixture({cruiseId:'saved',...options.body,status:'DRAFT'}))
   await api.updateCruise('saved',{...draft,cruiseCode:'CUSTOM-CODE',cruiseType:'MULTI_DAYS'})
   assert.equal(calls[0].path,'/cruise/saved/draft');assert.equal(calls[0].method,'PATCH')
   assert.equal(calls[0].body.cruiseCode,undefined);assert.equal(calls[0].body.shipId,undefined)
@@ -61,7 +58,7 @@ test('ship choice lookup fetches every Spring page and rejects malformed paging'
 })
 
 test('cruise rows remain available when an independent ship supplement is forbidden',async()=>{
-  const row={cruiseId:'c',shipId:'s',cruiseName:'Chuyến có thật',departurePortId:'a',returnPortId:'b',status:'PUBLISHED'}
+  const row=cruiseFixture({cruiseId:'c',shipId:'s',cruiseName:'Chuyến có thật',departurePortId:'a',returnPortId:'b',status:'PUBLISHED'})
   const {api}=client(path=>{
     if(path==='/cruise')return{content:[row],totalPages:1,totalElements:1,number:0,size:4}
     if(path==='/ships/s')throw new ApiError('403 ship',403)

@@ -1,28 +1,17 @@
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+
 import test from 'node:test'
-import vm from 'node:vm'
-import ts from 'typescript'
+
+
 
 const root = new URL('../../src/', import.meta.url)
 const jsx = (type, props) => ({ type, props })
-function load(file, imports = {}, globals = {}) {
-  const module = { exports: {} }
-  vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2023, jsx: ts.JsxEmit.ReactJSX } }).outputText, {
-    module, exports: module.exports, Date, URL, URLSearchParams, ...globals,
-    require(id) {
-      if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
-      if (id.endsWith('.module.css')) return { default: {} }
-      assert.ok(Object.hasOwn(imports, id), id)
-      return imports[id]
-    },
-  })
-  return module.exports
-}
+function load(file, imports = {}, globals = {}) { return loadSource(new URL(file, root), { 'react/jsx-runtime': { jsx: jsx, jsxs: jsx, Fragment: 'Fragment' }, ...imports }, globals); }
 const types = load('features/auth/model/auth-types.ts')
 
 test('web login admits admins, managers and booking agents, including mixed-role accounts', () => {
-  const allowed = ['ADMIN', 'CRUISE_MANAGER', 'SHIP_MANAGER', 'OPERATIONS_MANAGER', 'ACTIVITY_SERVICE_MANAGER', 'BOOKING_AGENT']
+  const allowed = ['ADMIN', 'CRUISE_MANAGER', 'SHIP_MANAGER', 'OPERATIONS_MANAGER', 'ACTIVITY_SERVICE_MANAGER', 'BOOKING_AGENT','CHECKIN_STAFF','ONBOARD_STAFF','FINANCE_OFFICER','CUSTOMER_SERVICE']
   for (const role of types.AUTH_ROLES) assert.equal(types.canSignIn({ roles: [role] }), allowed.includes(role), role)
   assert.equal(types.canSignIn({ roles: ['PASSENGER', 'SHIP_MANAGER'] }), true)
   assert.equal(types.canSignIn(null), false)
@@ -92,7 +81,8 @@ test('admin, managers and booking agents return to their own area even from old 
   const navigation = load('shared/ui/admin-v3/admin-navigation.ts')
   for (const role of ['ADMIN', 'CRUISE_MANAGER', 'SHIP_MANAGER', 'OPERATIONS_MANAGER', 'ACTIVITY_SERVICE_MANAGER', 'BOOKING_AGENT']) {
     const { LoginPage } = load('features/auth/pages/LoginPage.tsx', {
-      '@/shared/ui/admin-v3': navigation,
+      '@/shared/ui':{Button:'Button',Loading:'Loading',Notice:'Notice'},'@/shared/ui/admin-v3': navigation,
+      '@/shared/auth':{useSessionAccess:()=>({status:'ready',roles:[role],permissions:navigation.backendRolePermissions[role]})},
       react: { useEffect() {}, useState: value => [value] },
       '../model/auth-session': { authSession: {} },
       'react-router': { Navigate: 'Navigate', useNavigate: () => () => {}, useSearchParams: () => [new URLSearchParams('returnTo=/my-bookings')] },
@@ -101,7 +91,7 @@ test('admin, managers and booking agents return to their own area even from old 
     })
     const redirect = LoginPage()
     assert.equal(redirect.type, 'Navigate')
-    assert.equal(redirect.props.to, navigation.staffRoleHome([role]))
+    assert.equal(redirect.props.to, navigation.staffRoleHome([role],{status:'ready',roles:[role],permissions:navigation.backendRolePermissions[role]}))
     assert.match(redirect.props.to, /^\/admin/)
   }
 })

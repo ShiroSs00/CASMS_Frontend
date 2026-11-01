@@ -267,7 +267,7 @@ function AssignmentPage({ type }: { type: HostType }) {
     }
   }
 
-  const title = `${snapshot?.host.name ?? (type === 'ship' ? 'Tàu' : 'Lần khởi hành')} · Quy định`
+  const title = `${snapshot?.host.name ?? (type === 'ship' ? 'Tàu' : 'Chuyến khởi hành')} · Quy định`
 
   return (
     <AdminFrame>
@@ -303,7 +303,7 @@ function AssignmentPage({ type }: { type: HostType }) {
       ) : null}
       {!loading && !loadError && snapshot ? (
         <>
-          <Panel title={`Gán trực tiếp cho ${type === 'ship' ? 'tàu' : 'lần khởi hành'} · ${snapshot.direct.length}`}>
+          <Panel title={`Gán trực tiếp cho ${type === 'ship' ? 'tàu' : 'chuyến khởi hành'} · ${snapshot.direct.length}`}>
             <AssignmentTable checkedAt={snapshot.checkedAt} direct removePermission={`${prefix}_REMOVE`} onRemove={setRemoveItem} rows={snapshot.direct} />
           </Panel>
           <Panel
@@ -324,7 +324,7 @@ function AssignmentPage({ type }: { type: HostType }) {
               setAssignOpen(false)
             }
           }}
-          title={`Gán quy định cho ${type === 'ship' ? 'tàu' : 'lần khởi hành'}`}
+          title={`Gán quy định cho ${type === 'ship' ? 'tàu' : 'chuyến khởi hành'}`}
           wide
          footer={<div className={styles.modalActions}>
 <Button disabled={submitting} onClick={() => setAssignOpen(false)} tone="secondary" data-overlay-dismiss>Hủy</Button>
@@ -421,7 +421,7 @@ function AssignmentPage({ type }: { type: HostType }) {
           onClose={() => {
             if (!submitting) setRemoveItem(null)
           }}
-          title={`Gỡ ${removeItem.regulation.code} khỏi ${type === 'ship' ? 'tàu' : 'lần khởi hành'}?`}
+          title={`Gỡ ${removeItem.regulation.code} khỏi ${type === 'ship' ? 'tàu' : 'chuyến khởi hành'}?`}
          footer={<div className={styles.modalActions}>
 <Button disabled={submitting} onClick={() => setRemoveItem(null)} tone="secondary" data-overlay-dismiss>Hủy</Button>
 {access.canDo(`${prefix}_REMOVE`) && <Button

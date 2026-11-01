@@ -29,6 +29,6 @@ export function ActivityDetailPage() {
       ['Mã hoạt động', activity.code], ['Trạng thái', <Badge label={activityStatusLabels[activity.status] ?? activity.status} tone={activity.status === 'IN_PROGRESS' ? 'info' : activity.status === 'COMPLETED' ? 'success' : 'neutral'} />],
       ['Thời gian', `${activityTime(activity.startTime)} → ${activityTime(activity.endTime)}`], ['Địa điểm', activity.location || 'Chưa xác định'],
       ['Sức chứa', activity.capacity], ['Giá tham gia', activity.price === null ? 'Chưa cấu hình' : `${activity.price} ${activity.currencyCode ?? ''}`], ['Mô tả', activity.description || 'Chưa có mô tả'],
-    ]} />{activity.cruiseId?<ButtonLink tone="secondary" to={`/admin/cruises/${activity.cruiseId}`}>Xem chuyến đi</ButtonLink>:<p>Hoạt động nguồn dùng để lập chương trình chuyến đi.</p>}</Panel><aside className={styles.actionRail}><ActivityOperations activity={activity} onChanged={query.retry} /></aside></div><ActivityRelated activity={activity} /></>}
+    ]} />{activity.cruiseId?<ButtonLink tone="secondary" to={`/admin/cruises/${activity.cruiseId}`}>Xem chuyến khởi hành</ButtonLink>:<p>Hoạt động nguồn dùng để lập chương trình chuyến đi.</p>}</Panel><aside className={styles.actionRail}><ActivityOperations activity={activity} onChanged={query.retry} /></aside></div><ActivityRelated activity={activity} /></>}
   </ActivityFrame>
 }

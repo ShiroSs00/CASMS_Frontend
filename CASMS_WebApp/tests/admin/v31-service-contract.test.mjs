@@ -1,15 +1,11 @@
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+
 import test from 'node:test'
-import vm from 'node:vm'
-import ts from 'typescript'
+
+
 const root = new URL('../../src/', import.meta.url)
-function load(file, imports = {}) {
-  if (file.endsWith('/service-package-api.ts')) imports = { ...imports, '../model/catalog-contract': load('features/service-packages/model/catalog-contract.ts') }
-  const module = { exports: {} }
-  vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2023 } }).outputText, { module, exports: module.exports, require(id) { assert.ok(Object.hasOwn(imports, id), id); return imports[id] } })
-  return module.exports
-}
+function load(file, imports = {}) { if (file.endsWith('/service-package-api.ts')) imports = { ...imports, '../model/catalog-contract': load('features/service-packages/model/catalog-contract.ts') }; return loadSource(new URL(file, root), { 'react/jsx-runtime': { jsx: (type, props, key) => ({type, props, key}), jsxs: (type, props, key) => ({type, props, key}), Fragment: 'Fragment' }, ...imports }, {}); }
 const model = load('features/service-packages/model/catalog-editor.ts')
 const draft = { code: ' QA ', name: ' Tên QA ', description: '', type: 'BASIC', price: '0', currency: 'VND', capacity: '0', startDate: '', endDate: '' }
 test('catalog serializers use exact per-kind DTO names and preserve zero/null without manufactured defaults', () => {
@@ -22,7 +18,7 @@ test('catalog serializers use exact per-kind DTO names and preserve zero/null wi
 })
 test('catalog form enforces required fields, real money/integer limits, package enum and valid date interval', () => {
   assert.equal(Object.keys(model.validateCatalogDraft('products', draft)).length, 0)
-  assert.equal(Object.keys(model.validateCatalogDraft('services', { ...draft, price: '', currency: '' })).length, 0)
+  assert.equal(Object.keys(model.validateCatalogDraft('services', { ...draft, price: '', currency: '', capacity: '' })).length, 0)
   for (const patch of [{ code: 'x'.repeat(51) }, { name: 'a'.repeat(201) }, { price: '-1' }, { price: 'NaN' }, { currency: 'invalid' }]) assert.ok(Object.keys(model.validateCatalogDraft('products', { ...draft, ...patch })).length)
   assert.ok(model.validateCatalogDraft('services', { ...draft, capacity: '1.5' }).capacity)
   assert.ok(model.validateCatalogDraft('packages', { ...draft, type: 'MADE_UP' }).type)

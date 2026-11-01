@@ -159,7 +159,7 @@ export function SupplierDetailPage() {
 
   return (
     <AdminShell>
-      {returnTo&&<Link to={returnTo} className={styles.returnLink}>Quay về hồ sơ lần khởi hành</Link>}
+      {returnTo&&<Link to={returnTo} className={styles.returnLink}>Quay về hồ sơ chuyến khởi hành</Link>}
       {loading ? (
         <div className={styles.loadingPlaceholder}>Đang tải thông tin nhà cung cấp...</div>
       ) : error ? (

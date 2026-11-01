@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { PortWindows } from '@/domain/port-windows'
 import { Button, Modal, Notice } from '@/shared/ui'
 import { countryLabel, domesticRegionLabel, kindLabels, shortTime, type Content, type Entry, type Stop, type Violation } from '../model/plan'
 import styles from '../Planning.module.css'
@@ -30,6 +31,8 @@ export function StopDetails({stop,onClose,violation}:{stop?:Stop}&DetailProps) {
     <DetailBody violation={violation} label="Thông tin lần ghé cảng">
       {stop?<>
         <div className={styles.detailLead}><h3>{text(stop.portName)}</h3><p>{countryLabel(stop.countryCode)}{stop.countryCode==='VN'?` · ${domesticRegionLabel(stop.domesticRegion)}`:''}</p></div>
+        <PortWindows portId={stop.portId}/>
+        <section aria-label="Các điểm tham quan"><h3>Các điểm tham quan trong lần ghé cảng</h3>{stop.visits?.length?<ol>{stop.visits.map(v=><li key={v.clientKey}>{v.destinationName??'Chưa có tên điểm đến tại thời điểm chốt'}</li>)}</ol>:<p>Chưa có lượt tham quan.</p>}</section>
         <section className={styles.detailSection} aria-label="Thời gian ghé cảng">
           <p className={styles.timeContext}>Giờ địa phương của cảng · {text(stop.timeZoneId)}</p>
           <dl className={styles.detailGrid}>
@@ -57,7 +60,7 @@ export function EntryDetails({content,entry,kind,onClose,violation}:{content:Con
   return <Modal variant="drawer" wide title={`Chi tiết ${kindLabels[kind].toLocaleLowerCase('vi')}`} onClose={onClose} protectChanges={false} footer={<Button tone="secondary" onClick={onClose}>Đóng</Button>}>
     <DetailBody violation={violation} label="Thông tin mục lịch trình">
       {entry?<>
-        <div className={styles.detailLead}><h3>{text(entry.title)}</h3><div className={styles.detailTags}><span>{kindLabels[entry.kind]}</span></div></div>
+        <div className={styles.detailLead}><h3>{text(entry.title)}</h3><div className={styles.detailTags}><span>{kindLabels[entry.kind]}{entry.kind==='SERVING_WINDOW'?' · Dữ liệu lịch sử · Chỉ xem':''}</span></div></div>
         <section className={styles.detailSection} aria-label="Thời gian thực hiện">
           <p className={styles.timeContext}>{entry.kind==='SHORE_EXCURSION'?`Giờ địa phương của cảng · ${text(entry.timeZoneId||stop?.timeZoneId)}`:'Giờ Việt Nam'}</p>
           <dl className={styles.detailGrid}>

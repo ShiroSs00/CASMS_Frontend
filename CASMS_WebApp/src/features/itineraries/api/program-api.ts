@@ -18,7 +18,7 @@ export const programApi = {
   updateExcursion: (row: ProgramExcursion, startTime: string, plannedReturnTime: string, meetingPoint: string) => apiRequestRaw(`/shore-excursions/${encodeURIComponent(row.shoreExcursionId)}`, value => rows<ProgramExcursion>([value], ['shoreExcursionId', 'cruiseStopId', 'excursionName', 'startTime', 'plannedReturnTime', 'status'])[0], { method: 'PUT', body: { cruiseStopId: row.cruiseStopId, supplierId: row.supplierId, excursionName: row.excursionName, startTime, plannedReturnTime, meetingPoint, minimumParticipants: row.minimumParticipants, maximumCapacity: row.maximumCapacity, price: row.price, currencyCode: row.currencyCode } }),
   activities: async (cruiseId: string, signal?: AbortSignal, scoped=false) => {
     const result=activities(await apiRequest<unknown>(scoped?`/cruise-plans/${encodeURIComponent(cruiseId)}/activities`:'/activities', { signal }))
-    if(scoped&&result.some(row=>row.cruiseId!==cruiseId))throw new Error('Hoạt động trả về không thuộc lần khởi hành đang xem.')
+    if(scoped&&result.some(row=>row.cruiseId!==cruiseId))throw new Error('Hoạt động trả về không thuộc chuyến khởi hành đang xem.')
     return result.filter(row => row.cruiseId === cruiseId)
   },
   excursions: (signal?: AbortSignal) => apiRequestRaw('/shore-excursions', value => {

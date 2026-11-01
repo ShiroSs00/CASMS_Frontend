@@ -1,20 +1,13 @@
+import {explicitTestAccess} from '../helpers/reviewed-source-modules.mjs'
+import { loadSource } from '../helpers/source-loader.mjs'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import vm from 'node:vm'
+
+
 import test from 'node:test'
-import ts from 'typescript'
+
 const root = new URL('../../src/features/itineraries/', import.meta.url)
 const jsx = (type, props) => ({ type, props })
-function load(file, imports = {}) {
-  const module = { exports: {} }
-  vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 } }).outputText, {
-    module, exports: module.exports, URLSearchParams, AbortController, require(id) {
-      if (id === 'react/jsx-runtime') return { jsx, jsxs: jsx }
-      if (id.endsWith('.module.css')) return { default: {} }
-      assert.ok(Object.hasOwn(imports, id), id); return imports[id]
-    },
-  }); return module.exports
-}
+function load(file, imports = {}) { return loadSource(new URL(file, root), { 'react/jsx-runtime': { jsx: jsx, jsxs: jsx, Fragment: 'Fragment' }, ...imports }, {}); }
 const model = load('model/itinerary.ts')
 const cruise = { cruiseId: 'cruise-1', cruiseCode: 'QA', cruiseName: 'Chuyến thật', departureDatetime: '2026-10-21T00:00:00Z', returnDatetime: '2026-10-24T00:00:00Z', status: 'DRAFT' }
 const draft = { cruiseId: cruise.cruiseId, itineraryName: 'Hải trình', startDate: '2026-10-21', endDate: '2026-10-24', itineraryType: 'ROUND_TRIP' }
@@ -67,18 +60,19 @@ test('Itinerary List keeps core rows and detail links when cruise names fail; su
   const item = { ...draft, itineraryId: 'itinerary-1', status: 'DRAFT' }
   for (const names of [{ data: [cruise], error: null, loading: false }, { data: null, error: new Error('HTTP 403'), loading: false }, { data: null, error: null, loading: true }]) {
     const { ItineraryListPage } = load('pages/ItineraryPages.tsx', {
+      '@/shared/auth':{useSessionAccess:()=>explicitTestAccess(['CRUISE_MANAGER'],['CRUISE_READ','ITINERARY_READ'])},
       react: { useState: value => [value, () => {}], useCallback: fn => fn },
       'react-router': { Link: 'Link' },
       '@/shared/api': { useReadQuery: key => key.startsWith('itineraries:') ? { data: { items: [item], total: 1, pageCount: 1 }, loading: false, error: null, retry() {} } : { ...names, retry() {} } },
-      '@/shared/ui': Object.fromEntries(['Button', 'ButtonLink', 'DataTable', 'Empty', 'Loading', 'Notice', 'PageHeader', 'Panel'].map(key => [key, key])),
+      '@/shared/ui': Object.fromEntries(['PermissionLink', 'Button', 'ButtonLink', 'DataTable', 'Empty', 'Loading', 'Notice', 'PageHeader', 'Panel'].map(key => [key, key])),
       '../api/itinerary-api': { itineraryApi: { listCruises() {} } },
       '../components/ItineraryUI': { ItineraryFrame: 'ItineraryFrame', ItineraryStatusBadge: 'ItineraryStatusBadge' },
       './ItineraryFormPage': {}, './ItineraryDetailPage': {},
     })
     const tree = ItineraryListPage(), all = nodes(tree)
     assert.ok(text(tree).includes(item.itineraryName))
-    assert.ok(all.some(node => node.type === 'Link' && node.props.to === '/admin/itineraries/itinerary-1'))
-    const link = all.find(node => node.type === 'Link' && node.props.to === '/admin/cruises/cruise-1')
+    assert.ok(all.some(node => node.type === 'PermissionLink' && node.props.to === '/admin/itineraries/itinerary-1'))
+    const link = all.find(node => node.type === 'PermissionLink' && node.props.to === '/admin/cruises/cruise-1')
     assert.ok(link); assert.ok(!text(link).includes(cruise.cruiseId))
     if (names.data) assert.equal(text(link), 'Chuyến thật · QA')
     if (names.error) assert.ok(text(tree).includes('HTTP 403'))
@@ -90,11 +84,11 @@ test('Create form has natural cruise select, no manual creator input, and a sync
   const response = new Promise(resolve => { complete = resolve })
   const { ItineraryFormPage } = load('pages/ItineraryFormPage.tsx', {
     '@/shared/api': { ApiError: Error },
-    '@/shared/auth': { useSessionAccess: () => ({ has: () => true }) },
+    '@/shared/auth': { useSessionAccess: () => explicitTestAccess(['CRUISE_MANAGER'],['CRUISE_READ','ITINERARY_READ','ITINERARY_CREATE']) },
     react: { useEffect() {}, useRef: value => ({ current: value }), useState: value => [value === null ? { cruises: [cruise], itineraries: [] } : value?.cruiseId !== undefined ? draft : value, () => {}] },
     'react-router': { useParams: () => ({}), useSearchParams: () => [new URLSearchParams()], useNavigate: () => () => navigations++ },
     '@/shared/ui': Object.fromEntries(['Button', 'ButtonLink', 'Field', 'Loading', 'Notice', 'PageHeader', 'Panel'].map(key => [key, key])),
-    '../api/itinerary-api': { itineraryApi: { create: () => { calls++; return response } } },
+    '../api/itinerary-api': { itineraryApi: { allItineraries:async()=>[],create: () => { calls++; return response } } },
     '../components/ItineraryUI': { ItineraryFrame: 'ItineraryFrame' }, '../model/itinerary': model,
   })
   const tree = nodes(ItineraryFormPage())
@@ -102,5 +96,5 @@ test('Create form has natural cruise select, no manual creator input, and a sync
   assert.ok(!tree.some(node => /author|creator|createdBy/i.test(node.props?.id ?? '')))
   const submit = tree.find(node => node.type === 'form').props.onSubmit
   const first = submit({ preventDefault() {} }), second = submit({ preventDefault() {} })
-  assert.equal(calls, 1); complete({ itineraryId: 'saved' }); await Promise.all([first, second]); assert.equal(navigations, 1)
+  await Promise.resolve(); assert.equal(calls, 1); complete({ itineraryId: 'saved' }); await Promise.all([first, second]); assert.equal(navigations, 1)
 })
