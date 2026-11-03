@@ -1,3 +1,4 @@
+import { decodeEntitlement } from '@/domain/cruise-package'
 import { ApiError, apiRequestRaw } from '@/shared/api'
 import type { Benefits, CatalogItem, CatalogKind, ServiceRequest } from '../model/catalog'
 import { serializeCatalogDraft, type CatalogDraft } from '../model/catalog-editor'
@@ -13,6 +14,7 @@ function record<T extends { id: string }>(value: unknown, status: number, reques
       || ('scheduleId' in value && value.scheduleId != null && (typeof value.scheduleId !== 'string' || !value.scheduleId))
       || ('unitPriceSnapshot' in value && value.unitPriceSnapshot != null && (typeof value.unitPriceSnapshot !== 'number' || !Number.isFinite(value.unitPriceSnapshot) || value.unitPriceSnapshot < 0))
       || ('currencySnapshot' in value && value.currencySnapshot != null && (typeof value.currencySnapshot !== 'string' || !/^[A-Z]{3}$/.test(value.currencySnapshot)))))) throw new ApiError('Không đọc được thông tin dịch vụ.', status)
+  if(request&&'fareBenefitSnapshotId' in value&&value.fareBenefitSnapshotId!=null){if(typeof value.fareBenefitSnapshotId!=='string'||!('fulfillmentUnitCode' in value)||value.fulfillmentUnitCode!=null&&typeof value.fulfillmentUnitCode!=='string'||!('fulfilledQuantity' in value)||value.fulfilledQuantity!=null&&(!Number.isSafeInteger(value.fulfilledQuantity)||(value.fulfilledQuantity as number)<0)||!('unitPriceSnapshot' in value)||value.unitPriceSnapshot!==0)throw new ApiError('Dữ liệu fulfillment quyền lợi không hợp lệ.',status)}
   return value as T
 }
 function list<T extends { id: string }>(value: unknown, status: number, request = false): T[] {
@@ -45,7 +47,8 @@ export const servicePackageApi = {
     return row
   }, { method, body: method === 'DELETE' ? undefined : { tourPackageId } }),
   saveRequest: (draft: { serviceId: string; bookingPassengerId?: string; serviceScheduleId?: string; idempotencyKey?: string; quantity: number; note: string }, id?: string) => apiRequestRaw(endpoint('requests', id), (value, status) => record<ServiceRequest>(data(value, status), status, true), { method: id ? 'PUT' : 'POST', body: id ? { quantity: draft.quantity, note: draft.note.trim() || null } : { serviceId: draft.serviceId, bookingPassengerId: draft.bookingPassengerId || null, serviceScheduleId: draft.serviceScheduleId || undefined, idempotencyKey: draft.idempotencyKey, quantity: draft.quantity, note: draft.note.trim() || null } }),
-  requestAction: (id: string, action: 'assign' | 'accept' | 'reject' | 'start' | 'complete' | 'cancel') => apiRequestRaw(endpoint('requests', id) + (action === 'cancel' ? '/cancel' : '/actions/' + action), (value, status) => record<ServiceRequest>(data(value, status), status, true), { method: 'POST' }),
+  requestEntitlement:(id:string,signal?:AbortSignal)=>apiRequestRaw(endpoint('requests',id)+'/fare-entitlement',(value,status)=>{const result=data(value,status);if(!result||typeof result!=='object'||!('operationId'in result)||result.operationId!==id||!('entitlement'in result))throw new ApiError('Quyền lợi không khớp yêu cầu.',status);return result.entitlement==null?null:decodeEntitlement(result.entitlement)},{signal}),
+  requestAction: (id: string, action: 'assign' | 'accept' | 'reject' | 'start' | 'complete' | 'cancel', fulfillment?:{fulfilledQuantity:number;unitCode:string}) => apiRequestRaw(endpoint('requests', id) + (action === 'cancel' ? '/cancel' : '/actions/' + action), (value, status) => {const result=record<ServiceRequest>(data(value,status),status,true);if(result.id!==id||action==='complete'&&(result.status!=='COMPLETED'||fulfillment&&(result.fulfilledQuantity!==fulfillment.fulfilledQuantity||result.fulfillmentUnitCode!==fulfillment.unitCode)))throw new ApiError('Chưa xác nhận đúng fulfillment yêu cầu.',status);return result}, { method: 'POST',body:fulfillment }),
   components: (id: string, kind: BenefitKind, signal?: AbortSignal): Promise<BenefitRow[]> => apiRequestRaw(endpoint('packages', id) + '/' + kind, (value, status) => {
     return decodePackageComponents(data(value, status), kind)
   }, { signal }),

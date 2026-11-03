@@ -17,7 +17,7 @@ export function PublicLayout() {
           <NavLink to="/cruises">Chuyến du thuyền</NavLink>
           <NavLink to="/booking/lookup">Tra cứu đặt chỗ</NavLink>
           <NavLink to="/destinations">Điểm đến</NavLink>
-          <NavLink to="/ships">Tàu & Không gian</NavLink>
+          <NavLink to="/ships">Tàu</NavLink>
           <NavLink to="/deals">Ưu đãi</NavLink>
           <PublicContact variant="nav" id="nav-contact" />
         </nav>

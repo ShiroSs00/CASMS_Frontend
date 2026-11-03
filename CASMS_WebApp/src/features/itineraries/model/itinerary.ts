@@ -123,6 +123,7 @@ export type CruiseStop = {
 export type CruiseStopDraft = Omit<CruiseStop, 'cruiseStopId' | 'status' | 'portName' | 'destinationName' | 'stopOrder'> & { stopOrder: number | '' }
 
 export type Port = {
+  locationType?:'PORT'|'PIER'|'ANCHORAGE'|null
   coordinateSource?:PortCoordinateSource|null
   createdAt?:string; updatedAt?:string
   portId: string

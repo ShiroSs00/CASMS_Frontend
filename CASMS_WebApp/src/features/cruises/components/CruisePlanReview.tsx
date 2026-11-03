@@ -8,7 +8,7 @@ import { useSessionAccess } from '@/shared/auth'
 import { businessErrorMessage } from '@/shared/api/business-errors'
 import { ApiError, apiRequest } from '@/shared/api'
 import { businessCopy, domainStatus } from '@/shared/i18n/business-copy'
-import { Badge, Button, Field, Loading, Modal, Notice, Panel, RecordFacts } from '@/shared/ui'
+import { Badge, Button, Field, Loading, Modal, Notice, Panel, RecordFacts,TechnicalDetails } from '@/shared/ui'
 import { mainflowApi, type MainflowAction, type PlanView } from '../api/mainflow-api'
 import {preparationWallTime,preparationInstant} from '../model/preparation-time'
 import {journeyTime,SHIP_TIME_ZONE,validTimeZone} from '@/shared/lib/journey-time'
@@ -65,7 +65,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
  const submitLabel=supplement?'Gửi bổ sung hồ sơ':'Gửi hồ sơ chuyến khởi hành'
  const actionDialog=action&&<Modal busy={busy} title={action==='submit'?submitLabel:businessCopy(actionKeys[action])} onClose={()=>{if(!busy)setAction(null)}} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setAction(null)}>Quay lại</Button><Button disabled={busy||uncertain||(action==='submit'&&!dossierValid)||(['reject','request-revision'].includes(action)&&!reason.trim())} onClick={()=>void execute()}>{busy?'Đang gửi…':action==='submit'?submitLabel:businessCopy(actionKeys[action])}</Button></>}>
    {action==='submit'&&<>
-    <p><strong>{data?.cruiseCode}</strong> · {supplement?'Bổ sung các nhóm hồ sơ được trả lại hoặc chưa gửi.':'Gửi kế hoạch, chính sách giá và hồ sơ chuẩn bị cho Quản lý vận hành.'}</p>
+    <p><strong>{data?.cruiseCode}</strong> · {supplement?'Bổ sung các nhóm hồ sơ được trả lại hoặc chưa gửi.':'Gửi kế hoạch và hồ sơ chuẩn bị cho Quản lý vận hành. Chính sách thương mại được Quản lý vận hành gửi và xét duyệt riêng.'}</p>
     {dossier.loading&&<Loading label="Đang đối chiếu hồ sơ chuẩn bị…"/>}
     {dossier.error&&<Notice title="Chưa đọc được hồ sơ chuẩn bị" tone="error"><Button tone="secondary" onClick={dossier.retry}>Tải lại hồ sơ</Button></Notice>}
     {dossier.data&&!dossier.loading&&!dossier.error&&<>
@@ -73,7 +73,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
      {!dossierAllowed&&<Notice title="Chưa thể gửi hồ sơ">Chỉ Quản lý lịch trình được phân công phụ trách hồ sơ và có quyền gửi mới thực hiện được thao tác này.</Notice>}
      {pendingSections.length>0&&<Field htmlFor="departure-dossier-evidence" label={supplement?'Nội dung bổ sung hồ sơ':'Nội dung và bằng chứng chuẩn bị'}><textarea id="departure-dossier-evidence" rows={5} value={evidence} onChange={event=>setEvidence(event.target.value)} required disabled={busy||uncertain}/></Field>}
     </>}
-    <p>Quản lý vận hành duyệt kế hoạch, duyệt giá và xác nhận hồ sơ riêng. Gửi hồ sơ chưa mở bán chuyến.</p>
+    <p>Quản lý vận hành xét duyệt kế hoạch, chính sách thương mại và hồ sơ bằng các thao tác riêng. Gửi hồ sơ chưa mở bán chuyến.</p>
    </>}
    {action==='request-revision'&&data?.planStatus==='APPROVED'&&<p>Kế hoạch sẽ mở lại cho Quản lý lịch trình chỉnh sửa và gửi duyệt lại. Xác nhận sẵn sàng trước đó sẽ mất hiệu lực; quyết định giá đã lưu vẫn được giữ riêng.</p>}
    {error&&<Notice title="Chưa hoàn tất thao tác" tone="error">{error}</Notice>}
@@ -123,7 +123,10 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
 
    {crm&&mode!=='submit'&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.planStatus)&&<PlanWindows key={`${cruiseId}:${data.windows.expectedRevision}`} data={data} onSaved={()=>setEpoch(n=>n+1)} editable/>}
    {data.submittedSnapshot!=null&&<details className={styles.snapshotDisclosure} open={mode==='review'}><summary>Nội dung kế hoạch đã gửi <span>Phiên bản {data.submittedRevision??'chưa xác định'}</span></summary><PlanSnapshot snapshot={data.submittedSnapshot} includePricing={mode!=='review'&&mode!=='submit'}/></details>}
-   <details className={styles.revisionDisclosure}><summary>Thông tin phiên bản kế hoạch</summary><p>{businessCopy('cruise.plan.revision')}: {data.revision}</p></details>
+   <TechnicalDetails label="Thông tin đối chiếu kế hoạch" entries={[
+    ['Lần cập nhật',data.revision],['Phiên bản đã gửi',data.submittedRevision],
+    ['Người gửi — mã tài khoản',data.submittedBy],['Người xét duyệt — mã tài khoản',data.reviewedBy],['Fingerprint',data.fingerprint],
+   ]}/>
    {reviewActions}
   </>}
   {success&&<Notice title={manager?'Kết quả gửi hồ sơ':'Đã ghi nhận quyết định'} tone="success">{success}</Notice>} {error&&<Notice title="Không thể hoàn tất thao tác" tone="error">{error}</Notice>}
@@ -185,16 +188,17 @@ function PlanWindows({data,onSaved,editable=true}:{data:PlanView;onSaved:()=>voi
 
 function ProgramBlocker({code,data,fixed}:{code:string;data:PlanView;fixed:boolean}){
  const issues=data.programIssues?.filter(issue=>issue.code===code)??[]
- const timeIssue=['ACTIVITY_OUTSIDE_CRUISE','EXCURSION_OUTSIDE_PORT_CALL'].includes(code)
+ const timeIssue=['ACTIVITY_OUTSIDE_CRUISE','EXCURSION_OUTSIDE_PORT_CALL','SERVICE_OUTSIDE_WINDOW'].includes(code)
  return <div className={styles.conditionBody}><p>{businessErrorMessage(code,'')}</p>
   {issues.length>0&&<ul className={styles.issueDetails}>{issues.map(issue=>{
    const showTime=(instant:string|null)=>instant&&validTimeZone(issue.timeZoneId)?new Intl.DateTimeFormat('vi-VN',{timeZone:issue.timeZoneId,dateStyle:'short',timeStyle:'medium'}).format(new Date(instant)):'Chưa đủ thời gian hoặc múi giờ'
    return <li key={issue.itemId}><strong>{issue.name}</strong>{timeIssue&&<>
     <p>Đang cấu hình: {showTime(issue.startsAt)} → {showTime(issue.endsAt)}</p>
-    <p>{issue.kind==='ACTIVITY'?'Thời gian chuyến':'Khoảng thời gian cho phép của lần ghé cảng'}: {showTime(issue.earliestStart)} → {showTime(issue.latestEnd)}</p>
-    <p>{issue.kind==='ACTIVITY'?'Giờ tàu (Việt Nam)':'Giờ địa phương của cảng'}</p>
+    <p>{issue.kind==='SERVICE'?'Khoảng thời gian cho phép của lịch dịch vụ':issue.kind==='ACTIVITY'?'Thời gian chuyến':'Khoảng thời gian cho phép của lần ghé cảng'}: {showTime(issue.earliestStart)} → {showTime(issue.latestEnd)}</p>
+    <p>{issue.kind==='SERVICE'?'Múi giờ lịch dịch vụ':issue.kind==='ACTIVITY'?'Giờ tàu (Việt Nam)':'Giờ địa phương của cảng'}</p>
    </>}</li>
   })}</ul>}
   {timeIssue&&fixed&&<p className={styles.issueHint}>{code==='ACTIVITY_OUTSIDE_CRUISE'?'Lịch trình cố định: mở Chương trình và dịch vụ, chọn “Sửa giờ không hợp lệ” cho hoạt động này. Giờ hợp lệ vẫn khóa chỉnh sửa.':'Lịch trình cố định: giờ tour đang khóa chỉnh sửa. Cần đối chiếu lịch trình nguồn để xử lý lỗi thời gian.'}</p>}
  </div>
 }
+

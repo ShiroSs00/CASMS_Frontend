@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router'
 import { useSessionAccess } from '@/shared/auth'
 
 import { regulationsApi } from '../api/regulations-api'
-import { formatDateTime, regulationValue, getEffectiveStatus, scopeLabels, typeLabels, type ConflictResult, type RegulationStatus } from '../model/regulation'
+import { formatDateTime, regulationValue, scopeLabels, typeLabels, type ConflictResult, type RegulationStatus } from '../model/regulation'
 import { AdminFrame, Button, ConflictCard, LoadingPanel, Modal, Notice, PageHeader, Panel, StatusBadge } from '../components/RegulationUI'
 import styles from '../components/Regulations.module.css'
 
@@ -86,7 +86,7 @@ export function RegulationDetailPage() {
     {!loading && !data && <><PageHeader title={error ? 'Không tải được quy định' : 'Không tìm thấy quy định'} description={error || 'Quy định không tồn tại hoặc đã được xóa.'} /><Button tone="secondary" onClick={() => navigate('/admin/regulations')}>Về danh sách</Button></>}
     {data && <>
       <PageHeader title={`${data.regulation.code} · ${data.regulation.name}`} description={typeLabels[data.regulation.type]} actions={(access.canDo("REGULATION_UPDATE") ? <Button disabled={!access.canDo("REGULATION_UPDATE")} onClick={() => navigate(`/admin/regulations/${regulationId}/edit`)}>Chỉnh sửa quy định</Button> : null)} />
-      <div className={styles.summaryBadges}><StatusBadge status={data.regulation.status} /><span className={styles.scopeBadge}>{scopeLabels[data.regulation.scope]}</span><StatusBadge status={getEffectiveStatus(data.regulation,new Date().toISOString())}/></div>
+      <div className={styles.summaryBadges}><StatusBadge status={data.regulation.status} /><span className={styles.scopeBadge}>{scopeLabels[data.regulation.scope]}</span></div>
       {error && !nextStatus && !deleteOpen && <Notice title="Chưa thể thực hiện" tone="error">{error}</Notice>}
       {success && <Notice title="Đã cập nhật" tone="success">{success}</Notice>}
       <div className={styles.regulationColumns}>

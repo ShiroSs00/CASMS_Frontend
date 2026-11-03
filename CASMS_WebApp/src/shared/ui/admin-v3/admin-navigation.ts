@@ -33,10 +33,11 @@ const tools: readonly AdminNavigationItem[] = [
   { label:'Dịch vụ', to:'/admin/services', permissionMode:'ANY', permissions:['SERVICE_READ'] },
   { label:'Sản phẩm', to:'/admin/products', permissionMode:'ANY', permissions:['PRODUCT_MANAGE'] },
   { label:'Gói dịch vụ', to:'/admin/service-packages', permissionMode:'ANY', permissions:['TOUR_PACKAGE_MANAGE','PACKAGE_COMPONENT_MANAGE'] },
+  { label:'Mẫu gói du thuyền', to:'/admin/cruise-package-templates', permissionMode:'ALL', permissions:['TOUR_PACKAGE_MANAGE'] },
   { label:'Yêu cầu dịch vụ', to:'/admin/service-requests', permissionMode:'ANY', permissions:['SERVICE_REQUEST_READ','SERVICE_REQUEST_CREATE'] },
-  { label:'Gói của hành khách', to:'/admin/package-assignments', permissionMode:'ANY', permissions:['TOUR_PACKAGE_ASSIGN','BOOKING_READ'] },
-  { label:'Làm thủ tục', to:'/admin/staff/checkin', permissionMode:'ANY', permissions:['CHECKIN_READ','CHECKIN_CREATE','CHECKIN_UPDATE'] },
-  { label:'Tài chính', to:'/admin/staff/finance', permissionMode:'ANY', permissions:['PAYMENT_REPORT'] },
+  { label:'Phân bổ gói dịch vụ', to:'/admin/package-assignments', permissionMode:'ANY', permissions:['TOUR_PACKAGE_ASSIGN','BOOKING_READ'] },
+  { label:'Check-in', to:'/admin/staff/checkin', permissionMode:'ANY', permissions:['CHECKIN_READ','CHECKIN_CREATE','CHECKIN_UPDATE'] },
+  { label:'Tài chính', to:'/admin/staff/finance', permissionMode:'ANY', permissions:['PAYMENT_READ','PAYMENT_REPORT'] },
 ]
 export const adminWorkspaces: readonly AdminWorkspace[] = [
   { id:'schedule', title:'Quản lý lịch trình', shortTitle:'Lịch trình',
@@ -54,7 +55,7 @@ export const adminWorkspaces: readonly AdminWorkspace[] = [
   { id:'services', title:'Quản lý hoạt động và dịch vụ', shortTitle:'Hoạt động và dịch vụ',
     description:'Quản lý hoạt động, dịch vụ trên tàu và tour trên bờ trong cùng một khu vực.',
     responsibility:'Hoạt động · Dịch vụ · Tour trên bờ', permissions:['ACTIVITY_READ','SERVICE_READ','EXCURSION_READ'],
-    tools:['activities','services','products','service-packages','service-requests','package-assignments','suppliers','shore-excursions','tour-groups'],
+    tools:['activities','services','products','service-packages','cruise-package-templates','service-requests','package-assignments','suppliers','shore-excursions','tour-groups'],
     steps:['Chuẩn bị hoạt động trên tàu và tour ghé cảng.','Cấu hình dịch vụ, sản phẩm, gói và quyền lợi.','Quản lý đăng ký, phân nhóm và điểm danh.','Theo dõi yêu cầu phục vụ và trạng thái hoạt động.'],
     action:{label:'Tạo hoạt động',to:'/admin/activities/new',permission:'ACTIVITY_CREATE'} },
 ]
@@ -102,10 +103,10 @@ export function staffRoleHome(roles: readonly string[], access?: AdminAccess) {
 export function staffRoleLabel(roles: readonly string[]) {
   const role=primaryStaffRole(roles)
   const labels: Record<string,string> = {
-    ADMIN:'Quản trị hệ thống', CRUISE_MANAGER:'Quản lý lịch trình', SHIP_MANAGER:'Quản lý đội tàu',
+    ADMIN:'Quản trị hệ thống', CRUISE_MANAGER:'Quản lý lịch trình', SHIP_MANAGER:'Quản lý tàu',
     OPERATIONS_MANAGER:'Quản lý vận hành', ACTIVITY_SERVICE_MANAGER:'Quản lý hoạt động và dịch vụ',
-    BOOKING_AGENT:'Điều phối đặt chỗ', CUSTOMER_SERVICE:'Chăm sóc khách hàng',
-    CHECKIN_STAFF:'Làm thủ tục', ONBOARD_STAFF:'Phục vụ trên tàu', FINANCE_OFFICER:'Tài chính',
+    BOOKING_AGENT:'Nhân viên đặt chỗ', CUSTOMER_SERVICE:'Chăm sóc khách hàng',
+    CHECKIN_STAFF:'Làm thủ tục', ONBOARD_STAFF:'Nhân viên trên tàu', FINANCE_OFFICER:'Nhân viên tài chính',
   }
   return role ? labels[role] : 'Khu vực nhân sự'
 }
@@ -190,7 +191,7 @@ export function roleNavigationItems(roles: readonly string[], access: AdminAcces
 export type AdminNavigationGroup = { id: string; label: string; items: AdminNavigationItem[]; direct?: boolean }
 const navigationGroups = [
   {id:'experiences',label:'Hoạt động và tour',sections:['activities','shore-excursions','tour-groups']},
-  {id:'services',label:'Dịch vụ, sản phẩm và gói',sections:['services','products','service-packages','service-requests','package-assignments']},
+  {id:'services',label:'Dịch vụ, sản phẩm và gói',sections:['services','products','service-packages','cruise-package-templates','service-requests','package-assignments']},
   {id:'locations',label:'Điểm đến và đối tác',sections:['destinations','ports','suppliers']},
   {id:'fleet',label:'Đội tàu',sections:['ships','decks','cabins']},
   {id:'schedule',label:'Lập lịch trình',sections:['trips']},

@@ -1,8 +1,8 @@
 import type { useSessionAccess } from '@/shared/auth'
 import type { CruiseDetailView, ReadinessCheck } from './cruise-view'
 export const departureSections = [
-  ['overview', 'Tổng quan'], ['schedule', 'Lịch thực tế'], ['resources', 'Tàu và nhân sự'],
-  ['program', 'Chương trình và dịch vụ'], ['preparation', 'Hồ sơ chuẩn bị khởi hành'], ['sales', 'Cấu hình bán'], ['guidance', 'Hướng dẫn trước chuyến'], ['checks', 'Xác nhận và mở bán'], ['handoff', 'Bàn giao vận hành'], ['changes', 'Thay đổi lịch và theo dõi xử lý'],
+  ['overview', 'Tổng quan'], ['schedule', 'Lịch thực tế'], ['resources', 'Tàu và quy định'],
+  ['program', 'Chương trình và dịch vụ'], ['fare-packages', 'Gói du thuyền'], ['staff', 'Nhân sự chuyến khởi hành'], ['preparation', 'Hồ sơ chuẩn bị khởi hành'], ['sales', 'Cấu hình bán'], ['guidance', 'Hướng dẫn trước chuyến'], ['checks', 'Xác nhận và mở bán'], ['handoff', 'Bàn giao vận hành'], ['changes', 'Thay đổi lịch và theo dõi xử lý'],
 ] as const
 export type DepartureSection = typeof departureSections[number][0]
 export function preparationSection(value: string | null): DepartureSection {
@@ -23,9 +23,11 @@ export function allowedDepartureSections(access:ReturnType<typeof useSessionAcce
   const manager=access.roles.includes('CRUISE_MANAGER')&&!access.roles.includes('OPERATIONS_MANAGER')
   return departureSections.filter(([key])=>
     key==='overview'
+    ||key==='fare-packages'&&['ACTIVITY_SERVICE_MANAGER','OPERATIONS_MANAGER','CRUISE_MANAGER','BOOKING_AGENT'].some(role=>access.roles.includes(role))&&['TOUR_PACKAGE_MANAGE','CRUISE_READ','CRUISE_PRICING_APPROVE','BOOKING_READ'].some(p=>access.has(p))
     ||key==='schedule'&&['ITINERARY_READ','CRUISE_READ'].some(p=>access.has(p))
     ||key==='resources'&&['SHIP_READ','CRUISE_STAFF_READ','CRUISE_REGULATION_READ','CRUISE_ASSIGN_SHIP','CRUISE_CHANGE_SHIP'].some(p=>access.canDo(p))
     ||key==='program'&&['ACTIVITY_READ','EXCURSION_READ','SERVICE_READ'].some(p=>access.has(p))
+    ||key==='staff'&&access.canDo('CRUISE_STAFF_READ')
     ||key==='preparation'&&access.has('CRUISE_PREPARATION_READ')
     ||key==='guidance'&&access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_READ')
     ||key==='handoff'&&access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_MANIFEST_READ')
@@ -35,7 +37,7 @@ export function allowedDepartureSections(access:ReturnType<typeof useSessionAcce
     .map(([key,label])=>[key,manager&&key==='schedule'?'Lịch khởi hành':access.roles.includes('OPERATIONS_MANAGER')&&key==='sales'?(access.has('CRUISE_MANIFEST_READ')?'Cabin và hành khách':'Tồn cabin'):manager&&key==='resources'&&!access.canDo('CRUISE_STAFF_READ')?(access.canDo('CRUISE_REGULATION_READ')?'Tàu và quy định':'Tàu'):label] as const)
 }
 
-export const operationsPreparationSections:readonly DepartureSection[]=['preparation','resources','guidance','checks','handoff']
+export const operationsPreparationSections:readonly DepartureSection[]=['preparation','staff','resources','guidance','checks','handoff']
 export function operationsSectionStage(section:DepartureSection):1|3 {
   return operationsPreparationSections.includes(section)?3:1
 }

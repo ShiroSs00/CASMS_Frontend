@@ -103,6 +103,7 @@ export type ShipChangeImpactDto = {
   cruiseId:string;currentShipId:string|null;newShipId:string;bookedPassengersCount:number|null
   capacitySufficient:boolean|null;affectedCabinAssignmentsCount:number|null;affectedOnboardActivitiesCount:number|null
   blockers:string[];warnings:string[];canProceed:boolean
+  shipAssignmentSafety:import('../model/ship-assignment').ShipAssignmentSafety
 }
 export type OperationalProgramMappingDto = {
   sourceEntryId:string|null;clientKey:string|null;kind:string|null;title:string|null
@@ -115,7 +116,8 @@ export type OperationalProgramSyncDto = {
 }
 
 // BE's current sale contracts only. No runtime client/permission is enabled here (F02/O01/O02).
-export type CruiseOpenSaleRequestDto = { expectedRevision?:number|null;packageIds?:string[]|null;saleScope?:string|null;fingerprint?:string|null;eventIdentity?:string|null }
+export type CruiseOpenSaleRequestDto = { expectedRevision?:number|null;packageIds?:string[]|null;farePackageOfferIds?:string[]|null;cruisePackageOfferIds?:string[]|null;saleScope?:string|null;fingerprint?:string|null;eventIdentity?:string|null }
+export type CruiseOpenSaleResponseDto = {cruiseId:string;cruiseCode:string;cruiseStatus:string;itineraryStatus:string;saleScope:string;activePackagesCount:number;openedBy:string|null;openedAt:string;fingerprint:string;revision:number;eventIdentity:string;idempotentRetry:boolean}
 export type CruiseStopSaleRequestDto = {
   expectedRevision?:number|null;reason:string;evidence?:string|null;scope?:string|null;eventIdentity?:string|null;packageId?:string|null
 }
@@ -123,7 +125,7 @@ export type CruiseResumeSaleRequestDto = {
   expectedRevision?:number|null;reason?:string|null;evidence?:string|null;scope?:string|null;eventIdentity?:string|null;packageId?:string|null
 }
 export type CruiseSaleContracts = {
-  'open-sale': {request:CruiseOpenSaleRequestDto|null;response:CruiseDto}
+  'open-sale': {request:CruiseOpenSaleRequestDto|null;response:CruiseOpenSaleResponseDto}
   'stop-sale': {request:CruiseStopSaleRequestDto;response:CruiseDto}
   'resume-sale': {request:CruiseResumeSaleRequestDto|null;response:CruiseDto}
 }

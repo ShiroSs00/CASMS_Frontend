@@ -10,7 +10,6 @@ import type {
 } from '../model/regulation'
 import {
   regulationInput,
-  formatDateTime,
   scopeLabels,
   typeLabels,
 } from '../model/regulation'
@@ -31,6 +30,7 @@ const emptyQuery: RegulationListQuery = {
   scope: 'ALL',
   status: 'ALL',
   effectiveAt: regulationInput(Date.now()),
+  effectiveOnly: false,
 }
 export function RegulationListPage() {
   const navigate = useNavigate()
@@ -43,8 +43,9 @@ export function RegulationListPage() {
 
   useEffect(() => {
     let active = true
+    const controller=new AbortController()
     void regulationsApi
-      .list(appliedQuery)
+      .list(appliedQuery,controller.signal)
       .then((data) => {
         if (active) setItems(data)
       })
@@ -56,13 +57,14 @@ export function RegulationListPage() {
       })
     return () => {
       active = false
+      controller.abort()
     }
   }, [appliedQuery])
 
   const applyFilters = () => {
     setLoading(true)
     setError('')
-    const next={...query,effectiveAt:query.effectiveAt||regulationInput(Date.now())}
+    const next={...query,effectiveAt:regulationInput(Date.now())}
     setQuery(next);setAppliedQuery(next)
   }
   const resetFilters = () => {
@@ -87,7 +89,7 @@ export function RegulationListPage() {
 
       <CollectionSummary count={loading || error ? null : items.length} filtered={Boolean(appliedQuery.search || appliedQuery.type !== 'ALL' || appliedQuery.scope !== 'ALL' || appliedQuery.status !== 'ALL')} label="Quy định trong kết quả" scope="Tra cứu theo thời điểm đã chọn" />
       <Panel title="Bộ lọc">
-        <ListFilters label="Bộ lọc quy định" onSubmit={applyFilters} actions={<><Button type="submit">Áp dụng bộ lọc</Button><Button onClick={resetFilters} tone="secondary">Xóa bộ lọc</Button></>}>
+        <ListFilters className={styles.regulationFilters} label="Bộ lọc quy định" onSubmit={applyFilters} actions={<><Button type="submit">Áp dụng bộ lọc</Button><Button onClick={resetFilters} tone="secondary">Xóa bộ lọc</Button></>}>
           <Field htmlFor="reg-search" label="Tìm quy định">
             <input
               id="reg-search"
@@ -153,20 +155,17 @@ export function RegulationListPage() {
               <option value="EXPIRED">Hết hạn</option>
             </select>
           </Field>
-          <Field htmlFor="reg-effective-at" label="Tra cứu hiệu lực lúc · Giờ Việt Nam">
+          <Field htmlFor="reg-current-only" label="Hiệu lực"><select id="reg-current-only" value={query.effectiveOnly?'current':'all'} onChange={event=>setQuery(current=>({...current,effectiveOnly:event.target.value==='current'}))}><option value="all">Tất cả quy định</option><option value="current">Đang có hiệu lực theo hệ thống</option></select></Field>
+          <div className={styles.effectiveTime}><Field htmlFor="reg-effective-at" label="Thời điểm tra cứu · Giờ Việt Nam" hint="Chỉ hỗ trợ hiệu lực hiện tại; chưa tra cứu quá khứ hoặc tương lai.">
             <input
               id="reg-effective-at"
-              onChange={(event) =>
-                setQuery((current) => ({
-                  ...current,
-                  effectiveAt: event.target.value,
-                }))
-              }
+              disabled
+              readOnly
               type="datetime-local"
               step={1}
-              value={query.effectiveAt}
+              value={query.effectiveAt.slice(0,16)}
             />
-          </Field>
+          </Field></div>
         </ListFilters>
       </Panel>
 
@@ -199,9 +198,9 @@ export function RegulationListPage() {
         {!loading && !error && items.length ? (
           <>
             <p className={styles.resultsMeta}>
-              Hiệu lực tại {formatDateTime(appliedQuery.effectiveAt)} · Giờ Việt Nam.
+              {appliedQuery.effectiveOnly?'Quy định đang có hiệu lực theo kết quả hệ thống trả về.':'Trạng thái kích hoạt và thời hạn được hiển thị theo hồ sơ quy định.'}
             </p>
-            <DataTable label="Danh sách quy định" headers={['Mã / tên quy định', 'Loại', 'Phạm vi', 'Trạng thái kích hoạt', 'Hiệu lực tại thời điểm tra cứu', 'Thao tác']}>
+            <DataTable label="Danh sách quy định" headers={['Mã / tên quy định', 'Loại', 'Phạm vi', 'Trạng thái kích hoạt', ...(appliedQuery.effectiveOnly?['Hiệu lực hiện tại']:[]), 'Thao tác']}>
 
                   {items.map((item) => (
                     <tr key={item.id}>
@@ -213,7 +212,7 @@ export function RegulationListPage() {
                       <td>{typeLabels[item.type]}</td>
                       <td>{scopeLabels[item.scope]}</td>
                       <td><StatusBadge status={item.status} /></td>
-                      <td><StatusBadge status={item.effectiveStatus} /></td>
+                      {appliedQuery.effectiveOnly&&<td><StatusBadge status={item.effectiveStatus} /></td>}
                       <td>
                         <button
                           className={styles.linkButton}

@@ -2,7 +2,7 @@ import { getSessionAccess, hasPermissions } from '@/shared/auth'
 import { ApiError, apiRequest, apiRequestRaw } from '@/shared/api'
 import { scheduleInstant, localCruiseInput } from '../model/cruise-validation'
 import { readinessSnapshot } from '../model/readiness'
-import { decodeProgramSync, decodeReadiness, decodeSchedule, decodeShipChange, decodeShipCompatibility } from '../model/departure-contract'
+import { decodeProgramSync, decodeReadiness, decodeSchedule, decodeShipChange, decodeShipCompatibility, decodeShipAssignmentSafety } from '../model/departure-contract'
 
 import type { CruiseQuery } from '../model/cruise-query'
 import { CRUISE_STATUSES, CRUISE_TYPES } from '../model/cruise-record'
@@ -190,14 +190,13 @@ export const cruiseApi = {
       optional('OPERATIONAL_ISSUE_READ', () => apiRequest<CruiseDetailView['issues']>('/operational-issues', { query: { cruiseId: id }, signal })),
       optional('CRUISE_REGULATION_READ', () => apiRequest<{ direct: RegulationProjection[]; inherited: RegulationProjection[] }>(`/cruises/${encodeURIComponent(id)}/regulations/effective`, { signal })),
       optional('ITINERARY_READ', () => linkedItinerary(id, signal)),
-      hasPermissions(access,{mode:'ANY',permissions:['CRUISE_ASSIGN_SHIP','CRUISE_CHANGE_SHIP','CRUISE_UNASSIGN_SHIP']})
-        ? apiRequest<{cruiseId:string;cruiseRevision:number;hasBookings:boolean;editablePlan:boolean}>(`/cruise-plans/${encodeURIComponent(id)}/ship-assignment-context`,{signal}).then(context=>{
-            if(context.cruiseId!==id||!Number.isSafeInteger(context.cruiseRevision)||typeof context.hasBookings!=='boolean'||typeof context.editablePlan!=='boolean')throw new ApiError('Không thể hoàn tất thao tác. Vui lòng tải lại và thử lại.',502)
-            return context
-          }) : Promise.resolve(null),
+      hasPermissions(access,{mode:'ANY',permissions:['CRUISE_READ','SHIP_READ','CRUISE_ASSIGN_SHIP','CRUISE_CHANGE_SHIP','CRUISE_UNASSIGN_SHIP']})
+        ? cruiseApi.assignmentContext(id,signal) : Promise.resolve(null),
+      cruise.shipId&&hasPermissions(access,{mode:'ANY',permissions:['CRUISE_READ','SHIP_READ','CRUISE_ASSIGN_SHIP','CRUISE_CHANGE_SHIP']})
+        ? cruiseApi.shipCompatibility(id,cruise.shipId,signal) : Promise.resolve(null),
     ])
     const supplementaryErrors: Record<string, string> = {}
-    for (const [index, key] of ['ship', 'departurePort', 'returnPort', 'readiness', 'capacity', 'issues', 'regulations', 'itinerary','bookingSafety'].entries()) {
+    for (const [index, key] of ['ship', 'departurePort', 'returnPort', 'readiness', 'capacity', 'issues', 'regulations', 'itinerary','bookingSafety','shipCompatibility'].entries()) {
       const result = results[index]
       if (result.status === 'rejected') supplementaryErrors[key] = result.reason instanceof Error ? result.reason.message : 'Không tải được dữ liệu liên quan.'
     }
@@ -209,11 +208,9 @@ export const cruiseApi = {
     const capacity = cap.status === 'fulfilled' ? cap.value : null
     const regulationSnapshot = regulations.status === 'fulfilled' ? regulations.value : null
     const bookingSummary=results[8].status==='fulfilled'?results[8].value:null
-    const noBookings=bookingSummary?.hasBookings===false&&bookingSummary.cruiseRevision===cruise.revision
     const assessment=readinessSnapshot(readiness,cruise.updatedAt,cruise.revision)
     const checks=readiness?readinessChecks(readiness,Boolean(cruise.sourceVersionId)):[]
-    const safeDraft=cruise.status==='DRAFT'&&noBookings&&bookingSummary?.editablePlan===true
-    const unsafeReason=cruise.status!=='DRAFT'?'Chỉ thay đổi trực tiếp khi chuyến khởi hành còn nháp; trường hợp sau phát hành cần đánh giá tác động.':!noBookings?'Cần xác nhận không có đặt chỗ trước khi thay đổi phân công.':!bookingSummary?.editablePlan?'Kế hoạch đang bị khóa. Cần xử lý trạng thái kế hoạch trước khi đổi phân công.':null
+    const currentContext=bookingSummary&&bookingSummary.cruiseRevision===cruise.revision&&bookingSummary.shipId===cruise.shipId?bookingSummary:null
     return {
       cruise,
       ship,
@@ -226,19 +223,25 @@ export const cruiseApi = {
       regulations: regulationSnapshot ? [...regulationSnapshot.direct, ...regulationSnapshot.inherited].map((item) => ({ regulationId: item.regulation.regulationId, code: item.regulation.regulationCode, name: item.regulation.name, source: item.source, status: item.regulation.status })) : [],
       issues: incidents.status === 'fulfilled' ? incidents.value ?? [] : [],
       bookingHasData: bookingSummary?.hasBookings??null,
-      assignmentCapabilities: {
-        assign: { allowed: !cruise.shipId && safeDraft, reason: cruise.shipId ? 'Chuyến đã có tàu.' : unsafeReason },
-        change: { allowed: Boolean(ship) && safeDraft, reason: unsafeReason??(ship?null:'Chưa tải được tàu để đổi phân công.') },
-        unassign: { allowed: Boolean(ship) && safeDraft, reason: unsafeReason },
+      shipCompatibility: results[9].status==='fulfilled'?results[9].value:null,
+      shipAssignmentContext:currentContext,
+      assignmentCapabilities: currentContext?.allowedActions??{
+        assign: {allowed:false,reason:'Chưa có điều kiện phân công hiện hành từ hệ thống.'},
+        change: {allowed:false,reason:'Chưa có điều kiện đổi tàu hiện hành từ hệ thống.'},
+        unassign: {allowed:false,reason:'Chưa có điều kiện gỡ tàu hiện hành từ hệ thống.'},
       },
     }
   },
   async createCruise(draft: CruiseDraft, idempotencyKey: string, expectedSourceVersionRevision = draft.expectedSourceVersionRevision ?? undefined) {
     if (!idempotencyKey?.trim()) throw new ApiError('Thiếu mã thao tác tạo chuyến khởi hành.', 400, 'INVALID_INPUT')
     if (expectedSourceVersionRevision != null && (!draft.sourceVersionId || !Number.isSafeInteger(expectedSourceVersionRevision) || expectedSourceVersionRevision < 0)) throw new ApiError('Phiên dữ liệu nguồn không hợp lệ. Xem trước lại lịch trước khi tạo.', 400, 'INVALID_INPUT')
-    const body: CruiseSaveRequestDto = { ...cruiseBody(draft), ...(expectedSourceVersionRevision != null ? { expectedSourceVersionRevision } : {}) }
+    if(draft.creationPayloadVersion===2&&(!draft.sourceVersionId||expectedSourceVersionRevision==null||expectedSourceVersionRevision<1))throw new ApiError('Chọn phiên bản nguồn và xem trước lại lịch trước khi tạo chuyến.',400,'SOURCE_VERSION_REQUIRED')
+    // New source-linked intents omit inherited schedule fields. Older pending intents retain their exact wire shape.
+    const body = draft.creationPayloadVersion===2
+      ? {cruiseName:draft.cruiseName.trim(),sourceVersionId:draft.sourceVersionId,expectedSourceVersionRevision,departureDatetime:scheduleInstant(draft.departureDatetime).toISOString(),itineraryMode:draft.itineraryMode,...(draft.shipId?{shipId:draft.shipId}:{})}
+      : {...cruiseBody(draft),...(expectedSourceVersionRevision!=null?{expectedSourceVersionRevision}:{})}
     const saved=await apiRequest<CruiseDto>(root, { method: 'POST', body, idempotencyKey })
-    if(typeof saved?.cruiseId!=='string'||!saved.cruiseId.trim()||typeof saved.status!=='string')throw new ApiError('Phản hồi tạo chưa xác nhận được bản ghi đã lưu. Giữ mã thao tác để đối chiếu.',502)
+    if(typeof saved?.cruiseId!=='string'||!saved.cruiseId.trim()||typeof saved.status!=='string'||draft.creationPayloadVersion===2&&(saved.sourceVersionId!==draft.sourceVersionId||draft.shipId&&saved.shipId!==draft.shipId))throw new ApiError('Phản hồi tạo chưa xác nhận được bản ghi đã lưu. Giữ mã thao tác để đối chiếu.',502)
     return toCruise(saved)
   },
   async updateCruise(id: string, draft: CruiseDraft, original?: CruiseRecord) {
@@ -246,6 +249,14 @@ export const cruiseApi = {
     const saved = await apiRequest<CruiseDto>(`${byId(id)}/draft`, { method: 'PATCH', body: { ...(draft.revision != null ? {expectedRevision:draft.revision} : {}), cruiseName: body.cruiseName, ...(original&&!original.sourceVersionId&&!original.sourceTripId?{plannedScope:body.plannedScope,itineraryMode:body.itineraryMode}:{}), ...(body.cruiseType ? {cruiseType:body.cruiseType} : {}), ...(!original || draft.departureDatetime !== localCruiseInput(original.departureDatetime) ? { departureDatetime: body.departureDatetime } : {}), ...(!original || draft.returnDatetime !== localCruiseInput(original.returnDatetime) ? { returnDatetime: body.returnDatetime } : {}), ...(!original || body.departurePortId !== original.departurePortId ? { departurePortId: body.departurePortId } : {}), ...(!original || body.returnPortId !== original.returnPortId ? { returnPortId: body.returnPortId } : {}) } })
     if(saved?.cruiseId!==id||typeof saved.status!=='string'||original&&!original.sourceVersionId&&!original.sourceTripId&&(body.plannedScope!=null&&saved.plannedScope!==body.plannedScope||body.itineraryMode!=null&&saved.itineraryMode!==body.itineraryMode))throw new ApiError('Phản hồi lưu chưa xác nhận đúng chuyến khởi hành. Giữ bản nhập và đối chiếu bản đã lưu trước khi gửi tiếp.',502)
     return toCruise(saved)
+  },
+  async assignmentContext(id:string,signal?:AbortSignal):Promise<import('../model/ship-assignment').ShipAssignmentContext>{
+    const context=await apiRequest<import('../model/ship-assignment').ShipAssignmentContext>(`/cruise-plans/${encodeURIComponent(id)}/ship-assignment-context`,{signal})
+    const nullableText=(value:unknown)=>value===null||typeof value==='string'
+    if(!context||context.cruiseId!==id||!Number.isSafeInteger(context.cruiseRevision)||typeof context.hasBookings!=='boolean'||typeof context.editablePlan!=='boolean'||!nullableText(context.shipId)||!nullableText(context.shipName)||!nullableText(context.shipCode)||!['ASSIGNED','UNASSIGNED'].includes(context.assignmentStatus)||(context.assignmentStatus==='ASSIGNED')!==(context.shipId!==null)||typeof context.requiresImpactWorkflow!=='boolean'||!Array.isArray(context.impactBlockers)||context.impactBlockers.some(v=>typeof v!=='string')||!context.allowedActions||(['assign','change','unassign'] as const).some(key=>typeof context.allowedActions[key]?.allowed!=='boolean'||!nullableText(context.allowedActions[key]?.reason)))throw new ApiError('Chưa đọc được điều kiện phân công tàu hiện hành. Tải lại hồ sơ trước khi tiếp tục.',502)
+    const changeSafety=decodeShipAssignmentSafety(context.changeSafety,id,null),unassignSafety=decodeShipAssignmentSafety(context.unassignSafety,id,null)
+    if(changeSafety.currentShipId!==context.shipId||unassignSafety.currentShipId!==context.shipId||unassignSafety.operation!=='UNASSIGN'||context.allowedActions.change.allowed&&!changeSafety.canProceed||context.allowedActions.unassign.allowed&&!unassignSafety.canProceed)throw new ApiError('Dữ liệu phụ thuộc chưa khớp tàu hiện tại. Tải lại hồ sơ.',502)
+    return {...context,changeSafety,unassignSafety}
   },
   async shipCompatibility(id:string,shipId:string,signal?:AbortSignal){
     return decodeShipCompatibility(await apiRequest<unknown>(`${byId(id)}/ship-compatibility`,{query:{shipId},signal}),id,shipId)
@@ -265,7 +276,6 @@ export const cruiseApi = {
   async getShipCandidates(id: string,changing=false,signal?:AbortSignal) {
     const ships = await listShips(signal)
     return Promise.all(ships.map(async (ship): Promise<ShipCandidate> => {
-      if (!['READY','IN_SERVICE'].includes(ship.status)) return { ship, state: 'UNAVAILABLE', reasons: ['Trạng thái tàu chưa cho phép khai thác.'] }
       try{
         const result=await cruiseApi.checkShip(id,ship.shipId,changing,signal)
         return {ship,state:result.allowed?'AVAILABLE':'UNAVAILABLE',compatibility:result.compatibility,impact:result.impact,reasons:result.reasons.length?result.reasons:['Tàu đáp ứng kiểm tra lịch, cấu hình và sức chứa hiện có.']}
@@ -277,9 +287,9 @@ export const cruiseApi = {
     if(saved.cruiseId!==id||saved.shipId!==shipId)throw new ApiError('Phản hồi phân công chưa khớp tàu hoặc chuyến khởi hành. Tải lại để đối chiếu.',502)
     return saved
   },
-  async changeShip(id: string, shipId: string) {
-    const saved=toCruise(await apiRequest<CruiseDto>(`${byId(id)}/change-assigned-ship`, { method: 'PUT', query: { newShipId: shipId } }))
-    if(saved.cruiseId!==id||saved.shipId!==shipId)throw new ApiError('Phản hồi đổi tàu chưa khớp yêu cầu. Tải lại để đối chiếu.',502)
+  async changeShip(id: string, shipId: string, expectedRevision:number, reason:string) {
+    const saved=await apiRequest<{cruiseId:string;afterShipId:string;revision:number}>(`${byId(id)}/apply-change`, { method: 'POST', body: {newShipId:shipId,expectedRevision,reason} })
+    if(saved?.cruiseId!==id||saved.afterShipId!==shipId||!Number.isSafeInteger(saved.revision))throw new ApiError('Phản hồi đổi tàu chưa khớp yêu cầu. Tải lại để đối chiếu.',502)
     return saved
   },
   async unassignShip(id: string) {

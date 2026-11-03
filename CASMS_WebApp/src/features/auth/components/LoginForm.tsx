@@ -39,7 +39,7 @@ export function LoginForm({ expired, login, onSuccess }: {
     <form className={styles.loginForm} onSubmit={(event) => void submit(event)} noValidate>
       <Field htmlFor="auth-username" label="Tên đăng nhập" error={attempted && !username.trim() ? 'Nhập tên đăng nhập.' : undefined}><input id="auth-username" name="username" autoComplete="username" value={username} disabled={busy} required aria-invalid={attempted && !username.trim()} aria-describedby={attempted && !username.trim() ? 'auth-username-hint' : undefined} onChange={(event) => setUsername(event.target.value)} /></Field>
       <Field htmlFor="auth-password" label="Mật khẩu" error={attempted && !password ? 'Nhập mật khẩu.' : undefined}><input id="auth-password" name="password" type="password" autoComplete="current-password" value={password} disabled={busy} required aria-invalid={attempted && !password} aria-describedby={attempted && !password ? 'auth-password-hint' : undefined} onChange={(event) => setPassword(event.target.value)} /></Field>
-      <div className={styles.sessionHint}><span>Phiên đăng nhập được duy trì trong phiên trình duyệt</span><a href="#auth-help">Cần hỗ trợ?</a></div>
+      <div className={styles.sessionHint}><a href="#auth-help">Cần hỗ trợ?</a></div>
       {error && <div className={styles.error} role="alert">{error}</div>}
       <Button type="submit" className={styles.loginButton} disabled={busy}>{busy ? 'Đang đăng nhập…' : 'Đăng nhập'}</Button>
     </form>

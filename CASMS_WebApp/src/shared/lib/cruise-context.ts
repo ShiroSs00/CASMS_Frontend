@@ -15,6 +15,10 @@ export function cruiseContextReturn(value:string|null,id:string|null):string|nul
     const url=new URL(value,'https://ocvviet.local')
     if(url.origin!=='https://ocvviet.local'||url.pathname!=='/admin/cruises/'+id)return fallback
     const section=url.searchParams.get('section')
-    return '/admin/cruises/'+encodeURIComponent(id)+(section&&['overview','schedule','resources','program','sales','checks'].includes(section)?'?section='+section:'')
+    const query=new URLSearchParams()
+    if(section&&['overview','schedule','resources','program','sales','checks','fare-packages','staff','preparation','guidance','handoff','changes'].includes(section))query.set('section',section)
+    if(url.searchParams.get('step')==='review')query.set('step','review')
+    return '/admin/cruises/'+encodeURIComponent(id)+(query.size?'?'+query.toString():'')
   }catch{return fallback}
 }
+

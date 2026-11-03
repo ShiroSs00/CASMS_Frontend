@@ -1,6 +1,8 @@
-import { useRef, useState } from 'react'
+import { useCallback,useRef, useState } from 'react'
+import {useReadQuery} from '@/shared/api'
+import {OperationalCruisePackageEntitlement} from '@/domain/cruise-package'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, ButtonLink, Modal, Notice, Panel } from '@/shared/ui'
+import { Button, ButtonLink, Field,Modal, Notice, Panel } from '@/shared/ui'
 import { servicePackageApi } from '../api/service-package-api'
 import type { ServiceRequest } from '../model/catalog'
 
@@ -10,6 +12,8 @@ export function ServiceRequestActions({ request, onChanged }: { request: Service
   const access = useSessionAccess()
   const [action, setAction] = useState<Action | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState('')
   const lock = useRef(false)
+  const [fulfilledQuantity,setFulfilledQuantity]=useState(''),[needsReview,setNeedsReview]=useState(false)
+  const entitlement=useReadQuery(`service-request-entitlement:${request.id}:${request.status}:${request.fulfilledQuantity??''}`,useCallback(signal=>request.fareBenefitSnapshotId?servicePackageApi.requestEntitlement(request.id,signal):Promise.resolve(null),[request.id,request.fareBenefitSnapshotId]))
   const ownAssignment = request.assignedUserId === access.userId
   const actions: Action[] = request.status === 'REQUESTED' ? ['assign', 'accept', 'reject', 'cancel'] : request.status === 'ACCEPTED' ? [...(ownAssignment ? ['start' as const] : []), 'cancel'] : request.status === 'IN_PROGRESS' && ownAssignment ? ['complete'] : []
   const allowed = (action: Action) => {
@@ -18,18 +22,32 @@ export function ServiceRequestActions({ request, onChanged }: { request: Service
     return access.canDo('SERVICE_REQUEST_ASSIGN') || access.canDo('SERVICE_REQUEST_EXECUTE')
   }
   async function confirm() {
-    if (!action || !actions.includes(action) || !allowed(action) || lock.current) return
+    if (!action || !actions.includes(action) || !allowed(action) || lock.current||needsReview) return
+    let fulfillment: {fulfilledQuantity:number;unitCode:string}|undefined
+    if(action==='complete'&&request.fareBenefitSnapshotId) {
+      if(entitlement.loading||entitlement.error||!entitlement.data||entitlement.data.grantId!==request.fareBenefitSnapshotId){setError('Cần đối chiếu quyền lợi của đúng yêu cầu trước khi hoàn tất.');return}
+      const actual=Number(fulfilledQuantity)
+      if(!fulfilledQuantity||!Number.isSafeInteger(actual)||actual<1||actual>request.quantity||!request.fulfillmentUnitCode){setError('Nhập số lượng đã phục vụ thực tế, không vượt yêu cầu và phải có đơn vị nguồn.');return}
+      fulfillment={fulfilledQuantity:actual,unitCode:request.fulfillmentUnitCode}
+    }
     lock.current = true; setBusy(true); setError('')
-    try { await servicePackageApi.requestAction(request.id, action); setAction(null); onChanged() }
-    catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa cập nhật được yêu cầu.') }
+    try { await servicePackageApi.requestAction(request.id, action,fulfillment); setAction(null); onChanged();entitlement.retry() }
+    catch (reason) { setNeedsReview(true);setError(reason instanceof Error ? reason.message : 'Chưa cập nhật được yêu cầu.') }
     finally { lock.current = false; setBusy(false) }
   }
   if (!access.canDo('SERVICE_REQUEST_CREATE') && !access.canDo('SERVICE_REQUEST_ASSIGN') && !access.canDo('SERVICE_REQUEST_EXECUTE')) return null
   return <Panel title="Tiếp nhận và thực hiện">
+    {entitlement.loading&&request.fareBenefitSnapshotId&&<p role="status">Đang đối chiếu quyền lợi…</p>}
+    {entitlement.error&&<Notice title="Chưa đối chiếu được quyền lợi" tone="error"><p>{entitlement.error.message}</p><Button onClick={entitlement.retry}>Tải lại quyền lợi</Button></Notice>}
+    {entitlement.data&&<OperationalCruisePackageEntitlement entitlement={entitlement.data}/>}
+    {request.fareBenefitSnapshotId&&<p>Đã ghi nhận phục vụ: {request.fulfilledQuantity??'Chưa xác định'} {request.fulfillmentUnitCode??'Chưa có đơn vị nguồn'}. Đơn giá quyền lợi đã bao gồm: {request.unitPriceSnapshot??'Chưa xác định'} {request.currencySnapshot??''}.</p>}
+    {needsReview&&<Notice title="Cần đối chiếu trước khi thao tác tiếp" tone="warning"><Button disabled={busy} onClick={onChanged}>Tải lại yêu cầu để đối chiếu</Button></Notice>}
     {request.status === 'REQUESTED' && (access.canDo('SERVICE_REQUEST_CREATE') || (access.canDo('SERVICE_REQUEST_EXECUTE') && (ownAssignment || access.roles.includes('ACTIVITY_SERVICE_MANAGER')))) && <ButtonLink tone="secondary" to={`/admin/service-requests/${request.id}/edit`}>Sửa số lượng và ghi chú</ButtonLink>}
-    {actions.filter(allowed).map(action => <Button key={action} tone={action === 'cancel' || action === 'reject' ? 'danger' : 'secondary'} disabled={busy || !allowed(action)} onClick={() => { setAction(action); setError('') }}>{labels[action]}</Button>)}
+    {actions.filter(allowed).map(action => <Button key={action} tone={action === 'cancel' || action === 'reject' ? 'danger' : 'secondary'} disabled={busy || needsReview || !allowed(action)} onClick={() => { setAction(action); setError('') }}>{labels[action]}</Button>)}
     {!ownAssignment && ['ACCEPTED', 'IN_PROGRESS'].includes(request.status) && <p>Chỉ người được phân công mới có thể bắt đầu hoặc hoàn thành yêu cầu.</p>}
     <p>Nhận xử lý gắn yêu cầu với tài khoản của bạn. Chỉ bắt đầu hoặc hoàn thành yêu cầu đã được giao cho bạn.</p>
-    {action && allowed(action) && <Modal title={labels[action]} busy={busy} onClose={() => setAction(null)}><p>Xác nhận {labels[action].toLocaleLowerCase('vi')} cho yêu cầu đang xem?</p>{error && <Notice tone="error" title="Không thực hiện được">{error}</Notice>}<Button disabled={busy || !allowed(action)} onClick={() => void confirm()}>{labels[action]}</Button></Modal>}
+    {action && allowed(action) && <Modal title={labels[action]} busy={busy} onClose={() => setAction(null)}><p>Xác nhận {labels[action].toLocaleLowerCase('vi')} cho yêu cầu đang xem?</p>
+      {action==='complete'&&request.fareBenefitSnapshotId&&<><Field htmlFor="service-actual-fulfilled" label={`Số lượng đã phục vụ thực tế (${request.fulfillmentUnitCode??'chưa có đơn vị'})`}><input id="service-actual-fulfilled" type="number" min="1" max={request.quantity} step="1" value={fulfilledQuantity} onChange={e=>setFulfilledQuantity(e.target.value)}/></Field><p>Không tự lấy số lượng yêu cầu làm số lượng đã phục vụ. Chỉ ghi nhận phần đã hoàn tất.</p></>}
+      {error && <Notice tone="error" title="Không thực hiện được">{error}</Notice>}<Button disabled={busy || needsReview || !allowed(action)} onClick={() => void confirm()}>{labels[action]}</Button></Modal>}
   </Panel>
 }

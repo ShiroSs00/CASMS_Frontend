@@ -37,7 +37,21 @@ export const liveGateway: PlanningGateway = {
   async archive(id,revision,reason) {return tripView(await apiRequest<CurrentTrip>(`/trips/${segment(id)}/archive`,{method:'POST',body:{expectedRevision:revision,reason:reason?.trim()||undefined}}))},
   async createVersion(trip,sourceVersionId) {
     if(trip.versions?.some(v=>v.status==='DRAFT'||v.status==='IN_REVIEW')) throw new PlanningFault('Đã có phiên bản chưa hoàn tất. Mở phiên bản đó để tiếp tục.',409,'DUPLICATE_DRAFT_VERSION')
-    return versionView(await apiRequest<CurrentVersion>(`/trips/${segment(trip.tripId)}/schedule-versions`,{method:'POST',body:sourceVersionId?{sourceVersionId}:{}}))
+    if(sourceVersionId){
+      const source=await currentVersion(sourceVersionId)
+      if(source.tripId!==trip.tripId)throw new PlanningFault('Phiên bản nguồn không thuộc chuyến đi này.',422,'INVALID_INPUT')
+      if(source.entries.some(entry=>entry.kind==='SERVING_WINDOW'))throw new PlanningFault('Phiên bản nguồn có khung phục vụ lịch sử chỉ đọc, chưa thể nhân bản. Chọn nội dung trống để tạo bản nháp riêng.',409,'LEGACY_TEMPLATE_CLONE_BLOCKED')
+      if(source.stops.some(stop=>Boolean(stop.visits?.length)))throw new PlanningFault('Chưa thể sao chép nguồn có lượt tham quan: Chức năng tạo phiên bản hiện chưa bảo toàn các lượt này. Có thể chọn nội dung trống để lập bản nháp riêng.',422,'CLIENT_INPUT')
+    }
+    const saved=versionView(await apiRequest<CurrentVersion>(`/trips/${segment(trip.tripId)}/schedule-versions`,{method:'POST',body:sourceVersionId?{sourceVersionId}:{}}))
+    // TripService's create projection omits visits. Read the canonical detail before editing.
+    try {
+      const actual=await currentVersion(saved.versionId)
+      if(actual.tripId!==trip.tripId||actual.revision!==saved.revision||actual.status!==saved.status)throw new Error('Version changed during readback')
+      return actual
+    } catch {
+      throw new PlanningFault('Chưa đối chiếu được phiên bản vừa tạo. Đọc lại danh sách phiên bản trước khi tạo tiếp.',502,'READBACK_MISMATCH')
+    }
   },
   async save(version,content) {return versionView(await apiRequest<CurrentVersion>(`/trip-schedule-versions/${segment(version.versionId)}/content`,{method:'PUT',body:contentRequest(version,content)}))},
   async changeDay(trip,version,removeDay) {
@@ -61,3 +75,4 @@ function readPage<T>(result:{content:T[];totalPages:number;totalElements:number}
   if(!Array.isArray(result?.content)||!Number.isSafeInteger(result.totalPages)||!Number.isSafeInteger(result.totalElements))throw new PlanningFault('Máy chủ chưa trả đúng dữ liệu phân trang.',502)
   return result
 }
+

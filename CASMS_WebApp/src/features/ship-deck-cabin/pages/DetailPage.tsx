@@ -1,3 +1,4 @@
+import {CruisePackageCabinMapping} from '@/domain/cruise-package'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
 import { entityPermission, operationPermission } from '../model/permissions'
@@ -49,6 +50,7 @@ function DetailPage({ kind }: { kind: EntityKind }) {
       </>} />
     {(location.state as { saved?: boolean } | null)?.saved && <Panel title="Kết quả lưu"><Notice title="Đã lưu thành công" tone="success">Thông tin đã được cập nhật trong hệ thống.</Notice></Panel>}
     {'code' in item ? <ShipInfo ship={item} /> : 'deckId' in item ? <CabinInfo cabin={item} /> : <DeckInfo deck={item} />}
+    {kind==='ships'&&<CruisePackageCabinMapping shipId={id}/>}
     {access.canDo(entityPermission(kind, 'DELETE')) && <Panel title={`Xóa ${kindLabels[kind]} chưa sử dụng`}>
       <p className={styles.muted}>Chỉ xóa đối tượng chưa sử dụng. Hệ thống sẽ kiểm tra các dữ liệu liên quan trước khi xóa.</p>
       {access.canDo(entityPermission(kind, 'DELETE')) && <Button tone="danger" disabled={!access.canDo(entityPermission(kind, 'DELETE'))} onClick={() => { mutation.clear(); setDeleting(true) }}>Xóa chưa sử dụng</Button>}

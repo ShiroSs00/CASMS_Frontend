@@ -1,5 +1,8 @@
-import { useEffect, useState } from 'react'
-import { Button, Field, Modal, Notice } from '@/shared/ui'
+import { useCallback,useEffect, useState } from 'react'
+import { Button, Field, Modal, Notice,RecordFacts } from '@/shared/ui'
+import {useReadQuery} from '@/shared/api'
+import {useSessionAccess} from '@/shared/auth'
+import {readPortSelectionFacts} from '../api/catalogs'
 import { validTimeZone } from '@/shared/lib/journey-time'
 import { useSources } from '../hooks'
 import { countryLabel, domesticRegionLabel, kindLabels, newKey, SHIP_ZONE, timeNumber, type Content, type Entry, type Stop, type Source, type TripInfo, type Violation } from '../model/plan'
@@ -33,6 +36,8 @@ export function StopDrawer(props:StopDrawerProps) {
 function StopForm({content,tripId,tripRevision,tripInfo,dayNumber,readOnly,stop,onClose,onApply,violation}:StopDrawerProps) {
   const server=useViolationField(violation,'stop-draft',readOnly)
   const ports=useSources('ports',{tripId},Boolean(tripId),tripRevision),[draft,setDraft]=useState<Stop>(()=>structuredClone(stop??{clientKey:newKey(),portId:'',portName:'',stopOrder:Math.max(0,...content.stops.map(s=>s.stopOrder))+1,arrivalDayNumber:dayNumber,plannedArrivalTime:'',departureDayNumber:dayNumber,plannedDepartureTime:'',callType:'NORMAL',arrivalMethod:'BERTH',allAboardDayNumber:null,allAboardTime:null,isEmbarkation:dayNumber===1&&!content.days.find(day=>day.dayNumber===1)?.departurePortId&&!content.stops.some(s=>s.isEmbarkation),isDisembarkation:dayNumber===content.days.length&&!content.stops.some(s=>s.isDisembarkation)}))
+  const access=useSessionAccess(),canReadPort=access.has('PORT_READ')
+  const facts=useReadQuery(`port-selection-facts:${access.userId}:${draft.portId}:${canReadPort}`,useCallback(signal=>draft.portId&&canReadPort?readPortSelectionFacts(draft.portId,signal):Promise.resolve(null),[draft.portId,canReadPort]))
   const [attempted,setAttempted]=useState(false),[touched,setTouched]=useState<Record<string,boolean>>({})
   const change=<K extends keyof Stop>(field:K,value:Stop[K])=>setDraft(old=>({...old,[field]:value}))
   const errors:Record<string,string>={}
@@ -66,7 +71,7 @@ function StopForm({content,tripId,tripRevision,tripInfo,dayNumber,readOnly,stop,
     <p className={styles.timeContext}>{zone?`Giờ địa phương của cảng · ${zone}`:'Chọn cảng để xác định múi giờ.'}</p>
     {(conflicts.length>0||routeIssue)&&<Notice title="Thời gian ghé cảng bị xung đột" tone="error">{errors.plannedArrivalTime}</Notice>}
     <form tabIndex={-1} onChangeCapture={server.dismiss} id="stop-draft" className={`${styles.single} ${styles.stopForm}`} onSubmit={e=>apply(e)} noValidate>
-      {server.notice}<SourcePicker id="stop-port" label={stopRoleLabel(draft.isEmbarkation,draft.isDisembarkation)+' *'} placeholder={'Chọn '+stopRoleLabel(draft.isEmbarkation,draft.isDisembarkation).toLocaleLowerCase('vi')} emptyMessage="Không có cảng phù hợp với phạm vi, quốc gia và miền đã chọn. Kiểm tra thông tin chuyến hoặc danh mục cảng." value={draft.portId} selectedLabel={draft.portName} options={eligiblePorts} loading={ports.loading} loadError={ports.error} error={shown('portId')} readOnly={readOnly} retry={ports.retry} onBlur={touch('portId')} onChange={id=>{const selected=ports.data.find(p=>p.id===id);setDraft(old=>({...old,portId:id,portName:selected?.name??selected?.label,timeZoneId:selected?.timeZoneId,countryCode:selected?.countryCode,domesticRegion:selected?.domesticRegion??null}))}}/>
+      {server.notice}<SourcePicker resultLabel="cảng" id="stop-port" label={stopRoleLabel(draft.isEmbarkation,draft.isDisembarkation)+' *'} placeholder={'Chọn '+stopRoleLabel(draft.isEmbarkation,draft.isDisembarkation).toLocaleLowerCase('vi')} emptyMessage="Không có cảng phù hợp với phạm vi, quốc gia và miền đã chọn. Kiểm tra thông tin chuyến hoặc danh mục cảng." value={draft.portId} selectedLabel={draft.portName} options={eligiblePorts} loading={ports.loading} loadError={ports.error} error={shown('portId')} readOnly={readOnly} retry={ports.retry} onBlur={touch('portId')} onChange={id=>{const selected=ports.data.find(p=>p.id===id);setDraft(old=>({...old,portId:id,portName:selected?.name??selected?.label,timeZoneId:selected?.timeZoneId,countryCode:selected?.countryCode,domesticRegion:selected?.domesticRegion??null}))}}/>
       {port&&<dl className={styles.portContext}><div><dt>Quốc gia / vùng lãnh thổ</dt><dd>{countryLabel(port?.countryCode??draft.countryCode)}</dd></div><div><dt>Múi giờ cảng</dt><dd>{zone??'Chưa xác định'}</dd></div></dl>}
       {(port?.countryCode??draft.countryCode)==='VN'&&<p className={styles.muted}>{domesticRegionLabel(port?.domesticRegion??draft.domesticRegion)}</p>}
       {draft.portId&&<PortWindows key={draft.portId} portId={draft.portId}/>}
@@ -83,6 +88,13 @@ function StopForm({content,tripId,tripRevision,tripInfo,dayNumber,readOnly,stop,
        </div>
       </details>
       {(errors.embarkation||errors.disembarkation)&&<p className={styles.error} role="alert">{errors.embarkation??errors.disembarkation}</p>}
+      {facts.data&&<RecordFacts entries={[
+        ['Cảng đang chọn',facts.data.portName],['Quốc gia',countryLabel(facts.data.countryCode??undefined)],
+        ['Loại cảng',({PORT:'Cảng',PIER:'Cầu cảng',ANCHORAGE:'Khu neo đậu'} as Record<string,string>)[facts.data.locationType??'']??'Chưa có thông tin'],
+        ['Địa danh tọa độ',facts.data.coordinateSource?.locationName??'Chưa có thông tin'],
+        ['Trạng thái cảng',facts.data.status==='ACTIVE'?'Đang hoạt động':facts.data.status==='INACTIVE'?'Ngừng hoạt động':'Chưa xác định'],
+      ]}/>}
+      {facts.error&&<Notice title="Chưa đối chiếu được thông tin cảng" tone="warning">{facts.error.message}<Button tone="secondary" onClick={facts.retry}>Tải lại thông tin cảng</Button></Notice>}
     <DestinationVisits visits={draft.visits??[]} onChange={visits=>change('visits',visits)}/>
       {linked.length>0&&<p>Tour đang liên kết: {linked.map(e=>e.title).join(', ')}. Tour giữ liên kết với lần ghé này.</p>}
     </form>
@@ -146,3 +158,5 @@ function EntryForm({content,dayNumber,readOnly,entry,kind,initialStopClientKey,o
     </form>
   </Modal>
 }
+
+

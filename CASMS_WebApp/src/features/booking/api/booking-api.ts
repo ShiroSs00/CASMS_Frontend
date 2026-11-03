@@ -1,16 +1,24 @@
 import { ApiError, apiRequest } from '@/shared/api'
+import { decodePublicSale, decodePublicItinerary } from './public-sale-contract'
 import { toPublishedCruise, toPublishedPage, type LiveCruiseDto, type LiveCruisePageDto } from './live-cruise-contract'
 import { lookupItinerary, toLiveDays, toLivePortCalls, toLiveShip } from './live-itinerary-contract'
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export const liveCruiseCatalogApi = {
+ async publicSaleState(id:string,signal?:AbortSignal) {
+  return decodePublicSale(await apiRequest<unknown>(`/cruise/${encodeURIComponent(id)}/sellability`,{signal}),id)
+ },
+ async publicItinerary(id:string,signal?:AbortSignal) {
+  return decodePublicItinerary(await apiRequest<unknown>(`/cruise/${encodeURIComponent(id)}/public-itinerary`,{signal}),id)
+ },
  async saleState(id:string,signal?:AbortSignal) {
   if(!UUID_REGEX.test(id))throw new ApiError('Không xác định được chuyến khởi hành.',400)
   const value=await apiRequest<unknown>(`/cruise/${encodeURIComponent(id)}/sellability`,{signal})
   if(!value||typeof value!=='object'||Array.isArray(value))throw new ApiError('Chưa xác định được trạng thái bán.',502)
   const row=value as Record<string,unknown>
-  if(row.cruiseId!==id||typeof row.sellable!=='boolean'||typeof row.saleState!=='string')throw new ApiError('Trạng thái bán chưa khớp chuyến khởi hành.',502)
-  return {saleState:row.saleState,sellable:row.sellable}
+  if(row.cruiseId!==id||typeof row.sellable!=='boolean'||typeof row.saleState!=='string'||!['OPEN_FOR_SALE','STOPPED','NOT_YET_OPEN','DEPARTED','SOLD_OUT','DRAFT','CANCELLED'].includes(row.saleState)
+   ||row.sellable!==(row.saleState==='OPEN_FOR_SALE')||row.evaluatedAt!=null&&(typeof row.evaluatedAt!=='string'||!Number.isFinite(Date.parse(row.evaluatedAt))))throw new ApiError('Trạng thái bán chưa khớp chuyến khởi hành.',502)
+  return {saleState:row.saleState,sellable:row.sellable,evaluatedAt:typeof row.evaluatedAt==='string'?row.evaluatedAt:null}
  },
  async list(page:number, signal?:AbortSignal, cruiseType?: 'ONE_DAY' | 'MULTI_DAYS') {
   const data = await apiRequest<LiveCruisePageDto>('/cruise', {

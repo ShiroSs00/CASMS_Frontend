@@ -20,3 +20,26 @@ export type AssignmentCapabilities = {
   change: AssignmentCapability
   unassign: AssignmentCapability
 }
+
+export type ShipAssignmentContext = {
+  cruiseId: string
+  cruiseRevision: number
+  hasBookings: boolean
+  editablePlan: boolean
+  shipId: string | null
+  shipName: string | null
+  shipCode: string | null
+  assignmentStatus: 'ASSIGNED' | 'UNASSIGNED'
+  allowedActions: AssignmentCapabilities
+  requiresImpactWorkflow: boolean
+  impactBlockers: string[]
+  changeSafety: ShipAssignmentSafety
+  unassignSafety: ShipAssignmentSafety
+}
+
+export type ShipAssignmentSafety = {
+  cruiseId:string;currentShipId:string|null;requestedShipId:string|null;operation:'ASSIGN'|'CHANGE'|'UNASSIGN'
+  assignmentChanged:boolean;canProceed:boolean;blockingCategories:string[];blockers:string[]
+  dependencies:{category:string;count:number;blocking:boolean;clarificationRequired:boolean;reason:string}[]
+  approvalImpact:{planStatus:string;readyRecorded:boolean;confirmedSignoffs:number;submittedSections:number;fingerprintWillChange:boolean;reason:string}
+}

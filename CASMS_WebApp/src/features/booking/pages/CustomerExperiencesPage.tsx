@@ -1,3 +1,4 @@
+import { CruisePackageEntitlements } from '@/domain/cruise-package'
 import { useCallback } from 'react'
 import { useParams } from 'react-router'
 import { useReadQuery } from '@/shared/api'
@@ -21,7 +22,7 @@ function Experiences({ bookingId }: { bookingId: string }) {
   return <RealBookingFrame><div className={styles.stack}><ButtonLink tone="secondary" to={'/my-bookings/' + encodeURIComponent(bookingId)}>← Về chi tiết đặt chỗ</ButtonLink><PageHeader breadcrumb="ĐẶT CHỖ / TRẢI NGHIỆM" title="Hoạt động & dịch vụ"  />
     <BookingReadState {...query} publicResource="đặt chỗ" />
     {booking && <><p>Đặt chỗ <strong>{booking.bookingReference}</strong> · {booking.cruiseName}</p>
-      {access.canDo('ACTIVITY_READ') ? <CustomerActivities booking={booking} /> : <Notice title="Chưa có quyền xem hoạt động" tone="warning">Phiên hiện tại chưa được cấp quyền đọc hoạt động trên chuyến khởi hành.</Notice>}
+      {booking.passengers.some(p=>p.farePackageOfferId)&&<CruisePackageEntitlements bookingId={bookingId} passengers={booking.passengers}/>} {access.canDo('ACTIVITY_READ') ? <CustomerActivities booking={booking} /> : <Notice title="Chưa có quyền xem hoạt động" tone="warning">Phiên hiện tại chưa được cấp quyền đọc hoạt động trên chuyến khởi hành.</Notice>}
       {access.canDo('ACTIVITY_REGISTRATION') && <CustomerRegistrations booking={booking} />}
       {access.canDo('SERVICE_READ') ? <CustomerServices booking={booking} /> : <Notice title="Chưa có quyền xem dịch vụ bổ sung" tone="warning">Dịch vụ chưa được mở cho tài khoản này. Quyền trong gói không tự cấp quyền đặt dịch vụ qua tài khoản.</Notice>}
       {(access.canDo('SERVICE_REQUEST_READ') || access.canDo('SERVICE_REQUEST_CREATE')) && <CustomerRequests booking={booking} />}

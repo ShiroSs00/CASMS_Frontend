@@ -4,7 +4,7 @@ import { useSessionAccess } from '@/shared/auth'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 
-import { Badge, Button, ButtonLink, CollectionSummary, DataTable, Empty, Field, Loading, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Badge, Button, ButtonLink, CollectionSummary, DataTable, Empty, Field, Loading, Modal, Notice, PageHeader, Panel, RecordFacts } from '@/shared/ui'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { businessErrorMessage } from '@/shared/api/business-errors'
 
@@ -271,7 +271,21 @@ function MasterDetail({ kind }: { kind: Kind }) {
     {can('DELETE_UNUSED') && <Button tone="danger" disabled={busy} onClick={() => setRemoveOpen(true)}>Xóa khi chưa sử dụng</Button>}
   </div> : undefined} />
     {loading && <Loading label={`Đang tải ${copy.singular}…`} />}{error && <Notice title="Không thể thực hiện" tone="error"><p>{error}</p>{kind === 'destination' && !record && <Button onClick={() => void load()}>Thử lại</Button>}</Notice>}{success && <Notice title="Đã cập nhật" tone="success"><p>{success}</p></Notice>}
-    {record && <>{kind==='port'&&<CoordinateSourceInfo source={(record as Port).coordinateSource??null}/>}<Panel title="Thông tin danh mục"><dl><dt>Ngày tạo</dt><dd>{record.createdAt?new Date(record.createdAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}):'Chưa có thông tin'}</dd><dt>Cập nhật gần nhất</dt><dd>{record.updatedAt?new Date(record.updatedAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}):'Chưa có thông tin'}</dd></dl>{kind === 'port' ? <DataTable label="Thông tin cảng" headers={['Thuộc tính', 'Giá trị']}><tr><td>Mã cảng</td><td>{(record as Port).portCode}</td></tr><tr><td>Quốc gia / múi giờ</td><td>{record.countryCode} · {(record as Port).timeZoneId}</td></tr><tr><td>Tọa độ</td><td>{(record as Port).latitude ?? '—'}, {(record as Port).longitude ?? '—'}</td></tr></DataTable> : <DataTable label="Thông tin điểm đến" headers={['Thuộc tính', 'Giá trị']}><tr><td>Quốc gia</td><td>{record.countryCode}</td></tr><tr><td>Mô tả</td><td>{(record as Destination).description || '—'}</td></tr><tr><td>Miền nội địa</td><td>{({BAC_BO:'Miền Bắc',TRUNG_BO:'Miền Trung',NAM_BO:'Miền Nam'} as Record<string,string>)[(record as Destination).domesticRegion??'']??'Chưa xác định'}</td></tr></DataTable>}</Panel>
+    {record && <><Panel title={kind==='port'?'Thông tin cảng':'Thông tin điểm đến'}>
+      {kind==='port'?<RecordFacts entries={[
+        ['Mã cảng',(record as Port).portCode],['Quốc gia',record.countryCode],['Múi giờ cảng',(record as Port).timeZoneId],
+        ['Loại vị trí',({PORT:'Cảng',PIER:'Cầu cảng',ANCHORAGE:'Khu neo đậu'} as Record<string,string>)[(record as Port).locationType??'']??'Chưa có thông tin'],
+        ['Tọa độ tham chiếu',(record as Port).latitude!=null&&(record as Port).longitude!=null?`${(record as Port).latitude}, ${(record as Port).longitude}`:'Chưa có thông tin'],
+        ['Mô tả',(record as Port).description||'Chưa có mô tả'],
+      ]}/>:<RecordFacts entries={[
+        ['Quốc gia',record.countryCode],['Mô tả',(record as Destination).description||'Chưa có mô tả'],
+        ['Miền nội địa',({BAC_BO:'Miền Bắc',TRUNG_BO:'Miền Trung',NAM_BO:'Miền Nam'} as Record<string,string>)[(record as Destination).domesticRegion??'']??'Chưa có thông tin'],
+      ]}/>}
+      <RecordFacts entries={[
+        ['Ngày tạo',record.createdAt?new Date(record.createdAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}):'Chưa có thông tin'],
+        ['Cập nhật gần nhất',record.updatedAt?new Date(record.updatedAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}):'Chưa có thông tin'],
+      ]}/>
+    </Panel>
       {kind === 'destination' && <Panel title={`Cảng liên kết${!portsLoading && !portsError ? ` · ${linkedPorts.length}` : ''}`}>
         <p>Các cảng hiện được liên kết với điểm đến này. Mở cảng để xem thông tin chi tiết.</p>
         {portsLoading ? <Loading label="Đang tải cảng liên kết…" /> : portsError ? <Notice title="Không tải được cảng liên kết" tone="error"><p>{portsError}</p><Button onClick={retryPorts}>Thử lại</Button></Notice>

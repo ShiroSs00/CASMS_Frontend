@@ -19,7 +19,7 @@ function dateLabel(value: string | null | undefined, includeTime = false) {
 const bookingLabels = { Draft: 'Chờ xác nhận', Confirmed: 'Đã xác nhận', Cancelled: 'Đã hủy' }
 
 export function PackageAssignmentPage() {
-  return <CatalogFrame><PageHeader breadcrumb="ĐẶT CHỖ / GÓI CỦA HÀNH KHÁCH" title="Gói dịch vụ của hành khách"
+  return <CatalogFrame><PageHeader breadcrumb="ĐẶT CHỖ / GÓI DỊCH VỤ" title="Phân bổ gói dịch vụ"
 
     actions={<ButtonLink tone="secondary" to="/admin/service-packages">Danh mục gói</ButtonLink>} />
 

@@ -1,17 +1,16 @@
-import { useCallback, useContext, useEffect, useRef, useState } from 'react'
-import { useBlocker } from 'react-router'
-import { Button, Modal } from '@/shared/ui'
+import { useCallback, useContext, useEffect, useState } from 'react'
+
+import { useUnsavedFormGuard } from '@/shared/ui'
 import { Context } from './planning-context'
 import { failure } from './api/live'
 import type { PlanningGateway } from './api/gateway'
 import { sourceQueryKey } from './model/source-query'
 export function usePlanning(){const value=useContext(Context);if(!value)throw new Error('Planning provider missing');return value}
 export function useUnsavedGuard(dirty:boolean,busy=false) {
-  const {unsavedRef}=usePlanning(),allowed=useRef(false)
-  useEffect(()=>{unsavedRef.current=dirty||busy;const warn=(event:BeforeUnloadEvent)=>{if(dirty||busy){event.preventDefault();event.returnValue=''}};window.addEventListener('beforeunload',warn);return()=>{unsavedRef.current=false;window.removeEventListener('beforeunload',warn)}},[dirty,busy,unsavedRef])
-  const blocker=useBlocker(({currentLocation,nextLocation})=>(dirty||busy)&&!allowed.current&&(currentLocation.pathname!==nextLocation.pathname||new URLSearchParams(currentLocation.search).get('versionId')!==new URLSearchParams(nextLocation.search).get('versionId')))
-  const prompt=blocker.state==='blocked'?<Modal title={busy?'Đang xử lý yêu cầu':'Bản nháp chưa được lưu'} onClose={()=>blocker.reset()} footer={<><Button tone="secondary" onClick={()=>blocker.reset()}>Ở lại</Button><Button tone="danger" disabled={busy} onClick={()=>blocker.proceed()}>Bỏ thay đổi và rời trang</Button></>}>{busy?<p>Chờ yêu cầu hiện tại hoàn tất để xác định dữ liệu đã lưu trước khi rời trang.</p>:<p>Những thay đổi chưa lưu trên màn hình sẽ bị bỏ. Dữ liệu này không được khôi phục sau khi đóng trình duyệt.</p>}</Modal>:null
-  return {prompt,allowLeave:()=>{allowed.current=true;unsavedRef.current=false}}
+  const {unsavedRef}=usePlanning()
+  useEffect(()=>{unsavedRef.current=dirty||busy;return()=>{unsavedRef.current=false}},[dirty,busy,unsavedRef])
+  const guard=useUnsavedFormGuard(dirty,busy,(current,next)=>current.pathname!==next.pathname||new URLSearchParams(current.search).get('versionId')!==new URLSearchParams(next.search).get('versionId'))
+  return {prompt:guard.prompt,allowLeave:()=>{guard.allowLeave();unsavedRef.current=false}}
 }
 export function useSources(kind:Parameters<PlanningGateway['sources']>[0],query:Parameters<PlanningGateway['sources']>[2]={},enabled=true,revision?:number) {
   const {gateway}=usePlanning(),[attempt,setAttempt]=useState(0)
@@ -28,3 +27,4 @@ export function useSources(kind:Parameters<PlanningGateway['sources']>[0],query:
   const current=result?.gateway===gateway&&result.key===key?result:null
   return {data:enabled?current?.data??[]:[],loading:enabled&&!current,error:enabled?current?.error??'':'',errorCode:enabled?current?.errorCode:undefined,retry:useCallback(()=>{setResult(null);setAttempt(n=>n+1)},[])}
 }
+

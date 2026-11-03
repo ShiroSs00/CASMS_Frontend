@@ -24,12 +24,13 @@ export function CruisePlanWorkspace({cruiseId,refreshKey,onChanged,onSection,sec
      ['program','Chương trình và dịch vụ','Hoạt động, tour và gói dịch vụ','Xem chương trình'],
     ] as const).filter(([section])=>sections.includes(section)).map(([section,title,description,label])=><div className={styles.planTaskRow} key={section}><div><h3>{title}</h3><p>{description}</p></div><Button tone="secondary" onClick={()=>onSection(section)}>{label}</Button></div>)}
    </nav>
-   <details className={styles.workspaceDisclosure}><summary>Chính sách giá</summary><div className={styles.workspaceBody}><DeparturePricingPolicy embedded cruiseId={cruiseId} refreshKey={refreshKey} onChanged={onChanged}/></div></details>
+   <details className={styles.workspaceDisclosure}><summary>Chính sách thương mại</summary><div className={styles.workspaceBody}><DeparturePricingPolicy embedded readOnly cruiseId={cruiseId} refreshKey={refreshKey} onChanged={onChanged}/></div></details>
    <details className={styles.workspaceDisclosure}><summary>Nhận đặt chỗ và hướng dẫn trước chuyến</summary><div className={styles.workspaceBody}><CruisePlanReview embedded cruiseId={cruiseId} refreshKey={refreshKey} onChanged={onChanged} mode="prepare"/></div></details>
   </section>
   {onReview&&<div className={styles.workspaceFooter}><Button onClick={onReview}>Kiểm tra và gửi hồ sơ</Button></div>}
  </>
  if(access.roles.includes('OPERATIONS_MANAGER'))return <>
+  <DeparturePricingPolicy cruiseId={cruiseId} refreshKey={refreshKey} onChanged={onChanged}/>
   <CruisePlanReview cruiseId={cruiseId} refreshKey={refreshKey} onChanged={onChanged} mode="prepare"/>
  </>
  return <Panel title={businessCopy('cruise.plan.workspace.title')}>

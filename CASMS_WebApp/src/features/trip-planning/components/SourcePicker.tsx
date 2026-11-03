@@ -3,11 +3,11 @@ import { Button, Field, Loading, Notice } from '@/shared/ui'
 import type { Source } from '../model/plan'
 import styles from '../Planning.module.css'
 
-type Props={id:string;label:string;placeholder:string;emptyMessage:string;value:string;selectedLabel?:string;selectedSource?:Source;options:Source[];loading:boolean;loadError:string;error?:string;readOnly:boolean;retry:()=>void;onBlur:()=>void;onChange:(id:string)=>void;searchValue?:string;onSearch?:(value:string)=>void;filtered?:boolean}
+type Props={id:string;label:string;resultLabel?:string;placeholder:string;emptyMessage:string;value:string;selectedLabel?:string;selectedSource?:Source;options:Source[];loading:boolean;loadError:string;error?:string;readOnly:boolean;retry:()=>void;onBlur:()=>void;onChange:(id:string)=>void;searchValue?:string;onSearch?:(value:string)=>void;filtered?:boolean}
 const searchable=(text:string)=>text.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLocaleLowerCase('vi').trim()
 
 /** Uses server keyword filtering when supplied; otherwise searches the loaded array. */
-export function SourcePicker({id,label,placeholder,emptyMessage,value,selectedLabel,selectedSource,options,loading,loadError,error,readOnly,retry,onBlur,onChange,searchValue,onSearch,filtered=false}:Props){
+export function SourcePicker({id,label,placeholder,emptyMessage,value,selectedLabel,selectedSource,options,loading,loadError,error,readOnly,retry,onBlur,onChange,searchValue,onSearch,filtered=false,resultLabel='mục'}:Props){
   const [search,setSearch]=useState('')
   const query=searchable(searchValue??search),matches=onSearch?options:options.filter(option=>searchable(option.label).includes(query))
   const selected=options.find(option=>option.id===value)??(selectedSource?.id===value?selectedSource:undefined),keepSelection=Boolean(value&&!matches.some(option=>option.id===value))
@@ -19,7 +19,7 @@ export function SourcePicker({id,label,placeholder,emptyMessage,value,selectedLa
       {matches.map(option=><option key={option.id} value={option.id}>{option.label}</option>)}
     </select></Field>
     <div id={`${id}-status`} aria-live="polite">
-      {loading?<Loading label="Đang tải danh mục…"/>:loadError?<Notice title="Chưa tải được danh mục" tone="error">{loadError}<Button type="button" tone="secondary" onClick={retry}>Tải lại danh mục</Button></Notice>:!options.length&&!query&&!filtered?<Notice title="Chưa có dữ liệu để chọn">{emptyMessage}<Button type="button" tone="secondary" onClick={retry}>Tải lại danh mục</Button></Notice>:<p className={styles.muted}>{matches.length?`${matches.length} lựa chọn`:'Không tìm thấy kết quả. Thử từ khóa hoặc bộ lọc khác.'}</p>}
+      {loading?<Loading label="Đang tải danh mục…"/>:loadError?<Notice title="Chưa tải được danh mục" tone="error">{loadError}<Button type="button" tone="secondary" onClick={retry}>Tải lại danh mục</Button></Notice>:!options.length&&!query&&!filtered?<Notice title="Chưa có dữ liệu để chọn">{emptyMessage}<Button type="button" tone="secondary" onClick={retry}>Tải lại danh mục</Button></Notice>:<p className={styles.muted}>{matches.length?`${matches.length} ${resultLabel} phù hợp trong danh mục đã tải${query?' theo từ khóa':''}.`:'Không tìm thấy kết quả. Thử từ khóa hoặc bộ lọc khác.'}</p>}
       {value&&!selected&&!loading&&!loadError&&!filtered&&!query&&<p className={styles.error}>{readOnly?'Mục đã lưu không còn trong danh mục hiện tại. Nội dung lịch trình vẫn được giữ.':'Mục đã lưu không còn trong danh mục hiện tại. Chọn lại mục hợp lệ trước khi áp dụng.'}</p>}
     </div>
   </div>
