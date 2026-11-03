@@ -1,0 +1,18 @@
+.snapshot { min-width: 0; font-size: 14px; line-height: 1.6; }
+.overview { padding-block: 8px 20px; }
+.snapshot dl > div { grid-template-columns: minmax(0, 1fr); gap: 6px; padding-block: 14px; }
+.snapshot dl dt { font-size: 13px; }
+.snapshot dl dd { font-size: 14px; line-height: 1.65; }
+.group { border-top: 1px solid var(--ui-border); }
+.group > summary { min-height: 52px; padding: 14px 0; cursor: pointer; color: var(--ui-ink); font-weight: 600; overflow-wrap: anywhere; }
+.group > summary > span { margin-inline-start: 12px; color: var(--ui-muted); font-size: 13px; font-weight: 400; white-space: nowrap; }
+.group > summary:hover { color: var(--ui-brand); }
+.group > summary:focus-visible { outline: 2px solid var(--ui-brand); outline-offset: 3px; }
+.groupBody { display: grid; gap: 20px; min-width: 0; padding-block: 0 20px; }
+.groupBody > * + * { border-top: 1px solid var(--ui-border); padding-top: 16px; }
+.emptyGroup { display: flex; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; padding-block: 14px; border-top: 1px solid var(--ui-border); }
+.emptyGroup > span:last-child { color: var(--ui-muted); font-size: 13px; }
+@media (max-width: 600px) {
+ .group > summary > span { display: block; margin-inline-start: 18px; margin-top: 4px; }
+ .emptyGroup { flex-direction: column; gap: 4px; }
+}

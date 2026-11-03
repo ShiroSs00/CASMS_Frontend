@@ -1,0 +1,9 @@
+import { externalAppUrl } from '@/shared/lib/external-app'
+import { BrandLogo } from '@/shared/ui'
+import { Link } from 'react-router'
+import styles from './PublicFooter.module.css'
+
+export function PublicFooter() {
+  const adminUrl = externalAppUrl(import.meta.env.VITE_ADMIN_APP_URL, '/login')
+  return <footer className={styles.footer} id="help"><div className={styles.footerInner}><div className={styles.footerAbout}><Link to="/" className={styles.brand} aria-label="OceVie"><BrandLogo variant="dark" tagline /></Link><p>Khám phá hành trình đã công bố và chuẩn bị cho chuyến đi của bạn.</p></div><nav aria-label="Khám phá"><span>KHÁM PHÁ</span><Link to="/cruises">Chuyến du thuyền</Link><Link to="/destinations">Cảm hứng điểm đến</Link><Link to="/ships">Tàu</Link><Link to="/deals">Ưu đãi</Link></nav><nav aria-label="Đặt chỗ"><span>ĐẶT CHỖ</span><Link to="/booking/lookup">Tra cứu đặt chỗ</Link><a href="#project-contact">Liên hệ</a></nav><nav aria-label="Hướng dẫn"><span>HƯỚNG DẪN</span><Link to="/#cruise-finder">Tìm chuyến phù hợp</Link><Link to="/booking/lookup">Chuẩn bị trước chuyến</Link></nav><small>OceVie · 2026 · {adminUrl && <a href={adminUrl}>Dành cho nhân viên</a>} · <a href="/images/ports/credits.html" target="_blank" rel="noreferrer">Nguồn ảnh & giấy phép</a></small></div></footer>
+}

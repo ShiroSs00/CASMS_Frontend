@@ -1,0 +1,52 @@
+import { useRef, useState, type FormEvent } from 'react'
+import { ApiError } from '@/shared/api'
+import { Button, Field } from '@/shared/ui'
+import { externalAppUrl } from '@/shared/lib/external-app'
+import type { AuthUser } from '../model/auth-types'
+import styles from './Auth.module.css'
+
+function loginMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    if (error.code === 'ACCOUNT_DISABLED' || /disabled|locked/i.test(error.message)) return 'Tài khoản đã bị khóa hoặc ngừng hoạt động. Vui lòng liên hệ quản trị viên.'
+    if (error.code === 'INVALID_CREDENTIALS' || error.status === 401 || /invalid username or password/i.test(error.message)) return 'Tên đăng nhập hoặc mật khẩu không đúng.'
+  }
+  return error instanceof Error ? error.message : 'Không thể đăng nhập. Vui lòng thử lại.'
+}
+
+export function LoginForm({ expired, login, onSuccess }: {
+  expired: boolean; login: (username: string, password: string) => Promise<AuthUser>; onSuccess: (user: AuthUser) => void
+}) {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const bookingUrl = externalAppUrl(import.meta.env.VITE_BOOKING_APP_URL, '/cruises')
+  const lookupUrl = externalAppUrl(import.meta.env.VITE_BOOKING_APP_URL, '/booking/lookup')
+  const [attempted, setAttempted] = useState(false)
+  const lock = useRef(false)
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    if (lock.current) return
+    setAttempted(true); setError('')
+    if (!username.trim() || !password) return
+    lock.current = true; setBusy(true)
+    try { const user = await login(username.trim(), password); setPassword(''); onSuccess(user) }
+    catch (reason) { setError(loginMessage(reason)) }
+    finally { lock.current = false; setBusy(false) }
+  }
+  return <div className={styles.loginCard}>
+    <p className={styles.eyebrow}>{expired ? 'PHIÊN ĐĂNG NHẬP' : 'OCEVIE · STAFF PORTAL'}</p>
+    <h1>{expired ? 'Phiên của bạn đã hết hạn' : 'Không gian điều hành'}</h1>
+    <p>{expired ? 'Đăng nhập lại để tiếp tục.' : 'Đăng nhập dành cho quản trị viên, quản lý và nhân viên đặt chỗ.'}</p>
+    <form className={styles.loginForm} onSubmit={(event) => void submit(event)} noValidate>
+      <Field htmlFor="auth-username" label="Tên đăng nhập" error={attempted && !username.trim() ? 'Nhập tên đăng nhập.' : undefined}><input id="auth-username" name="username" autoComplete="username" value={username} disabled={busy} required aria-invalid={attempted && !username.trim()} aria-describedby={attempted && !username.trim() ? 'auth-username-hint' : undefined} onChange={(event) => setUsername(event.target.value)} /></Field>
+      <Field htmlFor="auth-password" label="Mật khẩu" error={attempted && !password ? 'Nhập mật khẩu.' : undefined}><input id="auth-password" name="password" type="password" autoComplete="current-password" value={password} disabled={busy} required aria-invalid={attempted && !password} aria-describedby={attempted && !password ? 'auth-password-hint' : undefined} onChange={(event) => setPassword(event.target.value)} /></Field>
+      <div className={styles.sessionHint}><a href="#auth-help">Cần hỗ trợ?</a></div>
+      {error && <div className={styles.error} role="alert">{error}</div>}
+      <Button type="submit" className={styles.loginButton} disabled={busy}>{busy ? 'Đang đăng nhập…' : 'Đăng nhập'}</Button>
+    </form>
+    <p className={styles.center}>Tài khoản được cấp và quản lý bởi hệ thống OceVie</p>
+    <p className={styles.help} id="auth-help">Liên hệ quản trị viên nếu bạn không thể đăng nhập</p>
+    {bookingUrl && lookupUrl && <p className={styles.center}>Bạn là hành khách? <a href={bookingUrl}>Đặt chuyến</a> hoặc <a href={lookupUrl}>tra cứu bằng mã đặt chỗ</a>, không cần đăng nhập.</p>}
+  </div>
+}

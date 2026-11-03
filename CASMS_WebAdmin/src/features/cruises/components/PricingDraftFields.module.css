@@ -1,0 +1,13 @@
+.form { min-width: 0; }
+.fields { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: 28px; }
+.group { min-width: 0; }
+.group + .group { border-top: 1px solid var(--ui-border); padding-top: 24px; }
+.group h3 { margin: 0 0 16px; color: var(--ui-ink); font-size: 16px; line-height: 1.5; font-weight: 600; }
+.hint { margin: -8px 0 16px; color: var(--ui-muted); font-size: 13px; line-height: 1.6; }
+.grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px 24px; align-items: start; }
+.grid > * { min-width: 0; }
+.inputUnit { position: relative; min-width: 0; }
+.inputUnit input { width: 100%; padding-inline-end: 64px; font-variant-numeric: tabular-nums; }
+.inputUnit > span { position: absolute; inset-inline-end: 28px; top: 50%; transform: translateY(-50%); color: var(--ui-muted); font-size: 13px; pointer-events: none; }
+.group textarea { min-height: 104px; resize: vertical; }
+@media(max-width:600px) { .grid { grid-template-columns: minmax(0,1fr); gap: 16px; } .fields { gap: 24px; } }

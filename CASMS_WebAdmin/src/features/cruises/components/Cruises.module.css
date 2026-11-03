@@ -1,0 +1,94 @@
+
+.cruiseShell { --cruise-navy:var(--brand-navy); --cruise-text:var(--brand-navy); --cruise-muted:var(--text-secondary); --cruise-border:var(--border-default); --cruise-bg:#f5f7f9; }
+.content { max-width:1136px; margin:0 auto; }
+.metrics,.detailMetrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-bottom:20px; }
+.metric,.detailMetrics > div { display:flex; min-height:94px; flex-direction:column; align-items:flex-start; justify-content:space-between; gap:12px; padding:20px 24px; border:1px solid var(--cruise-border); border-radius:var(--radius-control); background:#fff; }
+.metric > span,.detailMetrics > div > span:first-child { color:var(--cruise-muted); font-size:12px; font-weight:600; line-height:18px; }
+.filters { display:grid; grid-template-columns:minmax(260px,1.6fr) repeat(3,minmax(160px,1fr)); gap:20px 16px; padding:24px; border:1px solid var(--cruise-border); border-radius:var(--radius-panel); background:var(--ui-surface); box-shadow:var(--shadow-panel); }
+.filterActions { display:flex; align-items:flex-end; gap:12px; }
+.muted { color:var(--cruise-muted); font-size:12px; line-height:18px; }
+.rowLink,.inlineLink { color:var(--cruise-navy); font-weight:600; text-decoration:none; white-space:nowrap; }
+.rowLink:hover,.inlineLink:hover { text-decoration:underline; }
+.pagination { display:flex; align-items:center; justify-content:space-between; gap:24px; padding-top:16px; border-top:1px solid var(--cruise-border); color:var(--cruise-muted); font-size:13px; }
+.pagination > div { display:flex; align-items:center; gap:10px; }
+.pagination button { width:auto; min-width:92px; }
+.pageNumber { min-width:52px; text-align:center; color:var(--cruise-text); font-weight:600; }
+.hiddenHelp { margin:16px 0 0; color:var(--cruise-muted); font-size:12px; }
+.formGrid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px 16px; }
+.formActions,.dialogActions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:12px; }
+.detailColumns { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr); gap:16px; align-items:start; }
+.definitionGrid { display:grid; grid-template-columns:180px minmax(0,1fr); gap:12px 20px; margin:0; }
+.definitionGrid dt { color:var(--cruise-muted); font-size:13px; }
+.definitionGrid dd { margin:0; font-size:14px; font-weight:500; }
+.schedule,.compactList { display:flex; flex-direction:column; gap:10px; margin:0; padding:0; list-style:none; }
+.schedule li,.compactList li { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px 20px; padding:12px 0; border-bottom:1px solid var(--cruise-border); font-size:13px; line-height:20px; }
+.schedule li { flex-direction:column; }
+.schedule li:last-child,.compactList li:last-child { border-bottom:0; }
+.capacityValue { font-size:32px; font-weight:600; line-height:40px; }
+.dialogIntro { margin:-8px 0 16px; color:var(--cruise-muted); }
+.candidates { display:flex; max-height:390px; flex-direction:column; gap:10px; overflow-y:auto; margin:16px 0; padding-right:4px; }
+.candidate { display:flex; flex:0 0 auto; width:100%; min-width:0; flex-direction:column; gap:8px; padding:14px 16px; border:1px solid var(--cruise-border); border-radius:6px; background:#fff; color:var(--cruise-text); font:inherit; font-size:13px; line-height:20px; text-align:left; white-space:normal; overflow-wrap:anywhere; cursor:pointer; }
+.candidate:hover { border-color:#7a8992; }
+.candidateSelected { border:2px solid var(--cruise-navy); padding:13px 15px; background:#f8fbfd; }
+.candidateHeading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+
+.lifecycleActions { display:flex; flex-direction:column; gap:10px; }
+.lifecycleActions button { width:100%; }
+
+.metricValue { color:var(--cruise-navy); font-size:32px; font-weight:700; line-height:40px; font-variant-numeric:tabular-nums; }
+.listTable { border:1px solid var(--cruise-border); border-radius:10px; overflow:hidden; background:#fff; }
+.listTable .pagination { padding:14px; }
+
+@media(max-width:1100px) {
+  .filters { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .detailColumns { grid-template-columns:1fr; }
+}
+
+@media(max-width:760px) {
+  .metrics,.detailMetrics,.filters,.formGrid { grid-template-columns:1fr; }
+  .pagination { align-items:flex-start; flex-direction:column; }
+  .definitionGrid { grid-template-columns:1fr; gap:4px; }
+  .definitionGrid dd { margin-bottom:10px; }
+  .filterActions,.formActions,.dialogActions { flex-direction:column; }
+  .filterActions > button,.formActions > button,.dialogActions > button { width:100%; }
+  .candidateHeading { align-items:flex-start; flex-direction:column; }
+}
+
+
+/* Standard CRUD forms retain their fields and submission flow. */
+.formGrid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.formActions { gap:12px; padding-top:20px; border-top:1px solid var(--border-default,var(--border-default)); }
+@media(max-width:1100px) { .formGrid { grid-template-columns:minmax(0,1fr); } }
+
+/* OceVie desktop: use shared semantic presentation, retain feature behavior. */
+
+.cruiseShell { --cruise-navy:var(--ui-brand); --cruise-text:var(--ui-ink); --cruise-muted:var(--ui-muted); --cruise-border:var(--ui-border); --cruise-bg:var(--ui-subtle); }
+.metric,.detailMetrics > div { border-radius:var(--ui-panel-radius); box-shadow:var(--ui-shadow); }
+.rowLink,.inlineLink { display:inline-flex; align-items:center; min-height:44px; padding-block:8px; white-space:normal; overflow-wrap:anywhere; }
+.candidate { border-radius:var(--ui-radius); }
+.definitionGrid dd { overflow-wrap:anywhere; }
+.pagination,.pagination > div { flex-wrap:wrap; }
+
+.operationForm { display:grid; gap:16px; align-content:start; margin-top:16px; max-width:760px; } .operationForm label { flex:none; }
+
+/* Keep field rows aligned; wrap according to available form width. */
+.formGrid { align-items:start; gap:16px 24px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }
+.journeyForm { display:grid; grid-template-columns:minmax(0,1fr); gap:22px; }
+.journeyForm > * { min-width:0; }
+.unavailableFields { padding:16px; background:#faf8f1; border:1px solid #e4dcc7; border-radius:10px; color:var(--ui-muted); }
+.unavailableFields summary { cursor:pointer; color:var(--ui-ink); font-weight:600; }
+.unavailableFields p { line-height:1.6; margin-bottom:0; }
+
+.sourceCreationGrid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:24px;align-items:start;margin-top:20px}.sourceCreationGrid>*{min-width:0}.sourceCreationGrid .inheritedPlan{margin:0}.sourceIdentity{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}.sourceIdentity>span{font-size:12px;color:var(--text-secondary)}.sourceIdentity h2{width:100%;font-size:20px;margin:4px 0;line-height:1.4}.sourceDescription{white-space:pre-line;line-height:1.6;margin:0}.inheritedDays{list-style:none;margin:0;padding:0;display:grid;gap:12px}.inheritedDays>li{padding:16px;border:1px solid var(--border-default);border-radius:8px}.sourceDayHeading{display:flex;align-items:center;gap:12px}.sourceDayHeading>span{font-size:12px;color:var(--text-secondary)}.inheritedDays h3{font-size:15px;margin:8px 0}.inheritedDays p{font-size:13px;line-height:1.65;margin:8px 0}.inheritedDays small{color:var(--text-secondary)}.inheritedDays details{margin-top:12px;font-size:13px}.inheritedDays details>summary{cursor:pointer;font-weight:600}.inheritedDays details ul{padding-left:18px}.inheritedDays details li{margin-top:10px}.inheritedDays details li>span{display:block;font-size:12px;color:var(--text-secondary)}.sourceSwitch{margin:12px 0;font-size:14px}.sourceSwitch>summary{cursor:pointer;font-weight:600;padding:8px 0}.sourceFacts{display:grid;gap:8px;margin:0;padding:14px 16px;background:#f4f7f9;border-radius:8px}.sourceFacts>div{display:grid;grid-template-columns:100px minmax(0,1fr);gap:12px;font-size:13px;line-height:1.6}.sourceFacts dt{color:var(--text-secondary)}.sourceFacts dd{margin:0}.departureMilestones{display:flex;flex-wrap:wrap;gap:8px 20px;list-style:none;padding:12px 16px;margin:16px 0;border:1px solid var(--border-default);border-radius:8px;background:var(--ui-surface)}.departureMilestones li{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)}.departureMilestones [aria-current=step]{color:var(--brand-navy);font-weight:600}.departureMilestones li>span{display:grid;place-items:center;border:1px solid var(--border-default);border-radius:50%;width:24px;height:24px;font-size:12px}
+@media(max-width:1100px){.sourceCreationGrid{grid-template-columns:minmax(0,1fr)}}
+.interactiveMilestones{gap:8px 16px;align-items:center}.interactiveMilestones li{min-width:0}.interactiveMilestones button{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 12px;border:1px solid transparent;border-radius:var(--ui-radius);background:transparent;color:var(--ui-muted);font:inherit;font-size:13px;text-align:left;cursor:pointer}.interactiveMilestones button>span{display:grid;place-items:center;flex-shrink:0;width:24px;height:24px;border:1px solid var(--ui-border);border-radius:50%;font-size:12px}.interactiveMilestones button[aria-current=step]{background:var(--ui-brand);color:var(--ui-surface);font-weight:600}.interactiveMilestones button:hover:not([aria-current=step]){background:var(--ui-subtle);color:var(--ui-ink)}.interactiveMilestones button:focus-visible{outline:3px solid var(--ui-focus);outline-offset:2px}
+@media(max-width:600px){.interactiveMilestones{align-items:stretch}.interactiveMilestones li{width:100%}.interactiveMilestones button{width:100%}}
+
+/* Chuyến khởi hành: prioritize the dated trip, keep existing query and table behavior. */
+.tripCell{display:grid;gap:6px;min-width:0}
+.tripCell .rowLink{white-space:normal;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+.tripCell>span{font-size:12px;color:var(--ui-muted);line-height:1.5}
+.tripDates{display:grid;gap:6px;white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1.6}
+.tripDates>time:last-child{color:var(--ui-muted);font-size:13px}
+.saleFilterState{display:grid;gap:12px;align-content:end;justify-items:start;min-height:72px}
+.saleFilterState>span{font-size:13px;color:var(--ui-muted)}

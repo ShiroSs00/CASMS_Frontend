@@ -1,0 +1,30 @@
+{
+  "applications": {
+    "booking": {
+      "rootDirectory": "CASMS_WebBooking",
+      "developmentPort": 5173,
+      "deploymentConfig": "CASMS_WebBooking/vercel.json"
+    },
+    "admin": {
+      "rootDirectory": "CASMS_WebAdmin",
+      "developmentPort": 5174,
+      "deploymentConfig": "CASMS_WebAdmin/vercel.json"
+    }
+  },
+  "legacy": {
+    "rootDirectory": "CASMS_WebApp",
+    "status": "rollback-only"
+  },
+  "backend": {
+    "developmentOrigin": "http://localhost:8080",
+    "contextPath": "/api"
+  },
+  "deployment": {
+    "separateProjects": true,
+    "productionApiBaseVariable": "VITE_API_BASE_URL",
+    "crossAppVariables": [
+      "VITE_ADMIN_APP_URL",
+      "VITE_BOOKING_APP_URL"
+    ]
+  }
+}

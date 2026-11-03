@@ -1,0 +1,122 @@
+/* Shared layout for CRM editors and OPS review tasks; permissions remain in components. */
+:is(.managerRoot,.operationsRoot) { min-width: 0; }
+.modalForm { display: grid; gap: 16px; min-width: 0; }
+.reviewPanel{min-width:0}
+.planWorkspace{min-width:0;padding:24px;background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:var(--ui-panel-radius)}
+.planWorkspace>h2{font-size:18px;line-height:1.5;margin:0 0 12px}
+.planTaskList{display:grid;min-width:0}
+.planTaskRow{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 0;border-bottom:1px solid var(--ui-border)}
+.planTaskRow>div{min-width:0}
+.planTaskRow h3{font-size:15px;line-height:1.5;margin:0}
+.planTaskRow p{margin:4px 0 0;font-size:13px;line-height:1.6;color:var(--ui-muted)}
+.planTaskRow>button{flex:none;width:auto;min-width:120px}
+.workspaceDisclosure{min-width:0;border-bottom:1px solid var(--ui-border)}
+.workspaceDisclosure:last-child{border-bottom:0}
+.workspaceDisclosure>summary{min-height:56px;padding:18px 0;font-size:15px;font-weight:600;cursor:pointer;line-height:1.5}
+.workspaceDisclosure>summary:focus-visible{outline:2px solid var(--ui-brand);outline-offset:3px}
+.workspaceBody{padding-bottom:20px;min-width:0}
+.workspaceBody>section{border:0;box-shadow:none;padding:0;margin:0;background:transparent}
+.workspaceFooter{display:flex;justify-content:flex-end;padding:0 0 12px}
+@media(max-width:600px){.planWorkspace{padding:18px}.planTaskRow{flex-wrap:wrap}.planTaskRow>button{min-width:0}.workspaceFooter>button{width:100%}}
+.windowFields{min-width:0;border:0;padding:0;margin:0}
+.windowFields>legend{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.windowGroup{min-width:0}
+.windowGroup+.windowGroup{margin-top:24px;padding-top:20px;border-top:1px solid var(--ui-border)}
+.windowGroup h3{font-size:16px;line-height:1.5;margin:0 0 16px}
+.saleSelection{min-width:0;padding-block:16px;border-block:1px solid var(--ui-border);font-size:14px;line-height:1.65}
+.saleSelection>p{margin:0 0 8px}
+.saleSelection summary{width:fit-content;min-height:44px;padding-block:10px;cursor:pointer;color:var(--ui-brand)}
+.saleSelection summary:focus-visible{outline:2px solid var(--ui-brand);outline-offset:3px}
+.salePackages{display:grid;gap:12px;min-width:0;padding:16px;border:1px solid var(--ui-border);border-radius:var(--ui-radius)}
+.salePackages label{display:flex;gap:12px;align-items:center;min-height:44px;overflow-wrap:anywhere}
+.coordinator{min-width:0;font-size:14px;line-height:1.65}
+.coordinator>p{margin:0}
+.coordinatorEditor{margin-top:8px}
+.coordinatorEditor>summary{width:fit-content;min-height:44px;padding:10px 0;cursor:pointer;color:var(--ui-brand)}
+.coordinatorEditor>summary:focus-visible{outline:2px solid var(--ui-brand);outline-offset:3px}
+.coordinatorForm{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:end;margin-top:12px}
+.coordinatorForm>button{margin-bottom:0;min-height:48px}
+@media(max-width:600px){.coordinatorForm{grid-template-columns:minmax(0,1fr)}}
+.reviewHeader{display:flex;align-items:center;justify-content:space-between;gap:12px 24px;flex-wrap:wrap;margin-bottom:16px}
+.reviewHeader h2{margin:0;font-size:18px;line-height:1.5}
+.reviewHeader>button{flex:none;width:auto;min-height:44px}
+.reviewDecision{border-top:1px solid var(--ui-border);padding-top:20px;margin-top:20px}
+.reviewDecision>p{margin:0;font-size:14px;font-weight:600}
+.reviewDecision .planActions{margin-bottom:0}
+.snapshotDisclosure{margin-top:20px;border-top:1px solid var(--ui-border)}
+.snapshotDisclosure>summary{padding:16px 0;min-height:52px;font-weight:600;cursor:pointer}
+.snapshotDisclosure>summary>span{margin-left:12px;color:var(--ui-muted);font-size:13px;font-weight:400}
+.revisionDisclosure{margin-top:16px;color:var(--ui-muted);font-size:13px}
+.revisionDisclosure>summary{padding:10px 0;cursor:pointer}
+.snapshotDisclosure>summary:focus-visible,.revisionDisclosure>summary:focus-visible{outline:2px solid var(--ui-brand);outline-offset:3px}
+@media(max-width:600px){.reviewDecision .planActions{flex-direction:column;align-items:stretch}.snapshotDisclosure>summary>span{display:block;margin:4px 0 0 18px}}
+.reviewSummary{padding:0;margin:16px 0;line-height:1.7}.reviewSummary>p{margin:12px 0}.submitReady{color:var(--color-success-300);font-weight:600}.reviewSummary .planActions{margin:16px 0}.reviewSummary .planActions button{min-height:48px}
+@media(max-width:600px){.reviewSummary{padding:16px}.reviewSummary .planActions{flex-direction:column;align-items:stretch}}
+.programToolbar{display:flex;gap:20px;align-items:end;justify-content:space-between;margin:20px 0 16px;flex-wrap:wrap}.programToolbar>div{flex:1;max-width:32rem;min-width:0}.programToolbar p{margin:0 0 12px;color:var(--ui-muted);font-size:13px}
+.programList{display:grid;gap:12px;list-style:none;margin:0 0 20px;padding:0}.programList>li{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px;border:1px solid var(--ui-border);border-radius:var(--ui-panel-radius);background:var(--ui-surface)}
+.programInfo{min-width:0;flex:1}.programInfo h3{margin:0;font-size:15px;line-height:1.6;overflow-wrap:anywhere}.programInfo p{margin:6px 0 0;color:var(--ui-muted);font-size:13px;line-height:1.65;overflow-wrap:anywhere}.programMeta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:10px;font-size:13px;font-variant-numeric:tabular-nums}.programList .sectionActions{flex-shrink:0}.emptyProgram{padding:20px;background:var(--ui-subtle);border-radius:var(--ui-panel-radius);line-height:1.7}
+@media(max-width:768px){.programList>li{align-items:stretch;flex-direction:column;gap:12px}.programToolbar>div{max-width:none;flex-basis:100%}.programToolbar{gap:8px}.programToolbar p{margin:0}.programList .sectionActions button{flex:1}}
+.modalForm > fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.modalForm > fieldset > * { min-width: 0; }
+.sourceSearch { display: flex; gap: 12px; align-items: end; }
+:is(.managerRoot,.operationsRoot) .workspaceNav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+:is(.managerRoot,.operationsRoot) .workspaceNav button { justify-content: flex-start; min-height: 64px; padding: 14px 16px; text-align: left; white-space: normal; }
+:is(.managerRoot,.operationsRoot) .stepNumber { display: grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--ui-subtle); color: var(--ui-brand); font-size: 12px; font-variant-numeric: tabular-nums; }
+:is(.managerRoot,.operationsRoot) .disclosure { min-width: 0; margin-top: 16px; border: 1px solid var(--ui-border); border-radius: var(--ui-panel-radius); background: var(--ui-surface); }
+:is(.managerRoot,.operationsRoot) .disclosure > summary { min-height: 56px; padding: 16px 20px; cursor: pointer; color: var(--ui-ink); font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
+:is(.managerRoot,.operationsRoot) .disclosure > summary:hover { background: var(--ui-subtle); }
+:is(.managerRoot,.operationsRoot) .disclosure > summary:focus-visible { outline: 2px solid var(--ui-brand); outline-offset: 3px; border-radius: var(--ui-radius); }
+:is(.managerRoot,.operationsRoot) .disclosure[open] > summary { border-bottom: 1px solid var(--ui-border); }
+:is(.managerRoot,.operationsRoot) .summaryHint { display: block; margin: 4px 0 0 18px; color: var(--ui-muted); font-size: 13px; font-weight: 400; }
+:is(.managerRoot,.operationsRoot) .disclosureBody { display: grid; gap: 16px; min-width: 0; padding: 20px; }
+:is(.managerRoot,.operationsRoot) .disclosureBody > section { margin: 0; padding: 0; border: 0; box-shadow: none; }
+:is(.managerRoot,.operationsRoot) .sectionHeading { display: inline; margin: 0; font-size: 15px; font-weight: 600; }
+:is(.managerRoot,.operationsRoot) .sectionStatus { display: inline-flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-left: 12px; vertical-align: middle; font-size: 13px; font-weight: 400; }
+:is(.managerRoot,.operationsRoot) .evidenceList { display: grid; gap: 12px; margin-top: 20px; }
+:is(.managerRoot,.operationsRoot) .evidenceList .disclosure { margin: 0; }
+:is(.managerRoot,.operationsRoot) .evidenceChecks { display: grid; gap: 10px; margin: 0; padding-left: 20px; line-height: 1.6; }
+:is(.managerRoot,.operationsRoot) .evidenceChecks p { margin: 4px 0; color: var(--ui-muted); overflow-wrap: anywhere; }
+:is(.managerRoot,.operationsRoot) .sectionActions { display: flex; flex-wrap: wrap; gap: 12px; }
+:is(.managerRoot,.operationsRoot) .sectionMeta { margin: 0; font-size: 13px; line-height: 1.6; color: var(--ui-muted); }
+:is(.managerRoot,.operationsRoot) .formGroup { min-width: 0; margin: 20px 0 0; padding: 20px; border: 1px solid var(--ui-border); border-radius: var(--ui-radius); }
+:is(.managerRoot,.operationsRoot) .formGroup > legend { padding: 0 8px; font-size: 14px; font-weight: 600; }
+:is(.managerRoot,.operationsRoot) .formGroup .formGroup { padding: 16px 0 0; border-width: 1px 0 0; border-radius: 0; }
+:is(.managerRoot,.operationsRoot) .disclosure .disclosure > .disclosureBody { padding: 16px; }
+:is(.managerRoot,.operationsRoot) .fieldGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; min-width: 0; margin: 12px 0 20px; }
+:is(.managerRoot,.operationsRoot) .fieldGrid > * { min-width: 0; }
+:is(.managerRoot,.operationsRoot) .sourceSearch { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; margin-bottom: 20px; }
+:is(.managerRoot,.operationsRoot) .sourceSearch > * { min-width: 0; }
+:is(.managerRoot,.operationsRoot) .sourceSearch button { min-height: 44px; }
+:is(.managerRoot,.operationsRoot) .help { margin: 12px 0; color: var(--ui-muted); line-height: 1.6; font-size: 14px; }
+:is(.managerRoot,.operationsRoot) .planStatuses { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 16px 0; }
+:is(.managerRoot,.operationsRoot) .planActions { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0; }
+:is(.managerRoot,.operationsRoot) .programPanel > form > fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 20px; min-width: 0; padding: 20px; margin-top: 20px; border: 1px solid var(--ui-border); border-radius: var(--ui-radius); }
+:is(.managerRoot,.operationsRoot) .programPanel > form > fieldset > * { min-width: 0; }
+:is(.managerRoot,.operationsRoot) .programPanel > form > fieldset > button { grid-column: 1 / -1; justify-self: start; width: auto; min-width: 160px; }
+@media (max-width: 1024px) {
+  :is(.managerRoot,.operationsRoot) .workspaceNav { grid-template-columns: 1fr; }
+  :is(.managerRoot,.operationsRoot) .workspaceNav button { min-height: 48px; }
+}
+@media (max-width: 600px) {
+  .modalForm > fieldset { grid-template-columns: minmax(0, 1fr); }
+  :is(.managerRoot,.operationsRoot) .fieldGrid, :is(.managerRoot,.operationsRoot) .sourceSearch, :is(.managerRoot,.operationsRoot) .programPanel > form > fieldset { grid-template-columns: minmax(0, 1fr); }
+  :is(.managerRoot,.operationsRoot) .sourceSearch button, :is(.managerRoot,.operationsRoot) .sectionActions button { width: 100%; }
+  :is(.managerRoot,.operationsRoot) .disclosure > summary, :is(.managerRoot,.operationsRoot) .disclosureBody, :is(.managerRoot,.operationsRoot) .formGroup { padding: 16px; }
+  :is(.managerRoot,.operationsRoot) .sectionStatus { display: flex; margin: 8px 0 0 18px; }
+  :is(.managerRoot,.operationsRoot) .fieldGrid { gap: 16px; }
+}
+
+.operationsRoot{min-width:0}
+.conditionList{display:grid;gap:0;list-style:none;margin:16px 0;padding:0}
+.conditionList>li{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--ui-border);line-height:1.6}
+.conditionList>li:last-child{border-bottom:0}
+.conditionList>li>span{min-width:0;overflow-wrap:anywhere}
+.conditionList button{flex-shrink:0}
+@media(max-width:600px){.conditionList>li{align-items:flex-start;flex-direction:column;gap:4px}}
+
+.conditionBody{flex:1;min-width:0;overflow-wrap:anywhere}
+.conditionBody>p{margin:0}
+.issueDetails{display:grid;gap:12px;margin:12px 0 0;padding-inline-start:20px;font-size:14px}
+.issueDetails p{margin:4px 0 0;line-height:1.65;font-variant-numeric:tabular-nums}
+
+.conditionBody>.issueHint{margin-top:12px;font-size:14px;line-height:1.65}

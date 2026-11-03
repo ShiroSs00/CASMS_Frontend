@@ -1,0 +1,8 @@
+.layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:28px;align-items:start;min-height:320px}
+.days{display:grid;gap:8px;position:sticky;top:0}
+.days button{display:grid;gap:6px;min-height:60px;width:100%;padding:12px;text-align:left;border:1px solid var(--ui-border);border-radius:8px;background:var(--ui-surface);color:var(--ui-ink);font:inherit;cursor:pointer}
+.days button span{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.days button:hover{background:var(--ui-subtle)}.days button[aria-current=true]{background:var(--ui-brand);border-color:var(--ui-brand);color:var(--ui-surface)}.days button:focus-visible{outline:3px solid var(--ui-focus);outline-offset:2px}
+.content{min-width:0;overflow-wrap:anywhere}.content h3{font-size:20px;line-height:1.5;margin:0}.content h4{font-size:15px;margin:24px 0 12px}.content p{font-size:14px;line-height:1.7;margin:6px 0}.dayHeading{padding-bottom:16px;border-bottom:1px solid var(--ui-border)}.dayHeading p,.item>span{color:var(--ui-muted)}
+.item{padding:16px 0;border-bottom:1px solid var(--ui-border)}.item h4{margin:4px 0 8px}.item>span,.program h5{font-size:12px;line-height:1.6}.program h5{margin:20px 0 0;color:var(--ui-muted);font-weight:600}
+@media(max-width:700px){.layout{grid-template-columns:minmax(0,1fr);gap:20px}.days{display:flex;overflow:auto;position:static;padding:3px}.days button{flex:0 0 150px;min-height:56px}}

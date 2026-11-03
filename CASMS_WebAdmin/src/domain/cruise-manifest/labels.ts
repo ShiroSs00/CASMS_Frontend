@@ -1,0 +1,1 @@
+export const checkinLabels:Record<string,string> = { NOT_CHECKED_IN:'Chưa bắt đầu', NotStarted:'Chưa bắt đầu', InProgress:'Đang làm thủ tục', NeedsReview:'Cần kiểm tra lại', Completed:'Đã hoàn tất kiểm tra', BoardingReady:'Sẵn sàng lên tàu' }

@@ -1,0 +1,6 @@
+
+.workspace { min-width:0; }
+.records { min-width:0; }
+@media(min-width:960px) { .workspace { display:grid; grid-template-columns:300px minmax(0,1fr); gap:28px; align-items:start; } .selection { min-width:0; position:sticky; top:var(--workspace-sticky-top,24px); } .selection > section { background:var(--brand-pearl); border-top:3px solid var(--brand-gold); } .records { display:grid; gap:24px; } .records > section { margin:0; } }
+
+@media(min-width:960px) { .selection { max-height:calc(100dvh - var(--workspace-sticky-top,24px) - 24px); overflow-y:auto; scrollbar-width:thin; } }

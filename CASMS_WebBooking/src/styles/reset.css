@@ -1,0 +1,37 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 20rem;
+  color-scheme: dark;
+  text-size-adjust: 100%;
+}
+
+body,
+h1,
+p,
+dl,
+dd {
+  margin: 0;
+}
+
+body {
+  min-width: 20rem;
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
