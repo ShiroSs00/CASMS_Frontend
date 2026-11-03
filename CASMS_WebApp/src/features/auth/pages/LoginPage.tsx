@@ -23,5 +23,5 @@ export function LoginPage() {
     if (access.status !== 'ready' || access.userId !== auth.user.id) return <Loading label="Đang xác minh quyền tài khoản…" />
     return <Navigate to={destination(access.roles)} replace />
   }
-  return <AuthPageShell expired={expired} editorialTitle="Điều hành hành trình cùng OceVie." editorialDescription="Không gian làm việc dành cho quản trị viên, quản lý và nhân viên đặt chỗ."><LoginForm expired={expired} login={auth.login} onSuccess={() => { /* Navigate only after /auth/me verifies the current permissions. */ }} /></AuthPageShell>
+  return <AuthPageShell expired={expired} editorialTitle="Đồng hành cùng OceVie" editorialDescription="Không gian làm việc dành cho quản trị viên, quản lý và nhân viên đặt chỗ."><LoginForm expired={expired} login={auth.login} onSuccess={() => { /* Navigate only after /auth/me verifies the current permissions. */ }} /></AuthPageShell>
 }

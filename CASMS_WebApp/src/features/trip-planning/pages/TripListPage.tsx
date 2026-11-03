@@ -31,9 +31,15 @@ export function TripListPage() {
     if(action.kind==='clone'&&operation.blocked){setRecovery(true);return}
     if(action.kind==='clone'&&(!source||!origin.data?.versions?.some(v=>v.versionId===source&&v.status!=='CANCELLED')))return
     lock.current=true;setBusy(true);setError('')
+    let cloneSent=false
     try{
       if(action.kind==='clone'){
+        const selected=await gateway.version(source)
+        if(selected.tripId!==action.trip.tripId){setError('Phiên bản nguồn không thuộc chuyến đang nhân bản. Đọc lại danh sách nguồn.');return}
+        if(selected.entries.some(entry=>entry.kind==='SERVING_WINDOW')){setError('Nguồn có khung phục vụ lịch sử chỉ đọc nên không được nhân bản.');return}
+        if(selected.stops.some(stop=>Boolean(stop.visits?.length))){setError('Chưa thể nhân bản nguồn có lượt tham quan: Chức năng hiện chưa bảo toàn các lượt này. Nguồn được giữ nguyên; cần cập nhật chức năng trước khi sao chép.');return}
         const request=operation.begin({tripId:action.trip.tripId,sourceVersionId:source})
+        cloneSent=true
         const trip=await gateway.clone(request.payload.tripId,request.payload.sourceVersionId,request.key)
         operation.succeeded(trip.tripId);setAction(null);navigate(`${root}/${trip.tripId}/schedule`)
       }else{
@@ -41,7 +47,7 @@ export function TripListPage() {
         if(result.status!=='ARCHIVED')throw new Error('Chưa xác nhận được trạng thái lưu trữ. Hãy tải lại danh sách trước khi thao tác tiếp.')
         setAction(null);setMessage('Đã lưu trữ chuyến đi. Các phiên bản và lịch sử vẫn được giữ.');list.retry()
       }
-    }catch(e){if(action.kind==='clone')operation.failed(e);setError(failure(e).message)}finally{lock.current=false;setBusy(false)}
+    }catch(e){if(cloneSent)operation.failed(e);setError(failure(e).message)}finally{lock.current=false;setBusy(false)}
   }
   return <>
     {recovery&&<OperationRecovery operation={operation} onClose={()=>{setRecovery(false);setAction(null)}}/>}<header className={styles.heading}>
@@ -88,7 +94,7 @@ function TripListRow({trip,onAction}:{trip:Trip;onAction:(kind:'clone'|'archive'
     <td>{trip.durationDays} ngày<span className={styles.cellMeta}>{trip.info.scope==='DOMESTIC'?'Trong nước':trip.info.scope==='INTERNATIONAL'?businessCopy('source.scope.INTERNATIONAL'):'Chưa xác định phạm vi'}</span></td>
     <td><Badge tone={trip.status==='READY'?'success':'neutral'} label={tripLabels[trip.status]}/></td>
     <td><div className={styles.versionCell}>
-      {published!==undefined&&<span className={styles.publishedVersion}>Mẫu đã chốt: V{published}</span>}
+      {published!==undefined&&<span className={styles.publishedVersion}>Phiên bản lịch trình nguồn: V{published}</span>}
       {working!==undefined&&<span>{workingVersionLabel(workingStatus)}: V{working}</span>}
       {detail.loading&&needsContext&&<span className={styles.cellMeta}>Đang tải mẫu đã chốt…</span>}
       {detail.error&&<Button tone="text" size="compact" onClick={detail.retry}>Tải lại thông tin phiên bản</Button>}
@@ -101,3 +107,4 @@ function TripListRow({trip,onAction}:{trip:Trip;onAction:(kind:'clone'|'archive'
     </div></td>
   </tr>
 }
+

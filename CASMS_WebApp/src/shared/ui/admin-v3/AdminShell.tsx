@@ -41,7 +41,7 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
       <nav aria-label="Điều hướng khu vực" className={styles.navigation}>
         <div className={styles.navGroup}><p className={styles.groupLabel}>CÔNG VIỆC VÀ TRA CỨU</p>
           {access.status==='loading' && <p className={styles.unavailable}>Đang kiểm tra quyền truy cập…</p>}
-          {visibleGroups.map(group=>group.items.length===1 && (group.direct||group.id==='system'||group.id==='staff/finance'||group.id==='ship-import'||group.id==='ship-models')
+          {visibleGroups.map(group=>group.items.length===1
             ? group.items.map(item=><Link key={item.to} to={item.to!} aria-current={item.to===activeTo?'page':undefined} className={`${styles.navItem} ${item.to===activeTo?styles.active:''}`}><AdminNavigationIcon section={group.id} /><span>{item.label}</span></Link>)
             : <details key={group.id} className={styles.menuGroup} open={Boolean(query) || group.items.some(item=>item.to===activeTo)}>
               <summary className={`${styles.menuSummary} ${group.items.some(item=>item.to===activeTo)?styles.menuCurrent:''}`}><AdminNavigationIcon section={group.id} /><span>{group.label}</span><span className={styles.menuChevron} aria-hidden="true">›</span></summary>

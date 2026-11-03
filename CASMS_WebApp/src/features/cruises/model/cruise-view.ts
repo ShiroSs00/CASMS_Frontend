@@ -1,5 +1,6 @@
 import type { CruiseRecord, CruiseStatus, CruiseType, PortRecord, ShipRecord } from './cruise-record'
 import type { AssignmentCapabilities } from './ship-assignment'
+import type { ShipCompatibilityDto } from '../api/dto'
 
 export type ItineraryStatus =
   | 'DRAFT'
@@ -102,6 +103,8 @@ export type CruiseDetailView = CruiseListItem & {
   issues: IssueSummary[]
   bookingHasData: boolean | null
   assignmentCapabilities: AssignmentCapabilities
+  shipCompatibility?: ShipCompatibilityDto | null
+  shipAssignmentContext?:import('./ship-assignment').ShipAssignmentContext|null
 }
 
 export const cruiseStatusLabels: Record<CruiseStatus, string> = {

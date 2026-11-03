@@ -43,7 +43,7 @@ export function cruiseCreateIntent(owner: string, storage?: IntentStorage) {
       inFlight = Promise.resolve().then(() => send(structuredClone(intent.payload), intent.key)).then(saved => {
         record = { ...intent, status: 'succeeded', cruiseId: saved.cruiseId }; persist(); return saved
       }).catch(error => {
-        const rejected = error instanceof ApiError && [400,404,422].includes(error.status)
+        const rejected = error instanceof ApiError && ([400,404,422].includes(error.status)||error.status===409&&error.code==='STALE_PREVIEW')
         record = { ...intent, status: rejected ? 'rejected' : 'unknown' }; persist(); throw error
       }).finally(() => { inFlight = null })
       return inFlight

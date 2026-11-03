@@ -15,7 +15,7 @@ import type {
   RegulationTargetAssignment,
   RegulationUpdate,
 } from '../model/regulation'
-import { regulationInstant,regulationSource,regulationValue,getEffectiveStatus } from '../model/regulation'
+import { regulationInstant,regulationSource,regulationValue } from '../model/regulation'
 import type { AssignmentDto, ConflictDto, RegulationDto, SnapshotDto, SnapshotItemDto } from './dto'
 
 const root = '/operational-regulations'
@@ -109,17 +109,17 @@ function assigned(regulation: MockRegulation, direct: boolean, sourceLabel: stri
 export const regulationsApi = {
   validate: (id: string) => apiRequest<void>(`${byId(id)}/validate`, { method: 'POST' }),
   async conflicts(id: string) { return normalizeConflict(await apiRequest<ConflictDto>(`${byId(id)}/conflicts`, { query: { context: 'ACTIVATE' } })) },
-  async list(query: RegulationListQuery): Promise<RegulationListItem[]> {
+  async list(query: RegulationListQuery, signal?: AbortSignal): Promise<RegulationListItem[]> {
     const rows = query.effectiveOnly
-      ? (await apiRequest<RegulationDto[]>(`${root}/effective`)).map(toRegulation)
-      : await listRaw()
+      ? (await apiRequest<RegulationDto[]>(`${root}/effective`,{signal})).map(toRegulation)
+      : await listRaw(signal)
     const term = query.search.trim().toLocaleLowerCase('vi')
     return rows.filter((item) =>
       (!term || `${item.code} ${item.name}`.toLocaleLowerCase('vi').includes(term)) &&
       (query.type === 'ALL' || item.type === query.type) &&
       (query.scope === 'ALL' || item.scope === query.scope) &&
       (query.status === 'ALL' || item.status === query.status),
-    ).map((item) => ({ ...item, effectiveStatus: getEffectiveStatus(item, query.effectiveAt || new Date().toISOString()) }))
+    ).map((item) => ({ ...item, effectiveStatus: query.effectiveOnly ? 'EFFECTIVE' : 'UNKNOWN' }))
   },
   async listEffective(): Promise<RegulationListItem[]> {
     const rows = (await apiRequest<RegulationDto[]>(`${root}/effective`)).map(toRegulation)

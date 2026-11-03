@@ -38,7 +38,7 @@ export type CruiseRecord = {
 export type CruiseDraft = Omit<
   CruiseRecord,
   'cruiseId' | 'status' | 'createdAt' | 'updatedAt' | 'shipId' | 'cruiseType' | 'sourceTripId' | 'sourceTripCode' | 'sourceVersionNumber'
-> & { cruiseType: CruiseType | ''; shipId?: string | null; expectedSourceVersionRevision?: number | null }
+> & { cruiseType: CruiseType | ''; shipId?: string | null; expectedSourceVersionRevision?: number | null; creationPayloadVersion?:2 }
 
 export type ShipRecord = {
   shipId: string

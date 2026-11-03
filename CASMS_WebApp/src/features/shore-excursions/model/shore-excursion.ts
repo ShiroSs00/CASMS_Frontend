@@ -5,7 +5,7 @@ export const statusLabels: Record<ExcursionStatus, string> = {
   IN_PROGRESS: 'Đang diễn ra', COMPLETED: 'Hoàn thành', CANCELLED: 'Đã hủy',
 }
 export type ShoreExcursion = {
-  shoreExcursionId: string; cruiseStopId: string; supplierId: string; supplierName: string
+  shoreExcursionId: string; cruiseStopId: string | null; supplierId: string; supplierName: string
   excursionCode: string | null; excursionName: string; startTime: string; plannedReturnTime: string; meetingPoint: string
   minimumParticipants: number | null; maximumCapacity: number; registeredParticipants: number; availableCapacity: number
   price: number | null; currencyCode: string | null; status: ExcursionStatus; cancellationReason: string | null
@@ -49,7 +49,7 @@ export function normalizeExcursion(value: unknown): ShoreExcursion {
   const status = excursionStatuses.find((item) => item === row.status)
   if (!status) throw invalid()
   return {
-    shoreExcursionId: id('shoreExcursionId'), cruiseStopId: id('cruiseStopId'), supplierId: id('supplierId'), supplierName: text('supplierName'),
+    shoreExcursionId: id('shoreExcursionId'), cruiseStopId: row.cruiseStopId == null ? null : id('cruiseStopId'), supplierId: id('supplierId'), supplierName: text('supplierName'),
     excursionCode: optionalText('excursionCode'), excursionName: text('excursionName'), startTime: date('startTime'), plannedReturnTime: date('plannedReturnTime'), meetingPoint: text('meetingPoint'),
     minimumParticipants: row.minimumParticipants == null ? null : number('minimumParticipants', 1), maximumCapacity: number('maximumCapacity', 1),
     registeredParticipants: number('registeredParticipants', 0), availableCapacity: number('availableCapacity', 0),
@@ -68,7 +68,7 @@ export function toLocalTime(value: string): string {
 }
 export function excursionToForm(value: ShoreExcursion): ExcursionFormValues {
   return {
-    cruiseStopId: value.cruiseStopId, supplierId: value.supplierId, excursionCode: value.excursionCode ?? '', excursionName: value.excursionName,
+    cruiseStopId: value.cruiseStopId ?? '', supplierId: value.supplierId, excursionCode: value.excursionCode ?? '', excursionName: value.excursionName,
     startTime: toLocalTime(value.startTime), plannedReturnTime: toLocalTime(value.plannedReturnTime), meetingPoint: value.meetingPoint,
     minimumParticipants: value.minimumParticipants?.toString() ?? '', maximumCapacity: String(value.maximumCapacity),
     price: value.price?.toString() ?? '', currencyCode: value.currencyCode ?? '',

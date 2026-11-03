@@ -77,12 +77,13 @@ function ExcursionDetail({ id }: { id: string }) {
         </ExcursionActions>
       </div>} />
       <ExcursionFacts item={item} />
+      {!item.cruiseStopId&&<Notice title="Tour chưa gắn với lần ghé cảng">Chưa có chuyến khởi hành để đăng ký hoặc điểm danh hành khách. Tour này không tự trở thành quyền lợi trong Gói du thuyền.</Notice>}
       <Panel title="Thông tin liên quan"><nav className={styles.relatedLinks} aria-label="Thông tin liên quan chuyến tham quan">
         <ButtonLink tone="secondary" to={`/admin/suppliers/${item.supplierId}`}>Xem nhà cung cấp</ButtonLink>
-        <ButtonLink tone="secondary" to={`/admin/tour-groups?excursionId=${item.shoreExcursionId}`}>Các nhóm tham quan</ButtonLink>
-        {(access.canDo('ACTIVITY_ATTENDANCE') || access.canDo('ACTIVITY_REGISTRATION')) && <ButtonLink tone="secondary" to={`/admin/activity-registrations?excursionId=${encodeURIComponent(id)}`}>Đăng ký & điểm danh hành khách</ButtonLink>}
+        {item.cruiseStopId&&<ButtonLink tone="secondary" to={`/admin/tour-groups?excursionId=${item.shoreExcursionId}`}>Các nhóm tham quan</ButtonLink>}
+        {item.cruiseStopId&&(access.canDo('ACTIVITY_ATTENDANCE') || access.canDo('ACTIVITY_REGISTRATION')) && <ButtonLink tone="secondary" to={`/admin/activity-registrations?excursionId=${encodeURIComponent(id)}`}>Đăng ký & điểm danh hành khách</ButtonLink>}
       </nav></Panel>
-      <ExcursionAvailability excursion={item} />
+      {item.cruiseStopId&&<ExcursionAvailability excursion={item} />}
     </>}
   </ShoreLayout>
 }
@@ -114,14 +115,16 @@ function EditExcursion({ id }: { id: string }) {
 function SaveExcursion({ initial }: { initial?: ShoreExcursion }) {
   const access = useSessionAccess()
   const navigate = useNavigate(), mutation = useShoreMutation(),[params]=useSearchParams()
-  async function save(request: ExcursionRequest) {
+  async function save(request: ExcursionRequest,allowLeave:()=>void) {
     if (!access.canDo(initial ? 'EXCURSION_UPDATE' : 'EXCURSION_CREATE')) return
     const result = await mutation.run(async signal => {
       const saved = initial ? await shoreExcursionApi.update(initial.shoreExcursionId, request, signal) : await shoreExcursionApi.create(request, signal)
       if (saved.cruiseStopId !== request.cruiseStopId || initial && saved.shoreExcursionId !== initial.shoreExcursionId) throw new ApiError('Phản hồi chưa khớp chuyến tham quan hoặc lần ghé cảng. Đối chiếu kết quả trước khi gửi tiếp.', 502)
       return saved
     })
-    if (result.ok) navigate(cruiseContextReturn(params.get('returnTo'),params.get('cruiseId'))??`${root}/${result.value.shoreExcursionId}`)
+    if (result.ok) {allowLeave();navigate(cruiseContextReturn(params.get('returnTo'),params.get('cruiseId'))??`${root}/${result.value.shoreExcursionId}`)}
   }
-  return <Panel title="Thông tin chuyến tham quan">{mutation.error != null && <ShoreError error={mutation.error} />}<>{mutation.unknown&&<Notice title="Cần kiểm tra kết quả trước khi gửi lại" tone="warning">Chưa xác định được kết quả lưu. Đối chiếu danh sách tour của lần ghé cảng; thao tác gửi lại hiện bị khóa.</Notice>}<ExcursionForm initial={initial} busy={mutation.busy||mutation.unknown} onSave={save} /></></Panel>
+  return <Panel title="Thông tin chuyến tham quan">{mutation.error != null && <ShoreError error={mutation.error} />}<>{mutation.unknown&&<Notice title="Cần kiểm tra kết quả trước khi gửi lại" tone="warning">Chưa xác định được kết quả lưu. Đối chiếu danh sách tour của lần ghé cảng; thao tác gửi lại hiện bị khóa.</Notice>}<ExcursionForm initial={initial} busy={mutation.busy||mutation.unknown} pending={mutation.busy} onSave={save} /></></Panel>
 }
+
+

@@ -2,7 +2,7 @@ import { businessCopy } from '@/shared/i18n/business-copy'
 import { InheritedSourcePlan } from '../components/InheritedSourcePlan'
 import { DepartureMilestones } from '../components/DepartureMilestones'
 import { EditorLayout } from '@/shared/ui'
-import { FormErrorSummary, FormSection } from '@/shared/ui'
+import { FormErrorSummary, FormSection,useUnsavedFormGuard } from '@/shared/ui'
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router'
 import { ApiError, useReadQuery } from '@/shared/api'
@@ -44,6 +44,8 @@ export function CruiseFormPage() {
   const access = useSessionAccess()
   const { cruiseId } = useParams()
   const editing = Boolean(cruiseId)
+  const canChooseInitialShip=!editing&&access.roles.includes('CRUISE_MANAGER')&&access.canDo('CRUISE_ASSIGN_SHIP')&&access.canDo('SHIP_READ')
+  const initialShips=useReadQuery(`create-departure-ships:${access.userId}:${canChooseInitialShip}`,useCallback(signal=>canChooseInitialShip?cruiseApi.listShips(signal):Promise.resolve([]),[canChooseInitialShip]))
   const navigate = useNavigate()
   const location=useLocation()
   const restored=!editing?creationReturn(location.state,access.userId,new URLSearchParams(location.search).get('sourceVersionId')):null
@@ -89,6 +91,9 @@ export function CruiseFormPage() {
   const [detailAttempt, setDetailAttempt] = useState(0)
   const [storedPorts, setStoredPorts] = useState<PortRecord[]>([])
   const [loadedId, setLoadedId] = useState<string | null>(null)
+  const newDraftChanged=!editing&&Boolean(sourceId||draft.shipId||Object.entries(EMPTY_DRAFT).some(([key,value])=>draft[key as keyof CruiseDraft]!==value))
+  const existingDraftChanged=Boolean(editing&&storedCruise&&loadedId===cruiseId&&(draft.cruiseName!==storedCruise.cruiseName||draft.departureDatetime!==localCruiseInput(storedCruise.departureDatetime)||draft.returnDatetime!==localCruiseInput(storedCruise.returnDatetime)||draft.departurePortId!==storedCruise.departurePortId||draft.returnPortId!==storedCruise.returnPortId||draft.plannedScope!==(storedCruise.plannedScope??undefined)||draft.itineraryMode!==storedCruise.itineraryMode))
+  const guard=useUnsavedFormGuard(newDraftChanged||existingDraftChanged,busy,(current,next)=>current.pathname!==next.pathname)
   const submitLock = useRef(false)
   const canSave = (!sourceId||portWindowPassed&&appliedPreview===JSON.stringify([sourceId,draft.departureDatetime])&&previewRevision!=null&&source.data?.revision===previewRevision) && (editing||Boolean(sourceId)) && !uncertain && !invalidSource && createIntent.owner===(access.userId??'') && (!sourceId||!source.loading&&!source.error&&source.data?.versionId===sourceId) && !portsLoading && !portsError && access.canDo(editing ? 'CRUISE_UPDATE_DRAFT' : 'CRUISE_CREATE') && (!editing || (loadedId === cruiseId && currentStatus === 'DRAFT'))
 
@@ -163,7 +168,8 @@ export function CruiseFormPage() {
     const mayReplay=!editing&&replay&&createIntent.record?.status==='unknown'&&!createIntent.storageError&&createIntent.owner===(access.userId??'')&&access.canDo('CRUISE_CREATE')
     if (submitLock.current || (!canSave&&!mayReplay)) return
     if(editing&&storedCruise&&!storedCruise.sourceVersionId&&!storedCruise.sourceTripId&&!['DOMESTIC','INTERNATIONAL'].includes(draft.plannedScope??'')){setSubmitError('Chọn phạm vi hành trình trước khi lưu chuyến khởi hành nhập trực tiếp.');return}
-    const input=mayReplay?createIntent.record!.payload:{...draft,cruiseName:displayName,...(!editing&&sourceId&&source.data?{sourceVersionId:sourceId,expectedSourceVersionRevision:previewRevision,cruiseType:source.data.durationDays===1?'ONE_DAY' as const:'MULTI_DAYS' as const}:{})}
+    const input=mayReplay?createIntent.record!.payload:{...draft,cruiseName:displayName,...(!editing&&sourceId&&source.data?{sourceVersionId:sourceId,expectedSourceVersionRevision:previewRevision,creationPayloadVersion:2 as const,cruiseType:source.data.durationDays===1?'ONE_DAY' as const:'MULTI_DAYS' as const}:{})}
+    if(!editing&&!mayReplay&&input.shipId&&(!canChooseInitialShip||initialShips.loading||initialShips.error||!initialShips.data?.some(ship=>ship.shipId===input.shipId&&['READY','IN_SERVICE'].includes(ship.status)))){setSubmitError('Chọn lại tàu đang sẵn sàng hoặc đang khai thác từ danh sách hiện tại, hoặc để phân công sau.');return}
     if(sourceEditing&&storedCruise&&(draft.departureDatetime!==localCruiseInput(storedCruise.departureDatetime)||draft.returnDatetime!==localCruiseInput(storedCruise.returnDatetime)||draft.departurePortId!==storedCruise.departurePortId||draft.returnPortId!==storedCruise.returnPortId)){setSubmitError('Thay đổi ngày hoặc cảng của lịch đã tạo cần được xử lý cùng các chương trình liên quan. Hiện chỉ lưu thông tin nhận diện tại đây.');return}
     setHasSubmitted(true)
     const nextErrors = validateCruiseDraft(input)
@@ -182,7 +188,7 @@ export function CruiseFormPage() {
         ? await cruiseApi.updateCruise(cruiseId, input, storedCruise??undefined)
         : await createIntent.execute(input, cruiseApi.createCruise)
       if(!editing&&input.sourceVersionId&&saved.sourceVersionId!==input.sourceVersionId){setUncertain(true);setSubmitError('Hệ thống đã tạo bản ghi nhưng phản hồi chưa xác nhận đúng phiên bản nguồn. Mở bản ghi để đối chiếu trước khi thực hiện tiếp.');return}
-      navigate(`/admin/cruises/${saved.cruiseId}`, { replace: !editing })
+      guard.allowLeave();navigate(`/admin/cruises/${saved.cruiseId}`, { replace: !editing })
     } catch (error) {
       if(editing ? mutationOutcomeUnknown(error) : createIntent.record?.status==='unknown'||createIntent.storageError)setUncertain(true)
       if(error instanceof ApiError&&error.code==='STALE_REVISION')setSubmitError('Chuyến khởi hành đã được người khác cập nhật. Nội dung bạn nhập vẫn được giữ. Mở bản đã lưu ở thẻ khác để đối chiếu trước khi chỉnh tiếp.');
@@ -208,6 +214,7 @@ export function CruiseFormPage() {
       {sourceId&&source.error&&<Notice title="Chưa đọc được lịch trình nguồn" tone="error">{source.error.message}<Button tone="secondary" onClick={source.retry}>Tải lại</Button><Button disabled={busy||uncertain} onClick={()=>chooseSource('')}>Chọn lịch trình khác</Button></Notice>}
       <div className={sourceId&&source.data?styles.sourceCreationGrid:undefined}>
       {sourceId&&source.data&&<InheritedSourcePlan source={source.data}/>}
+      {!editing&&source.data&&!draft.shipId&&<Notice title="Tạo nháp chưa phân công tàu">Chuyến được lưu ở trạng thái nháp. Cần phân công tàu và hoàn tất kiểm tra trước khi xác nhận sẵn sàng vận hành.</Notice>}
       {(editing||sourceId&&source.data)&&<CreationLayout sourceFlow={Boolean(sourceId)}><form onSubmit={submit} noValidate>
         <fieldset disabled={busy||uncertain} style={{border:0,padding:0,margin:0,minWidth:0}}><Panel title={sourceId?'Ngày và thông tin chuyến khởi hành':'Thông tin chuyến khởi hành'}>
           <FormErrorSummary errors={errors} />
@@ -216,6 +223,11 @@ export function CruiseFormPage() {
             {!sourceId&&!sourceEditing&&<Field htmlFor="cruise-type-form" label="Thời lượng chuyến" error={errors.cruiseType}><select id="cruise-type-form" value={draft.cruiseType} onChange={(event) => update('cruiseType', event.target.value as CruiseType)}><option value="">Hệ thống xác định theo ngày giờ</option><option value="ONE_DAY">Một ngày</option><option value="MULTI_DAYS">Nhiều ngày</option></select></Field>}
             {sourceId&&source.data&&<p>Thời lượng kế thừa từ chuyến đi nguồn: {source.data.durationDays} ngày · {source.data.durationNights} đêm.</p>}
             {sourceEditing&&<p>Thời lượng được kế thừa từ lịch trình nguồn đã liên kết.</p>}
+            {!editing&&sourceId&&canChooseInitialShip&&<>
+              <Field htmlFor="departure-initial-ship" label="Tàu phân công"><select id="departure-initial-ship" value={draft.shipId??''} disabled={busy||uncertain||initialShips.loading||Boolean(initialShips.error)} onChange={event=>update('shipId',event.target.value||null)}><option value="">Phân công sau khi tạo nháp</option>{draft.shipId&&!initialShips.data?.some(ship=>ship.shipId===draft.shipId)&&<option value={draft.shipId}>Tàu đã chọn · cần tải lại để đối chiếu</option>}{initialShips.data?.map(ship=><option key={ship.shipId} value={ship.shipId} disabled={!['READY','IN_SERVICE'].includes(ship.status)}>{ship.shipName} · {({DRAFT:'Bản nháp',READY:'Sẵn sàng',IN_SERVICE:'Đang khai thác',MAINTENANCE:'Bảo trì',SUSPENDED:'Tạm ngừng',RETIRED:'Ngừng khai thác'} as Record<string,string>)[ship.status]??'Chưa xác định trạng thái'}</option>)}</select></Field>
+              {initialShips.loading&&<Loading label="Đang tải danh sách tàu…"/>}{initialShips.error&&<Notice title="Chưa tải được danh sách tàu" tone="error"><p>{initialShips.error.message}</p><Button tone="secondary" onClick={initialShips.retry}>Tải lại tàu</Button></Notice>}
+              {draft.shipId&&initialShips.data?.filter(ship=>ship.shipId===draft.shipId).map(ship=><p key={ship.shipId}>Sức chứa hành khách của tàu: {Number.isSafeInteger(ship.totalCapacity)&&ship.totalCapacity>=0?`${ship.totalCapacity} người`:'Chưa có thông tin'}. Hệ thống kiểm tra lại cấu hình và xung đột lịch trước khi tạo chuyến; lựa chọn này chưa xác nhận phân công.</p>)}
+            </>}
             {editing&&storedCruise&&!storedCruise.sourceVersionId&&!storedCruise.sourceTripId&&<>
               <Field htmlFor="legacy-scope" label="Phạm vi hành trình"><select id="legacy-scope" value={draft.plannedScope??''} onChange={e=>update('plannedScope',e.target.value as 'DOMESTIC'|'INTERNATIONAL')} required><option value="">Chọn phạm vi</option><option value="DOMESTIC">Nội địa</option><option value="INTERNATIONAL">Quốc tế</option></select></Field>
               <Field htmlFor="legacy-mode" label="Chỉnh sửa lịch trình"><select id="legacy-mode" value={draft.itineraryMode??'FIXED'} onChange={e=>update('itineraryMode',e.target.value as 'FIXED'|'CUSTOM')}><option value="FIXED">Giữ cố định lịch trình hiện có</option><option value="CUSTOM">Cho phép chỉnh sửa lịch trình</option></select></Field>
@@ -243,5 +255,7 @@ export function CruiseFormPage() {
       </form></CreationLayout>}
       </div>
     </div>
-  </CruiseFrame>
+  {guard.prompt}</CruiseFrame>
 }
+
+

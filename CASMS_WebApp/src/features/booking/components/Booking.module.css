@@ -606,19 +606,19 @@
 /* Stable result space prevents the footer jumping up during catalog requests. */
 .liveSurface .searchList { min-height:320px; align-content:start; }
 
-/* Safe container padding to prevent text from touching screen borders */
-.liveSurface .searchHero .container {
-  padding-inline: max(48px, calc((100% - 1200px) / 2)) !important;
-  box-sizing: border-box;
-}
+/* Bound the content width itself: viewport-based padding inside a capped box collapses wide-screen content. */
 .liveSurface .container {
+  width: calc(100% - 64px);
   max-width: 1280px;
-  padding-inline: max(48px, calc((100% - 1200px) / 2)) !important;
+  min-width: 0;
+  margin-inline: auto;
+  padding-inline: 0;
   box-sizing: border-box;
 }
+.liveSurface .container > *, .catalogWorkspace > * { min-width: 0; }
+.catalogWorkspace { width: 100%; }
 @media(max-width: 800px) {
-  .liveSurface .searchHero .container,
   .liveSurface .container {
-    padding-inline: 24px !important;
+    width: calc(100% - 40px);
   }
 }

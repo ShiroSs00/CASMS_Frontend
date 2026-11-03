@@ -42,27 +42,36 @@ function Schedule({initial}:{initial:Trip}) {
   useEffect(()=>{if(!params.has('versionId')&&fallback){const next=new URLSearchParams(params);next.set('versionId',fallback);setParams(next,{replace:true})}},[fallback,params,setParams])
   const setChosen=(id:string)=>{const next=new URLSearchParams(params);next.set('versionId',id);next.delete('view');setParams(next)}
   const [create,setCreate]=useState(false),[source,setSource]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('')
-  const creating=useRef(false)
+  const creating=useRef(false),[creationUnknown,setCreationUnknown]=useState(false)
   const query=useReadQuery('planning-version:'+chosen,useCallback(async signal=>{
     if(!chosen){if(params.get('view')==='published')throw new Error('Chuyến này hiện chưa có mẫu lịch trình đã chốt. Hãy mở bản nháp để tiếp tục.');if(params.has('versionId'))throw new Error('Liên kết thiếu mã phiên bản. Hãy chọn lại từ danh sách phiên bản của chuyến.');return null}
     const version=await gateway.version(chosen,signal)
     if(version.tripId!==trip.tripId)throw new Error('Phiên bản trong liên kết không thuộc chuyến này. Không tự chuyển sang phiên bản khác.')
     return version
   },[gateway,chosen,trip.tripId,params]))
+  async function reconcileVersions(){
+    if(creating.current)return
+    creating.current=true;setBusy(true)
+    try{
+      const actual=await gateway.getTrip(trip.tripId)
+      if(actual.tripId!==trip.tripId||!Array.isArray(actual.versions))throw new Error('Chưa đọc được danh sách phiên bản của chuyến.')
+      setTrip(actual);setCreationUnknown(false);setError('')
+    }catch(e){setError(failure(e).message)}finally{creating.current=false;setBusy(false)}
+  }
   async function createVersion(){
-    if(creating.current||!can('TRIP_PLAN_WRITE')||gateway.readOnly||trip.status==='ARCHIVED')return
+    if(creationUnknown||creating.current||!can('TRIP_PLAN_WRITE')||gateway.readOnly||trip.status==='ARCHIVED')return
     const unfinished=trip.versions?.find(v=>v.status==='DRAFT'||v.status==='IN_REVIEW')
     if(unfinished){setChosen(unfinished.versionId);setCreate(false);return}
     creating.current=true;setBusy(true);setError('')
-    try{const version=await gateway.createVersion(trip,source||undefined);setTrip(old=>({...old,versions:[...(old.versions??[]),version]}));setChosen(version.versionId);setCreate(false)}catch(e){setError(failure(e).message)}finally{creating.current=false;setBusy(false)}
+    try{const version=await gateway.createVersion(trip,source||undefined);setTrip(old=>({...old,versions:[...(old.versions??[]),version]}));setChosen(version.versionId);setCreate(false)}catch(e){const fault=failure(e);setError(fault.message);if(fault.status===0||fault.status===408||fault.status>=500)setCreationUnknown(true)}finally{creating.current=false;setBusy(false)}
   }
   const newVersion=can('TRIP_PLAN_WRITE')&&!gateway.readOnly&&trip.status!=='ARCHIVED'?()=>{setSource(trip.versions?.filter(v=>v.status==='PUBLISHED').at(-1)?.versionId??'');setCreate(true)}:undefined
   return <>
     {query.loading?<Loading label="Đang tải phiên bản lịch trình…"/>:query.error?<Notice title="Chưa mở được phiên bản" tone="error">{query.error.message}<div className={styles.actions}><Button onClick={query.retry}>Tải lại</Button><Link to={root}>Về danh sách chuyến</Link>{trip.versions?.map(v=><Button key={v.versionId} onClick={()=>setChosen(v.versionId)}>Mở phiên bản {v.versionNumber}</Button>)}</div></Notice>:query.data?<VersionEditor key={query.data.versionId} initial={query.data} trip={trip} setTrip={setTrip} onSwitch={setChosen} onNew={newVersion}/>:<Panel title={trip.name}><Empty title="Chưa có phiên bản lịch trình"/><Link to={root}>Về danh sách</Link>{newVersion&&<Button onClick={newVersion}>Tạo phiên bản nháp</Button>}</Panel>}
-    {create&&<Modal title="Tạo phiên bản lịch trình" onClose={()=>{if(!busy)setCreate(false)}} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setCreate(false)}>Hủy</Button><Button disabled={busy} onClick={()=>void createVersion()}>{trip.versions?.some(v=>v.status==='DRAFT'||v.status==='IN_REVIEW')?'Mở bản chưa hoàn tất':busy?'Đang tạo…':'Tạo bản nháp'}</Button></>}>
+    {create&&<Modal title="Tạo phiên bản lịch trình" onClose={()=>{if(!busy)setCreate(false)}} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setCreate(false)}>Hủy</Button><Button disabled={busy||creationUnknown} onClick={()=>void createVersion()}>{trip.versions?.some(v=>v.status==='DRAFT'||v.status==='IN_REVIEW')?'Mở bản chưa hoàn tất':busy?'Đang tạo…':'Tạo bản nháp'}</Button></>}>
       <p>Chỉ tạo bản nháp mới khi không còn bản nháp hoặc mẫu cần xử lý theo quy trình cũ của chuyến đi này.</p>
       <Field htmlFor="planning-source-version" label="Nguồn nội dung"><select id="planning-source-version" value={source} disabled={busy} onChange={e=>setSource(e.target.value)}><option value="">Nội dung trống theo số ngày của chuyến</option>{trip.versions?.filter(v=>v.status==='PUBLISHED').map(v=><option key={v.versionId} value={v.versionId}>Phiên bản {v.versionNumber} · Mẫu đã chốt</option>)}</select></Field>
-      {error&&<Notice title="Chưa tạo được phiên bản" tone="error">{error}<Button disabled={busy} onClick={()=>void gateway.getTrip(trip.tripId).then(setTrip).catch(e=>setError(failure(e).message))}>Đọc lại danh sách phiên bản</Button></Notice>}
+      {error&&<Notice title="Chưa tạo được phiên bản" tone="error">{error}<Button disabled={busy} onClick={()=>void reconcileVersions()}>Đọc lại danh sách phiên bản</Button></Notice>}
     </Modal>}
   </>
 }
@@ -177,14 +186,14 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
     {version.status==='IN_REVIEW'&&<Notice title="Mẫu theo quy trình duyệt cũ · Chỉ xem">Quy trình duyệt mẫu đã dừng. Nội dung, trạng thái và lịch sử của phiên bản này được giữ nguyên.</Notice>}
     <div className={styles.editorTop}>
       <header className={styles.editorHeading}>
-        <div className={styles.editorTitle}><h1>{trip.name}</h1><div className={styles.editorMeta}><span>{trip.tripCode} · {content.days.length} ngày</span><Badge tone={version.status==='PUBLISHED'?'success':version.status==='IN_REVIEW'?'warning':'neutral'} label={`${versionLabels[version.status]} · V${version.versionNumber}`}/></div></div>
+        <div className={styles.editorTitle}><h1>{trip.name}</h1><div className={styles.editorMeta}><span>{trip.tripCode} · {content.days.length} ngày</span><Badge tone={version.status==='PUBLISHED'?'success':version.status==='IN_REVIEW'?'warning':'neutral'} label={`${versionLabels[version.status]} · V${version.versionNumber} · Lần cập nhật ${version.revision}`}/></div></div>
         <div className={styles.editorVersionTools}>
           {(trip.versions?.length??0)>1?<Field htmlFor="planning-version" label="Phiên bản lịch trình"><select id="planning-version" value={version.versionId} disabled={Boolean(busy)} onChange={e=>switchVersion(e.target.value)}>{trip.versions?.toSorted((a,b)=>b.versionNumber-a.versionNumber).map(v=><option key={v.versionId} value={v.versionId}>V{v.versionNumber} · {versionLabels[v.status]}</option>)}</select></Field>:null}
           <Button tone="text" size="compact" disabled={Boolean(busy)} onClick={()=>setHistory(true)}>Lịch sử</Button><Link to={root}>Danh sách chuyến</Link>
         </div>
       </header>
       <div className={styles.versionContext}>
-        <span>{[versions.published?versions.published.versionId!==version.versionId?`Mẫu đã chốt: V${versions.published.versionNumber}`:null:'Chưa có mẫu đã chốt',versions.working&&versions.working.versionId!==version.versionId?`${workingVersionLabel(versions.working.status)}: V${versions.working.versionNumber}`:null].filter(Boolean).join(' · ')}</span>
+        <span>{[versions.published?`Phiên bản lịch trình nguồn: V${versions.published.versionNumber}`:'Chưa có phiên bản lịch trình nguồn được công bố',versions.working&&versions.working.versionId!==version.versionId?`${workingVersionLabel(versions.working.status)}: V${versions.working.versionNumber}`:null].filter(Boolean).join(' · ')}</span>
         <div className={styles.actions}>
           {versions.published&&versions.published.versionId!==version.versionId&&<Button tone="text" size="compact" disabled={Boolean(busy)} onClick={()=>setTemplatePreview(true)}>Xem mẫu đã chốt · V{versions.published.versionNumber}</Button>}
           {versions.working&&versions.working.versionId!==version.versionId&&<Button tone="secondary" size="compact" disabled={Boolean(busy)} onClick={()=>switchVersion(versions.working!.versionId)}>{can('TRIP_PLAN_WRITE')&&versions.working.status==='DRAFT'?'Tiếp tục bản nháp':versions.working.status==='DRAFT'?'Xem bản nháp':'Xem bản chờ duyệt'} · V{versions.working.versionNumber}</Button>}
@@ -192,6 +201,9 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
         </div>
       </div>
       <TripSteps stage="schedule" tripId={trip.tripId} status={version.status} compact/>
+      {version.status==='PUBLISHED'&&<p className={styles.muted}>Công bố lúc: {version.publishedAt?new Date(version.publishedAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}):'Chưa có thông tin'} · Người công bố: {version.publishedByName??'Chưa có thông tin'}</p>}
+      {version.sourceVersionId&&<p className={styles.muted}>Kế thừa từ: {trip.versions?.some(v=>v.versionId===version.sourceVersionId)?`Phiên bản V${trip.versions.find(v=>v.versionId===version.sourceVersionId)!.versionNumber}`:'Phiên bản nguồn đã lưu'}. Nội dung đang xem thuộc phiên bản V{version.versionNumber}.</p>}
+      <p className={styles.muted}>Nguồn: {trip.name} · {trip.tripCode}. Phiên bản đã công bố được kế thừa khi tạo chuyến khởi hành; mỗi chuyến giữ tham chiếu đến phiên bản đã chọn.</p>
     </div>
     {uncertain&&<Notice title="Cần đối chiếu dữ liệu trước khi tiếp tục" tone="warning"><Button disabled={Boolean(busy)} onClick={()=>setCompare(true)}>Đối chiếu bản đã lưu</Button></Notice>}
     {!editable&&version.status==='DRAFT'&&!uncertain&&<p className={styles.muted}>Chỉ xem · {trip.status==='ARCHIVED'?'Chuyến đã lưu trữ':'Tài khoản không có quyền chỉnh sửa'}</p>}
@@ -238,3 +250,4 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
     {compare&&<ConflictDialog trip={trip} version={version} local={content} onClose={()=>setCompare(false)} onReplace={(serverTrip,serverVersion)=>{setTrip(serverTrip);accept(serverVersion);setUncertain(false);setFault(null);setCompare(false);setSelected(n=>Math.min(n,serverVersion.days.length));setMessage('Đã dùng bản máy chủ theo xác nhận của bạn.')}}/>}{guard.prompt}
   </>
 }
+

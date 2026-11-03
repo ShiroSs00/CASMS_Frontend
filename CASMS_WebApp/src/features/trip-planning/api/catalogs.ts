@@ -1,8 +1,13 @@
 import { apiRequest } from '@/shared/api'
 import { PlanningFault } from './gateway'
-import type { Source, SourceKind, SourceQuery } from '../model/plan'
+import { countryLabel, type Source, type SourceKind, type SourceQuery } from '../model/plan'
 
 const root='/trip-planning/catalogs'
+export async function readPortSelectionFacts(id:string,signal?:AbortSignal){
+  const value=await apiRequest<{portId:string;portName:string;countryCode:string|null;locationType:string|null;status:string;coordinateSource?:{locationName?:string|null}|null}>(`/ports/${encodeURIComponent(id)}`,{signal})
+  if(value?.portId!==id||typeof value.portName!=='string'||value.countryCode!=null&&typeof value.countryCode!=='string'||value.locationType!=null&&!['PORT','PIER','ANCHORAGE'].includes(value.locationType)||typeof value.status!=='string'||value.coordinateSource?.locationName!=null&&typeof value.coordinateSource.locationName!=='string')throw new PlanningFault('Thông tin cảng đang chọn chưa hợp lệ. Tải lại để đối chiếu.',502)
+  return value
+}
 type Row=Record<string,unknown>
 function rows(value:unknown):Row[]{
   if(!Array.isArray(value)||value.some(row=>!row||typeof row!=='object'||Array.isArray(row)))throw new PlanningFault('Chưa đọc được danh mục. Vui lòng tải lại.',502)
@@ -33,7 +38,7 @@ export async function planningSources(kind:SourceKind,signal:AbortSignal,query:S
   return values.map(row=>{
     const source=identity(row,kind==='ports'?'portId':kind==='activities'?'sourceActivityId':kind==='excursions'?'sourceExcursionId':'serviceId',kind==='ports'?'portName':kind==='activities'?'activityName':kind==='excursions'?'excursionName':'serviceName')
     const code=text(row,kind==='ports'?'portCode':kind==='activities'?'activityCode':kind==='excursions'?'excursionCode':'serviceCode')
-    const context=[code,kind==='ports'?text(row,'countryCode'):undefined,kind==='ports'?text(row,'localityName'):undefined,kind==='excursions'?text(row,'portName'):undefined,kind==='excursions'?text(row,'supplierName'):undefined].filter(Boolean)
+    const context=[code,kind==='ports'?countryLabel(text(row,'countryCode')):undefined,kind==='ports'?text(row,'localityName')??text(row,'destinationName'):undefined,kind==='excursions'?text(row,'portName'):undefined,kind==='excursions'?text(row,'supplierName'):undefined].filter(Boolean)
     return {...source,label:context.length?`${source.name} · ${context.join(' · ')}`:source.name,
       timeZoneId:text(row,'timeZoneId'),portId:text(row,'portId'),countryCode:text(row,'countryCode'),domesticRegion:text(row,'domesticRegion'),
       destinationId:text(row,'destinationId'),destinationName:text(row,'destinationName'),supplierName:text(row,'supplierName'),

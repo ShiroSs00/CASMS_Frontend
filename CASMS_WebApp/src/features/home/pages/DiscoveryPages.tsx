@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
-import { BookingFaq, DestinationDiscovery, FinalCta, ShipStory } from '../components/LandingSections'
+import { BookingFaq, DestinationDiscovery, FinalCta } from '../components/LandingSections'
 import { asianPorts } from '../model/asian-ports'
 import landing from '../components/Landing.module.css'
 import styles from './DiscoveryPages.module.css'
@@ -16,10 +16,10 @@ const discoveryCopy = {
     target: '/cruises',
   },
   ships: {
-    label: 'Tàu & Không gian',
-    eyebrow: 'KHÔNG GIAN TRÊN BIỂN',
-    title: 'Kỳ nghỉ bắt đầu từ con tàu.',
-    description: 'Khám phá thông tin tàu theo từng hành trình. Chọn chuyến để tìm hiểu con tàu, lịch trình và phòng còn trống cho kỳ nghỉ của bạn.',
+    label: 'Tàu',
+    eyebrow: 'ĐỘI TÀU OCEVIE',
+    title: 'Đồng hành cùng OceVie',
+    description: 'Tàu được phân công cho từng chuyến khởi hành. Chọn chuyến đã công bố để xem tàu được gán, lịch trình và Cabin còn khả dụng.',
     action: 'Xem chuyến & thông tin tàu',
     photo: 2,
     target: '/cruises',
@@ -66,9 +66,9 @@ export function DestinationsPage() {
 
 export function ShipsPage({ explorer }: { explorer?: ReactNode }) {
   return <div className={`${landing.home} ${styles.page}`}>
-    <title>Tàu & không gian trên biển | OceVie</title>
+    <title>Tàu | OceVie</title>
     <DiscoveryHeading kind="ships" />
-    <div className={`${landing.container} ${styles.content}`}>{explorer}<ShipStory /><BookingFaq /><FinalCta /></div>
+    <div className={`${landing.container} ${styles.content}`}>{explorer}<BookingFaq /><FinalCta /></div>
   </div>
 }
 

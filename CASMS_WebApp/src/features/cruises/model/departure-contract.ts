@@ -1,4 +1,5 @@
 import { ApiError } from '@/shared/api'
+import type { ShipAssignmentSafety } from './ship-assignment'
 import type { OperationalProgramSyncDto, ReadinessDto, ReadinessIssueDto, ReadinessStatusDto, ShipChangeImpactDto, ShipCompatibilityDto } from '../api/dto'
 
 export type PortWindowCheck={portId:string;movementType:'ARRIVAL'|'DEPARTURE';status:'PASS'|'BLOCK';code:string;message:string;evaluatedLocalDateTime:string|null;portTimeZoneId:string|null;matchedWindowId:string|null;matchedRevision:number|null;sourceReference:string|null;closureId:string|null;closureRevision:number|null;evaluatedAt:string}
@@ -42,6 +43,7 @@ export type InventorySummary = {
     totalSlots: number | null; occupiedSlots: number | null; remainingSlots: number | null; baseFare: number | null; blockedCabins:number|null;bookedSlots:number|null;heldSlots:number|null;canSell:boolean|null }[] | null
 }
 export type PublicSellability = {
+  publicDisplayEligible:boolean|null;publicSaleState:string|null;openedForSaleAt:string|null
   cruiseId:string;cruiseCode:string|null;cruiseName:string|null;departureDatetime:string|null;returnDatetime:string|null
   sellable:boolean|null;saleState:string|null;stopReason:string|null;stoppedAt:string|null;totalCapacity:number|null;remainingCapacity:number|null
   pricingPolicyVersion:string|null;currency:string|null;depositPercentage:number|null;finalPaymentCutoffDays:number|null
@@ -74,6 +76,7 @@ export type ChangeInput = {
   newDeparturePortId?:string|null;newReturnPortId?:string|null;eventIdentity?:string|null;expectedRevision?:number|null;reason?:string|null
 }
 export type ChangePreview = {
+  shipAssignmentSafety?:ShipAssignmentSafety|null
   scheduleImpacted:boolean|null;dateShiftDays:number|null;shipImpacted:boolean|null;bookedPassengersCount:number|null
   cruiseId: string; currentRevision: number | null; canProceed: boolean | null
   affectedBookingsCount: number | null; affectedActivitiesCount: number | null; affectedExcursionsCount: number | null
@@ -142,10 +145,26 @@ export function decodeShipCompatibility(value: unknown, id: string, shipId: stri
   if(text(r,'shipId')!==shipId||compatible==null||!issues)throw invalid()
   return {cruiseId:id,shipId,compatible,issues,shipActive:flag(r,'shipActive'),scheduleAvailable:flag(r,'scheduleAvailable'),capacitySufficient:flag(r,'capacitySufficient'),shipConfigured:flag(r,'shipConfigured'),decksCount:count(r,'decksCount'),cabinsCount:count(r,'cabinsCount'),totalCapacity:count(r,'totalCapacity'),bookedPassengersCount:count(r,'bookedPassengersCount')}
 }
+export function decodeShipAssignmentSafety(value:unknown,id:string,requestedShipId?:string|null):ShipAssignmentSafety {
+  const r=context(value,id),current=text(r,'currentShipId'),requested=text(r,'requestedShipId'),operation=text(r,'operation')
+  const changed=flag(r,'assignmentChanged'),canProceed=flag(r,'canProceed'),blockers=strings(r,'blockers'),categories=strings(r,'blockingCategories'),deps=rows(r,'dependencies')
+  if(!operation||!['ASSIGN','CHANGE','UNASSIGN'].includes(operation)||changed===null||canProceed===null||!blockers||!categories||!deps||requestedShipId!==undefined&&requested!==requestedShipId||canProceed&&blockers.length>0)throw invalid()
+  const dependencies=deps.map(d=>{
+    const category=text(d,'category'),amount=count(d,'count'),blocking=flag(d,'blocking'),clarification=flag(d,'clarificationRequired'),reason=text(d,'reason')
+    if(!category||amount===null||blocking===null||clarification===null||!reason||blocking&&amount===0)throw invalid()
+    return {category,count:amount,blocking,clarificationRequired:clarification,reason}
+  })
+  const impact=object(r.approvalImpact),planStatus=text(impact,'planStatus'),readyRecorded=flag(impact,'readyRecorded'),confirmed=count(impact,'confirmedSignoffs'),submitted=count(impact,'submittedSections'),fingerprint=flag(impact,'fingerprintWillChange'),reason=text(impact,'reason')
+  if(!planStatus||readyRecorded===null||confirmed===null||submitted===null||fingerprint===null||!reason)throw invalid()
+  return {cruiseId:id,currentShipId:current,requestedShipId:requested,operation:operation as ShipAssignmentSafety['operation'],assignmentChanged:changed,canProceed,blockingCategories:categories,blockers,dependencies,approvalImpact:{planStatus,readyRecorded,confirmedSignoffs:confirmed,submittedSections:submitted,fingerprintWillChange:fingerprint,reason}}
+}
+
 export function decodeShipChange(value: unknown, id: string, newShipId: string): ShipChangeImpactDto {
   const r=context(value,id),canProceed=flag(r,'canProceed'),blockers=strings(r,'blockers'),warnings=strings(r,'warnings')
   if(text(r,'newShipId')!==newShipId||canProceed==null||!blockers||!warnings)throw invalid()
-  return {cruiseId:id,currentShipId:text(r,'currentShipId'),newShipId,canProceed,blockers,warnings,bookedPassengersCount:count(r,'bookedPassengersCount'),capacitySufficient:flag(r,'capacitySufficient'),affectedCabinAssignmentsCount:count(r,'affectedCabinAssignmentsCount'),affectedOnboardActivitiesCount:count(r,'affectedOnboardActivitiesCount')}
+  const safety=decodeShipAssignmentSafety(r.shipAssignmentSafety,id,newShipId)
+  if(safety.currentShipId!==text(r,'currentShipId')||canProceed&&!safety.canProceed)throw invalid()
+  return {cruiseId:id,currentShipId:text(r,'currentShipId'),newShipId,canProceed,blockers,warnings,bookedPassengersCount:count(r,'bookedPassengersCount'),capacitySufficient:flag(r,'capacitySufficient'),affectedCabinAssignmentsCount:count(r,'affectedCabinAssignmentsCount'),affectedOnboardActivitiesCount:count(r,'affectedOnboardActivitiesCount'),shipAssignmentSafety:safety}
 }
 export function decodeProgramSync(value: unknown, id: string): OperationalProgramSyncDto {
   const r=context(value,id),onboardActivitiesCount=count(r,'onboardActivitiesCount'),shoreExcursionsCount=count(r,'shoreExcursionsCount'),warnings=strings(r,'warnings')
@@ -187,7 +206,7 @@ export function decodeInventory(value: unknown, id: string): InventorySummary {
 }
 export function decodePublicSellability(value:unknown,id:string):PublicSellability {
   const r=context(value,id)
-  return {cruiseId:id,cruiseCode:text(r,'cruiseCode'),cruiseName:text(r,'cruiseName'),departureDatetime:instant(r,'departureDatetime'),returnDatetime:instant(r,'returnDatetime'),sellable:flag(r,'sellable'),saleState:text(r,'saleState'),stopReason:text(r,'stopReason'),stoppedAt:instant(r,'stoppedAt'),totalCapacity:count(r,'totalCapacity'),remainingCapacity:count(r,'remainingCapacity'),pricingPolicyVersion:text(r,'pricingPolicyVersion'),currency:text(r,'currency'),depositPercentage:number(r,'depositPercentage'),finalPaymentCutoffDays:count(r,'finalPaymentCutoffDays'),
+  return {cruiseId:id,publicDisplayEligible:flag(r,'publicDisplayEligible'),publicSaleState:text(r,'publicSaleState'),openedForSaleAt:instant(r,'openedForSaleAt'),cruiseCode:text(r,'cruiseCode'),cruiseName:text(r,'cruiseName'),departureDatetime:instant(r,'departureDatetime'),returnDatetime:instant(r,'returnDatetime'),sellable:flag(r,'sellable'),saleState:text(r,'saleState'),stopReason:text(r,'stopReason'),stoppedAt:instant(r,'stoppedAt'),totalCapacity:count(r,'totalCapacity'),remainingCapacity:count(r,'remainingCapacity'),pricingPolicyVersion:text(r,'pricingPolicyVersion'),currency:text(r,'currency'),depositPercentage:number(r,'depositPercentage'),finalPaymentCutoffDays:count(r,'finalPaymentCutoffDays'),
     cabinTypes:rows(r,'cabinTypes')?.map(c=>({cabinType:text(c,'cabinType'),baseFare:number(c,'baseFare'),currency:text(c,'currency'),totalSlots:count(c,'totalSlots'),availableSlots:count(c,'availableSlots'),sellable:flag(c,'sellable')}))??null,
     availablePackages:rows(r,'availablePackages')?.map(p=>({tourPackageId:text(p,'tourPackageId'),packageCode:text(p,'packageCode'),packageName:text(p,'packageName'),price:number(p,'price'),currency:text(p,'currency'),mandatory:flag(p,'mandatory'),entitlementType:text(p,'entitlementType'),sellable:flag(p,'sellable')}))??null}
 }
@@ -204,7 +223,7 @@ export function decodeChange(value: unknown, id: string): ChangePreview {
   const r = context(value, id)
   const dateShiftDays=r.dateShiftDays
   if(dateShiftDays!=null&&(typeof dateShiftDays!=='number'||!Number.isSafeInteger(dateShiftDays)))throw invalid()
-  return { cruiseId: id,scheduleImpacted:flag(r,'scheduleImpacted'),dateShiftDays:dateShiftDays==null?null:dateShiftDays as number,shipImpacted:flag(r,'shipImpacted'),bookedPassengersCount:count(r,'bookedPassengersCount'), currentRevision: count(r, 'currentRevision'), canProceed: flag(r, 'canProceed'), affectedBookingsCount: count(r, 'affectedBookingsCount'), affectedActivitiesCount: count(r, 'affectedActivitiesCount'), affectedExcursionsCount: count(r, 'affectedExcursionsCount'), blockers: strings(r, 'blockers'), warnings: strings(r, 'warnings'), generatedTasks: rows(r, 'generatedTasks')?.map(task => decodeImpactTask(task, id)) ?? null }
+  return { cruiseId: id,shipAssignmentSafety:r.shipAssignmentSafety==null?null:decodeShipAssignmentSafety(r.shipAssignmentSafety,id),scheduleImpacted:flag(r,'scheduleImpacted'),dateShiftDays:dateShiftDays==null?null:dateShiftDays as number,shipImpacted:flag(r,'shipImpacted'),bookedPassengersCount:count(r,'bookedPassengersCount'), currentRevision: count(r, 'currentRevision'), canProceed: flag(r, 'canProceed'), affectedBookingsCount: count(r, 'affectedBookingsCount'), affectedActivitiesCount: count(r, 'affectedActivitiesCount'), affectedExcursionsCount: count(r, 'affectedExcursionsCount'), blockers: strings(r, 'blockers'), warnings: strings(r, 'warnings'), generatedTasks: rows(r, 'generatedTasks')?.map(task => decodeImpactTask(task, id)) ?? null }
 }
 export function decodeHandoff(value: unknown, id: string): DownstreamHandoff {
   const r = context(value, id)

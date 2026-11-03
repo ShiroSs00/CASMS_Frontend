@@ -1,9 +1,744 @@
 [
   {
     "method": "GET",
+    "path": "/cruise-package-templates/logical-categories",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_READ",
+      "CRUISE_PRICING_APPROVE",
+      "BOOKING_READ"
+    ],
+    "source": "CruisePackageController.logicalCategories; existing staff role/read boundary"
+  },
+  {
+    "method": "GET",
+    "path": "/fare-package-templates/logical-categories",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_READ",
+      "CRUISE_PRICING_APPROVE",
+      "BOOKING_READ"
+    ],
+    "source": "CruisePackageController.logicalCategories; existing staff role/read boundary"
+  },
+  {
+    "method": "GET",
+    "path": "/booking/{bookingId}/cruise-package-entitlements",
+    "mode": "ALL",
+    "permissions": [
+      "BOOKING_READ"
+    ],
+    "source": "Canonical alias on existing Booking ownership boundary"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/cruise-package-addons",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_READ"
+    ],
+    "source": "CruisePackageAddonController; ASM configuration, existing operational resource references"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/cruise-package-addons",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "source": "CruisePackageAddonController; ASM configuration, existing operational resource references"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/cruise-package-addons/{offerId}/publish",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "source": "CruisePackageAddonController; ASM configuration, existing operational resource references"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/staff/options",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_STAFF_ASSIGN"
+    ],
+    "source": "CruiseController.staffOptions; Operations Manager, proposed contract extension"
+  },
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/cruise-package-cabin-mapping",
+    "mode": "ALL",
+    "permissions": [
+      "SHIP_READ"
+    ],
+    "source": "CruisePackageCabinMappingController; SHIP_MANAGER role"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/cruise-package-cabin-mapping/confirm",
+    "mode": "ALL",
+    "permissions": [
+      "SHIP_CABIN_CATEGORY_MAPPING_CONFIRM"
+    ],
+    "source": "CR-FP-02; explicit Ship Manager confirmation"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise-plans/{cruiseId}/commercial-terms/sale",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_PRICING_APPROVE"
+    ],
+    "source": "CruiseScopedProgramsController; Departure sale terms",
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/cruise-plans/{cruiseId}/commercial-terms/sale/history",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_PRICING_APPROVE"
+    ],
+    "source": "CruiseScopedProgramsController; Departure sale terms",
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "method": "PUT",
+    "path": "/cruise-plans/{cruiseId}/commercial-terms/sale",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_PRICING_APPROVE"
+    ],
+    "source": "CruiseScopedProgramsController; Departure sale terms",
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-plans/{cruiseId}/commercial-terms/sale/submit",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_PRICING_APPROVE"
+    ],
+    "source": "CruiseScopedProgramsController; Departure sale terms",
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-plans/{cruiseId}/commercial-terms/sale/approve",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_PRICING_APPROVE"
+    ],
+    "source": "CruiseScopedProgramsController; Departure sale terms",
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-plans/{cruiseId}/commercial-terms/sale/return",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_PRICING_APPROVE"
+    ],
+    "source": "CruiseScopedProgramsController; Departure sale terms",
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "method": "PUT",
+    "path": "/cruise-plans/{cruiseId}/commercial-terms",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_PRICING_APPROVE"
+    ],
+    "source": "CruiseScopedProgramsController; OPS policy ownership, If-Match",
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/cruise-package-templates/benefit-usage-options",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_READ",
+      "CRUISE_PRICING_APPROVE",
+      "BOOKING_READ"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER",
+      "OPERATIONS_MANAGER",
+      "CRUISE_MANAGER",
+      "BOOKING_AGENT"
+    ],
+    "source": "CruisePackageController.usageOptions"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/cruise-package-offers/available",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "DepartureCruisePackageController.available"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise-package-templates",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_READ",
+      "CRUISE_PRICING_APPROVE",
+      "BOOKING_READ"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER",
+      "OPERATIONS_MANAGER",
+      "CRUISE_MANAGER",
+      "BOOKING_AGENT"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise-package-templates/benefit-resources",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_READ",
+      "CRUISE_PRICING_APPROVE",
+      "BOOKING_READ"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER",
+      "OPERATIONS_MANAGER",
+      "CRUISE_MANAGER",
+      "BOOKING_AGENT"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise-package-templates/{id}/versions",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_READ",
+      "CRUISE_PRICING_APPROVE",
+      "BOOKING_READ"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER",
+      "OPERATIONS_MANAGER",
+      "CRUISE_MANAGER",
+      "BOOKING_AGENT"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-package-templates",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-package-templates/{id}/versions",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-package-templates/versions/{id}/publish",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/cruise-package-offers",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_READ",
+      "CRUISE_PRICING_APPROVE",
+      "BOOKING_READ"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER",
+      "OPERATIONS_MANAGER",
+      "CRUISE_MANAGER",
+      "BOOKING_AGENT"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/cruise-package-offers/context",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_READ",
+      "CRUISE_PRICING_APPROVE",
+      "BOOKING_READ"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER",
+      "OPERATIONS_MANAGER",
+      "CRUISE_MANAGER",
+      "BOOKING_AGENT"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/cruise-package-offers/cabin-options",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_READ",
+      "CRUISE_PRICING_APPROVE",
+      "BOOKING_READ"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER",
+      "OPERATIONS_MANAGER",
+      "CRUISE_MANAGER",
+      "BOOKING_AGENT"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/cruise-package-offers",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/cruise-package-offers/{offerId}/upgrade-version",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/cruise-package-offers/{offerId}/publish",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/cruise-package-offers/{offerId}/prices",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/cruise-package-offers/{offerId}/benefit-bindings",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/cruise-package-offers/{offerId}/prices/{priceId}/submit",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/cruise-package-offers/{offerId}/prices/{priceId}/approve",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_PRICING_APPROVE"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/cruise-package-offers/{offerId}/prices/{priceId}/return",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_PRICING_APPROVE"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "GET",
+    "path": "/fare-package-templates/benefit-usage-options",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_READ",
+      "CRUISE_PRICING_APPROVE",
+      "BOOKING_READ"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER",
+      "OPERATIONS_MANAGER",
+      "CRUISE_MANAGER",
+      "BOOKING_AGENT"
+    ],
+    "source": "CruisePackageController.usageOptions"
+  },
+  {
+    "method": "GET",
+    "path": "/booking/{bookingId}/fare-entitlements",
+    "mode": "ALL",
+    "permissions": [
+      "BOOKING_READ"
+    ],
+    "source": "BookingController.fareEntitlements; existing Booking ownership check"
+  },
+  {
+    "method": "GET",
+    "path": "/activities/registrations/{id}/fare-entitlement",
+    "mode": "ANY",
+    "permissions": [
+      "ACTIVITY_REGISTRATION",
+      "ACTIVITY_ATTENDANCE",
+      "REGISTRATION_MANAGE"
+    ],
+    "source": "ActivityController.fareEntitlement; existing Registration ownership check"
+  },
+  {
+    "method": "GET",
+    "path": "/servicepackage/requests/{id}/fare-entitlement",
+    "mode": "ANY",
+    "permissions": [
+      "SERVICE_REQUEST_READ",
+      "SERVICE_REQUEST_CREATE",
+      "SERVICE_REQUEST_EXECUTE"
+    ],
+    "source": "ServicepackageController.requestEntitlement; existing ServiceRequest ownership check"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/fare-package-offers/available",
+    "mode": "PUBLIC",
+    "permissions": [],
+    "source": "DepartureCruisePackageController.available"
+  },
+  {
+    "method": "GET",
+    "path": "/fare-package-templates",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_READ",
+      "CRUISE_PRICING_APPROVE",
+      "BOOKING_READ"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER",
+      "OPERATIONS_MANAGER",
+      "CRUISE_MANAGER",
+      "BOOKING_AGENT"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "GET",
+    "path": "/fare-package-templates/benefit-resources",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_READ",
+      "CRUISE_PRICING_APPROVE",
+      "BOOKING_READ"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER",
+      "OPERATIONS_MANAGER",
+      "CRUISE_MANAGER",
+      "BOOKING_AGENT"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "GET",
+    "path": "/fare-package-templates/{id}/versions",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_READ",
+      "CRUISE_PRICING_APPROVE",
+      "BOOKING_READ"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER",
+      "OPERATIONS_MANAGER",
+      "CRUISE_MANAGER",
+      "BOOKING_AGENT"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/fare-package-templates",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/fare-package-templates/{id}/versions",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/fare-package-templates/versions/{id}/publish",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/fare-package-offers",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_READ",
+      "CRUISE_PRICING_APPROVE",
+      "BOOKING_READ"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER",
+      "OPERATIONS_MANAGER",
+      "CRUISE_MANAGER",
+      "BOOKING_AGENT"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/fare-package-offers/context",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_READ",
+      "CRUISE_PRICING_APPROVE",
+      "BOOKING_READ"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER",
+      "OPERATIONS_MANAGER",
+      "CRUISE_MANAGER",
+      "BOOKING_AGENT"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/fare-package-offers/cabin-options",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_READ",
+      "CRUISE_PRICING_APPROVE",
+      "BOOKING_READ"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER",
+      "OPERATIONS_MANAGER",
+      "CRUISE_MANAGER",
+      "BOOKING_AGENT"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/fare-package-offers",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/fare-package-offers/{offerId}/upgrade-version",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/fare-package-offers/{offerId}/publish",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/fare-package-offers/{offerId}/prices",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/fare-package-offers/{offerId}/benefit-bindings",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/fare-package-offers/{offerId}/prices/{priceId}/submit",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/fare-package-offers/{offerId}/prices/{priceId}/approve",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_PRICING_APPROVE"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise/{cruiseId}/fare-package-offers/{offerId}/prices/{priceId}/return",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_PRICING_APPROVE"
+    ],
+    "roles": [
+      "OPERATIONS_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "GET",
     "path": "/ships/{shipId}/areas",
     "mode": "ANY",
-    "permissions": ["SHIP_CONFIGURATION_READ"],
+    "permissions": [
+      "SHIP_CONFIGURATION_READ"
+    ],
     "source": "com/casms/ship/controller/ShipController.java"
   },
   {
@@ -195,10 +930,10 @@
     "mode": "ALL",
     "path": "/cruises/{cruiseId}/pricing-policy",
     "permissions": [
-      "CRUISE_UPDATE_DRAFT"
+      "CRUISE_PRICING_APPROVE"
     ],
     "roles": [
-      "CRUISE_MANAGER"
+      "OPERATIONS_MANAGER"
     ]
   },
   {
@@ -231,10 +966,10 @@
     "mode": "ALL",
     "path": "/cruises/{cruiseId}/pricing-policy/submit",
     "permissions": [
-      "CRUISE_UPDATE_DRAFT"
+      "CRUISE_PRICING_APPROVE"
     ],
     "roles": [
-      "CRUISE_MANAGER"
+      "OPERATIONS_MANAGER"
     ]
   },
   {
@@ -252,10 +987,10 @@
     "mode": "ALL",
     "path": "/cruise/{cruiseId}/pricing-policy",
     "permissions": [
-      "CRUISE_UPDATE_DRAFT"
+      "CRUISE_PRICING_APPROVE"
     ],
     "roles": [
-      "CRUISE_MANAGER"
+      "OPERATIONS_MANAGER"
     ]
   },
   {
@@ -288,10 +1023,10 @@
     "mode": "ALL",
     "path": "/cruise/{cruiseId}/pricing-policy/submit",
     "permissions": [
-      "CRUISE_UPDATE_DRAFT"
+      "CRUISE_PRICING_APPROVE"
     ],
     "roles": [
-      "CRUISE_MANAGER"
+      "OPERATIONS_MANAGER"
     ]
   },
   {
@@ -335,17 +1070,30 @@
   },
   {
     "source": "com/casms/ship/controller/CruiseMainflowController.java",
-    "permissions": [
-      "CRUISE_ASSIGN_SHIP",
-      "CRUISE_CHANGE_SHIP",
-      "CRUISE_UNASSIGN_SHIP"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
-    ],
+    "permissions": [],
     "path": "/cruise-plans/{cruiseId}/ship-assignment-context",
     "mode": "ANY",
-    "method": "GET"
+    "method": "GET",
+    "anyOf": [
+      {
+        "mode": "ANY",
+        "permissions": [
+          "CRUISE_READ",
+          "SHIP_READ"
+        ]
+      },
+      {
+        "mode": "ANY",
+        "permissions": [
+          "CRUISE_ASSIGN_SHIP",
+          "CRUISE_CHANGE_SHIP",
+          "CRUISE_UNASSIGN_SHIP"
+        ],
+        "roles": [
+          "CRUISE_MANAGER"
+        ]
+      }
+    ]
   },
   {
     "source": "com/casms/ship/controller/CruiseMainflowController.java",
@@ -462,7 +1210,11 @@
     "method": "GET",
     "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/program-options",
-    "permissions": [],
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT",
+      "CRUISE_READ",
+      "SERVICE_UPDATE"
+    ],
     "anyOf": [
       {
         "mode": "ALL",
@@ -730,10 +1482,10 @@
     "mode": "ALL",
     "path": "/cruise-plans/{cruiseId}/pricing-policy",
     "permissions": [
-      "CRUISE_UPDATE_DRAFT"
+      "CRUISE_PRICING_APPROVE"
     ],
     "roles": [
-      "CRUISE_MANAGER"
+      "OPERATIONS_MANAGER"
     ]
   },
   {
@@ -847,6 +1599,7 @@
     "permissions": [
       "CRUISE_READ",
       "CRUISE_CHANGE_SHIP",
+      "CRUISE_ASSIGN_SHIP",
       "SHIP_READ"
     ],
     "source": "com/casms/ship/controller/CruiseController.java"
@@ -949,7 +1702,8 @@
     "permissions": [
       "CRUISE_READ",
       "CRUISE_VALIDATE",
-      "CRUISE_UPDATE_DRAFT"
+      "CRUISE_UPDATE_DRAFT",
+      "CRUISE_ASSIGN_SHIP"
     ],
     "source": "com/casms/ship/controller/CruiseController.java"
   },
@@ -971,7 +1725,8 @@
     "permissions": [
       "CRUISE_READ",
       "CRUISE_VALIDATE",
-      "CRUISE_UPDATE_DRAFT"
+      "CRUISE_UPDATE_DRAFT",
+      "CRUISE_ASSIGN_SHIP"
     ],
     "source": "com/casms/ship/controller/CruiseController.java"
   },
@@ -979,11 +1734,26 @@
     "method": "POST",
     "path": "/cruise/{cruiseId}/apply-change",
     "mode": "ANY",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT",
-      "CRUISE_STATUS_CHANGE"
-    ],
-    "source": "com/casms/ship/controller/CruiseController.java"
+    "permissions": [],
+    "source": "com/casms/ship/controller/CruiseController.java",
+    "anyOf": [
+      {
+        "mode": "ANY",
+        "permissions": [
+          "CRUISE_UPDATE_DRAFT",
+          "CRUISE_STATUS_CHANGE"
+        ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_ASSIGN_SHIP"
+        ],
+        "roles": [
+          "CRUISE_MANAGER"
+        ]
+      }
+    ]
   },
   {
     "method": "GET",
@@ -1985,9 +2755,12 @@
     "path": "/cruise/{cruiseId}/change-assigned-ship",
     "mode": "ANY",
     "permissions": [
-      "CRUISE_CHANGE_SHIP"
+      "CRUISE_ASSIGN_SHIP"
     ],
-    "source": "com/casms/ship/controller/CruiseController.java:112"
+    "source": "com/casms/ship/controller/CruiseController.java:112",
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
   },
   {
     "method": "GET",
@@ -2418,9 +3191,12 @@
     "path": "/cruise/{cruiseId}/unassign-ship",
     "mode": "ANY",
     "permissions": [
-      "CRUISE_UNASSIGN_SHIP"
+      "CRUISE_ASSIGN_SHIP"
     ],
-    "source": "com/casms/ship/controller/CruiseController.java:121"
+    "source": "com/casms/ship/controller/CruiseController.java:121",
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
   },
   {
     "method": "PUT",
@@ -2554,7 +3330,10 @@
     "permissions": [
       "CRUISE_ASSIGN_SHIP"
     ],
-    "source": "com/casms/ship/controller/CruiseController.java:103"
+    "source": "com/casms/ship/controller/CruiseController.java:103",
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
   },
   {
     "method": "PUT",
@@ -2984,7 +3763,8 @@
     "path": "/servicepackage/schedules",
     "mode": "ANY",
     "permissions": [
-      "SERVICE_CREATE"
+      "CRUISE_UPDATE_DRAFT",
+      "SERVICE_UPDATE"
     ],
     "source": "com/casms/servicepackage/controller/ServicepackageController.java:51"
   },
@@ -3334,11 +4114,26 @@
     "method": "POST",
     "path": "/booking/change-cabin",
     "mode": "ANY",
-    "permissions": [
-      "BOOKING_CABIN_ASSIGN",
-      "BOOKING_UPDATE"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ANY",
+        "permissions": [
+          "BOOKING_CABIN_ASSIGN",
+          "BOOKING_UPDATE"
+        ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "BOOKING_READ"
+        ],
+        "roles": [
+          "PASSENGER"
+        ]
+      }
     ],
-    "source": "com/casms/booking/controller/BookingController.java:114"
+    "source": "com/casms/booking/controller/BookingController.java; actual owner/group validation remains in BookingService"
   },
   {
     "method": "GET",

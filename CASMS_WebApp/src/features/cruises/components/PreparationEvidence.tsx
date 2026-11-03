@@ -9,9 +9,9 @@ import {PreparationCoordinator} from './PreparationCoordinator'
 import {journeyTime,SHIP_TIME_ZONE} from '@/shared/lib/journey-time'
 import styles from './ManagerWorkspace.module.css'
 const actions={confirm:'preparation.section.CONFIRM_ACTION',return:'preparation.section.RETURN_ACTION'} as const
-const sectionNames:Record<string,string>={TECHNICAL_NAUTICAL:'Kỹ thuật hàng hải và tàu',HOTEL_CABIN:'Buồng phòng',ENTERTAINMENT_SHORE:'Giải trí và tour tham quan trên bờ',SAFETY_CREW:'An toàn và thuyền viên'}
+const sectionNames:Record<string,string>={TECHNICAL_NAUTICAL:'Kỹ thuật hàng hải và tàu',HOTEL_CABIN:'Cabin',ENTERTAINMENT_SHORE:'Giải trí và tour tham quan trên bờ',SAFETY_CREW:'An toàn và thuyền viên'}
 const owners:Record<string,string>={SHIP_MANAGER:'Quản lý tàu',CRUISE_MANAGER:'Quản lý lịch trình',OPERATIONS_MANAGER:'Quản lý vận hành'}
-const checks:Record<string,string>={SHIP_ASSIGNED:'Tàu đã được gán',SHIP_STATUS_ACTIVE:'Tàu đang hoạt động',SHIP_CONFIG:'Cấu hình boong và cabin',CABIN_INVENTORY:'Kiểm kê buồng phòng',SHORE_EXCURSIONS:'Hoạt động trên tàu và tour tham quan trên bờ',ONBOARD_STAFF_ASSIGNED:'Phân công Onboard Staff'}
+const checks:Record<string,string>={SHIP_ASSIGNED:'Tàu đã được gán',SHIP_STATUS_ACTIVE:'Tàu đang hoạt động',SHIP_CONFIG:'Cấu hình boong và cabin',CABIN_INVENTORY:'Kiểm kê Cabin',SHORE_EXCURSIONS:'Hoạt động trên tàu và tour tham quan trên bờ',ONBOARD_STAFF_ASSIGNED:'Phân công nhân viên trên tàu'}
 export function PreparationEvidence({cruiseId,onChanged,onSubmit,refreshKey=0}:{cruiseId:string;onChanged:()=>void;onSubmit?:()=>void;refreshKey?:number}){
  const access=useSessionAccess(),allowed=access.has('CRUISE_PREPARATION_READ')
  const manager=access.roles.includes('CRUISE_MANAGER')&&!access.roles.includes('OPERATIONS_MANAGER')
@@ -77,3 +77,4 @@ export function PreparationEvidence({cruiseId,onChanged,onSubmit,refreshKey=0}:{
   {selected&&<Modal title={businessCopy(actions[selected.action])} onClose={()=>{if(!busy)setSelected(null)}} footer={<><Button disabled={busy} onClick={()=>setSelected(null)}>Hủy</Button><Button disabled={busy||unknown||(selected.action!=='confirm'&&!text.trim())} onClick={()=>void execute()}>{businessCopy(actions[selected.action])}</Button></>}><Field htmlFor="prep-evidence" label={selected.action==='return'?'Nội dung cần bổ sung':'Ghi chú xác nhận'}><textarea id="prep-evidence" value={text} onChange={e=>setText(e.target.value)} required={selected.action!=='confirm'}/></Field></Modal>}
  </Panel>
 }
+

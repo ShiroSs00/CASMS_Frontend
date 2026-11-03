@@ -63,6 +63,8 @@
   "cruise.ready.SET_READY_ACTION": "Xác nhận chuyến sẵn sàng",
   "cruise.sale.NOT_OPEN": "Chưa mở bán",
   "cruise.sale.OPEN": "Đang mở bán",
+  "cruise.sale.CANCELLED": "Chuyến đã hủy",
+  "cruise.sale.DEPARTED": "Chuyến đã khởi hành",
   "cruise.sale.STOPPED": "Đang tạm dừng bán",
   "cruise.sale.SOLD_OUT": "Hết chỗ",
   "cruise.sale.OPEN_ACTION": "Mở bán",
@@ -182,7 +184,11 @@
   "cruise.readiness.resolve": "Đi xử lý hạng mục",
   "cruise.readiness.owner": "Bộ phận phụ trách",
   "cruise.readiness.owner.CRUISE_MANAGER": "Quản lý lịch trình",
-  "cruise.readiness.owner.SHIP_MANAGER": "Quản lý đội tàu",
+  "cruise.readiness.owner.SHIP_MANAGER": "Quản lý tàu",
+  "cruise.readiness.owner.ACTIVITY_SERVICE_MANAGER": "Quản lý hoạt động và dịch vụ",
+  "cruise.readiness.owner.BOOKING_AGENT": "Nhân viên đặt chỗ",
+  "cruise.readiness.owner.ONBOARD_STAFF": "Nhân viên trên tàu",
+  "cruise.readiness.owner.FINANCE_OFFICER": "Nhân viên tài chính",
   "cruise.readiness.owner.OPERATIONS_MANAGER": "Quản lý vận hành",
   "cruise.readiness.scope.CRUISE": "Chuyến khởi hành",
   "cruise.readiness.scope.WHOLE_CRUISE": "Toàn bộ chuyến khởi hành",
@@ -284,3 +290,4 @@
   "cruise.plan.workspace.ship": "Tàu và nhân sự",
   "cruise.plan.workspace.program": "Chương trình và gói dịch vụ"
 }
+

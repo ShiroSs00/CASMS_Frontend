@@ -7,6 +7,7 @@ export { RealBookingList, RealBookingDetail, BookingLookupPage } from './pages/R
 export { RealBookingCreatePage } from './pages/RealBookingCreatePage'
 export { CustomerExperiencesPage } from './pages/CustomerExperiencesPage'
 export { FinanceBookingsPage } from './pages/FinanceBookingsPage'
-export { CheckinDesk } from './pages/CheckinDesk'
+export { CheckinDesk, PassengerCheckinActions } from './pages/CheckinDesk'
 
 export type { BookingModelContext, BookingModelRenderer } from './components/BookingShipModel'
+export {BookingModelIntegration} from './components/BookingModelIntegration'

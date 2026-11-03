@@ -335,6 +335,14 @@
 .regulationFacts dd { line-height:1.7; }
 
 .validationRail button{text-align:left;justify-content:flex-start}
+.regulationFilters{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
+.regulationFilters>div:first-child{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.regulationFilters>div:last-child{justify-content:flex-end;flex-wrap:wrap}
+.effectiveTime{grid-column:span 2;min-width:0}
+.effectiveTime input[type='datetime-local']{width:100%;min-width:0;font-variant-numeric:tabular-nums}
+.effectiveTime input:disabled{color:var(--reg-text);opacity:1;background:var(--surface-subtle,#f4f7f7);cursor:not-allowed}
+@media(min-width:1500px){.regulationFilters>div:first-child{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:600px){.regulationFilters>div:first-child{grid-template-columns:minmax(0,1fr)}.effectiveTime{grid-column:auto}.regulationFilters>div:last-child{justify-content:stretch}}
 .candidateRow{min-width:0;align-items:start}
 .candidateRow>span{min-width:0;overflow-wrap:anywhere}
 .regulationFacts dd{overflow-wrap:anywhere;font-variant-numeric:tabular-nums}

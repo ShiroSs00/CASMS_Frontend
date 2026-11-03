@@ -1,5 +1,5 @@
 import {businessCopy} from '@/shared/i18n/business-copy'
-import { EditorLayout } from '@/shared/ui'
+import { EditorLayout,useUnsavedFormGuard } from '@/shared/ui'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useCallback, useState, type FormEvent } from 'react'
 import {useSearchParams} from 'react-router'
@@ -22,13 +22,16 @@ const fields: { key: keyof ExcursionFormValues; label: string; type?: string; ma
   { key: 'minimumParticipants', label: 'Số khách tối thiểu để tổ chức', type: 'number' },
   { key: 'price', label: businessCopy('program.field.priceUsd'), type: 'text', required:true },
 ]
-export function ExcursionForm({ initial, busy, onSave }: { initial?: ShoreExcursion; busy: boolean; onSave: (request: ExcursionRequest) => Promise<void> }) {
+export function ExcursionForm({ initial, busy, pending=busy, onSave }: { initial?: ShoreExcursion; busy: boolean;pending?:boolean; onSave: (request: ExcursionRequest,allowLeave:()=>void) => Promise<void> }) {
   const access = useSessionAccess()
   const [params]=useSearchParams(),requestedCruise=params.get('cruiseId'),requestedStop=params.get('cruiseStopId')
   const stops = useReadQuery('excursion-stop-options:'+requestedCruise, useCallback(signal=>excursionContextApi.stops(signal,validCruiseContextId(requestedCruise)?requestedCruise:undefined),[requestedCruise]))
   const suppliers = useReadQuery('excursion-supplier-options', excursionContextApi.suppliers)
   const [contextError, setContextError] = useState('')
   const [values, setValues] = useState(() => initial ? {...excursionToForm(initial),currencyCode:'USD',price:initial.currencyCode==='USD'?initial.price?.toString()??'':''} : { ...emptyExcursionForm,currencyCode:'USD',...(validCruiseContextId(requestedStop)?{cruiseStopId:requestedStop}:{}) })
+  const [baseline]=useState(()=>structuredClone(values))
+  const dirty=(Object.keys(values) as (keyof ExcursionFormValues)[]).some(key=>!Object.is(values[key],baseline[key]))
+  const guard=useUnsavedFormGuard(dirty,pending)
   const [errors, setErrors] = useState<Partial<Record<keyof ExcursionFormValues, string>>>({})
   const stopId = values.cruiseStopId
   const schedule = useReadQuery('excursion-stop-schedule:' + stopId, useCallback(signal => stopId ? shoreExcursionApi.list({ cruiseStopId: stopId }, signal) : Promise.resolve([]), [stopId]))
@@ -61,9 +64,9 @@ export function ExcursionForm({ initial, busy, onSave }: { initial?: ShoreExcurs
     setErrors(next)
     const first = Object.keys(next)[0]
     if (first) { event.currentTarget.querySelector<HTMLElement>(`[name="${first}"]`)?.focus(); return }
-    void onSave(formToExcursionRequest(values))
+    void onSave(formToExcursionRequest(values),guard.allowLeave)
   }
-  return <>
+  return <>{guard.prompt}
     <p className={styles.hint}>Chọn điểm dừng của lịch trình và nhà cung cấp đã xác minh. Lịch tham quan phải phù hợp với giờ lưu cảng và giờ khách trở lại tàu.</p>
     {(stops.loading || suppliers.loading) && <Loading label="Đang tải điểm dừng và nhà cung cấp…" />}
     {[stops, suppliers].map((query, index) => query.error && <Notice key={index} tone="error" title={`Không tải được ${index ? 'nhà cung cấp' : 'điểm dừng'}`}>{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>)}
@@ -95,3 +98,5 @@ export function ExcursionForm({ initial, busy, onSave }: { initial?: ShoreExcurs
     </form></EditorLayout>
   </>
 }
+
+

@@ -1,4 +1,6 @@
+import {wallTimeToInstant,SHIP_TIME_ZONE} from '@/shared/lib/journey-time'
 import { ApiError, apiRequestRaw } from '@/shared/api'
+import {decodeEntitlement} from '@/domain/cruise-package'
 import type { Activity, ActivityDraft, Availability, CruiseOption, Participation, Registration, ScheduleCheck } from '../model/activity'
 
 function unwrap(value: unknown, status: number): unknown {
@@ -9,7 +11,9 @@ function record(value: unknown, status: number): Activity {
   const dto = unwrap(value, status)
   if (!dto || typeof dto !== 'object' || !('id' in dto) || typeof dto.id !== 'string' || !('name' in dto) || typeof dto.name !== 'string' || ('cruiseId' in dto && dto.cruiseId !== null && typeof dto.cruiseId !== 'string')
     || !('code' in dto) || typeof dto.code !== 'string' || !('status' in dto) || typeof dto.status !== 'string'
-    || !('startTime' in dto) || typeof dto.startTime !== 'string' || !('endTime' in dto) || typeof dto.endTime !== 'string' || !('capacity' in dto) || !Number.isSafeInteger(dto.capacity) || Number(dto.capacity) < 1) throw new ApiError('Không đọc được thông tin hoạt động.', status)
+    || !('startTime' in dto) || typeof dto.startTime !== 'string' || !('endTime' in dto) || typeof dto.endTime !== 'string' || !('capacity' in dto) || !Number.isSafeInteger(dto.capacity) || Number(dto.capacity) < 1
+    || ['deckId','deckName','cabinId','cabinNumber'].some(key=>key in dto && (dto as Record<string,unknown>)[key]!=null && typeof (dto as Record<string,unknown>)[key]!=='string')
+    || ('deckNumber' in dto && dto.deckNumber!=null && !Number.isSafeInteger(dto.deckNumber))) throw new ApiError('Không đọc được thông tin hoạt động.', status)
   // Jackson may omit null fields. Normalize only the nullable Cruise association.
   return { ...dto, cruiseId: 'cruiseId' in dto ? dto.cruiseId : null } as Activity
 }
@@ -30,6 +34,11 @@ function participation(value: unknown, status: number): Participation {
 }
 const byId = (id: string) => '/activities/' + encodeURIComponent(id)
 export const activityApi = {
+  registrationEntitlement:(id:string,signal?:AbortSignal)=>apiRequestRaw(`/activities/registrations/${encodeURIComponent(id)}/fare-entitlement`,(value,status)=>{
+    const result=unwrap(value,status)
+    if(!result||typeof result!=='object'||!('operationId'in result)||result.operationId!==id||!('entitlement'in result))throw new ApiError('Quyền lợi không khớp đăng ký.',status)
+    return result.entitlement==null?null:decodeEntitlement(result.entitlement)
+  },{signal}),
   list: (signal?: AbortSignal) => apiRequestRaw('/activities', (value, status) => list<Activity>(value, status).map(item => record({ success: true, data: item }, status)), { signal }),
   get: (id: string, signal?: AbortSignal) => apiRequestRaw(byId(id), record, { signal }),
   availability: (id: string, signal?: AbortSignal) => apiRequestRaw(byId(id) + '/availability', (value, status) => {
@@ -59,7 +68,7 @@ export const activityApi = {
     return values
   },
   save: (draft: ActivityDraft, id?: string) => apiRequestRaw(id ? byId(id) : '/activities', record, { method: id ? 'PUT' : 'POST', body: {
-    activityName: draft.activityName.trim(), description: draft.description.trim(), location: draft.location.trim(), cruiseId: draft.cruiseId,
-    startTime: new Date(draft.startTime).toISOString(), endTime: new Date(draft.endTime).toISOString(), capacity: draft.capacity, price: draft.price, currencyCode: draft.currencyCode || undefined,
+    activityName: draft.activityName.trim(), description: draft.description.trim(), location: draft.location.trim(),deckId:draft.deckId??null,cabinId:draft.cabinId??null, cruiseId: draft.cruiseId,
+    startTime: wallTimeToInstant(draft.startTime,SHIP_TIME_ZONE), endTime: wallTimeToInstant(draft.endTime,SHIP_TIME_ZONE), capacity: draft.capacity, price: draft.price, currencyCode: draft.currencyCode || undefined,
   } }),
 }

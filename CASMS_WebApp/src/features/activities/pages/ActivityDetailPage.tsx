@@ -27,7 +27,8 @@ export function ActivityDetailPage() {
   return <ActivityFrame><PageHeader breadcrumb="DỊCH VỤ TÀU / HOẠT ĐỘNG" title={activity?.name ?? 'Chi tiết hoạt động'}  actions={<><ButtonLink tone="secondary" to="/admin/activities">Danh sách hoạt động</ButtonLink></>} /><ActivityState {...query} />
     {activity && <><div className={styles.detailLayout}><Panel title="Thông tin hoạt động"><RecordFacts entries={[
       ['Mã hoạt động', activity.code], ['Trạng thái', <Badge label={activityStatusLabels[activity.status] ?? activity.status} tone={activity.status === 'IN_PROGRESS' ? 'info' : activity.status === 'COMPLETED' ? 'success' : 'neutral'} />],
-      ['Thời gian', `${activityTime(activity.startTime)} → ${activityTime(activity.endTime)}`], ['Địa điểm', activity.location || 'Chưa xác định'],
+      ['Thời gian', `${activityTime(activity.startTime)} → ${activityTime(activity.endTime)}`], ['Địa điểm', [activity.deckName||(activity.deckNumber!=null?`Boong ${activity.deckNumber}`:null),activity.cabinNumber?`Cabin ${activity.cabinNumber}`:null].filter(Boolean).join(' · ') || 'Chưa có địa điểm được liên kết'],
+      ['Mô tả địa điểm', activity.location || 'Chưa có mô tả'],
       ['Sức chứa', activity.capacity], ['Giá tham gia', activity.price === null ? 'Chưa cấu hình' : `${activity.price} ${activity.currencyCode ?? ''}`], ['Mô tả', activity.description || 'Chưa có mô tả'],
     ]} />{activity.cruiseId?<ButtonLink tone="secondary" to={`/admin/cruises/${activity.cruiseId}`}>Xem chuyến khởi hành</ButtonLink>:<p>Hoạt động nguồn dùng để lập chương trình chuyến đi.</p>}</Panel><aside className={styles.actionRail}><ActivityOperations activity={activity} onChanged={query.retry} /></aside></div><ActivityRelated activity={activity} /></>}
   </ActivityFrame>
