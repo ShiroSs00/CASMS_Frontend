@@ -1,3 +1,4 @@
+import {externalAppUrl} from '@/shared/lib/external-app'
 import {mutationOutcomeUnknown} from '@/shared/lib/mutation-outcome'
 import {allowedDepartureSections,type DepartureSection} from '../model/preparation'
 import {operationsConditionTarget} from '../model/operations-workflow'
@@ -38,6 +39,7 @@ export function CruiseSale({cruise,onSection,onReview,onChanged}:{cruise:CruiseR
  const plan=useReadQuery(`sale-approved-plan:${cruise.cruiseId}:${epoch}:${cruise.revision}`,useCallback(signal=>mainflowApi.get(cruise.cruiseId,signal),[cruise.cruiseId]))
  const windows=approvedPlanWindows(plan.data)
  const saleRecord=useReadQuery(`sale-record:${cruise.cruiseId}:${epoch}:${cruise.revision}`,useCallback(signal=>apiRequest<SaleRecord>(`/cruise/${cruise.cruiseId}`,{signal}).then(value=>decodeSaleRecord(value,cruise.cruiseId)),[cruise.cruiseId]))
+ const publicUrl=externalAppUrl(import.meta.env.VITE_BOOKING_APP_URL,'/cruises/'+encodeURIComponent(cruise.cruiseId))
  const activated=Boolean(saleRecord.data?.cruiseId===cruise.cruiseId&&saleRecord.data.openedForSaleAt&&Number.isFinite(Date.parse(saleRecord.data.openedForSaleAt))&&saleRecord.data.status==='PUBLISHED')
  const data=query.data,now=useReadinessClock(data?.validUntil),expired=!data?.validUntil||Date.parse(data.validUntil)<=now,blocked=fares.loading||Boolean(fares.error)||!selectedFares.length||selectedFares.some(id=>!fares.data?.some(f=>f.offer.id===id&&f.eligibility.eligible))||!windows||plan.data?.readyStatus!=='READY'||plan.loading||Boolean(plan.error)||!data?.ready||data.blockers==null||!data.fingerprint||data.cruiseRevision==null||Boolean(data.blockers?.length)||expired||(scope==='SELECTED_PACKAGES'&&!selected.length)
  const simpleBlockers=data?.blockers?.filter(code=>!data.details?.some(issue=>issue.code===code))??[]
@@ -83,6 +85,7 @@ export function CruiseSale({cruise,onSection,onReview,onChanged}:{cruise:CruiseR
   {plan.data&&!plan.loading&&!plan.error&&<p>Trạng thái sẵn sàng của chuyến: {domainStatus('cruise.ready',plan.data.readyStatus)}. Phát hành lịch trình và xác nhận sẵn sàng không tự mở bán.</p>}
   {windows&&!plan.loading&&!plan.error&&<RecordFacts entries={[["Mở nhận đặt chỗ · Kế hoạch đã duyệt",journeyTime(windows.bookingOpensAt,SHIP_TIME_ZONE)],["Đóng nhận đặt chỗ · Giờ Việt Nam",journeyTime(windows.bookingClosesAt,SHIP_TIME_ZONE)]]}/>}
   {activated&&sellability.data?.publicDisplayEligible!==true&&windows&&<p className={styles.help}>{now<Date.parse(windows.bookingOpensAt)?'Đã xác nhận mở bán, đang chờ đến giờ nhận đặt chỗ theo kế hoạch.':now>=Date.parse(windows.bookingClosesAt)?'Đã hết thời gian nhận đặt chỗ theo kế hoạch.':'Đã ghi nhận quyết định mở bán nhưng hiện chưa đủ điều kiện hiển thị công khai. Đối chiếu các điều kiện bên dưới.'}</p>}
+  {activated&&!sellability.loading&&!sellability.error&&sellability.data?.publicDisplayEligible===true&&publicUrl&&<p><a href={publicUrl} target="_blank" rel="noopener noreferrer">Xem chuyến khởi hành trên website khách hàng ↗</a></p>}
   {activated&&saleRecord.data?.saleScope&&<p><strong>Nội dung đang được bật bán:</strong> {scopeLabels[saleRecord.data.saleScope as Scope]??'Chưa xác định'}</p>}
   {!activated&&<div className={styles.saleSelection}>
    <p><strong>Nội dung được bán:</strong> {scopeLabels[scope]}</p>

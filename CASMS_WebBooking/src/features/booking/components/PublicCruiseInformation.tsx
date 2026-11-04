@@ -1,11 +1,23 @@
 import { useCallback } from 'react'
 import { useReadQuery } from '@/shared/api'
-import { Button } from '@/shared/ui'
+import { Button, ButtonLink } from '@/shared/ui'
 import { liveCruiseCatalogApi } from '../api/booking-api'
 import { publicSaleLabels } from '../api/public-sale-contract'
 import { publicContentFailure } from '../model/public-content-feedback'
 import styles from './Booking.module.css'
 
+
+export function PublicCruiseBookingEntry({cruiseId}:{cruiseId:string}) {
+  const query=useReadQuery('public-booking-state:'+cruiseId,
+    useCallback(signal=>liveCruiseCatalogApi.saleState(cruiseId,signal),[cruiseId]))
+  return <div aria-live="polite">
+    {query.loading&&<p role="status">Đang kiểm tra khả năng nhận đặt chỗ…</p>}
+    {query.error&&<><p role="status">{publicContentFailure(query.error)}</p><Button tone="secondary" onClick={query.retry}>Kiểm tra lại đặt chỗ</Button></>}
+    {!query.loading&&!query.error&&query.data&&(query.data.sellable
+      ? <ButtonLink to={'/booking/cabin-experience?'+new URLSearchParams({cruiseId})}>Chọn gói và cabin</ButtonLink>
+      : <p>Chuyến đã được công bố; hiện hệ thống chưa cho phép tạo đặt chỗ. Vui lòng kiểm tra lại sau.</p>)}
+  </div>
+}
 
 export function PublicCruiseSaleState({ cruiseId }: { cruiseId: string }) {
   const query = useReadQuery('public-display-state:' + cruiseId,
