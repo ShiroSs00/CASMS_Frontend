@@ -1,4 +1,4 @@
-import {mainflowApi} from '../api/mainflow-api'
+import {usePlanQuery} from '../hooks/usePlanQuery'
 import { useCallback,useState } from 'react'
 import { ApiError, apiRequest, useReadQuery } from '@/shared/api'
 import { domainStatus } from '@/shared/i18n/business-copy'
@@ -17,7 +17,7 @@ export function DeparturePricingPolicy({ cruiseId,onChanged,readOnly=false,refre
   const query=useReadQuery(`pricing-policy:${access.userId}:${access.status}:${access.permissions.join(',')}:${cruiseId}:${allowed}:${refreshKey}`,useCallback(signal=>
     allowed ? apiRequest<unknown>(`/cruise/${encodeURIComponent(cruiseId)}/pricing-policy`,{signal}).then(value=>decodePricingPolicy(value,cruiseId)) : Promise.resolve(null),[allowed,cruiseId]))
   const policyOwner=!readOnly&&access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_PRICING_APPROVE')
-  const plan=useReadQuery(`pricing-editability:${access.userId}:${cruiseId}:${refreshKey}:${policyOwner}:${query.data?.revision}`,useCallback(signal=>policyOwner?mainflowApi.get(cruiseId,signal):Promise.resolve(null),[policyOwner,cruiseId]))
+  const plan=usePlanQuery(cruiseId,`${refreshKey}:${query.data?.revision}`,policyOwner)
   const editable=Boolean(policyOwner&&plan.data&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(plan.data.planStatus)&&!plan.loading&&!plan.error)
   const [success,setSuccess]=useState(''),[historyOpen,setHistoryOpen]=useState(false)
   const historyAllowed=(historyOpen||(policyOwner&&query.data?.status==='PENDING_APPROVAL'))&&access.has('CRUISE_READ')
@@ -49,7 +49,7 @@ export function DeparturePricingPolicy({ cruiseId,onChanged,readOnly=false,refre
     {!policyOwner&&access.roles.includes('CRUISE_MANAGER')&&<p>Quản lý vận hành quản lý chính sách thương mại. Bạn chỉ xem và sử dụng chính sách áp dụng cho chuyến.</p>}
     {success&&<Notice title="Đã ghi nhận kết quả" tone="success">{success}</Notice>}
     {query.loading&&<Loading label="Đang tải chính sách giá…"/>}
-    {missing&&<Notice title="Chưa thiết lập chính sách giá">{packageManaged?'Chưa cấu hình điều khoản giao dịch cho chuyến này.':'Chưa có chính sách giá cho chuyến khởi hành này.'}</Notice>}
+    {missing&&<Notice title={packageManaged?'Chưa cấu hình chính sách giao dịch':'Chưa thiết lập chính sách giá'}>{packageManaged?'Chưa cấu hình điều khoản giao dịch cho chuyến này.':'Chưa có chính sách giá cho chuyến khởi hành này.'}</Notice>}
     {query.error&&!missing&&<Notice title="Chưa đọc được chính sách giá" tone="error">{query.error.message}<Button tone="secondary" onClick={query.retry}>Thử lại</Button></Notice>}
     {policyOwner&&plan.error&&<Notice title="Chưa xác định được điều kiện chỉnh sửa chính sách"><Button tone="secondary" onClick={plan.retry}>Tải lại trạng thái kế hoạch</Button></Notice>}
     {policyOwner&&data?.status==='RETURNED'&&!query.loading&&!query.error&&<Notice title="Chính sách thương mại cần chỉnh sửa" tone="warning">

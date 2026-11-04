@@ -53,3 +53,6 @@
 
 .reviewFooter{display:flex;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--ui-border)}
 @media(max-width:600px){.reviewFooter button{width:100%}}
+
+.operationsStatus{display:flex;flex-wrap:wrap;gap:16px 32px;padding:12px 0;border-bottom:1px solid var(--ui-border);min-width:0}.operationsStatus>div{display:grid;gap:4px;min-width:0}.operationsStatus span{color:var(--ui-muted);font-size:13px}.operationsStatus strong{font-size:14px;line-height:1.6;overflow-wrap:anywhere}.secondaryBody .tabs{position:static;flex-wrap:wrap;overflow:visible}.secondaryBody .tabs button{white-space:normal;min-height:44px;text-align:left}.workspace :global(button:focus-visible),.workspace :global(a:focus-visible),.workspace summary:focus-visible{outline:2px solid var(--ui-focus,var(--ui-brand));outline-offset:3px}.workspace :global(fieldset){min-width:0}.workspace :global(legend){max-width:100%;white-space:normal}
+@media(max-width:600px){.operationsStatus{display:grid;grid-template-columns:1fr;gap:12px}.secondaryBody{padding-inline:16px}.workspace :global(#departure-content){overflow-wrap:anywhere}}

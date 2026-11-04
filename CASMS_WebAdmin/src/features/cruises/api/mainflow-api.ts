@@ -1,15 +1,16 @@
+import {planEvidence} from '../model/plan-evidence'
 import { ApiError, apiRequest } from '@/shared/api'
 import {preparationApi, type PreparationDashboard} from './preparation-api'
 export type DossierSubmission={preparationEvidence:string;preparationRevisions:Record<string,number>;pendingPreparationCodes:string[]}
 export type MainflowAction='submit'|'withdraw'|'approve'|'reject'|'request-revision'|'ready'
 export type ProgramIssue={code:string;kind:'ACTIVITY'|'EXCURSION'|'SERVICE';itemId:string;name:string;startsAt:string|null;endsAt:string|null;earliestStart:string|null;latestEnd:string|null;timeZoneId:string|null}
-export type PlanView={cruisePackagePricing?:boolean;cruiseId:string;revision:number;submittedRevision:number|null;cruiseCode:string;submittedByName:string|null;planStatus:'DRAFT'|'SUBMITTED'|'APPROVED'|'REJECTED'|'REVISION_REQUESTED'|'WITHDRAWN';submittedBy:string|null;submittedAt:string|null;reviewedBy:string|null;reviewedAt:string|null;reason:string|null;submittedSnapshot:unknown;fingerprint:string;readyStatus:'NOT_READY'|'READY'|'INVALIDATED';readyBy:string|null;readyAt:string|null;programIssues?:ProgramIssue[];planBlockers:string[];readyBlockers:string[];allowedActions:string[];windows:{expectedRevision:number;bookingOpensAt:string|null;bookingClosesAt:string|null;guidanceOpensAt:string|null;guidanceClosesAt:string|null}}
+export type PlanView={unifiedPackageReview?:boolean;cruisePackagePricing?:boolean;cruiseId:string;revision:number;submittedRevision:number|null;cruiseCode:string;submittedByName:string|null;planStatus:'DRAFT'|'SUBMITTED'|'APPROVED'|'REJECTED'|'REVISION_REQUESTED'|'WITHDRAWN';submittedBy:string|null;submittedAt:string|null;reviewedBy:string|null;reviewedAt:string|null;reason:string|null;submittedSnapshot:unknown;fingerprint:string;readyStatus:'NOT_READY'|'READY'|'INVALIDATED';readyBy:string|null;readyAt:string|null;programIssues?:ProgramIssue[];planBlockers:string[];readyBlockers:string[];allowedActions:string[];windows:{expectedRevision:number;bookingOpensAt:string|null;bookingClosesAt:string|null;guidanceOpensAt:string|null;guidanceClosesAt:string|null}}
 const path=(id:string)=>`/cruise-plans/${encodeURIComponent(id)}`
 export function decodePlan(value:PlanView,id:string):PlanView{
  if(!value||value.cruiseId!==id||!Number.isSafeInteger(value.revision)||!['DRAFT','SUBMITTED','APPROVED','REJECTED','REVISION_REQUESTED','WITHDRAWN'].includes(value.planStatus)||!['NOT_READY','READY','INVALIDATED'].includes(value.readyStatus)||!Array.isArray(value.allowedActions)||!Array.isArray(value.planBlockers)||!Array.isArray(value.readyBlockers)||typeof value.fingerprint!=='string'||!value.windows)throw new ApiError('Không thể hoàn tất thao tác. Vui lòng tải lại và thử lại.',502)
  const strings=(items:string[])=>items.every(item=>typeof item==='string'&&Boolean(item.trim()))
  const instant=(time:string|null)=>time===null||typeof time==='string'&&Number.isFinite(Date.parse(time))
- if(value.revision<0||!value.fingerprint.trim()||!strings(value.allowedActions)||!strings(value.planBlockers)||!strings(value.readyBlockers)||!Number.isSafeInteger(value.windows.expectedRevision)||value.windows.expectedRevision<0||![value.windows.bookingOpensAt,value.windows.bookingClosesAt,value.windows.guidanceOpensAt,value.windows.guidanceClosesAt].every(instant)||value.submittedRevision!=null&&(!Number.isSafeInteger(value.submittedRevision)||value.submittedRevision<0)||value.cruisePackagePricing!=null&&typeof value.cruisePackagePricing!=='boolean')throw new ApiError('Hồ sơ kế hoạch thiếu phiên dữ liệu hoặc thời gian hợp lệ. Tải lại trước khi thao tác.',502)
+ if(value.revision<0||!value.fingerprint.trim()||!strings(value.allowedActions)||!strings(value.planBlockers)||!strings(value.readyBlockers)||!Number.isSafeInteger(value.windows.expectedRevision)||value.windows.expectedRevision<0||![value.windows.bookingOpensAt,value.windows.bookingClosesAt,value.windows.guidanceOpensAt,value.windows.guidanceClosesAt].every(instant)||value.submittedRevision!=null&&(!Number.isSafeInteger(value.submittedRevision)||value.submittedRevision<0)||value.cruisePackagePricing!=null&&typeof value.cruisePackagePricing!=='boolean'||value.unifiedPackageReview!=null&&typeof value.unifiedPackageReview!=='boolean'||![value.submittedAt,value.reviewedAt,value.readyAt].every(instant))throw new ApiError('Hồ sơ kế hoạch thiếu phiên dữ liệu hoặc thời gian hợp lệ. Tải lại trước khi thao tác.',502)
  if(value.programIssues!==undefined){
   if(!Array.isArray(value.programIssues))throw new ApiError('Chưa đọc được chi tiết lỗi chương trình.',502)
   for(const issue of value.programIssues){
@@ -17,6 +18,7 @@ export function decodePlan(value:PlanView,id:string):PlanView{
    if(!issue||typeof issue.code!=='string'||!['ACTIVITY','EXCURSION','SERVICE'].includes(issue.kind)||typeof issue.itemId!=='string'||!issue.itemId||typeof issue.name!=='string'||issue.timeZoneId!==null&&typeof issue.timeZoneId!=='string'||!datesValid)throw new ApiError('Chưa đọc được chi tiết lỗi chương trình.',502)
   }
  }
+ if(value.unifiedPackageReview&&value.submittedSnapshot!=null&&!planEvidence(value.submittedSnapshot).hasPackages)throw new ApiError('Bản hồ sơ thiếu bằng chứng gói đã chọn. Tải lại trước khi xét duyệt.',502)
  return value
 }
 export const mainflowApi={

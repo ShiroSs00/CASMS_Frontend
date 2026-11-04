@@ -52,9 +52,9 @@ export function PlanSnapshot({snapshot,includePricing=true}:{snapshot:unknown;in
    ['Dịch vụ',value(rows(s.services).find(service=>service.service_id===w.service_id)?.service_name)],['Bắt đầu',clock(w.starts_at)],['Kết thúc',clock(w.ends_at)],['Địa điểm',value(w.location)],['Sức chứa',value(w.capacity)],
   ]}/>):<p>Chưa có khung giờ phục vụ trong kế hoạch đã gửi.</p>}
   </SnapshotGroup>
-  <SnapshotGroup title="Gói dịch vụ áp dụng" count={rows(s.packages).length} unit="gói">
+  {!Array.isArray(s.packageEvidence)&&<SnapshotGroup title="Gói dịch vụ áp dụng" count={rows(s.packages).length} unit="gói">
   {rows(s.packages).length?rows(s.packages).map((row,index)=>{const p=object(row.package);return <RecordFacts key={String(p.tour_package_id??index)} entries={[["Tên gói",value(p.package_name)],["Giá",money(p.price,p.currency_code)]]}/> }):<p>Chưa gắn gói dịch vụ trong kế hoạch đã gửi.</p>}
-  </SnapshotGroup>
+  </SnapshotGroup>}
   {includePricing&&<SnapshotGroup title="Chính sách giá đã gửi" count={rows(s.policy).length} unit="chính sách">
   {rows(s.policy).map((p,index)=><RecordFacts key={String(p.pricing_policy_id??index)} entries={[
    ['Phiên bản',value(p.policy_version)],['Tiền tệ',value(p.currency)],

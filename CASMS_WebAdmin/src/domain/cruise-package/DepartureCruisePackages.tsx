@@ -82,7 +82,7 @@ function OfferCard({item,context,disabled,run,shipName}:{shipName?:string|null;i
     <h4>Phát hành Gói du thuyền của chuyến</h4><p>Hoàn thiện liên kết quyền lợi, giá được duyệt và ánh xạ cabin; hệ thống kiểm tra lại điều kiện khi phát hành. Phát hành không tự mở bán.</p>
     {configure&&<div className={styles.actions}>
       <Button tone="secondary" disabled={disabled} onClick={()=>upgrade?switchWorkspace(()=>setUpgrade(false)):setUpgrade(true)}>Nâng phiên bản mẫu</Button>
-      {item.offer.status==='DRAFT'&&<Button disabled={disabled||item.eligibility.blockers.some(b=>b.code!=='OFFER_NOT_PUBLISHED')} onClick={()=>void run(()=>cruisePackageApi.publishOffer(cruiseId,item.offer.id,item.offer.revision),'Đã phát hành gói du thuyền của chuyến; chưa mở bán.')}>Phát hành gói du thuyền</Button>}
+      {item.offer.status==='DRAFT'&&<Button disabled={disabled||!(item.publicationEligible ?? item.eligibility.blockers.every(b=>b.code==='OFFER_NOT_PUBLISHED'))} onClick={()=>void run(()=>cruisePackageApi.publishOffer(cruiseId,item.offer.id,item.offer.revision),'Đã phát hành gói du thuyền của chuyến; chưa mở bán.')}>Phát hành gói du thuyền</Button>}
     </div>}
     {configure&&upgrade&&<OfferForm cruiseId={cruiseId} existing={item} disabled={disabled} run={run}/>}
   </fieldset></article>

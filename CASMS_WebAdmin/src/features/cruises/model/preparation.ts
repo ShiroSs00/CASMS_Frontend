@@ -1,7 +1,7 @@
 import type { useSessionAccess } from '@/shared/auth'
 import type { CruiseDetailView, ReadinessCheck } from './cruise-view'
 export const departureSections = [
-  ['overview', 'Tổng quan'], ['schedule', 'Lịch thực tế'], ['resources', 'Tàu và quy định'],
+  ['operation', 'Vận hành sau mở bán'], ['transaction-policy', 'Chính sách giao dịch'], ['overview', 'Tổng quan'], ['schedule', 'Lịch thực tế'], ['resources', 'Tàu và quy định'],
   ['program', 'Chương trình và dịch vụ'], ['fare-packages', 'Gói du thuyền'], ['staff', 'Nhân sự chuyến khởi hành'], ['preparation', 'Hồ sơ chuẩn bị khởi hành'], ['sales', 'Cấu hình bán'], ['guidance', 'Hướng dẫn trước chuyến'], ['checks', 'Xác nhận và mở bán'], ['handoff', 'Bàn giao vận hành'], ['changes', 'Thay đổi lịch và theo dõi xử lý'],
 ] as const
 export type DepartureSection = typeof departureSections[number][0]
@@ -22,7 +22,9 @@ export function preparationProblems(detail: CruiseDetailView): ReadinessCheck[] 
 export function allowedDepartureSections(access:ReturnType<typeof useSessionAccess>){
   const manager=access.roles.includes('CRUISE_MANAGER')&&!access.roles.includes('OPERATIONS_MANAGER')
   return departureSections.filter(([key])=>
-    key==='overview'
+    key==='operation'&&access.roles.includes('OPERATIONS_MANAGER')&&['CRUISE_START','CRUISE_COMPLETE','CRUISE_CANCEL','OPERATIONAL_ISSUE_READ'].some(p=>access.has(p))
+    ||key==='transaction-policy'&&access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_PRICING_APPROVE')
+    ||key==='overview'
     ||key==='fare-packages'&&['ACTIVITY_SERVICE_MANAGER','OPERATIONS_MANAGER','CRUISE_MANAGER','BOOKING_AGENT'].some(role=>access.roles.includes(role))&&['TOUR_PACKAGE_MANAGE','CRUISE_READ','CRUISE_PRICING_APPROVE','BOOKING_READ'].some(p=>access.has(p))
     ||key==='schedule'&&['ITINERARY_READ','CRUISE_READ'].some(p=>access.has(p))
     ||key==='resources'&&['SHIP_READ','CRUISE_STAFF_READ','CRUISE_REGULATION_READ','CRUISE_ASSIGN_SHIP','CRUISE_CHANGE_SHIP'].some(p=>access.canDo(p))

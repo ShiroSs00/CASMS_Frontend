@@ -1,9 +1,12 @@
+import type { PlanView } from '../api/mainflow-api'
+import {planEvidence} from './plan-evidence'
 import type {DepartureSection} from './preparation'
 
 /** Route each blocker to its actual task without changing the server's decision. */
 export function operationsConditionTarget(code:string):DepartureSection|'review'|null {
  if(code==='ELIGIBLE_FARE_OFFER_REQUIRED'||code==='CRUISE_PACKAGE_SELECTION_INELIGIBLE'||code.startsWith('FARE_')||code.startsWith('CABIN_MAPPING_')||code.startsWith('CABIN_CATEGORY_'))return 'fare-packages'
  if(['PORT_TIMEZONE_CHANGED','PORT_SNAPSHOT_UNAVAILABLE','PORT_NOT_ACTIVE','INVALID_PORT_CALL_TIME','INVALID_PORT_TIMEZONE'].includes(code))return 'schedule'
+ if(code.startsWith('SALE_')||code==='UNIFIED_PLAN_REVIEW_REQUIRED')return 'review'
  if(code==='GUIDANCE_BEFORE_BOOKING_CLOSE')return 'review'
  if(['PLAN_APPROVAL_REQUIRED','PRICING_APPROVER_UNRESOLVED','PRICING_POLICY_APPROVAL_REQUIRED','PRICING_POLICY_NOT_APPROVED','PRICING_POLICY_MISSING','PRICING_POLICY_FARE_MISSING'].includes(code))return 'review'
  if(code.startsWith('PREPARATION_'))return 'preparation'
@@ -24,3 +27,14 @@ const staffRoles:Readonly<Record<string,string>>={
 }
 export const operationsStaffRole=(role:string)=>staffRoles[role]??'Chưa xác định vai trò'
 export const operationsStaffStatus=(status:string)=>status==='ACTIVE'?'Đang được phân công':['INACTIVE','REMOVED','CANCELLED'].includes(status)?'Đã ngừng phân công':'Chưa xác định trạng thái'
+
+/** Only facts present in the submitted dossier may identify a maker. */
+export function planMakerReason(data: PlanView, actorId: string | null): string | null {
+ if (!actorId) return null
+ if (data.submittedBy === actorId) return 'Bạn là người gửi hồ sơ. Cần người xét duyệt khác.'
+ if (data.unifiedPackageReview && planEvidence(data.submittedSnapshot).packages.some(p => p.makers.includes(actorId))) return 'Bạn đã tạo hoặc gửi giá trong hồ sơ này. Cần người xét duyệt khác.'
+ return null
+}
+export function operationsPlanLabel(data: PlanView) {
+ return data.planStatus === 'APPROVED' && (data.planBlockers.length > 0 || data.readyBlockers.includes('PLAN_APPROVAL_REQUIRED')) ? 'Cần xét duyệt lại' : ({DRAFT:'Chưa gửi',SUBMITTED:'Chờ xét duyệt',APPROVED:'Đã phê duyệt',REJECTED:'Đã từ chối',REVISION_REQUESTED:'Cần chỉnh sửa',WITHDRAWN:'Đã rút hồ sơ'} as const)[data.planStatus]
+}
