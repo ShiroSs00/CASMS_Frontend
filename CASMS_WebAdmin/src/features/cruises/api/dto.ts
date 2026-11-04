@@ -117,7 +117,8 @@ export type OperationalProgramSyncDto = {
 
 // BE's current sale contracts only. No runtime client/permission is enabled here (F02/O01/O02).
 export type CruiseOpenSaleRequestDto = { expectedRevision?:number|null;packageIds?:string[]|null;farePackageOfferIds?:string[]|null;cruisePackageOfferIds?:string[]|null;saleScope?:string|null;fingerprint?:string|null;eventIdentity?:string|null }
-export type CruiseOpenSaleResponseDto = {cruiseId:string;cruiseCode:string;cruiseStatus:string;itineraryStatus:string;saleScope:string;activePackagesCount:number;openedBy:string|null;openedAt:string;fingerprint:string;revision:number;eventIdentity:string;idempotentRetry:boolean}
+/** POST open-sale returns CruiseResponse, the same persisted object as GET Cruise. */
+export type CruiseOpenSaleResponseDto = {cruiseId:string;status:CruiseStatus;revision:number;saleScope:string;openedForSaleAt:string;saleEventIdentity:string}
 export type CruiseStopSaleRequestDto = {
   expectedRevision?:number|null;reason:string;evidence?:string|null;scope?:string|null;eventIdentity?:string|null;packageId?:string|null
 }

@@ -1,3 +1,4 @@
+import { destinationVisitLabel } from '../model/destination-label'
 import { useEffect, useRef, type ReactNode } from 'react'
 import { Button, Modal, Notice } from '@/shared/ui'
 import { countryLabel, domesticRegionLabel, kindLabels, shortTime, type Content, type Entry, type Stop, type Violation } from '../model/plan'
@@ -30,7 +31,7 @@ export function StopDetails({stop,onClose,violation}:{stop?:Stop}&DetailProps) {
     <DetailBody violation={violation} label="Thông tin lần ghé cảng">
       {stop?<>
         <div className={styles.detailLead}><h3>{text(stop.portName)}</h3><p>{countryLabel(stop.countryCode)}{stop.countryCode==='VN'?` · ${domesticRegionLabel(stop.domesticRegion)}`:''}</p></div>
-        <section aria-label="Các điểm tham quan"><h3>Các điểm tham quan trong lần ghé cảng</h3>{stop.visits?.length?<ol>{stop.visits.map(v=><li key={v.clientKey}>{v.destinationName??'Chưa có tên điểm đến tại thời điểm chốt'}</li>)}</ol>:<p>Chưa có lượt tham quan.</p>}</section>
+        <section aria-label="Các điểm tham quan"><h3>Các điểm tham quan trong lần ghé cảng</h3>{stop.visits?.length?<ol>{stop.visits.map(v=><li key={v.clientKey}>{destinationVisitLabel(v.destinationName??'Chưa có tên điểm đến tại thời điểm chốt')}</li>)}</ol>:<p>Chưa có lượt tham quan.</p>}</section>
         <section className={styles.detailSection} aria-label="Thời gian ghé cảng">
           <p className={styles.timeContext}>Giờ địa phương của cảng · {text(stop.timeZoneId)}</p>
           <dl className={styles.detailGrid}>

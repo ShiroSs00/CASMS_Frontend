@@ -91,13 +91,28 @@
     "method": "GET",
     "path": "/cruise-plans/{cruiseId}/commercial-terms/sale",
     "mode": "ALL",
-    "permissions": [
-      "CRUISE_PRICING_APPROVE"
+    "permissions": [],
+    "anyOf": [
+      { "mode": "ALL", "permissions": ["CRUISE_PRICING_APPROVE"], "roles": ["OPERATIONS_MANAGER"] },
+      { "mode": "ALL", "permissions": ["CRUISE_READ"], "roles": ["CRUISE_MANAGER"] }
     ],
-    "source": "CruiseScopedProgramsController; Departure sale terms",
-    "roles": [
-      "OPERATIONS_MANAGER"
-    ]
+    "source": "CruiseScopedProgramsController; Departure sale terms"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise-plans/{cruiseId}/cruise-packages",
+    "mode": "ALL",
+    "permissions": ["CRUISE_READ"],
+    "roles": ["CRUISE_MANAGER", "OPERATIONS_MANAGER"],
+    "source": "CruiseMainflowController"
+  },
+  {
+    "method": "PUT",
+    "path": "/cruise-plans/{cruiseId}/cruise-packages",
+    "mode": "ALL",
+    "permissions": ["CRUISE_UPDATE_DRAFT"],
+    "roles": ["CRUISE_MANAGER"],
+    "source": "CruiseMainflowController"
   },
   {
     "method": "GET",

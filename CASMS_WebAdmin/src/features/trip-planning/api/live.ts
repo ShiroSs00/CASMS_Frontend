@@ -1,3 +1,4 @@
+import { planningViolationMessage } from '../model/validation-copy'
 import { apiRequest, ApiError } from '@/shared/api'
 import type { CurrentTrip, CurrentVersion } from './current-contract'
 import { tripView, versionView, contentRequest } from './mappers'
@@ -13,7 +14,7 @@ export function failure(error: unknown): PlanningFault {
   if (error instanceof ApiError) {
     const details=error.details as ({violations?:Violation[]}&Partial<Violation>)|Violation[]|undefined
     const rows:Violation[]=Array.isArray(details)?details:Array.isArray(details?.violations)?details.violations:details&&(typeof details.clientKey==='string'||typeof details.fieldPath==='string'||typeof details.dayNumber==='number')?[{...details,code:error.code??'REQUEST_FAILED',severity:'ERROR',message:error.message}]:[]
-    return new PlanningFault(businessErrorMessage(error.code,error.message),error.status,error.code??'REQUEST_FAILED',rows.map(row=>({...row,message:businessErrorMessage(row.code,row.message)})))
+    return new PlanningFault(businessErrorMessage(error.code,error.message),error.status,error.code??'REQUEST_FAILED',rows.map(row=>({...row,message:planningViolationMessage(row)})))
   }
   return new PlanningFault(error instanceof Error?error.message:'Chưa thực hiện được yêu cầu.')
 }
@@ -60,7 +61,7 @@ export const liveGateway: PlanningGateway = {
     return {trip:tripView(result.trip),version:versionView(result.version)}
   },
   sources:planningSources,
-  async validate(version) {const report=await apiRequest<Report>(`/trip-schedule-versions/${segment(version.versionId)}/validate`,{method:'POST'});if(typeof report?.validForSubmit!=='boolean'||!Array.isArray(report.violations)||!Array.isArray(report.deferredChecks))throw new PlanningFault('Báo cáo kiểm tra chưa đúng định dạng.',502);return {...report,violations:report.violations.map(row=>({...row,message:businessErrorMessage(row.code,row.message)}))}},
+  async validate(version) {const report=await apiRequest<Report>(`/trip-schedule-versions/${segment(version.versionId)}/validate`,{method:'POST'});if(typeof report?.validForSubmit!=='boolean'||!Array.isArray(report.violations)||!Array.isArray(report.deferredChecks))throw new PlanningFault('Báo cáo kiểm tra chưa đúng định dạng.',502);return {...report,violations:report.violations.map(row=>({...row,message:planningViolationMessage(row)}))}},
   async action(version,action,reason) {
     if(action==='submit'||action==='publish'||action==='return'||action==='withdraw') throw new PlanningFault(businessErrorMessage('TEMPLATE_REVIEW_RETIRED','Quy trình duyệt mẫu đã dừng.'),410,'TEMPLATE_REVIEW_RETIRED')
     const saved=versionView(await apiRequest<CurrentVersion>(`/trip-schedule-versions/${segment(version.versionId)}/${action}`,{method:'POST',body:{expectedRevision:version.revision,...(action==='cancel'?{reason:reason?.trim()||undefined}:{})}}))

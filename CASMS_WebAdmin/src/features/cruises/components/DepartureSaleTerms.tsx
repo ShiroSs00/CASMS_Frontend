@@ -71,7 +71,7 @@ function ChargeFields({ label, tax, value, onChange, error }: { label: string; t
   </section>
 }
 
-export function DepartureSaleTerms({ cruiseId, refreshKey, onChanged, focusOnMount }: { cruiseId: string; refreshKey: string | number; onChanged?: () => void; focusOnMount?: boolean }) {
+export function DepartureSaleTerms({ cruiseId, refreshKey, onChanged, focusOnMount, unified }: { cruiseId: string; refreshKey: string | number; onChanged?: () => void; focusOnMount?: boolean; unified?: boolean }) {
   const access = useSessionAccess()
   const allowed = access.roles.includes('OPERATIONS_MANAGER') && access.has('CRUISE_PRICING_APPROVE')
   const key = `${access.userId}:${cruiseId}:${refreshKey}:${allowed}`
@@ -200,8 +200,8 @@ export function DepartureSaleTerms({ cruiseId, refreshKey, onChanged, focusOnMou
         </fieldset>
       </form>}
       {!editor && <div className={styles.reviewActions}>
-        {fresh && data?.status === 'DRAFT' && <Button disabled={busy || reconcile} onClick={() => review('submit')}>Gửi duyệt</Button>}
-        {canReview && !returning && <><Button disabled={busy || reconcile} onClick={() => review('approve')}>Duyệt</Button>
+        {!unified && fresh && data?.status === 'DRAFT' && <Button disabled={busy || reconcile} onClick={() => review('submit')}>Gửi duyệt</Button>}
+        {!unified && canReview && !returning && <><Button disabled={busy || reconcile} onClick={() => review('approve')}>Duyệt</Button>
           <Button tone="secondary" disabled={busy || reconcile} onClick={() => setReturning(true)}>Trả về</Button></>}
       </div>}
       {returning && canReview && <div className={styles.review}>

@@ -1,2 +1,6 @@
-.actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:8px 0 16px; }
-.actions button { width:auto; }
+.list{margin:0 0 12px;padding-inline-start:1.6rem}
+.list li{padding-inline-start:4px;border-bottom:1px solid var(--ui-border,#dbe3e8)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+.row span{min-width:0;overflow-wrap:anywhere}
+.row button{flex:none}
+.context{color:#536b7e;font-size:13px;line-height:1.5}

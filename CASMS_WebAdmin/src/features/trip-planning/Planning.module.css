@@ -36,7 +36,7 @@
 .sourcePicker{display:grid;gap:12px;min-width:0}.sourcePicker p{margin:0;line-height:1.6}.sourcePicker>div:last-child{display:grid;gap:8px}.sourcePicker select{max-width:100%}
 
 /* Keep editing, review and publication visible without stacking instructional banners. */
-.workflow{grid-template-columns:repeat(4,minmax(0,1fr));background:#fff;border-color:#dce4ea}
+.workflow{grid-template-columns:repeat(3,minmax(0,1fr));background:#fff;border-color:#dce4ea}
 .workflow li{padding:16px;gap:10px;border-color:#e4ebef}
 .workflow li>span{background:#edf2f5;color:#667b8b}
 .workflow li[data-complete=true]>span{background:#e4f2ec;color:#25634c}
@@ -59,19 +59,10 @@
 .unsavedDot{background:#b07c26}
 .footer .actions{flex-shrink:0}
 .footer .actions>button{min-height:42px;padding:10px 18px;font-size:14px}
-.editorMenu{position:relative;font-size:14px}
-.editorMenu>summary{list-style:none;display:flex;align-items:center;gap:8px;min-height:42px;padding:10px 12px;border-radius:7px;color:#536b7e;cursor:pointer}
-.editorMenu>summary:after{content:'⌄'}
-.editorMenu>summary::-webkit-details-marker{display:none}
-.editorMenu>summary:hover{background:#f0f4f7}
-.editorMenu>summary:focus-visible{outline:3px solid #0e6b7a;outline-offset:2px}
-.editorMenu>div{position:absolute;bottom:calc(100% + 10px);right:0;display:grid;gap:4px;min-width:220px;padding:8px;background:white;border:1px solid #d6e1e9;border-radius:10px;box-shadow:0 8px 24px #102e4720;z-index:10}
-.editorMenu>div>button{justify-content:flex-start;text-align:left;white-space:nowrap;min-height:42px;padding:10px 12px}
-.editorMenu>div>button:last-child:not(:first-child){border-top:1px solid #e6edf2;border-radius:0}
 .timeContext{font-size:13px;font-weight:500;color:#536b7e;margin:0 0 16px}
 .sourceContext{display:grid;gap:6px;padding:12px 14px;background:#f2f6f9;border-radius:8px;color:#536b7e;font-size:13px;line-height:1.6}
 @container planning (max-width:900px){.workflow li{padding:12px 10px;gap:8px}.workflow strong,.workflow a{font-size:13px}.versionBar>.actions{flex-wrap:wrap}.footer .actions{flex-wrap:wrap}}
-@container planning (max-width:740px){.workflow{grid-template-columns:repeat(2,minmax(0,1fr))}.versionBar>div:first-child{width:auto;flex-basis:auto}.footer{bottom:0}.railTitle{white-space:nowrap}.editorMenu>div{right:auto;left:0}}
+@container planning (max-width:740px){.workflow{grid-template-columns:repeat(2,minmax(0,1fr))}.versionBar>div:first-child{width:auto;flex-basis:auto}.footer{bottom:0}.railTitle{white-space:nowrap}}
 
 /* Compact planning workspace: the selected day is the primary working surface. */
 .page{gap:16px;padding-bottom:32px}
@@ -135,3 +126,20 @@
 /* Port editing follows the user's task; optional details stay close to their errors. */
 .stopForm{gap:20px}.stopForm .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.stopForm .checks{display:grid;gap:12px;padding:16px;background:var(--ui-subtle);border:1px solid var(--ui-border);border-radius:8px}.stopAdditional{border-top:1px solid var(--ui-border);padding-top:12px}.stopAdditional>summary{min-height:44px;display:list-item;align-content:center;cursor:pointer;font-weight:600;color:var(--ui-ink)}.stopAdditional>summary:focus-visible{outline:3px solid var(--ui-focus);outline-offset:3px}.stopAdditionalBody{display:grid;gap:20px;padding-top:16px;min-width:0}
 @media(max-width:540px){.stopForm .grid{grid-template-columns:minmax(0,1fr)}}
+
+.finalizeHint{flex-basis:100%;margin:0;text-align:right;font-size:13px;color:#536b7e}
+
+.portSelectionMeta{margin:-12px 0 0;color:var(--ui-muted,#536b7e);font-size:13px;overflow-wrap:anywhere}
+.stopRoles{margin:0;padding:0;border:0;display:grid;gap:8px;min-width:0}
+.stopRoles legend{padding:0;margin-bottom:8px;font-size:14px;font-weight:600}
+.stopRoles label{display:flex;align-items:flex-start;gap:8px;font-size:14px}
+.stopRoles input{width:auto;flex:none}
+
+.validationGroups{display:grid;gap:12px}
+.validationGroup{border:1px solid var(--ui-border,#dbe3e8);border-radius:8px;overflow:hidden}
+.validationGroup h3{margin:0;padding:9px 14px;background:var(--ui-subtle,#f2f6f8);font-size:14px}
+.validationGroup ul{list-style:none;margin:0;padding:0}
+.validationGroup li{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px;padding:8px 14px;min-height:44px}
+.validationGroup li+li{border-top:1px solid var(--ui-border,#dbe3e8)}
+.validationNotes{margin-top:12px;font-size:14px}
+.validationNotes summary{cursor:pointer;padding:6px 0;font-weight:600}

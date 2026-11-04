@@ -1,3 +1,4 @@
+import { violationTarget } from '../model/violation-target'
 import { businessCopy } from '@/shared/i18n/business-copy'
 import { useCallback, useState } from 'react'
 import { useReadQuery } from '@/shared/api'
@@ -16,14 +17,51 @@ export function InfoConflictDialog({trip,local,onClose,onReplace}:{trip:Trip;loc
 }
 
 export function ValidationPanel({report,violations,onLocate,serverErrors=false}:{report:Report|null;violations:Violation[];onLocate:(v:Violation)=>void;serverErrors?:boolean}) {
-  const rows=violations.length?violations:report?.violations??[]
-  const valid=Boolean(report?.validForSubmit)&&!rows.some(row=>row.severity==='ERROR')
-  return <Panel title="Kiểm tra lịch trình">
-    {report?<p>{valid?'Đạt kiểm tra cấu trúc để chốt lịch trình mẫu.':'Không đạt. Sửa các mục bên dưới rồi kiểm tra lại.'}</p>:<p className={styles.muted}>{serverErrors?'Cần sửa các mục bên dưới.':'Các mục chưa hoàn tất trong bản đang chỉnh.'}</p>}
-    {rows.length?<ul className={styles.violations}>{rows.map((row,i)=><li key={`${row.code}:${row.clientKey??row.dayNumber??''}:${row.field??''}:${i}`}><strong>{row.severity==='WARNING'?'Cảnh báo':'Lỗi'}{row.dayNumber?` · Ngày ${row.dayNumber}`:''}</strong><p>{row.message}</p>{(row.dayNumber||row.clientKey||row.fieldPath||row.actionHint)&&<Button tone="text" onClick={()=>onLocate(row)}>Xem đúng nội dung</Button>}</li>)}</ul>:<p>Chưa phát hiện lỗi trong phần dữ liệu được đối chiếu.</p>}
-    {Boolean(report?.deferredChecks.length)&&<Notice title="Chưa đủ dữ liệu để đánh giá" tone="warning"><p>Các kiểm tra sau được hoãn sang chuyến khởi hành, chưa được xác nhận đạt và không chặn chốt mẫu.</p><ul>{report!.deferredChecks.map(value=><li key={value}>{deferredLabels[value]??'Chưa đánh giá kiểm tra: '+value}</li>)}</ul></Notice>}
+  const rows = violations.length ? violations : report?.violations ?? []
+  const blockers = rows.filter(row => row.severity === 'ERROR')
+  const warnings = rows.filter(row => row.severity === 'WARNING')
+  const ready = report?.validForSubmit && blockers.length === 0
+  const groups = new Map<number | undefined, Violation[]>()
+  for (const row of blockers) {
+    const day = violationTarget(row).dayNumber
+    groups.set(day, [...(groups.get(day) ?? []), row])
+  }
+  const orderedGroups = [...groups].sort(([a], [b]) => (a ?? 0) - (b ?? 0))
+
+  return <Panel title={ready ? 'Có thể chốt mẫu' : blockers.length || serverErrors || report ? 'Cần bổ sung trước khi chốt' : 'Kết quả kiểm tra lịch trình'}>
+    {orderedGroups.length > 0 && <div className={styles.validationGroups}>
+      {orderedGroups.map(([day, items]) => <section key={day ?? 'general'} className={styles.validationGroup}>
+        <h3>{day == null ? 'Toàn lịch trình' : 'Ngày ' + day}</h3>
+        <ul>
+          {items.map((row, index) => {
+            const target = violationTarget(row)
+            const action = target.kind === 'stops' && target.key ? 'Mở lần ghé cảng'
+              : target.kind === 'entries' && target.key ? 'Mở mục chương trình'
+              : target.fieldId ? 'Đến ô cần sửa'
+              : target.dayNumber ? 'Mở ngày ' + target.dayNumber : null
+            return <li key={row.code + ':' + index}>
+              <span>{row.message}</span>
+              {action && <Button tone="text" size="compact" onClick={() => onLocate(row)}>{action}</Button>}
+            </li>
+          })}
+        </ul>
+      </section>)}
+    </div>}
+    {blockers.length === 0 && <p>{ready ? 'Phiên bản hiện tại đã qua kiểm tra để chốt lịch trình mẫu.'
+      : report ? 'Phiên bản này chưa đủ điều kiện chốt. Hãy kiểm tra lại lịch trình.'
+      : 'Chưa có kết quả xác nhận điều kiện chốt.'}</p>}
+    {warnings.length > 0 && <details className={styles.validationNotes}>
+      <summary>Lưu ý khi lập lịch</summary>
+      <ul>{warnings.map((row, index) => <li key={row.code + ':' + index}>{row.dayNumber ? 'Ngày ' + row.dayNumber + ' · ' : ''}{row.message}</li>)}</ul>
+    </details>}
+    {Boolean(report?.deferredChecks.length) && <details className={styles.validationNotes}>
+      <summary>Kiểm tra khi tạo chuyến khởi hành</summary>
+      <p>Các mục này cần ngày khởi hành hoặc tàu thực tế và không chặn chốt mẫu.</p>
+      <ul>{report!.deferredChecks.map(value => <li key={value}>{deferredLabels[value] ?? 'Chưa đánh giá kiểm tra: ' + value}</li>)}</ul>
+    </details>}
   </Panel>
 }
+
 export function HistoryDialog({versionId,tripId,onClose}:{versionId:string;tripId:string;onClose:()=>void}) {
   const {gateway}=usePlanning(),[page,setPage]=useState(0),[scope,setScope]=useState<'trip'|'version'>('version')
   const query=useReadQuery(`planning-history:${scope}:${versionId}:${tripId}:${page}`,useCallback(async signal=>{
