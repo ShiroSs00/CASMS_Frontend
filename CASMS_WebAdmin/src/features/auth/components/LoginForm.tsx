@@ -18,6 +18,7 @@ export function LoginForm({ expired, login, onSuccess }: {
 }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const bookingUrl = externalAppUrl(import.meta.env.VITE_BOOKING_APP_URL, '/cruises')
@@ -30,7 +31,7 @@ export function LoginForm({ expired, login, onSuccess }: {
     setAttempted(true); setError('')
     if (!username.trim() || !password) return
     lock.current = true; setBusy(true)
-    try { const user = await login(username.trim(), password); setPassword(''); onSuccess(user) }
+    try { const user = await login(username.trim(), password); setPassword(''); setShowPassword(false); onSuccess(user) }
     catch (reason) { setError(loginMessage(reason)) }
     finally { lock.current = false; setBusy(false) }
   }
@@ -40,7 +41,18 @@ export function LoginForm({ expired, login, onSuccess }: {
     <p>{expired ? 'Đăng nhập lại để tiếp tục.' : 'Đăng nhập dành cho quản trị viên, quản lý và nhân viên đặt chỗ.'}</p>
     <form className={styles.loginForm} onSubmit={(event) => void submit(event)} noValidate>
       <Field htmlFor="auth-username" label="Tên đăng nhập" error={attempted && !username.trim() ? 'Nhập tên đăng nhập.' : undefined}><input id="auth-username" name="username" autoComplete="username" value={username} disabled={busy} required aria-invalid={attempted && !username.trim()} aria-describedby={attempted && !username.trim() ? 'auth-username-hint' : undefined} onChange={(event) => setUsername(event.target.value)} /></Field>
-      <Field htmlFor="auth-password" label="Mật khẩu" error={attempted && !password ? 'Nhập mật khẩu.' : undefined}><input id="auth-password" name="password" type="password" autoComplete="current-password" value={password} disabled={busy} required aria-invalid={attempted && !password} aria-describedby={attempted && !password ? 'auth-password-hint' : undefined} onChange={(event) => setPassword(event.target.value)} /></Field>
+      <Field htmlFor="auth-password" label="Mật khẩu" error={attempted && !password ? 'Nhập mật khẩu.' : undefined}>
+        <div className={styles.passwordControl}>
+          <input id="auth-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} disabled={busy} required aria-invalid={attempted && !password} aria-describedby={attempted && !password ? 'auth-password-hint' : undefined} onChange={(event) => setPassword(event.target.value)} />
+          <button type="button" className={styles.passwordToggle} aria-label="Hiện mật khẩu" aria-pressed={showPassword} aria-controls="auth-password" title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} disabled={busy} onClick={() => setShowPassword((visible) => !visible)}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+              <circle cx="12" cy="12" r="3" />
+              {showPassword && <path d="m3 3 18 18" />}
+            </svg>
+          </button>
+        </div>
+      </Field>
       <div className={styles.sessionHint}><a href="#auth-help">Cần hỗ trợ?</a></div>
       {error && <div className={styles.error} role="alert">{error}</div>}
       <Button type="submit" className={styles.loginButton} disabled={busy}>{busy ? 'Đang đăng nhập…' : 'Đăng nhập'}</Button>
