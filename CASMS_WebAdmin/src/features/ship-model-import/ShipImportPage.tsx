@@ -10,7 +10,6 @@ import {
   importRequirements,
   issueMessage,
   restoreSession,
-  type ImportJob,
   type ImportSession,
 } from './model'
 import { ImportDialog } from './ImportDialog'
