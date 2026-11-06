@@ -15,6 +15,8 @@ function record<T extends { id: string }>(value: unknown, status: number, reques
       || ('unitPriceSnapshot' in value && value.unitPriceSnapshot != null && (typeof value.unitPriceSnapshot !== 'number' || !Number.isFinite(value.unitPriceSnapshot) || value.unitPriceSnapshot < 0))
       || ('currencySnapshot' in value && value.currencySnapshot != null && (typeof value.currencySnapshot !== 'string' || !/^[A-Z]{3}$/.test(value.currencySnapshot)))))) throw new ApiError('Không đọc được thông tin dịch vụ.', status)
   if(request&&'fareBenefitSnapshotId' in value&&value.fareBenefitSnapshotId!=null){if(typeof value.fareBenefitSnapshotId!=='string'||!('fulfillmentUnitCode' in value)||value.fulfillmentUnitCode!=null&&typeof value.fulfillmentUnitCode!=='string'||!('fulfilledQuantity' in value)||value.fulfilledQuantity!=null&&(!Number.isSafeInteger(value.fulfilledQuantity)||(value.fulfilledQuantity as number)<0)||!('unitPriceSnapshot' in value)||value.unitPriceSnapshot!==0)throw new ApiError('Dữ liệu fulfillment quyền lợi không hợp lệ.',status)}
+  const row=value as Record<string,unknown>
+  if(!request&&(row.requiresSchedule!=null&&typeof row.requiresSchedule!=='boolean'||['categoryId','categoryName','unitCode','applicabilityScope'].some(key=>row[key]!=null&&typeof row[key]!=='string')))throw new ApiError('Cấu hình lịch, nhóm hoặc đơn vị dịch vụ không hợp lệ.',status)
   return value as T
 }
 function list<T extends { id: string }>(value: unknown, status: number, request = false): T[] {
@@ -67,9 +69,9 @@ export const servicePackageApi = {
   remove: (kind: CatalogKind, id: string) => apiRequestRaw(endpoint(kind, id), (_value, status) => { if (status !== 204) throw new ApiError('Chưa xác nhận được kết quả xóa.', status) }, { method: 'DELETE' }),
   status: (kind: CatalogKind, id: string, action: 'activate' | 'suspend' | 'deactivate' | 'discontinue') => apiRequestRaw(endpoint(kind, id) + (kind === 'products' ? '/status/' : '/') + action, (value, status) => record<CatalogItem>(data(value, status), status), { method: 'POST' }),
   list: (kind: CatalogKind, signal?: AbortSignal) => apiRequestRaw(endpoint(kind), (value, status) => list<CatalogItem>(value, status), { signal }),
-  get: (kind: CatalogKind, id: string, signal?: AbortSignal) => apiRequestRaw(endpoint(kind, id), (value, status) => record<CatalogItem>(data(value, status), status), { signal }),
+  get: (kind: CatalogKind, id: string, signal?: AbortSignal) => apiRequestRaw(endpoint(kind, id), (value, status) => {const row=record<CatalogItem>(data(value,status),status);if(row.id!==id)throw new ApiError('Phản hồi không đúng danh mục đang xem.',status);return row}, { signal }),
   requests: (signal?: AbortSignal) => apiRequestRaw(endpoint('requests'), (value, status) => list<ServiceRequest>(value, status, true), { signal }),
-  request: (id: string, signal?: AbortSignal) => apiRequestRaw(endpoint('requests', id), (value, status) => record<ServiceRequest>(data(value, status), status, true), { signal }),
+  request: (id: string, signal?: AbortSignal) => apiRequestRaw(endpoint('requests', id), (value, status) => {const row=record<ServiceRequest>(data(value,status),status,true);if(row.id!==id)throw new ApiError('Phản hồi không đúng yêu cầu dịch vụ.',status);return row}, { signal }),
   availability: (id: string, signal?: AbortSignal) => apiRequestRaw(endpoint('services', id) + '/availability', (value, status) => {
     const dto = data(value, status)
     if (!dto || typeof dto !== 'object' || !('available' in dto) || typeof dto.available !== 'boolean') throw new ApiError('Không đọc được khả năng đáp ứng dịch vụ.', status)

@@ -29,13 +29,14 @@ const tools: readonly AdminNavigationItem[] = [
   { label:'Nhà cung cấp', to:'/admin/suppliers', permissionMode:'ANY', permissions:['SUPPLIER_READ'] },
   { label:'Tour tham quan trên bờ', to:'/admin/shore-excursions', permissionMode:'ANY', permissions:['EXCURSION_READ'] },
   { label:'Nhóm tour', to:'/admin/tour-groups', permissionMode:'ANY', permissions:['TOUR_GROUP_READ'] },
+  { label:'Đăng ký và điểm danh', to:'/admin/activity-registrations', permissionMode:'ANY', permissions:['ACTIVITY_ATTENDANCE','ACTIVITY_REGISTRATION'] },
   { label:'Hoạt động trên tàu', to:'/admin/activities', permissionMode:'ANY', permissions:['ACTIVITY_READ'] },
   { label:'Dịch vụ', to:'/admin/services', permissionMode:'ANY', permissions:['SERVICE_READ'] },
   { label:'Sản phẩm', to:'/admin/products', permissionMode:'ANY', permissions:['PRODUCT_MANAGE'] },
-  { label:'Gói dịch vụ', to:'/admin/service-packages', permissionMode:'ANY', permissions:['TOUR_PACKAGE_MANAGE','PACKAGE_COMPONENT_MANAGE'] },
+  { label:'Gói dịch vụ cũ', to:'/admin/service-packages', permissionMode:'ANY', permissions:['TOUR_PACKAGE_MANAGE','PACKAGE_COMPONENT_MANAGE'] },
   { label:'Mẫu gói du thuyền', to:'/admin/cruise-package-templates', permissionMode:'ALL', permissions:['TOUR_PACKAGE_MANAGE'] },
   { label:'Yêu cầu dịch vụ', to:'/admin/service-requests', permissionMode:'ANY', permissions:['SERVICE_REQUEST_READ','SERVICE_REQUEST_CREATE'] },
-  { label:'Phân bổ gói dịch vụ', to:'/admin/package-assignments', permissionMode:'ANY', permissions:['TOUR_PACKAGE_ASSIGN','BOOKING_READ'] },
+  { label:'Phân bổ gói cũ', to:'/admin/package-assignments', permissionMode:'ANY', permissions:['TOUR_PACKAGE_ASSIGN','BOOKING_READ'] },
   { label:'Check-in', to:'/admin/staff/checkin', permissionMode:'ANY', permissions:['CHECKIN_READ','CHECKIN_CREATE','CHECKIN_UPDATE'] },
   { label:'Tài chính', to:'/admin/staff/finance', permissionMode:'ANY', permissions:['PAYMENT_READ','PAYMENT_REPORT'] },
 ]
@@ -98,6 +99,7 @@ export function roleWorkspace(roles: readonly string[]) {
 }
 export function staffRoleHome(roles: readonly string[], access?: AdminAccess) {
   if (!primaryStaffRole(access?.roles ?? roles) || access?.status !== 'ready') return null
+  if(primaryStaffRole(access.roles ?? roles)==='ACTIVITY_SERVICE_MANAGER'&&canRoleOpenAdminPath(access.roles ?? roles,'/admin/cruises','',access))return '/admin/cruises'
   return roleNavigationItems(roles, access)[0]?.to ?? null
 }
 export function staffRoleLabel(roles: readonly string[]) {
@@ -201,6 +203,21 @@ const navigationGroups = [
 ]
 export function roleNavigationGroups(roles: readonly string[], access: AdminAccess): AdminNavigationGroup[] {
   if(primaryStaffRole(access.roles ?? roles)==='SHIP_MANAGER') return roleNavigationItems(roles,access).map(item=>({id:item.to!.replace('/admin/',''),label:item.label,items:[item],direct:true}))
+  if(primaryStaffRole(access.roles ?? roles)==='ACTIVITY_SERVICE_MANAGER') {
+    const items=roleNavigationItems(roles,access)
+    const groups=[
+      {id:'preparation',label:'Chuẩn bị cho chuyến',sections:['cruises','activities','shore-excursions']},
+      {id:'catalog',label:'Nội dung và mẫu gói',sections:['cruise-package-templates','services','products']},
+      {id:'fulfillment',label:'Đăng ký và phục vụ',sections:['activity-registrations','tour-groups','service-requests']},
+      {id:'partners',label:'Đối tác',sections:['suppliers']},
+      {id:'legacy',label:'Dữ liệu gói cũ',sections:['service-packages','package-assignments']},
+    ]
+    const result:AdminNavigationGroup[]=groups.map(g=>({id:g.id,label:g.label,items:g.sections.flatMap(section=>items.filter(i=>i.to==='/admin/'+section))})).filter(g=>g.items.length>0)
+    const covered=new Set(result.flatMap(g=>g.items.map(i=>i.to)))
+    const remaining=items.filter(i=>!covered.has(i.to))
+    if(remaining.length)result.push({id:'other',label:'Công việc khác được cấp quyền',items:remaining})
+    return result
+  }
   const groups=new Map<string,AdminNavigationGroup>()
   for(const item of roleNavigationItems(roles,access)) {
     const section=item.to!.replace('/admin/','')

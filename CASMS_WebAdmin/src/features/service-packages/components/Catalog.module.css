@@ -47,3 +47,5 @@
 .definition dd { font-weight:500; }
 .editor > section { min-width:0; }
 @media(max-width:600px) { .definition { grid-template-columns:minmax(0,1fr); } .definition dt { padding-bottom:4px; border-bottom:0; } .definition dd { padding-top:0; } }
+
+.catalogFields { border: 0; padding: 0; margin: 0; min-width: 0; display: contents; }
