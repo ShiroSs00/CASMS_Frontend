@@ -195,7 +195,7 @@ export function DayPane({
           {isFirstDay && (
             <div style={{ marginTop: '16px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <h4 style={{ margin: '0 0 12px', fontSize: '15px', color: '#0f2942', fontWeight: 600 }}>
-                🚢 Cảng khởi hành (Điểm xuất phát)
+                Cảng khởi hành (Điểm xuất phát)
               </h4>
               <div className={styles.grid}>
                 <SourcePicker
@@ -245,7 +245,7 @@ export function DayPane({
             <div style={{ marginTop: '16px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                 <h4 style={{ margin: 0, fontSize: '15px', color: '#0f2942', fontWeight: 600 }}>
-                  🏁 Cảng kết thúc chuyến (Điểm trả khách)
+                  Cảng kết thúc chuyến (Điểm trả khách)
                 </h4>
                 {content.days[0]?.departurePortId && (
                   <Button

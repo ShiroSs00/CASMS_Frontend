@@ -15,7 +15,7 @@
 .workflow li[aria-current=step]{background:#f2f6f8}.workflow li[aria-current=step]>span{background:#102e47;color:white}
 .workflow strong,.workflow a{display:block;font-size:14px;font-weight:600;line-height:1.5;color:#102e47}.workflow small{display:block;font-size:12px;line-height:1.6;color:#687682;margin-top:3px}
 .page .listPanel{padding:0;gap:0;overflow:hidden;border-radius:12px}
-.filters{display:grid;grid-template-columns:minmax(200px,1.6fr) repeat(3,minmax(135px,1fr)) auto;align-items:end;gap:14px;padding:22px 24px;background:#fbfcfd;border-bottom:1px solid #e1e7eb}
+.filters{display:grid;grid-template-columns:1fr auto;align-items:end;gap:14px;padding:18px 24px;background:#fbfcfd;border-bottom:1px solid #e1e7eb}
 .filters input,.filters select{font-size:14px;min-height:44px;height:44px}
 .filters>div{min-width:0}
 .filterNotice{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 24px;background:#fff9ec;border-bottom:1px solid #eadfc7;color:#75501a;font-size:13px}
