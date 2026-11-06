@@ -21,9 +21,10 @@ export function ActivityCatalogEditor({ initial }: { initial?: ActivityCatalogEn
     activityName: initial?.name ?? '', description: initial?.description ?? '', category: initial?.category ?? '',
     capacity: initial?.capacity?.toString() ?? '', price: initial?.currencyCode === 'USD' ? initial.price?.toString() ?? '' : '',
   })
-  const baseline = useRef(draft), lock = useRef(false)
+  const [baseline] = useState(draft)
+  const lock = useRef(false)
   const [busy, setBusy] = useState(false), [uncertain, setUncertain] = useState(false), [error, setError] = useState('')
-  const guard = useUnsavedFormGuard(JSON.stringify(draft) !== JSON.stringify(baseline.current), busy)
+  const guard = useUnsavedFormGuard(JSON.stringify(draft) !== JSON.stringify(baseline), busy)
   const allowed = access.canDo(initial ? 'ACTIVITY_UPDATE' : 'ACTIVITY_CREATE')
   const back = initial ? `/admin/activities/${initial.id}` : '/admin/activities'
 

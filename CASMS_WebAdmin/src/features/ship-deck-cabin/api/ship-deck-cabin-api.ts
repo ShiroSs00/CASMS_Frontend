@@ -7,9 +7,7 @@ import type {
 import type { AssignmentDto, CabinDto, CruiseDto, DeckDto, PageDto, ShipDto } from './dto'
 import type { ShipListState, ShipSupplements, SupplementField } from '../model/ship-list-types'
 
-let revision = 0
-const listeners = new Set<() => void>()
-const notify = () => { revision += 1; listeners.forEach((listener) => listener()) }
+import { getShipStructureRevision, refreshShipStructure as notify, subscribeToShipStructure } from '@/shared/lib/ship-structure-revision'
 const paths: Record<EntityKind, string> = { ships: '/ships', decks: '/decks', cabins: '/cabins' }
 const idPath = (kind: EntityKind, id: string) => `${paths[kind]}/${encodeURIComponent(id)}`
 const ship = (dto: ShipDto): Ship => ({
@@ -52,9 +50,8 @@ async function allPages<T>(path: string, signal?: AbortSignal): Promise<T[]> {
 }
 
 export const shipDeckCabinApi = {
-  refresh: notify,
-  subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
-  getRevision: () => revision,
+  subscribe: subscribeToShipStructure,
+  getRevision: getShipStructureRevision,
   async listShipDecks(shipId: string, signal: AbortSignal): Promise<Deck[]> {
     const rows = await allPages<DeckDto>(`/decks/by-ship/${encodeURIComponent(shipId)}`, signal)
     if (rows.some(row => row.shipId !== shipId)) throw new ApiError('Danh sách boong không khớp với tàu đang xem.', 502)

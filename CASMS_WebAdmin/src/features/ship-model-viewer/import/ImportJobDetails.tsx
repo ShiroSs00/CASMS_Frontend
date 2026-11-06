@@ -7,7 +7,7 @@ import styles from './ShipImport.module.css'
 
 const objectLabels: Record<string, string> = { DECK: 'Boong', CABIN: 'Phòng', AREA: 'Khu vực', FACILITY: 'Khu vực' }
 const time = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
-export const importTime = (value: string | null) => value && Number.isFinite(Date.parse(value)) ? time.format(new Date(value)) : '—'
+const importTime = (value: string | null) => value && Number.isFinite(Date.parse(value)) ? time.format(new Date(value)) : '—'
 
 export function ImportIssueList({ issues }: { issues: ImportIssue[] }) {
   return issues.length ? <ul className={styles.issueList}>
