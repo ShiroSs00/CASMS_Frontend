@@ -2,7 +2,7 @@ import { isUuid, type GroupStatus, type TourGroup } from './tour-group.ts'
 
 export const assignmentStatuses = ['ASSIGNED', 'CHECKED_IN', 'COMPLETED', 'CANCELLED'] as const
 export type AssignmentStatus = typeof assignmentStatuses[number]
-export type GroupPassenger = {
+export type GroupPassenger = {passengerName?:string|null;
   tourGroupPassengerId: string; tourGroupId: string; groupCode: string; shoreExcursionId: string; passengerId: string
   assignmentStatus: AssignmentStatus; assignedAt: string | null; checkedInAt: string | null; returnedAt: string | null; createdAt: string | null
 }
@@ -32,6 +32,7 @@ export function normalizePassenger(value: unknown): GroupPassenger {
   const row = rawPassengerRecord(value), assignmentStatus = assignmentStatuses.find((status) => status === row.assignmentStatus)
   if (!assignmentStatus || typeof row.groupCode !== 'string') throw new Error('Trạng thái hoặc mã nhóm của phân công không hợp lệ.')
   return {
+    passengerName:typeof row.passengerName==='string'?row.passengerName:null,
     tourGroupPassengerId: uuid(row, 'tourGroupPassengerId'), tourGroupId: uuid(row, 'tourGroupId'), groupCode: row.groupCode,
     shoreExcursionId: uuid(row, 'shoreExcursionId'), passengerId: uuid(row, 'passengerId'), assignmentStatus,
     assignedAt: instant(row, 'assignedAt'), checkedInAt: instant(row, 'checkedInAt'), returnedAt: instant(row, 'returnedAt'), createdAt: instant(row, 'createdAt'),

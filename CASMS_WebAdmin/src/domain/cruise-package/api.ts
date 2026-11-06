@@ -3,6 +3,8 @@ import { decodeCruisePackageCatalog } from './purchase-contract'
 import {decodeEntitlement} from './entitlement-contract'
 
 export type ResourceType = 'ACTIVITY' | 'EXCURSION' | 'SERVICE'
+export type AddonCandidate = {resourceType:ResourceType;resourceId:string;name:string;unitCode:string|null;cutoffLimit:string|null;eligible:boolean;blocker:string|null}
+export type AddonConfiguration = {cruiseId:string;shipId:string|null;canCreate:boolean;reason:string|null;departureAt:string|null;returnAt:string|null;bookingOpensAt:string|null;bookingClosesAt:string|null;candidates:AddonCandidate[]}
 export type Inclusion = 'INCLUDED' | 'LIMITED_INCLUDED' | 'OPTIONAL' | 'NOT_INCLUDED'
 export type ResourceOption = { id: string; name: string;unitCode:string|null }
 export type CruisePackageTemplate = { id: string; code: string; revision: number }
@@ -56,6 +58,15 @@ const root='/cruise-package-templates'
 const departure=(id:string)=>`/cruise/${encodeURIComponent(id)}/cruise-package-offers`
 const matchedOffer=(cruiseId:string,offerId?:string)=>(value:unknown)=>{ const result=decodeCruisePackageOffer(value); if (result.offer.cruiseId!==cruiseId||offerId&&result.offer.id!==offerId) throw new Error('Phản hồi không khớp chuyến hoặc gói du thuyền.'); return result }
 export const cruisePackageApi = {
+  addonConfiguration:(cruiseId:string,signal?:AbortSignal)=>request(`/cruise/${encodeURIComponent(cruiseId)}/cruise-package-addons/configuration`,value=>{
+    const r=row(value)
+    if(r.cruiseId!==cruiseId||typeof r.canCreate!=='boolean')throw new Error('Không xác định được khả năng cấu hình Add-on của chuyến.')
+    return {cruiseId,shipId:optionalId(r.shipId),canCreate:r.canCreate,reason:optionalText(r.reason),departureAt:r.departureAt==null?null:instant(r.departureAt),returnAt:r.returnAt==null?null:instant(r.returnAt),bookingOpensAt:r.bookingOpensAt==null?null:instant(r.bookingOpensAt),bookingClosesAt:r.bookingClosesAt==null?null:instant(r.bookingClosesAt),candidates:array(r.candidates,value=>{
+      const c=row(value)
+      if(typeof c.eligible!=='boolean')throw new Error('Chưa có kết quả đối chiếu nguồn Add-on.')
+      return {resourceType:status(c.resourceType,['ACTIVITY','EXCURSION','SERVICE'] as const),resourceId:uuid(c.resourceId),name:string(c.name),unitCode:optionalText(c.unitCode),cutoffLimit:c.cutoffLimit==null?null:instant(c.cutoffLimit),eligible:c.eligible,blocker:optionalText(c.blocker)}
+    })} satisfies AddonConfiguration
+  },{signal}),
   logicalCategories:(signal?:AbortSignal)=>request(`${root}/logical-categories`,v=>array(v,value=>{const c=row(value);return{id:uuid(c.id),templateVersionId:uuid(c.templateVersionId),name:string(c.name),packageName:string(c.packageName)}}),{signal}),
   entitlements:(bookingId:string,signal?:AbortSignal)=>request(`/booking/${encodeURIComponent(bookingId)}/cruise-package-entitlements`,v=>array(v,decodeEntitlement),{signal}),
   usageOptions:(signal?:AbortSignal)=>request(`${root}/benefit-usage-options`,v=>{const r=row(v);return {usagePolicies:array(r.usagePolicies,i=>status(i,['UNLIMITED','LIMITED'])),usageUnits:array(r.usageUnits,i=>status(i,['PARTICIPATION','SERVICE_UNIT']))}},{signal}),

@@ -22,3 +22,9 @@ export function cruiseContextReturn(value:string|null,id:string|null):string|nul
   }catch{return fallback}
 }
 
+
+/** UI context only; Backend permissions and resource ownership remain authoritative. */
+export function operationalContext(params:URLSearchParams){
+ const cruiseId=params.get('cruiseId'),stopId=params.get('cruiseStopId')
+ return {cruiseId:validCruiseContextId(cruiseId)?cruiseId:null,stopId:validCruiseContextId(stopId)?stopId:null,returnTo:cruiseContextReturn(params.get('returnTo'),cruiseId)}
+}

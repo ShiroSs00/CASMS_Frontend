@@ -12,6 +12,7 @@ function decode<T>(normalize: (payload: unknown) => T) {
 }
 const group = decode(normalizeGroup)
 export const tourGroupApi = {
+  guideOptions:(id:string,signal?:AbortSignal)=>apiRequestRaw(`${path(id)}/guide-options`,value=>{if(!Array.isArray(value)||value.some(v=>!v||!isUuid(v.id)||typeof v.name!=='string'||typeof v.roleInCruise!=='string'))throw new Error('Chưa đọc được nhân viên ACTIVE của chuyến.');return value as {id:string;name:string;roleInCruise:string}[]},{signal}),
   list: (query: GroupFilters, signal?: AbortSignal) => apiRequestRaw(base, decode(normalizeGroups), { query, signal }),
   get: (id: string, signal?: AbortSignal) => apiRequestRaw(path(id), group, { signal }),
   create: (body: GroupRequest, signal?: AbortSignal) => apiRequestRaw(base, group, { method: 'POST', body, signal }),

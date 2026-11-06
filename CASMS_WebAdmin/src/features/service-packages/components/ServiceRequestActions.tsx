@@ -1,3 +1,4 @@
+import {mutationOutcomeUnknown} from '@/shared/lib/mutation-outcome'
 import { useCallback,useRef, useState } from 'react'
 import {useReadQuery} from '@/shared/api'
 import {OperationalCruisePackageEntitlement} from '@/domain/cruise-package'
@@ -12,8 +13,9 @@ export function ServiceRequestActions({ request, onChanged }: { request: Service
   const access = useSessionAccess()
   const [action, setAction] = useState<Action | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState('')
   const lock = useRef(false)
+  const before = useRef<{request:ServiceRequest;action:Action;fulfillment?:{fulfilledQuantity:number;unitCode:string}} | null>(null)
   const [fulfilledQuantity,setFulfilledQuantity]=useState(''),[needsReview,setNeedsReview]=useState(false)
-  const entitlement=useReadQuery(`service-request-entitlement:${request.id}:${request.status}:${request.fulfilledQuantity??''}`,useCallback(signal=>request.fareBenefitSnapshotId?servicePackageApi.requestEntitlement(request.id,signal):Promise.resolve(null),[request.id,request.fareBenefitSnapshotId]))
+  const entitlement=useReadQuery(`service-request-entitlement:${access.userId}:${request.id}:${request.status}:${request.fulfilledQuantity??''}`,useCallback(signal=>request.fareBenefitSnapshotId?servicePackageApi.requestEntitlement(request.id,signal):Promise.resolve(null),[request.id,request.fareBenefitSnapshotId]))
   const ownAssignment = request.assignedUserId === access.userId
   const actions: Action[] = request.status === 'REQUESTED' ? ['assign', 'accept', 'reject', 'cancel'] : request.status === 'ACCEPTED' ? [...(ownAssignment ? ['start' as const] : []), 'cancel'] : request.status === 'IN_PROGRESS' && ownAssignment ? ['complete'] : []
   const allowed = (action: Action) => {
@@ -30,10 +32,25 @@ export function ServiceRequestActions({ request, onChanged }: { request: Service
       if(!fulfilledQuantity||!Number.isSafeInteger(actual)||actual<1||actual>request.quantity||!request.fulfillmentUnitCode){setError('Nhập số lượng đã phục vụ thực tế, không vượt yêu cầu và phải có đơn vị nguồn.');return}
       fulfillment={fulfilledQuantity:actual,unitCode:request.fulfillmentUnitCode}
     }
+    before.current = {request,action,fulfillment}
     lock.current = true; setBusy(true); setError('')
     try { await servicePackageApi.requestAction(request.id, action,fulfillment); setAction(null); onChanged();entitlement.retry() }
-    catch (reason) { setNeedsReview(true);setError(reason instanceof Error ? reason.message : 'Chưa cập nhật được yêu cầu.') }
+    catch (reason) { setNeedsReview(mutationOutcomeUnknown(reason));onChanged();setError(reason instanceof Error ? reason.message : 'Chưa cập nhật được yêu cầu.') }
     finally { lock.current = false; setBusy(false) }
+  }
+  async function reconcile(){
+    if(lock.current)return
+    lock.current=true;setBusy(true)
+    try{
+      const fresh=await servicePackageApi.request(request.id)
+      if(fresh.id!==request.id)throw new Error('Phản hồi không đúng yêu cầu.')
+      const operation=before.current
+      const expected={accept:'ACCEPTED',reject:'REJECTED',start:'IN_PROGRESS',complete:'COMPLETED',cancel:'CANCELLED'}
+      const confirmed=operation&&(operation.action==='assign'?fresh.assignedUserId===access.userId:fresh.status===expected[operation.action])&&(!operation.fulfillment||fresh.fulfilledQuantity===operation.fulfillment.fulfilledQuantity&&fresh.fulfillmentUnitCode===operation.fulfillment.unitCode)
+      if(!confirmed){setError('Chưa thấy kết quả thay đổi được xác nhận. Không tự gửi lại thao tác; tiếp tục đối chiếu yêu cầu.');return}
+      setNeedsReview(false);setAction(null);setError('');onChanged();entitlement.retry()
+    }catch(reason){setError(reason instanceof Error?reason.message:'Chưa đối chiếu được yêu cầu.')}
+    finally{lock.current=false;setBusy(false)}
   }
   if (!access.canDo('SERVICE_REQUEST_CREATE') && !access.canDo('SERVICE_REQUEST_ASSIGN') && !access.canDo('SERVICE_REQUEST_EXECUTE')) return null
   return <Panel title="Tiếp nhận và thực hiện">
@@ -41,7 +58,7 @@ export function ServiceRequestActions({ request, onChanged }: { request: Service
     {entitlement.error&&<Notice title="Chưa đối chiếu được quyền lợi" tone="error"><p>{entitlement.error.message}</p><Button onClick={entitlement.retry}>Tải lại quyền lợi</Button></Notice>}
     {entitlement.data&&<OperationalCruisePackageEntitlement entitlement={entitlement.data}/>}
     {request.fareBenefitSnapshotId&&<p>Đã ghi nhận phục vụ: {request.fulfilledQuantity??'Chưa xác định'} {request.fulfillmentUnitCode??'Chưa có đơn vị nguồn'}. Đơn giá quyền lợi đã bao gồm: {request.unitPriceSnapshot??'Chưa xác định'} {request.currencySnapshot??''}.</p>}
-    {needsReview&&<Notice title="Cần đối chiếu trước khi thao tác tiếp" tone="warning"><Button disabled={busy} onClick={onChanged}>Tải lại yêu cầu để đối chiếu</Button></Notice>}
+    {needsReview&&<Notice title="Cần đối chiếu trước khi thao tác tiếp" tone="warning"><p>{error}</p><Button disabled={busy} onClick={()=>void reconcile()}>Đối chiếu kết quả đã lưu</Button></Notice>}
     {request.status === 'REQUESTED' && (access.canDo('SERVICE_REQUEST_CREATE') || (access.canDo('SERVICE_REQUEST_EXECUTE') && (ownAssignment || access.roles.includes('ACTIVITY_SERVICE_MANAGER')))) && <ButtonLink tone="secondary" to={`/admin/service-requests/${request.id}/edit`}>Sửa số lượng và ghi chú</ButtonLink>}
     {actions.filter(allowed).map(action => <Button key={action} tone={action === 'cancel' || action === 'reject' ? 'danger' : 'secondary'} disabled={busy || needsReview || !allowed(action)} onClick={() => { setAction(action); setError('') }}>{labels[action]}</Button>)}
     {!ownAssignment && ['ACCEPTED', 'IN_PROGRESS'].includes(request.status) && <p>Chỉ người được phân công mới có thể bắt đầu hoặc hoàn thành yêu cầu.</p>}

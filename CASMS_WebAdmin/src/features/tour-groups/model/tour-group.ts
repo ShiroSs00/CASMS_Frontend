@@ -6,7 +6,7 @@ export const groupStatusLabels: Record<GroupStatus, string> = {
 export type TourGroup = {
   tourGroupId: string; shoreExcursionId: string; excursionName: string; groupCode: string
   maximumCapacity: number; assignedPassengers: number; availableCapacity: number
-  guideId: string | null; vehicleId: string | null; meetingPoint: string | null
+  guideId: string | null; guideName?: string | null; vehicleId: string | null; meetingPoint: string | null
   assemblyTime: string | null; plannedDepartureTime: string | null; plannedReturnTime: string | null
   actualDepartureTime: string | null; actualReturnTime: string | null; status: GroupStatus; notes: string | null
 }
@@ -61,7 +61,7 @@ export function normalizeGroup(value: unknown): TourGroup {
   return {
     tourGroupId: id(row, 'tourGroupId'), shoreExcursionId: id(row, 'shoreExcursionId'), excursionName: text(row, 'excursionName'), groupCode: text(row, 'groupCode'),
     maximumCapacity: integer(row, 'maximumCapacity', 1), assignedPassengers: integer(row, 'assignedPassengers', 0), availableCapacity: integer(row, 'availableCapacity', 0),
-    guideId: row.guideId == null ? null : id(row, 'guideId'), vehicleId: row.vehicleId == null ? null : id(row, 'vehicleId'),
+    guideId: row.guideId == null ? null : id(row, 'guideId'), guideName: row.guideName == null ? null : text(row, 'guideName'), vehicleId: row.vehicleId == null ? null : id(row, 'vehicleId'),
     meetingPoint: row.meetingPoint == null ? null : text(row, 'meetingPoint'), notes: row.notes == null ? null : text(row, 'notes'),
     assemblyTime: optionalDate(row, 'assemblyTime'), plannedDepartureTime: optionalDate(row, 'plannedDepartureTime'), plannedReturnTime: optionalDate(row, 'plannedReturnTime'),
     actualDepartureTime: optionalDate(row, 'actualDepartureTime'), actualReturnTime: optionalDate(row, 'actualReturnTime'), status,

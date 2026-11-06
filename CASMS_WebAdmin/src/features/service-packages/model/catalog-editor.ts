@@ -4,10 +4,10 @@ export const packageTypes: Record<string, string> = { BASIC: 'Cơ bản', PLUS: 
 export const serviceTypes: Record<string, string> = { DINING: 'Ẩm thực', BEVERAGE: 'Đồ uống', INTERNET: 'Internet', WELLNESS: 'Chăm sóc sức khỏe', SPA_WELLNESS: 'Spa & chăm sóc sức khỏe', SHORE_EXCURSION: 'Tham quan bờ', ENTERTAINMENT_ACTIVITY: 'Giải trí & hoạt động', PHOTOGRAPHY: 'Nhiếp ảnh', CABIN_SERVICE: 'Dịch vụ cabin', LAUNDRY: 'Giặt là', CHILDCARE_FAMILY: 'Trẻ em & gia đình', MEDICAL_ASSISTANCE: 'Hỗ trợ y tế', TRANSPORTATION: 'Đưa đón' }
 export const productTypes: Record<string, string> = { SOUVENIR: 'Quà lưu niệm' }
 
-export type CatalogDraft = { code: string; name: string; description: string; type: string; price: string; currency: string; capacity: string; startDate: string; endDate: string }
-export const emptyCatalogDraft: CatalogDraft = { code: '', name: '', description: '', type: '', price: '', currency: '', capacity: '', startDate: '', endDate: '' }
+export type CatalogDraft = { requiresSchedule:string;categoryId:string;unitCode:string; code: string; name: string; description: string; type: string; price: string; currency: string; capacity: string; startDate: string; endDate: string }
+export const emptyCatalogDraft: CatalogDraft = {requiresSchedule:'',categoryId:'',unitCode:'', code: '', name: '', description: '', type: '', price: '', currency: '', capacity: '', startDate: '', endDate: '' }
 export function catalogDraft(item: CatalogItem): CatalogDraft {
-  return { code: item.code, name: item.name, description: item.description ?? '', type: item.type, price: item.price == null ? '' : String(item.price), currency: item.currency ?? '', capacity: item.capacity == null ? '' : String(item.capacity), startDate: item.startDate ?? '', endDate: item.endDate ?? '' }
+  return {requiresSchedule:item.requiresSchedule===true?'true':item.requiresSchedule===false?'false':'',categoryId:item.categoryId??'',unitCode:item.unitCode??'', code: item.code, name: item.name, description: item.description ?? '', type: item.type, price: item.price == null ? '' : String(item.price), currency: item.currency ?? '', capacity: item.capacity == null ? '' : String(item.capacity), startDate: item.startDate ?? '', endDate: item.endDate ?? '' }
 }
 export function validateCatalogDraft(kind: CatalogKind, draft: CatalogDraft): Record<string, string> {
   const errors: Record<string, string> = {}
@@ -22,15 +22,27 @@ export function validateCatalogDraft(kind: CatalogKind, draft: CatalogDraft): Re
     for (const field of ['startDate', 'endDate'] as const) if (draft[field] && (!/^\d{4}-\d{2}-\d{2}$/.test(draft[field]) || !Number.isFinite(Date.parse(draft[field])) || new Date(draft[field]).toISOString().slice(0, 10) !== draft[field])) errors[field] = 'Chọn ngày hợp lệ.'
     if (draft.startDate && draft.endDate && draft.endDate < draft.startDate) errors.endDate = 'Ngày hết hạn phải từ ngày bắt đầu trở đi.'
   }
+  if(kind==='services'&&draft.unitCode.length>30)errors.unitCode='Đơn vị tối đa 30 ký tự.'
   return errors
 }
 export function serializeCatalogDraft(kind: CatalogKind, draft: CatalogDraft) {
   const money = draft.price.trim() ? Number(draft.price) : null
   const description = draft.description.trim() || null
   const currencyCode = draft.currency.trim() || null
-  if (kind === 'services') return { serviceCode: draft.code.trim(), serviceName: draft.name.trim(), serviceType: draft.type.trim(), description, price: money, currencyCode, capacity: draft.capacity.trim() ? Number(draft.capacity) : null }
+  if (kind === 'services') return {requiresSchedule:draft.requiresSchedule===''?undefined:draft.requiresSchedule==='true',categoryId:draft.categoryId||undefined,unitCode:draft.unitCode.trim()||undefined, serviceCode: draft.code.trim(), serviceName: draft.name.trim(), serviceType: draft.type.trim(), description, price: money, currencyCode, capacity: draft.capacity.trim() ? Number(draft.capacity) : null }
   if (kind === 'products') return { productCode: draft.code.trim(), productName: draft.name.trim(), productType: draft.type.trim(), description, unitPrice: money, currencyCode }
   return { packageCode: draft.code.trim(), packageName: draft.name.trim(), packageType: draft.type, description, price: money, currencyCode, startDate: draft.startDate || null, endDate: draft.endDate || null }
+}
+export function catalogMatchesDraft(kind:CatalogKind,item:CatalogItem,draft:CatalogDraft) {
+  if(item.name!==draft.name.trim()||item.type!==draft.type.trim()
+    ||(item.description??'')!==draft.description.trim()
+    ||item.price!==(draft.price.trim()?Number(draft.price):null)
+    ||(item.currency??'')!==draft.currency.trim())return false
+  if(kind==='services')return (item.capacity??null)===(draft.capacity.trim()?Number(draft.capacity):null)
+    &&(!draft.requiresSchedule||item.requiresSchedule===(draft.requiresSchedule==='true'))
+    &&(!draft.categoryId||item.categoryId===draft.categoryId)
+    &&(!draft.unitCode.trim()||item.unitCode===draft.unitCode.trim())
+  return kind!=='packages'||(item.startDate??'')===draft.startDate&&(item.endDate??'')===draft.endDate
 }
 export const catalogPermission = (kind: CatalogKind, action: 'create' | 'update' | 'delete') => kind === 'services' ? { create: 'SERVICE_CREATE', update: 'SERVICE_UPDATE', delete: 'SERVICE_DELETE_UNUSED' }[action] : kind === 'products' ? 'PRODUCT_MANAGE' : 'TOUR_PACKAGE_MANAGE'
 export function catalogActions(kind: CatalogKind, status: string): { action: 'activate' | 'suspend' | 'discontinue' | 'deactivate'; label: string; permission: string }[] {
