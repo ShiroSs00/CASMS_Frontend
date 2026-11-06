@@ -1,4 +1,5 @@
 import type { PermissionRequirement } from '@/shared/auth'
+import { ApiError } from '@/shared/api'
 export type ImportJob = {
   jobId: string; shipId: string; modelId: string
   status: 'RUNNING' | 'SUCCEEDED' | 'PARTIAL' | 'FAILED'
@@ -9,15 +10,18 @@ export type ImportJob = {
 }
 export type ImportIssue = { issueId: string; objectIdentifier: string | null; objectType: string; errorCode: string; message: string }
 export type Registration = { shipId: string; shipModelId: string; shipCreated: boolean }
+export type ModelScope = Pick<Registration, 'shipId' | 'shipModelId'>
 export type ImportSession = {
-  modelKey: string; assetVersion: string; fileName: string; uploaded: boolean
+  modelKey: string; fileName: string; uploaded: boolean
   registration: Registration | null; job: ImportJob | null
+  pendingStructure?: string[]
 }
-export const emptySession: ImportSession = { modelKey: '', assetVersion: '', fileName: '', uploaded: false, registration: null, job: null }
+export const emptySession: ImportSession = { modelKey: '', fileName: '', uploaded: false, registration: null, job: null }
+export const importSteps = ['Chọn mô hình 3D', 'Xác nhận thông tin tàu', 'Import cấu trúc tàu']
 export const importRequirements = {
-  upload: { mode: 'ALL', permissions: ['SHIP_UPDATE'] },
+  upload: { mode: 'ALL', permissions: ['SHIP_MODEL_CREATE'] },
   register: { mode: 'ALL', permissions: ['SHIP_MODEL_CREATE','SHIP_CREATE'] },
-  import: { mode: 'ALL', permissions: ['SHIP_UPDATE'] },
+  import: { mode: 'ALL', permissions: ['SHIP_MODEL_UPDATE'] },
 } satisfies Record<string, PermissionRequirement>
 export function bundleLabel(session: ImportSession) {
   if (['Gói đã lưu trên hệ thống', 'Gói đã tải (chờ kiểm tra)'].includes(session.fileName)) {
@@ -25,15 +29,21 @@ export function bundleLabel(session: ImportSession) {
   }
   return session.fileName
 }
-export function validateBundle(modelKey: string, assetVersion: string, file: { name: string; size: number } | null, stored: boolean) {
+export function validateZip(file: { name: string; size: number } | null) {
+  if (!file) return 'Chọn một tệp ZIP.'
+  if (!/\.zip$/i.test(file.name) || file.size <= 0) return 'Chọn tệp ZIP có dữ liệu.'
+  if (file.size > 2 * 1024 ** 3) return 'Tệp vượt quá 2 GB. Chọn tệp ZIP nhỏ hơn.'
+  return ''
+}
+export function validateBundle(modelKey: string, file: { name: string; size: number } | null, stored: boolean) {
   const errors: Record<string, string> = {}
   if (!/^[a-z0-9-]{1,80}$/.test(modelKey)) errors.modelKey = 'Nhập mã từ 1–80 ký tự: chữ thường, chữ số hoặc dấu gạch ngang.'
-  if (!/^[a-zA-Z0-9._-]{1,80}$/.test(assetVersion) || ['.', '..'].includes(assetVersion)) errors.assetVersion = 'Nhập phiên bản từ 1–80 ký tự: chữ, số, dấu chấm, gạch ngang hoặc gạch dưới.'
-  if (!stored && (!file || !/\.zip$/i.test(file.name) || file.size <= 0 || file.size > 2 * 1024 ** 3)) errors.file = 'Chọn gói ZIP có dữ liệu, dung lượng tối đa 2 GB.'
+  const zipError = stored ? '' : validateZip(file)
+  if (zipError) errors.file = zipError
   return errors
 }
 export function jobLabel(status: ImportJob['status']) {
-  return { RUNNING: 'Đang nhập dữ liệu', SUCCEEDED: 'Nhập thành công', PARTIAL: 'Đã nhập một phần', FAILED: 'Nhập không thành công' }[status]
+  return { RUNNING: 'Đang import dữ liệu', SUCCEEDED: 'Import thành công', PARTIAL: 'Đã import một phần', FAILED: 'Import không thành công' }[status]
 }
 export function issueMessage(code: string, fallback: string) {
   const messages: Record<string, string> = {
@@ -41,23 +51,53 @@ export function issueMessage(code: string, fallback: string) {
     INVALID_DECK_ID: 'Mã boong bị thiếu hoặc trùng trong gói dữ liệu.',
     INVALID_CABIN_ID: 'Mã phòng bị thiếu hoặc trùng trong gói dữ liệu.',
     INVALID_DECK_NUMBER: 'Số boong nằm ngoài phạm vi được khai báo cho tàu.',
-    UNKNOWN_DECK: 'Phòng thuộc một boong chưa được nhập thành công. Kiểm tra lỗi của boong trước.',
+    UNKNOWN_DECK: 'Phòng thuộc một boong chưa được import thành công. Kiểm tra lỗi của boong trước.',
     INVALID_CABIN_TYPE: 'Loại phòng bị thiếu hoặc chưa được hệ thống hỗ trợ.',
     INVALID_CAPACITY: 'Sức chứa của phòng phải là số nguyên lớn hơn 0.',
     MISSING_ACCESSIBILITY: 'Thiếu thông tin phòng có hỗ trợ người khuyết tật hay không.',
     CABIN_DECK_CONFLICT: 'Số phòng này đã tồn tại trên một boong khác của tàu.',
     NODE_TYPE_CONFLICT: 'Mã đối tượng đã được dùng cho một loại đối tượng khác trong mô hình.',
+    INVALID_AREA: 'Thông tin hoặc hình học khu vực vật lý không hợp lệ.',
+    INVALID_AREA_NAME: 'Tên khu vực vượt quá 200 ký tự.',
+    INVALID_AREA_SIZE: 'Kích thước các chiều của khu vực phải lớn hơn 0.',
+    INVALID_AREA_TRANSFORM: 'Vị trí, tỷ lệ hoặc hướng của khu vực trong GLB không hợp lệ.',
   }
   return messages[code] ?? fallback
+}
+export function importOutcomeUnknown(error: unknown) {
+  return !(error instanceof ApiError) || error.status === 0 || error.status === 408 || error.status >= 500 || error.status < 400
+}
+export function rejectedImportIssues(error: unknown): ImportIssue[] {
+  if (!(error instanceof ApiError) || error.status !== 422 || error.code !== 'SHIP_MODEL_IMPORT_REJECTED') return []
+  const details = error.details
+  if (!details || typeof details !== 'object' || !('issues' in details) || !Array.isArray(details.issues)) return []
+  return details.issues.filter((issue): issue is ImportIssue =>
+    !!issue && typeof issue.issueId === 'string' && typeof issue.objectType === 'string'
+    && typeof issue.errorCode === 'string' && typeof issue.message === 'string'
+    && (issue.objectIdentifier == null || typeof issue.objectIdentifier === 'string'))
+}
+export function importErrorText(error: unknown) {
+  if (error instanceof ApiError && error.status === 0 && !error.code) return error.message
+  if (error instanceof ApiError && error.status >= 500) {
+    const trace = error.traceId ? ` Mã tra cứu ${error.traceId}.` : ''
+    return `Máy chủ trả về HTTP ${error.status}. Chưa xác nhận được kết quả. Kiểm tra dữ liệu trước khi gửi lại.${trace}`
+  }
+  if (importOutcomeUnknown(error)) return 'Chưa xác định được kết quả. Kiểm tra lại dữ liệu trước khi gửi yêu cầu khác.'
+  if (!(error instanceof ApiError)) return 'Không thể xử lý gói mô hình.'
+  if (error.status === 413) return 'Tệp vượt quá giới hạn tải của máy chủ. Chọn gói ZIP nhỏ hơn.'
+  if (error.status === 422 && error.code === 'SHIP_MODEL_IMPORT_REJECTED') return 'Gói có đối tượng không hợp lệ. Hệ thống đã từ chối lần import này.'
+  return error.message
 }
 export function restoreSession(raw: string | null): ImportSession | null {
   if (!raw) return null
   try {
     const value = JSON.parse(raw) as ImportSession
-    if (!value || typeof value.modelKey !== 'string' || typeof value.assetVersion !== 'string' || typeof value.fileName !== 'string' || value.uploaded !== true) return null
-    if (Object.keys(validateBundle(value.modelKey, value.assetVersion, null, true)).length) return null
+    if (!value || typeof value.modelKey !== 'string' || typeof value.fileName !== 'string' || value.uploaded !== true) return null
+    if (Object.keys(validateBundle(value.modelKey, null, true)).length) return null
     if (value.registration && (typeof value.registration.shipId !== 'string' || typeof value.registration.shipModelId !== 'string' || typeof value.registration.shipCreated !== 'boolean')) return null
+    if (value.pendingStructure && (!Array.isArray(value.pendingStructure) || !value.pendingStructure.every(id => typeof id === 'string'))) return null
     // Re-read persisted jobs from the server, never trust a cached completion status.
-    return { ...value, job: null }
+    const { modelKey, fileName, uploaded, registration, pendingStructure } = value
+    return { modelKey, fileName, uploaded, registration: registration ?? null, pendingStructure, job: null }
   } catch { return null }
 }
