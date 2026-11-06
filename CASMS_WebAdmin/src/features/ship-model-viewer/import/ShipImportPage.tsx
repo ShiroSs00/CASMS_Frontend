@@ -332,8 +332,9 @@ function ShipImportContent({ userId }: { userId: string }) {
 
     setSession(emptySession)
     setError('')
+    setFailure(null)
     setRegisterUncertain(false)
-    setOpen(true)
+    setOpen(false)
   }
 
   function chooseBundle() {
