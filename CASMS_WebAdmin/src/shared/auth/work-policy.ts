@@ -24,7 +24,7 @@ export function hasWorkScope(roles: readonly string[], module: string): boolean 
 const referencePermission = /(?:_READ(?:_|$)|_VIEW$|_REPORT$|_SEARCH$|_AVAILABILITY$|_HISTORY$|_SUMMARY$|_READINESS$|_CHECK$|_CURRENT_CRUISE$|_AFFECTED_CRUISES$)/
 const actionPatterns: Readonly<Record<string, readonly RegExp[]>> = {
   ADMIN: [/^USER_/, /^SHIP_MODEL_/, /^SHIP_CONFIGURATION_/, /^BLE_ANCHOR_/, /^SHIP_(CREATE|UPDATE)$/],
-  SHIP_MANAGER: [/^SHIP_/, /^DECK_/, /^CABIN_/, /^BLE_ANCHOR_/],
+  SHIP_MANAGER: [/^SHIP_(?!MODEL_)/, /^DECK_/, /^CABIN_/, /^BLE_ANCHOR_/],
   // Aligned with RolePermissionInitializer.CRUISE_MANAGER. /auth/me remains mandatory.
   // Source-version review is intentionally absent; legacy ITINERARY_PUBLISH is a different authority.
   CRUISE_MANAGER: [

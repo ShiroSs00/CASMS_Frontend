@@ -1,10 +1,10 @@
 import { ImportPreviewDetails } from './ImportPreviewDetails'
-import { useCallback } from 'react'
+import { useCallback, useId, useRef, useState, type SubmitEvent } from 'react'
 import { useReadQuery } from '@/shared/api'
+import { useSessionAccess } from '@/shared/auth'
 import { shipImportApi } from './api'
-import { useRef, useState, type SubmitEvent } from 'react'
 import { Button, Field, Modal, Notice } from '@/shared/ui'
-import { validateBundle, type ImportSession } from './model'
+import { importSteps, validateBundle, validateZip, type ImportSession } from './model'
 import styles from './ShipImport.module.css'
 
 type ImportDialogProps = {
@@ -21,39 +21,62 @@ type ImportDialogProps = {
   onClose: () => void
 }
 
-const stages = ['Tải mô hình 3D', 'Lưu thông tin tàu', 'Tạo boong và phòng']
+const fileSize = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 })
 
 export function ImportDialog({ embedded=false, session, busy, error, allowed, permissions, onPrepare, onRegister, onImport, onChooseBundle, onClose }: ImportDialogProps) {
+  const canReadShip = useSessionAccess().canDo('SHIP_READ')
   const [modelKey, setModelKey] = useState(session.modelKey)
-  const [assetVersion, setAssetVersion] = useState(session.assetVersion)
+  const [storedSelection, setStoredSelection] = useState(session.modelKey)
   const [stored, setStored] = useState(!permissions.upload && permissions.register)
   const [file, setFile] = useState<File | null>(null)
   const [supplements,setSupplements]=useState<Record<string,string|number>>({})
   const loadStored=useCallback((signal:AbortSignal)=>stored&&permissions.register?shipImportApi.stored(signal):Promise.resolve([]),[stored,permissions.register])
   const models=useReadQuery(`stored-models:${stored}`,loadStored)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const zipError = file ? '' : errors.file
+  const formId = useId()
+  const titleId = `${formId}-title`
+  const fileHelpId = `${formId}-file-help`
+  const fileErrorId = `${formId}-file-error`
+  const fileInput = useRef<HTMLInputElement>(null)
   const heading = useRef<HTMLDivElement>(null)
   const stage = session.registration ? 2 : session.uploaded ? 1 : 0
+  const { modelKey: preparedKey, registration, uploaded } = session
+  const loadPreview = useCallback((signal: AbortSignal) => {
+    if (registration) return canReadShip ? shipImportApi.registeredPreview(registration, signal) : Promise.resolve(null)
+    return uploaded && permissions.register ? shipImportApi.preview(preparedKey, signal) : Promise.resolve(null)
+  }, [canReadShip, permissions.register, preparedKey, registration, uploaded])
+  const preview = useReadQuery(`import-preview:${preparedKey}:${uploaded}:${registration?.shipModelId ?? ''}`, loadPreview)
+  const missing = preview.data ? ([
+    ['shipName', 'Tên tàu', !preview.data.name?.trim()],
+    ['totalCapacity', 'Sức chứa hành khách', !(Number(preview.data.passengerCapacity) > 0)],
+    ['totalDecks', 'Số boong hành khách', !(Number(preview.data.deckCount) > 0 || preview.data.decks.length)],
+  ] as const).filter(([, , needed]) => needed) : []
+  const supplementReady = missing.every(([key]) => key === 'shipName' ? !!String(supplements[key] ?? '').trim()
+    : Number.isSafeInteger(supplements[key]) && Number(supplements[key]) > 0)
 
   async function prepare(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!allowed || !(stored ? permissions.register : permissions.upload)) return
-    if(stored&&!models.data?.some(row=>row.modelKey===modelKey&&row.assetVersion===assetVersion)){setErrors({modelKey:'Chọn một mô hình đã tải lên.'});return}
-    const fields = validateBundle(modelKey.trim(), assetVersion.trim(), file, stored)
+    if (busy || !allowed || !(stored ? permissions.register : permissions.upload)) return
+    const form = event.currentTarget
+    const key = stored ? storedSelection : modelKey.trim()
+    const selectedFile = stored ? null : fileInput.current?.files?.[0] ?? file
+    const fields = stored && !models.data?.some(row => row.modelKey === key)
+      ? { modelKey: 'Chọn một mô hình đã tải lên.' }
+      : validateBundle(key, selectedFile, stored)
     setErrors(fields)
     if (Object.keys(fields).length) {
-      requestAnimationFrame(() => document.querySelector<HTMLElement>('#ship-import-form [aria-invalid="true"]')?.focus())
+      requestAnimationFrame(() => form.querySelector<HTMLElement>('[aria-invalid="true"]:not(:disabled)')?.focus())
       return
     }
     await onPrepare({
-      modelKey: modelKey.trim(),
-      assetVersion: assetVersion.trim(),
-      fileName: stored ? 'Gói đã tải (chờ kiểm tra)' : file?.name ?? '',
+      modelKey: key,
+      fileName: stored ? 'Gói đã tải (chờ kiểm tra)' : selectedFile?.name ?? '',
       uploaded: false,
       registration: null,
       job: null,
-    }, stored ? null : file)
-    heading.current?.focus()
+    }, selectedFile)
+    requestAnimationFrame(() => heading.current?.focus())
   }
 
   const footer = <>
@@ -62,25 +85,26 @@ export function ImportDialog({ embedded=false, session, busy, error, allowed, pe
       </Button>}
       {stage === 1 && (permissions.upload || permissions.register) && <Button
         tone="secondary" disabled={Boolean(busy) || !allowed}
-        onClick={() => { setStored(false); setFile(null); setErrors({}); onChooseBundle(); heading.current?.focus() }}>
+        onClick={() => { setStored(!permissions.upload); setFile(null); setErrors({}); setSupplements({}); onChooseBundle(); heading.current?.focus() }}>
         Chọn mô hình khác
       </Button>}
       {stage === 0 && (stored ? permissions.register : permissions.upload) && <Button
-        type="submit" form="ship-import-form" disabled={Boolean(busy) || !allowed}>
-        {busy || (stored ? 'Tiếp tục với mô hình đã tải' : 'Tải mô hình')}
+        type="submit" form={formId} disabled={Boolean(busy) || !allowed}>
+        {busy || (stored ? 'Dùng mô hình đã tải' : 'Tải mô hình lên')}
       </Button>}
-      {stage === 1 && permissions.register && <Button disabled={Boolean(busy) || !allowed} onClick={() => void onRegister(supplements)}>
-        {busy || 'Lưu thông tin tàu'}
+      {stage === 1 && permissions.register && <Button disabled={Boolean(busy) || !allowed || preview.loading || !preview.data || !supplementReady}
+        onClick={() => void onRegister(Object.fromEntries(missing.map(([key]) => [key, key === 'shipName' ? String(supplements[key]).trim() : supplements[key]])))}>
+        {busy || 'Xác nhận tạo tàu'}
       </Button>}
       {stage === 2 && permissions.import && <Button disabled={Boolean(busy) || !allowed} onClick={() => void onImport()}>
-        {busy || 'Tạo boong và phòng'}
+        {busy || 'Import cấu trúc tàu'}
       </Button>}
     </>
   const content = (
     <div ref={heading} tabIndex={-1} className={styles.stack}>
       {!embedded&&<ol className={styles.progress} aria-label="Các bước thiết lập mô hình tàu">
-        {stages.map((label, i) => <li key={label} aria-current={i === stage ? 'step' : undefined} data-done={i < stage}>
-          <span className={styles.progressNumber} aria-hidden="true">{i < stage ? '✓' : `0${i + 1}`}</span>
+        {importSteps.map((label, i) => <li key={label} aria-current={i === stage ? 'step' : undefined} data-done={i < stage}>
+          <span className={styles.progressNumber} aria-hidden="true">{i < stage ? '✓' : i + 1}</span>
           <span>{label}</span>
         </li>)}
       </ol>}
@@ -88,59 +112,71 @@ export function ImportDialog({ embedded=false, session, busy, error, allowed, pe
       {error && <Notice title="Không thể tiếp tục" tone="error">{error}</Notice>}
       {busy && <p role="status" className={styles.status}>{busy}</p>}
 
-      {stage === 0 ? <form id="ship-import-form" className={styles.stack} onSubmit={event => void prepare(event)} noValidate aria-busy={Boolean(busy)}>
+      {stage === 0 ? <form id={formId} className={styles.setupForm} onSubmit={event => void prepare(event)} noValidate aria-busy={Boolean(busy)}>
         <fieldset className={styles.mode} disabled={Boolean(busy)}>
           <legend>Chọn nguồn mô hình</legend>
           {permissions.upload && <label data-active={!stored}>
             <input type="radio" name="bundle-source" checked={!stored} onChange={() => { setStored(false); setErrors({}) }} />
-            <span><strong>Tải mô hình mới</strong></span>
+            <span><strong>Tải tệp ZIP mới</strong></span>
           </label>}
           {permissions.register && <label data-active={stored}>
             <input type="radio" name="bundle-source" checked={stored} onChange={() => { setStored(true); setErrors({}) }} />
-            <span><strong>Sử dụng mô hình đã tải lên</strong></span>
+            <span><strong>Dùng mô hình đã tải</strong></span>
           </label>}
         </fieldset>
 
-        {stored?<Field htmlFor="stored-model" label="Mô hình đã tải lên" error={errors.modelKey||errors.assetVersion}>
-          <select id="stored-model" disabled={Boolean(busy)||models.loading||!models.data?.length} value={JSON.stringify([modelKey,assetVersion])} onChange={event=>{const [key,version]=JSON.parse(event.target.value);setModelKey(key);setAssetVersion(version);setErrors({})}}>
-            <option value={JSON.stringify(['',''])}>{models.loading?'Đang tải mô hình…':'Chọn mô hình'}</option>
-            {models.data?.map(row=><option key={JSON.stringify([row.modelKey,row.assetVersion])} value={JSON.stringify([row.modelKey,row.assetVersion])}>{row.modelKey} · {row.assetVersion}</option>)}
+        {stored?<Field htmlFor="stored-model" label="Mô hình đã tải lên" error={errors.modelKey}>
+          <select id="stored-model" name="stored-model" disabled={Boolean(busy)||models.loading||!models.data?.length} value={storedSelection} onChange={event=>{setStoredSelection(event.target.value);setErrors({})}}>
+            <option value="">{models.loading?'Đang tải mô hình…':'Chọn mô hình'}</option>
+            {models.data?.map(({ modelKey }) => <option key={modelKey} value={modelKey}>{modelKey}</option>)}
           </select>
           {models.error&&<Notice title="Không tải được danh sách mô hình" tone="error">{models.error.message}<Button tone="text" onClick={models.retry}>Thử lại</Button></Notice>}
           {!models.loading&&!models.error&&models.data?.length===0&&<p role="status">Chưa có mô hình đã tải lên.</p>}
-        </Field>:<div className={styles.fields}>
+        </Field>:<div className={styles.modelKeyField}>
           <Field htmlFor="import-model-key" label="Mã mô hình *" error={errors.modelKey}>
-            <input id="import-model-key" value={modelKey} onChange={event => setModelKey(event.target.value)} placeholder="conquest" autoComplete="off" maxLength={80} disabled={Boolean(busy)} required />
-          </Field>
-          <Field htmlFor="import-version" label="Phiên bản mô hình *" error={errors.assetVersion}>
-            <input id="import-version" value={assetVersion} onChange={event => setAssetVersion(event.target.value)} placeholder="v10" autoComplete="off" maxLength={80} disabled={Boolean(busy)} required />
+            <input id="import-model-key" name="modelKey" value={modelKey} onChange={event => setModelKey(event.target.value)} autoComplete="off" spellCheck={false} maxLength={80} disabled={Boolean(busy)} required />
           </Field>
         </div>}
 
-        {!stored ? <div className={styles.file} data-selected={Boolean(file)}>
-          <div className={styles.fileIntro}>
-            <span className={styles.fileIcon} aria-hidden="true">ZIP</span>
-            <div><strong>Tệp mô hình 3D</strong></div>
+        {!stored && <div className={styles.zipField}>
+          <div className={styles.zipPicker} data-selected={!!file} data-invalid={!!zipError}>
+            <svg className={styles.zipIcon} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M7 3h7l4 4v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
+              <path d="M14 3v5h4M10 11h2m-2 3h2m-2 3h2" />
+            </svg>
+            <div className={styles.zipCopy} aria-live="polite">
+              <strong translate={file ? 'no' : undefined}>{file?.name ?? 'Tệp mô hình 3D'}</strong>
+              <span id={fileHelpId}>{file ? `${fileSize.format(file.size / 1024 ** 2)} MB · Chưa tải lên` : 'Định dạng ZIP · Tối đa 2 GB'}</span>
+            </div>
+            <input ref={fileInput} type="file" name="bundle" accept=".zip,application/zip,application/x-zip-compressed" hidden disabled={Boolean(busy)}
+              onChange={event => {
+                const selectedFile = event.target.files?.[0]
+                if (!selectedFile) return
+                const message = validateZip(selectedFile)
+                if (message) event.target.value = ''
+                setFile(message ? null : selectedFile)
+                setErrors(current => ({ ...current, file: message }))
+              }} />
+            <Button tone="secondary" autoWidth disabled={Boolean(busy)} aria-invalid={!!zipError || undefined}
+              aria-describedby={zipError ? `${fileHelpId} ${fileErrorId}` : fileHelpId}
+              onClick={() => fileInput.current?.click()}>
+              {file ? 'Đổi tệp ZIP' : 'Chọn tệp ZIP'}
+            </Button>
           </div>
-          <Field htmlFor="import-bundle" label="Chọn tệp ZIP *" error={errors.file ? 'Vui lòng chọn tệp ZIP hợp lệ, có dữ liệu và không vượt quá 2 GB.' : undefined}>
-            <input id="import-bundle" type="file" accept=".zip,application/zip,application/x-zip-compressed" disabled={Boolean(busy)} onChange={event => {
-              setFile(event.target.files?.[0] ?? null)
-              setErrors(current => ({ ...current, file: '' }))
-            }} required />
-          </Field>
-          {file && <div className={styles.fileSelected} role="status">
-            <span aria-hidden="true">✓</span>
-            <span><strong>{file.name}</strong><small>{(file.size / 1024 ** 2).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} MB · Chưa tải lên</small></span>
-          </div>}
-        </div> : null}
+          {zipError && <p className={styles.zipError} id={fileErrorId} role="alert">{zipError}</p>}
+        </div>}
       </form> : <>
-        <ImportPreviewDetails session={session}/>
-        {stage===1&&<div className={styles.fields}>{([['shipName','Tên tàu','ship name'],['totalCapacity','Sức chứa hành khách','passengerCapacity'],['totalDecks','Số boong hành khách','deckCount']] as const).filter(([key,label,match])=>error.includes(key)||error.includes(match)||error.toLocaleLowerCase('vi').includes(label.toLocaleLowerCase('vi'))||key in supplements).map(([key,label])=><Field key={key} htmlFor={`supplement-${key}`} label={label}><input id={`supplement-${key}`} type={key==='shipName'?'text':'number'} min={1} maxLength={key==='shipName'?100:undefined} disabled={Boolean(busy)} value={supplements[key]??''} onChange={event=>setSupplements(current=>({...current,[key]:key==='shipName'?event.target.value:Number(event.target.value)}))}/></Field>)}</div>}
+        <ImportPreviewDetails session={session} preview={preview}/>
+        {stage===1&&missing.length>0&&<div className={styles.fields}>{missing.map(([key,label])=><Field key={key} htmlFor={`supplement-${key}`} label={`${label} *`}><input id={`supplement-${key}`} name={key} autoComplete="off" type={key==='shipName'?'text':'number'} min={1} maxLength={key==='shipName'?100:undefined} disabled={Boolean(busy)} value={supplements[key]??''} onChange={event=>setSupplements(current=>({...current,[key]:key==='shipName'||!event.target.value?event.target.value:Number(event.target.value)}))} required/></Field>)}</div>}
         {stage === 2 && <div className={styles.inlineConfirmation} role="status">
           {session.registration?.shipCreated ? 'Đã tạo hồ sơ tàu' : 'Đã cập nhật liên kết mô hình'}
         </div>}
       </>}
     </div>
   )
-  return embedded ? <section className={styles.editor} aria-labelledby="setup-step-title"><header className={styles.editorHeader}><span className={styles.stepTag}>BƯỚC {stage+1}</span><h2 id="setup-step-title">{stages[stage]}</h2></header><div key={stage} className={styles.stepBody}>{content}</div><footer className={styles.editorFooter}>{footer}</footer></section> : <Modal title="Thiết lập cấu trúc tàu" wide busy={Boolean(busy)} onClose={onClose} protectChanges={stage===0} footer={footer}>{content}</Modal>
+  return embedded ? <section className={styles.editor} aria-labelledby={titleId}>
+    <header className={styles.editorHeader}><h2 id={titleId}>{importSteps[stage]}</h2></header>
+    <div key={stage} className={styles.stepBody}>{content}</div>
+    <footer className={styles.editorFooter}>{footer}</footer>
+  </section> : <Modal title="Thiết lập cấu trúc tàu" wide busy={Boolean(busy)} onClose={onClose} protectChanges={stage===0} footer={footer}>{content}</Modal>
 }

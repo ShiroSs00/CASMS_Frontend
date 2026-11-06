@@ -5,7 +5,7 @@ export type ShipArea = {
   position:AreaVector|null;rotation:AreaVector|null;scale:AreaVector|null;dimensions:AreaVector|null;metadataJson:string|null
 }
 export type AreaDeck = {id:string|null;key:string;name:string;number:number;serviceLevel:boolean}
-export type ShipAreas = {shipId:string;shipName:string;configurationVersion:string|null;unit:string|null;decks:AreaDeck[];areas:ShipArea[];supported:boolean;draftVersion?:string}
+export type ShipAreas = {shipId:string;shipName:string;configurationVersion:string|null;unit:string|null;decks:AreaDeck[];areas:ShipArea[];supported:boolean}
 const record=(value:unknown):Record<string,unknown>|null=>value!==null&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:null
 const invalid=()=>new Error('Dữ liệu khu vực không hợp lệ hoặc không khớp tàu đang xem. Hãy tải lại cấu hình.')
 function nullableText(value:unknown):string|null {if(value==null)return null;if(typeof value!=='string')throw invalid();return value}
@@ -43,7 +43,7 @@ export function decodeShipAreas(value:unknown,shipId:string):ShipAreas {
  return {shipId,shipName:data.shipName,configurationVersion:nullableText(data.configurationVersion),unit:nullableText(model?.unit),decks,areas,supported}
 }
 /** Read persisted draft mappings, rather than treating manifest declarations as imported data. */
-export function decodeImportedAreas(value:unknown,shipId:string,modelId:string,version:string,unit:string|null):ShipAreas {
+export function decodeImportedAreas(value:unknown,shipId:string,modelId:string,unit:string|null):ShipAreas {
  if(!Array.isArray(value))throw invalid()
  const ids=new Set<string>(),nodes=new Set<string>()
  const objects=value.map(raw=>{
@@ -68,7 +68,7 @@ export function decodeImportedAreas(value:unknown,shipId:string,modelId:string,v
   if(!deck||typeof data.kind!=='string'||typeof data.name!=='string'||!Array.isArray(data.size)||data.size.length!==3||!data.size.every(n=>typeof n==='number'&&Number.isFinite(n)&&n>0))throw invalid()
   deck.facilities.push({objectId:object.objectId,modelNodeKey:object.nodeKey,name:data.name,kind:data.kind,deckId:deck.deckId,position:object.position,rotation:object.rotation,scale:object.scale,dimensions:{x:data.size[0],y:data.size[1],z:data.size[2]},metadataJson:object.metadataJson})
  }
- return {...decodeShipAreas({shipId,shipName:'',configurationVersion:version,model:{unit},decks},shipId),draftVersion:version}
+ return decodeShipAreas({shipId,shipName:'',model:{unit},decks},shipId)
 }
 const labels:Record<string,string>={gym:'Phòng tập',lounge:'Khu thư giãn',restaurant:'Nhà hàng',pool:'Hồ bơi',spa:'Spa',bar:'Quầy bar',theater:'Nhà hát',theatre:'Nhà hát',shop:'Cửa hàng',casino:'Casino',cinema:'Rạp chiếu phim',library:'Thư viện',reception:'Lễ tân',medical:'Khu y tế',playground:'Khu vui chơi',elevator:'Thang máy',stairs:'Cầu thang',corridor:'Hành lang'}
 export const areaKindLabel=(kind:string|null)=>kind?labels[kind.toLowerCase()]??kind:'Chưa phân loại'

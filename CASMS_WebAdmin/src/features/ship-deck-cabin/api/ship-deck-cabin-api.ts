@@ -52,6 +52,7 @@ async function allPages<T>(path: string, signal?: AbortSignal): Promise<T[]> {
 }
 
 export const shipDeckCabinApi = {
+  refresh: notify,
   subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
   getRevision: () => revision,
   async listShipDecks(shipId: string, signal: AbortSignal): Promise<Deck[]> {

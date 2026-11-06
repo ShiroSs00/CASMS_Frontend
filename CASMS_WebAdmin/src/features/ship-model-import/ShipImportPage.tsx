@@ -1,36 +1,27 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, ButtonLink, Notice, PageHeader, Panel } from '@/shared/ui'
-import { useSessionAccess } from '@/shared/auth'
+import { getSessionAccess, useSessionAccess } from '@/shared/auth'
 import { useReadQuery } from '@/shared/api'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { shipImportApi } from './api'
 import {
   emptySession,
   importRequirements,
-  issueMessage,
+  importSteps,
+  importErrorText,
+  importOutcomeUnknown,
+  rejectedImportIssues,
+  jobLabel,
   restoreSession,
   type ImportJob,
   type ImportSession,
+  type Registration,
 } from './model'
 import { ImportDialog } from './ImportDialog'
+import { ImportIssueList, ImportJobDetails } from './ImportJobDetails'
+import { shipDeckCabinApi } from '../ship-deck-cabin/api/ship-deck-cabin-api'
 import styles from './ShipImport.module.css'
-
-const stages = [
-  'Tải mô hình 3D',
-  'Lưu thông tin tàu',
-  'Tạo boong và phòng',
-]
-
-function statusLabel(status: ImportJob['status']) {
-  const labels: Record<ImportJob['status'], string> = {
-    RUNNING: 'Đang xử lý',
-    SUCCEEDED: 'Thành công',
-    PARTIAL: 'Chưa hoàn tất',
-    FAILED: 'Thất bại',
-  }
-  return labels[status]
-}
 
 function sourceLabel(session: ImportSession) {
   return session.fileName.startsWith('Gói đã')
@@ -40,89 +31,49 @@ function sourceLabel(session: ImportSession) {
     : session.fileName
 }
 
-function ImportIssues({ job }: { job: ImportJob }) {
-  const load = useCallback(
-    (signal: AbortSignal) => shipImportApi.issues(job, signal),
-    [job],
-  )
-  const query = useReadQuery(`import-issues:${job.jobId}`, load)
-
-  return (
-    <details className={styles.issues} open>
-      <summary>
-        Các mục cần xử lý ({job.objectsFailed})
-      </summary>
-
-      {query.loading && (
-        <p role="status">Đang tải danh sách lỗi…</p>
-      )}
-
-      {query.error && (
-        <Notice title="Không tải được chi tiết lỗi" tone="error">
-          {query.error.message}
-          <Button tone="text" onClick={query.retry}>
-            Thử lại
-          </Button>
-        </Notice>
-      )}
-
-      {query.data && (
-        query.data.length ? (
-          <ul className={styles.issueList}>
-            {query.data.map(issue => (
-              <li key={issue.issueId}>
-                <strong>
-                  {issue.objectType === 'CABIN'
-                    ? 'Phòng'
-                    : issue.objectType === 'DECK'
-                      ? 'Boong'
-                      : issue.objectType === 'AREA'
-                        ? 'Khu vực'
-                        : 'Đối tượng'}
-                  {' · '}
-                  {issue.objectIdentifier ?? 'Chưa xác định'}
-                </strong>
-
-                <p>
-                  {issueMessage(issue.errorCode, issue.message)}
-                </p>
-
-                <details>
-                  <summary>Thông tin kỹ thuật</summary>
-                  <code>{issue.errorCode}</code>
-                  <p>{issue.message}</p>
-                </details>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className={styles.muted}>
-            Chưa có thông tin lỗi theo từng đối tượng.
-          </p>
-        )
-      )}
-    </details>
-  )
-}
-
 function ShipImportContent({ userId }: { userId: string }) {
   const access = useSessionAccess()
   const storageKey = `ocevie:ship-import:${userId}`
+  const registerKeyFor = (draft: ImportSession) => `${storageKey}:register:${JSON.stringify([draft.modelKey])}`
+  function restoredRegistration(draft: ImportSession, legacyVersion?: string) {
+    if (!draft.uploaded || draft.registration) return { draft, pending: false }
+    const legacyPrefix = `${storageKey}:register:[${JSON.stringify(draft.modelKey)},`
+    for (let index = 0; index < localStorage.length; index++) {
+      const key = localStorage.key(index)
+      if (key?.startsWith(legacyPrefix) && localStorage.getItem(key) === 'pending') {
+        return { draft, pending: true }
+      }
+    }
+    const raw = localStorage.getItem(registerKeyFor(draft)) ?? (legacyVersion
+      ? localStorage.getItem(`${storageKey}:register:${JSON.stringify([draft.modelKey, legacyVersion])}`)
+      : null)
+    if (!raw) return { draft, pending: false }
+    if (raw === 'pending') return { draft, pending: true }
+    const result = JSON.parse(raw) as Registration
+    if (!result || typeof result.shipId !== 'string' || typeof result.shipModelId !== 'string' || result.shipCreated !== true) {
+      return { draft, pending: true }
+    }
+    return { draft: { ...draft, registration: result }, pending: false }
+  }
 
-  const [session, setSession] = useState<ImportSession>(() => {
+  const [restored] = useState(() => {
     try {
-      return (
-        restoreSession(sessionStorage.getItem(storageKey))
-        ?? emptySession
-      )
+      const raw = sessionStorage.getItem(storageKey)
+      const draft = restoreSession(raw) ?? emptySession
+      // Recover an already confirmed registration from a pre-upgrade draft.
+      const legacyVersion = raw && draft.uploaded ? JSON.parse(raw).assetVersion : undefined
+      return restoredRegistration(draft, typeof legacyVersion === 'string' ? legacyVersion : undefined)
     } catch {
-      return emptySession
+      return { draft: emptySession, pending: false }
     }
   })
+  const [session, setSession] = useState(restored.draft)
 
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
+  const [failure, setFailure] = useState<unknown>(null)
+  const [registerUncertain, setRegisterUncertain] = useState(restored.pending)
   const [refresh, setRefresh] = useState(0)
 
   const inFlight = useRef(false)
@@ -158,6 +109,8 @@ function ShipImportContent({ userId }: { userId: string }) {
 
   const canRead = access.canDo('SHIP_READ')
   const registration = session.registration
+  const registerKey = registerKeyFor(session)
+  const pendingStructure = session.pendingStructure
 
   const loadHistory = useCallback(
     (signal: AbortSignal) =>
@@ -172,7 +125,8 @@ function ShipImportContent({ userId }: { userId: string }) {
     loadHistory,
   )
 
-  const job = history.data?.[0] ?? session.job
+  const observed = pendingStructure ? history.data?.filter(item => !pendingStructure.includes(item.jobId)) : undefined
+  const job = pendingStructure ? (observed?.length === 1 ? observed[0] : null) : history.data?.[0] ?? session.job
   const running = job?.status === 'RUNNING'
 
   const historyReady =
@@ -202,7 +156,7 @@ function ShipImportContent({ userId }: { userId: string }) {
         sessionStorage.removeItem(storageKey)
       }
     } catch {
-      // Vẫn cho phép thao tác khi bộ nhớ trình duyệt bị chặn.
+      // The mutation handlers persist their intent before sending a write.
     }
   }, [session, storageKey])
 
@@ -241,16 +195,14 @@ function ShipImportContent({ userId }: { userId: string }) {
     inFlight.current = true
     setBusy(label)
     setError('')
+    setFailure(null)
 
     try {
       await action()
     } catch (failure) {
       if (alive.current) {
-        setError(
-          failure instanceof Error
-            ? failure.message
-            : 'Không thể hoàn tất thao tác. Vui lòng thử lại.',
-        )
+        setFailure(failure)
+        setError(importErrorText(failure))
       }
     } finally {
       inFlight.current = false
@@ -272,15 +224,24 @@ function ShipImportContent({ userId }: { userId: string }) {
         : 'Đang chuẩn bị mô hình đã tải lên…',
       file ? permissions.upload : permissions.register,
       async () => {
+        const prepared = { ...draft, uploaded: true }
+        const previous = restoredRegistration(prepared)
+        if (previous.pending || previous.draft.registration) {
+          if (alive.current) {
+            setSession(previous.draft)
+            setRegisterUncertain(previous.pending)
+          }
+          return
+        }
+
         if (file) {
           await shipImportApi.upload(draft, file)
         }
 
         if (alive.current) {
-          setSession({
-            ...draft,
-            uploaded: true,
-          })
+          const next = restoredRegistration(prepared)
+          setSession(next.draft)
+          setRegisterUncertain(next.pending)
         }
       },
     )
@@ -291,32 +252,66 @@ function ShipImportContent({ userId }: { userId: string }) {
       'Đang đăng ký tàu và mô hình…',
       permissions.register,
       async () => {
-        const result = await shipImportApi.register(session,supplements)
-
-        if (alive.current) {
-          setSession(current => ({
-            ...current,
-            registration: result,
-          }))
+        const create = async () => {
+          if (getSessionAccess().userId !== userId) return
+          const previous = restoredRegistration(session)
+          if (previous.pending || previous.draft.registration) {
+            setRegisterUncertain(previous.pending)
+            setSession(previous.draft)
+            return
+          }
+          localStorage.setItem(registerKey, 'pending')
+          setRegisterUncertain(true)
+          try {
+            const result = await shipImportApi.register(session, supplements)
+            const next = { ...session, registration: result }
+            localStorage.setItem(registerKey, JSON.stringify(result))
+            sessionStorage.setItem(storageKey, JSON.stringify(next))
+            if (alive.current) setSession(next)
+          } catch (cause) {
+            if (!importOutcomeUnknown(cause)) {
+              localStorage.removeItem(registerKey)
+              setRegisterUncertain(false)
+            }
+            throw cause
+          }
         }
+        if (navigator.locks) await navigator.locks.request(registerKey, { ifAvailable: true }, async lock => {
+          if (lock) await create()
+          else setRegisterUncertain(true)
+        })
+        else await create()
       },
     )
   }
 
   async function importStructure() {
-    if (!registration || running || !historyReady) return
+    if (!registration || running || !historyReady || pendingStructure) return
 
     await run(
       'Đang thiết lập cấu trúc tàu…',
       permissions.import,
       async () => {
-        const result = await shipImportApi.importStructure(registration)
+        const next = { ...session, pendingStructure: (history.data ?? []).map(item => item.jobId) }
+        sessionStorage.setItem(storageKey, JSON.stringify({ ...next, job: null }))
+        setSession(next)
+        let result
+        try { result = await shipImportApi.importStructure(registration) }
+        catch (cause) {
+          if (!importOutcomeUnknown(cause)) {
+            sessionStorage.setItem(storageKey, JSON.stringify({ ...session, job: null }))
+            setSession(session)
+          }
+          throw cause
+        }
 
         if (alive.current) {
           setSession(current => ({
             ...current,
             job: result,
+            pendingStructure: undefined,
           }))
+          shipDeckCabinApi.refresh()
 
           setOpen(false)
 
@@ -329,10 +324,16 @@ function ShipImportContent({ userId }: { userId: string }) {
   }
 
   function startNew() {
-    if (!canPrepare || inFlight.current) return
+    if (!canPrepare || inFlight.current || pendingStructure) return
+
+    if (registration) {
+      try { localStorage.removeItem(registerKey) }
+      catch { setError('Không thể làm mới phiên tạo tàu trên thiết bị.'); return }
+    }
 
     setSession(emptySession)
     setError('')
+    setRegisterUncertain(false)
     setOpen(true)
   }
 
@@ -344,11 +345,11 @@ function ShipImportContent({ userId }: { userId: string }) {
     ) return
 
     setError('')
+    setRegisterUncertain(false)
 
     setSession(current => ({
       ...emptySession,
       modelKey: current.modelKey,
-      assetVersion: current.assetVersion,
     }))
   }
 
@@ -363,7 +364,7 @@ function ShipImportContent({ userId }: { userId: string }) {
     <>
       <PageHeader
         breadcrumb="Quản trị hệ thống / Mô hình tàu 3D"
-        title="Thiết lập cấu trúc tàu"
+        title="Tạo tàu từ mô hình 3D"
       />
 
       {!allowed && (
@@ -380,7 +381,7 @@ function ShipImportContent({ userId }: { userId: string }) {
         className={styles.workflow}
         aria-label="Quy trình thiết lập mô hình tàu"
       >
-        {stages.map((step, index) => {
+        {importSteps.map((step, index) => {
           const state =
             complete || index < activeStage
               ? 'done'
@@ -400,7 +401,7 @@ function ShipImportContent({ userId }: { userId: string }) {
                 className={styles.workflowIndex}
                 aria-hidden="true"
               >
-                {state === 'done' ? '✓' : `0${index + 1}`}
+                {state === 'done' ? '✓' : index + 1}
               </span>
               <strong>{step}</strong>
             </li>
@@ -408,8 +409,29 @@ function ShipImportContent({ userId }: { userId: string }) {
         })}
       </ol>
 
+      <div className={styles.stack}>
+      {registerUncertain && !registration && !busy && <Notice title="Chưa xác nhận được việc tạo tàu" tone="warning">
+        Kiểm tra danh sách tàu trước khi tiếp tục. Yêu cầu tạo với gói này đang được giữ để tránh tạo trùng.
+        <ButtonLink tone="secondary" to="/admin/ship-models">Kiểm tra tàu trong sơ đồ 3D</ButtonLink>
+        <Button tone="text" onClick={() => {
+          try {
+            const next = restoredRegistration(session)
+            setSession(next.draft)
+            setRegisterUncertain(next.pending)
+          } catch { setError('Không đọc được trạng thái đã lưu trên thiết bị.') }
+        }}>Đọc lại trạng thái đã lưu</Button>
+      </Notice>}
+      {pendingStructure && <Notice title="Đối chiếu lần import" tone="warning">
+        {job ? 'Lịch sử có một lần import mới. Đây là kết quả quan sát được từ hệ thống.' : 'Chưa xác định được lần import tương ứng. Kiểm tra lịch sử trước khi tiếp tục.'}
+        <Button tone="text" onClick={history.retry}>Kiểm tra lại</Button>
+        {job && job.status !== 'RUNNING' && <Button tone="secondary" onClick={() => {
+          setSession(current => ({ ...current, job, pendingStructure: undefined }))
+          shipDeckCabinApi.refresh()
+        }}>Đã đối chiếu lịch sử</Button>}
+      </Notice>}
+      {rejectedImportIssues(failure).length > 0 && <ImportIssueList issues={rejectedImportIssues(failure)} />}
       {!job ? (
-        <ImportDialog embedded session={session} busy={busy} error={error || history.error?.message || ''} allowed={historyReady && !running} permissions={permissions} onPrepare={prepare} onRegister={register} onImport={importStructure} onChooseBundle={chooseBundle} onClose={()=>setOpen(false)}/>
+        !open && <ImportDialog embedded session={session} busy={busy} error={error || history.error?.message || ''} allowed={historyReady && !running && !pendingStructure && !registerUncertain} permissions={permissions} onPrepare={prepare} onRegister={register} onImport={importStructure} onChooseBundle={chooseBundle} onClose={()=>setOpen(false)}/>
       ) : (
         <div className={styles.sessionLayout}>
           <Panel className={styles.sessionPanel}>
@@ -426,7 +448,7 @@ function ShipImportContent({ userId }: { userId: string }) {
 
                   <h2>
                     {job
-                      ? statusLabel(job.status)
+                      ? jobLabel(job.status)
                       : registration
                         ? 'Sẵn sàng thiết lập cấu trúc'
                         : 'Đã tải mô hình lên'}
@@ -475,82 +497,7 @@ function ShipImportContent({ userId }: { userId: string }) {
                 </div>
               </dl>
 
-              {job && (
-                <>
-                  <dl className={styles.metrics}>
-                    <div>
-                      <dt>Boong</dt>
-                      <dd>{job.decksImported}</dd>
-                    </div>
-
-                    <div>
-                      <dt>Phòng</dt>
-                      <dd>{job.cabinsImported}</dd>
-                    </div>
-
-                    <div>
-                      <dt>Mục cần xử lý</dt>
-                      <dd>{job.objectsFailed}</dd>
-                    </div>
-
-                    <div>
-                      <dt>Mục bỏ qua</dt>
-                      <dd>{job.objectsSkipped}</dd>
-                    </div>
-                  </dl>
-
-                  {job.totalObjects > 0 && (
-                    <div className={styles.completion}>
-                      <div>
-                        <strong>
-                          Đối tượng xử lý thành công
-                        </strong>
-                        <span>
-                          {job.objectsSucceeded}/{job.totalObjects}
-                        </span>
-                      </div>
-
-                      <progress
-                        value={job.objectsSucceeded}
-                        max={job.totalObjects}
-                        aria-label="Tỷ lệ xử lý thành công"
-                      />
-                    </div>
-                  )}
-
-                  {job.status === 'PARTIAL' && (
-                    <Notice
-                      title="Chưa hoàn tất"
-                      tone="warning"
-                    >
-                      Một số đối tượng chưa được xử lý thành công.
-                    </Notice>
-                  )}
-
-                  {job.status === 'FAILED' && (
-                    <Notice
-                      title="Thất bại"
-                      tone="error"
-                    >
-                      {job.errorMessage
-                        || 'Vui lòng kiểm tra dữ liệu và thử lại.'}
-                    </Notice>
-                  )}
-
-                  {running && (
-                    <p
-                      className={styles.status}
-                      role="status"
-                    >
-                      Hệ thống đang xử lý.
-                    </p>
-                  )}
-
-                  {job.objectsFailed > 0 && canRead && (
-                    <ImportIssues job={job} />
-                  )}
-                </>
-              )}
+              {job && <ImportJobDetails job={job} canRead={canRead} />}
 
               <div className={styles.actions}>
                 {registration && canRead && (
@@ -571,6 +518,7 @@ function ShipImportContent({ userId }: { userId: string }) {
                       disabled={
                         Boolean(busy)
                         || Boolean(running)
+                        || Boolean(pendingStructure)
                         || !historyReady
                       }
                       onClick={() => {
@@ -588,7 +536,7 @@ function ShipImportContent({ userId }: { userId: string }) {
                       complete ? 'primary' : 'secondary'
                     }
                     disabled={
-                      Boolean(busy) || !historyReady
+                        Boolean(busy) || !historyReady || Boolean(pendingStructure)
                     }
                     onClick={startNew}
                   >
@@ -602,6 +550,7 @@ function ShipImportContent({ userId }: { userId: string }) {
       )}
 
       </div>
+      </div>
       {open && (
         <ImportDialog
           session={session}
@@ -614,7 +563,7 @@ function ShipImportContent({ userId }: { userId: string }) {
                 : ''
             )
           }
-          allowed={historyReady && !running}
+          allowed={historyReady && !running && !pendingStructure && !registerUncertain}
           permissions={permissions}
           onPrepare={prepare}
           onRegister={register}

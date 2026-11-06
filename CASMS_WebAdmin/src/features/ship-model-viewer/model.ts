@@ -1,6 +1,6 @@
-export type ShipChoice = { shipId: string; shipCode: string; shipName: string }
-export type ModelVersion = { shipModelId: string; version: string; status: string; fileFormat: string; createdAt: string; updatedAt: string; shipManufacturerName?: string; modelProvider?: string }
-export type AssetInfo = { id: string; modelKey: string; assetVersion: string; revision: string; status: string; cabinCount: number; mappedCabinCount: number; deckCount: number; mappedDeckCount: number; units: string; shipManufacturerName?: string; modelProvider?: string }
+export type ShipChoice = { shipId: string; shipCode: string; shipName: string; manifestModelId?: string | null }
+export type ShipModel = { shipModelId: string; shipId: string; modelKey?: string | null; status: string; fileFormat: string; createdAt: string; updatedAt: string; shipManufacturerName?: string; modelProvider?: string }
+export type AssetInfo = { id: string; modelKey?: string | null; status: string; cabinCount: number; mappedCabinCount: number; deckCount: number; mappedDeckCount: number; units: string; shipManufacturerName?: string; modelProvider?: string }
 export type Deck = { id: string; number: number; name: string; nodeName: string; asset: string; elevationMetres?: number; cabinIds?: string[] }
 export type Cabin = { id: string; modelId?: string; deckId: string; deckNumber: number; cabinNumber: string; cabinType: string; nodeName: string; capacity?: number; isAccessible?: boolean; position?: number[]; size?: number[]; areaSquareMetres?: number; gradeName?: string; sourceNumberVerified?: boolean }
 export type Area = {id:string;nodeName:string;name:string;kind:string;deckId:string;deckNumber:number;center?:number[];size?:number[];interiorDetails?:string[]}
@@ -27,7 +27,7 @@ export function decodeManifest(value: unknown): Manifest {
   }
   return manifest
 }
-export function decodeAsset(value:unknown,modelId:string):AssetInfo { const asset=value as AssetInfo;if(!asset || asset.id!==modelId || typeof asset.revision!=='string' || ![asset.cabinCount,asset.mappedCabinCount,asset.deckCount,asset.mappedDeckCount].every(n=>Number.isInteger(n)&&n>=0))throw new Error('Thông tin asset không khớp phiên bản đã chọn.');return asset }
+export function decodeAsset(value:unknown,modelId:string):AssetInfo { const asset=value as AssetInfo;if(!asset || asset.id!==modelId || (asset.modelKey != null && typeof asset.modelKey!=='string') || ![asset.cabinCount,asset.mappedCabinCount,asset.deckCount,asset.mappedDeckCount].every(n=>Number.isInteger(n)&&n>=0))throw new Error('Thông tin asset không khớp mô hình đã chọn.');return asset }
 export function selectedCabins(manifest: Manifest, deck: string, search: string) {
   const term=search.trim().toLocaleLowerCase('vi')
   return manifest.cabins.filter(c=>(!deck || c.deckId===deck)&&(!term || `${c.cabinNumber} ${c.id} ${c.cabinType} ${cabinTypes[c.cabinType]??c.cabinType}`.toLocaleLowerCase('vi').includes(term)))
