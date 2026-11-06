@@ -17,6 +17,21 @@ function record(value: unknown, status: number): Activity {
   // Jackson may omit null fields. Normalize only the nullable Cruise association.
   return { ...dto, cruiseId: 'cruiseId' in dto ? dto.cruiseId : null } as Activity
 }
+export type ActivityCatalogDraft = { activityName: string; description: string | null; category: string | null; capacity: number; price: number | null; currencyCode: 'USD' }
+export type ActivityCatalogEntry = {
+  id: string; code: string; name: string; catalogEntry: true; description?: string | null
+  category?: string | null; capacity?: number | null; price?: number | null; currencyCode?: string | null
+}
+function catalogEntry(dto: unknown, status: number): ActivityCatalogEntry {
+  if (!dto || typeof dto !== 'object' || !('catalogEntry' in dto) || dto.catalogEntry !== true
+    || !('id' in dto) || typeof dto.id !== 'string' || !('name' in dto) || typeof dto.name !== 'string'
+    || !('code' in dto) || typeof dto.code !== 'string'
+    || ('capacity' in dto && dto.capacity != null && (!Number.isSafeInteger(dto.capacity) || Number(dto.capacity) < 1))
+    || ('price' in dto && dto.price != null && (typeof dto.price !== 'number' || !Number.isFinite(dto.price) || dto.price < 0))) {
+    throw new ApiError('Không đọc được hoạt động trong danh mục.', status)
+  }
+  return dto as ActivityCatalogEntry
+}
 function list<T>(value: unknown, status: number): T[] {
   const dto = unwrap(value, status)
   if (!Array.isArray(dto)) throw new ApiError('Danh sách hoạt động không đúng định dạng.', status)
@@ -34,6 +49,22 @@ function participation(value: unknown, status: number): Participation {
 }
 const byId = (id: string) => '/activities/' + encodeURIComponent(id)
 export const activityApi = {
+  catalog: (signal?: AbortSignal) => apiRequestRaw('/activities/catalog', (value, status) =>
+    list<unknown>(value, status).map(item => catalogEntry(item, status)), { signal }),
+  read: (id: string, signal?: AbortSignal) => apiRequestRaw(byId(id), (value, status) => {
+    const dto = unwrap(value, status)
+    const activity = dto && typeof dto === 'object' && 'catalogEntry' in dto && dto.catalogEntry === true
+      ? catalogEntry(dto, status)
+      : record(value, status)
+    if (activity.id !== id) throw new ApiError('Hoạt động trả về không khớp.', status)
+    return activity
+  }, { signal }),
+  saveCatalog: (draft: ActivityCatalogDraft, id?: string) => apiRequestRaw(
+    id ? '/activities/catalog/' + encodeURIComponent(id) : '/activities',
+    (value, status) => catalogEntry(unwrap(value, status), status),
+    { method: id ? 'PUT' : 'POST', body: draft },
+  ),
+
   registrationEntitlement:(id:string,signal?:AbortSignal)=>apiRequestRaw(`/activities/registrations/${encodeURIComponent(id)}/fare-entitlement`,(value,status)=>{
     const result=unwrap(value,status)
     if(!result||typeof result!=='object'||!('operationId'in result)||result.operationId!==id||!('entitlement'in result))throw new ApiError('Quyền lợi không khớp đăng ký.',status)
@@ -67,7 +98,7 @@ export const activityApi = {
     for (let page = 1; page < first.totalPages; page++) values.push(...(await read(page)).content)
     return values
   },
-  save: (draft: ActivityDraft, id?: string) => apiRequestRaw(id ? byId(id) : '/activities', record, { method: id ? 'PUT' : 'POST', body: {
+  save: (draft: ActivityDraft, id: string) => apiRequestRaw(byId(id), record, { method: 'PUT', body: {
     activityName: draft.activityName.trim(), description: draft.description.trim(), location: draft.location.trim(),deckId:draft.deckId??null,cabinId:draft.cabinId??null, cruiseId: draft.cruiseId,
     startTime: wallTimeToInstant(draft.startTime,SHIP_TIME_ZONE), endTime: wallTimeToInstant(draft.endTime,SHIP_TIME_ZONE), capacity: draft.capacity, price: draft.price, currencyCode: draft.currencyCode || undefined,
   } }),

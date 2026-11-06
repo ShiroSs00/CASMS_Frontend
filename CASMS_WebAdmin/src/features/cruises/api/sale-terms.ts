@@ -5,7 +5,7 @@ export type Charge = { applicability: Applicability; value: number | null; reaso
 export type Terms = { tax: Charge; portFee: Charge }
 export type Action = 'submit' | 'approve' | 'return'
 const states = ['MISSING', 'DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'RETURNED'] as const
-export type SaleTerms = { revision: number; status: typeof states[number]; terms: Terms | null; submittedBy: string | null; submittedAt: string | null; reviewedAt: string | null }
+export type SaleTerms = { planStatus?: string; revision: number; status: typeof states[number]; terms: Terms | null; submittedBy: string | null; submittedAt: string | null; reviewedAt: string | null }
 type History = { actorId: string; action: string; recordedAt: string; evidence: { snapshot: SaleTerms; reason: string } }
 
 const invalid = () => new ApiError('Phản hồi điều kiện mở bán chưa đầy đủ.', 502)

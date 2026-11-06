@@ -37,10 +37,19 @@ export function decodeCustomerService(value: unknown): CustomerService {
   if (v.requiresSchedule != null && typeof v.requiresSchedule !== 'boolean') throw new Error('Yêu cầu lịch phục vụ không hợp lệ.')
   return { id: text(v.id), name: text(v.name), description: optional(v.description), type: text(v.type), price: money(v.price), currency: currency(v.currency), capacity: v.capacity == null ? null : count(v.capacity, 1), status: state(v.status, ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'CANCELLED']), requiresSchedule: v.requiresSchedule == null ? null : v.requiresSchedule as boolean, unitCode: optional(v.unitCode), applicabilityScope: optional(v.applicabilityScope) }
 }
-export type CustomerServiceRequest = { id: string; passengerId: string; serviceId: string; scheduleId: string | null; bookingId: string | null; bookingPassengerId: string | null; quantity: number; unitPriceSnapshot: number | null; currencySnapshot: string | null; note: string | null; status: string; requestTime: string; completedAt: string | null }
+export type CustomerServiceRequest = {
+  usageMode: string | null; usagePolicySnapshot: string | null; usageLimitSnapshot: number | null
+  usageTimeZoneSnapshot: string | null; fareBenefitSnapshotId: string | null
+  fulfilledQuantity: number | null; fulfillmentUnitCode: string | null; id: string; passengerId: string; serviceId: string; scheduleId: string | null; bookingId: string | null; bookingPassengerId: string | null; quantity: number; unitPriceSnapshot: number | null; currencySnapshot: string | null; note: string | null; status: string; requestTime: string; completedAt: string | null }
 export function decodeCustomerServiceRequest(value: unknown): CustomerServiceRequest {
   const v = row(value)
-  return { id: text(v.id), passengerId: text(v.passengerId), serviceId: text(v.serviceId), scheduleId: optional(v.scheduleId), bookingId: optional(v.bookingId), bookingPassengerId: optional(v.bookingPassengerId), quantity: count(v.quantity, 1), unitPriceSnapshot: money(v.unitPriceSnapshot), currencySnapshot: currency(v.currencySnapshot), note: optional(v.note), status: state(v.status, ['REQUESTED', 'ACCEPTED', 'IN_PROGRESS', 'COMPLETED', 'REJECTED', 'CANCELLED']), requestTime: time(v.requestTime), completedAt: v.completedAt == null ? null : time(v.completedAt) }
+  return {
+    usageMode: v.usageMode == null ? null : state(v.usageMode, ['LEGACY', 'PRE_CRUISE', 'ONBOARD']),
+    usagePolicySnapshot: v.usagePolicySnapshot == null ? null : state(v.usagePolicySnapshot, ['UNLIMITED', 'PER_DAY', 'PER_CRUISE']),
+    usageLimitSnapshot: v.usageLimitSnapshot == null ? null : count(v.usageLimitSnapshot, 1),
+    usageTimeZoneSnapshot: optional(v.usageTimeZoneSnapshot), fareBenefitSnapshotId: optional(v.fareBenefitSnapshotId),
+    fulfilledQuantity: v.fulfilledQuantity == null ? null : count(v.fulfilledQuantity), fulfillmentUnitCode: optional(v.fulfillmentUnitCode),
+    id: text(v.id), passengerId: text(v.passengerId), serviceId: text(v.serviceId), scheduleId: optional(v.scheduleId), bookingId: optional(v.bookingId), bookingPassengerId: optional(v.bookingPassengerId), quantity: count(v.quantity, 1), unitPriceSnapshot: money(v.unitPriceSnapshot), currencySnapshot: currency(v.currencySnapshot), note: optional(v.note), status: state(v.status, ['REQUESTED', 'ACCEPTED', 'IN_PROGRESS', 'COMPLETED', 'REJECTED', 'CANCELLED']), requestTime: time(v.requestTime), completedAt: v.completedAt == null ? null : time(v.completedAt) }
 }
 export type CustomerServiceSchedule = { id: string; serviceId: string; cruiseId: string | null; startsAt: string; endsAt: string; location: string; capacity: number; remainingCapacity: number; status: string }
 export function decodeCustomerServiceSchedule(value: unknown): CustomerServiceSchedule {
@@ -148,10 +157,18 @@ export const customerExtrasApi = {
   },
   async requests(signal?: AbortSignal) { return list(await apiRequest<unknown>('/servicepackage/requests', { signal }), decodeCustomerServiceRequest) },
   async request(id: string, signal?: AbortSignal) { return identity(decodeCustomerServiceRequest(await apiRequest<unknown>(requestPath(id), { signal })), id) },
-  async createRequest(serviceId: string, bookingPassengerId: string, quantity: number, value: string, serviceScheduleId?: string) {
-    const result = requestResult(await apiRequest<unknown>('/servicepackage/requests', { method: 'POST', body: { serviceId, bookingPassengerId, quantity: positive(quantity), note: note(value), ...(serviceScheduleId ? { serviceScheduleId: text(serviceScheduleId) } : {}) } }), null, 'REQUESTED', quantity)
-    if (result.serviceId !== serviceId || result.bookingPassengerId !== bookingPassengerId || result.scheduleId !== (serviceScheduleId ?? null)) throw new Error('Kết quả dịch vụ không khớp yêu cầu. Kiểm tra trước khi gửi lại.')
-    return result
+  async createRequest(input: { serviceId: string; bookingPassengerId?: string; quantity: number; note: string; serviceScheduleId?: string; idempotencyKey: string }) {
+    const { serviceId, bookingPassengerId, quantity, serviceScheduleId, idempotencyKey } = input
+    if (!idempotencyKey.trim() || idempotencyKey.length > 100) throw new Error('Mã thao tác tạo yêu cầu không hợp lệ.')
+    const saved = decodeCustomerServiceRequest(await apiRequest<unknown>('/servicepackage/requests', {
+      method: 'POST', body: { serviceId, bookingPassengerId, quantity: positive(quantity), note: note(input.note), serviceScheduleId, idempotencyKey },
+    }))
+    if (saved.serviceId !== serviceId || saved.quantity !== quantity
+        || (bookingPassengerId && saved.bookingPassengerId !== bookingPassengerId)
+        || saved.scheduleId !== (serviceScheduleId ?? null) || (saved.note ?? '') !== input.note.trim()) {
+      throw new Error('Kết quả dịch vụ không khớp yêu cầu. Kiểm tra trước khi gửi lại.')
+    }
+    return saved
   },
   async updateRequest(id: string, quantity: number, value: string) { return requestResult(await apiRequest<unknown>(requestPath(id), { method: 'PUT', body: { quantity: positive(quantity), note: note(value) } }), id, 'REQUESTED', quantity) },
   async cancelRequest(id: string) { return requestResult(await apiRequest<unknown>(requestPath(id) + '/cancel', { method: 'POST' }), id, 'CANCELLED') },

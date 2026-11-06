@@ -44,6 +44,7 @@ function StaffWorkspace({ owner }: { owner: string }) {
   const [filter, setFilter] = useState<'active' | 'all' | 'mine'>('active');
   const [operation, setOperation] = useState<Operation | null>(null);
   const [form, setForm] = useState<ProductForm>(blank);
+  const [fulfilledQuantity, setFulfilledQuantity] = useState('');
   const [validation, setValidation] = useState<unknown>(null);
   const mutation = useMutation({ retry: false, mutationFn: async (work: () => Promise<unknown>) => {
     const session = useAuth.getState().session;
@@ -53,21 +54,28 @@ function StaffWorkspace({ owner }: { owner: string }) {
     return result;
   }, onSettled: async () => { await client.invalidateQueries({ queryKey: prefix }); } });
   function open(value: Operation) {
-    mutation.reset(); setValidation(null);
+    mutation.reset(); setValidation(null); setFulfilledQuantity('');
     if (value.kind === 'product') { const p = value.product; setForm(p ? { code: p.code, name: p.name, type: p.type, description: p.description ?? '', price: String(p.price), currency: p.currency } : blank); }
     setOperation(value);
   }
   function submit() {
     if (!operation || mutation.isPending) return;
     const captured = operation;
+    let fulfillment: { fulfilledQuantity: number; unitCode: string } | undefined;
     try {
       if (!permissions || me.error) throw new Error('Vui lòng xác minh lại quyền tài khoản trước khi tiếp tục.');
       if (captured.kind === 'product') { if (!can('PRODUCT_MANAGE')) throw new Error('Bạn chưa có quyền quản lý sản phẩm.'); productInput(form); }
       if (captured.kind === 'status' && !can('PRODUCT_MANAGE')) throw new Error('Bạn chưa có quyền quản lý sản phẩm.');
       if (captured.kind === 'request' && !requestActions(captured.request, owner, permissions ?? []).includes(captured.action)) throw new Error('Yêu cầu không còn phù hợp để xử lý. Hãy tải lại.');
+      if (captured.kind === 'request' && captured.action === 'complete' && captured.request.fareBenefitSnapshotId) {
+        const quantity = Number(fulfilledQuantity), unit = captured.request.fulfillmentUnitCode;
+        if (!fulfilledQuantity || !Number.isSafeInteger(quantity) || quantity !== captured.request.quantity || !unit)
+          throw new Error('Xác nhận đã phục vụ đủ số lượng theo đúng đơn vị của yêu cầu.');
+        fulfillment = { fulfilledQuantity: quantity, unitCode: unit };
+      }
     } catch (error) { setValidation(error); return; }
     setValidation(null);
-    mutation.mutate(() => captured.kind === 'product' ? staffApi.saveProduct(form, captured.product?.id) : captured.kind === 'status' ? staffApi.productStatus(captured.product.id, captured.action) : staffApi.requestAction(captured.request.id, captured.action), { onSuccess: () => setOperation(null) });
+    mutation.mutate(() => captured.kind === 'product' ? staffApi.saveProduct(form, captured.product?.id) : captured.kind === 'status' ? staffApi.productStatus(captured.product.id, captured.action) : staffApi.requestAction(captured.request.id, captured.action, fulfillment), { onSuccess: () => setOperation(null) });
   }
   const query = search.trim().toLocaleLowerCase('vi-VN');
   const matchingProducts = (products.data ?? []).filter(p => `${p.code} ${p.name} ${p.type}`.toLocaleLowerCase('vi-VN').includes(query));
@@ -106,6 +114,10 @@ function StaffWorkspace({ owner }: { owner: string }) {
     </>}
     <ConfirmAction visible={!!operation} title={title} description={operation?.kind === 'status' ? operation.product.name : operation?.kind === 'request' ? services.data?.find(s => s.id === operation.request.serviceId)?.name ?? 'Yêu cầu dịch vụ' : ''} onClose={() => setOperation(null)} onConfirm={submit} pending={mutation.isPending} error={mutation.error}>
       {operation?.kind === 'product' && fields.map(field => <Input key={field.key} label={field.label} value={form[field.key]} onChange={value => setForm(previous => ({ ...previous, [field.key]: value }))} multiline={field.key === 'description'} maxLength={field.max} disabled={mutation.isPending} />)}
+      {operation?.kind === 'request' && operation.action === 'complete' && operation.request.fareBenefitSnapshotId && <>
+        <Input label={`Số lượng đã phục vụ (${operation.request.fulfillmentUnitCode ?? 'chưa có đơn vị'})`} value={fulfilledQuantity} onChange={setFulfilledQuantity} disabled={mutation.isPending} />
+        <Text style={ui.body}>Xác nhận đã phục vụ đủ {operation.request.quantity} {operation.request.fulfillmentUnitCode ?? ''} trước khi hoàn tất.</Text>
+      </>}
       <ErrorNotice error={validation} />
     </ConfirmAction>
   </StaffFrame>;

@@ -10,6 +10,7 @@ import { ApiError, useReadQuery } from '@/shared/api'
 import { Button, ButtonLink, Field, FormSection, Notice, PageHeader, Panel } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
 import {businessCopy} from '@/shared/i18n/business-copy'
+import { ActivityCatalogEditor } from './ActivityCatalogEditor'
 import { activityApi } from '../api/activity-api'
 import { ActivityFrame, ActivityState } from '../components/ActivityUI'
 import { validateActivity, type ActivityDraft } from '../model/activity'
@@ -18,10 +19,16 @@ const blank: ActivityDraft = { activityCode: '', activityName: '', cruiseId: '',
 function localTime(value:string){return zonedInput(value,SHIP_TIME_ZONE)}
 export function ActivityFormPage() {
   const { activityId } = useParams(), [params] = useSearchParams()
-  return <ActivityEditor key={JSON.stringify([activityId, params.get('cruiseId'), params.get('returnTo')])} />
+  const access = useSessionAccess()
+  const query = useReadQuery(`activity-editor:${access.userId}:${activityId}`,
+    useCallback(signal => activityId ? activityApi.read(activityId, signal) : Promise.resolve(null), [activityId]))
+  if (!activityId) return <ActivityCatalogEditor key="new" />
+  if (!query.data) return <ActivityFrame><ActivityState {...query} /></ActivityFrame>
+  if ('catalogEntry' in query.data) return <ActivityCatalogEditor key={activityId} initial={query.data} />
+  return <ActivityEditor activityId={activityId} key={JSON.stringify([activityId, params.get('cruiseId'), params.get('returnTo')])} />
 }
-function ActivityEditor() {
-  const { activityId } = useParams(), navigate = useNavigate(), lock = useRef(false), form = useRef<HTMLFormElement>(null)
+function ActivityEditor({ activityId }: { activityId: string }) {
+  const navigate = useNavigate(), lock = useRef(false), form = useRef<HTMLFormElement>(null)
   const access = useSessionAccess()
   const mounted=useRef(true)
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false}},[])

@@ -3,6 +3,7 @@
 .content :where(h3, p, li, dt, dd) { overflow-wrap: anywhere; }
 .content dl > div { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
 .applied { margin: 12px 0 0; color: var(--ui-muted); font-size: 14px; line-height: 1.6; }
+.inlinePreviewContainer { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; margin-top: 8px; }
 @media (max-width: 600px) {
   .content dl > div { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 }

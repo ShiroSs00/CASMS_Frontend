@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiRequest, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, Field, Notice, useFormChanges } from '@/shared/ui'
+import { Button, ButtonLink, Field, Notice, useFormChanges } from '@/shared/ui'
 import { useCruisePackageMutation } from './useCruisePackageMutation'
 import type { ResourceType } from './api'
 import styles from './TemplateWorkspace.module.css'
@@ -33,6 +33,8 @@ export function SourceDefinitionEditor({ type, onCreated, onPendingChange }: { t
         <Field htmlFor="definition-meeting" label="Điểm tập trung theo nội dung tour *"><input id="definition-meeting" maxLength={250} value={meetingPoint} onChange={e=>setMeetingPoint(e.target.value)}/></Field>
       </>}
       <p>Đây là nội dung dùng chung. Ngày giờ, địa điểm trên tàu và sức chứa sẽ được cấu hình khi lập lần phục vụ thực tế.</p>
+      {type==='ACTIVITY'&&<p>Hoạt động tạo tại đây chưa có sức chứa. Bổ sung sức chứa trong danh mục hoặc nhập khi lập lịch cho chuyến.</p>}
+      {type==='ACTIVITY'&&access.canDo('ACTIVITY_READ')&&<ButtonLink tone="secondary" to="/admin/activities">Mở danh mục hoạt động</ButtonLink>}
       <Button tone="secondary" disabled={!name.trim()||type==='EXCURSION'&&(!supplier||!meetingPoint.trim())} onClick={()=>void create()}>Tạo và chọn nội dung</Button><Button tone="text" onClick={()=>{if(!pending||window.confirm('Bỏ nội dung nguồn đang nhập?')){setName('');setDescription('');setSupplier('');setMeetingPoint('');setOpen(false)}}}>Bỏ nội dung đang nhập</Button>
     </fieldset>}
   </div>

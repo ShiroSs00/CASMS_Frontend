@@ -1,3 +1,4 @@
+import type { ServiceSchedule } from './passenger-types';
 import type { RequestOptions } from '@/lib/api/api-client';
 import type { Activity, BookingCreate, BookingDetail, BookingSummary, Cabin, Cruise, Excursion, Package, PackageAssignment, PackageBenefits, Registration, Service, ServiceRequest, UserMe } from './passenger-types';
 
@@ -14,6 +15,17 @@ function detail(value: unknown): BookingDetail {
   array(booking.passengers, 'bookingPassengerId');
   if (!['Draft', 'Confirmed', 'Cancelled'].includes(booking.bookingStatus)) throw new Error('Trạng thái đặt chỗ không hợp lệ.');
   return booking;
+}
+function serviceRequest(value: ServiceRequest): ServiceRequest {
+  if (!value || !uuidPattern.test(value.id) || !uuidPattern.test(value.serviceId)
+      || !Number.isSafeInteger(value.quantity) || value.quantity < 1
+      || (value.unitPriceSnapshot != null && (!Number.isFinite(value.unitPriceSnapshot) || value.unitPriceSnapshot < 0))
+      || (value.fulfilledQuantity != null && (!Number.isSafeInteger(value.fulfilledQuantity) || value.fulfilledQuantity < 0))
+      || (value.usageLimitSnapshot != null && (!Number.isSafeInteger(value.usageLimitSnapshot) || value.usageLimitSnapshot < 1))
+      || (value.usageMode != null && !['LEGACY','PRE_CRUISE','ONBOARD'].includes(value.usageMode))
+      || (value.usagePolicySnapshot != null && !['UNLIMITED','PER_DAY','PER_CRUISE'].includes(value.usagePolicySnapshot)))
+    throw new Error('Thông tin yêu cầu dịch vụ chưa hợp lệ.');
+  return value;
 }
 export function createPassengerApi(client: Transport) {
   async function pages<T>(path: string, key: string, signal?: AbortSignal, query: RequestOptions['query'] = {}) {
@@ -49,8 +61,21 @@ export function createPassengerApi(client: Transport) {
     async cabins(cruiseId: string, signal?: AbortSignal) { return array<Cabin>(await client.request('/booking/available-cabins', { query: { cruiseId: id(cruiseId) }, signal }), 'cabinId'); },
     async services(signal?: AbortSignal) { return array<Service>(await client.request('/servicepackage/services', { signal }), 'id'); },
     serviceAvailability: (serviceId: string, quantity: number) => client.request<{ serviceId: string; requestedQuantity: number; available: boolean }>(`/servicepackage/services/${id(serviceId)}/availability`, { query: { quantity } }),
-    async requests(signal?: AbortSignal) { return array<ServiceRequest>(await client.request('/servicepackage/requests', { signal }), 'id'); },
-    createRequest: (serviceId: string, bookingPassengerId: string, quantity: number, note: string) => client.request<ServiceRequest>('/servicepackage/requests', { method: 'POST', body: { serviceId: id(serviceId), bookingPassengerId: id(bookingPassengerId), quantity, note: note.trim() || null } }),
+    async requests(signal?: AbortSignal) { return array<ServiceRequest>(await client.request('/servicepackage/requests', { signal }), 'id').map(serviceRequest); },
+    async serviceSchedules(serviceId: string, signal?: AbortSignal) {
+      const slots = array<ServiceSchedule>(await client.request(`/servicepackage/services/${id(serviceId)}/schedules`, { signal }), 'id');
+      if (slots.some(slot => slot.serviceId !== serviceId || slot.status !== 'OPEN'
+          || !Number.isSafeInteger(slot.remainingCapacity) || slot.remainingCapacity < 0
+          || !Number.isFinite(Date.parse(slot.startsAt)) || !Number.isFinite(Date.parse(slot.endsAt))))
+        throw new Error('Lịch phục vụ chưa hợp lệ.');
+      return slots;
+    },
+    requestByOperationKey: (key: string) => client.request<ServiceRequest>('/servicepackage/requests/by-operation-key', { query: { key } }).then(serviceRequest),
+    createRequest: (serviceId: string, bookingPassengerId: string, quantity: number, note: string, serviceScheduleId?: string, idempotencyKey?: string) =>
+      client.request<ServiceRequest>('/servicepackage/requests', { method: 'POST', body: {
+        serviceId: id(serviceId), bookingPassengerId: id(bookingPassengerId), quantity, note: note.trim() || null,
+        serviceScheduleId: serviceScheduleId ? id(serviceScheduleId) : null, idempotencyKey,
+      } }).then(serviceRequest),
     updateRequest: (requestId: string, quantity: number, note: string) => client.request<ServiceRequest>(`/servicepackage/requests/${id(requestId)}`, { method: 'PUT', body: { quantity, note: note.trim() || null } }),
     cancelRequest: (requestId: string) => client.request<ServiceRequest>(`/servicepackage/requests/${id(requestId)}/cancel`, { method: 'POST' }),
     async activities(signal?: AbortSignal) { return array<Activity>(await client.request('/activities', { signal }), 'id'); },

@@ -11,7 +11,7 @@ import { useSessionAccess } from '@/shared/auth'
 import { Button, ButtonLink, Field, FormSection, Notice, PageHeader, Panel } from '@/shared/ui'
 import { servicePackageApi } from '../api/service-package-api'
 import { CatalogFrame, CatalogState } from '../components/CatalogUI'
-import { catalogConfig, type CatalogItem, type CatalogKind } from '../model/catalog'
+import { catalogConfig, servicePurchaseFlags, serviceUsagePolicyLabels, type CatalogItem, type CatalogKind } from '../model/catalog'
 import { catalogDraft, packageTypes, serviceTypes, productTypes, catalogPermission, emptyCatalogDraft, validateCatalogDraft, catalogMatchesDraft, type CatalogDraft } from '../model/catalog-editor'
 import styles from '../components/Catalog.module.css'
 
@@ -67,7 +67,7 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
   }
   return <EditorLayout ><Panel title="Thông tin danh mục"><form ref={form} onSubmit={submit} noValidate className={styles.editor}><fieldset disabled={busy||uncertain} className={styles.catalogFields}>
     <FormErrorSummary errors={errors} />
-    {kind === 'packages' && <Notice title="Danh mục gói cũ">Dữ liệu TourPackage phục vụ luồng cũ. Gói bán của chuyến khởi hành được quản lý tại Gói du thuyền.</Notice>}
+    {kind === 'packages' && <Notice title="Danh mục gói dịch vụ">Dữ liệu cấu hình gói dịch vụ dùng chung. Gói bán chi tiết theo từng chuyến khởi hành được quản lý tại Gói du thuyền.</Notice>}
     {knownTypes.error && <Notice title="Chưa cập nhật được các loại đang dùng" tone="warning">Bạn vẫn có thể chọn các loại có sẵn.<Button tone="secondary" onClick={knownTypes.retry}>Tải lại loại</Button></Notice>}
     {!allowed && <Notice title="Chưa có quyền lưu" tone="warning">{access.error || 'Đang tải quyền hoặc tài khoản chưa được cấp quyền thao tác này.'}</Notice>}
     {[
@@ -81,9 +81,29 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
     </Field>)}
     </FormSection>)}
     {kind==='services'&&<FormSection title="Cách phục vụ" description="Cấu hình này quyết định dịch vụ có cần lịch đặt chỗ và đơn vị sử dụng nào.">
-      <Field htmlFor="catalog-schedule" label="Đặt dịch vụ theo lịch"><select id="catalog-schedule" disabled={busy} value={draft.requiresSchedule} onChange={e=>setDraft({...draft,requiresSchedule:e.target.value})}><option value="">Chưa thay đổi cấu hình nguồn</option><option value="true">Cần lịch đặt trước</option><option value="false">Không bắt buộc lịch đặt trước</option></select></Field>
+      <Field htmlFor="catalog-schedule" label="Đặt dịch vụ theo lịch" error={errors.requiresSchedule}><select id="catalog-schedule" name="requiresSchedule" disabled={busy} value={draft.requiresSchedule} onChange={e=>setDraft({...draft,requiresSchedule:e.target.value})}><option value="">Chưa thay đổi cấu hình nguồn</option><option value="true">Cần lịch đặt trước</option><option value="false">Không bắt buộc lịch đặt trước</option></select></Field>
       <Field htmlFor="catalog-category" label="Nhóm dịch vụ"><select id="catalog-category" disabled={busy||categories.loading||Boolean(categories.error)} value={draft.categoryId} onChange={e=>setDraft({...draft,categoryId:e.target.value})}><option value="">Chưa chọn nhóm</option>{categories.data?.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>{categories.error&&<Button tone="text" onClick={categories.retry}>Tải lại nhóm dịch vụ</Button>}</Field>
       <Field htmlFor="catalog-unit" label="Đơn vị phục vụ" error={errors.unitCode} hint="Nhập đúng đơn vị của dịch vụ. Quyền lợi và số lượng phục vụ sẽ dùng nguyên đơn vị này, không tự quy đổi."><input id="catalog-unit" name="unitCode" maxLength={30} disabled={busy} value={draft.unitCode} onChange={e=>setDraft({...draft,unitCode:e.target.value})}/></Field>
+    </FormSection>}
+    {kind === 'services' && <FormSection title="Giai đoạn phục vụ và định mức">
+      {(Object.keys(servicePurchaseFlags) as (keyof typeof servicePurchaseFlags)[]).map(key =>
+        <Field key={key} htmlFor={`catalog-${key}`} label={servicePurchaseFlags[key]} error={errors[key]}>
+          <select id={`catalog-${key}`} name={key} value={draft[key]} onChange={e => setDraft({...draft,[key]:e.target.value})}>
+            <option value="">{initial ? 'Giữ cấu hình hiện tại' : 'Theo cấu hình hệ thống'}</option><option value="true">Có</option><option value="false">Không</option>
+          </select>
+        </Field>)}
+      <Field htmlFor="catalog-usage-policy" label="Định mức trước chuyến">
+        <select id="catalog-usage-policy" value={draft.preCruiseUsagePolicy} onChange={e => setDraft({...draft,preCruiseUsagePolicy:e.target.value as CatalogDraft['preCruiseUsagePolicy']})}>
+          <option value="">{initial ? 'Giữ cấu hình hiện tại' : 'Theo cấu hình hệ thống'}</option>
+          {Object.entries(serviceUsagePolicyLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+      </Field>
+      {draft.preCruiseUsagePolicy && draft.preCruiseUsagePolicy !== 'UNLIMITED' && <Field htmlFor="catalog-usage-limit" label="Định mức tối đa" error={errors.preCruiseUsageLimit}>
+        <input id="catalog-usage-limit" name="preCruiseUsageLimit" type="number" min={1} step={1} value={draft.preCruiseUsageLimit} onChange={e=>setDraft({...draft,preCruiseUsageLimit:e.target.value})} />
+      </Field>}
+      <Field htmlFor="catalog-usage-zone" label="Múi giờ tính định mức" error={errors.usageTimeZone} hint="Mã múi giờ IANA, ví dụ Asia/Ho_Chi_Minh.">
+        <input id="catalog-usage-zone" name="usageTimeZone" maxLength={100} value={draft.usageTimeZone} onChange={e=>setDraft({...draft,usageTimeZone:e.target.value})} />
+      </Field>
     </FormSection>}
     <div className={styles.fullRow}><Field htmlFor="catalog-description" label="Mô tả" error={errors.description}><textarea id="catalog-description" name="description" maxLength={1000} disabled={busy} value={draft.description} onChange={event => setDraft({ ...draft, description: event.target.value })} /></Field></div>
     </fieldset>{error && <Notice title="Chưa lưu được danh mục" tone="error">{error}{uncertain&&<Button tone="secondary" disabled={busy} onClick={()=>void reconcile()}>Đối chiếu kết quả đã lưu</Button>}</Notice>}

@@ -13,7 +13,7 @@ export function PublicCruiseBookingEntry({cruiseId}:{cruiseId:string}) {
   return <div aria-live="polite">
     {query.loading&&<p role="status">Đang kiểm tra khả năng nhận đặt chỗ…</p>}
     {query.error&&<><p role="status">{publicContentFailure(query.error)}</p><Button tone="secondary" onClick={query.retry}>Kiểm tra lại đặt chỗ</Button></>}
-    {!query.loading&&!query.error&&query.data&&(query.data.sellable
+    {!query.loading&&!query.error&&query.data&&(query.data.sellable&&query.data.transactionReady
       ? <ButtonLink to={'/booking/cabin-experience?'+new URLSearchParams({cruiseId})}>Chọn gói và cabin</ButtonLink>
       : <p>Chuyến đã được công bố; hiện hệ thống chưa cho phép tạo đặt chỗ. Vui lòng kiểm tra lại sau.</p>)}
   </div>

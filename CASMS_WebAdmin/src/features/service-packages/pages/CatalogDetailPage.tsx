@@ -11,7 +11,7 @@ import { CatalogFrame, CatalogState } from '../components/CatalogUI'
 import { CatalogActions } from '../components/CatalogActions'
 import { PackageBenefitsEditor } from '../components/PackageBenefitsEditor'
 import { ServiceRequestActions } from '../components/ServiceRequestActions'
-import { benefitLabels, catalogTime, catalogConfig, statusLabels, type CatalogKind } from '../model/catalog'
+import { benefitLabels, catalogTime, catalogConfig, servicePurchaseFlags, serviceUsagePolicyLabels, statusLabels, type CatalogKind } from '../model/catalog'
 import styles from '../components/Catalog.module.css'
 function ServiceAvailability({ id }: { id: string }) {
   const query = useReadQuery('service-availability:' + id, useCallback(signal => servicePackageApi.availability(id, signal), [id]))
@@ -45,6 +45,13 @@ function CatalogDetail({ kind }: { kind: CatalogKind }) {
       ['Mã', item.code], ['Loại', item.type], ['Trạng thái', <Badge label={statusLabels[item.status] ?? item.status} tone={item.status === 'ACTIVE' ? 'success' : 'neutral'} />],
       ['Giá', item.price == null ? 'Chưa cấu hình' : `${item.price.toLocaleString('vi-VN')} ${item.currency ?? ''}`],
       ...(kind === 'services' ? [['Sức chứa cấu hình', item.capacity ?? 'Chưa cấu hình'] as const,['Lịch đặt trước',item.requiresSchedule===true?'Bắt buộc':item.requiresSchedule===false?'Không bắt buộc':'Chưa xác định'] as const,['Nhóm dịch vụ',item.categoryName??'Chưa chọn nhóm'] as const,['Đơn vị phục vụ',item.unitCode??'Chưa cấu hình'] as const] : []),
+      ...(kind === 'services' ? [
+        ...(Object.keys(servicePurchaseFlags) as (keyof typeof servicePurchaseFlags)[]).map(key =>
+          [servicePurchaseFlags[key], item[key] == null ? 'Chưa xác định' : item[key] ? 'Có' : 'Không'] as const),
+        ['Định mức trước chuyến', item.preCruiseUsagePolicy ? serviceUsagePolicyLabels[item.preCruiseUsagePolicy] : 'Chưa xác định'] as const,
+        ['Số lượng tối đa', item.preCruiseUsageLimit ?? '—'] as const,
+        ['Múi giờ tính định mức', item.usageTimeZone ?? 'Chưa cấu hình'] as const,
+      ] : []),
       ...(kind === 'packages' ? [['Thời hạn sử dụng', `${item.startDate ?? 'Chưa xác định'} → ${item.endDate ?? 'Chưa xác định'}`] as const] : []),
       ['Mô tả', item.description || 'Chưa có mô tả'],
     ]} /></Panel>
@@ -63,7 +70,11 @@ export function ServiceRequestDetailPage() {
   return <CatalogFrame><Link className={styles.backLink} to="/admin/service-requests">← Yêu cầu dịch vụ</Link><PageHeader breadcrumb="DỊCH VỤ TÀU / YÊU CẦU" title="Chi tiết yêu cầu dịch vụ"  /><CatalogState {...query} />
     {request && <><ServiceRequestActions key={request.id} request={request} onChanged={query.retry} /><Panel title="Thông tin yêu cầu"><RecordFacts entries={[
       ['Trạng thái', statusLabels[request.status] ?? request.status], ['Số lượng', request.quantity],
-      ['Đơn giá lúc đặt', request.unitPriceSnapshot != null && request.currencySnapshot ? `${request.unitPriceSnapshot} ${request.currencySnapshot}` : 'Chưa ghi nhận'],
+      ['Giá tham chiếu danh mục', request.unitPriceSnapshot != null && request.currencySnapshot ? `${request.unitPriceSnapshot} ${request.currencySnapshot}` : 'Chưa ghi nhận'],
+      ['Kênh sử dụng', request.usageMode === 'PRE_CRUISE' ? 'Trước chuyến' : request.usageMode === 'ONBOARD' ? 'Trên tàu' : 'Yêu cầu cũ'],
+      ['Quyền lợi trong gói', request.fareBenefitSnapshotId ? 'Đã liên kết quyền lợi gói du thuyền' : 'Chưa ghi nhận quyền lợi gói du thuyền'],
+      ['Đã phục vụ', request.fulfilledQuantity == null ? 'Chưa ghi nhận' : `${request.fulfilledQuantity} ${request.fulfillmentUnitCode ?? ''}`],
+      ['Định mức tại thời điểm yêu cầu', request.usagePolicySnapshot ? `${serviceUsagePolicyLabels[request.usagePolicySnapshot]}${request.usageLimitSnapshot == null ? '' : ` · ${request.usageLimitSnapshot}`}${request.usageTimeZoneSnapshot ? ` · ${request.usageTimeZoneSnapshot}` : ''}` : 'Chưa ghi nhận'],
       ['Đặt theo lịch', request.scheduleId ? 'Đã chọn khung giờ khi đặt' : 'Không có khung giờ liên kết'],
       ['Yêu cầu lúc', catalogTime(request.requestTime)], ['Hoàn thành lúc', catalogTime(request.completedAt)],
       ['Phân công', request.assignedUserId ? 'Đã phân công nhân viên' : 'Chưa phân công'], ['Ghi chú', request.note || 'Không có ghi chú'],
