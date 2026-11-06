@@ -97,7 +97,7 @@ export function DepartureSaleTerms({ cruiseId, refreshKey, onChanged, focusOnMou
   }, [focusOnMount, allowed])
   const data = terms.data
   const fresh = Boolean(data && !terms.loading && !terms.error)
-  const editable = fresh && data?.status !== 'PENDING_APPROVAL'
+  const editable = fresh && data?.status !== 'PENDING_APPROVAL' && (!unified || Boolean(data?.planStatus && ['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.planStatus)))
   const events = history.data ?? []
   // The API omits allowedActions. Use the state and known makers to hide invalid actions. Backend checks every request.
   const currentDraftEvents = events.filter(event => event.evidence.snapshot.revision <= (data?.revision ?? 0))

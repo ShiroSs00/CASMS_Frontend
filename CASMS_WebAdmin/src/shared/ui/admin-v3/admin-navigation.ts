@@ -33,10 +33,10 @@ const tools: readonly AdminNavigationItem[] = [
   { label:'Hoạt động trên tàu', to:'/admin/activities', permissionMode:'ANY', permissions:['ACTIVITY_READ'] },
   { label:'Dịch vụ', to:'/admin/services', permissionMode:'ANY', permissions:['SERVICE_READ'] },
   { label:'Sản phẩm', to:'/admin/products', permissionMode:'ANY', permissions:['PRODUCT_MANAGE'] },
-  { label:'Gói dịch vụ cũ', to:'/admin/service-packages', permissionMode:'ANY', permissions:['TOUR_PACKAGE_MANAGE','PACKAGE_COMPONENT_MANAGE'] },
+  { label:'Gói dịch vụ', to:'/admin/service-packages', permissionMode:'ANY', permissions:['TOUR_PACKAGE_MANAGE','PACKAGE_COMPONENT_MANAGE'] },
   { label:'Mẫu gói du thuyền', to:'/admin/cruise-package-templates', permissionMode:'ALL', permissions:['TOUR_PACKAGE_MANAGE'] },
   { label:'Yêu cầu dịch vụ', to:'/admin/service-requests', permissionMode:'ANY', permissions:['SERVICE_REQUEST_READ','SERVICE_REQUEST_CREATE'] },
-  { label:'Phân bổ gói cũ', to:'/admin/package-assignments', permissionMode:'ANY', permissions:['TOUR_PACKAGE_ASSIGN','BOOKING_READ'] },
+  { label:'Phân bổ gói dịch vụ', to:'/admin/package-assignments', permissionMode:'ANY', permissions:['TOUR_PACKAGE_ASSIGN','BOOKING_READ'] },
   { label:'Check-in', to:'/admin/staff/checkin', permissionMode:'ANY', permissions:['CHECKIN_READ','CHECKIN_CREATE','CHECKIN_UPDATE'] },
   { label:'Tài chính', to:'/admin/staff/finance', permissionMode:'ANY', permissions:['PAYMENT_READ','PAYMENT_REPORT'] },
 ]
@@ -58,7 +58,7 @@ export const adminWorkspaces: readonly AdminWorkspace[] = [
     responsibility:'Hoạt động · Dịch vụ · Tour trên bờ', permissions:['ACTIVITY_READ','SERVICE_READ','EXCURSION_READ'],
     tools:['activities','services','products','service-packages','cruise-package-templates','service-requests','package-assignments','suppliers','shore-excursions','tour-groups'],
     steps:['Chuẩn bị hoạt động trên tàu và tour ghé cảng.','Cấu hình dịch vụ, sản phẩm, gói và quyền lợi.','Quản lý đăng ký, phân nhóm và điểm danh.','Theo dõi yêu cầu phục vụ và trạng thái hoạt động.'],
-    action:{label:'Tạo hoạt động',to:'/admin/activities/new',permission:'ACTIVITY_CREATE'} },
+    action:{label:'Tạo hoạt động dùng chung',to:'/admin/activities/new',permission:'ACTIVITY_CREATE'} },
 ]
 export const adminNavigation = [{label:'CÔNG VIỆC VÀ TRA CỨU',items:tools}]
 export function canOpenAdminItem(item: AdminNavigationItem, access: AdminAccess) {
@@ -210,7 +210,7 @@ export function roleNavigationGroups(roles: readonly string[], access: AdminAcce
       {id:'catalog',label:'Nội dung và mẫu gói',sections:['cruise-package-templates','services','products']},
       {id:'fulfillment',label:'Đăng ký và phục vụ',sections:['activity-registrations','tour-groups','service-requests']},
       {id:'partners',label:'Đối tác',sections:['suppliers']},
-      {id:'legacy',label:'Dữ liệu gói cũ',sections:['service-packages','package-assignments']},
+      {id:'legacy',label:'Gói dịch vụ & phân bổ',sections:['service-packages','package-assignments']},
     ]
     const result:AdminNavigationGroup[]=groups.map(g=>({id:g.id,label:g.label,items:g.sections.flatMap(section=>items.filter(i=>i.to==='/admin/'+section))})).filter(g=>g.items.length>0)
     const covered=new Set(result.flatMap(g=>g.items.map(i=>i.to)))

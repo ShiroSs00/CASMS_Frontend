@@ -14,7 +14,25 @@ function record<T extends { id: string }>(value: unknown, status: number, reques
       || ('scheduleId' in value && value.scheduleId != null && (typeof value.scheduleId !== 'string' || !value.scheduleId))
       || ('unitPriceSnapshot' in value && value.unitPriceSnapshot != null && (typeof value.unitPriceSnapshot !== 'number' || !Number.isFinite(value.unitPriceSnapshot) || value.unitPriceSnapshot < 0))
       || ('currencySnapshot' in value && value.currencySnapshot != null && (typeof value.currencySnapshot !== 'string' || !/^[A-Z]{3}$/.test(value.currencySnapshot)))))) throw new ApiError('Không đọc được thông tin dịch vụ.', status)
-  if(request&&'fareBenefitSnapshotId' in value&&value.fareBenefitSnapshotId!=null){if(typeof value.fareBenefitSnapshotId!=='string'||!('fulfillmentUnitCode' in value)||value.fulfillmentUnitCode!=null&&typeof value.fulfillmentUnitCode!=='string'||!('fulfilledQuantity' in value)||value.fulfilledQuantity!=null&&(!Number.isSafeInteger(value.fulfilledQuantity)||(value.fulfilledQuantity as number)<0)||!('unitPriceSnapshot' in value)||value.unitPriceSnapshot!==0)throw new ApiError('Dữ liệu fulfillment quyền lợi không hợp lệ.',status)}
+  if (!request && (
+    ['canBuyPreCruise', 'canBuyOnboard', 'canSellIndependently', 'requiresSchedule'].some(key => {
+      const flag = (value as Record<string, unknown>)[key]
+      return flag != null && typeof flag !== 'boolean'
+    })
+    || ('unitCode' in value && value.unitCode != null && typeof value.unitCode !== 'string')
+    || ('preCruiseUsagePolicy' in value && value.preCruiseUsagePolicy != null && !['UNLIMITED', 'PER_DAY', 'PER_CRUISE'].includes(String(value.preCruiseUsagePolicy)))
+    || ('preCruiseUsageLimit' in value && value.preCruiseUsageLimit != null && (!Number.isSafeInteger(value.preCruiseUsageLimit) || Number(value.preCruiseUsageLimit) < 1))
+    || ('usageTimeZone' in value && value.usageTimeZone != null && typeof value.usageTimeZone !== 'string')
+  )) throw new ApiError('Cấu hình dịch vụ không hợp lệ.', status)
+  if (request && (
+    ('fareBenefitSnapshotId' in value && value.fareBenefitSnapshotId != null && typeof value.fareBenefitSnapshotId !== 'string')
+    || ('fulfillmentUnitCode' in value && value.fulfillmentUnitCode != null && typeof value.fulfillmentUnitCode !== 'string')
+    || ('fulfilledQuantity' in value && value.fulfilledQuantity != null && (!Number.isSafeInteger(value.fulfilledQuantity) || Number(value.fulfilledQuantity) < 0))
+    || ('usageMode' in value && value.usageMode != null && !['LEGACY', 'PRE_CRUISE', 'ONBOARD'].includes(String(value.usageMode)))
+    || ('usagePolicySnapshot' in value && value.usagePolicySnapshot != null && !['UNLIMITED', 'PER_DAY', 'PER_CRUISE'].includes(String(value.usagePolicySnapshot)))
+    || ('usageLimitSnapshot' in value && value.usageLimitSnapshot != null && (!Number.isSafeInteger(value.usageLimitSnapshot) || Number(value.usageLimitSnapshot) < 1))
+    || ('usageTimeZoneSnapshot' in value && value.usageTimeZoneSnapshot != null && typeof value.usageTimeZoneSnapshot !== 'string')
+  )) throw new ApiError('Dữ liệu thực hiện dịch vụ không hợp lệ.', status)
   const row=value as Record<string,unknown>
   if(!request&&(row.requiresSchedule!=null&&typeof row.requiresSchedule!=='boolean'||['categoryId','categoryName','unitCode','applicabilityScope'].some(key=>row[key]!=null&&typeof row[key]!=='string')))throw new ApiError('Cấu hình lịch, nhóm hoặc đơn vị dịch vụ không hợp lệ.',status)
   return value as T

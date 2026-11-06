@@ -18,6 +18,7 @@ import { useTourMutation, useTourResource } from '../hooks/useTourResource'
 import { canPrepareGroup, displayTime, groupStatuses, groupStatusLabels, isUuid, type GroupRequest, type TourGroup } from '../model/tour-group'
 
 const root = '/admin/tour-groups'
+const groupListFor = (excursionId: string) => `${root}?excursionId=${encodeURIComponent(excursionId)}`
 export function TourGroupListPage() {
   const access = useSessionAccess()
   const excursions = useReadQuery('group-filter-excursions', listExcursionOptions)
@@ -59,7 +60,7 @@ function GroupDetail({ id }: { id: string }) {
   const load = useCallback((signal: AbortSignal) => tourGroupApi.get(id, signal), [id])
   const query = useTourResource(load), group = query.data
   const [receipt, setReceipt] = useState<PassengerReceipt | null>(null)
-  return <TourLayout><Link className={styles.link} to={root}>← Nhóm tour</Link>
+  return <TourLayout><Link className={styles.link} to={group ? groupListFor(group.shoreExcursionId) : root}>← Nhóm tour</Link>
     {receipt && <Notice title="Đã cập nhật phân công"><p>{receipt.message}</p>{receipt.targetId && <Link className={styles.link} to={`${root}/${receipt.targetId}`}>Xem nhóm đích {receipt.targetCode}</Link>}</Notice>}
     {query.loading ? <Loading label="Đang tải chi tiết nhóm…" /> : query.error != null ? <TourError error={query.error} onRetry={query.reload} /> : group && <>
       <PageHeader breadcrumb="Dịch vụ bờ / Nhóm tour" title={`Nhóm ${group.groupCode}`} description={group.excursionName} actions={<div className={styles.detailToolbar}>
@@ -87,7 +88,8 @@ export function TourGroupFormPage() {
   const { groupId } = useParams()
   const [search] = useSearchParams()
   const excursionId = search.get('excursionId')?.trim() ?? ''
-  return <TourLayout><Link className={styles.link} to={root}>← Nhóm tour</Link><PageHeader breadcrumb="Dịch vụ bờ / Nhóm tour" title={groupId ? 'Chỉnh sửa nhóm tour' : 'Tạo nhóm tour'}  />{groupId ? <EditGroup key={groupId} id={groupId} /> : <SaveGroup key={excursionId} initialExcursionId={excursionId} />}</TourLayout>
+  const back = groupId ? `${root}/${groupId}` : isUuid(excursionId) ? groupListFor(excursionId) : root
+  return <TourLayout><Link className={styles.link} to={back}>← {groupId ? 'Chi tiết nhóm' : 'Nhóm tour'}</Link><PageHeader breadcrumb="Dịch vụ bờ / Nhóm tour" title={groupId ? 'Chỉnh sửa nhóm tour' : 'Tạo nhóm tour'}  />{groupId ? <EditGroup key={groupId} id={groupId} /> : <SaveGroup key={excursionId} initialExcursionId={excursionId} />}</TourLayout>
 }
 function EditGroup({ id }: { id: string }) {
   const load = useCallback((signal: AbortSignal) => tourGroupApi.get(id, signal), [id])

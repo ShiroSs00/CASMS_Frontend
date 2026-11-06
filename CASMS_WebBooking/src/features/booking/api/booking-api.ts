@@ -18,7 +18,7 @@ export const liveCruiseCatalogApi = {
   const row=value as Record<string,unknown>
   if(row.cruiseId!==id||typeof row.sellable!=='boolean'||typeof row.saleState!=='string'||!['OPEN_FOR_SALE','STOPPED','NOT_YET_OPEN','DEPARTED','SOLD_OUT','DRAFT','CANCELLED'].includes(row.saleState)
    ||row.sellable!==(row.saleState==='OPEN_FOR_SALE')||row.evaluatedAt!=null&&(typeof row.evaluatedAt!=='string'||!Number.isFinite(Date.parse(row.evaluatedAt))))throw new ApiError('Trạng thái bán chưa khớp chuyến khởi hành.',502)
-  return {saleState:row.saleState,sellable:row.sellable,evaluatedAt:typeof row.evaluatedAt==='string'?row.evaluatedAt:null}
+  return {saleState:row.saleState,sellable:row.sellable,transactionReady:typeof row.transactionReady==='boolean'?row.transactionReady:row.sellable,evaluatedAt:typeof row.evaluatedAt==='string'?row.evaluatedAt:null}
  },
  async list(page:number, signal?:AbortSignal, cruiseType?: 'ONE_DAY' | 'MULTI_DAYS') {
   const data = await apiRequest<LiveCruisePageDto>('/cruise', {

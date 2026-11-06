@@ -2,7 +2,7 @@ import type { UserMe } from '../passenger-actions/passenger-types';
 
 export type Product = { id: string; code: string; name: string; description: string | null; type: string; price: number; currency: string; status: string };
 export type ProductForm = { code: string; name: string; description: string; type: string; price: string; currency: string };
-export type StaffRequest = { id: string; serviceId: string; quantity: number; note: string | null; status: string; assignedUserId: string | null; requestTime: string; completedAt: string | null; bookingId: string | null };
+export type StaffRequest = { fareBenefitSnapshotId?: string | null; fulfillmentUnitCode?: string | null; fulfilledQuantity?: number | null; id: string; serviceId: string; quantity: number; note: string | null; status: string; assignedUserId: string | null; requestTime: string; completedAt: string | null; bookingId: string | null };
 export type RequestAction = 'assign' | 'accept' | 'reject' | 'start' | 'complete';
 export const requestActionLabels: Record<RequestAction, string> = { assign: 'Nhận phân công', accept: 'Tiếp nhận yêu cầu', reject: 'Từ chối yêu cầu', start: 'Bắt đầu thực hiện', complete: 'Hoàn tất yêu cầu' };
 export function isOnboardStaff(roles: readonly string[] | undefined) { return !!roles?.includes('ONBOARD_STAFF'); }

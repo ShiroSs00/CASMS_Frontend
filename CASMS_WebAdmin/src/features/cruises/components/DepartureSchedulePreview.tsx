@@ -9,7 +9,23 @@ import { scheduleInstant } from '../model/cruise-validation'
 import { ReadState, ScheduleContents } from './DepartureData'
 import styles from './DepartureSchedulePreview.module.css'
 
-export function DepartureSchedulePreview({ sourceVersionId, departure, contextKey, disabled, onApply, sourceEntries=[] }: { sourceEntries?:readonly {entryId?:string;clientKey:string;title:string}[];sourceVersionId: string; departure: string; contextKey: string; disabled: boolean; onApply: (schedule: DepartureSchedule) => void }) {
+export function DepartureSchedulePreview({
+  sourceVersionId,
+  departure,
+  contextKey,
+  disabled,
+  onApply,
+  sourceEntries=[],
+  inline=false
+}: {
+  sourceEntries?:readonly {entryId?:string;clientKey:string;title:string}[];
+  sourceVersionId: string;
+  departure: string;
+  contextKey: string;
+  disabled: boolean;
+  onApply: (schedule: DepartureSchedule) => void;
+  inline?: boolean;
+}) {
   const entryTitles=Object.fromEntries(sourceEntries.flatMap(entry=>[[entry.clientKey,entry.title],...(entry.entryId?[[entry.entryId,entry.title]]:[])]))
   const [request, setRequest] = useState<{ key: string; sourceVersionId: string; instant: string } | null>(null)
   const [error, setError] = useState('')
@@ -39,13 +55,12 @@ export function DepartureSchedulePreview({ sourceVersionId, departure, contextKe
     setOpenKey(null)
   }
 
-  return <Panel title="Xem trước lịch theo ngày thực tế" >
-    <Button tone="secondary" disabled={disabled || Boolean(current && query.loading)} onClick={preview}>Xem trước lịch</Button>
-    {error && <Notice title="Chưa xem trước được" tone="error">{error}</Notice>}
-    {appliedKey === key && <p className={styles.applied} role="status">Đã áp dụng ngày kết thúc và cảng khởi hành từ lịch xem trước.</p>}
-    {current && openKey === key && <Modal large protectChanges={false} title="Xem trước lịch trình" description="Ngày thực tế được tính từ lịch trình đã chốt. Giờ cảng theo múi giờ địa phương." onClose={() => setOpenKey(null)} footer={<>
+  const isApplied = appliedKey === key
+
+  const modal = current && openKey === key && (
+    <Modal large protectChanges={false} title="Xem trước lịch trình thực tế" description="Ngày thực tế được tính từ lịch trình đã chốt. Giờ cảng theo múi giờ địa phương." onClose={() => setOpenKey(null)} footer={<>
       <Button tone="secondary" onClick={() => setOpenKey(null)}>Đóng</Button>
-      <Button disabled={!canApply} onClick={apply}>Áp dụng lịch này</Button>
+      <Button disabled={!canApply} tone="primary" onClick={apply}>Áp dụng lịch này</Button>
     </>}>
       {sourceError?<Notice title="Lịch trình nguồn chưa hợp lệ" tone="error"><p>{sourceError.message}</p>{sourceName&&<p>Chương trình: <strong>{sourceName}</strong></p>}</Notice>:<ReadState {...query} />}
       {!query.loading && !query.error && query.data && <div className={styles.content}>
@@ -53,6 +68,31 @@ export function DepartureSchedulePreview({ sourceVersionId, departure, contextKe
         {!validBasis && <Notice title="Chưa thể áp dụng lịch xem trước" tone="warning">Cơ sở giờ tàu hoặc phiên dữ liệu nguồn chưa đầy đủ. Cần hệ thống xác nhận lại lịch trước khi tạo chuyến khởi hành.</Notice>}
         <ItineraryDayBrowser days={query.data.days}>{day=><ScheduleContents schedule={query.data!} preview selectedDay={day} entryTitles={entryTitles}/>}</ItineraryDayBrowser>
       </div>}
-    </Modal>}
+    </Modal>
+  )
+
+  if (inline) {
+    return (
+      <div className={styles.inlinePreviewContainer}>
+        <Button
+          type="button"
+          tone={isApplied ? "secondary" : "primary"}
+          disabled={disabled || !departure || Boolean(current && query.loading)}
+          onClick={preview}
+        >
+          {isApplied ? 'Xem lại lịch trình đã áp dụng' : 'Xem trước & áp dụng lịch trình'}
+        </Button>
+        {error && <Notice title="Chưa xem trước được" tone="error">{error}</Notice>}
+        {isApplied && <p className={styles.applied} role="status">✓ Đã áp dụng ngày kết thúc và cảng khởi hành từ lịch xem trước.</p>}
+        {modal}
+      </div>
+    )
+  }
+
+  return <Panel title="Xem trước lịch theo ngày thực tế">
+    <Button tone="secondary" disabled={disabled || Boolean(current && query.loading)} onClick={preview}>Xem trước lịch</Button>
+    {error && <Notice title="Chưa xem trước được" tone="error">{error}</Notice>}
+    {isApplied && <p className={styles.applied} role="status">Đã áp dụng ngày kết thúc và cảng khởi hành từ lịch xem trước.</p>}
+    {modal}
   </Panel>
 }

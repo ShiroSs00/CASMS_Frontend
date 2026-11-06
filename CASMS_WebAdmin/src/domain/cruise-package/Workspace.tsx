@@ -137,13 +137,13 @@ function TemplateWorkspace() {
   useFormChanges(Boolean(code),mutation.busy)
   const template=query.data?.find(item=>item.id===selected),disabled=mutation.busy||mutation.needsReview||query.loading||Boolean(query.error)||!query.data
   return <AdminShell><div className={styles.workspace}>
-    <PageHeader title="Mẫu gói du thuyền" description="Quản lý nội dung, hạng cabin và quyền lợi dùng chung. Phát hành phiên bản trước khi cấu hình gói cho chuyến." breadcrumb="HOẠT ĐỘNG VÀ DỊCH VỤ" actions={<Button tone="secondary" disabled={mutation.busy} onClick={refresh}>Tải lại</Button>}/>
+    <PageHeader title="Mẫu gói du thuyền" description="Quản lý nội dung, hạng cabin và quyền lợi dùng chung. Phát hành phiên bản trước khi cấu hình gói cho chuyến." breadcrumb="HOẠT ĐỘNG VÀ DỊCH VỤ" actions={canWrite && <Button tone="primary" disabled={disabled||creatingTemplate} aria-expanded={creatingTemplate} aria-controls="fare-template-create" onClick={()=>switchWorkspace(()=>{setSelected('');setCreatingTemplate(true)})}>Tạo mẫu mới</Button>}/>
     <QueryState loading={query.loading} error={query.error}/>{mutation.feedback}
     {query.error&&<div className={styles.actions}><Button tone="secondary" onClick={query.retry}>Tải lại danh sách mẫu</Button></div>}
     <Panel title="Chọn mẫu gói" className={styles.panel}>
       <div className={styles.templatePicker}>
         <Field htmlFor="fare-template-select" label="Mẫu gói du thuyền"><select id="fare-template-select" value={selected} disabled={disabled} onChange={e=>{const id=e.target.value;switchWorkspace(()=>{setSelected(id);setCode('');setCreatingTemplate(false)})}}><option value="">Chọn mẫu để xem phiên bản</option>{query.data?.map(item=><option key={item.id} value={item.id}>{item.code}</option>)}</select></Field>
-        {canWrite&&<Button tone="secondary" disabled={disabled||creatingTemplate} aria-expanded={creatingTemplate} aria-controls="fare-template-create" onClick={()=>switchWorkspace(()=>{setSelected('');setCreatingTemplate(true)})}>Tạo mẫu mới</Button>}
+        
       </div>
       {canWrite&&creatingTemplate&&<form id="fare-template-create" className={styles.templateCreate} onSubmit={async e=>{e.preventDefault();if(disabled)return;pendingTemplate.current={code:code.trim(),ids:query.data?.map(row=>row.id)??[]};await mutation.run(async()=>{const created=await cruisePackageApi.createTemplate(code.trim());if(created.code!==code.trim())throw new Error('Chưa xác nhận đúng mẫu vừa tạo.');setSelected(created.id);setNewTemplateId(created.id);setCode('');setCreatingTemplate(false)},'Đã tạo mẫu. Tiếp tục tạo phiên bản để cấu hình nội dung.')}}>
         <Field htmlFor="fare-template-code" label="Mã mẫu mới *" hint="Mã dùng để phân biệt các mẫu gói."><input ref={codeInput} id="fare-template-code" required maxLength={50} value={code} disabled={disabled} onChange={e=>setCode(e.target.value)}/></Field><Button type="submit" disabled={disabled||!code.trim()}>{mutation.busy?'Đang tạo…':'Tạo mẫu'}</Button>

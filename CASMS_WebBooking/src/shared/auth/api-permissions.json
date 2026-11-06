@@ -1,6 +1,84 @@
 [
   {
     "method": "GET",
+    "path": "/servicepackage/requests/by-operation-key",
+    "mode": "ALL",
+    "permissions": [
+      "SERVICE_REQUEST_CREATE"
+    ],
+    "source": "ServicepackageController; owner validated in ServiceRequestService"
+  },
+  {
+    "method": "GET",
+    "path": "/activities/catalog",
+    "source": "com/casms/activity/controller/ActivityController.java",
+    "mode": "ANY",
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "ACTIVITY_READ"
+        ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_UPDATE_DRAFT"
+        ],
+        "roles": [
+          "CRUISE_MANAGER"
+        ]
+      }
+    ]
+  },
+  {
+    "method": "PUT",
+    "path": "/activities/catalog/{id}",
+    "source": "com/casms/activity/controller/ActivityController.java",
+    "mode": "ALL",
+    "permissions": [
+      "ACTIVITY_UPDATE"
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-plans/{cruiseId}/activities/from-catalog",
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "method": "PUT",
+    "path": "/cruise-plans/{cruiseId}/activities/{id}/responsible-user",
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "method": "PUT",
+    "path": "/cruise-plans/{cruiseId}/serving-windows/{id}/responsible-user",
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "method": "GET",
     "path": "/cruise-package-templates/logical-categories",
     "mode": "ANY",
     "permissions": [
@@ -3761,12 +3839,14 @@
   {
     "method": "POST",
     "path": "/servicepackage/schedules",
-    "mode": "ANY",
+    "mode": "ALL",
     "permissions": [
-      "CRUISE_UPDATE_DRAFT",
-      "SERVICE_UPDATE"
+      "CRUISE_UPDATE_DRAFT"
     ],
-    "source": "com/casms/servicepackage/controller/ServicepackageController.java:51"
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:51",
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
   },
   {
     "method": "POST",

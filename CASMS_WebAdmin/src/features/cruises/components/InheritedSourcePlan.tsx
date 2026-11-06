@@ -1,6 +1,6 @@
-import {useCallback,useState} from 'react'
+import {useCallback} from 'react'
 import {useReadQuery} from '@/shared/api'
-import {Button,Loading,Modal,Notice,Panel} from '@/shared/ui'
+import {Badge,Button,Loading,Modal,Notice,Panel} from '@/shared/ui'
 import {TemplateSchedule} from '@/domain/itinerary-day'
 import {readPublishedSource,type PublishedSource} from '../api/source-version'
 import styles from './Cruises.module.css'
@@ -13,13 +13,65 @@ export function SourceScheduleDialog({versionId,source,onClose}:{versionId:strin
   {query.data&&!query.loading&&!query.error&&<><p>{query.data.tripCode} · Phiên bản {query.data.versionNumber} · {query.data.days.length} ngày</p>{query.data.tripStatus==='ARCHIVED'&&<p>Chuyến đi nguồn đã lưu trữ · Chỉ xem lịch trình đã chốt.</p>}{query.data.description&&<p>{query.data.description}</p>}<TemplateSchedule days={query.data.days} stops={query.data.stops} entries={query.data.entries}/></>}
  </Modal>
 }
-export function InheritedSourcePlan({source}:{source:PublishedSource}){
- const [open,setOpen]=useState(false)
+
+export function InheritedSourcePlan({
+ source,
+ onChangeSource,
+ disabled
+}:{
+ source:PublishedSource;
+ onChangeSource?:()=>void;
+ disabled?:boolean;
+}){
+ const durationLabel=source.durationGroup==='SHORT'
+  ?'Chuyến ngắn (1–2 ngày)'
+  :source.durationGroup==='LONG'
+   ?'Chuyến dài (3–5 ngày)'
+   :'Chuyến thông thường'
+
+ const formattedDate=source.publishedAt
+  ?new Date(source.publishedAt).toLocaleString('vi-VN',{
+    timeZone:'Asia/Ho_Chi_Minh',
+    hour:'2-digit',
+    minute:'2-digit',
+    second:'2-digit',
+    day:'2-digit',
+    month:'2-digit',
+    year:'numeric'
+   })
+  :'Chưa có thông tin'
+
  return <Panel title="Lịch trình được chọn" className={styles.inheritedPlan}>
-  <div className={styles.sourceIdentity}><h2>{source.tripName}</h2><span>{source.tripCode} · Phiên bản {source.versionNumber} · Lần cập nhật {source.revision??'Chưa xác định'} · Đã chốt lịch trình</span></div>
-  <p>Công bố lúc: {source.publishedAt?new Date(source.publishedAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}):'Chưa có thông tin'} · Người công bố: {source.publishedByName??'Chưa có thông tin'}</p>
-  <p>{source.durationGroup==='SHORT'?'Chuyến ngắn (1–2 ngày)':source.durationGroup==='LONG'?'Chuyến dài (3–5 ngày)':'Nhóm thời lượng chưa xác định'} · {source.days.length} ngày thực tế · {source.stops.length} lần ghé cảng · {source.entries.length} mục chương trình</p>
-  <Button tone="secondary" onClick={()=>setOpen(true)}>Xem lịch trình đã chốt</Button>
-  {open&&<SourceScheduleDialog versionId={source.versionId} source={source} onClose={()=>setOpen(false)}/>}
+  <div className={styles.sourceHeader}>
+   <h2 className={styles.sourceTripName}>{source.tripName}</h2>
+   <Badge tone="success" label="Đã chốt lịch trình" />
+  </div>
+
+  <dl className={styles.sourceDetailsList}>
+   <div className={styles.sourceDetailRow}>
+    <dt>Mã</dt>
+    <dd><strong>{source.tripCode}</strong></dd>
+   </div>
+   <div className={styles.sourceDetailRow}>
+    <dt>Người tạo</dt>
+    <dd>{source.publishedByName||'cruise_manager'}</dd>
+   </div>
+   <div className={styles.sourceDetailRow}>
+    <dt>Ngày tạo</dt>
+    <dd>{formattedDate}</dd>
+   </div>
+   <div className={styles.sourceDetailRow}>
+    <dt>Loại chuyến</dt>
+    <dd>{durationLabel}</dd>
+   </div>
+   <div className={styles.sourceDetailRow}>
+    <dt>Trạng thái</dt>
+    <dd><Badge tone="success" label="Đã chốt lịch trình" /></dd>
+   </div>
+  </dl>
+
+  <div className={styles.sourceActions}>
+   {onChangeSource&&<Button tone="secondary" disabled={disabled} onClick={onChangeSource}>Đổi lịch trình khác</Button>}
+  </div>
  </Panel>
 }
