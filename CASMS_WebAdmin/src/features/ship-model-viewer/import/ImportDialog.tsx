@@ -1,9 +1,11 @@
 import { ImportPreviewDetails } from './ImportPreviewDetails'
-import { useCallback, useId, useRef, useState, type SubmitEvent } from 'react'
+import { useCallback, useId, useRef, useState, type ReactNode, type SubmitEvent } from 'react'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { shipImportApi } from './api'
-import { Button, Field, Modal, Notice } from '@/shared/ui'
+import { shipProfilePayload, validateShipProfile, type ShipProfile } from '@/shared/lib/ship-profile'
+import { shipImportApi, type ShipProvisionFields } from './api'
+import { Button, Field, FormSection, Modal, Notice } from '@/shared/ui'
+import { ShipProfileFields } from '@/shared/ui/ShipProfileFields'
 import { importSteps, validateBundle, validateZip, type ImportSession } from './model'
 import styles from './ShipImport.module.css'
 
@@ -13,9 +15,10 @@ type ImportDialogProps = {
   busy: string
   error: string
   allowed: boolean
+  importStatus?: ReactNode
   permissions: { upload: boolean; register: boolean; import: boolean }
   onPrepare: (draft: ImportSession, file: File | null) => Promise<void>
-  onRegister: (supplements?:Record<string,string|number>) => Promise<void>
+  onRegister: (supplements: ShipProvisionFields) => Promise<void>
   onImport: () => Promise<void>
   onChooseBundle: () => void
   onClose: () => void
@@ -23,13 +26,18 @@ type ImportDialogProps = {
 
 const fileSize = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 })
 
-export function ImportDialog({ embedded=false, session, busy, error, allowed, permissions, onPrepare, onRegister, onImport, onChooseBundle, onClose }: ImportDialogProps) {
+export function ImportDialog({ embedded=false, session, busy, error, allowed, importStatus, permissions, onPrepare, onRegister, onImport, onChooseBundle, onClose }: ImportDialogProps) {
   const canReadShip = useSessionAccess().canDo('SHIP_READ')
   const [modelKey, setModelKey] = useState(session.modelKey)
   const [storedSelection, setStoredSelection] = useState(session.modelKey)
   const [stored, setStored] = useState(!permissions.upload && permissions.register)
   const [file, setFile] = useState<File | null>(null)
   const [supplements,setSupplements]=useState<Record<string,string|number>>({})
+  const [profile, setProfile] = useState<ShipProfile>({})
+  const profileErrors = validateShipProfile(profile)
+  const changeProfile = <K extends keyof ShipProfile>(key: K, value: ShipProfile[K]) => {
+    setProfile(current => ({ ...current, [key]: value }))
+  }
   const loadStored=useCallback((signal:AbortSignal)=>stored&&permissions.register?shipImportApi.stored(signal):Promise.resolve([]),[stored,permissions.register])
   const models=useReadQuery(`stored-models:${stored}`,loadStored)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -85,15 +93,18 @@ export function ImportDialog({ embedded=false, session, busy, error, allowed, pe
       </Button>}
       {stage === 1 && (permissions.upload || permissions.register) && <Button
         tone="secondary" disabled={Boolean(busy) || !allowed}
-        onClick={() => { setStored(!permissions.upload); setFile(null); setErrors({}); setSupplements({}); onChooseBundle(); heading.current?.focus() }}>
+        onClick={() => { setStored(!permissions.upload); setFile(null); setErrors({}); setSupplements({}); setProfile({}); onChooseBundle(); heading.current?.focus() }}>
         Chọn mô hình khác
       </Button>}
       {stage === 0 && (stored ? permissions.register : permissions.upload) && <Button
         type="submit" form={formId} disabled={Boolean(busy) || !allowed}>
         {busy || (stored ? 'Dùng mô hình đã tải' : 'Tải mô hình lên')}
       </Button>}
-      {stage === 1 && permissions.register && <Button disabled={Boolean(busy) || !allowed || preview.loading || !preview.data || !supplementReady}
-        onClick={() => void onRegister(Object.fromEntries(missing.map(([key]) => [key, key === 'shipName' ? String(supplements[key]).trim() : supplements[key]])))}>
+      {stage === 1 && permissions.register && <Button disabled={Boolean(busy) || !allowed || preview.loading || !preview.data || !supplementReady || Object.keys(profileErrors).length > 0}
+        onClick={() => void onRegister({
+          ...Object.fromEntries(missing.map(([key]) => [key, key === 'shipName' ? String(supplements[key]).trim() : supplements[key]])),
+          ...shipProfilePayload(profile),
+        })}>
         {busy || 'Xác nhận tạo tàu'}
       </Button>}
       {stage === 2 && permissions.import && <Button disabled={Boolean(busy) || !allowed} onClick={() => void onImport()}>
@@ -168,9 +179,13 @@ export function ImportDialog({ embedded=false, session, busy, error, allowed, pe
       </form> : <>
         <ImportPreviewDetails session={session} preview={preview}/>
         {stage===1&&missing.length>0&&<div className={styles.fields}>{missing.map(([key,label])=><Field key={key} htmlFor={`supplement-${key}`} label={`${label} *`}><input id={`supplement-${key}`} name={key} autoComplete="off" type={key==='shipName'?'text':'number'} min={1} maxLength={key==='shipName'?100:undefined} disabled={Boolean(busy)} value={supplements[key]??''} onChange={event=>setSupplements(current=>({...current,[key]:key==='shipName'||!event.target.value?event.target.value:Number(event.target.value)}))} required/></Field>)}</div>}
+        {stage === 1 && permissions.register && preview.data && <FormSection title="Thông tin hồ sơ tàu (tùy chọn)">
+          <ShipProfileFields profile={profile} errors={profileErrors} disabled={Boolean(busy)} onChange={changeProfile} />
+        </FormSection>}
         {stage === 2 && <div className={styles.inlineConfirmation} role="status">
           {session.registration?.shipCreated ? 'Đã tạo hồ sơ tàu' : 'Đã cập nhật liên kết mô hình'}
         </div>}
+        {stage === 2 && importStatus}
       </>}
     </div>
   )

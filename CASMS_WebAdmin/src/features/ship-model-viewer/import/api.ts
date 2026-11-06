@@ -1,4 +1,5 @@
 import { apiAsset, apiRequest, ApiError } from '@/shared/api'
+import type { ShipProfile } from '@/shared/lib/ship-profile'
 import type { ImportIssue, ImportJob, ImportSession, ModelScope, Registration } from './model'
 
 const segment = encodeURIComponent
@@ -20,7 +21,8 @@ export type ImportPreview = {
   decks:Array<{id:string;number:number;name:string}>;serviceDecks?:Array<{id:string;number:number;name:string}>
   cabins:Array<{deckId:string;cabinNumber:string}>;areas?:Array<{deckId:string;id?:string;name?:string;kind?:string}>
 }
-export type PreviewShip = {shipId:string;shipName:string;shipCode:string;totalCapacity?:number;totalDecks?:number;lengthMeters?:number;beamMeters?:number;commissionDate?:string}
+export type PreviewShip = ShipProfile & {shipId:string;shipName:string;shipCode:string;totalCapacity?:number;totalDecks?:number;lengthMeters?:number;beamMeters?:number;commissionDate?:string}
+export type ShipProvisionFields = ShipProfile & { shipName?: string; totalCapacity?: number; totalDecks?: number }
 function decodePreview(data: ImportPreview) {
   if(!data||!Array.isArray(data.decks)||!Array.isArray(data.cabins)||data.decks.some(d=>!d||typeof d.id!=='string'||typeof d.name!=='string'||!Number.isFinite(d.number))||data.cabins.some(c=>!c||typeof c.deckId!=='string'||typeof c.cabinNumber!=='string')||(data.serviceDecks!==undefined&&(!Array.isArray(data.serviceDecks)||data.serviceDecks.some(d=>!d||typeof d.id!=='string'||typeof d.name!=='string'||!Number.isFinite(d.number))))||(data.areas!==undefined&&(!Array.isArray(data.areas)||data.areas.some(a=>!a||typeof a.deckId!=='string')))) invalid()
   return data
@@ -60,7 +62,7 @@ export const shipImportApi = {
     })
     if (!result || result.modelKey !== session.modelKey || !Number.isInteger(result.fileCount) || !Number.isSafeInteger(result.expandedBytes)) invalid()
   },
-  async register(session: ImportSession, supplements?:Record<string,string|number>): Promise<Registration> {
+  async register(session: ImportSession, supplements?: ShipProvisionFields): Promise<Registration> {
     const result = await apiRequest<Registration>(`/ship-model-assets/${segment(session.modelKey)}/register`, { method: 'POST', body:supplements, timeoutMs: 60_000 })
     if (!result || typeof result.shipId !== 'string' || typeof result.shipModelId !== 'string' || result.shipCreated !== true) invalid()
     return result
