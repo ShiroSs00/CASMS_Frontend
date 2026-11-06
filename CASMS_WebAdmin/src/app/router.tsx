@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router'
 import { AccessDeniedPage, AdminGuard, LoginPage, SessionBoundary } from '@/features/auth'
+import { loadModelViewerPage, loadShipImportPage } from '@/features/ship-model-viewer'
 import { AdminAccountLayout } from './layouts/AdminAccountLayout'
 import { BookingSessionLayout } from './layouts/BookingSessionLayout'
 import { RouteLoading } from './RouteLoading'
@@ -12,9 +13,9 @@ const adminRoutes = [
   { path: '/admin/cruise-plan-reviews', lazy: featurePage(() => import('@/features/cruises'), 'CruisePlanQueuePage') },
   { path: '/admin/trips/*', lazy: featurePage(() => import('@/features/trip-planning'), 'TripPlanningPage') },
   { path: '/admin/passenger-tracking', lazy: featurePage(() => import('./pages/PassengerManifestPage'), 'PassengerManifestPage') },
-  { path: '/admin/ship-models', lazy: featurePage(() => import('@/features/ship-model-viewer'), 'ModelViewerPage') },
+  { path: '/admin/ship-models', lazy: featurePage(loadModelViewerPage, 'ModelViewerPage') },
   { path: '/admin/fleet-dashboard', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'FleetDashboardPage') },
-  { path: '/admin/ship-import', lazy: featurePage(() => import('@/features/ship-model-import'), 'ShipImportPage') },
+  { path: '/admin/ship-import', lazy: featurePage(loadShipImportPage, 'ShipImportPage') },
   { path: '/admin/system', lazy: featurePage(() => import('./pages/AdminSystemPage'), 'AdminSystemPage') },
   { path: '/admin/staff/:area', lazy: featurePage(() => import('./pages/AdminStaffFunctionPage'), 'AdminStaffFunctionPage') },
   { path: '/admin/bookings', lazy: featurePage(() => import('./pages/AdminBookingPages'), 'AdminBookingListPage') },

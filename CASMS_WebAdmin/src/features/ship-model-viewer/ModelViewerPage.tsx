@@ -5,10 +5,10 @@ import { useSessionAccess } from '@/shared/auth'
 import { useReadQuery } from '@/shared/api'
 import { Badge, Button, Empty, Field, Loading, Notice, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
-import { ExistingModelImport } from '@/features/ship-model-import/ExistingModelImport'
-import { ImportJobDetails } from '@/features/ship-model-import/ImportJobDetails'
-import type { ImportJob } from '@/features/ship-model-import/model'
-import { shipDeckCabinApi } from '@/features/ship-deck-cabin/api/ship-deck-cabin-api'
+import { ExistingModelImport } from './import/ExistingModelImport'
+import { ImportJobDetails } from './import/ImportJobDetails'
+import type { ImportJob } from './import/model'
+import { refreshShipStructure } from '@/shared/lib/ship-structure-revision'
 import { viewerApi } from './api'
 import { ModelCanvas } from './ModelCanvas'
 import { serviceName, serviceType, cabinTypes, selectedAreas, selectedCabins, type Area, type Cabin, type Manifest, type ShipChoice } from './model'
@@ -82,7 +82,7 @@ function ShipModels({ ship, requested, onModel, renderHeader }: {
     setEditing(false)
     onModel(job.modelId)
     query.retry()
-    shipDeckCabinApi.refresh()
+    refreshShipStructure()
     requestAnimationFrame(() => resultFocus.current?.focus())
   }
 

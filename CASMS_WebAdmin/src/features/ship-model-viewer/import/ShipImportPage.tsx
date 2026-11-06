@@ -14,13 +14,12 @@ import {
   rejectedImportIssues,
   jobLabel,
   restoreSession,
-  type ImportJob,
   type ImportSession,
   type Registration,
 } from './model'
 import { ImportDialog } from './ImportDialog'
 import { ImportIssueList, ImportJobDetails } from './ImportJobDetails'
-import { shipDeckCabinApi } from '../ship-deck-cabin/api/ship-deck-cabin-api'
+import { refreshShipStructure } from '@/shared/lib/ship-structure-revision'
 import styles from './ShipImport.module.css'
 
 function sourceLabel(session: ImportSession) {
@@ -311,7 +310,7 @@ function ShipImportContent({ userId }: { userId: string }) {
             job: result,
             pendingStructure: undefined,
           }))
-          shipDeckCabinApi.refresh()
+          refreshShipStructure()
 
           setOpen(false)
 
@@ -426,7 +425,7 @@ function ShipImportContent({ userId }: { userId: string }) {
         <Button tone="text" onClick={history.retry}>Kiểm tra lại</Button>
         {job && job.status !== 'RUNNING' && <Button tone="secondary" onClick={() => {
           setSession(current => ({ ...current, job, pendingStructure: undefined }))
-          shipDeckCabinApi.refresh()
+          refreshShipStructure()
         }}>Đã đối chiếu lịch sử</Button>}
       </Notice>}
       {rejectedImportIssues(failure).length > 0 && <ImportIssueList issues={rejectedImportIssues(failure)} />}
