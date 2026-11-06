@@ -14,15 +14,15 @@ export const passengerDestinations: { key: PassengerTab; route: string; label: s
   { key: 'account', route: 'account', label: 'Cá nhân', icon: 'person', href: '/account' },
 ];
 
-export function PassengerTabBar({ state, navigation }: BottomTabBarProps) {
+export function PassengerTabBar({ state, emitter, navigateToTab }: BottomTabBarProps) {
   const current = state.routes[state.index];
   const selected = passengerDestinations.find(item => item.route === current.name)?.key ?? 'home';
   return <PassengerNavigation selected={selected} onSelect={key => {
     const destination = passengerDestinations.find(item => item.key === key);
     const target = state.routes.find(item => item.name === destination?.route);
     if (!target) return;
-    const event = navigation.emit({ type: 'tabPress', target: target.key, canPreventDefault: true });
-    if (!event.defaultPrevented && current.key !== target.key) navigation.navigate(target.name);
+    const event = emitter.emit({ type: 'tabPress', target: target.key, canPreventDefault: true });
+    if (!event.defaultPrevented && current.key !== target.key) navigateToTab(target.key);
   }} />;
 }
 
