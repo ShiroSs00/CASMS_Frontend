@@ -1,4 +1,5 @@
 import { apiRequest, ApiError } from '@/shared/api'
+import { shipProfilePayload } from '@/shared/lib/ship-profile'
 import type {
   AvailableCabinQuery, Cabin, CabinDraft, CabinStatus, CheckResult, CruisePreview,
   DataSnapshot, Deck, DeckCapacity, DeckDraft, EntityKind, HistoryEntry,
@@ -13,6 +14,7 @@ const idPath = (kind: EntityKind, id: string) => `${paths[kind]}/${encodeURIComp
 const ship = (dto: ShipDto): Ship => ({
   id: dto.shipId, code: dto.shipCode, name: dto.shipName, status: dto.status,
   capacity: dto.totalCapacity, totalDecks: dto.totalDecks, commissionDate: dto.commissionDate ?? '',
+  manufacturerName: dto.manufacturerName, origin: dto.origin, productionYear: dto.productionYear, engineType: dto.engineType,
   createdAt: dto.createdAt, updatedAt: dto.updatedAt,
   manifestModelId: dto.manifestModelId, deckNumberLimit: dto.deckNumberLimit, lengthMeters: dto.lengthMeters, beamMeters: dto.beamMeters,
 })
@@ -120,6 +122,7 @@ export const shipDeckCabinApi = {
   async saveShip(draft: ShipDraft, id?: string) {
     const body = {
       shipName: draft.name.trim(), totalCapacity: draft.capacity, totalDecks: draft.totalDecks,
+      ...shipProfilePayload(draft, Boolean(id)),
       ...(draft.commissionDate ? { commissionDate: draft.commissionDate } : {}),
       ...(draft.lengthMeters != null ? { lengthMeters: draft.lengthMeters } : {}),
       ...(draft.beamMeters != null ? { beamMeters: draft.beamMeters } : {}),

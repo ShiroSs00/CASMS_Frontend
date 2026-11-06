@@ -2,6 +2,7 @@ import {ShipAreaCount} from './ShipAreaCount'
 import {useCallback} from 'react'
 import {useSessionAccess} from '@/shared/auth'
 import {Loading,Notice,Panel} from '@/shared/ui'
+import {shipProfileFacts} from '@/shared/lib/ship-profile'
 import {shipDeckCabinApi} from '../api/ship-deck-cabin-api'
 import {useFleetQuery} from '../hooks/useFleetQuery'
 import {formatDate,type Ship} from '../model/types'
@@ -13,7 +14,7 @@ export function ShipOverview({ship}:{ship:Ship}) {
   const loadCruise=useCallback((signal:AbortSignal)=>shipDeckCabinApi.getCurrentCruise(ship.id,signal),[ship.id])
   const capacity=useFleetQuery(`overview-capacity:${ship.id}`,loadCapacity,access.canDo('SHIP_CAPACITY_SUMMARY'))
   const cruise=useFleetQuery(`overview-cruise:${ship.id}`,loadCruise,access.canDo('SHIP_CURRENT_CRUISE'))
-  const facts=[['Boong hành khách',ship.totalDecks],['Chiều dài',ship.lengthMeters!=null?`${ship.lengthMeters.toLocaleString('vi-VN')} m`:'Chưa cập nhật'],['Chiều rộng',ship.beamMeters!=null?`${ship.beamMeters.toLocaleString('vi-VN')} m`:'Chưa cập nhật'],['Ngày đưa vào khai thác',formatDate(ship.commissionDate)],['Cập nhật hồ sơ',formatDate(ship.updatedAt)]]
+  const facts=[['Boong hành khách',ship.totalDecks],['Chiều dài',ship.lengthMeters!=null?`${ship.lengthMeters.toLocaleString('vi-VN')} m`:'Chưa cập nhật'],['Chiều rộng',ship.beamMeters!=null?`${ship.beamMeters.toLocaleString('vi-VN')} m`:'Chưa cập nhật'],['Ngày đưa vào khai thác',formatDate(ship.commissionDate)],...shipProfileFacts(ship),['Cập nhật hồ sơ',formatDate(ship.updatedAt)]]
   return <div className={styles.overview}>
     <dl className={styles.summary} aria-label="Sức chứa và phòng trên tàu">
       <div><dt>Sức chứa hành khách</dt><dd>{ship.capacity.toLocaleString('vi-VN')} <span>khách</span></dd></div>

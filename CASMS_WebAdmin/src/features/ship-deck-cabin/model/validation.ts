@@ -1,10 +1,11 @@
 import type { CabinDraft, DataSnapshot, DeckDraft, FieldErrors, ShipDraft } from './types'
+import { validateShipProfile, type ShipProfile } from '@/shared/lib/ship-profile'
 import { cabinStatuses, cabinTypes } from './types.ts'
 const positive = (value: number | ''): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value > 0
 
 // Form-level shape/required validation. Backend remains authoritative for business rules.
-export function validateShip(draft: ShipDraft): FieldErrors {
-  const errors: FieldErrors = {}
+export function validateShip(draft: ShipDraft, current?: ShipProfile): FieldErrors {
+  const errors: FieldErrors = validateShipProfile(draft, current)
   const code = draft.code.trim()
   if (code && !/^[A-Z0-9-]{3,20}$/.test(code)) errors.code = 'Mã tàu phải từ 3 đến 20 ký tự (chữ in hoa, số và dấu gạch nối, VD: OCV-GRAND-01).'
   

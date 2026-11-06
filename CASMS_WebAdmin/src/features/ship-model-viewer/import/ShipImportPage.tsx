@@ -4,7 +4,7 @@ import { Button, ButtonLink, Notice, PageHeader, Panel } from '@/shared/ui'
 import { getSessionAccess, useSessionAccess } from '@/shared/auth'
 import { useReadQuery } from '@/shared/api'
 import { AdminShell } from '@/shared/ui/admin-v3'
-import { shipImportApi } from './api'
+import { shipImportApi, type ShipProvisionFields } from './api'
 import {
   emptySession,
   importRequirements,
@@ -19,6 +19,7 @@ import {
 } from './model'
 import { ImportDialog } from './ImportDialog'
 import { ImportIssueList, ImportJobDetails } from './ImportJobDetails'
+import { ImportedShipProfile } from './ImportPreviewDetails'
 import { refreshShipStructure } from '@/shared/lib/ship-structure-revision'
 import styles from './ShipImport.module.css'
 
@@ -120,7 +121,7 @@ function ShipImportContent({ userId }: { userId: string }) {
   )
 
   const history = useReadQuery(
-    `import-history:${registration?.shipModelId}:${refresh}:${busy}`,
+    `import-history:${registration?.shipModelId}:${canRead}:${refresh}:${busy}`,
     loadHistory,
   )
 
@@ -131,10 +132,14 @@ function ShipImportContent({ userId }: { userId: string }) {
   const historyReady =
     !registration
     || (
-      history.data !== null
+      canRead
+      && history.data !== null
       && !history.loading
       && !history.error
     )
+  const canAdvance = registration
+    ? historyReady && !running && !pendingStructure
+    : !registerUncertain
 
   const activeStage = !session.uploaded
     ? 0
@@ -143,6 +148,19 @@ function ShipImportContent({ userId }: { userId: string }) {
       : 2
 
   const complete = job?.status === 'SUCCEEDED'
+
+  const importStatus = registration && !busy && (
+    !canRead ? <Notice title="Thiếu quyền đọc lịch sử import" tone="warning">
+      Cần quyền SHIP_READ để kiểm tra các lần import trước của tàu.
+    </Notice>
+      : history.loading ? <p className={styles.muted} role="status">Đang kiểm tra lịch sử import của tàu…</p>
+      : history.error ? <Notice title="Không tải được lịch sử import" tone="error">
+        {history.error.message}
+        <Button tone="text" onClick={history.retry}>Tải lại lịch sử</Button>
+      </Notice>
+      : running ? <p className={styles.muted} role="status">Tàu đang có một lần import chưa hoàn tất.</p>
+      : null
+  )
 
   useEffect(() => {
     try {
@@ -246,7 +264,7 @@ function ShipImportContent({ userId }: { userId: string }) {
     )
   }
 
-  async function register(supplements?:Record<string,string|number>) {
+  async function register(supplements: ShipProvisionFields) {
     await run(
       'Đang đăng ký tàu và mô hình…',
       permissions.register,
@@ -266,7 +284,10 @@ function ShipImportContent({ userId }: { userId: string }) {
             const next = { ...session, registration: result }
             localStorage.setItem(registerKey, JSON.stringify(result))
             sessionStorage.setItem(storageKey, JSON.stringify(next))
-            if (alive.current) setSession(next)
+            if (alive.current) {
+              setSession(next)
+              setRegisterUncertain(false)
+            }
           } catch (cause) {
             if (!importOutcomeUnknown(cause)) {
               localStorage.removeItem(registerKey)
@@ -431,7 +452,7 @@ function ShipImportContent({ userId }: { userId: string }) {
       </Notice>}
       {rejectedImportIssues(failure).length > 0 && <ImportIssueList issues={rejectedImportIssues(failure)} />}
       {!job ? (
-        !open && <ImportDialog embedded session={session} busy={busy} error={error || history.error?.message || ''} allowed={historyReady && !running && !pendingStructure && !registerUncertain} permissions={permissions} onPrepare={prepare} onRegister={register} onImport={importStructure} onChooseBundle={chooseBundle} onClose={()=>setOpen(false)}/>
+        !open && <ImportDialog embedded session={session} busy={busy} error={error} allowed={canAdvance} importStatus={importStatus} permissions={permissions} onPrepare={prepare} onRegister={register} onImport={importStructure} onChooseBundle={chooseBundle} onClose={()=>setOpen(false)}/>
       ) : (
         <div className={styles.sessionLayout}>
           <Panel className={styles.sessionPanel}>
@@ -497,6 +518,8 @@ function ShipImportContent({ userId }: { userId: string }) {
                 </div>
               </dl>
 
+              {registration && canRead && <ImportedShipProfile shipId={registration.shipId} />}
+
               {job && <ImportJobDetails job={job} canRead={canRead} />}
 
               <div className={styles.actions}>
@@ -555,15 +578,9 @@ function ShipImportContent({ userId }: { userId: string }) {
         <ImportDialog
           session={session}
           busy={busy}
-          error={
-            error
-            || (
-              history.error
-                ? `${history.error.message} Vui lòng đóng biểu mẫu và kiểm tra lại trạng thái.`
-                : ''
-            )
-          }
-          allowed={historyReady && !running && !pendingStructure && !registerUncertain}
+          error={error}
+          allowed={canAdvance}
+          importStatus={importStatus}
           permissions={permissions}
           onPrepare={prepare}
           onRegister={register}
