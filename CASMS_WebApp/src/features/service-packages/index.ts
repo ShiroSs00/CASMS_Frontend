@@ -1,5 +1,0 @@
-export { ServiceListPage, ProductListPage, PackageListPage, ServiceRequestListPage } from './pages/CatalogListPage'
-export { ServiceDetailPage, ProductDetailPage, PackageDetailPage, ServiceRequestDetailPage } from './pages/CatalogDetailPage'
-export { ServiceFormPage, ProductFormPage, PackageFormPage } from './pages/CatalogFormPage'
-export { ServiceRequestFormPage } from './pages/ServiceRequestFormPage'
-export { PackageAssignmentPage, BookingPackageAssignments } from './pages/PackageAssignmentPage'

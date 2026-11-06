@@ -19,6 +19,11 @@
 .loginCard { width:500px; max-width:100%; min-width:0; padding:30px; display:flex; flex-direction:column; gap:18px; border:1px solid var(--border-default); border-radius:20px; background:white; box-shadow:var(--shadow-floating); font-size:14px; line-height:20px; color:var(--text-secondary); }
 .loginCard h1 { font-size:36px; line-height:44px; color:var(--brand-navy); }
 .loginForm { display:flex; flex-direction:column; gap:18px; }
+.passwordControl { position:relative; width:100%; }
+.loginCard .loginForm .passwordControl input { width:100%; padding-right:54px; }
+.passwordToggle { position:absolute; right:3px; top:3px; width:44px; height:44px; display:grid; place-items:center; padding:0; border:0; border-radius:4px; background:transparent; color:var(--brand-navy); cursor:pointer; }
+.passwordToggle:focus-visible { outline:3px solid var(--brand-teal); outline-offset:1px; }
+.passwordToggle:disabled { opacity:.6; cursor:wait; }
 .loginForm > div:first-child,.loginForm > div:nth-child(2) { display:flex; flex-direction:column; gap:7px; min-height:74px; font-size:12px; line-height:18px; font-weight:400; }
 .loginCard .loginForm input { width:360px; max-width:100%; height:50px; padding:12px 14px; border:1px solid var(--border-default); border-radius:8px; color:var(--brand-navy); background:white; font-size:16px; line-height:24px; }
 .loginCard .loginForm label { font-size:12px; line-height:18px; font-weight:400; letter-spacing:.1px; }

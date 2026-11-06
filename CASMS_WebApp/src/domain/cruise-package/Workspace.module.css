@@ -1,9 +1,0 @@
-.workspace { display:grid; gap:var(--space-5,24px); padding:var(--space-5,24px); }
-.form { display:grid; gap:var(--space-3,16px); margin-block:20px; max-width:760px; }
-.card { display:grid; gap:8px; border:1px solid var(--border-color,#dce1e8); border-radius:8px; padding:16px; margin-block:16px; }
-.actions { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
-.controls { border:0; padding:0; margin:0; min-width:0; }
-
-.mappingCabins { display: grid; gap: .75rem; max-block-size: 24rem; overflow: auto; }
-.mappingCabins label { display: flex; align-items: flex-start; gap: .5rem; overflow-wrap: anywhere; }
-.mappingCabins input[type="checkbox"] { flex: 0 0 auto; inline-size: auto; }

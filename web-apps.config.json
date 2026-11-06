@@ -11,10 +11,6 @@
       "deploymentConfig": "CASMS_WebAdmin/vercel.json"
     }
   },
-  "legacy": {
-    "rootDirectory": "CASMS_WebApp",
-    "status": "rollback-only"
-  },
   "backend": {
     "developmentOrigin": "http://localhost:8080",
     "contextPath": "/api"

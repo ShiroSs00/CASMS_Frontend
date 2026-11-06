@@ -6,7 +6,7 @@ echo Choose an independent application:
 echo   start-dev.bat --booking   http://localhost:5173
 echo   start-dev.bat --admin     http://localhost:5174
 echo Install dependencies manually with npm ci inside the chosen app first.
-echo The backend is managed separately. CASMS_WebApp is legacy only.
+echo The backend is managed separately.
 exit /b 0
 
 :booking
