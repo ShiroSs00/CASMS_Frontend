@@ -1,5 +1,5 @@
 import { useState, type Ref } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, type TextInputInstance, View } from 'react-native';
 
 import { passengerLightColors as colors } from '@/constants/passenger-light-theme';
 
@@ -16,7 +16,7 @@ export function OutlinedField({ label, value, onChangeText, helper, error, passw
   disabled?: boolean;
   onBlur: () => void;
   onSubmitEditing: () => void;
-  inputRef?: Ref<TextInput>;
+  inputRef?: Ref<TextInputInstance>;
 }) {
   const [focused, setFocused] = useState(false);
   const [visible, setVisible] = useState(false);
