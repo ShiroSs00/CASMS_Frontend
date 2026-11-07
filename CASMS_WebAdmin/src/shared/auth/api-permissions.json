@@ -1934,26 +1934,35 @@
     "path": "/ship-model-assets",
     "mode": "ALL",
     "permissions": [
-      "SHIP_UPDATE"
+      "SHIP_MODEL_CREATE"
     ],
-    "source": "com/casms/ship/controller/ShipModelController.java:78"
+    "source": "com/casms/ship/controller/ShipModelController.java:129"
   },
   {
     "method": "POST",
-    "path": "/ship-model-assets/{modelKey}/{assetVersion}/register",
+    "path": "/ship-model-assets/{modelKey}/register",
     "mode": "ALL",
     "permissions": [
       "SHIP_MODEL_CREATE",
       "SHIP_CREATE"
     ],
-    "source": "com/casms/ship/controller/ShipModelController.java:96"
+    "source": "com/casms/ship/controller/ShipModelController.java:156"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/models/imports",
+    "mode": "ALL",
+    "permissions": [
+      "SHIP_MODEL_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:58"
   },
   {
     "method": "POST",
     "path": "/ships/{shipId}/models/{modelId}/imports",
     "mode": "ALL",
     "permissions": [
-      "SHIP_UPDATE"
+      "SHIP_MODEL_UPDATE"
     ],
     "source": "com/casms/ship/controller/ShipModelController.java:50"
   },
@@ -2262,7 +2271,7 @@
     "path": "/ships/{shipId}/models/{modelId}/cabin-mappings",
     "mode": "ANY",
     "permissions": [
-      "SHIP_UPDATE"
+      "SHIP_MODEL_UPDATE"
     ],
     "source": "com/casms/ship/controller/ShipModelController.java:99"
   },
@@ -2290,7 +2299,7 @@
     "path": "/ships/{shipId}/models/{modelId}/deck-mappings",
     "mode": "ANY",
     "permissions": [
-      "SHIP_UPDATE"
+      "SHIP_MODEL_UPDATE"
     ],
     "source": "com/casms/ship/controller/ShipModelController.java:85"
   },
@@ -2378,7 +2387,7 @@
     "path": "/ships/{shipId}/models/{modelId}/activate",
     "mode": "ANY",
     "permissions": [
-      "SHIP_UPDATE"
+      "SHIP_MODEL_PUBLISH"
     ],
     "source": "com/casms/ship/controller/ShipModelController.java:107"
   },
@@ -4254,7 +4263,7 @@
     "path": "/ships/{shipId}/models",
     "mode": "ANY",
     "permissions": [
-      "SHIP_UPDATE"
+      "SHIP_MODEL_CREATE"
     ],
     "source": "com/casms/ship/controller/ShipModelController.java:55"
   },
@@ -5153,16 +5162,16 @@
       "SHIP_MODEL_CREATE",
       "SHIP_CREATE"
     ],
-    "source": "com/casms/ship/controller/ShipModelController.java:78"
+    "source": "com/casms/ship/controller/ShipModelController.java:108"
   },
   {
     "method": "GET",
-    "path": "/ship-model-assets/{modelKey}/{assetVersion}/preview",
+    "path": "/ship-model-assets/{modelKey}/preview",
     "mode": "ALL",
     "permissions": [
       "SHIP_MODEL_CREATE",
       "SHIP_CREATE"
     ],
-    "source": "com/casms/ship/controller/ShipModelController.java:78"
+    "source": "com/casms/ship/controller/ShipModelController.java:115"
   }
 ]

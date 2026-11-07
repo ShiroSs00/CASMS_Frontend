@@ -8,6 +8,8 @@ import { passengerLightColors as colors } from '@/constants/passenger-light-them
 import { useAuth } from '@/features/auth/session-store';
 import { isOnboardStaff } from '@/features/staff-pos/staff-model';
 
+export const unstable_settings = { anchor: 'home' };
+
 export default function PassengerTabsLayout() {
   const auth = useAuth();
   const reduced = useMotionPreference();
@@ -15,7 +17,7 @@ export default function PassengerTabsLayout() {
   if (auth.status !== 'authenticated' || !auth.session) return <Redirect href={{ pathname: '/login', params: { state: auth.status === 'expired' ? 'expired' : 'default' } }} />;
   if (isOnboardStaff(auth.session.user.roles)) return <Redirect href="/staff-pos" />;
   return (
-    <Tabs initialRouteName="home" backBehavior="history" tabBar={props => <PassengerTabBar {...props} />}
+    <Tabs backBehavior="history" tabBar={props => <PassengerTabBar {...props} />}
       screenOptions={{
         headerShown: false,
         lazy: false,

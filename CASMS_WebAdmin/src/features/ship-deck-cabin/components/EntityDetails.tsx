@@ -1,5 +1,6 @@
 import { PermissionLink as Link } from '@/shared/ui'
 import { TechnicalDetails } from '@/shared/ui'
+import { shipProfileFacts } from '@/shared/lib/ship-profile'
 import { useCallback, type ReactNode } from 'react'
 
 import { DataTable, Empty, Notice, Panel } from '@/shared/ui'
@@ -26,6 +27,7 @@ export function ShipInfo({ ship }: { ship: Ship }) {
     <Panel title="Thông tin tàu"><Definition rows={[
       ['Mã tàu', ship.code], ['Tên tàu', ship.name], ['Trạng thái', <StatusBadge status={ship.status} />],
       ['Sức chứa cấu hình', `${ship.capacity} khách`], ['Tổng số boong cấu hình', ship.totalDecks], ['Ngày đưa vào hoạt động', formatDate(ship.commissionDate)],
+      ...shipProfileFacts(ship),
       ['Ngày tạo', formatDate(ship.createdAt)], ['Cập nhật gần nhất', formatDate(ship.updatedAt)],
     ]} /></Panel>
     <ServicePanel title="Tổng hợp sức chứa" query={capacity}>{(value) => value ? <>

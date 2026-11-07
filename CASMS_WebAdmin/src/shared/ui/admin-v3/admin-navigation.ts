@@ -15,7 +15,7 @@ const tools: readonly AdminNavigationItem[] = [
   { label:'Hành khách trên tàu', to:'/admin/passenger-tracking', permissionMode:'ALL', permissions:['SHIP_READ','BLE_TELEMETRY_READ'] },
   { label:'Sơ đồ tàu 3D', to:'/admin/ship-models', permissionMode:'ALL', permissions:['SHIP_READ','SHIP_MODEL_READ'] },
   { label:'Tổng quan đội tàu', to:'/admin/fleet-dashboard', permissionMode:'ANY', permissions:['SHIP_READ'] },
-  { label:'Thiết lập cấu trúc tàu', to:'/admin/ship-import', permissionMode:'ANY', permissions:['SHIP_UPDATE','SHIP_MODEL_CREATE'] },
+  { label:'Tạo tàu từ mô hình 3D', to:'/admin/ship-import', permissionMode:'ALL', permissions:['SHIP_MODEL_CREATE','SHIP_CREATE','SHIP_MODEL_UPDATE'] },
   { label:'Tài khoản nhân sự', to:'/admin/system', permissionMode:'ANY', permissions:['USER_READ'] },
   { label:'Đặt chỗ', to:'/admin/bookings', permissionMode:'ANY', permissions:['BOOKING_READ'] },
   { label:'Quản lý điểm đến', to:'/admin/destinations', permissionMode:'ANY', permissions:['DESTINATION_READ'] },
@@ -143,10 +143,6 @@ export function adminPathRequirements(pathname: string, search = ''): readonly P
   const requirements: PermissionRequirement[] = [{ mode: tool?.permissionMode ?? 'ANY', permissions }]
   if (['ports','destinations'].includes(section) && (pathname.split('/')[3]==='new'||pathname.split('/')[4]==='edit')) requirements.push({mode:'ALL',permissions:[],roles:['OPERATIONS_MANAGER']})
   if (section === 'passenger-tracking') requirements.push({ mode: 'ALL', permissions: [], roles: ['SHIP_MANAGER'] })
-  if (section === 'ship-import') return [{ mode: 'ALL', permissions: [], anyOf: [
-    { mode: 'ALL', permissions: ['SHIP_UPDATE'] },
-    { mode: 'ALL', permissions: ['SHIP_MODEL_CREATE','SHIP_CREATE'] },
-  ] }]
   // Edit screens load the saved record before exposing mutations: read AND edit.
   const parts = pathname.split('/')
   if (parts[4] === 'edit') {

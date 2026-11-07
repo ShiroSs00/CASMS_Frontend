@@ -32,7 +32,7 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
   const [draft, setDraft] = useState<CatalogDraft>(() => initial ? {...catalogDraft(initial),currency:'USD',price:initial.currency==='USD'?catalogDraft(initial).price:''} : { ...emptyCatalogDraft,currency:'USD' })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [error, setError] = useState(''), [busy, setBusy] = useState(false),[uncertain,setUncertain]=useState(false)
-  const [baseline]=useState(draft)
+  const [baseline] = useState(draft)
   const beforeIds=useRef<string[]|null>(null)
   const dirty=JSON.stringify(draft)!==JSON.stringify(baseline),guard=useUnsavedFormGuard(dirty,busy)
   const lock = useRef(false), form = useRef<HTMLFormElement>(null)

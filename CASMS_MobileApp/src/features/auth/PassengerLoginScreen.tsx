@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useRef, useState } from 'react';
-import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, type TextInputInstance, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { OutlinedField } from '@/components/passenger/OutlinedField';
@@ -25,8 +25,8 @@ export function PassengerLoginScreen({ initialStatus = 'default', signIn = ({ us
   const [touched, setTouched] = useState({ username: false, password: false });
   const [apiMessage, setApiMessage] = useState<string>();
   const [status, setStatus] = useState<LoginStatus>(initialStatus);
-  const emailRef = useRef<TextInput>(null);
-  const passwordRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInputInstance>(null);
+  const passwordRef = useRef<TextInputInstance>(null);
   const submitting = useRef(false);
   const errors = validateLogin({ username, password });
   const valid = !errors.username && !errors.password;

@@ -1,6 +1,6 @@
 import {mutationOutcomeUnknown} from '@/shared/lib/mutation-outcome'
 import {cruiseStaffApi} from '../api/cruise-staff-api'
-import {activityApi} from '@/features/activities/api/activity-api'
+import {readActivityCatalog} from '@/domain/activity-catalog'
 import {packageComponents} from '../api/scoped-package'
 import {ActivityTimeRepair} from './ActivityTimeRepair'
 import {DeparturePackageManager} from './DeparturePackageManager'
@@ -34,7 +34,7 @@ export function CruisePrograms({cruiseId,itineraryMode,onChanged}:{cruiseId:stri
  const [sourceId,setSourceId]=useState('')
  const choosingActivity=crm&&creating&&kind==='activities'&&itineraryMode==='CUSTOM'
  const catalog=useReadQuery(`program-activity-catalog:${access.userId}:${choosingActivity}`,useCallback(
-  signal=>choosingActivity?activityApi.catalog(signal):Promise.resolve([]),[choosingActivity]))
+  signal=>choosingActivity?readActivityCatalog(signal):Promise.resolve([]),[choosingActivity]))
  const source=catalog.data?.find(item=>item.id===sourceId)
  const canReadStaff=allowed&&access.canDo('CRUISE_STAFF_READ')
  const staff=useReadQuery(`program-staff:${access.userId}:${cruiseId}:${canReadStaff}`,useCallback(
