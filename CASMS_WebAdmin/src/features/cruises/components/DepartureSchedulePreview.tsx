@@ -58,13 +58,11 @@ export function DepartureSchedulePreview({
   const isApplied = appliedKey === key
 
   const modal = current && openKey === key && (
-    <Modal large protectChanges={false} title="Xem trước lịch trình thực tế" description="Ngày thực tế được tính từ lịch trình đã chốt. Giờ cảng theo múi giờ địa phương." onClose={() => setOpenKey(null)} footer={<>
-      <Button tone="secondary" onClick={() => setOpenKey(null)}>Đóng</Button>
+    <Modal wide quiet protectChanges={false} title="Xem trước lịch trình" onClose={() => setOpenKey(null)} footer={<>
       <Button disabled={!canApply} tone="primary" onClick={apply}>Áp dụng lịch này</Button>
     </>}>
       {sourceError?<Notice title="Lịch trình nguồn chưa hợp lệ" tone="error"><p>{sourceError.message}</p>{sourceName&&<p>Chương trình: <strong>{sourceName}</strong></p>}</Notice>:<ReadState {...query} />}
       {!query.loading && !query.error && query.data && <div className={styles.content}>
-        <p>Revision nguồn: {query.data.sourceVersionRevision??'Chưa xác định'}. Các mốc đến/rời cảng là dự kiến, chưa phải thời gian vận hành thực tế.</p>
         {!validBasis && <Notice title="Chưa thể áp dụng lịch xem trước" tone="warning">Cơ sở giờ tàu hoặc phiên dữ liệu nguồn chưa đầy đủ. Cần hệ thống xác nhận lại lịch trước khi tạo chuyến khởi hành.</Notice>}
         <ItineraryDayBrowser days={query.data.days}>{day=><ScheduleContents schedule={query.data!} preview selectedDay={day} entryTitles={entryTitles}/>}</ItineraryDayBrowser>
       </div>}
@@ -83,7 +81,7 @@ export function DepartureSchedulePreview({
           {isApplied ? 'Xem lại lịch trình đã áp dụng' : 'Xem trước & áp dụng lịch trình'}
         </Button>
         {error && <Notice title="Chưa xem trước được" tone="error">{error}</Notice>}
-        {isApplied && <p className={styles.applied} role="status">✓ Đã áp dụng ngày kết thúc và cảng khởi hành từ lịch xem trước.</p>}
+        {isApplied && <p className={styles.applied} role="status">Đã áp dụng ngày kết thúc và cảng khởi hành từ lịch xem trước.</p>}
         {modal}
       </div>
     )

@@ -51,19 +51,8 @@ export function DayPane({
 
   const isFirstDay = day.dayNumber === 1
   const isLastDay = day.dayNumber === content.days.length
-  const isSingleDayTrip = content.days.length === 1
   const disembarkationStop = content.stops.find(s => s.isDisembarkation)
   const canConfigurePort = day.dayType === 'PORT_DAY'
-  const needsDeparture = isFirstDay && !day.departurePortId && !content.stops.some(s => s.isEmbarkation)
-  const needsEnd = isLastDay && !disembarkationStop
-
-  const dayRoleLabel = isSingleDayTrip
-    ? 'Chuyến trong ngày'
-    : isFirstDay
-    ? 'Ngày khởi hành'
-    : isLastDay
-    ? 'Ngày kết thúc chuyến'
-    : 'Ngày trong hành trình'
 
   function agendaRow(row: AgendaRow, stopTarget: boolean) {
     if (row.type === 'milestone')
@@ -129,30 +118,14 @@ export function DayPane({
 
   return (
     <div className={styles.dayPane}>
-      {tab === 'route' && (needsDeparture || needsEnd) && (
-        <p className={styles.note}>
-          <strong>{scheduleDayLabel(day.dayNumber, content.days.length)}</strong> ·{' '}
-          {isSingleDayTrip
-            ? 'Vui lòng xác định cảng khởi hành và cảng kết thúc (trả khách).'
-            : isFirstDay
-            ? 'Vui lòng chọn cảng khởi hành và giờ xuất phát.'
-            : 'Vui lòng chọn cảng trả khách để hoàn tất chuyến.'}
-        </p>
-      )}
-
       {editable && tab === 'route' ? (
         <Panel title={scheduleDayLabel(day.dayNumber, content.days.length)}>
-          {/* Thông tin vai trò và loại ngày */}
           <div className={styles.grid}>
-            <Field htmlFor="planning-day-role" label="Vị trí trong chuyến">
-              <input id="planning-day-role" readOnly value={dayRoleLabel} />
-            </Field>
-
-            <Field htmlFor="planning-day-type" label="Loại ngày hành trình" hint="Xác định tàu chạy liên tục trên biển hay có ghé cảng để hành khách tham quan." error={fieldError('planning-day-type')}>
-              {isLastDay ? (
-                <input id="planning-day-type" readOnly value="Cập cảng trả khách (Kết thúc chuyến)" />
-              ) : (
-                <>
+            {(!isLastDay || !day.dayType || fieldError('planning-day-type')) && (
+              <Field htmlFor="planning-day-type" label="Loại ngày" error={fieldError('planning-day-type')}>
+                {isLastDay ? (
+                  <input id="planning-day-type" readOnly aria-invalid="true" value="Ghé cảng trả khách" />
+                ) : (
                   <select
                     id="planning-day-type"
                     aria-invalid={Boolean(fieldError('planning-day-type'))}
@@ -160,28 +133,17 @@ export function DayPane({
                     disabled={busy}
                     onChange={e => onType(e.target.value as Day['dayType'])}
                   >
-                    <option value="">-- Chọn loại ngày hành trình --</option>
-                    <option value="SEA_DAY">Tàu chạy trên biển (Không ghé cảng)</option>
-                    <option value="PORT_DAY">Tàu ghé cảng (Khách lên bờ tham quan)</option>
+                    <option value="">Chọn loại ngày</option>
+                    <option value="SEA_DAY">Trên biển</option>
+                    <option value="PORT_DAY">Ghé cảng</option>
                   </select>
-                  {day.dayType === 'SEA_DAY' && (
-                    <div style={{ marginTop: '4px', fontSize: '12px', color: '#0369a1' }}>
-                      🌊 Tàu chạy trên biển: Khách tham gia các hoạt động vui chơi, ẩm thực và giải trí trên tàu.
-                    </div>
-                  )}
-                  {day.dayType === 'PORT_DAY' && (
-                    <div style={{ marginTop: '4px', fontSize: '12px', color: '#0f766e' }}>
-                      ⚓ Tàu ghé cảng: Tàu cập cảng để hành khách xuống bờ tham quan và trải nghiệm các tour du lịch.
-                    </div>
-                  )}
-                </>
-              )}
-            </Field>
+                )}
+              </Field>
+            )}
 
             <Field htmlFor="planning-day-title" label="Tên ngày (tùy chọn)" error={fieldError('planning-day-title')}>
               <input
                 id="planning-day-title"
-                placeholder="Nhập tên cho ngày này"
                 aria-invalid={Boolean(fieldError('planning-day-title'))}
                 value={day.title ?? ''}
                 disabled={busy}
@@ -191,15 +153,11 @@ export function DayPane({
             </Field>
           </div>
 
-          {/* TÁCH RIÊNG CẢNG KHỞI HÀNH (Ngày 1) */}
           {isFirstDay && (
-            <div style={{ marginTop: '16px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <h4 style={{ margin: '0 0 12px', fontSize: '15px', color: '#0f2942', fontWeight: 600 }}>
-                Cảng khởi hành (Điểm xuất phát)
-              </h4>
+            <section className={styles.boundaryFields}>
+              <h3>Khởi hành</h3>
               <div className={styles.grid}>
                 <SourcePicker
-                  resultLabel="cảng"
                   id="planning-departure-port"
                   label="Cảng khởi hành *"
                   placeholder="Chọn cảng khởi hành"
@@ -222,8 +180,7 @@ export function DayPane({
                 />
                 <Field
                   htmlFor="planning-departure-time"
-                  label="Giờ khởi hành dự kiến *"
-                  hint="Giờ Việt Nam (HH:mm)."
+                  label="Giờ khởi hành (giờ Việt Nam) *"
                   error={fieldError('planning-departure-time')}
                 >
                   <input
@@ -237,16 +194,13 @@ export function DayPane({
                   />
                 </Field>
               </div>
-            </div>
+            </section>
           )}
 
-          {/* TÁCH RIÊNG CẢNG KẾT THÚC (Ngày cuối cùng) */}
           {isLastDay && (
-            <div style={{ marginTop: '16px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-                <h4 style={{ margin: 0, fontSize: '15px', color: '#0f2942', fontWeight: 600 }}>
-                  Cảng kết thúc chuyến (Điểm trả khách)
-                </h4>
+            <section className={styles.boundaryFields}>
+              <div className={styles.boundaryHeading}>
+                <h3>Trả khách</h3>
                 {content.days[0]?.departurePortId && (
                   <Button
                     type="button"
@@ -266,10 +220,9 @@ export function DayPane({
               </div>
               <div className={styles.grid}>
                 <SourcePicker
-                  resultLabel="cảng"
                   id="planning-disembarkation-port"
-                  label="Cảng kết thúc chuyến (trả khách) *"
-                  placeholder="Chọn cảng kết thúc"
+                  label="Cảng trả khách *"
+                  placeholder="Chọn cảng trả khách"
                   emptyMessage="Chưa có cảng phù hợp phạm vi chuyến."
                   value={disembarkationStop?.portId ?? ''}
                   selectedLabel={disembarkationStop?.portName ?? undefined}
@@ -289,8 +242,7 @@ export function DayPane({
                 />
                 <Field
                   htmlFor="planning-disembarkation-time"
-                  label="Giờ dự kiến hoàn tất trả khách *"
-                  hint="Giờ Việt Nam (HH:mm)."
+                  label="Giờ hoàn tất (giờ Việt Nam) *"
                   error={fieldError('planning-disembarkation-time')}
                 >
                   <input
@@ -306,7 +258,7 @@ export function DayPane({
                   />
                 </Field>
               </div>
-            </div>
+            </section>
           )}
         </Panel>
       ) : (
@@ -333,13 +285,6 @@ export function DayPane({
             )}
             {fieldError('planning-day-type') && <p className={styles.error}>{fieldError('planning-day-type')}</p>}
           </div>
-          <div>
-            <dt>Tên ngày</dt>
-            <dd id="planning-day-title" tabIndex={-1}>
-              {day.title || 'Chưa đặt tên'}
-            </dd>
-            {fieldError('planning-day-title') && <p className={styles.error}>{fieldError('planning-day-title')}</p>}
-          </div>
         </dl>
       )}
 
@@ -361,7 +306,7 @@ export function DayPane({
                     ? 'Ngày di chuyển trên biển (không ghé cảng)'
                     : canConfigurePort
                     ? 'Chưa có điểm ghé cảng nào trong ngày này'
-                    : 'Bắt đầu bằng chọn hình thức ngày'}
+                    : 'Chưa chọn loại ngày'}
                 </strong>
                 {editable && canConfigurePort && (
                   <div style={{ marginTop: '12px' }}>
@@ -372,7 +317,7 @@ export function DayPane({
                 )}
                 {editable && !day.dayType && (
                   <Button tone="secondary" disabled={busy} onClick={() => document.getElementById('planning-day-type')?.focus()}>
-                    Chọn hình thức ngày
+                    Chọn loại ngày
                   </Button>
                 )}
               </div>

@@ -1,4 +1,7 @@
 [
+  { "method": "GET", "path": "/cruises/{cruiseId}/delays", "mode": "ALL", "permissions": ["CRUISE_READ"] },
+  { "method": "POST", "path": "/cruises/{cruiseId}/delays/preview", "mode": "ALL", "permissions": ["CRUISE_START"], "roles": ["OPERATIONS_MANAGER"] },
+  { "method": "POST", "path": "/cruises/{cruiseId}/delays", "mode": "ALL", "permissions": ["CRUISE_START"], "roles": ["OPERATIONS_MANAGER"] },
   {
     "method": "GET",
     "path": "/servicepackage/requests/by-operation-key",

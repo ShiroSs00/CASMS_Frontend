@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "od-design-system-project/v1",
+  "id": "ocevie",
+  "name": "OceVie",
+  "category": "Travel & Hospitality",
+  "description": "OceVie web design system for cruise operations administration and customer booking, based on the existing OceVie brand and Carbon interaction guidance.",
+  "source": {
+    "type": "local",
+    "origin": "ShiroSs00/CASMS_Frontend source review; main branch baseline 4b749869c9577f3d98faf4719b933daba69e5f8c"
+  },
+  "files": {
+    "design": "DESIGN.md",
+    "tokens": "tokens.css"
+  }
+}

@@ -57,7 +57,7 @@ export function Modal({ title, description, onClose, busy = false, wide = false,
       const target = event.target instanceof Element ? event.target.closest('[data-overlay-dismiss]') : null
       if (target && (busy || (protectChanges && dirty.current))) { event.preventDefault(); event.stopPropagation(); requestClose() }
     }}
-    onCancel={event => { event.preventDefault(); if (confirmDiscard) continueEditing(); else requestClose() }}>
+    onCancel={event => { event.preventDefault(); event.stopPropagation(); if (confirmDiscard) continueEditing(); else requestClose() }}>
     <div className={`${styles.frame} ${confirmDiscard ? styles.confirming : ''}`}>
       <header className={styles.header}><div><h2 id={titleId}>{title}</h2>{description && <p id={descriptionId}>{description}</p>}</div>
         <button ref={closeControl} type="button" autoFocus aria-label="Đóng hộp thoại" disabled={busy} className={styles.close} onClick={requestClose}>×</button>

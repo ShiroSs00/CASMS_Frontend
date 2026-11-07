@@ -1,3 +1,4 @@
+import { decodeDelayEvent, decodeDelayHistory, decodeDelayPreview, type DelayRequest } from '../model/departure-delay-contract'
 import { ApiError, apiRequest } from '@/shared/api'
 import { decodeAuditEvents, decodeChange, decodeHandoff, decodeImpactTask, decodeInventory, decodeNotificationAggregate, decodePublicSellability, decodeReadiness, decodeSaleReadiness, decodeSchedule, type ChangeInput } from '../model/departure-contract'
 
@@ -8,7 +9,18 @@ function savedTasks(value: unknown, id: string) {
   if(tasks.some(task=>!task.taskId)||new Set(tasks.map(task=>task.taskId)).size!==tasks.length)throw new ApiError('Danh sách công việc thiếu định danh hoặc có mục trùng.',502)
   return tasks
 }
+const delayPath = (id: string) => '/cruises/' + encodeURIComponent(id) + '/delays'
+
 export const departureApi = {
+  async delayHistory(id: string, signal?: AbortSignal) {
+    return decodeDelayHistory(await apiRequest(delayPath(id), { signal }), id)
+  },
+  async previewDelay(id: string, body: DelayRequest) {
+    return decodeDelayPreview(await apiRequest(delayPath(id) + '/preview', { method: 'POST', body }), body.expectedRevision)
+  },
+  async confirmDelay(id: string, body: DelayRequest, userId: string) {
+    return decodeDelayEvent(await apiRequest(delayPath(id), { method: 'POST', body }), id, body, userId)
+  },
   async preview(sourceVersionId: string, departureDatetime: string, signal?: AbortSignal) {
     const result = decodeSchedule(await apiRequest('/cruise/preview-schedule', { method: 'POST', body: { sourceVersionId, departureDatetime }, signal }))
     if (result.sourceVersionId !== sourceVersionId || !result.departureDatetime || Date.parse(result.departureDatetime) !== Date.parse(departureDatetime)) throw new ApiError('Kết quả xem trước chưa khớp phiên bản và thời gian đã chọn.', 502)

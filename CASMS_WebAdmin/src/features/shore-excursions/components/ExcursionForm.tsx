@@ -87,12 +87,10 @@ export function ExcursionForm({ initial, busy, pending=busy, onSave }: { initial
     void onSave(formToExcursionRequest(converted),guard.allowLeave)
   }
   return <>{guard.prompt}
-    <p className={styles.hint}>Chọn điểm dừng của lịch trình và nhà cung cấp đã xác minh. Lịch tham quan phải phù hợp với giờ lưu cảng và giờ khách trở lại tàu.</p>
     {(stops.loading || suppliers.loading) && <Loading label="Đang tải điểm dừng và nhà cung cấp…" />}
     {[stops, suppliers].map((query, index) => query.error && <Notice key={index} tone="error" title={`Không tải được ${index ? 'nhà cung cấp' : 'điểm dừng'}`}>{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>)}
     {!stops.loading && stops.data?.length === 0 && <Notice title="Chưa có điểm dừng">Cần có lần ghé cảng trước khi tạo chuyến tham quan. <Link to="/admin/cruises">Xem chuyến khởi hành</Link></Notice>}
     {contextError && <Notice tone="error" title="Kiểm tra thông tin liên quan">{contextError}</Notice>}
-    <p className={styles.hint}>{hasZone ? `Nhập giờ địa phương của cảng (${zone}).` : 'Chọn lần ghé cảng có múi giờ để nhập lịch tham quan.'}</p>
     <EditorLayout ><form className={styles.form} onSubmit={submit} noValidate>
       <fieldset disabled={busy}>
         <div className={styles.fullRow}><FormErrorSummary errors={errors} /></div>
@@ -107,16 +105,14 @@ export function ExcursionForm({ initial, busy, pending=busy, onSave }: { initial
           {suggestion && <div className={styles.suggestion}><p>Khung giờ trống gợi ý: {displayTime(suggestion.startTime)} – {displayTime(suggestion.plannedReturnTime)}. Có thể chỉnh lại sau khi chọn.</p><Button tone="secondary" onClick={() => { setTimeEdits(suggestion); setErrors({}); setContextError('') }}>Dùng khung giờ gợi ý</Button></div>}
           {!schedule.loading && !schedule.error && !suggestion && <p className={styles.hint}>Chưa có khoảng trống đủ một phút trong giờ lưu cảng. Chọn điểm dừng khác hoặc cập nhật lịch tham quan đã có.</p>}
         </section>}
-        {fields.map(({ key, label, type = 'text', maxLength, required }) => <Field key={key} htmlFor={`excursion-${key}`} label={`${label}${required ? ' *' : ''}`} error={errors[key]}>
+        {fields.map(({ key, label, type = 'text', maxLength, required }) => <div key={key} className={key === 'price' ? styles.fullRow : undefined}><Field htmlFor={`excursion-${key}`} label={`${label}${required ? ' *' : ''}`} error={errors[key]}>
           <input id={`excursion-${key}`} name={key} type={type} required={required} maxLength={maxLength}
             min={type === 'number' ? 1 : type === 'datetime-local' ? earliest : undefined} max={type === 'number' ? 2147483647 : type === 'datetime-local' ? latest : undefined} step={type === 'datetime-local' ? 60 : type === 'number' ? 1 : undefined}
             inputMode={key === 'price' ? 'decimal' : undefined} value={key === 'startTime' || key === 'plannedReturnTime' ? timeValue(key) : values[key]} disabled={type==='datetime-local'&&!hasZone} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? `excursion-${key}-hint` : undefined}
             onChange={(event) => change(key, event.target.value)} />
-        </Field>)}
+        </Field></div>)}
         <div className={styles.actions}><Link className={styles.link} to={returnTo ?? (initial ? `/admin/shore-excursions/${initial.shoreExcursionId}` : '/admin/shore-excursions')}>Quay lại</Link>{access.canDo(initial ? 'EXCURSION_UPDATE' : 'EXCURSION_CREATE') && <Button type="submit" disabled={busy || !hasZone || stops.loading || suppliers.loading || Boolean(stops.error || suppliers.error) || !stops.data?.length}>{busy ? 'Đang lưu…' : 'Lưu chuyến tham quan'}</Button>}</div>
       </fieldset>
     </form></EditorLayout>
   </>
 }
-
-

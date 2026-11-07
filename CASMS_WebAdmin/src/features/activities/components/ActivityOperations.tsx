@@ -5,11 +5,12 @@ import { Button, ButtonLink, Modal, Notice, Panel } from '@/shared/ui'
 import { activityApi, type ActivityCatalogEntry } from '../api/activity-api'
 import { activityActions } from '../model/activity-actions'
 import type { Activity } from '../model/activity'
+import styles from './Activities.module.css'
 const labels = { open: 'Mở đăng ký', start: 'Bắt đầu hoạt động', complete: 'Hoàn thành hoạt động', cancel: 'Hủy hoạt động', delete: 'Xóa hoạt động chưa sử dụng' }
 export function ActivityOperations({ activity, onChanged }: { activity: Activity | ActivityCatalogEntry; onChanged: () => void }) {
   const access = useSessionAccess(), navigate = useNavigate(), lock = useRef(false)
   const [action, setAction] = useState<keyof typeof labels | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState('')
-  const occurrence = 'catalogEntry' in activity ? null : activity
+  const occurrence = activity.catalogEntry === true ? null : activity
   const canDelete = !occurrence || occurrence.status === 'PLANNED'
   const lifecycle = occurrence ? activityActions(occurrence) : []
   const allowed = (action: keyof typeof labels) => access.canDo(action === 'delete' ? 'ACTIVITY_UPDATE' : 'ACTIVITY_LIFECYCLE') && (action === 'delete' ? canDelete : lifecycle.includes(action))
@@ -21,5 +22,8 @@ export function ActivityOperations({ activity, onChanged }: { activity: Activity
     finally { lock.current = false; setBusy(false) }
   }
   if (!access.canDo('ACTIVITY_UPDATE') && !access.canDo('ACTIVITY_LIFECYCLE')) return null
-  return <Panel title={occurrence ? 'Điều hành hoạt động' : 'Quản lý danh mục'}>{occurrence?.status === 'PLANNED' && access.canDo('ACTIVITY_UPDATE') && <ButtonLink tone="secondary" to={`/admin/activities/${activity.id}/edit`}>Chỉnh sửa</ButtonLink>}{[...lifecycle, ...(canDelete ? ['delete' as const] : [])].filter(item => access.canDo(item === 'delete' ? 'ACTIVITY_UPDATE' : 'ACTIVITY_LIFECYCLE')).map(item => <Button key={item} tone={item === 'cancel' || item === 'delete' ? 'danger' : 'secondary'} disabled={!allowed(item) || busy} onClick={() => { setAction(item); setError('') }}>{labels[item]}</Button>)}<p>Chỉ xóa hoạt động chưa có đăng ký và chưa được tham chiếu.</p>{action && allowed(action) && <Modal title={labels[action]} busy={busy} onClose={() => setAction(null)}><p>Xác nhận {labels[action].toLocaleLowerCase('vi')} cho {activity.name}?</p>{error && <Notice title="Không thực hiện được" tone="error">{error}</Notice>}<Button disabled={busy || !allowed(action)} onClick={() => void confirm()}>{labels[action]}</Button></Modal>}</Panel>
+  return <Panel title={occurrence ? 'Điều hành hoạt động' : 'Quản lý danh mục'}><div className={styles.actions}>{occurrence?.status === 'PLANNED' && access.canDo('ACTIVITY_UPDATE') && <ButtonLink tone="secondary" to={`/admin/activities/${activity.id}/edit`}>Chỉnh sửa</ButtonLink>}{[...lifecycle, ...(canDelete ? ['delete' as const] : [])].filter(item => access.canDo(item === 'delete' ? 'ACTIVITY_UPDATE' : 'ACTIVITY_LIFECYCLE')).map(item => <Button key={item} tone={item === 'cancel' || item === 'delete' ? 'danger' : 'secondary'} disabled={!allowed(item) || busy} onClick={() => { setAction(item); setError('') }}>{labels[item]}</Button>)}</div><p>Chỉ xóa hoạt động chưa có đăng ký và chưa được tham chiếu.</p>{action && allowed(action) && <Modal title={labels[action]} busy={busy} onClose={() => setAction(null)} protectChanges={false} footer={<>
+      <Button tone="secondary" disabled={busy} onClick={() => setAction(null)}>Hủy</Button>
+      <Button tone={action === 'delete' || action === 'cancel' ? 'danger' : 'primary'} busy={busy} disabled={!allowed(action)} onClick={() => void confirm()}>{labels[action]}</Button>
+    </>}><p>Xác nhận {labels[action].toLocaleLowerCase('vi')} cho {activity.name}?</p>{error && <Notice title="Không thực hiện được" tone="error">{error}</Notice>}</Modal>}</Panel>
 }

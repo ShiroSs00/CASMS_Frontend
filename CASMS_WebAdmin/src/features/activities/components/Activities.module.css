@@ -1,10 +1,10 @@
 .content { max-width: 1260px; margin-inline: auto; }
-.filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-block: 16px; }
-.filters input, .filters select, .form input, .form select, .form textarea { width: 100%; min-height: 42px; padding: 10px 12px; border: 1px solid var(--border-default); border-radius: 8px; background: white; color: var(--text-primary); font: inherit; }
+.filters { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-4); margin-block: 16px; }
 .filters label { display: grid; gap: 6px; min-width: 220px; }
 .form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-block: 18px; }
-.definition { display: grid; grid-template-columns: minmax(140px, 1fr) 2fr; gap: 12px; }
+fieldset.form { margin:0; padding:0; border:0; min-width:0; }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-block: 18px; }
+.definition { display: grid; grid-template-columns: minmax(140px, 1fr) 2fr; gap: var(--space-3); }
 .definition dt { font-weight: 600; }
 .definition dd { margin: 0; overflow-wrap: anywhere; }
 .content a { text-underline-offset: 4px; }
@@ -12,14 +12,14 @@
 
 /* Short contextual forms share the existing control system. */
 .form { gap:24px; }
-.actions { gap:12px; }
+.actions { gap:var(--space-3); }
 
 /* OceVie desktop: use shared semantic presentation, retain feature behavior. */
 .filters label { min-width:0; flex:1 1 220px; font-size:14px; line-height:1.5; }
-.actions { gap:12px; }
+.actions { gap:var(--space-3); }
 
 /* Keep field rows aligned; wrap according to available form width. */
-.form { align-items:start; gap:16px 24px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }
+.form { align-items:start; gap:var(--space-4) var(--space-5); grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc((100% - 24px)/2))),1fr)); }
 
 .form > div:has(> textarea) { grid-column:1/-1; }
 form .actions { justify-content:flex-end; padding-top:16px; border-top:1px solid var(--ui-border,var(--border-default)); }
@@ -36,5 +36,6 @@ form .actions { justify-content:flex-end; padding-top:16px; border-top:1px solid
 .definition dt { color:var(--text-secondary); font-weight:400; font-size:13px; }
 .definition dd { font-weight:500; }
 .form > section { min-width:0; }
+.form input[type='datetime-local'] { height:var(--control-height-default); padding-block:var(--space-2); }
 @media(max-width:1100px) { .detailLayout { grid-template-columns:minmax(0,1fr); } .actionRail { position:static; } }
 @media(max-width:600px) { .definition { grid-template-columns:minmax(0,1fr); } .definition dt { padding-bottom:4px; border-bottom:0; } .definition dd { padding-top:0; } }

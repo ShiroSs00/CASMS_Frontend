@@ -5,8 +5,8 @@ import styles from './Overlay.module.css'
 let openCount = 0
 let previousOverflow = ''
 
-export function Modal({ title, description, onClose, busy = false, wide = false, large = false, children, footer, variant = 'modal', protectChanges = true }:
-  { title: string; description?: string; onClose: () => void; busy?: boolean; wide?: boolean; large?: boolean; children: ReactNode; footer?: ReactNode; variant?: 'modal' | 'drawer'; protectChanges?: boolean }) {
+export function Modal({ title, description, onClose, busy = false, wide = false, large = false, children, footer, variant = 'modal', quiet = false, protectChanges = true }:
+  { title: string; description?: string; onClose: () => void; busy?: boolean; wide?: boolean; large?: boolean; children: ReactNode; footer?: ReactNode; variant?: 'modal' | 'drawer'; quiet?: boolean; protectChanges?: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const dirty = useRef(false)
   const lastControl = useRef<HTMLElement | null>(null)
@@ -47,7 +47,7 @@ export function Modal({ title, description, onClose, busy = false, wide = false,
     setConfirmDiscard(false)
   }
   return <dialog ref={dialog} aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined} aria-busy={busy || undefined}
-    className={`${experience.overlay} ${styles.dialog} ${large ? styles.large : wide ? styles.wide : ''} ${variant === 'drawer' ? styles.drawer : ''}`}
+    className={`${experience.overlay} ${styles.dialog} ${large ? styles.large : wide ? styles.wide : ''} ${variant === 'drawer' ? styles.drawer : ''} ${quiet ? styles.quiet : ''}`}
     onChangeCapture={event => { dirty.current = true; if (event.target instanceof HTMLElement) lastControl.current = event.target }}
     onClickCapture={event => {
       if (event.target instanceof Element && event.target.closest('[role="radio"][aria-checked="false"]')) {
@@ -57,10 +57,10 @@ export function Modal({ title, description, onClose, busy = false, wide = false,
       const target = event.target instanceof Element ? event.target.closest('[data-overlay-dismiss]') : null
       if (target && (busy || (protectChanges && dirty.current))) { event.preventDefault(); event.stopPropagation(); requestClose() }
     }}
-    onCancel={event => { event.preventDefault(); if (confirmDiscard) continueEditing(); else requestClose() }}>
+    onCancel={event => { event.preventDefault(); event.stopPropagation(); if (confirmDiscard) continueEditing(); else requestClose() }}>
     <div className={`${styles.frame} ${confirmDiscard ? styles.confirming : ''}`}>
       <header className={styles.header}><div><h2 id={titleId}>{title}</h2>{description && <p id={descriptionId}>{description}</p>}</div>
-        <button ref={closeControl} type="button" autoFocus aria-label="Đóng hộp thoại" disabled={busy} className={styles.close} onClick={requestClose}>×</button>
+        <button ref={closeControl} type="button" autoFocus aria-label="Đóng hộp thoại" disabled={busy} className={styles.close} onClick={requestClose}>{quiet ? 'Đóng' : '×'}</button>
       </header>
       <div className={styles.body} inert={confirmDiscard}>{children}</div>
       {footer && <footer className={styles.footer} inert={confirmDiscard}>{footer}</footer>}

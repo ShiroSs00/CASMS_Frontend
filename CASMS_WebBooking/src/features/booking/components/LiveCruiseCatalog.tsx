@@ -5,6 +5,7 @@ import { Link, useLocation, useParams, useSearchParams } from 'react-router'
 import { catalogReturn } from '../model/live-booking-navigation'
 import { bookingReadFailure } from '../model/booking-feedback'
 import { ApiError } from '@/shared/api'
+import { Field } from '@/shared/ui'
 import { liveCruiseCatalogApi } from '../api/booking-api'
 import type { LiveCruise, LiveCruisePage } from '../api/live-cruise-contract'
 
@@ -87,7 +88,7 @@ function LiveCruiseSearchPage({page,cruiseType}:{page:number;cruiseType?:'ONE_DA
     <div className={s.container}>
       <div className={s.liveModeNotice}><strong>Chuyến du lịch đã công bố</strong><span>Chọn chuyến để xem thông tin đã công bố.</span><Link to="/booking/lookup">Tra cứu đặt chỗ</Link></div>
       <div className={s.catalogWorkspace}><div className={s.searchResultsHead}><div><p className={s.eyebrow}>HÀNH TRÌNH SẮP TỚI</p><Heading level={2} title={loading?'Đang tải hành trình…':issue?'Chưa tải được danh mục':`${result?.total??0} hành trình đã công bố`} description="Xem lịch khởi hành, tuyến cảng và thông tin gói du thuyền."/></div></div>
-      <div className={s.liveFilterBar}><label className={s.liveFilter}><span id="catalog-cruise-type-label">Loại hành trình</span><select aria-labelledby="catalog-cruise-type-label" value={cruiseType??''} onChange={event=>{const query=new URLSearchParams(params);query.delete('page');if(event.target.value)query.set('cruiseType',event.target.value);else query.delete('cruiseType');setParams(query,{preventScrollReset:true})}}><option value="">Tất cả</option><option value="ONE_DAY">Một ngày</option><option value="MULTI_DAYS">Nhiều ngày</option></select></label><p>Sắp xếp theo ngày khởi hành sớm nhất · Giờ Việt Nam</p>{cruiseType && <Action onClick={()=>{const query=new URLSearchParams(params);query.delete('cruiseType');query.delete('page');setParams(query,{preventScrollReset:true})}}>Xóa bộ lọc</Action>}</div>
+      <div className={s.liveFilterBar}><div className={s.liveFilter}><Field htmlFor="catalog-cruise-type" label="Loại hành trình"><select value={cruiseType??''} onChange={event=>{const query=new URLSearchParams(params);query.delete('page');if(event.target.value)query.set('cruiseType',event.target.value);else query.delete('cruiseType');setParams(query,{preventScrollReset:true})}}><option value="">Tất cả</option><option value="ONE_DAY">Một ngày</option><option value="MULTI_DAYS">Nhiều ngày</option></select></Field></div><p>Sắp xếp theo ngày khởi hành sớm nhất · Giờ Việt Nam</p>{cruiseType && <Action onClick={()=>{const query=new URLSearchParams(params);query.delete('cruiseType');query.delete('page');setParams(query,{preventScrollReset:true})}}>Xóa bộ lọc</Action>}</div>
       <div className={s.searchList} aria-live="polite" aria-busy={loading}>
         {loading?<p className={s.searchMessage} role="status">Đang tải hành trình…</p>
           :issue?<LiveError issue={issue} retry={retry}/>

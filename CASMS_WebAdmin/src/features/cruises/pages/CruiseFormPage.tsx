@@ -3,7 +3,7 @@ import { InheritedSourcePlan } from '../components/InheritedSourcePlan'
 import { DepartureMilestones } from '../components/DepartureMilestones'
 import { EditorLayout } from '@/shared/ui'
 import { FormErrorSummary, FormSection,useUnsavedFormGuard } from '@/shared/ui'
-import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router'
 import { ApiError, useReadQuery } from '@/shared/api'
 import {mutationOutcomeUnknown} from '@/shared/lib/mutation-outcome'
@@ -75,50 +75,51 @@ export function CruiseFormPage() {
   const [appliedPreview,setAppliedPreview]=useState(restored?.appliedPreview??'')
   const [applyingSchedule, setApplyingSchedule] = useState(false)
   const [applyScheduleError, setApplyScheduleError] = useState('')
-  const [previewScheduleData, setPreviewScheduleData] = useState<DepartureSchedule | null>(null)
+  const [previewSchedule, setPreviewSchedule] = useState<{ key: string; data: DepartureSchedule } | null>(null)
+  const scheduleRequest = useRef<AbortController | null>(null)
   const [scheduleDetailOpen, setScheduleDetailOpen] = useState(false)
 
-  async function handleApplySchedule() {
-    if (!draft.departureDatetime || !sourceId) {
-      setApplyScheduleError('Vui lòng nhập ngày giờ khởi hành trước khi áp dụng.')
-      return
-    }
+  async function loadSchedule(apply: boolean) {
+    if (!draft.departureDatetime || !sourceId || scheduleRequest.current) return
+    const request = new AbortController()
+    scheduleRequest.current = request
     setApplyingSchedule(true)
     setApplyScheduleError('')
     try {
       const instant = scheduleInstant(draft.departureDatetime).toISOString()
-      const schedule = await departureApi.preview(sourceId, instant)
-      setDraft(current => ({
-        ...current,
-        returnDatetime: schedule.returnDatetime ? localCruiseInput(schedule.returnDatetime) : current.returnDatetime,
-        departurePortId: schedule.departurePortId ?? current.departurePortId,
-        returnPortId: schedule.returnPortId ?? current.returnPortId
-      }))
-      setPreviewRevision(schedule.sourceVersionRevision)
-      setAppliedPreview(JSON.stringify([sourceId, draft.departureDatetime]))
-      setPreviewScheduleData(schedule)
+      const schedule = await departureApi.preview(sourceId, instant, request.signal)
+      if (request.signal.aborted) return
+      if (apply) {
+        setDraft(current => ({
+          ...current,
+          returnDatetime: schedule.returnDatetime ? localCruiseInput(schedule.returnDatetime) : current.returnDatetime,
+          departurePortId: schedule.departurePortId ?? current.departurePortId,
+          returnPortId: schedule.returnPortId ?? current.returnPortId,
+        }))
+        setPreviewRevision(schedule.sourceVersionRevision)
+        setAppliedPreview(scheduleKey)
+      }
+      setPreviewSchedule({ key: scheduleKey, data: schedule })
+      if (!apply) setScheduleDetailOpen(true)
     } catch (err) {
-      setApplyScheduleError(err instanceof Error ? err.message : 'Không tính toán được lịch trình theo ngày giờ này.')
+      if (!request.signal.aborted) setApplyScheduleError(err instanceof Error ? err.message : 'Không tải được lịch trình theo ngày giờ này.')
     } finally {
+      scheduleRequest.current = null
       setApplyingSchedule(false)
     }
   }
 
-  async function handleOpenScheduleDetail() {
-    if (previewScheduleData) {
-      setScheduleDetailOpen(true)
+  function handleApplySchedule() {
+    if (!draft.departureDatetime || !sourceId) {
+      setApplyScheduleError('Vui lòng nhập ngày giờ khởi hành trước khi áp dụng.')
       return
     }
-    if (draft.departureDatetime && sourceId) {
-      try {
-        const instant = scheduleInstant(draft.departureDatetime).toISOString()
-        const schedule = await departureApi.preview(sourceId, instant)
-        setPreviewScheduleData(schedule)
-        setScheduleDetailOpen(true)
-      } catch (err) {
-        setApplyScheduleError(err instanceof Error ? err.message : 'Không tải được chi tiết lịch trình.')
-      }
-    }
+    void loadSchedule(true)
+  }
+
+  function handleOpenScheduleDetail() {
+    if (previewScheduleData || !draft.departureDatetime) setScheduleDetailOpen(true)
+    else void loadSchedule(false)
   }
   const [changeSourceOpen, setChangeSourceOpen] = useState(false)
   const [previewRevision,setPreviewRevision]=useState<number|null>(restored?.previewRevision??null)
@@ -127,6 +128,10 @@ export function CruiseFormPage() {
   const requestedSource=params.get('sourceVersionId')
   const invalidSource=!editing&&params.has('sourceVersionId')&&!requestedSource?.trim()
   const sourceId=editing?null:uncertain&&createIntent.record?createIntent.record.payload.sourceVersionId??null:requestedSource
+  const scheduleKey = JSON.stringify([sourceId, draft.departureDatetime])
+  const previewScheduleData = previewSchedule?.key === scheduleKey ? previewSchedule.data : null
+  useLayoutEffect(() => () => scheduleRequest.current?.abort(), [scheduleKey])
+
   const source=useReadQuery('cruise-source:'+sourceId,useCallback(signal=>sourceId?readPublishedSource(sourceId,signal):Promise.resolve(null),[sourceId]))
   const displayName=!editing&&sourceId&&source.data&&!nameEdited?source.data.tripName:draft.cruiseName
   const [storedCruise,setStoredCruise]=useState<CruiseRecord|null>(null)
@@ -196,6 +201,13 @@ export function CruiseFormPage() {
   const portOptions = [...(portsLoadedKey===portRequestKey?ports:[]), ...(loadedId===cruiseId?storedPorts:[]).filter((port,index,all) => port && !ports.some(item=>item.portId===port.portId) && all.findIndex(item=>item?.portId===port.portId)===index)]
 
   function update<K extends keyof CruiseDraft>(key: K, value: CruiseDraft[K]) {
+    if (key === 'departureDatetime' && value !== draft.departureDatetime) {
+      scheduleRequest.current?.abort()
+      setPreviewSchedule(null)
+      setAppliedPreview('')
+      setPreviewRevision(null)
+      setApplyScheduleError('')
+    }
     if(key==='cruiseName')setNameEdited(true)
     const next = { ...draft,cruiseName:displayName, [key]: value }
     setDraft(next)
@@ -207,6 +219,9 @@ export function CruiseFormPage() {
   function chooseSource(id:string,name?:string){
     const next=new URLSearchParams(params);next.delete('mode')
     if(id)next.set('sourceVersionId',id);else next.delete('sourceVersionId')
+    scheduleRequest.current?.abort()
+    setPreviewSchedule(null)
+    setApplyScheduleError('')
     setParams(next,{replace:true});setAppliedPreview('');setPreviewRevision(null)
     setDraft(old=>({...old,cruiseName:nameEdited?old.cruiseName:name??'',returnDatetime:'',departurePortId:'',returnPortId:''}))
     setErrors({});setSubmitError('')
@@ -431,7 +446,7 @@ export function CruiseFormPage() {
               </div>
               <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 <div style={{ flex: '1 1 320px', minWidth: '280px' }}>
-                  <Field htmlFor="departure-time" label="Thời gian cảng rời (Giờ Việt Nam) *" hint="Nhập thời điểm tàu xuất bến thực tế để tính toán mốc đến cảng và ngày kết thúc." error={errors.departureDatetime}>
+                  <Field htmlFor="departure-time" label="Khởi hành dự kiến (giờ Việt Nam) *" error={errors.departureDatetime}>
                     <input
                       id="departure-time"
                       disabled={sourceEditing}
@@ -456,7 +471,7 @@ export function CruiseFormPage() {
                     disabled={busy || uncertain || Boolean(source.error) || !draft.departureDatetime || applyingSchedule}
                     onClick={handleApplySchedule}
                   >
-                    {applyingSchedule ? 'Đang tính toán…' : appliedPreview === JSON.stringify([sourceId, draft.departureDatetime]) ? '✓ Đã chốt lịch trình' : '⚡ Áp dụng & Chốt lịch trình'}
+                    {applyingSchedule ? 'Đang tính toán…' : appliedPreview === JSON.stringify([sourceId, draft.departureDatetime]) ? 'Đã áp dụng lịch trình' : 'Áp dụng lịch trình'}
                   </Button>
                 </div>
               </div>
@@ -501,43 +516,32 @@ export function CruiseFormPage() {
                     </div>
                   </div>
                 </div>
-              ) : draft.departureDatetime ? (
-                <div style={{ marginTop: '14px', fontSize: '13px', color: '#64748b', background: '#f8fafc', padding: '10px 14px', borderRadius: '6px', border: '1px dashed #cbd5e1' }}>
-                  👉 Bấm <strong>"⚡ Áp dụng & Chốt lịch trình"</strong> để tính toán ngày kết thúc và áp dụng cảng xuất phát / kết thúc thực tế.
-                </div>
               ) : null}
             </div>
 
             {scheduleDetailOpen && (
               <Modal
-                large
+                wide
+                quiet
                 protectChanges={false}
-                title={`Chi tiết lịch trình: ${source.data?.tripName}`}
-                description={`Mã chuyến: ${source.data?.tripCode} · Thời lượng: ${source.data?.durationDays} ngày ${source.data?.durationNights ? `${source.data?.durationNights} đêm` : ''}`}
+                title={`${previewScheduleData ? 'Lịch trình' : 'Lịch mẫu'} · ${source.data.tripName}`}
+                description={`${source.data.tripCode} · ${source.data.durationDays} ngày${source.data.durationNights ? ` ${source.data.durationNights} đêm` : ''}`}
                 onClose={() => setScheduleDetailOpen(false)}
-                footer={<Button tone="secondary" onClick={() => setScheduleDetailOpen(false)}>Đóng</Button>}
               >
-                <div style={{ minWidth: 0, padding: '4px 0' }}>
-                  {previewScheduleData ? (
-                    <ItineraryDayBrowser days={previewScheduleData.days}>
-                      {day => (
-                        <ScheduleContents
-                          schedule={previewScheduleData}
-                          preview
-                          selectedDay={day}
-                          entryTitles={Object.fromEntries((source.data?.entries ?? []).flatMap(entry => [[entry.clientKey, entry.title], ...(entry.entryId ? [[entry.entryId, entry.title]] : [])]))}
-                        />
-                      )}
-                    </ItineraryDayBrowser>
-                  ) : (
-                    <div style={{ padding: '8px 0' }}>
-                      <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#64748b' }}>
-                        Khung lịch trình mẫu kế thừa. Chọn thời gian khởi hành thực tế bên dưới và bấm "Áp dụng & Chốt lịch trình" để tính toán mốc giờ vận hành chính xác.
-                      </p>
-                      <TemplateSchedule days={source.data.days} stops={source.data.stops} entries={source.data.entries} />
-                    </div>
-                  )}
-                </div>
+                {previewScheduleData ? (
+                  <ItineraryDayBrowser days={previewScheduleData.days}>
+                    {day => (
+                      <ScheduleContents
+                        schedule={previewScheduleData}
+                        preview
+                        selectedDay={day}
+                        entryTitles={Object.fromEntries((source.data?.entries ?? []).flatMap(entry => [[entry.clientKey, entry.title], ...(entry.entryId ? [[entry.entryId, entry.title]] : [])]))}
+                      />
+                    )}
+                  </ItineraryDayBrowser>
+                ) : (
+                  <TemplateSchedule days={source.data.days} stops={source.data.stops} entries={source.data.entries} />
+                )}
               </Modal>
             )}
             

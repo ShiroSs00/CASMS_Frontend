@@ -1,6 +1,7 @@
-import { PermissionLink as Link } from '@/shared/ui'
+import { useRef, useState } from 'react'
+import { SupplierDetailPage } from '../pages/SupplierDetailPage'
 
-import { Badge, Button, CollectionSummary, DataTable, Empty, Field, ListFilters, ListFooter, Loading, Notice, Panel } from '@/shared/ui'
+import { Badge, Button, CollectionSummary, DataTable, Empty, Field, ListFilters, ListFooter, Loading, Modal, Notice, Panel } from '@/shared/ui'
 import { supplierStatusLabels, supplierUpdatedDate, supplierVerificationLabels, type SupplierFilters, type SupplierListItem } from '../model/supplier-list'
 import styles from './SupplierList.module.css'
 
@@ -16,6 +17,10 @@ type Props = {
 }
 
 export function SupplierListView({ rows, filters, totalCount, loading = false, error, onFiltersChange, onReset, onRetry }: Props) {
+  const [selected, setSelected] = useState<SupplierListItem|null>(null)
+  const changed = useRef(false)
+  function closeDetail(){setSelected(null);if(changed.current)onRetry?.();changed.current=false}
+  function openDetail(row:SupplierListItem){changed.current=false;setSelected(row)}
   const filtered = Boolean(filters.search || filters.status !== 'ALL' || filters.verification !== 'ALL')
   return <>
     <CollectionSummary count={loading || error ? null : totalCount} visible={rows.length} filtered={filtered} label="Đối tác đã tải" />
@@ -34,7 +39,7 @@ export function SupplierListView({ rows, filters, totalCount, loading = false, e
       {loading ? <Loading label="Đang tải nhà cung cấp…" /> : error ? <Notice title="Không tải được nhà cung cấp" tone="error"><p>{error}</p>{onRetry && <Button tone="secondary" onClick={onRetry}>Thử lại</Button>}</Notice> : rows.length ? <>
         <DataTable label="Danh sách nhà cung cấp" headers={['Nhà cung cấp', 'Loại', 'Liên hệ', 'Trạng thái', 'Xác minh', 'Cập nhật', 'Thao tác']}>
           {rows.map(row => <tr key={row.id}>
-            <td><Link className={styles.name} to={`/admin/suppliers/${row.id}`}>{row.supplierName}</Link></td>
+            <td><Button tone="text" autoWidth className={styles.name} onClick={() => openDetail(row)}>{row.supplierName}</Button></td>
             <td><span className={styles.type}>{row.supplierType || 'Chưa phân loại'}</span></td>
             <td><div className={styles.contact}>
               {row.contactName && <strong>{row.contactName}</strong>}
@@ -45,7 +50,7 @@ export function SupplierListView({ rows, filters, totalCount, loading = false, e
             <td><Badge label={supplierStatusLabels[row.status]} tone={row.status === 'ACTIVE' ? 'success' : 'neutral'} /></td>
             <td><Badge label={supplierVerificationLabels[row.verificationStatus]} tone={row.verificationStatus === 'VERIFIED' ? 'success' : row.verificationStatus === 'REJECTED' ? 'error' : 'warning'} /></td>
             <td><time className={styles.date} dateTime={row.updatedAt}>{supplierUpdatedDate(row.updatedAt)}</time></td>
-            <td><Link className={styles.rowAction} to={`/admin/suppliers/${row.id}`} aria-label={`Xem chi tiết ${row.supplierName}`}>Chi tiết →</Link></td>
+            <td><Button tone="secondary" size="compact" autoWidth onClick={() => openDetail(row)} aria-label={`Xem chi tiết ${row.supplierName}`}>Xem chi tiết</Button></td>
           </tr>)}
         </DataTable>
       </> : <Empty title={totalCount ? 'Không tìm thấy nhà cung cấp phù hợp' : 'Chưa có nhà cung cấp'}>
@@ -54,5 +59,6 @@ export function SupplierListView({ rows, filters, totalCount, loading = false, e
       </Empty>}
       {!loading && !error && <ListFooter summary={filtered ? `${rows.length} / ${totalCount} nhà cung cấp` : `${totalCount} nhà cung cấp`} />}
     </Panel>
+    {selected && <Modal title={selected.supplierName} large protectChanges={false} onClose={closeDetail} footer={<Button tone="secondary" onClick={closeDetail}>Đóng</Button>}><SupplierDetailPage key={selected.id} recordId={selected.id} embedded onChanged={() => {changed.current=true}} onDeleted={() => {changed.current=true;closeDetail()}} /></Modal>}
   </>
 }
