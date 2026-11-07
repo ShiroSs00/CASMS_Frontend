@@ -81,10 +81,10 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
         : <input id={`catalog-${field.key}`} name={field.key} type={field.type ?? 'text'} maxLength={field.maxLength} min={field.type === 'number' ? 0 : undefined} step={field.key === 'capacity' ? 1 : field.type === 'number' ? 'any' : undefined} disabled={busy} value={draft[field.key]} aria-invalid={Boolean(errors[field.key])} onChange={event => setDraft({ ...draft, [field.key]: field.key === 'currency' ? event.target.value.toUpperCase() : event.target.value })} />}
     </Field>)}
     </FormSection>)}
-    {kind==='services'&&<FormSection title="Cách phục vụ" description="Cấu hình này quyết định dịch vụ có cần lịch đặt chỗ và đơn vị sử dụng nào.">
+    {kind==='services'&&<FormSection title="Cách phục vụ">
       <Field htmlFor="catalog-schedule" label="Đặt dịch vụ theo lịch" error={errors.requiresSchedule}><select id="catalog-schedule" name="requiresSchedule" disabled={busy} value={draft.requiresSchedule} onChange={e=>setDraft({...draft,requiresSchedule:e.target.value})}><option value="">Chưa thay đổi cấu hình nguồn</option><option value="true">Cần lịch đặt trước</option><option value="false">Không bắt buộc lịch đặt trước</option></select></Field>
       <Field htmlFor="catalog-category" label="Nhóm dịch vụ"><select id="catalog-category" disabled={busy||categories.loading||Boolean(categories.error)} value={draft.categoryId} onChange={e=>setDraft({...draft,categoryId:e.target.value})}><option value="">Chưa chọn nhóm</option>{categories.data?.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>{categories.error&&<Button tone="text" onClick={categories.retry}>Tải lại nhóm dịch vụ</Button>}</Field>
-      <Field htmlFor="catalog-unit" label="Đơn vị phục vụ" error={errors.unitCode} hint="Nhập đúng đơn vị của dịch vụ. Quyền lợi và số lượng phục vụ sẽ dùng nguyên đơn vị này, không tự quy đổi."><input id="catalog-unit" name="unitCode" maxLength={30} disabled={busy} value={draft.unitCode} onChange={e=>setDraft({...draft,unitCode:e.target.value})}/></Field>
+      <Field htmlFor="catalog-unit" label="Đơn vị phục vụ" error={errors.unitCode}><input id="catalog-unit" name="unitCode" maxLength={30} disabled={busy} value={draft.unitCode} onChange={e=>setDraft({...draft,unitCode:e.target.value})}/></Field>
     </FormSection>}
     {kind === 'services' && <FormSection title="Giai đoạn phục vụ và định mức">
       {(Object.keys(servicePurchaseFlags) as (keyof typeof servicePurchaseFlags)[]).map(key =>
@@ -102,13 +102,13 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
       {draft.preCruiseUsagePolicy && draft.preCruiseUsagePolicy !== 'UNLIMITED' && <Field htmlFor="catalog-usage-limit" label="Định mức tối đa" error={errors.preCruiseUsageLimit}>
         <input id="catalog-usage-limit" name="preCruiseUsageLimit" type="number" min={1} step={1} value={draft.preCruiseUsageLimit} onChange={e=>setDraft({...draft,preCruiseUsageLimit:e.target.value})} />
       </Field>}
-      <Field htmlFor="catalog-usage-zone" label="Múi giờ tính định mức" error={errors.usageTimeZone} hint="Mã múi giờ IANA, ví dụ Asia/Ho_Chi_Minh.">
+      <Field htmlFor="catalog-usage-zone" label="Múi giờ tính định mức" error={errors.usageTimeZone}>
         <input id="catalog-usage-zone" name="usageTimeZone" maxLength={100} value={draft.usageTimeZone} onChange={e=>setDraft({...draft,usageTimeZone:e.target.value})} />
       </Field>
     </FormSection>}
     <div className={styles.fullRow}><Field htmlFor="catalog-description" label="Mô tả" error={errors.description}><textarea id="catalog-description" name="description" maxLength={1000} disabled={busy} value={draft.description} onChange={event => setDraft({ ...draft, description: event.target.value })} /></Field></div>
     </fieldset>{error && <Notice title="Chưa lưu được danh mục" tone="error">{error}{uncertain&&<Button tone="secondary" disabled={busy} onClick={()=>void reconcile()}>Đối chiếu kết quả đã lưu</Button>}</Notice>}
-    <div className={styles.editorActions}><ButtonLink tone="secondary" to={catalogConfig[kind].route}>Hủy</ButtonLink><Button type="submit" disabled={busy || uncertain || !allowed}>{busy ? 'Đang lưu…' : 'Lưu danh mục'}</Button></div>
+    <div className={styles.editorActions}><ButtonLink tone="secondary" to={catalogConfig[kind].route}>Hủy</ButtonLink><Button type="submit" busy={busy} disabled={uncertain || !allowed}>{busy ? 'Đang lưu…' : 'Lưu danh mục'}</Button></div>
   </form></Panel>{guard.prompt}</EditorLayout>
 }
 export function ServiceFormPage() { return <CatalogFormPage kind="services" /> }

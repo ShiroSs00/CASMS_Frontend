@@ -1,5 +1,6 @@
 import {wallTimeToInstant,SHIP_TIME_ZONE} from '@/shared/lib/journey-time'
 export type Activity = {
+  catalogEntry?: false
   sourceActivityId?: string | null; responsibleUserId?: string | null
   id: string; code: string; name: string; description: string | null; startTime: string; endTime: string
   location: string | null;deckId?:string|null;deckNumber?:number|null;deckName?:string|null;cabinId?:string|null;cabinNumber?:string|null; capacity: number; price: number | null; currencyCode: string | null; status: string; cruiseId: string | null

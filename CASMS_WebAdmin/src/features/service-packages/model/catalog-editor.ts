@@ -50,9 +50,9 @@ export function serializeCatalogDraft(kind: CatalogKind, draft: CatalogDraft) {
     preCruiseUsagePolicy: draft.preCruiseUsagePolicy || undefined,
     preCruiseUsageLimit: !draft.preCruiseUsagePolicy ? undefined : draft.preCruiseUsagePolicy === 'UNLIMITED' ? null : Number(draft.preCruiseUsageLimit),
     usageTimeZone: draft.usageTimeZone.trim() || undefined,
-    requiresSchedule:draft.requiresSchedule===''?undefined:draft.requiresSchedule==='true',categoryId:draft.categoryId||undefined,unitCode:draft.unitCode.trim()||undefined, serviceCode: draft.code.trim(), serviceName: draft.name.trim(), serviceType: draft.type.trim(), description, price: money, currencyCode, capacity: draft.capacity.trim() ? Number(draft.capacity) : null }
+    requiresSchedule:draft.requiresSchedule===''?undefined:draft.requiresSchedule==='true',categoryId:draft.categoryId||undefined,unitCode:draft.unitCode.trim()||undefined, serviceName: draft.name.trim(), serviceType: draft.type.trim(), description, price: money, currencyCode, capacity: draft.capacity.trim() ? Number(draft.capacity) : null }
   if (kind === 'products') return { productCode: draft.code.trim(), productName: draft.name.trim(), productType: draft.type.trim(), description, unitPrice: money, currencyCode }
-  return { packageCode: draft.code.trim(), packageName: draft.name.trim(), packageType: draft.type, description, price: money, currencyCode, startDate: draft.startDate || null, endDate: draft.endDate || null }
+  return { packageName: draft.name.trim(), packageType: draft.type, description, price: money, currencyCode, startDate: draft.startDate || null, endDate: draft.endDate || null }
 }
 export function catalogMatchesDraft(kind:CatalogKind,item:CatalogItem,draft:CatalogDraft) {
   if(item.name!==draft.name.trim()||item.type!==draft.type.trim()

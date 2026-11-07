@@ -99,7 +99,7 @@ export function roleWorkspace(roles: readonly string[]) {
 }
 export function staffRoleHome(roles: readonly string[], access?: AdminAccess) {
   if (!primaryStaffRole(access?.roles ?? roles) || access?.status !== 'ready') return null
-  if(primaryStaffRole(access.roles ?? roles)==='ACTIVITY_SERVICE_MANAGER'&&canRoleOpenAdminPath(access.roles ?? roles,'/admin/cruises','',access))return '/admin/cruises'
+  if(primaryStaffRole(access.roles ?? roles)==='ACTIVITY_SERVICE_MANAGER')return roleNavigationItems(roles,access).find(item=>item.to!=='/admin/cruises')?.to ?? null
   return roleNavigationItems(roles, access)[0]?.to ?? null
 }
 export function staffRoleLabel(roles: readonly string[]) {
@@ -200,7 +200,7 @@ const navigationGroups = [
 export function roleNavigationGroups(roles: readonly string[], access: AdminAccess): AdminNavigationGroup[] {
   if(primaryStaffRole(access.roles ?? roles)==='SHIP_MANAGER') return roleNavigationItems(roles,access).map(item=>({id:item.to!.replace('/admin/',''),label:item.label,items:[item],direct:true}))
   if(primaryStaffRole(access.roles ?? roles)==='ACTIVITY_SERVICE_MANAGER') {
-    const items=roleNavigationItems(roles,access)
+    const items=roleNavigationItems(roles,access).filter(item=>item.to!=='/admin/cruises')
     const groups=[
       {id:'preparation',label:'Chuẩn bị cho chuyến',sections:['cruises','activities','shore-excursions']},
       {id:'catalog',label:'Nội dung và mẫu gói',sections:['cruise-package-templates','services','products']},

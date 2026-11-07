@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { homeCruiseSearch, homeCruiseType } from '../model/public-booking'
+import { Button, Field } from '@/shared/ui'
 import styles from './HomeShowcase.module.css'
 
 const heroSlides = [
@@ -56,8 +57,8 @@ export function HomeFinder() {
   return <section className={styles.finder} id="cruise-finder" aria-labelledby="home-finder-title">
     <div className={styles.finderIntro}><p className={styles.eyebrow}>TÌM CHUYẾN DU THUYỀN</p><h2 id="home-finder-title">Chọn hành trình cho kỳ nghỉ của bạn</h2><p id="home-finder-help">Chọn chuyến ngắn ngày hoặc dài ngày để xem lịch khởi hành và phòng còn trống.</p></div>
     <form onSubmit={event => { event.preventDefault(); navigate(homeCruiseSearch(cruiseType)) }}>
-      <label htmlFor="home-cruise-type"><span id="home-cruise-type-label">Loại hành trình</span><select id="home-cruise-type" name="cruiseType" aria-labelledby="home-cruise-type-label" value={cruiseType} aria-describedby="home-finder-help" onChange={event => { const query = new URLSearchParams(params); if (event.target.value) query.set('cruiseType', event.target.value); else query.delete('cruiseType'); setParams(query, { replace: true, preventScrollReset: true }) }}><option value="">Tất cả hành trình</option><option value="ONE_DAY">Chuyến ngắn ngày (1–2 ngày)</option><option value="MULTI_DAYS">Chuyến dài ngày (3–5 ngày)</option></select></label>
-      <button type="submit" className={styles.navyButton}>Tìm chuyến <span aria-hidden="true">→</span></button>
+      <div className={styles.finderField}><Field htmlFor="home-cruise-type" label="Loại hành trình"><select name="cruiseType" value={cruiseType} aria-describedby="home-finder-help" onChange={event => { const query = new URLSearchParams(params); if (event.target.value) query.set('cruiseType', event.target.value); else query.delete('cruiseType'); setParams(query, { replace: true, preventScrollReset: true }) }}><option value="">Tất cả hành trình</option><option value="ONE_DAY">Chuyến ngắn ngày (1–2 ngày)</option><option value="MULTI_DAYS">Chuyến dài ngày (3–5 ngày)</option></select></Field></div>
+      <Button type="submit">Tìm chuyến <span aria-hidden="true">→</span></Button>
     </form>
   </section>
 }

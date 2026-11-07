@@ -24,7 +24,7 @@ export function ActivityFormPage() {
     useCallback(signal => activityId ? activityApi.read(activityId, signal) : Promise.resolve(null), [activityId]))
   if (!activityId) return <ActivityCatalogEditor key="new" />
   if (!query.data) return <ActivityFrame><ActivityState {...query} /></ActivityFrame>
-  if ('catalogEntry' in query.data) return <ActivityCatalogEditor key={activityId} initial={query.data} />
+  if ('catalogEntry' in query.data && query.data.catalogEntry === true) return <ActivityCatalogEditor key={activityId} initial={query.data} />
   return <ActivityEditor activityId={activityId} key={JSON.stringify([activityId, params.get('cruiseId'), params.get('returnTo')])} />
 }
 function ActivityEditor({ activityId }: { activityId: string }) {
@@ -82,7 +82,7 @@ function ActivityEditor({ activityId }: { activityId: string }) {
     {cruises.data && !cruises.data.length && <Notice title="Chưa có chuyến du lịch"><p>Tạo chuyến trước khi lập hoạt động trên tàu.</p><ButtonLink to="/admin/cruises/new">Tạo chuyến</ButtonLink></Notice>}
     <EditorLayout ><form ref={form} onSubmit={submit} noValidate><Panel title="Thông tin hoạt động">
           <FormErrorSummary errors={errors} /><div className={styles.form}>
-      <FormSection title="01 · Thông tin hoạt động" >
+      <FormSection title="Thông tin hoạt động" >
       <Field htmlFor="activity-cruiseId" label="Chuyến khởi hành *" error={errors.cruiseId}><select disabled={Boolean(activityId||requestedCruise)} {...input('cruiseId')} value={draft.cruiseId} onChange={event=>setDraft(current=>({...current,cruiseId:event.target.value,deckId:null,cabinId:null}))} required><option value="">Chọn chuyến khởi hành</option>{cruises.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}</select></Field>
       {(['activityName', 'location'] as const).map(key => <Field key={key} htmlFor={'activity-' + key} label={{ activityName: 'Tên hoạt động *', location: 'Địa điểm', currencyCode: 'Mã tiền tệ' }[key]} error={errors[key]}><input {...input(key)} maxLength={{ activityName: 200, location: 250, currencyCode: 3 }[key]} value={draft[key]} onChange={event => update(key, event.target.value)} /></Field>)}
       {venue.loading&&<p role="status">Đang đối chiếu vị trí trên tàu…</p>}{venue.error&&<Notice title="Chưa đối chiếu được boong" tone="warning">{venue.error.message}<Button tone="secondary" onClick={venue.retry}>Tải lại boong</Button></Notice>}
@@ -96,13 +96,13 @@ function ActivityEditor({ activityId }: { activityId: string }) {
         {!cabins.loading&&!cabins.error&&cabins.data?.length===0&&<p>Boong này chưa có cabin/phòng trong cấu trúc tàu.</p>}
       </>}
 
-      </FormSection><FormSection title="02 · Thời gian & sức chứa" ><p>Giờ tàu: Việt Nam (Asia/Ho_Chi_Minh).</p>
+      </FormSection><FormSection title="Thời gian và sức chứa" ><p>Giờ tàu: Việt Nam (Asia/Ho_Chi_Minh).</p>
       {(['startTime', 'endTime'] as const).map(key => <Field key={key} htmlFor={'activity-' + key} label={key === 'startTime' ? 'Bắt đầu *' : 'Kết thúc *'} error={errors[key]}><input {...input(key)} type="datetime-local" value={draft[key]} onChange={event => update(key, event.target.value)} /></Field>)}
       {(['capacity', 'price'] as const).map(key => <Field key={key} htmlFor={'activity-' + key} label={key === 'capacity' ? 'Sức chứa *' : businessCopy('program.field.priceUsd')} error={errors[key]}><input {...input(key)} type="number" min={key === 'capacity' ? 1 : 0} step={key === 'capacity' ? 1 : '0.01'} value={draft[key] === null || Number.isNaN(draft[key]) ? '' : draft[key]} onChange={event => update(key, event.target.value === '' ? key === 'price' ? null : NaN : Number(event.target.value))} /></Field>)}
-      </FormSection><FormSection title="03 · Nội dung giới thiệu" >
+      </FormSection><FormSection title="Nội dung giới thiệu" >
       <Field htmlFor="activity-description" label="Mô tả" error={errors.description}><textarea {...input('description')} maxLength={1000} value={draft.description} onChange={event => update('description', event.target.value)} /></Field>
       </FormSection>
-    </div><div className={styles.actions}><Button tone="secondary" disabled={busy} onClick={() => navigate(activityId ? '/admin/activities/' + activityId : '/admin/activities')}>Hủy</Button><Button type="submit" disabled={!permitted || uncertain || Boolean(activityId && !editable) || busy || !cruises.data?.length || Boolean(activityId && loadedId !== activityId)}>{busy ? 'Đang lưu…' : 'Lưu hoạt động'}</Button></div></Panel></form></EditorLayout>
+    </div><div className={styles.actions}><Button tone="secondary" disabled={busy} onClick={() => navigate(activityId ? '/admin/activities/' + activityId : '/admin/activities')}>Hủy</Button><Button type="submit" busy={busy} disabled={!permitted || uncertain || Boolean(activityId && !editable) || !cruises.data?.length || Boolean(activityId && loadedId !== activityId)}>{busy ? 'Đang lưu…' : 'Lưu hoạt động'}</Button></div></Panel></form></EditorLayout>
   {guard.prompt}</ActivityFrame>
 }
 

@@ -53,6 +53,7 @@ export function TripListPage() {
           <Field htmlFor="trip-search" label="Tìm kiếm chuyến đi">
             <input
               id="trip-search"
+              type="search"
               placeholder="Nhập mã hoặc tên chuyến đi cần tìm..."
               value={searchText}
               onChange={e => setSearchText(e.target.value)}
@@ -195,9 +196,9 @@ function TripListRow({ trip }: { trip: Trip }) {
       </td>
       <td>
         {published !== undefined ? (
-          <Badge tone="success" label={`Đã chốt (V${published})`} />
+          <Badge tone="success" label="Đã chốt" />
         ) : working !== undefined ? (
-          <Badge tone="warning" label={`Bản nháp (V${working})`} />
+          <Badge tone="warning" label="Bản nháp" />
         ) : (
           <Badge tone={trip.status === 'READY' ? 'success' : 'neutral'} label={tripLabels[trip.status] ?? 'Chưa chốt'} />
         )}

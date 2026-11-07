@@ -148,7 +148,6 @@ function TemplateWorkspace() {
       {canWrite&&creatingTemplate&&<form id="fare-template-create" className={styles.templateCreate} onSubmit={async e=>{e.preventDefault();if(disabled)return;pendingTemplate.current={code:code.trim(),ids:query.data?.map(row=>row.id)??[]};await mutation.run(async()=>{const created=await cruisePackageApi.createTemplate(code.trim());if(created.code!==code.trim())throw new Error('Chưa xác nhận đúng mẫu vừa tạo.');setSelected(created.id);setNewTemplateId(created.id);setCode('');setCreatingTemplate(false)},'Đã tạo mẫu. Tiếp tục tạo phiên bản để cấu hình nội dung.')}}>
         <Field htmlFor="fare-template-code" label="Mã mẫu mới *" hint="Mã dùng để phân biệt các mẫu gói."><input ref={codeInput} id="fare-template-code" required maxLength={50} value={code} disabled={disabled} onChange={e=>setCode(e.target.value)}/></Field><Button type="submit" disabled={disabled||!code.trim()}>{mutation.busy?'Đang tạo…':'Tạo mẫu'}</Button>
       </form>}
-      {!selected&&!creatingTemplate&&!query.loading&&!query.error&&<p className={styles.helper}>{query.data?.length===0?'Chưa có mẫu gói. Chọn “Tạo mẫu mới” để bắt đầu.':'Chọn mẫu để xem, tạo và phát hành phiên bản.'}</p>}
     </Panel>
     {template&&<TemplateVersions key={template.id} template={template} startNew={template.id===newTemplateId} readOnly={disabled} onChanged={refresh}/>}
   </div></AdminShell>

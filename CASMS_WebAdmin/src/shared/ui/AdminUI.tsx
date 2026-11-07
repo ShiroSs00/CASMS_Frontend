@@ -8,16 +8,17 @@ export function AdminFrame({ children, className = '', topbar }: { children: Rea
   return <AdminShell className={className} topbar={topbar}>{children}</AdminShell>
 }
 
-export function Button({ tone = 'primary', size = 'regular', autoWidth = false, fullWidth = false, className = '', type = 'button', ...props }:
+export function Button({ tone = 'primary', size = 'regular', autoWidth = false, fullWidth = false, className = '', type = 'button', busy = false, disabled, ...props }:
   ButtonHTMLAttributes<HTMLButtonElement> & {
     tone?: 'primary' | 'secondary' | 'danger' | 'text'
+    busy?: boolean
     size?: 'regular' | 'compact'
     autoWidth?: boolean
     fullWidth?: boolean
   }) {
   const sizeClass = size === 'compact' ? styles.compact : ''
   const widthClass = fullWidth ? styles.fullWidth : autoWidth ? styles.autoWidth : ''
-  return <button type={type} className={`${styles.button} ${styles[tone]} ${sizeClass} ${widthClass} ${className}`.trim()} {...props} />
+  return <button type={type} className={`${styles.button} ${styles[tone]} ${sizeClass} ${widthClass} ${className}`.trim()} {...props} disabled={disabled || busy} aria-busy={busy || props['aria-busy']} />
 }
 export function ButtonLink({ to, children, tone = 'primary', size = 'regular', autoWidth = false, fullWidth = false, className = '' }: {
   to: string

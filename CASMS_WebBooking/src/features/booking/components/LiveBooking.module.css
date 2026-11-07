@@ -32,13 +32,12 @@
 .stepNumber { display: inline-grid; place-items: center; flex: 0 0 30px; height: 30px; border: 1px solid currentColor; border-radius: 50%; font-size: 14px; }
 .publicJourney .fields { gap: 22px 24px; }
 .publicJourney :where(input,select,textarea) { color: var(--journey-ink); }
-.publicJourney input[aria-invalid='true'], .publicJourney select[aria-invalid='true'] { border-color: #aa3434; }
 .publicJourney .actions { padding-top: 16px; border-top: 1px solid #ded8cc; }
 .publicJourney .rail { top: 24px; border-top-color: var(--color-gold-400); }
 .summary { display: grid; gap: 12px; margin: 16px 0; }
 .summary > div { display: grid; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid #e7e2d8; }
 .summary dt { font-size: 13px; color: var(--text-secondary); }
-.summary dd { margin: 0; font-weight: 600; line-height: 1.5; }
+.summary dd { margin: 0; font-weight: 600; line-height: 1.5; font-variant-numeric: tabular-nums; }
 .selection { padding: 14px 16px; border-left: 3px solid var(--color-gold-400); background: var(--color-cream-50); line-height: 1.6; }
 .publicJourney .sectionHeading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .publicJourney .sectionHeading a { text-decoration: underline; text-underline-offset: 4px; font-size: 14px; }
@@ -133,7 +132,7 @@
   .publicJourney .selection { padding:20px 24px; border-radius:6px; background:#E7F1EE; border-left:3px solid var(--brand-teal); font-size:13px; line-height:1.9; }
   .publicJourney .fields { gap:24px; }
   .publicJourney .actions { padding:22px 0 0; border-color:#C7D6D0; }
-  .publicJourney .actions > button[type='submit'] { margin-left:auto; min-height:50px; padding-inline:28px; background:var(--brand-teal); }
+  .publicJourney .actions > button[type='submit'] { margin-left:auto; }
   .publicJourney .lookupGrid { grid-template-columns:minmax(0,1.35fr) minmax(300px,.8fr); gap:36px; }
   .publicJourney .lookupHelp { padding:0 0 28px; border:1px solid #C8D8D2; border-radius:10px; background:white; overflow:hidden; gap:20px; }
   .publicJourney .lookupHelp > :not(figure) { margin-inline:28px; }
