@@ -389,7 +389,7 @@ export function CruiseFormPage() {
                 <Field htmlFor="source-change-dropdown" label="Thay đổi lịch trình mẫu">
                   <select
                     id="source-change-dropdown"
-                    disabled={busy || uncertain || eligibleSourcesQuery.loading}
+                    disabled={busy || uncertain || eligibleSourcesQuery.loading || Boolean(eligibleSourcesQuery.error)}
                     value={sourceId ?? ''}
                     onChange={e => {
                       const selected = eligibleSourcesQuery.data?.content.find(v => v.versionId === e.target.value)
@@ -407,6 +407,11 @@ export function CruiseFormPage() {
                     ))}
                   </select>
                 </Field>
+                {eligibleSourcesQuery.loading && <Loading label="Đang tải lịch trình mẫu…"/>}
+                {eligibleSourcesQuery.error && <Notice title="Chưa tải được lịch trình mẫu" tone="error">
+                  <Button tone="secondary" autoWidth onClick={eligibleSourcesQuery.retry}>Tải lại</Button>
+                </Notice>}
+                {eligibleSourcesQuery.data?.totalElements === 0 && <p>Chưa có lịch trình mẫu khác để chọn.</p>}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', background: '#fff', padding: '12px 16px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>

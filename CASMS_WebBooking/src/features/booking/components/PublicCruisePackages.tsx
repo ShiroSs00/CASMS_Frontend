@@ -34,7 +34,7 @@ function OfferCard({ offer }: { offer: CatalogOffer }) {
         {benefit.inclusion === 'LIMITED_INCLUDED' && <p>
           Giới hạn: {benefit.quantityLimit} {benefit.usageUnit === 'PARTICIPATION' ? 'lượt tham gia' : benefit.serviceUnitCode ?? 'đơn vị chưa xác định'}.
         </p>}
-        {benefit.requiresReservation === true && <p>Cần đăng ký riêng theo lịch và chỗ còn khả dụng.</p>}
+        {benefit.requiresReservation === true && <><Badge label="Cần đăng ký riêng" tone="warning" /><p>Việc đăng ký tùy theo lịch và số chỗ còn lại.</p></>}
         <p>{benefit.eligibility}</p>
         {benefit.occurrences.length > 0 && <p>Lần phục vụ: {benefit.occurrences.map(item => item.name).join(' · ')}</p>}
         {benefit.usageStartsAt && benefit.usageEndsAt && <p>

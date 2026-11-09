@@ -83,7 +83,7 @@ export function BookingPackageAssignments({ bookingId, onChanged }: { bookingId?
             </> : <><h3>Chưa có gói dịch vụ</h3></>)}
           </section>
           {!hasPermission && <p className={styles.hint}>Bạn có thể xem phân bổ hiện tại. Cần quyền phân bổ gói để cập nhật.</p>}
-          {hasPermission && booking.bookingStatus !== 'Draft' && <p className={styles.hint}>Đặt chỗ {booking.bookingStatus === 'Confirmed' ? 'đã xác nhận' : 'đã hủy'} chỉ cho phép xem. Chỉ đặt chỗ chờ xác nhận mới được gán, đổi hoặc gỡ gói.</p>}
+          {hasPermission && booking.bookingStatus !== 'Draft' && <p className={styles.hint}>Đặt chỗ {booking.bookingStatus === 'Confirmed' ? 'đã xác nhận' : 'đã hủy'} chỉ cho phép xem. Gói được chốt cùng đặt chỗ. Bạn có thể gán, đổi hoặc gỡ gói khi đặt chỗ còn chờ xác nhận.</p>}
           {passenger.participationStatus !== 'Active' && <p className={styles.hint}>Hành khách đã hủy tham gia nên không thể cập nhật gói.</p>}
         </>}
       </Panel>

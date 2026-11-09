@@ -30,18 +30,33 @@ function CatalogList({ kind }: { kind: CatalogKind }) {
 export function ServiceListPage() { return <CatalogList kind="services" /> }
 export function ProductListPage() { return <CatalogList kind="products" /> }
 export function PackageListPage() { return <CatalogList kind="packages" /> }
+function requestSearchText(value: string) {
+  return value.trim().toLocaleLowerCase('vi').normalize('NFD').replace(/\p{M}/gu, '').replaceAll('đ', 'd')
+}
+
 export function ServiceRequestListPage() {
   const access = useSessionAccess()
   const query = useReadQuery('service-requests', servicePackageApi.requests), [search, setSearch] = useState(''), [status, setStatus] = useState('')
-  const items = query.data?.filter(item => (!status || item.status === status) && (item.note ?? '').toLocaleLowerCase('vi').includes(search.toLocaleLowerCase('vi'))) ?? []
+  const canReadServices = access.canDo('SERVICE_READ')
+  const services = useReadQuery('request-service-catalog:' + access.userId + ':' + canReadServices,
+    useCallback(signal => canReadServices ? servicePackageApi.list('services', signal) : Promise.resolve([]), [canReadServices]))
+  const serviceById = new Map(services.data?.map(item => [item.id, item]))
+  const term = requestSearchText(search)
+  const items = query.data?.filter(item => {
+    if (status && item.status !== status) return false
+    if (!term) return true
+    const service = serviceById.get(item.serviceId)
+    return [item.id, item.note, item.serviceId, item.bookingId, item.bookingPassengerId,
+      item.passengerId, service?.code, service?.name].some(value => value && requestSearchText(value).includes(term))
+  }) ?? []
   return <CatalogFrame><PageHeader breadcrumb="DỊCH VỤ TÀU" title="Yêu cầu dịch vụ"  actions={access.roles.includes('PASSENGER') && access.canDo('SERVICE_REQUEST_CREATE') && <ButtonLink to="/admin/service-requests/new">Tạo yêu cầu dịch vụ</ButtonLink>} />
     <CollectionSummary count={query.loading || query.error ? null : query.data?.length ?? null} visible={items.length} filtered={Boolean(search || status)} label="Yêu cầu đã tải" />
     <Panel title="Bộ lọc"><ListFilters label="Bộ lọc yêu cầu dịch vụ" actions={<Button tone="secondary" disabled={!search && !status} onClick={() => { setSearch(''); setStatus('') }}>Xóa bộ lọc</Button>}>
-      <Field htmlFor="request-search" label="Nội dung ghi chú"><input id="request-search" type="search" placeholder="Nhập nội dung cần tìm" value={search} onChange={event => setSearch(event.target.value)} /></Field>
+      <Field htmlFor="request-search" label="Tìm yêu cầu" hint={canReadServices && !services.error ? "Tên hoặc mã dịch vụ, mã định danh hoặc ghi chú." : "Mã định danh hoặc ghi chú."}><input id="request-search" type="search" value={search} onChange={event => setSearch(event.target.value)} /></Field>
       <Field htmlFor="request-status" label="Trạng thái"><select id="request-status" value={status} onChange={event => setStatus(event.target.value)}><option value="">Tất cả trạng thái</option>{['REQUESTED', 'ACCEPTED', 'IN_PROGRESS', 'COMPLETED', 'REJECTED', 'CANCELLED'].map(value => <option key={value} value={value}>{statusLabels[value]}</option>)}</select></Field>
     </ListFilters></Panel>
     <Panel title="Danh sách yêu cầu"><CatalogState {...query} />{query.data && !items.length && <Empty title={query.data.length ? 'Không có kết quả phù hợp' : 'Chưa có yêu cầu dịch vụ'} />}{query.data && items.length > 0 && <DataTable label="Yêu cầu dịch vụ" headers={['Dịch vụ', 'Số lượng', 'Trạng thái', 'Yêu cầu lúc', '']}>
-      {items.map(item => <tr key={item.id}><td><Link to={'/admin/services/' + item.serviceId}>Xem dịch vụ</Link></td><td>{item.quantity}</td><td><Badge label={statusLabels[item.status] ?? item.status} tone={['ACTIVE', 'COMPLETED', 'AVAILABLE'].includes(item.status) ? 'success' : ['REJECTED', 'CANCELLED'].includes(item.status) ? 'error' : item.status === 'IN_PROGRESS' ? 'info' : 'neutral'} /></td><td>{catalogTime(item.requestTime)}</td><td><Link to={'/admin/service-requests/' + item.id}>Xem yêu cầu</Link></td></tr>)}
+      {items.map(item => <tr key={item.id}><td>{serviceById.get(item.serviceId)?.name ?? 'Dịch vụ'}{canReadServices && <> · <Link to={'/admin/services/' + item.serviceId}>Xem dịch vụ</Link></>}</td><td>{item.quantity}</td><td><Badge label={statusLabels[item.status] ?? item.status} tone={['ACTIVE', 'COMPLETED', 'AVAILABLE'].includes(item.status) ? 'success' : ['REJECTED', 'CANCELLED'].includes(item.status) ? 'error' : item.status === 'IN_PROGRESS' ? 'info' : 'neutral'} /></td><td>{catalogTime(item.requestTime)}</td><td><Link to={'/admin/service-requests/' + item.id}>Xem yêu cầu</Link></td></tr>)}
     </DataTable>}{query.data && <ListFooter summary={`${items.length} kết quả`} />}</Panel>
   </CatalogFrame>
 }

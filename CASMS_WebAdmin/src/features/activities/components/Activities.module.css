@@ -2,6 +2,9 @@
 .filters { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-4); margin-block: 16px; }
 .filters label { display: grid; gap: 6px; min-width: 220px; }
 .form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.listResults { display: grid; gap: var(--space-5); min-width: 0; }
+.listResults > * { min-width: 0; }
+
 fieldset.form { margin:0; padding:0; border:0; min-width:0; }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-block: 18px; }
 .definition { display: grid; grid-template-columns: minmax(140px, 1fr) 2fr; gap: var(--space-3); }

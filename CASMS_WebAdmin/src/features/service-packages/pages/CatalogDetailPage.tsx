@@ -13,9 +13,9 @@ import { PackageBenefitsEditor } from '../components/PackageBenefitsEditor'
 import { ServiceRequestActions } from '../components/ServiceRequestActions'
 import { benefitLabels, catalogTime, catalogConfig, servicePurchaseFlags, serviceUsagePolicyLabels, statusLabels, type CatalogKind } from '../model/catalog'
 import styles from '../components/Catalog.module.css'
-function ServiceAvailability({ id }: { id: string }) {
+function ServiceAvailability({ id, unitCode }: { id: string; unitCode?: string | null }) {
   const query = useReadQuery('service-availability:' + id, useCallback(signal => servicePackageApi.availability(id, signal), [id]))
-  return <Panel title="Khả năng đáp ứng"><CatalogState {...query} />{query.data && <p>{query.data.available ? 'Dịch vụ đáp ứng được yêu cầu 1 đơn vị.' : 'Dịch vụ hiện chưa đáp ứng được yêu cầu 1 đơn vị.'}</p>}</Panel>
+  return <Panel title="Khả năng đáp ứng"><CatalogState {...query} />{query.data && <p>{query.data.available ? (unitCode ? `Có thể phục vụ ít nhất 1 ${unitCode}.` : 'Dịch vụ còn khả dụng.') : 'Dịch vụ hiện chưa khả dụng.'}</p>}</Panel>
 }
 function PackageBenefits({ id, showComponents = true }: { id: string; showComponents?: boolean }) {
   const access = useSessionAccess(), canServices = access.canDo('SERVICE_READ')
@@ -60,7 +60,7 @@ export function CatalogDetail({ kind, recordId, embedded = false }: { kind: Cata
       ['Mô tả', item.description || 'Chưa có mô tả'],
     ]} /></Panel>
       {kind === 'packages' && access.can({mode:'ANY',permissions:['TOUR_PACKAGE_MANAGE','PACKAGE_COMPONENT_MANAGE']}) && <PackageBenefitsEditor key={item.id} packageId={item.id} status={item.status} onChanged={() => setBenefitsVersion(version => version + 1)} />}
-      {kind === 'services' && <><ServiceAvailability id={item.id} /><ServiceSchedules key={item.id} serviceId={item.id} /></>}{kind === 'packages' && <PackageBenefits key={`${item.id}:${benefitsVersion}`} id={item.id} showComponents={!access.can({mode:'ANY',permissions:['TOUR_PACKAGE_MANAGE','PACKAGE_COMPONENT_MANAGE']})} />}
+      {kind === 'services' && <><ServiceAvailability id={item.id} unitCode={item.unitCode} /><ServiceSchedules key={item.id} serviceId={item.id} /></>}{kind === 'packages' && <PackageBenefits key={`${item.id}:${benefitsVersion}`} id={item.id} showComponents={!access.can({mode:'ANY',permissions:['TOUR_PACKAGE_MANAGE','PACKAGE_COMPONENT_MANAGE']})} />}
     </>}
   </Frame>
 }

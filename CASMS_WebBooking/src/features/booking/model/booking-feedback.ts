@@ -1,7 +1,11 @@
 // Public presentation only: never expose transport internals or distinguish
 // whether a guest reference exists when the supplied contact does not match.
+export function isBookingLookupMismatch(status?: number) {
+  return status !== undefined && [400, 403, 404, 422].includes(status)
+}
+
 export function bookingLookupFailure(status?: number) {
-  if (status !== undefined && [400, 403, 404, 422].includes(status)) return 'Không tìm thấy đặt chỗ khớp thông tin đã nhập. Kiểm tra lại mã và email hoặc số điện thoại đại diện.'
+  if (isBookingLookupMismatch(status)) return 'Không tìm thấy đặt chỗ khớp thông tin đã nhập. Kiểm tra lại mã và email hoặc số điện thoại đại diện.'
   if (status === 429) return 'Bạn đã tra cứu nhiều lần. Vui lòng chờ rồi thử lại; thông tin đã nhập vẫn được giữ.'
   return 'Chưa thể tra cứu lúc này. Thông tin đã nhập vẫn được giữ; vui lòng thử lại sau.'
 }

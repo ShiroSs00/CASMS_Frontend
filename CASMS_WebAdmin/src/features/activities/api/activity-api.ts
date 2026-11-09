@@ -23,7 +23,7 @@ function list<T>(value: unknown, status: number): T[] {
 }
 function registration(value: unknown, status: number): Registration {
   const dto = unwrapActivityResponse(value, status) as Registration | null
-  if (!dto || typeof dto.id !== 'string' || typeof dto.bookingPassengerId !== 'string' || !Number.isSafeInteger(dto.quantity) || dto.quantity < 1 || typeof dto.status !== 'string' || (!dto.activityId && !dto.excursionId)) throw new ApiError('Không đọc được đăng ký.', status)
+  if (!dto || typeof dto.id !== 'string' || typeof dto.bookingPassengerId !== 'string' || !Number.isSafeInteger(dto.quantity) || dto.quantity < 1 || typeof dto.status !== 'string' || (!dto.activityId && !dto.excursionId) || (dto.notes != null && typeof dto.notes !== 'string')) throw new ApiError('Không đọc được đăng ký.', status)
   return dto
 }
 function participation(value: unknown, status: number): Participation {

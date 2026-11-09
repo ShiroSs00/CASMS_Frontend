@@ -1,5 +1,6 @@
 import {PublicCruisePackages} from './PublicCruisePackages'
 import { PublicCruiseSaleState, PublicCruiseItinerary, PublicCruiseBookingEntry } from './PublicCruiseInformation'
+import { PublicContact } from '@/app/layouts/PublicContact'
 import { useCallback, useEffect, useRef } from 'react'
 import { Link, useLocation, useParams, useSearchParams } from 'react-router'
 import { catalogReturn, cruiseDetailPath, cruiseDetailSections } from '../model/live-booking-navigation'
@@ -51,7 +52,7 @@ const vietnamTime = new Intl.DateTimeFormat('vi-VN', { day:'2-digit', month:'2-d
 const when = (instant:string) => vietnamTime.format(new Date(instant))
 const route = (cruise:LiveCruise) => [cruise.departurePort,cruise.returnPort].filter(Boolean).join(' → ') || 'Chưa có thông tin cảng'
 function LiveError({issue,retry}:{issue:LoadIssue;retry:()=>void}) {
-  return <div role="alert"><EmptyState title="Không tải được danh mục chuyến khởi hành"><p>{issue.message}</p><Action onClick={retry}>Thử lại</Action>{issue.status===401&&<ActionLink secondary to="/#project-contact">Liên hệ</ActionLink>}</EmptyState></div>
+  return <div role="alert"><EmptyState title="Không tải được danh mục chuyến khởi hành"><p>{issue.message}</p><Action onClick={retry}>Thử lại</Action>{issue.status===401&&<PublicContact id="catalog-error-contact" />}</EmptyState></div>
 }
 
 export function LiveCruiseSearch() {
@@ -66,6 +67,12 @@ export function LiveCruiseSearch() {
 function LiveCruiseSearchPage({page,cruiseType}:{page:number;cruiseType?:'ONE_DAY'|'MULTI_DAYS'}) {
   const [params,setParams]=useSearchParams()
   const location=useLocation()
+  function clearFilters() {
+    const query = new URLSearchParams(params)
+    query.delete('cruiseType')
+    query.delete('page')
+    setParams(query, {preventScrollReset:true})
+  }
   const pageLink=(next:number)=>{const query=new URLSearchParams(params);query.set('page',String(next));return '/cruises?'+query}
   const load=useCallback(async(signal:AbortSignal):Promise<LoadResult<LiveCruisePage>>=>{
     try { return { value:await liveCruiseCatalogApi.list(page,signal,cruiseType) } }
@@ -88,12 +95,19 @@ function LiveCruiseSearchPage({page,cruiseType}:{page:number;cruiseType?:'ONE_DA
     <div className={s.container}>
       <div className={s.liveModeNotice}><Link to="/booking/lookup">Tra cứu đặt chỗ</Link></div>
       <div className={s.catalogWorkspace}><div className={s.searchResultsHead}><div><Heading level={2} title={loading?'Đang tải hành trình…':issue?'Chưa tải được danh mục':`${result?.total??0} hành trình đã công bố`} /></div></div>
-      <div className={s.liveFilterBar}><div className={s.liveFilter}><Field htmlFor="catalog-cruise-type" label="Loại hành trình"><select value={cruiseType??''} onChange={event=>{const query=new URLSearchParams(params);query.delete('page');if(event.target.value)query.set('cruiseType',event.target.value);else query.delete('cruiseType');setParams(query,{preventScrollReset:true})}}><option value="">Tất cả</option><option value="ONE_DAY">Một ngày</option><option value="MULTI_DAYS">Nhiều ngày</option></select></Field></div><p>Sắp xếp theo ngày khởi hành sớm nhất · Giờ Việt Nam</p>{cruiseType && <Action onClick={()=>{const query=new URLSearchParams(params);query.delete('cruiseType');query.delete('page');setParams(query,{preventScrollReset:true})}}>Xóa bộ lọc</Action>}</div>
+      <div className={s.liveFilterBar}><div className={s.liveFilter}><Field htmlFor="catalog-cruise-type" label="Loại hành trình"><select value={cruiseType??''} onChange={event=>{const query=new URLSearchParams(params);query.delete('page');if(event.target.value)query.set('cruiseType',event.target.value);else query.delete('cruiseType');setParams(query,{preventScrollReset:true})}}><option value="">Tất cả</option><option value="ONE_DAY">Một ngày</option><option value="MULTI_DAYS">Nhiều ngày</option></select></Field></div><p>Sắp xếp theo ngày khởi hành sớm nhất · Giờ Việt Nam</p>{cruiseType && <Action onClick={clearFilters}>Xóa bộ lọc</Action>}</div>
       <div className={s.searchList} aria-live="polite" aria-busy={loading}>
         {loading?<p className={s.searchMessage} role="status">Đang tải hành trình…</p>
           :issue?<LiveError issue={issue} retry={retry}/>
           :result?.items.length?result.items.map((cruise,idx)=><LiveCruiseCard key={cruise.id} cruise={cruise} index={idx} from={location.pathname+location.search}/>)
-            :<EmptyState title={result?.total?'Trang này không có hành trình':'Chưa có hành trình để hiển thị'}><p>{cruiseType ? 'Chưa có chuyến phù hợp với loại hành trình đang chọn. Bạn có thể xóa bộ lọc để xem tất cả.' : 'Hiện chưa có chuyến đã công bố trong trang này. Vui lòng quay lại sau.'}</p>{page>1&&<ActionLink to={pageLink(1)}>Về trang đầu</ActionLink>}</EmptyState>}
+             : result?.total ? <EmptyState title="Trang này không có hành trình">
+              <ActionLink to={pageLink(1)}>Về trang đầu</ActionLink>
+            </EmptyState> : cruiseType ? <EmptyState title="Không có hành trình phù hợp">
+              <Action onClick={clearFilters}>Xem mọi loại hành trình</Action>
+            </EmptyState> : <EmptyState title="Chưa có lịch khởi hành mở bán">
+              <p>Bạn có thể quay lại sau để xem lịch mới.</p>
+              <PublicContact id="catalog-empty-contact" />
+            </EmptyState>}
       </div>
       {result&&result.total>0&&result.page<=result.pageCount&&<nav className={s.livePagination} aria-label="Phân trang danh mục cruise"><span>Trang {result.page} / {result.pageCount} · {result.total} hành trình</span><div>{result.page>1?<Link to={pageLink(result.page-1)}>← Trang trước</Link>:<span aria-disabled="true">← Trang trước</span>}{result.page<result.pageCount?<Link to={pageLink(result.page+1)}>Trang sau →</Link>:<span aria-disabled="true">Trang sau →</span>}</div></nav>}
       </div>
