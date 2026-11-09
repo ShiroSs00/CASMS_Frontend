@@ -1,34 +1,61 @@
-import { useState } from 'react';
-import { RefreshControl, ScrollView, Text, View } from 'react-native';
-import { PassengerScaffold } from '@/components/passenger/PassengerScaffold';
+import { router } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
+import { useRef, useState } from 'react';
+import { Text, View } from 'react-native';
+import { PassengerButton } from '@/components/passenger/PassengerButton';
 import { PassengerListItem } from '@/components/passenger/PassengerListItem';
 import { PassengerSheet, EmptyState, ui } from '@/components/passenger/PassengerUI';
-import { PassengerButton } from '@/components/passenger/PassengerButton';
-import { useLiveItinerary } from '@/features/itinerary/itinerary-api';
-import { deviceTimeZone, formatTime, timeZoneLabel } from '@/features/itinerary/api-format';
-import { Notice } from '@/features/itinerary/ItineraryUI';
-import { brand } from '@/constants/ocevie';
+import { ErrorNotice, LivePage, Loading } from '@/features/passenger-actions/PassengerActionUI';
+import { passengerApi, usePassengerAction, usePassengerQuery } from '@/features/passenger-actions/passenger-hooks';
+import { dateTime } from '@/features/passenger-actions/passenger-model';
+import type { PassengerNotification } from '@/features/passenger-actions/passenger-api';
+import { useAuth } from '@/features/auth/session-store';
+import { getApiUrl } from '@/lib/api';
 
-type Update = { id: string; title: string; date: string; description: string };
 export function PassengerNotificationsScreen() {
-  const { catalog, detail } = useLiveItinerary();
-  const [selected, setSelected] = useState<Update | null>(null);
-  const zone = deviceTimeZone();
-  const items: Update[] = (detail.data?.history.items ?? []).map(item => ({ id: item.changeHistoryId, title: item.changeSummary ?? item.changeType, date: formatTime(item.changedAt, zone, true), description: item.reason ?? '' }));
-  const error = catalog.error?.message ?? detail.error?.message ?? detail.data?.history.error;
-  const loading = catalog.isPending || (!!catalog.itinerary && detail.isPending);
-  function refresh() { void catalog.refetch(); if (catalog.itinerary) void detail.refetch(); }
-  return <PassengerScaffold detail title="Cập nhật hải trình">
-    <ScrollView contentContainerStyle={ui.content} refreshControl={<RefreshControl refreshing={catalog.isRefetching || detail.isRefetching} onRefresh={refresh} tintColor={brand.teal} />}>
-      {error && <><Notice tone="error" text={error} /><PassengerButton label="Thử lại" onPress={refresh} /></>}
-      {loading ? <Notice text="Đang tải cập nhật…" /> : items.length ? <View style={{ gap: 12 }}>
-        <Text style={ui.caption}>Giờ thiết bị · {timeZoneLabel(zone)}</Text>
-        {items.map(item => <PassengerListItem key={item.id} title={item.title} supporting={item.date} icon="notifications" onPress={() => setSelected(item)} />)}
-      </View> : !error && <EmptyState icon="notifications" title="Chưa có cập nhật mới" description="Các thay đổi của hải trình sẽ xuất hiện tại đây." />}
-    </ScrollView>
-    <PassengerSheet visible={!!selected} title="Cập nhật hải trình" onClose={() => setSelected(null)}>
-      <Text style={ui.caption}>{selected?.date}</Text><Text style={ui.sectionTitle}>{selected?.title}</Text>{!!selected?.description && <Text style={ui.body}>{selected.description}</Text>}
-      <PassengerButton label="Đóng" onPress={() => setSelected(null)} />
+  const inbox = usePassengerQuery(['notifications'], passengerApi.notifications, 'NOTIFICATION_READ');
+  const read = usePassengerAction<PassengerNotification>();
+  const cache = useQueryClient();
+  const lock = useRef(false);
+  const [selectedId, setSelectedId] = useState<string>();
+  const selected = inbox.data?.find(item => item.notificationId === selectedId);
+  async function markRead(notificationId: string) {
+    if (lock.current) return;
+    lock.current = true;
+    const original = useAuth.getState().session;
+    try {
+      const { result, owner } = await read.mutateAsync(() => passengerApi.markNotificationRead(notificationId));
+      const current = useAuth.getState().session;
+      if (current && current.user.id === owner && current.signedInAt === original?.signedInAt) {
+        cache.setQueryData<PassengerNotification[]>(['passenger', getApiUrl(), owner, 'notifications'], items =>
+          items?.map(item => item.notificationId === result.notificationId ? { ...item, readAt: result.readAt } : item));
+      }
+    }
+    catch { /* Keep the message open and show the mutation error. */ }
+    finally { lock.current = false; }
+  }
+  return <LivePage title="Thông báo" permission="NOTIFICATION_READ" onRefresh={() => { void inbox.refetch(); }} refreshing={inbox.isRefetching}>
+    <ErrorNotice error={inbox.error} retry={() => { void inbox.refetch(); }} />
+    {inbox.isPending ? <Loading text="Đang tải thông báo…" /> : !inbox.error && !inbox.data?.length &&
+      <EmptyState icon="notifications" title="Chưa có thông báo" description="Tin nhắn dành cho tài khoản của bạn sẽ xuất hiện tại đây." />}
+    {inbox.data?.map(item => <PassengerListItem key={item.notificationId} title={item.title}
+      supporting={`${item.readAt ? 'Đã đọc' : 'Chưa đọc'} · ${dateTime(item.createdAt)}`} icon="notifications"
+      disabled={read.isPending} onPress={() => {
+        if (lock.current) return;
+        read.reset();
+        setSelectedId(item.notificationId);
+        if (!item.readAt) void markRead(item.notificationId);
+      }} />)}
+    <PassengerSheet visible={!!selected} title="Chi tiết thông báo" onClose={() => setSelectedId(undefined)}>
+      <View style={{ gap: 8 }}>
+        <Text style={ui.caption}>{dateTime(selected?.createdAt)}</Text>
+        <Text accessibilityRole="header" style={ui.sectionTitle}>{selected?.title}</Text>
+        <Text selectable style={ui.body}>{selected?.content}</Text>
+        <ErrorNotice error={read.error} />
+        {selected && !selected.readAt && <PassengerButton label="Đánh dấu đã đọc" loading={read.isPending}
+          onPress={() => { void markRead(selected.notificationId); }} />}
+        <PassengerButton label="Xem hải trình của tôi" variant="text" onPress={() => { setSelectedId(undefined); router.dismissTo('/itinerary'); }} />
+      </View>
     </PassengerSheet>
-  </PassengerScaffold>;
+  </LivePage>;
 }

@@ -26,7 +26,7 @@ export function LaunchIndicator() {
   const reduceMotion = useMotionPreference();
 
   useEffect(() => {
-    function updateAnimation(state: string) {
+    function updateAnimation(state: string | null | undefined) {
       cancelAnimation(phase);
       phase.set(0);
       if (state === 'active' && !reduceMotion) {

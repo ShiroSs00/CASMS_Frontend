@@ -6,16 +6,18 @@ import { ActivityIndicator, Easing, View } from 'react-native';
 import { PassengerTabBar } from '@/components/passenger/PassengerNavigation';
 import { passengerLightColors as colors } from '@/constants/passenger-light-theme';
 import { useAuth } from '@/features/auth/session-store';
-import { isOnboardStaff } from '@/features/staff-pos/staff-model';
+import { posDestination } from '@/features/pos/pos-access';
+
+export const unstable_settings = { anchor: 'home' };
 
 export default function PassengerTabsLayout() {
   const auth = useAuth();
   const reduced = useMotionPreference();
   if (auth.status === 'restoring') return <View style={{ flex: 1, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator accessibilityLabel="Đang khôi phục phiên" /></View>;
   if (auth.status !== 'authenticated' || !auth.session) return <Redirect href={{ pathname: '/login', params: { state: auth.status === 'expired' ? 'expired' : 'default' } }} />;
-  if (isOnboardStaff(auth.session.user.roles)) return <Redirect href="/staff-pos" />;
+  if (posDestination(auth.session.user)) return <Redirect href="/staff-pos" />;
   return (
-    <Tabs initialRouteName="home" backBehavior="history" tabBar={props => <PassengerTabBar {...props} />}
+    <Tabs backBehavior="history" tabBar={props => <PassengerTabBar {...props} />}
       screenOptions={{
         headerShown: false,
         lazy: false,

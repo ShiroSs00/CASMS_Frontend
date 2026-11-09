@@ -5,6 +5,7 @@ import { PassengerScaffold } from '@/components/passenger/PassengerScaffold';
 import { MaterialIcon } from '@/components/passenger/MaterialIcon';
 import { SectionHeading, ui } from '@/components/passenger/PassengerUI';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
+import { VoyageEntrance } from '@/components/passenger/VoyageEntrance';
 import { brand, lightTheme, statusColors } from '@/constants/ocevie';
 import { useAuth } from '@/features/auth/session-store';
 
@@ -34,7 +35,7 @@ export function PassengerSupportScreen({ recovery = false }: { recovery?: boolea
         {questions.map(item => <View key={item.id} style={styles.question}>
           <Pressable accessibilityRole="button" accessibilityState={{ expanded: expanded === item.id }} onPress={() => setExpanded(value => value === item.id ? null : item.id)} style={styles.questionButton}>
             <Text style={styles.questionTitle}>{item.title}</Text><MaterialIcon name={expanded === item.id ? 'expand_less' : 'expand_more'} color={brand.teal} size={20} />
-          </Pressable>{expanded === item.id && <Text style={styles.answer}>{item.answer}</Text>}
+          </Pressable>{expanded === item.id && <VoyageEntrance><Text style={styles.answer}>{item.answer}</Text></VoyageEntrance>}
         </View>)}
       </View>
       {!authenticated && <PassengerButton label="Về đăng nhập" onPress={() => router.replace('/login')} />}

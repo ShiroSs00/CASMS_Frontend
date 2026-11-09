@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, getApiUrl } from '@/lib/api';
+import { api, ApiError, getApiUrl } from '@/lib/api';
 import { useAuth } from '@/features/auth/session-store';
 import { createPassengerApi } from './passenger-api';
 import { useState } from 'react';
@@ -16,35 +16,65 @@ export function usePassengerContext() {
   const error = me.error ?? (me.data && permissions === null ? new Error('Thông tin phiên không còn khớp tài khoản hành khách. Vui lòng đăng nhập lại.') : null);
   return { auth, owner, me, error, live, ready: live && permissions !== null && !error, can: (permission: string) => live && !error && !!permissions?.includes(permission) };
 }
-export function usePassengerQuery<T>(key: readonly unknown[], fetcher: (signal: AbortSignal) => Promise<T>, permission: string, enabled = true) {
+export function usePassengerQuery<T>(key: readonly unknown[], fetcher: (signal: AbortSignal) => Promise<T>, permission: string | readonly string[], enabled = true) {
   const context = usePassengerContext();
-  return useQuery({ queryKey: ['passenger', getApiUrl(), context.owner, ...key], queryFn: ({ signal }) => fetcher(signal), enabled: context.ready && context.can(permission) && enabled });
+  const allowed = context.ready && (typeof permission === 'string' ? context.can(permission) : permission.some(context.can));
+  const query = useQuery({ queryKey: ['passenger', getApiUrl(), context.owner, ...key], queryFn: ({ signal }) => fetcher(signal), enabled: allowed && enabled });
+  const denied = query.error instanceof ApiError && [401, 403, 404].includes(query.error.status);
+  return { ...query, data: allowed && enabled && !denied ? query.data : undefined };
 }
-export function usePassengerAction() {
+export function usePassengerAction<T = unknown>() {
   const client = useQueryClient();
+  const owner = useAuth(state => state.session?.user.id);
+  const signedInAt = useAuth(state => state.session?.signedInAt);
   return useMutation({ retry: false,
-    mutationFn: async (action: () => Promise<unknown>) => {
-      const auth = useAuth.getState();
-      if (!auth.session || auth.mode !== 'live' || auth.status !== 'authenticated') throw new Error('Vui lòng đăng nhập để tiếp tục.');
-      const owner = auth.session.user.id; const token = auth.session.accessToken;
-      const result = await action();
-      if (useAuth.getState().session?.accessToken !== token) throw new Error('Phiên đăng nhập đã thay đổi. Hãy tải lại để kiểm tra kết quả thao tác.');
+    mutationFn: async (action: (assertCurrent: () => void) => Promise<T>) => {
+      function assertCurrent() {
+        const { session, status } = useAuth.getState();
+        if (!session || status !== 'authenticated' || session.expiresAt <= Date.now() || session.user.id !== owner || session.signedInAt !== signedInAt
+          || !session.user.roles.length || !session.user.roles.every(role => role === 'PASSENGER')) {
+          throw new Error('Phiên đăng nhập đã thay đổi. Hãy tải lại để kiểm tra kết quả thao tác.');
+        }
+      }
+      assertCurrent();
+      const result = await action(assertCurrent);
+      assertCurrent();
       return { result, owner };
     },
     onSettled: async () => {
-      const owner = useAuth.getState().session?.user.id;
-      await client.invalidateQueries({ queryKey: ['passenger', getApiUrl(), owner] });
+      const session = useAuth.getState().session;
+      if (session?.user.id === owner && session?.signedInAt === signedInAt) {
+        await client.invalidateQueries({ queryKey: ['passenger', getApiUrl(), owner] });
+      }
     },
   });
 }
 
 export function useBookingSelection(mode: 'confirmed' | 'draft', initialId = '') {
-  const [chosen, choose] = useState(initialId); const [person, choosePerson] = useState('');
+  const [selection, setSelection] = useState({ initialId, chosen: initialId, person: '' });
+  const { chosen, person } = selection.initialId === initialId ? selection : { chosen: initialId, person: '' };
   const bookings = usePassengerQuery(['bookings'], passengerApi.bookings, 'BOOKING_READ');
-  const options = (bookings.data ?? []).filter(b => b.bookingStatus === (mode === 'confirmed' ? 'Confirmed' : 'Draft'));
-  const bookingId = options.some(b => b.bookingId === chosen) ? chosen : options[0]?.bookingId ?? '';
-  const booking = usePassengerQuery(['booking', bookingId], signal => passengerApi.booking(bookingId, signal), 'BOOKING_READ', !!bookingId);
-  const people = usablePassengers(booking.data, mode === 'confirmed');
-  const bookingPassengerId = people.some(p => p.bookingPassengerId === person) ? person : people[0]?.bookingPassengerId ?? '';
-  return { bookings, options, bookingId, booking, people, bookingPassengerId, choose: (id: string) => { choose(id); choosePerson(''); }, choosePerson };
+  const voyages = usePassengerQuery(['voyages'], passengerApi.voyages, 'BOOKING_READ', mode === 'confirmed');
+  const confirmed = (voyages.data ?? []).filter(item => item.bookingStatus === 'Confirmed' && item.participationStatus === 'Active');
+  const options = mode === 'confirmed' ? [...new Map(confirmed.map(item => [item.bookingId, item])).values()]
+    : (bookings.data ?? []).filter(item => item.bookingStatus === 'Draft');
+  const bookingId = chosen ? options.find(b => b.bookingId === chosen.toLowerCase())?.bookingId ?? ''
+    : options.length === 1 ? options[0].bookingId : '';
+  const ownBooking = !!bookingId && !!bookings.data?.some(item => item.bookingId === bookingId);
+  const booking = usePassengerQuery(['booking', bookingId], signal => passengerApi.booking(bookingId, signal), 'BOOKING_READ', ownBooking);
+  const selectedVoyages = confirmed.filter(item => item.bookingId === bookingId);
+  const people = mode === 'draft' ? usablePassengers(booking.data, false) : selectedVoyages.map(item => {
+    const details = booking.data?.passengers.find(row => row.bookingPassengerId === item.bookingPassengerId);
+    return { bookingPassengerId: item.bookingPassengerId, fullName: details?.fullName ?? 'Hồ sơ của bạn', cabinNumber: details?.cabinNumber };
+  });
+  const bookingPassengerId = person ? people.find(p => p.bookingPassengerId === person)?.bookingPassengerId ?? ''
+    : people.length === 1 ? people[0].bookingPassengerId : '';
+  const source = mode === 'confirmed' ? voyages : bookings;
+  const activeVoyage = selectedVoyages.find(item => item.bookingPassengerId === bookingPassengerId);
+  const cruiseId = options.find(item => item.bookingId === bookingId)?.cruiseId ?? '';
+  const ready = !!bookingPassengerId && !source.error && !source.isFetching && (mode === 'draft' ? !!booking.data && !booking.error && !booking.isFetching
+    : !!activeVoyage && !['COMPLETED', 'CANCELLED'].includes(activeVoyage.cruiseStatus));
+  return { bookings, source, options, bookingId, booking, ownBooking, cruiseId, ready, people, bookingPassengerId, invalidSelection: !!chosen && !bookingId,
+    choose: (id: string) => setSelection({ initialId, chosen: id, person: '' }),
+    choosePerson: (id: string) => setSelection({ initialId, chosen: bookingId, person: id }) };
 }

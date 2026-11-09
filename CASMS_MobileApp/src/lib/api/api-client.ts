@@ -15,7 +15,7 @@ export async function readSection<T>(request: Promise<T>, label: string) {
     return { data: null, error: readErrorMessage(error, label) };
   }
 }
-export type RequestOptions = { method?: 'GET' | 'POST' | 'PUT' | 'DELETE'; body?: unknown; query?: Record<string, string | number | undefined>; signal?: AbortSignal; authenticated?: boolean };
+export type RequestOptions = { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; query?: Record<string, string | number | undefined>; signal?: AbortSignal; authenticated?: boolean; posSession?: string; bookingIdempotencyKey?: string };
 export function resolveApiUrl(configured: string | undefined, host: string | undefined, development: boolean) {
   if (configured?.trim()) {
     const url = new URL(configured.trim());
@@ -28,12 +28,18 @@ export function resolveApiUrl(configured: string | undefined, host: string | und
 }
 export function createApiClient(config: { baseUrl: () => string; fetch?: typeof fetch; timeoutMs?: number }) {
   let accessToken: string | null = null;
+  let tokenGeneration = 0;
   let unauthorized: (() => void) | undefined;
   return {
-    setToken(token: string | null) { accessToken = token; },
+    setToken(token: string | null) { accessToken = token; tokenGeneration++; },
     onUnauthorized(listener: () => void) { unauthorized = listener; },
     async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
       const token = options.authenticated === false ? null : accessToken;
+      const generation = tokenGeneration;
+      const posPath = path.startsWith('/pos/');
+      if (options.posSession && (!posPath || !token)) {
+        throw new ApiError('Cần xác thực nhân viên cho phiên POS.', 401);
+      }
       const controller = new AbortController();
       const abort = () => controller.abort();
       options.signal?.addEventListener('abort', abort, { once: true });
@@ -45,14 +51,21 @@ export function createApiClient(config: { baseUrl: () => string; fetch?: typeof 
         const headers: Record<string, string> = { Accept: 'application/json' };
         if (options.body !== undefined) headers['Content-Type'] = 'application/json';
         if (token) headers.Authorization = `Bearer ${token}`;
+        if (options.posSession) headers['X-POS-Session'] = options.posSession;
+        if (path === '/booking' && options.method === 'POST' && options.bookingIdempotencyKey) {
+          headers['Idempotency-Key'] = options.bookingIdempotencyKey;
+        }
         const response = await (config.fetch ?? fetch)(`${config.baseUrl()}${path}${query.size ? `?${query}` : ''}`, { method: options.method ?? 'GET', headers, body: options.body === undefined ? undefined : JSON.stringify(options.body), signal: controller.signal });
         if (response.status === 204 && response.ok) return undefined as T;
         let payload: unknown;
-        try { payload = await response.json(); } catch { payload = undefined; }
+        try { payload = await response.json(); } catch (error) {
+          if (controller.signal.aborted && (response.ok || posPath || path.startsWith('/pos-terminals/'))) throw error;
+          payload = undefined;
+        }
         const envelope = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload as Record<string, unknown> : null;
         const code = typeof envelope?.code === 'string' ? envelope.code : typeof envelope?.error === 'string' ? envelope.error : undefined;
         if (!response.ok || envelope?.success === false) {
-          if (response.status === 401 && token && token === accessToken) unauthorized?.();
+          if (response.status === 401 && token && token === accessToken && generation === tokenGeneration) unauthorized?.();
           const message = code === 'INVALID_CREDENTIALS' ? 'Tên đăng nhập hoặc mật khẩu không đúng.'
             : code === 'ACCOUNT_DISABLED' ? 'Tài khoản đã bị khóa hoặc ngừng hoạt động.'
               : response.status === 401 ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
@@ -66,7 +79,8 @@ export function createApiClient(config: { baseUrl: () => string; fetch?: typeof 
         return payload as T;
       } catch (error) {
         if (error instanceof ApiError || options.signal?.aborted) throw error;
-        throw new ApiError(controller.signal.aborted ? 'Yêu cầu quá thời gian. Vui lòng thử lại.' : 'Không thể kết nối. Kiểm tra mạng và thử lại.', 0);
+        throw new ApiError(controller.signal.aborted ? 'Yêu cầu quá thời gian. Vui lòng thử lại.' : 'Không thể kết nối. Kiểm tra mạng và thử lại.', 0,
+          posPath || path.startsWith('/pos-terminals/') ? controller.signal.aborted ? 'POS_TIMEOUT' : 'POS_NETWORK' : undefined);
       } finally { clearTimeout(timer); options.signal?.removeEventListener('abort', abort); }
     },
   };

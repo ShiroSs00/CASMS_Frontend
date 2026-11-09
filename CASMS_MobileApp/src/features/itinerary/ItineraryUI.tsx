@@ -32,7 +32,7 @@ export const styles = StyleSheet.create({
   cruiseText: { fontSize: 13, lineHeight: 20, color: colors.onSurfaceVariant },
   route: { fontSize: 13, lineHeight: 22, fontWeight: '500', color: colors.secondary, marginTop: 8 },
   tools: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tool: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.surfaceContainerLow },
+  tool: { minWidth: 44, minHeight: 44, maxWidth: '100%', flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.surfaceContainerLow },
   segmented: { flexDirection: 'row', backgroundColor: colors.surfaceContainerHigh, borderRadius: 14, padding: 4, gap: 4 },
   segment: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
   selectedSegment: { backgroundColor: colors.secondaryContainer },

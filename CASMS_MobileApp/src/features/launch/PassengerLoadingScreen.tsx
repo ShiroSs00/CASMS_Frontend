@@ -13,22 +13,20 @@ import { VoyageEntrance } from '@/components/passenger/VoyageEntrance';
 
 import { LaunchIndicator } from './LaunchIndicator';
 import { useAuth } from '@/features/auth/session-store';
-import { useItineraryCatalog } from '@/features/itinerary/itinerary-api';
-import { isOnboardStaff } from '@/features/staff-pos/staff-model';
+import { posDestination } from '@/features/pos/pos-access';
 
-/** Wait for authenticated itinerary data. */
+/** Restore the session before opening the passenger workspace. */
 export function PassengerLoadingScreen() {
-  const roles = useAuth(state => state.session?.user.roles);
-  if (isOnboardStaff(roles)) return <Redirect href="/staff-pos" />;
+  const user = useAuth(state => state.session?.user);
+  if (posDestination(user)) return <Redirect href="/staff-pos" />;
   return <PassengerJourneyLoading />;
 }
 function PassengerJourneyLoading() {
   const auth = useAuth();
-  const catalog = useItineraryCatalog();
   const progress = useSharedValue(-60);
   const reduceMotion = useMotionPreference();
   useEffect(() => {
-    function update(state: string) {
+    function update(state: string | null | undefined) {
       cancelAnimation(progress);
       progress.set(-60);
       if (!reduceMotion && state === 'active') progress.set(withRepeat(withTiming(150, { duration: 1400, easing: Easing.bezier(.2, 0, 0, 1) }), -1));
@@ -39,9 +37,9 @@ function PassengerJourneyLoading() {
   }, [progress, reduceMotion]);
   useEffect(() => {
     if (auth.status === 'restoring') return;
-    if (auth.status !== 'authenticated') { router.replace('/login'); return; }
-    if (catalog.isFetched) router.replace('/home');
-  }, [auth.status, catalog.isFetched]);
+    if (auth.status !== 'authenticated') { router.replace({ pathname: '/login', params: { state: auth.status } }); return; }
+    router.replace('/home');
+  }, [auth.status]);
   const moving = useAnimatedStyle(() => ({ transform: [{ translateX: reduceMotion ? 35 : progress.get() }] }));
   return <SafeAreaView style={styles.screen} onLayout={() => { void SplashScreen.hideAsync().catch(console.warn); }}>
     <ScrollView contentContainerStyle={styles.content} bounces={false}>

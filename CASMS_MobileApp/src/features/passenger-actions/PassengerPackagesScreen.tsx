@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
 import { EmptyState, ui } from '@/components/passenger/PassengerUI';
@@ -21,6 +21,7 @@ export function PassengerPackagesScreen() {
   const activityNames = usePassengerQuery(['activities'], passengerApi.activities, 'ACTIVITY_READ', !!selected);
   const excursionNames = usePassengerQuery(['package-excursion-names', selected?.id], signal => Promise.all((benefits.data?.excursions ?? []).map(e => passengerApi.excursion(e.excursionId, signal))), 'EXCURSION_READ', !!benefits.data && !!selected);
   const action = usePassengerAction();
+  const saving = useRef(false);
   const assignment = assignments.data?.find(a => a.bookingPassengerId === selection.bookingPassengerId);
   const currentPackage = packages.data?.find(p => p.id === assignment?.packageId);
   const valid = !!selection.booking.data && selection.booking.data.bookingStatus === 'Draft' && !!selection.bookingPassengerId && !selection.booking.error && !selection.bookings.error;
@@ -56,9 +57,17 @@ export function PassengerPackagesScreen() {
     </View>}
     <PassengerButton label="Cập nhật gói dịch vụ" variant="text" loading={packages.isFetching || assignments.isFetching} onPress={() => { void packages.refetch(); if (selection.bookingId) void assignments.refetch(); }} />
     <ConfirmAction visible={!!confirm} title={confirm === 'remove' ? 'Xác nhận bỏ gói' : 'Xác nhận chọn gói'} description={confirm === 'remove' ? 'Bỏ gói đang liên kết với hồ sơ đã chọn trong đơn nháp.' : `${selected?.name ?? ''} · ${money(selected?.price, selected?.currency)}. Giá gói được ghi nhận theo phản hồi của hệ thống; đây chưa phải giao dịch thanh toán.`} onClose={() => setConfirm(null)} pending={action.isPending} error={action.error} onConfirm={() => {
-      if (!valid || action.isPending || (confirm === 'save' && !selectedId)) return;
+      if (!confirm || !valid || saving.current || !selection.ready || assignments.isFetching || assignments.error
+        || (confirm === 'save' && (!selectedId || !fits || benefits.error || !benefits.data))
+        || (confirm === 'remove' && !assignment)) return;
       const person = selection.bookingPassengerId;
-      action.mutate(() => confirm === 'remove' ? passengerApi.removePackage(person) : passengerApi.savePackage(person, selectedId, !!assignment), { onSuccess: () => setConfirm(null) });
+      saving.current = true;
+      void action.mutateAsync(async () => {
+        if (confirm === 'remove') return passengerApi.removePackage(person);
+        const saved = await passengerApi.savePackage(person, selectedId, !!assignment);
+        if (saved?.bookingPassengerId !== person || saved.packageId !== selectedId) throw new Error('Chưa xác nhận được gói dịch vụ đã lưu.');
+        return saved;
+      }).then(() => setConfirm(null)).catch(() => {}).finally(() => { saving.current = false; });
     }} />
   </LivePage>;
 }
