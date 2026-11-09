@@ -1,11 +1,11 @@
 import {PublicCruisePackages} from './PublicCruisePackages'
 import { PublicCruiseSaleState, PublicCruiseItinerary, PublicCruiseBookingEntry } from './PublicCruiseInformation'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { Link, useLocation, useParams, useSearchParams } from 'react-router'
-import { catalogReturn } from '../model/live-booking-navigation'
+import { catalogReturn, cruiseDetailPath, cruiseDetailSections } from '../model/live-booking-navigation'
 import { bookingReadFailure } from '../model/booking-feedback'
-import { ApiError } from '@/shared/api'
-import { Field } from '@/shared/ui'
+import { ApiError, useReadQuery } from '@/shared/api'
+import { ButtonLink, Field, Loading, Notice, Panel } from '@/shared/ui'
 import { liveCruiseCatalogApi } from '../api/booking-api'
 import type { LiveCruise, LiveCruisePage } from '../api/live-cruise-contract'
 
@@ -13,6 +13,7 @@ import { useAdapterData } from '../model/booking-state'
 import { Action, ActionLink, EmptyState, Heading } from './BookingUI'
 const catalogHero = '/images/ports/ha-long-bay.webp'
 import s from './Booking.module.css'
+import detailStyles from './CruiseDetail.module.css'
 
 type LoadIssue = { message: string; status: number }
 type LoadResult<T> = { value?: T; issue?: LoadIssue }
@@ -49,7 +50,6 @@ function issueFor(error: unknown): LoadIssue {
 const vietnamTime = new Intl.DateTimeFormat('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', timeZone:'Asia/Ho_Chi_Minh' })
 const when = (instant:string) => vietnamTime.format(new Date(instant))
 const route = (cruise:LiveCruise) => [cruise.departurePort,cruise.returnPort].filter(Boolean).join(' → ') || 'Chưa có thông tin cảng'
-const liveDetailLink = (id:string) => `/cruises/${encodeURIComponent(id)}`
 function LiveError({issue,retry}:{issue:LoadIssue;retry:()=>void}) {
   return <div role="alert"><EmptyState title="Không tải được danh mục chuyến khởi hành"><p>{issue.message}</p><Action onClick={retry}>Thử lại</Action>{issue.status===401&&<ActionLink secondary to="/#project-contact">Liên hệ</ActionLink>}</EmptyState></div>
 }
@@ -74,20 +74,20 @@ function LiveCruiseSearchPage({page,cruiseType}:{page:number;cruiseType?:'ONE_DA
   const {data,loading,error,retry}=useAdapterData(load)
   const result=data?.value
   const issue=data?.issue??(error?{status:0,message:error}:undefined)
-  return <div className={s.surface+' '+s.searchSurface+' '+s.liveSurface}>
+  return <div className={s.surface+' '+s.searchSurface+' '+s.liveSurface+' '+s.catalogRedesign}>
     <section className={s.searchHero}>
       <div className={s.catalogHeroVisual} aria-hidden="true"><img src={catalogHero} alt="Hải trình di sản Vịnh Hạ Long, Việt Nam" width="1600" height="1000" /></div>
       <div className={s.container}>
         <div className={s.searchIntro}>
-          <p className={s.eyebrow}>KHÁM PHÁ HẢI TRÌNH</p>
-          <h1>Hành trình đã công bố</h1>
-          <p>Khám phá các chuyến khởi hành đang mở bán và gói du thuyền được công bố.</p>
+
+          <h1>Chọn hải trình của bạn</h1>
+          <p>Khám phá tuyến cảng, lịch khởi hành và gói du thuyền.</p>
         </div>
       </div>
     </section>
     <div className={s.container}>
-      <div className={s.liveModeNotice}><strong>Chuyến du lịch đã công bố</strong><span>Chọn chuyến để xem thông tin đã công bố.</span><Link to="/booking/lookup">Tra cứu đặt chỗ</Link></div>
-      <div className={s.catalogWorkspace}><div className={s.searchResultsHead}><div><p className={s.eyebrow}>HÀNH TRÌNH SẮP TỚI</p><Heading level={2} title={loading?'Đang tải hành trình…':issue?'Chưa tải được danh mục':`${result?.total??0} hành trình đã công bố`} description="Xem lịch khởi hành, tuyến cảng và thông tin gói du thuyền."/></div></div>
+      <div className={s.liveModeNotice}><Link to="/booking/lookup">Tra cứu đặt chỗ</Link></div>
+      <div className={s.catalogWorkspace}><div className={s.searchResultsHead}><div><Heading level={2} title={loading?'Đang tải hành trình…':issue?'Chưa tải được danh mục':`${result?.total??0} hành trình đã công bố`} /></div></div>
       <div className={s.liveFilterBar}><div className={s.liveFilter}><Field htmlFor="catalog-cruise-type" label="Loại hành trình"><select value={cruiseType??''} onChange={event=>{const query=new URLSearchParams(params);query.delete('page');if(event.target.value)query.set('cruiseType',event.target.value);else query.delete('cruiseType');setParams(query,{preventScrollReset:true})}}><option value="">Tất cả</option><option value="ONE_DAY">Một ngày</option><option value="MULTI_DAYS">Nhiều ngày</option></select></Field></div><p>Sắp xếp theo ngày khởi hành sớm nhất · Giờ Việt Nam</p>{cruiseType && <Action onClick={()=>{const query=new URLSearchParams(params);query.delete('cruiseType');query.delete('page');setParams(query,{preventScrollReset:true})}}>Xóa bộ lọc</Action>}</div>
       <div className={s.searchList} aria-live="polite" aria-busy={loading}>
         {loading?<p className={s.searchMessage} role="status">Đang tải hành trình…</p>
@@ -101,26 +101,144 @@ function LiveCruiseSearchPage({page,cruiseType}:{page:number;cruiseType?:'ONE_DA
   </div>
 }
 
-function LiveCruiseCard({cruise,from,index=0}:{cruise:LiveCruise;from:string;index?:number}) {
+function LiveCruiseCard({ cruise, from, index = 0 }: { cruise: LiveCruise; from: string; index?: number }) {
   const photo = getCruisePhoto(cruise, index)
-  return <article className={s.searchCard+' '+s.liveCard} aria-labelledby={'cruise-'+cruise.id}><div className={s.liveImage}><img src={photo.image} alt={photo.caption} loading="lazy" width="1600" height="1000"/><span className={s.photoCaption}>{photo.caption}</span></div><div className={s.searchCardBody}><p className={s.eyebrow}>HẢI TRÌNH ĐÃ CÔNG BỐ</p><h2 id={'cruise-'+cruise.id}><Link to={liveDetailLink(cruise.id)+'?from='+encodeURIComponent(from)}>{cruise.title}</Link></h2><p className={s.searchCardMeta}>{cruise.code&&`${cruise.code} · `}{cruise.ship??'Chưa có tên tàu'}</p><p className={s.searchRoute}>{route(cruise)}</p><p className={s.searchDate}>Khởi hành: {when(cruise.departure)} · Giờ Việt Nam</p><p className={s.searchDate}>Trở về: {when(cruise.returnAt)} · Giờ Việt Nam</p></div><div className={s.searchCardPrice+' '+s.liveCardAside}><p className={s.eyebrow}>GÓI DU THUYỀN</p><p><strong>Đang mở bán</strong></p><p>Giá Gói du thuyền được hiển thị trong chi tiết khi có dữ liệu hợp lệ.</p><ActionLink to={liveDetailLink(cruise.id)+'?from='+encodeURIComponent(from)}>Xem hành trình</ActionLink></div></article>
+  const detailPath = cruiseDetailPath(cruise.id, from)
+
+  return <article className={`${s.searchCard} ${s.liveCard}`} aria-labelledby={'cruise-' + cruise.id}>
+    <div className={s.liveImage}>
+      <img src={photo.image} alt={photo.caption} loading="lazy" width="1600" height="1000" />
+      <span className={s.photoCaption}>{photo.caption}</span>
+    </div>
+    <div className={s.searchCardBody}>
+      <h2 id={'cruise-' + cruise.id}><Link to={detailPath}>{cruise.title}</Link></h2>
+      <p className={s.searchCardMeta}>{cruise.code && `${cruise.code} · `}{cruise.ship ?? 'Chưa có tên tàu'}</p>
+      <p className={s.searchRoute}>{route(cruise)}</p>
+      <p className={s.searchDate}>Khởi hành: {when(cruise.departure)} · Giờ Việt Nam</p>
+      <p className={s.searchDate}>Trở về: {when(cruise.returnAt)} · Giờ Việt Nam</p>
+    </div>
+    <div className={`${s.searchCardPrice} ${s.liveCardAside}`}>
+      <div className={detailStyles.actions}>
+        <ButtonLink to={detailPath + '#' + cruiseDetailSections.itinerary} tone="secondary" autoWidth>Xem lịch trình</ButtonLink>
+        <ButtonLink to={detailPath} autoWidth>Xem chi tiết</ButtonLink>
+      </div>
+    </div>
+  </article>
+}
+
+function UnavailableCruise({ back }: { back: string }) {
+  return <div className={detailStyles.detail}>
+    <h1>Chuyến này hiện không có trong danh mục</h1>
+    <ButtonLink to={back} tone="secondary" autoWidth>Về danh mục</ButtonLink>
+  </div>
 }
 
 export function LiveCruiseDetail() {
-  const {cruiseId}=useParams()
-  const [params]=useSearchParams()
-  const back=catalogReturn(params.get('from'))
-  const load=useCallback(async(signal:AbortSignal):Promise<LoadResult<LiveCruise|null>>=>{
-    try { return { value:cruiseId?await liveCruiseCatalogApi.detail(cruiseId,signal):null } }
-    catch(error) { return { issue:issueFor(error) } }
-  },[cruiseId])
-  const {data,loading,error,retry}=useAdapterData(load)
-  const issue=data?.issue??(error?{status:0,message:error}:undefined)
-  const cruise=data?.value
-  if(loading)return <div className={s.surface+' '+s.liveSurface}><div className={s.container}><p className={s.searchMessage} role="status">Đang tải chi tiết hành trình…</p></div></div>
-  if(issue)return <div className={s.surface+' '+s.liveSurface}><div className={s.container}><LiveError issue={issue} retry={retry}/><ActionLink secondary to={back}>Về danh mục</ActionLink></div></div>
-  if(!cruise)return <div className={s.surface+' '+s.liveSurface}><div className={s.container}><EmptyState title="Không có hành trình đã công bố"><p>Chuyến này chưa được công bố hoặc không còn trong danh mục.</p><ActionLink to={back}>Về danh mục</ActionLink></EmptyState></div></div>
-  const detailPhoto = getCruisePhoto(cruise, 0)
-  return <div className={s.surface+' '+s.liveSurface}><section className={s.liveDetailHero}><img src={detailPhoto.image} alt={detailPhoto.caption}/><div><p className={s.eyebrow}>HẢI TRÌNH ĐÃ CÔNG BỐ</p><h1>{cruise.title}</h1><p>{cruise.code&&`${cruise.code} · `}{cruise.ship??'Chưa có tên tàu'}</p><p>{route(cruise)}</p></div></section><div className={s.container}><div className={s.liveModeNotice}><strong>Hành trình của bạn</strong><span>Xem trạng thái mở bán hiện tại, lịch trình và gói du thuyền.</span><Link to={back}>← Về danh mục</Link></div><nav className={s.liveAnchors} aria-label="Nội dung hành trình"><a href="#cruise-facts">Thời gian & cảng</a><a href="#cruise-packages">Gói du thuyền</a><a href="#cruise-extras">Lịch trình & tàu</a></nav><div className={s.liveDetailGrid}><section id="cruise-facts" className={s.liveInfoPanel}><p className={s.eyebrow}>THỜI GIAN & CẢNG</p><h2>Thông tin hành trình</h2><dl><div><dt>Khởi hành</dt><dd>{when(cruise.departure)} · Giờ Việt Nam</dd></div><div><dt>Trở về</dt><dd>{when(cruise.returnAt)} · Giờ Việt Nam</dd></div><div><dt>Cảng đi</dt><dd>{cruise.departurePort??'Chưa có dữ liệu'}</dd></div><div><dt>Cảng về</dt><dd>{cruise.returnPort??'Chưa có dữ liệu'}</dd></div><div><dt>Tàu</dt><dd>{cruise.ship??'Chưa có dữ liệu'}</dd></div></dl><p>Loại hành trình: {cruise.type==='ONE_DAY'?'Một ngày':cruise.type==='MULTI_DAYS'?'Nhiều ngày':'Chưa có thông tin'}.</p></section><aside className={s.liveInfoPanel}><p className={s.eyebrow}>TRẠNG THÁI MỞ BÁN</p><h2>Thông tin mở bán</h2><p>Xem lịch trình và các gói du thuyền được công bố cho chuyến khởi hành.</p><PublicCruiseSaleState key={cruise.id} cruiseId={cruise.id}/><PublicCruiseBookingEntry key={"booking:"+cruise.id} cruiseId={cruise.id}/><ActionLink secondary to={back}>Xem hành trình khác</ActionLink></aside></div><PublicCruisePackages key={cruise.id} cruiseId={cruise.id}/><section id="cruise-extras" aria-label="Lịch trình và tàu"><PublicCruiseItinerary key={cruise.id} cruiseId={cruise.id}/></section></div></div>
+  const { cruiseId } = useParams()
+  const [params] = useSearchParams()
+  const back = catalogReturn(params.get('from'))
+  const load = useCallback(async (signal: AbortSignal): Promise<LoadResult<LiveCruise | null>> => {
+    try {
+      return { value: cruiseId ? await liveCruiseCatalogApi.detail(cruiseId, signal) : null }
+    } catch (error) {
+      return { issue: issueFor(error) }
+    }
+  }, [cruiseId])
+  const { data, loading, error, retry } = useAdapterData(load)
+  const issue = data?.issue ?? (error ? { status: 0, message: error } : undefined)
+  const cruise = data?.value
+
+  if (loading) return <div className={detailStyles.detail}><Loading label="Đang tải chi tiết hành trình…" /></div>
+  if (issue && issue.status !== 403 && issue.status !== 404) {
+    return <div className={detailStyles.detail}>
+      <h1>Chi tiết hành trình</h1>
+      <Notice title="Chưa tải được thông tin chuyến" tone="warning">
+        <p>{issue.message}</p>
+        <ButtonLink to={back} tone="secondary" autoWidth>Về danh mục</ButtonLink>
+      </Notice>
+      <Action secondary onClick={retry}>Thử lại</Action>
+    </div>
+  }
+  if (!cruise || cruise.id !== cruiseId) return <UnavailableCruise back={back} />
+
+  return <CruiseDetailContent key={cruise.id} cruise={cruise} back={back} />
 }
 
+function CruiseDetailContent({ cruise, back }: { cruise: LiveCruise; back: string }) {
+  const { hash, key, pathname, search } = useLocation()
+  const itinerary = useReadQuery('public-actual-itinerary:' + cruise.id,
+    useCallback(signal => liveCruiseCatalogApi.publicItinerary(cruise.id, signal), [cruise.id]))
+  const sale = useReadQuery('public-display-state:' + cruise.id,
+    useCallback(signal => liveCruiseCatalogApi.publicSaleState(cruise.id, signal), [cruise.id]))
+  const revoked = sale.data?.publicDisplayEligible === false ||
+    (itinerary.error instanceof ApiError && itinerary.error.code === 'CRUISE_NOT_OPEN_FOR_SALE')
+  const handledAnchor = useRef('')
+  const content = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const sectionId = Object.values(cruiseDetailSections).find(id => '#' + id === hash)
+    const navigation = key + hash
+    if (!sectionId) {
+      handledAnchor.current = ''
+      return
+    }
+    if (revoked || handledAnchor.current === navigation) return
+    const section = content.current?.querySelector<HTMLElement>('#' + sectionId)
+    const heading = section?.querySelector('h2')
+    if (!section || !heading) return
+
+    handledAnchor.current = navigation
+    const targetTop = parseFloat(getComputedStyle(section).scrollMarginTop) || 0
+    const bounds = heading.getBoundingClientRect()
+    if (bounds.top < targetTop || bounds.bottom > window.innerHeight || section.getBoundingClientRect().top > targetTop + 24) {
+      section.scrollIntoView({ block: 'start', behavior: 'instant' })
+    }
+    heading.focus({ preventScroll: true })
+  }, [hash, key, revoked])
+
+  if (revoked) return <UnavailableCruise back={back} />
+
+  const photo = getCruisePhoto(cruise, 0)
+  const sectionPath = (id: string) => pathname + search + '#' + id
+  return <div className={detailStyles.detail} ref={content}>
+    <Link to={back} className={detailStyles.back}>Về danh mục</Link>
+    <h1>{cruise.title}</h1>
+    <nav className={detailStyles.sectionNav} aria-label="Nội dung hành trình">
+      <Link to={sectionPath(cruiseDetailSections.facts)}>Thông tin chuyến</Link>
+      <Link to={sectionPath(cruiseDetailSections.itinerary)}>Lịch trình</Link>
+      <Link to={sectionPath(cruiseDetailSections.packages)}>Hạng cabin &amp; gói</Link>
+    </nav>
+    <div className={detailStyles.overview}>
+      <figure className={detailStyles.photo}>
+        <img src={photo.image} alt={photo.caption} width="1600" height="1000" />
+        <figcaption>Minh họa · {photo.caption}</figcaption>
+      </figure>
+      <Panel className={detailStyles.overviewPanel}>
+        <section id={cruiseDetailSections.facts} aria-labelledby="cruise-facts-heading" className={detailStyles.facts}>
+          <h2 id="cruise-facts-heading" tabIndex={-1}>Thông tin chuyến</h2>
+          <p className={detailStyles.shipName}>{cruise.ship ?? 'Chưa có tên tàu'}</p>
+          <dl className={detailStyles.factList}>
+            <div><dt>Khởi hành</dt><dd><strong>{cruise.departurePort ?? 'Chưa có tên cảng'}</strong><time dateTime={cruise.departure}>{when(cruise.departure)}</time></dd></div>
+            <div><dt>Trở về</dt><dd><strong>{cruise.returnPort ?? 'Chưa có tên cảng'}</strong><time dateTime={cruise.returnAt}>{when(cruise.returnAt)}</time></dd></div>
+          </dl>
+          <p className={detailStyles.timeNote}>Giờ Việt Nam</p>
+        </section>
+        <div className={detailStyles.saleActions}>
+          <PublicCruiseSaleState query={sale} />
+          <div className={detailStyles.actions}>
+            <PublicCruiseBookingEntry cruiseId={cruise.id} />
+            <ButtonLink to={sectionPath(cruiseDetailSections.itinerary)} tone="secondary" autoWidth>Xem lịch trình</ButtonLink>
+          </div>
+        </div>
+      </Panel>
+    </div>
+    <PublicCruiseItinerary query={itinerary} />
+    <Panel title="Tàu của chuyến" className={detailStyles.shipPanel}>
+      <div className={detailStyles.shipDetails}>
+        <p>{cruise.ship ?? 'Chưa có thông tin tàu'}</p>
+        {cruise.ship && cruise.shipId && <ButtonLink to="/ships" tone="secondary" autoWidth>Khám phá đội tàu</ButtonLink>}
+      </div>
+    </Panel>
+    <PublicCruisePackages cruiseId={cruise.id} />
+  </div>
+}

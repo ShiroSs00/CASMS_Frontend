@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react'
 import { createBrowserRouter } from 'react-router'
-import { CruiseSearchPage, CustomerCruiseDetailPage, BookingLookupPage, TravellerDetailsPage, ReviewBookingPage } from '@/features/booking'
+import { CruiseSearchPage, CustomerCruiseDetailPage, BookingPartyPage, BookingLookupPage, TravellerDetailsPage, ReviewBookingPage } from '@/features/booking'
 import { CustomerCabinExperiencePage, CustomerShipsPage } from './CustomerShipPages'
 import { CustomerRecoveryRedirect } from './CustomerRecoveryRedirect'
 import { PublicLayout } from './layouts/PublicLayout'
@@ -20,6 +20,7 @@ export const router = createBrowserRouter([{
     { path: 'cruises', Component: CruiseSearchPage },
     { path: 'cruises/:cruiseId', Component: CustomerCruiseDetailPage },
     { path: 'booking/lookup', Component: BookingLookupPage },
+    { path: 'booking/party', Component: BookingPartyPage },
     { path: 'booking/travellers', Component: TravellerDetailsPage },
     { path: 'booking/cabin-experience', Component: CustomerCabinExperiencePage },
     { path: 'booking/review', Component: ReviewBookingPage },
