@@ -171,7 +171,7 @@ export const shipDeckCabinApi = {
   },
   async getCurrentCruise(id: string, signal?: AbortSignal) {
     try {
-      const dto = await apiRequest<CruiseDto | null>(`${idPath('ships', id)}/current-cruise`, { signal })
+      const dto = await apiRequest<CruiseDto | null | undefined>(`${idPath('ships', id)}/current-cruise`, { signal })
       return dto ? cruise(dto) : null
     } catch (error) {
       // Observed backend contract for no current cruise. Other 404/errors remain errors.

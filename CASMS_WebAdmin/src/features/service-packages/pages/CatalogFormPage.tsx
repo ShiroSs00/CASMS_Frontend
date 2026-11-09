@@ -107,7 +107,7 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
       </Field>
     </FormSection>}
     <div className={styles.fullRow}><Field htmlFor="catalog-description" label="Mô tả" error={errors.description}><textarea id="catalog-description" name="description" maxLength={1000} disabled={busy} value={draft.description} onChange={event => setDraft({ ...draft, description: event.target.value })} /></Field></div>
-    </fieldset>{error && <Notice title="Chưa lưu được danh mục" tone="error">{error}{uncertain&&<Button tone="secondary" disabled={busy} onClick={()=>void reconcile()}>Đối chiếu kết quả đã lưu</Button>}</Notice>}
+    </fieldset>{error && <Notice title="Chưa lưu được danh mục" tone="error">{error}{uncertain&&<Button tone="secondary" disabled={busy} onClick={()=>void reconcile()}>Kiểm tra lại trạng thái vừa gửi</Button>}</Notice>}
     <div className={styles.editorActions}><ButtonLink tone="secondary" to={catalogConfig[kind].route}>Hủy</ButtonLink><Button type="submit" busy={busy} disabled={uncertain || !allowed}>{busy ? 'Đang lưu…' : 'Lưu danh mục'}</Button></div>
   </form></Panel>{guard.prompt}</EditorLayout>
 }

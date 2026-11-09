@@ -17,28 +17,44 @@ export function RegistrationPanel({ context }: { context: Context }) {
   const policy=registrationAccess(access,context.kind)
   const load = useCallback((signal: AbortSignal) => policy.read ? activityApi.registrations(context.kind === 'activities' ? context.id : undefined, signal).then(rows => rows.filter(item => context.kind === 'activities' ? item.activityId === context.id : item.excursionId === context.id)) : Promise.resolve(null), [context.id, context.kind, policy.read])
   const list = useReadQuery('registrations:' + access.userId + ':' + policy.read + ':' + context.kind + context.id, load)
-  const [selected, setSelected] = useState(''), [passengerId, setPassengerId] = useState(''), [quantity, setQuantity] = useState(1), [notes, setNotes] = useState(''), [reason, setReason] = useState('')
+  const [selected, setSelected] = useState(''), [passengerId, setPassengerId] = useState(''), [quantity, setQuantity] = useState(1), [reason, setReason] = useState('')
+  const [editQuantity, setEditQuantity] = useState<number | null>(null)
+  const [editNotes, setEditNotes] = useState<string | null>(null)
   const [action, setAction] = useState<'create' | 'update' | 'confirm' | 'cancel' | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState('')
   const detail = useReadQuery('registration:' + access.userId + ':' + policy.read + ':' + selected, useCallback(signal => policy.read && selected ? activityApi.registration(selected, signal) : Promise.resolve(null), [selected,policy.read]))
   const current = detail.data && (context.kind === 'activities' ? detail.data.activityId === context.id : detail.data.excursionId === context.id) ? detail.data : null
+  const updatedQuantity = editQuantity ?? current?.quantity ?? 1
+  const notes = editNotes ?? current?.notes ?? ''
   const entitlement=useReadQuery(`registration-fare:${current?.id??''}:${current?.status??''}`,useCallback(signal=>current?activityApi.registrationEntitlement(current.id,signal):Promise.resolve(null),[current]))
   const canRegister = policy.create && context.status === 'OPEN' && Date.parse(context.endTime) > now && Boolean(passengerId)
   const allowed = (value: NonNullable<typeof action>) => value === 'create' ? canRegister : policy.manage && Boolean(current && (value === 'cancel' ? ['PENDING', 'CONFIRMED'].includes(current.status) && Date.parse(context.startTime) > now : current.status === 'PENDING'))
   async function confirm() {
     if (!action || !allowed(action) || lock.current) return
-    if ((action === 'create' || action === 'update') && (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 2147483647 || notes.length > 500)) { setError('Số chỗ phải là số nguyên dương; ghi chú tối đa 500 ký tự.'); return }
+    const seats = action === 'update' ? updatedQuantity : quantity
+    if ((action === 'create' || action === 'update') && (!Number.isSafeInteger(seats) || seats < 1 || seats > 2147483647)) {
+      setError('Số chỗ phải là số nguyên dương hợp lệ.')
+      return
+    }
+    if (action === 'update' && notes.length > 500) {
+      setError('Ghi chú tối đa 500 ký tự.')
+      return
+    }
     lock.current = true; setBusy(true); setError('')
     try {
       if (action === 'create') await activityApi.register(context.kind, context.id, passengerId, quantity)
-      else if (action === 'update') await activityApi.updateRegistration(selected, quantity, notes)
+      else if (action === 'update') {
+        await activityApi.updateRegistration(selected, updatedQuantity, notes)
+        setEditQuantity(null)
+        setEditNotes(null)
+      }
       else await activityApi.registrationAction(selected, action, reason.trim() || undefined)
       setAction(null); list.retry(); detail.retry()
     } catch (value) { setError(value instanceof Error ? value.message : 'Chưa thay đổi được đăng ký.') }
     finally { lock.current = false; setBusy(false) }
   }
   if(!policy.read) return <Panel title="Đăng ký tham gia"><Notice title="Chưa có quyền xem đăng ký">Tài khoản cần quyền quản lý đăng ký hoặc điểm danh.</Notice></Panel>
-  return <><Panel title="Đăng ký tham gia"><ActivityState {...list} />{list.data && (!list.data.length ? <Empty title="Chưa có đăng ký" /> : <DataTable label="Đăng ký tham gia" headers={['Số chỗ', 'Trạng thái', 'Thời gian', '']} >{list.data.map((item, index) => <tr key={item.id}><td>{item.quantity}</td><td>{attendanceLabels[item.status] ?? item.status}</td><td>{activityTime(item.registeredAt)}</td><td><Button tone="secondary" onClick={() => { setSelected(item.id); setQuantity(item.quantity); setNotes(''); setReason('') }}>Xem đăng ký {index + 1}</Button></td></tr>)}</DataTable>)}{policy.create && <><p>Chọn đặt chỗ đã xác nhận và hành khách của đúng chuyến. Số chỗ còn lại được kiểm tra lại khi lưu.</p><BookingPassengerPicker key={context.cruiseId} cruiseId={context.cruiseId} allowedStatuses={['Confirmed']} value={passengerId} onChange={person => setPassengerId(person?.bookingPassengerId ?? '')} /><Field htmlFor="registration-quantity" label="Số chỗ"><input id="registration-quantity" type="number" min={1} step={1} value={Number.isNaN(quantity) ? '' : quantity} onChange={event => setQuantity(event.target.value ? Number(event.target.value) : NaN)} /></Field><Button disabled={!canRegister || busy} onClick={() => { setAction('create'); setError('') }}>Đăng ký tham gia</Button></>}</Panel>
-    {selected && <Panel title="Đăng ký đã chọn"><ActivityState {...detail} /><ActivityState {...entitlement}/><OperationalCruisePackageEntitlement entitlement={entitlement.data}/>{current && <><p>{attendanceLabels[current.status] ?? current.status} · {current.quantity} chỗ · {activityTime(current.registeredAt)}</p>{policy.manage && current.status === 'PENDING' && <><Field htmlFor="registration-notes" label="Ghi chú thay thế"><textarea id="registration-notes" maxLength={500} value={notes} onChange={event => setNotes(event.target.value)} /></Field><p>Ghi chú cũ không có trong dữ liệu trả về. Lưu chỉnh sửa sẽ thay thế ghi chú bằng nội dung trong ô, kể cả để trống.</p></>}{policy.manage && <Field htmlFor="registration-cancel-reason" label="Lý do hủy (nếu có)"><input id="registration-cancel-reason" value={reason} onChange={event => setReason(event.target.value)} /></Field>}{(['update', 'confirm', 'cancel'] as const).filter(() => policy.manage).map(value => <Button key={value} disabled={!allowed(value) || busy} tone={value === 'cancel' ? 'danger' : 'secondary'} onClick={() => { setAction(value); setError('') }}>{labels[value]}</Button>)}</>}</Panel>}
+  return <><Panel title="Đăng ký tham gia"><ActivityState {...list} />{list.data && (!list.data.length ? <Empty title="Chưa có đăng ký" /> : <DataTable label="Đăng ký tham gia" headers={['Số chỗ', 'Trạng thái', 'Thời gian', '']} >{list.data.map((item, index) => <tr key={item.id}><td>{item.quantity}</td><td>{attendanceLabels[item.status] ?? item.status}</td><td>{activityTime(item.registeredAt)}</td><td><Button tone="secondary" onClick={() => { setSelected(item.id); setEditQuantity(null); setEditNotes(null); setReason('') }}>Xem đăng ký {index + 1}</Button></td></tr>)}</DataTable>)}{policy.create && <><p>Chọn đặt chỗ đã xác nhận và hành khách của đúng chuyến. Số chỗ còn lại được kiểm tra lại khi lưu.</p><BookingPassengerPicker key={context.cruiseId} cruiseId={context.cruiseId} allowedStatuses={['Confirmed']} value={passengerId} onChange={person => setPassengerId(person?.bookingPassengerId ?? '')} /><Field htmlFor="registration-quantity" label="Số chỗ"><input id="registration-quantity" type="number" min={1} step={1} value={Number.isNaN(quantity) ? '' : quantity} onChange={event => setQuantity(event.target.value ? Number(event.target.value) : NaN)} /></Field><Button disabled={!canRegister || busy} onClick={() => { setAction('create'); setError('') }}>Đăng ký tham gia</Button></>}</Panel>
+    {selected && <Panel title="Đăng ký đã chọn"><ActivityState {...detail} /><ActivityState {...entitlement}/><OperationalCruisePackageEntitlement entitlement={entitlement.data}/>{current && <><p>{attendanceLabels[current.status] ?? current.status} · {current.quantity} chỗ · {activityTime(current.registeredAt)}</p>{policy.manage && current.status === 'PENDING' && <><Field htmlFor="registration-edit-quantity" label="Số chỗ đã đăng ký"><input id="registration-edit-quantity" type="number" min={1} step={1} max={2147483647} value={Number.isNaN(updatedQuantity) ? '' : updatedQuantity} onChange={event => setEditQuantity(event.target.valueAsNumber)} /></Field><Field htmlFor="registration-notes" label="Ghi chú"><textarea id="registration-notes" maxLength={500} value={notes} onChange={event => setEditNotes(event.target.value)} /></Field></>}{policy.manage && <Field htmlFor="registration-cancel-reason" label="Lý do hủy (nếu có)"><input id="registration-cancel-reason" value={reason} onChange={event => setReason(event.target.value)} /></Field>}{(['update', 'confirm', 'cancel'] as const).filter(() => policy.manage).map(value => <Button key={value} disabled={!allowed(value) || busy} tone={value === 'cancel' ? 'danger' : 'secondary'} onClick={() => { setAction(value); setError('') }}>{labels[value]}</Button>)}</>}</Panel>}
     {policy.attend && list.data && <ParticipationPanel registrationIds={list.data.map(item => item.id)} context={context} />}
     {action && (action === 'create' ? policy.create : policy.manage) && <Modal title={labels[action]} busy={busy} protectChanges={false} onClose={() => setAction(null)} footer={<>
       <Button tone="secondary" disabled={busy} onClick={() => setAction(null)}>Hủy</Button>
