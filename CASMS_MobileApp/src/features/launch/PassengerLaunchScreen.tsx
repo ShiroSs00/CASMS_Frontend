@@ -16,7 +16,8 @@ export function PassengerLaunchScreen() {
   const status = useAuth(state => state.status);
   useEffect(() => {
     if (status === 'restoring') return;
-    const timer = setTimeout(() => router.replace(status === 'authenticated' ? '/loading' : '/login'), 900);
+    const timer = setTimeout(() => router.replace(status === 'authenticated' ? '/loading'
+      : { pathname: '/login', params: { state: status } }), 900);
     return () => clearTimeout(timer);
   }, [status]);
   return (

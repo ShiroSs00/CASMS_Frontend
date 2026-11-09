@@ -15,6 +15,17 @@ let refreshing: Promise<void> | undefined;
 let expiryTimer: ReturnType<typeof setTimeout> | undefined;
 let refreshTimer: ReturnType<typeof setTimeout> | undefined;
 let writes: Promise<unknown> = Promise.resolve();
+const sessionCleanups = new Set<() => Promise<unknown>>();
+/** Cleanup starts with the outgoing token, before local auth is cleared. */
+export function registerSessionCleanup(cleanup: () => Promise<unknown>) {
+  sessionCleanups.add(cleanup);
+  return () => { sessionCleanups.delete(cleanup); };
+}
+function startSessionCleanup() {
+  return Promise.allSettled([...sessionCleanups].map(cleanup => {
+    try { return cleanup(); } catch (error) { return Promise.reject(error); }
+  }));
+}
 function save(session: Session | null) {
   // SecureStore has no web implementation; browser previews keep tokens only in memory.
   if (Platform.OS === 'web') return Promise.resolve();
@@ -25,9 +36,11 @@ function save(session: Session | null) {
 }
 function stopTimers() { clearTimeout(expiryTimer); clearTimeout(refreshTimer); }
 function clear(status: 'anonymous' | 'expired') {
+  const cleanup = startSessionCleanup();
   generation++; stopTimers(); api.setToken(null); queryClient.clear();
   useAuth.setState({ status, mode: 'live', session: null });
   void save(null).catch(() => {});
+  return cleanup;
 }
 function publish(session: Session) {
   api.setToken(session.accessToken);
@@ -45,14 +58,16 @@ export const authActions = {
     const version = generation;
     restoring = (async () => {
       try {
-        const session = Platform.OS === 'web' ? null : readSession(await SecureStore.getItemAsync(KEY));
+        const session = Platform.OS === 'web' ? null : readSession(await SecureStore.getItemAsync(KEY), true);
         if (version !== generation) return;
-        if (session) publish(session); else clear('anonymous');
+        if (session && session.expiresAt > Date.now()) publish(session);
+        else clear(session && session.user.roles.length > 0 && session.user.roles.every(role => role === 'PASSENGER') ? 'expired' : 'anonymous');
       } catch { if (version === generation) clear('anonymous'); }
     })();
     return restoring;
   },
   async login(username: string, password: string) {
+    void startSessionCleanup();
     const version = ++generation;
     stopTimers();
     api.setToken(null); queryClient.clear();
@@ -76,7 +91,7 @@ export const authActions = {
         const requestedAt = Date.now();
         const dto = await api.request<LoginDto>('/auth/refresh', { method: 'POST' });
         if (version !== generation) return;
-        const next = toSession(dto, requestedAt); await save(next);
+        const next = toSession(dto, requestedAt, session.signedInAt); await save(next);
         if (version === generation) publish(next);
       } catch (error) {
         if (version !== generation) return;
@@ -88,7 +103,8 @@ export const authActions = {
   },
   async logout() {
     // The backend logout is stateless. Clear the token/caches locally immediately.
-    clear('anonymous');
+    const cleanup = clear('anonymous');
     await save(null).catch(() => {});
+    await cleanup;
   },
 };

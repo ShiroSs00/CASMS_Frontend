@@ -1,4 +1,5 @@
 import { ApiError } from '@/lib/api';
+import { useNow } from '@/hooks/use-now';
 import { useAuth } from '@/features/auth/session-store';
 import { readServiceOperation, beginServiceOperation, clearServiceOperation, newServiceOperationKey, type PendingServiceOperation } from './service-operation-store';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -22,11 +23,18 @@ function scheduleLabel(slot: ServiceSchedule) {
 
 type Operation = { kind: 'create'; service: Service } | { kind: 'edit'; request: ServiceRequest } | { kind: 'cancel'; request: ServiceRequest };
 export function PassengerServiceRequestsScreen({ embedded = false }: { embedded?: boolean }) {
+  const { auth, owner } = usePassengerContext();
+  return <ServiceRequestsWorkspace key={`${owner}:${auth.session?.signedInAt}`} embedded={embedded} />;
+}
+
+function ServiceRequestsWorkspace({ embedded }: { embedded: boolean }) {
   const params = useLocalSearchParams<{ bookingId?: string }>();
   const selection = useBookingSelection('confirmed', typeof params.bookingId === 'string' ? params.bookingId : '');
   const context = usePassengerContext();
   const services = usePassengerQuery(['services'], passengerApi.services, 'SERVICE_READ');
-  const requests = usePassengerQuery(['service-requests'], passengerApi.requests, 'SERVICE_REQUEST_CREATE');
+  const requestPermissions = ['SERVICE_REQUEST_READ', 'SERVICE_REQUEST_CREATE'] as const;
+  const requests = usePassengerQuery(['service-requests'], passengerApi.requests, requestPermissions);
+  const now = useNow();
   const [tab, setTab] = useState<'catalog' | 'requests'>('catalog'); const [search, setSearch] = useState('');
   const [operation, setOperation] = useState<Operation | null>(null); const [quantity, setQuantity] = useState('1'); const [note, setNote] = useState(''); const [validation, setValidation] = useState<unknown>(null);
   const action = usePassengerAction();
@@ -39,13 +47,9 @@ export function PassengerServiceRequestsScreen({ embedded = false }: { embedded?
   const slots = usePassengerQuery(['service-slots', serviceId],
     useCallback(signal => passengerApi.serviceSchedules(serviceId, signal), [serviceId]),
     'SERVICE_READ', Boolean(serviceId));
-  const matchingSlots = slots.data?.filter(slot => slot.cruiseId === selection.booking.data?.cruiseId);
+  const matchingSlots = slots.data?.filter(slot => slot.cruiseId === selection.cruiseId);
   useEffect(() => {
     let current = true;
-    setOperationLoaded(false);
-    pendingRef.current = null;
-    payloadRef.current = null;
-    setPendingOperation(null);
     if (!context.ready || !context.owner) return;
     void readServiceOperation(context.owner).then(value => {
       if (!current) return;
@@ -80,12 +84,13 @@ export function PassengerServiceRequestsScreen({ embedded = false }: { embedded?
   const active = (services.data ?? []).filter(s => s.status === 'ACTIVE' && `${s.name} ${s.description ?? ''}`.toLocaleLowerCase('vi-VN').includes(search.toLocaleLowerCase('vi-VN')));
   const visibleRequests = (requests.data ?? []).filter(r => r.bookingId === selection.bookingId);
   const selectedPerson = selection.people.find(p => p.bookingPassengerId === selection.bookingPassengerId);
-  const canCreate = !!selectedPerson && !selection.booking.error && !selection.bookings.error && !selection.booking.isFetching && !selection.bookings.isFetching;
+  const canCreate = selection.ready;
   function open(value: Operation) {
+    if (submitLock.current) return;
     action.reset(); setValidation(null); setSlotId(''); setQuantity(value.kind === 'create' ? '1' : String(value.request.quantity)); setNote(value.kind === 'create' ? '' : value.request.note ?? ''); setOperation(value);
   }
   function submit() {
-    if (!operation || action.isPending || submitLock.current || !operationLoaded) return;
+    if (!operation || action.isPending || submitLock.current || !operationLoaded || !context.can('SERVICE_REQUEST_CREATE')) return;
     let amount = 1;
     try { if (operation.kind !== 'cancel') amount = positiveQuantity(quantity); if (note.length > 500) throw new Error('Ghi chú tối đa 500 ký tự.'); }
     catch (error) { setValidation(error); return; }
@@ -96,8 +101,8 @@ export function PassengerServiceRequestsScreen({ embedded = false }: { embedded?
       if ((service.requiresSchedule || service.preCruiseUsagePolicy === 'PER_DAY') && !slotId) {
         setValidation(new Error('Chọn lịch phục vụ cho dịch vụ này.')); return;
       }
-      if (slotId && !matchingSlots?.some(slot => slot.id === slotId
-          && slot.status === 'OPEN' && slot.remainingCapacity >= amount && Date.parse(slot.endsAt) > Date.now())) {
+      if (slotId && (slots.isFetching || slots.error || !matchingSlots?.some(slot => slot.id === slotId
+          && slot.status === 'OPEN' && slot.remainingCapacity >= amount && Date.parse(slot.endsAt) > Date.now()))) {
         setValidation(new Error('Lịch đã chọn không còn đủ chỗ hoặc đã kết thúc.')); return;
       }
     }
@@ -111,12 +116,19 @@ export function PassengerServiceRequestsScreen({ embedded = false }: { embedded?
     }
     setValidation(null);
     submitLock.current = true;
-    action.mutate(async () => {
+    action.mutate(async assertCurrent => {
       const owner = context.owner;
       if (!owner || useAuth.getState().session?.user.id !== owner)
         throw new Error('Phiên hành khách đã thay đổi.');
       if (captured.kind === 'cancel') return passengerApi.cancelRequest(captured.request.id);
       if (captured.kind === 'edit') return passengerApi.updateRequest(captured.request.id, amount, note);
+      if (!slotId && !pendingRef.current) {
+        const capacity = await passengerApi.serviceAvailability(captured.service.id, amount);
+        assertCurrent();
+        if (capacity.serviceId !== captured.service.id || capacity.requestedQuantity !== amount || capacity.available !== true) {
+          throw new Error('Dịch vụ không còn đủ khả năng tiếp nhận số lượng này.');
+        }
+      }
       const payload = JSON.stringify({ serviceId: captured.service.id, person, quantity: amount, note: note.trim(), slotId });
       if (payloadRef.current && payloadRef.current !== payload)
         throw new Error('Giữ nguyên nội dung của yêu cầu đang chờ đối chiếu.');
@@ -132,6 +144,7 @@ export function PassengerServiceRequestsScreen({ embedded = false }: { embedded?
       pendingRef.current = pending; payloadRef.current = payload; setPendingOperation(pending);
       if (useAuth.getState().session?.user.id !== owner)
         throw new Error('Phiên hành khách đã thay đổi.');
+      assertCurrent();
       let saved: ServiceRequest;
       try {
         saved = await passengerApi.createRequest(captured.service.id, person, amount, note, slotId || undefined, pending.key);
@@ -173,9 +186,9 @@ export function PassengerServiceRequestsScreen({ embedded = false }: { embedded?
         {context.can('SERVICE_REQUEST_CREATE') && <PassengerButton label="Gửi yêu cầu dịch vụ" disabled={!canCreate || !operationLoaded || service.canBuyPreCruise === false || Boolean(pendingOperation && (pendingOperation.serviceId !== service.id || pendingOperation.bookingPassengerId !== selection.bookingPassengerId))} onPress={() => open({ kind: 'create', service })} />}
       </View>)}
       <PassengerButton label="Cập nhật dịch vụ" variant="text" loading={services.isFetching} onPress={() => { void services.refetch(); }} />
-    </> : !context.can('SERVICE_REQUEST_CREATE') ? <Text style={ui.body}>Tài khoản chưa có quyền xem và gửi yêu cầu dịch vụ.</Text> : <>
+    </> : !requestPermissions.some(context.can) ? <Text style={ui.body}>Tài khoản chưa có quyền xem yêu cầu dịch vụ.</Text> : <>
       <ErrorNotice error={requests.error} retry={() => { void requests.refetch(); }} />{requests.isPending && <Loading />}
-      {!selection.bookings.isPending && !selection.booking.isPending && !selection.bookings.error && !selection.booking.error && !!selection.bookingId && !requests.isPending && !requests.error && !visibleRequests.length && <EmptyState title="Chưa có yêu cầu" description="Các yêu cầu dịch vụ của chuyến đi này sẽ xuất hiện tại đây." />}
+      {!selection.source.isPending && !selection.source.error && !!selection.bookingId && !requests.isPending && !requests.error && !visibleRequests.length && <EmptyState title="Chưa có yêu cầu" description="Các yêu cầu dịch vụ của chuyến đi này sẽ xuất hiện tại đây." />}
       {visibleRequests.map(request => <View key={request.id} style={ui.card}>
         <Text style={ui.sectionTitle}>{services.data?.find(s => s.id === request.serviceId)?.name ?? 'Yêu cầu dịch vụ'}</Text>
         <StatusBadge status={request.status} />{request.bookingPassengerId && <Text style={ui.caption}>{selection.booking.data?.passengers.find(p => p.bookingPassengerId === request.bookingPassengerId)?.fullName ?? 'Hành khách trong chuyến đi'}</Text>}<Text style={ui.body}>Số lượng {request.quantity}</Text><Text style={ui.caption}>{dateTime(request.requestTime)}</Text>
@@ -186,12 +199,12 @@ export function PassengerServiceRequestsScreen({ embedded = false }: { embedded?
         {request.unitPriceSnapshot != null && <Text style={ui.caption}>Giá tham chiếu lúc yêu cầu {money(request.unitPriceSnapshot, request.currencySnapshot ?? null)}</Text>}
         {!!request.completedAt && <Text style={ui.caption}>Hoàn tất {dateTime(request.completedAt)}</Text>}
         {!!request.note && <Text style={ui.body}>{request.note}</Text>}
-        {serviceRequestActions(request.status).includes('edit') && !!services.data?.some(s => s.id === request.serviceId && s.status === 'ACTIVE') && <PassengerButton label="Sửa yêu cầu" variant="secondary" onPress={() => open({ kind: 'edit', request })} />}
-        {serviceRequestActions(request.status).includes('cancel') && <PassengerButton label="Hủy yêu cầu" variant="text" onPress={() => open({ kind: 'cancel', request })} />}
+        {context.can('SERVICE_REQUEST_CREATE') && request.usageMode !== 'ONBOARD' && serviceRequestActions(request.status).includes('edit') && !!services.data?.some(s => s.id === request.serviceId && s.status === 'ACTIVE') && <PassengerButton label="Sửa yêu cầu" variant="secondary" onPress={() => open({ kind: 'edit', request })} />}
+        {context.can('SERVICE_REQUEST_CREATE') && serviceRequestActions(request.status).includes('cancel') && <PassengerButton label="Hủy yêu cầu" variant="text" onPress={() => open({ kind: 'cancel', request })} />}
       </View>)}
       <PassengerButton label="Cập nhật yêu cầu" variant="text" loading={requests.isFetching} onPress={() => { void requests.refetch(); }} />
     </>}
-    <ConfirmAction visible={!!operation} title={operation?.kind === 'create' ? 'Xác nhận gửi yêu cầu' : operation?.kind === 'edit' ? 'Lưu thay đổi yêu cầu' : 'Xác nhận hủy yêu cầu'} description={operation?.kind === 'cancel' ? 'Yêu cầu này sẽ được hủy nếu trạng thái hiện tại cho phép.' : 'Đội ngũ trên tàu sẽ tiếp nhận yêu cầu. Gửi yêu cầu chưa có nghĩa là dịch vụ đã được xác nhận hoặc thanh toán.'} onClose={() => setOperation(null)} onConfirm={submit} pending={action.isPending} disabled={!operationLoaded} error={action.error}>
+    <ConfirmAction visible={!!operation} title={operation?.kind === 'create' ? 'Xác nhận gửi yêu cầu' : operation?.kind === 'edit' ? 'Lưu thay đổi yêu cầu' : 'Xác nhận hủy yêu cầu'} description={operation?.kind === 'cancel' ? 'Yêu cầu này sẽ được hủy nếu trạng thái hiện tại cho phép.' : 'Đội ngũ trên tàu sẽ tiếp nhận yêu cầu. Gửi yêu cầu chưa có nghĩa là dịch vụ đã được xác nhận hoặc thanh toán.'} onClose={() => { if (!submitLock.current) setOperation(null); }} onConfirm={submit} pending={action.isPending} disabled={!operationLoaded} error={action.error}>
       {operation?.kind === 'create' && <View style={ui.card}><Text style={ui.sectionTitle}>{operation.service.name}</Text><Text style={ui.body}>{selectedPerson?.fullName}{selectedPerson?.cabinNumber ? ` · Phòng ${selectedPerson.cabinNumber}` : ''}</Text><Text style={ui.caption}>Đơn giá {money(operation.service.price, operation.service.currency)}</Text></View>}
       {!!operation && operation.kind !== 'create' && <Text style={ui.sectionTitle}>{services.data?.find(s => s.id === operation.request.serviceId)?.name ?? 'Yêu cầu dịch vụ'}</Text>}
       {operation?.kind === 'create' && <>
@@ -200,7 +213,7 @@ export function PassengerServiceRequestsScreen({ embedded = false }: { embedded?
         <Choice label="Lịch phục vụ của chuyến" value={slotId}
           items={[...(!operation.service.requiresSchedule && operation.service.preCruiseUsagePolicy !== 'PER_DAY'
             ? [{ id: '', label: 'Không chọn khung giờ' }] : []),
-            ...(matchingSlots ?? []).filter(slot => slot.remainingCapacity >= Number(quantity) && Date.parse(slot.endsAt) > Date.now())
+            ...(matchingSlots ?? []).filter(slot => slot.remainingCapacity >= Number(quantity) && Date.parse(slot.endsAt) > now && slot.status === 'OPEN')
               .map(slot => ({ id: slot.id, label: scheduleLabel(slot) }))]}
           onChange={setSlotId} disabled={action.isPending || slots.isFetching || Boolean(slots.error)} />
       </>}

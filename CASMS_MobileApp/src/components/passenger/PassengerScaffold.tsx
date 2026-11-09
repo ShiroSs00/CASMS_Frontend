@@ -15,6 +15,7 @@ export function PassengerScaffold({ children, selected = 'home', title, detail =
   children: ReactNode; selected?: PassengerTab; title?: string; detail?: boolean;
 }) {
   const authenticated = useAuth(state => state.status === 'authenticated');
+  const notifications = useAuth(state => state.session?.user.effectivePermissions?.includes('NOTIFICATION_READ'));
   const heading = title && title !== 'OceVie' ? title : titles[selected];
   return <SafeAreaView edges={detail ? ['top', 'left', 'right', 'bottom'] : ['top', 'left', 'right']}
     style={styles.screen} onLayout={() => { void SplashScreen.hideAsync().catch(console.warn); }}>
@@ -28,7 +29,7 @@ export function PassengerScaffold({ children, selected = 'home', title, detail =
           <Text accessibilityRole="header" style={[styles.title, detail && styles.detailTitle]}>{heading}</Text>
         </>}
       </View>
-      {!detail && <Pressable accessibilityRole="button" accessibilityLabel="Thông báo"
+      {!detail && notifications && <Pressable accessibilityRole="button" accessibilityLabel="Thông báo"
         onPress={() => router.push('/notifications')} style={styles.iconButton}>
         <MaterialIcon name="notifications" color={brand.navy} />
       </Pressable>}
@@ -48,6 +49,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 23, lineHeight: 32, fontWeight: '700', color: brand.navy },
   detailTitle: { fontSize: 18, lineHeight: 26 },
   iconButton: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  avatar: { width: 40, height: 40, borderRadius: 14, backgroundColor: brand.tealSoft, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 44, height: 44, borderRadius: 14, backgroundColor: brand.tealSoft, alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1 },
 });

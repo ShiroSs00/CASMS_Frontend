@@ -15,6 +15,7 @@ import { brand, darkTheme, lightTheme } from '@/constants/ocevie';
 import { VoyageEntrance } from '@/components/passenger/VoyageEntrance';
 import { OceVieBrand } from '@/components/passenger/OceVieBrand';
 import { voyage } from '@/constants/voyage';
+import { ApiError } from '@/lib/api';
 
 export function PassengerLoginScreen({ initialStatus = 'default', signIn = ({ username, password }) => authActions.login(username, password) }: {
   initialStatus?: LoginStatus;
@@ -49,7 +50,7 @@ export function PassengerLoginScreen({ initialStatus = 'default', signIn = ({ us
       router.replace('/loading');
     } catch (error) {
       setApiMessage(error instanceof Error ? error.message : 'Đăng nhập thất bại. Vui lòng thử lại.');
-      setStatus('error');
+      setStatus(error instanceof ApiError && error.status === 0 ? 'offline' : 'error');
     } finally {
       submitting.current = false;
     }

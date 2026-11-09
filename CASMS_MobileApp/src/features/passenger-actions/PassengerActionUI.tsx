@@ -1,6 +1,6 @@
 import { type ReactNode, useState } from 'react';
 import { Redirect } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { type PassengerTab, PassengerScaffold } from '@/components/passenger/PassengerScaffold';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
 import { EmptyState, PassengerSheet, ui } from '@/components/passenger/PassengerUI';
@@ -30,43 +30,57 @@ export function StatusBadge({ status }: { status: string }) {
 
 export function errorText(error: unknown) {
   if (error instanceof ApiError) {
+    if (error.status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
     if (error.status === 403) return 'Tài khoản chưa có quyền thực hiện thao tác hoặc hồ sơ này không thuộc bạn.';
-    if (error.status === 0) return 'Chưa xác nhận được kết quả do mất kết nối. Hãy tải lại danh sách trước khi gửi lại để tránh trùng yêu cầu.';
+    if (error.status === 404) return 'Thông tin này không còn khả dụng. Vui lòng tải lại.';
+    if (error.status === 409) return 'Hệ thống chưa thể thực hiện thao tác ở trạng thái hiện tại. Vui lòng tải lại để kiểm tra.';
+    if (error.status === 0) return `${error.message} Hãy kiểm tra lại trạng thái trước khi gửi lại.`;
   }
   return error instanceof Error ? error.message : 'Không xử lý được yêu cầu. Vui lòng thử lại.';
 }
 export function ErrorNotice({ error, retry }: { error: unknown; retry?: () => void }) {
   if (!error) return null;
-  return <View accessibilityLiveRegion="polite" style={styles.error}><Text style={styles.errorText}>{errorText(error)}</Text>{retry && <PassengerButton label="Tải lại" variant="text" onPress={retry} />}</View>;
+  const message = retry && error instanceof ApiError && error.status === 0 ? error.message : errorText(error);
+  return <View accessibilityLiveRegion="polite" style={styles.error}><Text accessibilityRole="alert" style={styles.errorText}>{message}</Text>{retry && <PassengerButton label="Tải lại" variant="text" onPress={retry} />}</View>;
 }
 export function Loading({ text = 'Đang tải dữ liệu…' }: { text?: string }) { return <View style={styles.row}><ActivityIndicator color={brand.teal} /><Text style={ui.body}>{text}</Text></View>; }
-export function LivePage({ title, permission, children, detail = true, selected = 'services' }: { title: string; permission: string; children: ReactNode; detail?: boolean; selected?: PassengerTab }) {
+export function LivePage({ title, permission, children, detail = true, selected = 'services', onRefresh, refreshing = false }: {
+  title: string; permission?: string; children: ReactNode; detail?: boolean; selected?: PassengerTab;
+  onRefresh?: () => void; refreshing?: boolean;
+}) {
   const context = usePassengerContext();
-  if (context.auth.status !== 'restoring' && context.auth.status !== 'authenticated') return <Redirect href="/login" />;
-  return <PassengerScaffold detail={detail} selected={detail ? 'account' : selected} title={title}><ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={ui.content}>
+  if (context.auth.status !== 'restoring' && context.auth.status !== 'authenticated') return <Redirect href={{ pathname: '/login', params: { state: context.auth.status } }} />;
+  return <PassengerScaffold detail={detail} selected={detail ? 'account' : selected} title={title}><ScrollView automaticallyAdjustKeyboardInsets
+    keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={ui.content}
+    refreshControl={onRefresh && context.ready ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={brand.teal} /> : undefined}>
     {context.auth.status === 'restoring' ? <Loading text="Đang khôi phục phiên…" /> : !context.live ? <EmptyState title="Đăng nhập tài khoản hành khách" description="Vui lòng đăng nhập tài khoản hành khách để tiếp tục." />
       : context.error ? <ErrorNotice error={context.error} retry={() => { void context.me.refetch(); }} />
         : !context.ready ? <Loading text="Đang xác minh tài khoản…" />
-          : !context.can(permission) ? <EmptyState title="Chưa có quyền truy cập" description="Vui lòng liên hệ đội ngũ hỗ trợ nếu bạn cần sử dụng tính năng này." /> : children}
+          : permission && !context.can(permission) ? <EmptyState title="Chưa có quyền truy cập" description="Vui lòng liên hệ đội ngũ hỗ trợ nếu bạn cần sử dụng tính năng này." /> : children}
   </ScrollView></PassengerScaffold>;
 }
 export function BookingSelection({ selection, draft = false }: { selection: ReturnType<typeof useBookingSelection>; draft?: boolean }) {
   const context = usePassengerContext();
   if (!context.can('BOOKING_READ')) return <Text style={ui.body}>Tài khoản cần quyền xem đặt chỗ để chọn hồ sơ hành khách.</Text>;
-  const error = selection.bookings.error ?? selection.booking.error;
+  const error = selection.source.error ?? (draft ? selection.booking.error : null);
   return <View style={ui.card}><Text style={ui.sectionTitle}>Chuyến đi và hành khách</Text>
-    <ErrorNotice error={error} retry={() => { void selection.bookings.refetch(); if (selection.bookingId) void selection.booking.refetch(); }} />
-    {selection.bookings.isPending || (selection.bookingId && selection.booking.isPending) ? <Loading /> : null}
-    {!selection.bookings.isPending && !selection.bookings.error && !selection.options.length ? <Text style={ui.body}>{draft ? 'Bạn chưa có đơn nháp để chọn gói dịch vụ.' : 'Bạn cần đặt chỗ đã xác nhận để sử dụng tính năng này.'}</Text> : null}
+    <ErrorNotice error={error} retry={() => { void selection.source.refetch(); if (selection.ownBooking) void selection.booking.refetch(); }} />
+    {selection.source.isPending || (draft && selection.bookingId && selection.booking.isPending) ? <Loading /> : null}
+    {!selection.source.isPending && !selection.source.error && !selection.options.length ? <Text style={ui.body}>{draft ? 'Bạn chưa có đơn nháp để chọn gói dịch vụ.' : 'Bạn cần đặt chỗ đã xác nhận để sử dụng tính năng này.'}</Text> : null}
     {!!selection.options.length && <Choice label="Đặt chỗ" value={selection.bookingId} items={selection.options.map(b => ({ id: b.bookingId, label: `${b.bookingReference} · ${b.cruiseName}` }))} onChange={selection.choose} />}
-    {!!selection.booking.data && !selection.booking.error && <Choice label="Hành khách" value={selection.bookingPassengerId} items={selection.people.map(p => ({ id: p.bookingPassengerId, label: `${p.fullName}${p.cabinNumber ? ` · Phòng ${p.cabinNumber}` : ''}` }))} onChange={selection.choosePerson} />}
+    {!!selection.options.length && !selection.bookingId && <Text style={ui.body}>{selection.invalidSelection
+      ? 'Đặt chỗ đã chọn không còn khả dụng. Vui lòng chọn lại.'
+      : 'Chọn đặt chỗ bạn muốn sử dụng.'}</Text>}
+    {!!selection.bookingId && (!draft || !!selection.booking.data) && (selection.people.length > 0
+      ? <Choice label="Hành khách" value={selection.bookingPassengerId} items={selection.people.map(p => ({ id: p.bookingPassengerId, label: `${p.fullName}${p.cabinNumber ? ` · Phòng ${p.cabinNumber}` : ''}` }))} onChange={selection.choosePerson} />
+      : <Text style={ui.body}>Không có hồ sơ hành khách khả dụng cho thao tác này.</Text>)}
 
   </View>;
 }
-export function Input({ label, value, onChange, multiline = false, numeric = false, maxLength, disabled = false, email = false }: {
-  label: string; value: string; onChange: (text: string) => void; multiline?: boolean; numeric?: boolean; maxLength?: number; disabled?: boolean; email?: boolean;
+export function Input({ label, value, onChange, multiline = false, numeric = false, maxLength, disabled = false, email = false, phone = false }: {
+  label: string; value: string; onChange: (text: string) => void; multiline?: boolean; numeric?: boolean; maxLength?: number; disabled?: boolean; email?: boolean; phone?: boolean;
 }) {
-  return <View style={{ gap: 6 }}><Text style={ui.caption}>{label}</Text><TextInput accessibilityLabel={label} value={value} onChangeText={onChange} multiline={multiline} keyboardType={numeric ? 'number-pad' : email ? 'email-address' : 'default'} autoCapitalize={email ? 'none' : 'sentences'} autoCorrect={!email} maxLength={maxLength} editable={!disabled} style={[styles.input, multiline && { minHeight: 86, textAlignVertical: 'top' }, disabled && { opacity: .6 }]} /></View>;
+  return <View style={{ gap: 6 }}><Text style={ui.caption}>{label}</Text><TextInput accessibilityLabel={label} value={value} onChangeText={onChange} multiline={multiline} keyboardType={phone ? 'phone-pad' : numeric ? 'number-pad' : email ? 'email-address' : 'default'} autoCapitalize={email || phone ? 'none' : 'sentences'} autoCorrect={!email && !phone} maxLength={maxLength} editable={!disabled} style={[styles.input, multiline && { minHeight: 86, textAlignVertical: 'top' }, disabled && { opacity: .6 }]} /></View>;
 }
 export function Choice({ label, value, items, onChange, disabled = false }: { label: string; value: string; items: { id: string; label: string }[]; onChange: (id: string) => void; disabled?: boolean }) {
   const [open, setOpen] = useState(false);

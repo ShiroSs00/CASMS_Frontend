@@ -7,9 +7,11 @@ import { PassengerButton } from '@/components/passenger/PassengerButton';
 import { PassengerSheet, SectionHeading, ui } from '@/components/passenger/PassengerUI';
 import { brand, lightTheme } from '@/constants/ocevie';
 import { authActions, useAuth } from './session-store';
+import { usePassengerContext } from '@/features/passenger-actions/passenger-hooks';
 
 export function PassengerAccountScreen() {
   const auth = useAuth();
+  const context = usePassengerContext();
   const name = auth.session?.user.username ?? 'Hành khách';
   const [sheet, setSheet] = useState<'profile' | 'logout' | null>(null);
   const [busy, setBusy] = useState(false);
@@ -21,10 +23,13 @@ export function PassengerAccountScreen() {
           <Text style={ui.caption}>{auth.session?.user.email ?? 'Hành khách OceVie'}</Text></View>
       </View>
       <View style={styles.section}><SectionHeading title="Chuyến đi của bạn" />
-          <PassengerListItem title="Đặt chỗ của tôi" supporting="Hành khách, phòng và chi phí của từng đơn" icon="sailing" onPress={() => router.push('/passenger-bookings')} />
+          <PassengerListItem title="Đặt chỗ của tôi" supporting="Hành khách, phòng và chi phí của từng đơn" icon="sailing" onPress={() => router.navigate('/bookings')} />
           <PassengerListItem title="Hoạt động và tour của tôi" supporting="Đăng ký và quản lý lượt tham gia" icon="explore" onPress={() => router.push('/passenger-activities')} />
           <PassengerListItem title="Gói dịch vụ" supporting="Quyền lợi và gói đã chọn cho đơn nháp" icon="restaurant" onPress={() => router.push('/passenger-packages')} />
         <PassengerListItem title="Thông tin chuyến đi" supporting="Tàu, thời gian và thông tin hành trình" icon="sailing" onPress={() => router.push('/cruise')} />
+        {context.can('CHECKIN_READ') && <PassengerListItem title="Check-in trước chuyến" supporting="Xem tình trạng và hoàn tất hồ sơ" icon="assignment_ind" onPress={() => router.push('/check-in')} />}
+        {context.can('NOTIFICATION_READ') && <PassengerListItem title="Thông báo" supporting="Tin nhắn dành cho tài khoản của bạn" icon="notifications" onPress={() => router.push('/notifications')} />}
+        <PassengerListItem title="Chi tiêu trên tàu" supporting="Nơi hỗ trợ kiểm tra sao kê" icon="room_service" onPress={() => router.push('/spending')} />
       </View>
       <View style={styles.section}><SectionHeading title="Tài khoản & hỗ trợ" />
         <PassengerListItem title="Thông tin cá nhân" supporting="Xem thông tin tài khoản đang đăng nhập" icon="assignment_ind" onPress={() => setSheet('profile')} />

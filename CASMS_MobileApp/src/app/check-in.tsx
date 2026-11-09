@@ -1,2 +1,1 @@
-import { PassengerDestinationScreen } from '@/features/home/PassengerDestinationScreen';
-export default function CheckInRoute() { return <PassengerDestinationScreen view="checkIn" />; }
+export { PassengerCheckInScreen as default } from '@/features/passenger-actions/PassengerCheckInScreen';

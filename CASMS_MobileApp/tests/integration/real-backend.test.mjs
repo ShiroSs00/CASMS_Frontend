@@ -4,7 +4,8 @@ import { registerHooks } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createApiClient } from '../../src/lib/api/api-client.ts';
-import { createPassengerApi } from '../../src/features/passenger-actions/passenger-api.ts';
+import '../register-typescript.mjs';
+const { createPassengerApi } = await import('../../src/features/passenger-actions/passenger-api.ts');
 registerHooks({ resolve(specifier, context, nextResolve) {
   return nextResolve(specifier === '../../lib/api/api-client' ? `${specifier}.ts` : specifier, context);
 } });

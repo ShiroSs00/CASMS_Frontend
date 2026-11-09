@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPassengerApi } from '../src/features/passenger-actions/passenger-api.ts';
+import './register-typescript.mjs';
+const { createPassengerApi } = await import('../src/features/passenger-actions/passenger-api.ts');
 import { buildBooking, positiveQuantity, packageFits, canRegister, usablePassengers, registrationActions, serviceRequestActions, bookableCruises, money, personalPermissions } from '../src/features/passenger-actions/passenger-model.ts';
 import { createApiClient, ApiError } from '../src/lib/api/api-client.ts';
 import { readPermissions, toSession, readSession } from '../src/features/auth/session-model.ts';
@@ -24,7 +25,9 @@ test('passenger assignments request only the own-user API and filter actual book
   assert.equal(calls[0].options.query, undefined);
 });
 const modelRow = { key: 'a', fullName: 'Nguyễn An', email: '', phoneNumber: '', cabinId: cabin };
-const details = { bookingId: booking, bookingStatus: 'Draft', passengers: [{ bookingPassengerId: bp }] };
+const details = { bookingId: booking, bookingReference: 'BK-TEST', cruiseId: shipCruise, cruiseCode: 'TEST', cruiseName: 'Test',
+  departureDatetime: '2027-01-01T00:00:00Z', returnDatetime: '2027-01-02T00:00:00Z', createdAt: '2026-11-09T00:00:00Z',
+  paymentPlan: 'FULL', installments: [], bookingStatus: 'Draft', passengers: [{ bookingPassengerId: bp, passengerId: user, fullName: 'Nguyễn An', participationStatus: 'Active' }] };
 
 test('booking checks combined cabin occupancy instead of checking each traveller separately', () => {
   assert.throws(() => buildBooking(shipCruise, [modelRow, { ...modelRow, key: 'b' }], [{ cabinId: cabin, cabinNumber: '101', remainingCapacity: 1 }], 'DEPOSIT', ''), /không đủ chỗ/);
@@ -95,8 +98,8 @@ test('API uses all booking pages and rejects incomplete or duplicate results', a
 });
 test('booking creation and cancellation use server IDs and do not invent a payment or confirmation API', async () => {
   const calls = [];
-  const api = createPassengerApi({ async request(path, options) { calls.push({ path, ...options }); return details; } });
-  await api.createBooking({ cruiseId: shipCruise, passengers: [] });
+  const api = createPassengerApi({ async request(path, options) { calls.push({ path, ...options }); return { ...details, cruiseId: shipCruise, bookedByUserId: user, bookingStatus: path.endsWith('/cancel') ? 'Cancelled' : 'Draft' }; } });
+  await api.createBooking({ cruiseId: shipCruise, quoteId: target, currency: 'USD', paymentPlan: 'FULL', passengers: [{ fullName: 'Nguyễn An', cabinId: cabin }] }, other, user);
   await api.cancelBooking(booking, '  Đổi kế hoạch  ');
   assert.equal(calls[0].path, '/booking'); assert.equal(calls[0].method, 'POST');
   assert.equal(calls[1].path, `/booking/${booking}/cancel`); assert.deepEqual(calls[1].body, { reason: 'Đổi kế hoạch' });
@@ -108,7 +111,7 @@ test('services support authenticated PUT and POST cancel without staff-only acti
   const seen = [];
   const transport = createApiClient({ baseUrl: () => 'http://test/api', fetch: async (url, options) => {
     assert.equal(options.headers.Authorization, 'Bearer test-token'); seen.push({ url, ...options });
-    return Response.json({ success: true, data: { id: target } });
+    return Response.json({ success: true, data: { id: target, serviceId: target, bookingPassengerId: bp, quantity: 2 } });
   } }); transport.setToken('test-token');
   const api = createPassengerApi(transport);
   await api.createRequest(target, bp, 2, '  Không đường ');
@@ -138,13 +141,13 @@ test('excursions are resolved through real itinerary routes and scoped to the bo
   const calls = []; const stop = other;
   const api = createPassengerApi({ async request(path, options) {
     calls.push(path);
-    if (path === '/itineraries') return { content: [{ itineraryId: target, cruiseId: shipCruise, status: 'ACTIVE' }, { itineraryId: user, cruiseId: other, status: 'ACTIVE' }], number: 0, totalPages: 1, totalElements: 2 };
-    if (path === `/cruise-stops/by-itinerary/${target}`) return [{ cruiseStopId: stop }];
-    if (path === '/shore-excursions') { assert.equal(options.query.cruiseStopId, stop); return [{ shoreExcursionId: cabin }]; }
+    if (path === '/itineraries/mine') return [{ bookingId: booking, bookingReference: 'BK-TEST', bookingPassengerId: bp, cruiseId: shipCruise, cruiseName: 'Test', cruiseStatus: 'IN_PROGRESS', bookingStatus: 'Confirmed', participationStatus: 'Active', itineraryId: target, itineraryStatus: 'ACTIVE' }];
+    if (path === `/cruise-stops/by-itinerary/${target}`) return [{ cruiseStopId: stop, itineraryId: target }];
+    if (path === '/shore-excursions') { assert.equal(options.query.cruiseStopId, stop); return [{ shoreExcursionId: cabin, cruiseStopId: stop }]; }
     throw new Error(`Unexpected endpoint: ${path}`);
   } });
   assert.equal((await api.excursions(shipCruise))[0].shoreExcursionId, cabin);
-  assert.deepEqual(calls, ['/itineraries', `/cruise-stops/by-itinerary/${target}`, '/shore-excursions']);
+  assert.deepEqual(calls, ['/itineraries/mine', `/cruise-stops/by-itinerary/${target}`, '/shore-excursions']);
 });
 test('package assignment uses POST for initial selection, PUT for change and DELETE for removal', async () => {
   const calls = []; const api = createPassengerApi({ async request(path, options) { calls.push({ path, ...options }); } });
