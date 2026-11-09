@@ -32,6 +32,11 @@ export const operationsStaffStatus=(status:string)=>status==='ACTIVE'?'Đang đ�
 export function planMakerReason(data: PlanView, actorId: string | null): string | null {
  if (!actorId) return null
  if (data.submittedBy === actorId) return 'Bạn là người gửi hồ sơ. Cần người xét duyệt khác.'
+ if (data.unifiedPackageReview && data.submittedSnapshot && typeof data.submittedSnapshot === 'object'
+   && 'saleTermsMakerIds' in data.submittedSnapshot
+   && Array.isArray(data.submittedSnapshot.saleTermsMakerIds)
+   && data.submittedSnapshot.saleTermsMakerIds.includes(actorId))
+   return 'Bạn đã cấu hình thuế hoặc phí cảng trong hồ sơ này. Cần người xét duyệt khác.'
  if (data.unifiedPackageReview && planEvidence(data.submittedSnapshot).packages.some(p => p.makers.includes(actorId))) return 'Bạn đã tạo hoặc gửi giá trong hồ sơ này. Cần người xét duyệt khác.'
  return null
 }

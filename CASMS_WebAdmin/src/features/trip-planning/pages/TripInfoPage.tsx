@@ -71,7 +71,7 @@ function InfoForm({trip:initial}:{trip?:Trip}) {
       {trip&&!full&&<p className={styles.note}>Dữ liệu hiện có: {trip.durationDays} ngày · Phạm vi: {domainStatus('source.scope',trip.plannedScope??'')}.</p>}
       <Field htmlFor="trip-description" label="Giới thiệu (tùy chọn)"><textarea id="trip-description" rows={4} value={form.description} disabled={!permitted||busy} onChange={e=>change('description',e.target.value)}/></Field>
       {error&&<Notice title="Chưa lưu được thông tin" tone="error">{error}<p>Bản nhập vẫn được giữ. Không tự gửi lại yêu cầu tạo chuyến.</p>{trip&&<Button type="button" tone="secondary" onClick={()=>setCompare(true)}>So sánh thông tin máy chủ</Button>}</Notice>}
-      <div className={styles.formFooter}><Link to={root}>Hủy</Link>{trip&&<Link to={`${root}/${trip.tripId}/schedule`}>Lịch trình</Link>}{permitted&&<Button type="submit" disabled={busy||scopeBlocked||(!full&&!trip)||(full&&catalogBlocked)}>{busy?'Đang lưu…':!full?'Lưu tên và giới thiệu':'Lưu và lập lịch trình'}</Button>}</div>
+      <div className={styles.formFooter}><Link to={root}>Hủy</Link>{trip&&<Link to={`${root}/${trip.tripId}/schedule`}>Lịch trình</Link>}{permitted&&<Button type="submit" busy={busy} disabled={scopeBlocked||(!full&&!trip)||(full&&catalogBlocked)}>{busy?'Đang lưu…':!full?'Lưu tên và giới thiệu':'Lưu và lập lịch trình'}</Button>}</div>
     </form></Panel>{compare&&trip&&<InfoConflictDialog trip={trip} local={form} onClose={()=>setCompare(false)} onReplace={server=>{setTrip(server);setBaseline(structuredClone(server.info));setForm(structuredClone(server.info));setCompare(false);setError('');setAttempted(false);setTouched({})}}/>}{guard.prompt}
   </div>
 }

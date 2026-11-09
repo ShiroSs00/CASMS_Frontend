@@ -1,5 +1,5 @@
 import { PermissionLink as Link } from '@/shared/ui'
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { useSessionAccess } from '@/shared/auth'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import {readinessContextReturn} from '@/shared/lib/cruise-context'
@@ -10,10 +10,11 @@ import { type SupplierListItem } from '../model/supplier-list'
 import { SupplierDetail } from '../components/SupplierDetail'
 import styles from '../components/SupplierDetail.module.css'
 
-export function SupplierDetailPage() {
+export function SupplierDetailPage({ recordId, embedded = false, onDeleted, onChanged }: { recordId?: string; embedded?: boolean; onDeleted?: () => void; onChanged?: () => void } = {}) {
   const access = useSessionAccess()
   const lock = useRef(false)
-  const { supplierId } = useParams<{ supplierId: string }>()
+  const routeParams = useParams<{ supplierId: string }>(), supplierId = recordId ?? routeParams.supplierId
+  const Frame = embedded ? Fragment : AdminShell
   const navigate = useNavigate()
   const [params]=useSearchParams(),returnTo=readinessContextReturn(params,'SUPPLIER',supplierId)
   const [supplier, setSupplier] = useState<SupplierListItem | null>(null)
@@ -73,7 +74,7 @@ export function SupplierDetailPage() {
       const updated = isActivating
         ? await supplierApi.activate(supplier.id)
         : await supplierApi.deactivate(supplier.id)
-      setSupplier(updated)
+      setSupplier(updated); onChanged?.()
       setActionFeedback({
         type: 'success',
         message: isActivating
@@ -108,7 +109,7 @@ export function SupplierDetailPage() {
     setActionFeedback(null)
     try {
       const updated = await supplierApi.verify(supplier.id, request)
-      setSupplier(updated)
+      setSupplier(updated); onChanged?.()
       setActionFeedback({
         type: 'success',
         message:
@@ -138,7 +139,7 @@ export function SupplierDetailPage() {
     setActionFeedback(null)
     try {
       await supplierApi.deleteUnused(supplier.id)
-      navigate('/admin/suppliers')
+      if (embedded && onDeleted) onDeleted(); else navigate('/admin/suppliers')
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         setActionFeedback({
@@ -158,7 +159,7 @@ export function SupplierDetailPage() {
   }
 
   return (
-    <AdminShell>
+    <Frame>
       {returnTo&&<Link to={returnTo} className={styles.returnLink}>Quay về hồ sơ chuyến khởi hành</Link>}
       {loading ? (
         <div className={styles.loadingPlaceholder}>Đang tải thông tin nhà cung cấp...</div>
@@ -178,16 +179,17 @@ export function SupplierDetailPage() {
           </div>
         </section>
       ) : supplier ? (
-        <><Link className={styles.statusButton} to={`/admin/shore-excursions?supplierId=${supplier.id}`}>Các chuyến tham quan của nhà cung cấp</Link><SupplierDetail
+        <SupplierDetail
           supplier={supplier}
+          embedded={embedded}
           actionInProgress={actionInProgress}
           actionFeedback={actionFeedback}
           onDismissFeedback={() => setActionFeedback(null)}
           onToggleStatus={handleToggleStatus}
           onVerify={handleVerify}
           onDelete={handleDelete}
-        /></>
+        />
       ) : null}
-    </AdminShell>
+    </Frame>
   )
 }

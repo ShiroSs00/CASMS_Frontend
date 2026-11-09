@@ -150,7 +150,7 @@ export function ShipAssignmentDialog({ detail, mode, onClose, onChanged }: {
         <span className={styles.candidateHeading}><strong>{candidate.ship.shipName} · {candidate.ship.shipCode}</strong><Badge label={stateLabel(candidate.state)} tone={candidateTone(candidate.state)} /></span>
         <span>{candidate.reasons.join(' ')}</span>
         <span>Trạng thái tàu: {({DRAFT:'Đang thiết lập',READY:'Sẵn sàng khai thác',IN_SERVICE:'Đang khai thác',MAINTENANCE:'Đang bảo trì',SUSPENDED:'Tạm dừng khai thác',RETIRED:'Đã ngừng khai thác'} as Record<string,string>)[candidate.ship.status]??'Chưa xác định'}</span>
-        {candidate.compatibility&&<span>Boong: {candidate.compatibility.decksCount??'Chưa rõ'} · Cabin: {candidate.compatibility.cabinsCount??'Chưa rõ'} · Sức chứa hành khách của tàu: {candidate.compatibility.totalCapacity??'Chưa rõ'} · Kiểm tra sức chứa hiện hành: {candidate.compatibility.capacitySufficient===null?'Chưa xác định':candidate.compatibility.capacitySufficient?'Đáp ứng':'Không đáp ứng'} · Hành khách đang giữ/đặt chỗ: {candidate.compatibility.bookedPassengersCount??'Chưa rõ'}</span>}
+        {candidate.compatibility&&<span>Boong: {candidate.compatibility.decksCount??'Chưa rõ'} · Cabin: {candidate.compatibility.cabinsCount??'Chưa rõ'} · Sức chứa: {candidate.compatibility.totalCapacity??'Chưa rõ'} khách · Khách đã đặt: {candidate.compatibility.bookedPassengersCount??'0'}</span>}
         {candidate.impact&&<span>Phân bổ cabin bị ảnh hưởng: {candidate.impact.affectedCabinAssignmentsCount??'Chưa rõ'} · Hoạt động: {candidate.impact.affectedOnboardActivitiesCount??'Chưa rõ'}</span>}
       </button>)}
     </div>}

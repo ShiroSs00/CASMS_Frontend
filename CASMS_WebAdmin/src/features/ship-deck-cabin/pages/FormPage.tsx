@@ -1,6 +1,7 @@
 import { EditorLayout } from '@/shared/ui'
 import { PermissionLink as Link } from '@/shared/ui'
 import { FormErrorSummary, FormSection } from '@/shared/ui'
+import { ShipProfileFields } from '@/shared/ui/ShipProfileFields'
 import { useSessionAccess } from '@/shared/auth'
 import { entityPermission } from '../model/permissions'
 import { useRef, useState, type FormEvent } from 'react'
@@ -39,7 +40,7 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
   const submit = (event: FormEvent) => {
     event.preventDefault()
     if (mutation.busy || !permitted) return
-    const validation = kind === 'ships' ? validateShip(shipDraft)
+    const validation = kind === 'ships' ? validateShip(shipDraft, ship)
       : kind === 'decks' ? validateDeck(deckDraft, data, deck?.id) : validateCabin(cabinDraft, data, cabin?.id)
     setErrors(validation)
     if (Object.keys(validation).length) { focusError(); return }
@@ -66,6 +67,7 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
               <InputField label="Sức chứa hành khách *" type="number" min={1} step={1} value={shipDraft.capacity || ''} disabled={mutation.busy} error={errors.capacity} onChange={(event) => changeShip('capacity', Number(event.target.value))} />
               <InputField label="Tổng số boong *" type="number" min={1} step={1} value={shipDraft.totalDecks || ''} disabled={mutation.busy} error={errors.totalDecks} onChange={(event) => changeShip('totalDecks', Number(event.target.value))} />
               <InputField label="Ngày đưa vào hoạt động" type="date" value={shipDraft.commissionDate} disabled={mutation.busy} error={errors.commissionDate} onChange={(event) => changeShip('commissionDate', event.target.value)} />
+              <ShipProfileFields profile={shipDraft} errors={errors} disabled={mutation.busy} onChange={changeShip} />
             </FormSection> : kind === 'decks' ? <FormSection title="Boong và tàu liên kết" >
               <SelectField label="Tàu *" value={deckDraft.shipId} disabled={mutation.busy || Boolean(deck)} error={errors.shipId} onChange={(value) => changeDeck('shipId', value)}>{hostOptions}</SelectField>
               <InputField label="Số boong" type="number" min={1} step={1} max={data.ships.find((row) => row.id === deckDraft.shipId)?.totalDecks} value={deckDraft.number} disabled={mutation.busy} error={errors.number} onChange={(event) => changeDeck('number', event.target.value === '' ? '' : Number(event.target.value))} hint={deckDraft.shipId ? `Để trống để tự đánh số. Giới hạn theo tàu: ${data.ships.find((row) => row.id === deckDraft.shipId)?.totalDecks ?? 0} boong.` : 'Chọn tàu trước khi nhập số boong.'} />

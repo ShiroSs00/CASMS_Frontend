@@ -1,7 +1,8 @@
 import { apiRequest } from '@/shared/api'
-import { displayTime, toLocalTime, type ExcursionFormValues, type ShoreExcursion } from '../model/shore-excursion'
+import { journeyTime, validTimeZone, zonedInput } from '@/shared/lib/journey-time'
+import { type ExcursionFormValues, type ShoreExcursion } from '../model/shore-excursion'
 
-export type StopOption = { cruiseStopId: string; cruiseId?:string|null; label: string; plannedArrival: string; plannedDeparture: string; allAboardTime?: string | null; arrivalMethod?: string | null; tenderTransferMinutes?: number | null }
+export type StopOption = { cruiseStopId: string; cruiseId?:string|null; timeZoneId?:string|null; label: string; plannedArrival: string; plannedDeparture: string; allAboardTime?: string | null; arrivalMethod?: string | null; tenderTransferMinutes?: number | null }
 export type SupplierOption = { supplierId: string; supplierName: string; status: string; verificationStatus: string }
 async function plans(signal?: AbortSignal) {
   const items: { itineraryId: string; itineraryName: string;cruiseId?:string|null }[] = []
@@ -19,12 +20,17 @@ export const excursionContextApi = {
     return data
   },
   async stops(signal?: AbortSignal,cruiseId?:string): Promise<StopOption[]> {
-    const [itineraries, ports] = await Promise.all([plans(signal), apiRequest<{ portId: string; portName: string }[]>('/ports/active', { signal })])
+    const [itineraries, ports] = await Promise.all([plans(signal), apiRequest<{ portId: string; portName: string; timeZoneId?: string | null }[]>('/ports/active', { signal })])
     if (!Array.isArray(ports)) throw new Error('Không đọc được tên cảng.')
     return (await Promise.all(itineraries.filter(item=>!cruiseId||item.cruiseId===cruiseId).map(async itinerary => {
       const rows = await apiRequest<(Omit<StopOption, 'label'> & { portId: string; stopOrder: number })[]>(`/cruise-stops/by-itinerary/${encodeURIComponent(itinerary.itineraryId)}`, { signal })
       if (!Array.isArray(rows) || rows.some(item => !item?.cruiseStopId || !Number.isFinite(Date.parse(item.plannedArrival)) || !Number.isFinite(Date.parse(item.plannedDeparture)))) throw new Error('Thông tin điểm dừng chưa đầy đủ.')
-      return rows.map(item => ({ ...item,cruiseId:itinerary.cruiseId, label: `${itinerary.itineraryName} · Lần ghé ${item.stopOrder ?? 'chưa có thứ tự'} · ${ports.find(port => port.portId === item.portId)?.portName ?? 'Chưa tải được tên cảng'} · ${displayTime(item.plannedArrival)}` }))
+      return rows.map(item => {
+        const port = ports.find(port => port.portId === item.portId)
+        const zone = port?.timeZoneId
+        return { ...item, cruiseId: itinerary.cruiseId, timeZoneId: zone,
+          label: `${itinerary.itineraryName} · Lần ghé ${item.stopOrder ?? 'chưa có thứ tự'} · ${port?.portName ?? 'Chưa tải được tên cảng'}` }
+      })
     }))).flat()
   },
 }
@@ -38,11 +44,13 @@ export function excursionWindow(stop: StopOption | undefined) {
 
 export function validateExcursionWindow(start: string, end: string, stop: StopOption | undefined): Partial<Record<keyof ExcursionFormValues, string>> {
   if (!stop) return { cruiseStopId: 'Chọn điểm dừng từ danh sách đã tải.' }
+  if (!validTimeZone(stop.timeZoneId)) return { cruiseStopId: 'Cảng chưa có múi giờ hợp lệ.' }
+  const zone = stop.timeZoneId
   const window = excursionWindow(stop)
   if (!window) return { cruiseStopId: 'Điểm dừng chưa có khung giờ tham quan hợp lệ. Cần cập nhật giờ lưu cảng và trung chuyển.' }
   const errors: Partial<Record<keyof ExcursionFormValues, string>> = {}
-  if (Date.parse(start) < window.earliestStart || Date.parse(start) >= window.returnDeadline) errors.startTime = `Bắt đầu từ ${displayTime(new Date(window.earliestStart).toISOString())} và trước hạn trở về.`
-  if (Date.parse(end) >= window.returnDeadline) errors.plannedReturnTime = `Phải trở về trước ${displayTime(new Date(window.returnDeadline).toISOString())}.`
+  if (Date.parse(start) < window.earliestStart || Date.parse(start) >= window.returnDeadline) errors.startTime = `Bắt đầu từ ${journeyTime(new Date(window.earliestStart).toISOString(), zone)} và trước hạn trở về.`
+  if (Date.parse(end) >= window.returnDeadline) errors.plannedReturnTime = `Phải trở về trước ${journeyTime(new Date(window.returnDeadline).toISOString(), zone)}.`
   return errors
 }
 
@@ -54,11 +62,12 @@ export function scheduledExcursions(items: ShoreExcursion[], excludeId?: string)
 
 export function suggestExcursionTimes(stop: StopOption | undefined, occupied: ShoreExcursion[]) {
   const window = excursionWindow(stop)
-  if (!window) return null
+  const zone = stop?.timeZoneId
+  if (!window || !validTimeZone(zone)) return null
   const minute = 60000
   let begin = Math.ceil(window.earliestStart / minute) * minute
   const latest = (Math.ceil(window.returnDeadline / minute) - 1) * minute
-  const times = (end: number) => ({ startTime: toLocalTime(new Date(begin).toISOString()).slice(0, 16), plannedReturnTime: toLocalTime(new Date(end).toISOString()).slice(0, 16) })
+  const times = (end: number) => ({ startTime: zonedInput(begin, zone).slice(0, 16), plannedReturnTime: zonedInput(end, zone).slice(0, 16) })
   for (const item of occupied) {
     const start = Date.parse(item.startTime), end = Date.parse(item.plannedReturnTime)
     if (end <= begin) continue

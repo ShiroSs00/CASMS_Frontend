@@ -4,7 +4,7 @@ import './register-typescript.mjs';
 const { createScopedPosApi, openPosWithClient } = await import('../src/features/pos/pos-transport.ts');
 const { matchesPosSession } = await import('../src/features/pos/pos-contracts.ts');
 const { eligibleEmployee, passengersFromRequests } = await import('../src/features/pos/pos-access.ts');
-const { activityActions } = await import('../src/features/pos/pos-lifecycle.ts');
+const { activityActions, fulfillmentInput } = await import('../src/features/pos/pos-lifecycle.ts');
 const { createApiClient, ApiError } = await import('../src/lib/api/api-client.ts');
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const terminal = { terminalId: id(1), shipId: id(2), areaId: id(3), code: 'BAR', name: 'OceVie', enabled: true, permissions: ['SERVICE_READ', 'SERVICE_SALE'] };
@@ -172,4 +172,20 @@ test('activity lifecycle respects backend states and uses POS-scoped action tran
     return { ...activity, status: 'IN_PROGRESS' };
   } }, session.sessionToken);
   assert.equal((await pos.activityAction(id(13), 'start')).status, 'IN_PROGRESS');
+});
+
+test('fare-benefit completion requires explicit full quantity and sends the unit through POS scope', async () => {
+  const row = { id: id(11), serviceId: id(5), fareBenefitSnapshotId: id(14), fulfillmentUnitCode: 'VISIT',
+    quantity: 2, status: 'IN_PROGRESS', requestTime: sale.createdAt };
+  for (const value of ['', '1', '3', '2.5', '2e0']) assert.throws(() => fulfillmentInput(row, value), error => error.code === 'POS_FULFILLMENT_REQUIRED');
+  assert.throws(() => fulfillmentInput({ ...row, fulfillmentUnitCode: null }, '2'));
+  assert.equal(fulfillmentInput({ ...row, fareBenefitSnapshotId: null }, ''), undefined);
+  const body = fulfillmentInput(row, '2');
+  const pos = createScopedPosApi({ request: async (path, options) => {
+    assert.equal(path, `/pos/requests/${row.id}/actions/complete`);
+    assert.equal(options.posSession, session.sessionToken);
+    assert.deepEqual(options.body, { fulfilledQuantity: 2, unitCode: 'VISIT' });
+    return { ...row, status: 'COMPLETED', fulfilledQuantity: 2 };
+  } }, session.sessionToken);
+  assert.equal((await pos.requestAction(row.id, 'complete', body)).fulfilledQuantity, 2);
 });

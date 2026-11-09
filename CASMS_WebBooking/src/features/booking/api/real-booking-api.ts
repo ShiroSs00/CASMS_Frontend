@@ -260,10 +260,11 @@ export const realBookingApi = {
             const state = await apiRequest<{
                 cruiseId: string;
                 sellable: boolean;
+                transactionReady?: boolean;
             }>(`/cruise/${encodeURIComponent(item.cruiseId)}/sellability`, { signal });
             if (state.cruiseId !== item.cruiseId || typeof state.sellable !== 'boolean')
                 throw new ApiError('', 502);
-            return { ...item, sellable: state.sellable };
+            return { ...item, sellable: state.sellable && state.transactionReady !== false };
         }));
         return available.filter(item => item.sellable === true);
     },

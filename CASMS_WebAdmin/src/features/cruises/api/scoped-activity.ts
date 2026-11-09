@@ -1,6 +1,6 @@
 import {ApiError,apiRequest} from '@/shared/api'
 
-export type ScopedActivity={id:string;cruiseId:string;name:string;description:string|null;startTime:string;endTime:string;location:string;deckId:string|null;cabinId:string|null;capacity:number|null;price:number|null;currencyCode:string|null}
+export type ScopedActivity={sourceActivityId?:string|null;responsibleUserId?:string|null;id:string;cruiseId:string;name:string;description:string|null;startTime:string;endTime:string;location:string;deckId:string|null;cabinId:string|null;capacity:number|null;price:number|null;currencyCode:string|null}
 export type ActivityInput=Omit<ScopedActivity,'id'|'name'|'capacity'|'price'|'currencyCode'>&{activityName:string;capacity:number;price:number;currencyCode:string}
 const root=(id:string)=>`/cruise-plans/${encodeURIComponent(id)}/activities`
 export function activityCapacityConflict(reason:unknown):number|null{

@@ -6,9 +6,13 @@ export type Cabin = { cabinId: string; cabinNumber: string; deckId: string; deck
 export type Cruise = { cruiseId: string; cruiseName: string; shipName: string | null; departureDatetime: string; returnDatetime: string; status: string };
 export type PassengerDraft = { key: string; fullName: string; email: string; phoneNumber: string; cabinId: string };
 export type BookingCreate = { cruiseId: string; paymentPlan: 'FULL' | 'DEPOSIT' | 'STAGES'; notes?: string; quoteGuestToken?: string; passengers: { fullName: string; email?: string; phoneNumber?: string; cabinId: string }[] };
-export type Service = { id: string; code: string; name: string; description: string | null; type: string | null; price: number | null; currency: string | null; capacity: number | null; status: string; requiresSchedule?: boolean };
-export type ServiceSchedule = { id: string; serviceId: string; cruiseId?: string; startsAt: string; endsAt: string; location?: string; remainingCapacity: number; status: string };
-export type ServiceRequest = { id: string; serviceId: string; passengerId: string; bookingId: string | null; bookingPassengerId: string | null; quantity: number; note: string | null; status: string; requestTime: string; completedAt: string | null; usageMode?: string };
+export type Service = { requiresSchedule?: boolean; canBuyPreCruise?: boolean; unitCode?: string | null; preCruiseUsagePolicy?: string | null; id: string; code: string; name: string; description: string | null; type: string | null; price: number | null; currency: string | null; capacity: number | null; status: string };
+export type ServiceSchedule = { id: string; serviceId: string; cruiseId: string | null; startsAt: string; endsAt: string; location: string; remainingCapacity: number; capacity: number; status: string; timeZoneId?: string | null };
+export type ServiceRequest = {
+  scheduleId?: string | null; unitPriceSnapshot?: number | null; currencySnapshot?: string | null;
+  fareBenefitSnapshotId?: string | null; usageMode?: string | null; usagePolicySnapshot?: string | null;
+  usageLimitSnapshot?: number | null; usageTimeZoneSnapshot?: string | null;
+  fulfilledQuantity?: number | null; fulfillmentUnitCode?: string | null; id: string; serviceId: string; passengerId: string; bookingId: string | null; bookingPassengerId: string | null; quantity: number; note: string | null; status: string; requestTime: string; completedAt: string | null };
 export type Activity = { id: string; code: string; name: string; description: string | null; startTime: string; endTime: string; location: string | null; capacity: number; price: number | null; currencyCode: string | null; status: string; cruiseId: string };
 export type Excursion = { shoreExcursionId: string; excursionName: string; cruiseStopId: string; startTime: string; plannedReturnTime: string; meetingPoint: string | null; status: string; price: number | null; currencyCode: string | null; availableCapacity: number | null };
 export type Registration = { id: string; passengerId: string; bookingPassengerId: string; activityId: string | null; excursionId: string | null; quantity: number; status: string; registeredAt: string };

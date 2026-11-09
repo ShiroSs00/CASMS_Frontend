@@ -1,246 +1,175 @@
-import { mutationOutcomeUnknown } from '@/shared/lib/mutation-outcome';
-import { CruisePackageCabinSelection } from '../components/CruisePackageCabinSelection';
-import { cruisePackageApi } from '@/domain/cruise-package';
-import { bookingCruisePackageSelectionErrors } from '../api/real-booking-api';
-import { businessCopy } from '@/shared/i18n/business-copy';
-import { BookingJourneyBanner, BookingPhotoNote } from '../components/BookingExperience';
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router';
-import { PermissionLink as Link } from '@/shared/ui';
-import { useSessionAccess } from '@/shared/auth';
-import { useReadQuery } from '@/shared/api';
-import { Button, ButtonLink, Empty, Field, Loading, Modal, Notice, PageHeader, Panel } from '@/shared/ui';
-import { bookingFieldErrors, bookingPackageErrors, realBookingApi } from '../api/real-booking-api';
-import { createQuotedBooking, requestBookingQuote, type BookingQuoteIntent } from '../api/booking-quote-api';
-import { CabinPassengerFields, PassengerDetailsFields } from '../components/LiveBookingFields';
-import { BookingReadState, RealBookingFrame } from '../components/RealBookingUI';
-import { bookingMutationFailure, bookingTransactionFailure } from '../model/booking-mutation';
-import { initialLiveBooking, useLiveBooking } from '../model/live-booking-context';
-import { availableBookingStep } from '../model/booking-progress';
-import { bookingStepPaths, catalogReturn } from '../model/live-booking-navigation';
-import { bookingWhen } from '../model/real-booking-view';
-import { bookingReadFailure } from '../model/booking-feedback';
-import { ApiError } from '@/shared/api';
-import { BookingRecord } from './RealBookingPages';
-import styles from '../components/LiveBooking.module.css';
-import { BookingShipModel, type BookingModelRenderer } from '../components/BookingShipModel';
-const labels = ['Chọn phòng', 'Thông tin & thanh toán', 'Kiểm tra và gửi'];
-const descriptions = ['Chọn chuyến, phòng cho từng hành khách và gói dịch vụ nếu cần.', 'Điền thông tin hành khách và chọn kế hoạch thanh toán. Bước này chưa thu tiền.', 'Kiểm tra lựa chọn và thông tin liên hệ. Bạn có thể quay lại sửa trước khi gửi.'];
-const plans: Record<string, string> = { STAGES: 'Thanh toán theo đợt', DEPOSIT: 'Đặt cọc & thanh toán phần còn lại', FULL: 'Thanh toán toàn bộ' };
-export function RealBookingCreatePage({ step: routeStep, renderShipModel }: {
-    step?: 1 | 2 | 3;
-    renderShipModel?: BookingModelRenderer;
-}) {
-    return <ExistingBookingFlow step={routeStep} renderShipModel={renderShipModel}/>;
-}
-function ExistingBookingFlow({ step: routeStep, renderShipModel }: {
-    step?: 1 | 2 | 3;
-    renderShipModel?: BookingModelRenderer;
-}) {
-    const [params] = useSearchParams(), navigate = useNavigate();
-    const step = routeStep ?? (params.get('step') === '2' ? 2 : params.get('step') === '3' ? 3 : 1);
-    const { draft, setDraft, saved, setSaved, uncertain, setUncertain, busy, setBusy, submitError: error, setSubmitError: setError, errors, setErrors, submissionLockRef } = useLiveBooking();
-    const access = useSessionAccess(), heading = useRef<HTMLHeadingElement>(null);
-    const recovery = useRef<HTMLDivElement>(null);
-    const [review, setReview] = useState(false), [copied, setCopied] = useState('');
-    const [quoteIntent, setQuoteIntent] = useState<BookingQuoteIntent | null>(null), [quoteExpired, setQuoteExpired] = useState(false), [quoteUnknown, setQuoteUnknown] = useState(false);
-    useEffect(() => {
-        if (!busy && !uncertain && !saved && draft.currency !== 'USD')
-            setDraft(current => ({ ...current, currency: 'USD' }));
-    }, [busy, uncertain, saved, draft.currency, setDraft]);
-    useEffect(() => {
-        if (!quoteIntent?.quote.expiresAt)
-            return;
-        const remaining = Date.parse(quoteIntent.quote.expiresAt) - Date.now();
-        const timer = setTimeout(() => setQuoteExpired(true), Math.max(0, remaining));
-        return () => clearTimeout(timer);
-    }, [quoteIntent]);
-    const [validationAttempt, setValidationAttempt] = useState(0);
-    const publicRecovery = uncertain;
-    useEffect(() => {
-        if (uncertain && !review)
-            recovery.current?.focus();
-    }, [uncertain, review]);
-    const back = catalogReturn(params.get('from')), requestedCruise = params.get('cruiseId');
-    useEffect(() => {
-        if (requestedCruise && requestedCruise !== draft.cruiseId && !busy && !uncertain) {
-            setDraft(current => ({ ...current, currency: 'USD', cruiseId: requestedCruise, passengers: current.passengers.map(person => ({ ...person, cabinId: '', tourPackageId: '', cabinSelectionMode: undefined, cabinGroupKey: undefined, farePackageOfferId: undefined, farePackagePriceRevisionId: undefined })) }));
-            setSaved(null);
-            setErrors({});
-        }
-    }, [requestedCruise, draft.cruiseId, busy, uncertain, setDraft, setSaved, setErrors]);
-    useEffect(() => {
-        if (publicRecovery)
-            return;
-        const first = document.querySelector<HTMLElement>('[aria-invalid="true"]');
-        if (first)
-            first.focus();
-        else
-            heading.current?.focus();
-    }, [step, validationAttempt, saved, publicRecovery]);
-    const dirty = !saved && draft.passengers.some(person => person.fullName || person.email || person.documentNumber || person.phoneNumber);
-    useEffect(() => {
-        if (!dirty)
-            return;
-        const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
-        window.addEventListener('beforeunload', warn);
-        return () => window.removeEventListener('beforeunload', warn);
-    }, [dirty]);
-    const cruises = useReadQuery('booking-published-cruises', realBookingApi.cruises);
-    const cabins = useReadQuery('booking-available-cabins:' + draft.cruiseId, useCallback(signal => draft.cruiseId ? realBookingApi.cabins(draft.cruiseId, signal) : Promise.resolve(null), [draft.cruiseId]));
-    const packages = useReadQuery('booking-cruise-packages:' + draft.cruiseId, useCallback(signal => realBookingApi.packagesForCruise(draft.cruiseId, signal), [draft.cruiseId]));
-    const fares = useReadQuery('booking-fares:' + draft.cruiseId, useCallback(signal => draft.cruiseId ? cruisePackageApi.available(draft.cruiseId, signal) : Promise.resolve(null), [draft.cruiseId]));
-    const selected = cruises.data?.find(item => item.cruiseId === draft.cruiseId);
-    const lastAvailableStep = Object.keys(bookingCruisePackageSelectionErrors(draft, fares.data)).length ? 1 : availableBookingStep(draft, selected, cabins.data ?? null, packages.data);
-    const choicesLoading = cruises.loading || cabins.loading || packages.loading || fares.loading;
-    function stepPath(next: number, cruiseId = draft.cruiseId) {
-        const query = new URLSearchParams({ from: back });
-        if (cruiseId)
-            query.set('cruiseId', cruiseId);
-        return (bookingStepPaths[next - 1]) + '?' + query;
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { Navigate, useNavigate, useSearchParams } from 'react-router'
+import { useSessionAccess } from '@/shared/auth'
+import { useReadQuery } from '@/shared/api'
+import { Button, ButtonLink, Field, Notice, Panel } from '@/shared/ui'
+import { cruisePackageApi } from '@/domain/cruise-package'
+import { mutationOutcomeUnknown } from '@/shared/lib/mutation-outcome'
+import { bookingCruisePackageSelectionErrors, bookingFieldErrors, bookingPackageErrors, realBookingApi } from '../api/real-booking-api'
+import { createQuotedBooking, requestBookingQuote } from '../api/booking-quote-api'
+import { PassengerDetailsFields } from '../components/LiveBookingFields'
+import { BookingReadState, RealBookingFrame } from '../components/RealBookingUI'
+import { CruisePackageCabinSelection } from '../components/CruisePackageCabinSelection'
+import { BookingPartyStep } from '../components/BookingPartyStep'
+import { BookingFlowLayout } from '../components/BookingFlowLayout'
+import { BookingReviewStep } from '../components/BookingReviewStep'
+import { BookingReceipt } from '../components/BookingReceipt'
+import { bookingMutationFailure, bookingTransactionFailure } from '../model/booking-mutation'
+import { initialLiveBooking, useLiveBooking } from '../model/live-booking-context'
+import { availableBookingStage } from '../model/booking-progress'
+import { bookingStagePaths, bookingPlanLabels, catalogReturn, type BookingStage } from '../model/live-booking-navigation'
+import { groupPassengers } from '../model/booking-party'
+import { eligibleCabins } from '../model/booking-cabin-selection'
+import { bookingNow, quoteUsable, transactionState } from '../model/booking-transaction'
+import { bookingWhen } from '../model/real-booking-view'
+import styles from '../components/LiveBooking.module.css'
+import flow from '../components/BookingParty.module.css'
+import type { BookingModelRenderer } from '../components/BookingShipModel'
+
+export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: BookingStage; renderShipModel?: BookingModelRenderer }) {
+  const [params] = useSearchParams(), navigate = useNavigate(), access = useSessionAccess()
+  const { draft, setDraft, saved, setSaved, uncertain, setUncertain, busy, setBusy, submitError: error,
+    setSubmitError: setError, errors, setErrors, submissionLockRef, quoteIntent, setQuoteIntent,
+    quoteUnknown, setQuoteUnknown, partyConfirmed, setPartyConfirmed, setPersonIds } = useLiveBooking()
+  const heading = useRef<HTMLHeadingElement>(null), recovery = useRef<HTMLDivElement>(null)
+  const [validationAttempt, setValidationAttempt] = useState(0), [clock, setClock] = useState(Date.now)
+  const state = transactionState({ busy, quoteUnknown, uncertain, saved })
+  const locked = state !== 'editable'
+  const back = catalogReturn(params.get('from')), requestedCruise = params.get('cruiseId')
+  const usable = quoteUsable(draft, quoteIntent, clock)
+  useEffect(() => {
+    if (!quoteIntent?.quote.expiresAt) return
+    const remaining = Date.parse(quoteIntent.quote.expiresAt) - Date.now()
+    const timer = setTimeout(() => setClock(Date.now()), Math.max(0, remaining + 1))
+    return () => clearTimeout(timer)
+  }, [quoteIntent])
+  useEffect(() => {
+    if (requestedCruise && requestedCruise !== draft.cruiseId && !locked) {
+      setDraft(d => ({ ...d, cruiseId: requestedCruise, currency: 'USD', passengers: d.passengers.map(p => ({ ...p, cabinId: '', tourPackageId: '', cabinSelectionMode: undefined, farePackageOfferId: undefined, farePackagePriceRevisionId: undefined })) }))
+      setPartyConfirmed(false); setErrors({})
     }
-    function validate(nextStep: number) {
-        const invalid = bookingFieldErrors(draft, selected, cabins.data, undefined, nextStep);
-        if (nextStep !== 1 && !access.userId && !draft.passengers[0]?.email.trim())
-            invalid['person-0-email'] = 'Khách chưa đăng nhập cần email người đại diện để nhận hướng dẫn hợp đồng.';
-        if (nextStep !== 2)
-            Object.assign(invalid, bookingPackageErrors(draft, packages.data));
-        if (nextStep !== 2)
-            Object.assign(invalid, bookingCruisePackageSelectionErrors(draft, fares.data));
-        setErrors(invalid);
-        if (Object.keys(invalid).length)
-            setValidationAttempt(value => value + 1);
-        return invalid;
+  }, [requestedCruise, draft.cruiseId, locked, setDraft, setErrors, setPartyConfirmed])
+  useEffect(() => {
+    if (uncertain || quoteUnknown) recovery.current?.focus()
+    else {
+      const first = document.querySelector<HTMLElement>('[aria-invalid="true"]')
+      if (first) first.focus()
+      else heading.current?.focus()
     }
-    function showInvalid(invalid: Record<string, string>) {
-        const first = Object.keys(invalid)[0];
-        const target = first === 'real-booking-cruise' || first.endsWith('-cabinId') || first.endsWith('-tourPackageId') || first.endsWith('-farePackageOfferId') || first.endsWith('-cabinSelectionMode') || first.endsWith('-cabinGroupKey') ? 1 : 2;
-        navigate(stepPath(target));
+  }, [step, validationAttempt, saved, uncertain, quoteUnknown])
+  const dirty = !saved && (Boolean(draft.cruiseId) || draft.passengers.some(p => p.fullName || p.email || p.documentNumber))
+  useEffect(() => {
+    if (!dirty) return
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [dirty])
+  const cruises = useReadQuery('booking-published-cruises', realBookingApi.cruises)
+  const cabins = useReadQuery('booking-available-cabins:' + draft.cruiseId, useCallback(signal => draft.cruiseId ? realBookingApi.cabins(draft.cruiseId, signal) : Promise.resolve(null), [draft.cruiseId]))
+  const packages = useReadQuery('booking-cruise-packages:' + draft.cruiseId, useCallback(signal => realBookingApi.packagesForCruise(draft.cruiseId, signal), [draft.cruiseId]))
+  const fares = useReadQuery('booking-fares:' + draft.cruiseId, useCallback(signal => draft.cruiseId ? cruisePackageApi.available(draft.cruiseId, signal) : Promise.resolve(null), [draft.cruiseId]))
+  const selected = cruises.data?.find(c => c.cruiseId === draft.cruiseId)
+  const choicesLoading = cruises.loading || cabins.loading || packages.loading || fares.loading
+  const readError = cruises.error || cabins.error || fares.error
+  const available = availableBookingStage(draft, partyConfirmed, selected, cabins.data, packages.data, fares.data, !access.userId, clock)
+  function path(next: number, cruiseId = draft.cruiseId) {
+    const query = new URLSearchParams({ from: back })
+    if (cruiseId) query.set('cruiseId', cruiseId)
+    return bookingStagePaths[next - 1] + '?' + query
+  }
+  function validate(stage: BookingStage) {
+    let invalid: Record<string, string> = {}
+    if (stage === 1) {
+      if (!selected?.sellable || Date.parse(selected.departureDatetime) <= bookingNow() || !draft.passengers.length) invalid['real-booking-cruise'] = 'Chọn chuyến đang mở bán và ít nhất một hành khách.'
+    } else {
+      const mode = stage === 2 ? 1 : stage === 3 ? 2 : 3
+      invalid = bookingFieldErrors(draft, selected, cabins.data, undefined, mode)
+      if (mode !== 1 && !access.userId && !draft.passengers[0]?.email.trim()) invalid['person-0-email'] = 'Nhập email người đại diện để nhận hướng dẫn hợp đồng.'
+      if (mode !== 2) {
+        Object.assign(invalid, bookingPackageErrors(draft, packages.data), bookingCruisePackageSelectionErrors(draft, fares.data))
+        draft.passengers.forEach((p, i) => {
+          if (p.cabinSelectionMode !== 'CATEGORY_HOLD' && !eligibleCabins(cabins.data ?? [], draft.passengers, i, fares.data).some(c => c.cabinId === p.cabinId)) invalid[`person-${i}-cabinId`] = 'Cabin không còn phù hợp với lựa chọn của cả nhóm. Vui lòng chọn lại.'
+        })
+      }
     }
-    function focusError(id: string) {
-        const field = document.getElementById(id);
-        if (field)
-            field.focus();
-        else
-            showInvalid({ [id]: errors[id] });
+    setErrors(invalid)
+    if (Object.keys(invalid).length) setValidationAttempt(n => n + 1)
+    return invalid
+  }
+  function showInvalid(invalid: Record<string, string>) {
+    const id = Object.keys(invalid)[0]
+    const target = id === 'real-booking-cruise' ? 1 : /-(cabinId|tourPackageId|farePackageOfferId|cabinSelectionMode|cabinGroupKey)$/.test(id) ? 2 : 3
+    if (target !== step) navigate(path(target))
+  }
+  async function submit() {
+    if (submissionLockRef.current || locked || !quoteIntent || !quoteUsable(draft, quoteIntent)) return
+    const invalid = validate(4)
+    if (Object.keys(invalid).length) { showInvalid(invalid); return }
+    submissionLockRef.current = true; setBusy(true); setError('')
+    let unknown = false
+    try { setSaved(await createQuotedBooking(draft, quoteIntent)) }
+    catch (value) {
+      const failure = bookingMutationFailure(value)
+      unknown = failure.uncertain; setUncertain(unknown); setError(failure.message)
+      if (!unknown) { setQuoteIntent(null); cabins.retry(); packages.retry(); cruises.retry(); fares.retry() }
+    } finally { submissionLockRef.current = unknown; setBusy(false) }
+  }
+  async function next(event: FormEvent) {
+    event.preventDefault()
+    if (locked || submissionLockRef.current) return
+    const invalid = validate(step)
+    if (Object.keys(invalid).length) { showInvalid(invalid); return }
+    setError('')
+    if (step < 4) {
+      if (step === 1) setPartyConfirmed(true)
+      navigate(path(step + 1)); return
     }
-    async function next(event: FormEvent) {
-        event.preventDefault();
-        if (busy || uncertain || quoteUnknown)
-            return;
-        const invalid = validate(step);
-        if (Object.keys(invalid).length) {
-            showInvalid(invalid);
-            return;
-        }
-        setError('');
-        if (step < 3)
-            navigate(stepPath(step + 1));
-        else {
-            if (submissionLockRef.current)
-                return;
-            submissionLockRef.current = true;
-            setBusy(true);
-            setQuoteIntent(null);
-            try {
-                const intent = await requestBookingQuote(draft);
-                setQuoteIntent(intent);
-                setQuoteExpired(false);
-                setReview(true);
-            }
-            catch (value) {
-                setError(bookingTransactionFailure(value));
-                if (mutationOutcomeUnknown(value))
-                    setQuoteUnknown(true);
-            }
-            finally {
-                submissionLockRef.current = false;
-                setBusy(false);
-            }
-        }
-    }
-    async function submit() {
-        if (submissionLockRef.current || uncertain || !quoteIntent || quoteExpired)
-            return;
-        const invalid = validate(3);
-        if (Object.keys(invalid).length) {
-            setReview(false);
-            showInvalid(invalid);
-            return;
-        }
-        submissionLockRef.current = true;
-        setBusy(true);
-        setError('');
-        try {
-            const result = await createQuotedBooking(draft, quoteIntent);
-            setSaved(result);
-            setReview(false);
-        }
-        catch (value) {
-            const failure = bookingMutationFailure(value);
-            setError(failure.message);
-            setUncertain(failure.uncertain);
-            if (!failure.uncertain) {
-                setReview(false);
-                cabins.retry();
-                packages.retry();
-                cruises.retry();
-                fares.retry();
-                if (failure.conflict || value instanceof ApiError && ['SALE_SUSPENDED', 'PACKAGE_NOT_AVAILABLE_FOR_CRUISE', 'PACKAGE_NOT_ACTIVE', 'INVALID_CRUISE_STATUS'].includes(value.code ?? ''))
-                    navigate(stepPath(1));
-            }
-        }
-        finally {
-            submissionLockRef.current = false;
-            setBusy(false);
-        }
-    }
-    async function copyReference() {
-        if (!saved)
-            return;
-        try {
-            await navigator.clipboard.writeText(saved.bookingReference);
-            setCopied('Đã sao chép mã đặt chỗ.');
-        }
-        catch {
-            setCopied('Chưa sao chép được. Bạn có thể chọn và sao chép mã hiển thị bên trên.');
-        }
-    }
-    if (saved)
-        return <RealBookingFrame><div className={styles.stack}>
-    <header className={styles.heading}><p>ĐẶT CHỖ / KẾT QUẢ</p><h1 ref={heading} tabIndex={-1}>Đã tiếp nhận đặt chỗ</h1><p>Lưu mã đặt chỗ để tra cứu. Trạng thái xác nhận, hợp đồng và lịch thanh toán được hiển thị riêng bên dưới.</p></header>
-    <section className={styles.resultReference} aria-label="Mã đặt chỗ và bước tiếp theo"><p className={styles.helper}>MÃ ĐẶT CHỖ CỦA BẠN</p><p className={styles.reference}>{saved.bookingReference}</p><div className={styles.actions}><Button onClick={() => void copyReference()}>Sao chép mã đặt chỗ</Button><ButtonLink tone="secondary" to={'/booking/lookup?reference=' + encodeURIComponent(saved.bookingReference)}>Tra cứu đặt chỗ</ButtonLink></div>{copied && <p role="status">{copied}</p>}<ol className={styles.nextSteps}><li>Lưu mã cùng email hoặc số điện thoại đại diện.</li><li>Đọc hướng dẫn hợp đồng và các hạn thanh toán.</li><li>Tra cứu để xem trạng thái mới nhất trước chuyến khởi hành.</li></ol><p className={styles.helper}>Hoàn tất hợp đồng và thanh toán theo hướng dẫn để xác nhận đặt chỗ.</p></section>
-    <BookingRecord booking={saved}/><div><Button tone="secondary" onClick={() => { setDraft(initialLiveBooking()); setSaved(null); setErrors({}); navigate('/cruises'); }}>Bắt đầu đặt chỗ khác</Button></div>
-  </div></RealBookingFrame>;
-    if (step > 1 && choicesLoading)
-        return <RealBookingFrame><Loading label="Đang kiểm tra thông tin đặt chỗ…"/></RealBookingFrame>;
-    if (step > 1 && (cruises.error || cabins.error || fares.error))
-        return <RealBookingFrame>
-    <PageHeader breadcrumb="ĐẶT CHỖ" title={labels[step - 1]}/>
-    <BookingReadState {...cruises} publicResource={'danh sách hành trình'}/>
-    <BookingReadState {...cabins} publicResource={'phòng trống'}/>
-    <BookingReadState {...fares} publicResource={'gói vé'}/>
-    <ButtonLink tone="secondary" to={stepPath(1)}>Về bước chọn phòng</ButtonLink>
-  </RealBookingFrame>;
-    if (!busy && !uncertain && !choicesLoading && !cruises.error && !cabins.error && !fares.error
-        && (!requestedCruise || requestedCruise === draft.cruiseId) && step > lastAvailableStep) {
-        return <Navigate to={stepPath(lastAvailableStep)} replace/>;
-    }
-    return <RealBookingFrame><div className={styles.stack}>
-    {<div className={styles.journeyTopline}><Link to={back}>← Về danh mục hành trình</Link></div>}
-    {<BookingJourneyBanner title={labels[step - 1]} description={descriptions[step - 1]} step={step} headingRef={heading}/>}
-    <nav aria-label="Các bước đặt chỗ"><ol className={styles.steps}>{labels.map((label, index) => <li key={label}><Link to={stepPath(index + 1)} aria-label={`${index + 1}. ${label}`} aria-current={step === index + 1 ? 'step' : undefined} aria-disabled={busy || uncertain || index + 1 > lastAvailableStep || undefined} tabIndex={busy || uncertain || index + 1 > lastAvailableStep ? -1 : undefined} data-complete={index + 1 < step || undefined} onClick={event => { if (busy || uncertain || index + 1 > lastAvailableStep)
-        event.preventDefault(); }}>{<><span className={styles.stepNumber} aria-hidden="true">{index + 1}</span><span>{label}</span></>}</Link></li>)}</ol></nav>
-    {uncertain && (<div ref={recovery} tabIndex={-1} role="region" aria-label="Cần kiểm tra kết quả gửi"><Notice title="Cần kiểm tra kết quả trước khi gửi lại" tone="warning"><div className={styles.recoveryBody}><p>Hệ thống có thể đã tiếp nhận yêu cầu. Thông tin được giữ nguyên; gửi lại đã khóa để tránh tạo trùng.</p><p>Nếu đã nhận mã, hãy tra cứu bằng mã đó. Nếu chưa có mã, liên hệ bộ phận hỗ trợ để kiểm tra bằng thông tin người đại diện trước khi đặt lại.</p><ButtonLink tone="secondary" to="/booking/lookup">Tra cứu khi đã có mã</ButtonLink></div></Notice></div>)}
-    {error && !review && (!uncertain) && <Notice title="Chưa gửi được đặt chỗ" tone="error">{error}</Notice>}
-    {quoteUnknown && <Notice title="Chưa nhận được kết quả báo giá">Chưa có mã báo giá để đối chiếu nên chưa thể gửi yêu cầu tiếp. Thông tin đã nhập vẫn được giữ. Vui lòng liên hệ bộ phận hỗ trợ; chưa có đặt chỗ được xác nhận từ bước báo giá này.</Notice>}<form noValidate onSubmit={next}><div className={styles.layout}><div className={styles.main}>
-      {Object.keys(errors).length > 0 && <Notice title="Vui lòng kiểm tra thông tin" tone="error"><ul>{Object.entries(errors).map(([id, message]) => <li key={id}>{<button type="button" className={styles.errorLink} onClick={() => focusError(id)}>{message}</button>}</li>)}</ul></Notice>}
-      <fieldset disabled={busy || uncertain} className={styles.draftFields}><div className={styles.stack}>
-        {step === 1 && <><Panel title="Chọn chuyến đã công bố"><BookingReadState {...cruises} publicResource={'danh sách hành trình'}/>{cruises.data?.length === 0 && <Empty title="Chưa có chuyến đã công bố để đặt">{<div className={styles.recoveryBody}><p>Hiện chưa có hành trình để chọn. Bạn có thể tải lại danh sách hoặc quay về danh mục.</p><Button tone="secondary" onClick={cruises.retry}>Tải lại danh sách hành trình</Button><ButtonLink tone="secondary" to={back}>Về danh mục hành trình</ButtonLink></div>}</Empty>}<Field htmlFor="real-booking-cruise" label="Chuyến khởi hành *" error={errors['real-booking-cruise']}><select id="real-booking-cruise" value={draft.cruiseId} aria-invalid={Boolean(errors['real-booking-cruise'])} aria-describedby={errors['real-booking-cruise'] ? 'real-booking-cruise-hint' : undefined} onChange={event => { const id = event.target.value; setDraft(current => ({ ...current, currency: 'USD', cruiseId: id, passengers: current.passengers.map(person => ({ ...person, cabinId: '', tourPackageId: '', cabinSelectionMode: undefined, cabinGroupKey: undefined, farePackageOfferId: undefined, farePackagePriceRevisionId: undefined })) })); setErrors({}); navigate(stepPath(1, id), { replace: true }); }}><option value="">Chọn chuyến đã công bố</option>{cruises.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}</select></Field></Panel>{draft.cruiseId && <BookingReadState {...cabins} publicResource={'phòng trống'}/>}{cabins.data?.length === 0 && <Empty title="Chưa có phòng trống cho chuyến này">{<div className={styles.recoveryBody}><p>Chưa có phòng để tiếp tục với chuyến này. Tải lại để kiểm tra tình trạng mới nhất hoặc chọn hành trình khác.</p><Button tone="secondary" onClick={cabins.retry}>Tải lại phòng trống</Button><ButtonLink tone="secondary" to={back}>Chọn hành trình khác</ButtonLink></div>}</Empty>}{packages.loading && <p role="status">Đang tải gói dịch vụ tùy chọn…</p>}{packages.error && <Notice title="Chưa tải được gói dịch vụ" tone="warning">{<div className={styles.recoveryBody}><p>{bookingReadFailure(packages.error instanceof ApiError ? packages.error.status : undefined)}</p><p>Bạn có thể tiếp tục mà không chọn gói.</p><Button tone="secondary" onClick={packages.retry}>Tải lại gói</Button></div>}</Notice>}{packages.data?.length === 0 && <p className={styles.helper}>Chưa có gói dịch vụ đang hoạt động. Bạn có thể tiếp tục mà không chọn gói.</p>}{!fares.data?.fareManaged && renderShipModel && selected?.shipId && cabins.data && <BookingShipModel key={draft.cruiseId} shipId={selected.shipId} cabins={cabins.data} render={renderShipModel}/>}<BookingReadState {...fares}/>{fares.data?.fareManaged && selected?.shipId && cabins.data ? <CruisePackageCabinSelection key={draft.cruiseId} catalog={fares.data} shipId={selected.shipId} cabins={cabins.data}/> : fares.data && !fares.loading && !fares.error ? <CabinPassengerFields cabins={cabins.data} packages={packages.data} publicJourney={true}/> : null}</>}
-        {step === 2 && <><PassengerDetailsFields publicJourney={true} representativeEmailRequired={!access.userId}/><Panel title="Hình thức thanh toán"><p>Chọn kế hoạch thanh toán. Số tiền và ngày đến hạn từng đợt sẽ có trong thông tin đặt chỗ.</p><div className={styles.fields}><p>{businessCopy('pricing.review.usd')}</p><Field htmlFor="real-booking-plan" label="Hình thức thanh toán" error={errors['real-booking-plan']}><select id="real-booking-plan" aria-invalid={Boolean(errors['real-booking-plan'])} aria-describedby={errors['real-booking-plan'] ? 'real-booking-plan-hint' : undefined} value={draft.paymentPlan} onChange={event => setDraft(current => ({ ...current, paymentPlan: event.target.value as typeof draft.paymentPlan }))}>{Object.entries(plans).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field></div>{draft.paymentPlan === 'STAGES' && <p className={styles.helper}>Ba đợt thanh toán: đặt cọc, thanh toán giữa kỳ và thanh toán phần còn lại theo hợp đồng.</p>}<Field htmlFor="real-booking-notes" label="Ghi chú (tối đa 500 ký tự)" error={errors['real-booking-notes']}><textarea aria-invalid={Boolean(errors['real-booking-notes'])} aria-describedby={errors['real-booking-notes'] ? 'real-booking-notes-hint' : undefined} id="real-booking-notes" maxLength={500} value={draft.notes} onChange={event => setDraft(current => ({ ...current, notes: event.target.value }))}/></Field></Panel></>}
-        {step === 3 && <><BookingReadState {...cruises} publicResource={'danh sách hành trình'}/><BookingReadState {...cabins} publicResource={'phòng trống'}/><Panel title="Kiểm tra toàn bộ đặt chỗ"><div className={styles.sectionHeading}><h2>{selected?.cruiseName ?? 'Chưa chọn chuyến'}</h2>{<Link to={stepPath(1)}>Sửa phòng & gói</Link>}</div><p>{bookingWhen(selected?.departureDatetime)} → {bookingWhen(selected?.returnDatetime)} · Giờ Việt Nam</p>{<div className={styles.sectionHeading}><h3>Thông tin hành khách</h3><Link to={stepPath(2)}>Sửa thông tin hành khách</Link></div>}<ol className={styles.review}>{draft.passengers.map((person, index) => <li key={index}><strong>{person.fullName || `Hành khách ${index + 1} · Chưa nhập tên`}</strong><p>Phòng: {person.cabinSelectionMode === 'CATEGORY_HOLD' ? 'Giữ nguyên nhóm theo hạng, chọn cabin sau' : cabins.data?.find(cabin => cabin.cabinId === person.cabinId)?.cabinNumber ?? 'Cần kiểm tra lại'}</p>{person.farePackageOfferId && <p>Gói vé: {fares.data?.offers.find(f => f.selection.offerId === person.farePackageOfferId)?.selection.templateName ?? 'Cần đối chiếu'} · Hạng {fares.data?.offers.find(f => f.selection.offerId === person.farePackageOfferId)?.selection.logicalCategory ?? 'Cần đối chiếu'} · Nhóm {person.cabinGroupKey || 'Theo lựa chọn cabin'}</p>}<p>Gói: {person.tourPackageId ? packages.data?.find(pack => pack.id === person.tourPackageId)?.name ?? 'Cần kiểm tra lại' : 'Không chọn'}</p><p>Ngày sinh: {person.dateOfBirth || 'Chưa cung cấp'} · Quốc tịch: {person.nationality || 'Chưa cung cấp'}</p><p>Liên hệ: {person.email || 'Không có email'} · {person.phoneNumber || 'Không có số điện thoại'}</p>{person.documentNumber && <p>Giấy tờ: {person.documentType || 'Chưa chọn loại'} · ••••{person.documentNumber.slice(-4)}</p>}</li>)}</ol><p>Hình thức: {plans[draft.paymentPlan]} · Tiền tệ yêu cầu: {draft.currency}</p>{draft.notes && <p>Ghi chú: {draft.notes}</p>}<p>Sau khi đặt chỗ, bạn sẽ nhận tổng giá vé, lịch thanh toán từng đợt và hướng dẫn hợp đồng.</p></Panel></>}
-        <div className={styles.actions}>{step > 1 && <Button tone="secondary" onClick={() => navigate(stepPath(step - 1))}>Quay lại</Button>}<Button type="submit" disabled={busy || uncertain || quoteUnknown || (step !== 2 && (cruises.loading || cabins.loading || (packages.loading && draft.passengers.some(person => person.tourPackageId))))}>{step === 1 ? 'Tiếp tục nhập hành khách' : step === 2 ? 'Kiểm tra đặt chỗ' : 'Kiểm tra và gửi đặt chỗ'}</Button></div>
+    if (usable) { await submit(); return }
+    submissionLockRef.current = true; setBusy(true); setQuoteIntent(null)
+    let unknown = false
+    try { setQuoteIntent(await requestBookingQuote(draft)); setClock(bookingNow()) }
+    catch (value) { unknown = mutationOutcomeUnknown(value); setQuoteUnknown(unknown); setError(bookingTransactionFailure(value)) }
+    finally { submissionLockRef.current = unknown; setBusy(false) }
+  }
+  if (saved) return <RealBookingFrame><BookingReceipt booking={saved} headingRef={heading} onNew={() => {
+    setDraft(initialLiveBooking()); setPersonIds([crypto.randomUUID()]); setPartyConfirmed(false); setSaved(null); setQuoteIntent(null); setErrors({}); setError(''); setUncertain(false); setQuoteUnknown(false); submissionLockRef.current = false; navigate('/cruises')
+  }} /></RealBookingFrame>
+  if (!locked && !choicesLoading && !readError && (!requestedCruise || requestedCruise === draft.cruiseId) && step > available) return <Navigate to={path(available)} replace />
+  return <RealBookingFrame><BookingFlowLayout stage={step} available={available} locked={locked} path={path} back={back} headingRef={heading} summary={<>
+    <h2>Hành trình của bạn</h2><strong>{selected?.cruiseName ?? 'Chưa chọn chuyến'}</strong><dl>
+      <div><dt>Khởi hành · Giờ Việt Nam</dt><dd>{bookingWhen(selected?.departureDatetime)}</dd></div>
+      <div><dt>Trở về · Giờ Việt Nam</dt><dd>{bookingWhen(selected?.returnDatetime)}</dd></div>
+      <div><dt>Người đi & phòng</dt><dd>{draft.passengers.length} khách · {groupPassengers(draft.passengers).length} phòng</dd></div>
+      <div><dt>Giá</dt><dd>{usable && quoteIntent ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'USD' }).format(quoteIntent.quote.totalAmount ?? 0) : 'Chưa có báo giá hiệu lực'}</dd></div>
+    </dl><p className={flow.muted}>Lựa chọn chưa phải là giữ chỗ.</p>
+  </>}>
+    {(uncertain || quoteUnknown) && <div ref={recovery} tabIndex={-1} role="region" aria-label="Cần đối chiếu kết quả"><Notice title={uncertain ? 'Cần kiểm tra kết quả trước khi đặt lại' : 'Chưa nhận được kết quả báo giá'} tone="warning"><p>{uncertain ? 'Hệ thống có thể đã tiếp nhận yêu cầu. Đã khóa gửi lại để tránh tạo trùng. Nếu chưa có mã, liên hệ bộ phận hỗ trợ để kiểm tra bằng thông tin người đại diện.' : 'Chưa có mã báo giá để đối chiếu. Thông tin đã nhập được giữ; vui lòng liên hệ bộ phận hỗ trợ trước khi tiếp tục.'}</p><ButtonLink tone="secondary" to="/booking/lookup">Tra cứu khi đã có mã</ButtonLink></Notice></div>}
+    {error && !uncertain && !quoteUnknown && <Notice title="Chưa hoàn tất yêu cầu" tone="error">{error}</Notice>}
+    <form noValidate onSubmit={next}>
+      {Object.keys(errors).length > 0 && <Notice title="Vui lòng kiểm tra thông tin" tone="error"><ul>{Object.entries(errors).map(([id, message]) => <li key={id}><button type="button" className={styles.errorLink} onClick={() => { const field = document.getElementById(id); if (field) field.focus(); else showInvalid({ [id]: message }) }}>{message}</button></li>)}</ul></Notice>}
+      <fieldset disabled={locked} className={styles.draftFields}><div className={flow.section}>
+        <BookingReadState {...cruises} publicResource="danh sách hành trình" />
+        {step === 1 && <>
+          <Panel title="Chuyến khởi hành"><Field htmlFor="real-booking-cruise" label="Hành trình *" error={errors['real-booking-cruise']}><select id="real-booking-cruise" value={draft.cruiseId} onChange={e => { navigate(path(1, e.target.value)); if (!e.target.value) { setDraft(d => ({ ...d, cruiseId: '', passengers: d.passengers.map(p => ({ ...p, cabinId: '', tourPackageId: '', farePackageOfferId: undefined, farePackagePriceRevisionId: undefined, cabinSelectionMode: undefined })) })); setPartyConfirmed(false); setErrors({}) } }}><option value="">Chọn hành trình</option>{cruises.data?.map(c => <option key={c.cruiseId} value={c.cruiseId}>{c.cruiseName}</option>)}</select></Field></Panel>
+          <BookingPartyStep />
+        </>}
+        {step === 2 && <>
+          <BookingReadState {...cabins} publicResource="phòng trống" /><BookingReadState {...fares} publicResource="gói du thuyền" />
+          {packages.error && <Notice title="Chưa tải được gói dịch vụ tùy chọn" tone="warning"><Button tone="secondary" onClick={packages.retry}>Tải lại gói</Button></Notice>}
+          {!choicesLoading && !readError && fares.data && cabins.data && <CruisePackageCabinSelection catalog={fares.data} cabins={cabins.data} shipId={selected?.shipId} render={renderShipModel} packages={packages.data} />}
+        </>}
+        {step === 3 && <>
+          <PassengerDetailsFields publicJourney representativeEmailRequired={!access.userId} />
+          <Panel title="Kế hoạch thanh toán"><div className={flow.section}>
+            <Field htmlFor="real-booking-plan" label="Kế hoạch thanh toán" error={errors['real-booking-plan']}><select id="real-booking-plan" value={draft.paymentPlan} onChange={e => setDraft(d => ({ ...d, paymentPlan: e.target.value as typeof d.paymentPlan }))}>{Object.entries(bookingPlanLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></Field>
+            <p className={flow.muted}>Bước này chưa thu tiền. Lịch thanh toán áp dụng được hiển thị sau khi tiếp nhận đặt chỗ.</p>
+            <Field htmlFor="real-booking-notes" label="Ghi chú (tùy chọn)" error={errors['real-booking-notes']}><textarea id="real-booking-notes" maxLength={500} value={draft.notes} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} /></Field>
+          </div></Panel>
+        </>}
+        {step === 4 && <BookingReviewStep draft={draft} cruise={selected} cabins={cabins.data} fares={fares.data} packages={packages.data} intent={quoteIntent} usable={usable} path={path} />}
+        {readError && step > 2 && <><BookingReadState {...cabins} publicResource="phòng trống" /><BookingReadState {...fares} publicResource="gói du thuyền" /></>}
+        <div className={flow.actions}>{step > 1 && <Button tone="secondary" onClick={() => navigate(path(step - 1))}>Quay lại</Button>}<Button type="submit" busy={busy} disabled={locked || choicesLoading || Boolean(readError)}>{step === 1 ? 'Tiếp tục chọn gói & cabin' : step === 2 ? 'Tiếp tục nhập thông tin' : step === 3 ? 'Kiểm tra đặt chỗ' : usable ? 'Xác nhận đặt chỗ' : 'Kiểm tra giá'}</Button></div>
       </div></fieldset>
-    </div><aside className={styles.rail}>{<BookingPhotoNote />}<Panel title="Hành trình của bạn"><strong>{selected?.cruiseName ?? 'Chưa chọn chuyến'}</strong>{<dl className={styles.summary}><div><dt>Khởi hành · giờ Việt Nam</dt><dd>{bookingWhen(selected?.departureDatetime)}</dd></div><div><dt>Trở về · giờ Việt Nam</dt><dd>{bookingWhen(selected?.returnDatetime)}</dd></div><div><dt>Lựa chọn phòng</dt><dd>{draft.passengers.filter(person => person.cabinId).length}/{draft.passengers.length} hành khách đã chọn phòng</dd></div><div><dt>Gói dịch vụ</dt><dd>{draft.passengers.filter(person => person.tourPackageId).length} hành khách chọn gói</dd></div></dl>}<p>{draft.passengers.length} hành khách</p><p className={styles.helper}>Phòng và gói được chọn riêng cho từng người. Không giữ chỗ cho đến khi hệ thống tiếp nhận.</p><ButtonLink tone="secondary" to={back}>Xem hành trình khác</ButtonLink></Panel></aside></div></form>
-  </div>{review && <Modal title="Xác nhận gửi đặt chỗ" busy={busy} onClose={() => setReview(false)}><p>{selected?.cruiseName} · {draft.passengers.length} hành khách · {plans[draft.paymentPlan]}</p>{quoteIntent && <><p>{businessCopy('booking.quote.total')}: {quoteIntent.quote.totalAmount} USD</p><p>{businessCopy('booking.quote.validUntil')}: {bookingWhen(quoteIntent.quote.expiresAt ?? undefined)} · Giờ Việt Nam</p></>}{quoteExpired && <Notice title={businessCopy('booking.quote.EXPIRED')}>{businessCopy('booking.quote.expiredInstruction')}</Notice>}<p>Kiểm tra thông tin và gửi yêu cầu để nhận mã đặt chỗ cùng lịch thanh toán.</p>{error && <Notice title="Chưa xác nhận được kết quả" tone="error">{error}</Notice>}{uncertain && <Notice title="Kiểm tra kết quả trước khi gửi lại" tone="warning">Không gửi lại để tránh tạo trùng. Đóng hộp thoại để tra cứu hoặc liên hệ nhân viên hỗ trợ.</Notice>}<Button disabled={busy || uncertain || quoteExpired || !quoteIntent} onClick={() => void submit()}>Gửi đặt chỗ</Button></Modal>}</RealBookingFrame>;
+    </form>
+  </BookingFlowLayout></RealBookingFrame>
 }

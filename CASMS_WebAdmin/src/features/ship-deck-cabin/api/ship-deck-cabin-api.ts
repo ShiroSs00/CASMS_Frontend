@@ -1,4 +1,5 @@
 import { apiRequest, ApiError } from '@/shared/api'
+import { shipProfilePayload } from '@/shared/lib/ship-profile'
 import type {
   AvailableCabinQuery, Cabin, CabinDraft, CabinStatus, CheckResult, CruisePreview,
   DataSnapshot, Deck, DeckCapacity, DeckDraft, EntityKind, HistoryEntry,
@@ -7,14 +8,13 @@ import type {
 import type { AssignmentDto, CabinDto, CruiseDto, DeckDto, PageDto, ShipDto } from './dto'
 import type { ShipListState, ShipSupplements, SupplementField } from '../model/ship-list-types'
 
-let revision = 0
-const listeners = new Set<() => void>()
-const notify = () => { revision += 1; listeners.forEach((listener) => listener()) }
+import { getShipStructureRevision, refreshShipStructure as notify, subscribeToShipStructure } from '@/shared/lib/ship-structure-revision'
 const paths: Record<EntityKind, string> = { ships: '/ships', decks: '/decks', cabins: '/cabins' }
 const idPath = (kind: EntityKind, id: string) => `${paths[kind]}/${encodeURIComponent(id)}`
 const ship = (dto: ShipDto): Ship => ({
   id: dto.shipId, code: dto.shipCode, name: dto.shipName, status: dto.status,
   capacity: dto.totalCapacity, totalDecks: dto.totalDecks, commissionDate: dto.commissionDate ?? '',
+  manufacturerName: dto.manufacturerName, origin: dto.origin, productionYear: dto.productionYear, engineType: dto.engineType,
   createdAt: dto.createdAt, updatedAt: dto.updatedAt,
   manifestModelId: dto.manifestModelId, deckNumberLimit: dto.deckNumberLimit, lengthMeters: dto.lengthMeters, beamMeters: dto.beamMeters,
 })
@@ -52,8 +52,8 @@ async function allPages<T>(path: string, signal?: AbortSignal): Promise<T[]> {
 }
 
 export const shipDeckCabinApi = {
-  subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
-  getRevision: () => revision,
+  subscribe: subscribeToShipStructure,
+  getRevision: getShipStructureRevision,
   async listShipDecks(shipId: string, signal: AbortSignal): Promise<Deck[]> {
     const rows = await allPages<DeckDto>(`/decks/by-ship/${encodeURIComponent(shipId)}`, signal)
     if (rows.some(row => row.shipId !== shipId)) throw new ApiError('Danh sách boong không khớp với tàu đang xem.', 502)
@@ -122,6 +122,7 @@ export const shipDeckCabinApi = {
   async saveShip(draft: ShipDraft, id?: string) {
     const body = {
       shipName: draft.name.trim(), totalCapacity: draft.capacity, totalDecks: draft.totalDecks,
+      ...shipProfilePayload(draft, Boolean(id)),
       ...(draft.commissionDate ? { commissionDate: draft.commissionDate } : {}),
       ...(draft.lengthMeters != null ? { lengthMeters: draft.lengthMeters } : {}),
       ...(draft.beamMeters != null ? { beamMeters: draft.beamMeters } : {}),
@@ -170,7 +171,7 @@ export const shipDeckCabinApi = {
   },
   async getCurrentCruise(id: string, signal?: AbortSignal) {
     try {
-      const dto = await apiRequest<CruiseDto | null>(`${idPath('ships', id)}/current-cruise`, { signal })
+      const dto = await apiRequest<CruiseDto | null | undefined>(`${idPath('ships', id)}/current-cruise`, { signal })
       return dto ? cruise(dto) : null
     } catch (error) {
       // Observed backend contract for no current cruise. Other 404/errors remain errors.

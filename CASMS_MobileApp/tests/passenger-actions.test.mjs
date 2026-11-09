@@ -111,7 +111,7 @@ test('services support authenticated PUT and POST cancel without staff-only acti
   const seen = [];
   const transport = createApiClient({ baseUrl: () => 'http://test/api', fetch: async (url, options) => {
     assert.equal(options.headers.Authorization, 'Bearer test-token'); seen.push({ url, ...options });
-    return Response.json({ success: true, data: { id: target } });
+    return Response.json({ success: true, data: { id: target, serviceId: target, bookingPassengerId: bp, quantity: 2 } });
   } }); transport.setToken('test-token');
   const api = createPassengerApi(transport);
   await api.createRequest(target, bp, 2, '  Không đường ');

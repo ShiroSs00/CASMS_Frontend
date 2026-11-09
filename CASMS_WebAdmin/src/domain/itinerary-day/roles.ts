@@ -6,5 +6,5 @@ export function itineraryDayRole(number: number, total: number): ItineraryDayRol
 }
 
 export const itineraryDayRoleLabels: Record<ItineraryDayRole, string> = {
-  DEPARTURE: 'Ngày khởi hành', REGULAR: 'Ngày trong hành trình', ARRIVAL: 'Ngày kết thúc', DEPARTURE_AND_ARRIVAL: 'Ngày khởi hành và kết thúc',
+  DEPARTURE: 'Ngày khởi hành', REGULAR: 'Ngày trong hành trình', ARRIVAL: 'Ngày kết thúc', DEPARTURE_AND_ARRIVAL: 'Chuyến trong ngày (Khởi hành & Trả khách)',
 }

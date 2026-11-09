@@ -1,4 +1,112 @@
 [
+  { "method": "GET", "path": "/cruises/{cruiseId}/delays", "mode": "ALL", "permissions": ["CRUISE_READ"] },
+  { "method": "POST", "path": "/cruises/{cruiseId}/delays/preview", "mode": "ALL", "permissions": ["CRUISE_START"], "roles": ["OPERATIONS_MANAGER"] },
+  { "method": "POST", "path": "/cruises/{cruiseId}/delays", "mode": "ALL", "permissions": ["CRUISE_START"], "roles": ["OPERATIONS_MANAGER"] },
+  {
+    "method": "GET",
+    "path": "/servicepackage/requests/by-operation-key",
+    "mode": "ALL",
+    "permissions": [
+      "SERVICE_REQUEST_CREATE"
+    ],
+    "source": "ServicepackageController; owner validated in ServiceRequestService"
+  },
+  {
+    "method": "GET",
+    "path": "/activities/catalog",
+    "source": "com/casms/activity/controller/ActivityController.java",
+    "mode": "ANY",
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "ACTIVITY_READ"
+        ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_UPDATE_DRAFT"
+        ],
+        "roles": [
+          "CRUISE_MANAGER"
+        ]
+      }
+    ]
+  },
+  {
+    "method": "PUT",
+    "path": "/activities/catalog/{id}",
+    "source": "com/casms/activity/controller/ActivityController.java",
+    "mode": "ALL",
+    "permissions": [
+      "ACTIVITY_UPDATE"
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-plans/{cruiseId}/activities/from-catalog",
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "method": "PUT",
+    "path": "/cruise-plans/{cruiseId}/activities/{id}/responsible-user",
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "method": "PUT",
+    "path": "/cruise-plans/{cruiseId}/serving-windows/{id}/responsible-user",
+    "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
+    "mode": "ALL",
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/tour-groups/{id}/guide-options",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_GROUP_GUIDE_ASSIGN"
+    ],
+    "source": "ASM source/guide contract; Backend validates actual role/resource scope"
+  },
+  {
+    "method": "POST",
+    "path": "/shore-excursions/definitions",
+    "mode": "ALL",
+    "permissions": [
+      "EXCURSION_CREATE"
+    ],
+    "source": "ASM source/guide contract; Backend validates actual role/resource scope"
+  },
+  {
+    "method": "POST",
+    "path": "/activities/definitions",
+    "mode": "ALL",
+    "permissions": [
+      "ACTIVITY_CREATE"
+    ],
+    "source": "ASM source/guide contract; Backend validates actual role/resource scope"
+  },
   {
     "method": "GET",
     "path": "/cruise-package-templates/logical-categories",
@@ -31,6 +139,13 @@
       "BOOKING_READ"
     ],
     "source": "Canonical alias on existing Booking ownership boundary"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise/{cruiseId}/cruise-package-addons/configuration",
+    "mode": "ALL",
+    "permissions": ["TOUR_PACKAGE_MANAGE"],
+    "source": "CruisePackageAddonController.configuration; ASM only, actual voyage sources and bounds"
   },
   {
     "method": "GET",
@@ -93,8 +208,24 @@
     "mode": "ALL",
     "permissions": [],
     "anyOf": [
-      { "mode": "ALL", "permissions": ["CRUISE_PRICING_APPROVE"], "roles": ["OPERATIONS_MANAGER"] },
-      { "mode": "ALL", "permissions": ["CRUISE_READ"], "roles": ["CRUISE_MANAGER"] }
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_PRICING_APPROVE"
+        ],
+        "roles": [
+          "OPERATIONS_MANAGER"
+        ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_READ"
+        ],
+        "roles": [
+          "CRUISE_MANAGER"
+        ]
+      }
     ],
     "source": "CruiseScopedProgramsController; Departure sale terms"
   },
@@ -102,16 +233,25 @@
     "method": "GET",
     "path": "/cruise-plans/{cruiseId}/cruise-packages",
     "mode": "ALL",
-    "permissions": ["CRUISE_READ"],
-    "roles": ["CRUISE_MANAGER", "OPERATIONS_MANAGER"],
+    "permissions": [
+      "CRUISE_READ"
+    ],
+    "roles": [
+      "CRUISE_MANAGER",
+      "OPERATIONS_MANAGER"
+    ],
     "source": "CruiseMainflowController"
   },
   {
     "method": "PUT",
     "path": "/cruise-plans/{cruiseId}/cruise-packages",
     "mode": "ALL",
-    "permissions": ["CRUISE_UPDATE_DRAFT"],
-    "roles": ["CRUISE_MANAGER"],
+    "permissions": [
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "CRUISE_MANAGER"
+    ],
     "source": "CruiseMainflowController"
   },
   {
@@ -1794,26 +1934,35 @@
     "path": "/ship-model-assets",
     "mode": "ALL",
     "permissions": [
-      "SHIP_UPDATE"
+      "SHIP_MODEL_CREATE"
     ],
-    "source": "com/casms/ship/controller/ShipModelController.java:78"
+    "source": "com/casms/ship/controller/ShipModelController.java:129"
   },
   {
     "method": "POST",
-    "path": "/ship-model-assets/{modelKey}/{assetVersion}/register",
+    "path": "/ship-model-assets/{modelKey}/register",
     "mode": "ALL",
     "permissions": [
       "SHIP_MODEL_CREATE",
       "SHIP_CREATE"
     ],
-    "source": "com/casms/ship/controller/ShipModelController.java:96"
+    "source": "com/casms/ship/controller/ShipModelController.java:156"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/models/imports",
+    "mode": "ALL",
+    "permissions": [
+      "SHIP_MODEL_UPDATE"
+    ],
+    "source": "com/casms/ship/controller/ShipModelController.java:58"
   },
   {
     "method": "POST",
     "path": "/ships/{shipId}/models/{modelId}/imports",
     "mode": "ALL",
     "permissions": [
-      "SHIP_UPDATE"
+      "SHIP_MODEL_UPDATE"
     ],
     "source": "com/casms/ship/controller/ShipModelController.java:50"
   },
@@ -2122,7 +2271,7 @@
     "path": "/ships/{shipId}/models/{modelId}/cabin-mappings",
     "mode": "ANY",
     "permissions": [
-      "SHIP_UPDATE"
+      "SHIP_MODEL_UPDATE"
     ],
     "source": "com/casms/ship/controller/ShipModelController.java:99"
   },
@@ -2150,7 +2299,7 @@
     "path": "/ships/{shipId}/models/{modelId}/deck-mappings",
     "mode": "ANY",
     "permissions": [
-      "SHIP_UPDATE"
+      "SHIP_MODEL_UPDATE"
     ],
     "source": "com/casms/ship/controller/ShipModelController.java:85"
   },
@@ -2238,7 +2387,7 @@
     "path": "/ships/{shipId}/models/{modelId}/activate",
     "mode": "ANY",
     "permissions": [
-      "SHIP_UPDATE"
+      "SHIP_MODEL_PUBLISH"
     ],
     "source": "com/casms/ship/controller/ShipModelController.java:107"
   },
@@ -3776,12 +3925,14 @@
   {
     "method": "POST",
     "path": "/servicepackage/schedules",
-    "mode": "ANY",
+    "mode": "ALL",
     "permissions": [
-      "CRUISE_UPDATE_DRAFT",
-      "SERVICE_UPDATE"
+      "CRUISE_UPDATE_DRAFT"
     ],
-    "source": "com/casms/servicepackage/controller/ServicepackageController.java:51"
+    "source": "com/casms/servicepackage/controller/ServicepackageController.java:51",
+    "roles": [
+      "CRUISE_MANAGER"
+    ]
   },
   {
     "method": "POST",
@@ -4112,7 +4263,7 @@
     "path": "/ships/{shipId}/models",
     "mode": "ANY",
     "permissions": [
-      "SHIP_UPDATE"
+      "SHIP_MODEL_CREATE"
     ],
     "source": "com/casms/ship/controller/ShipModelController.java:55"
   },
@@ -5011,16 +5162,16 @@
       "SHIP_MODEL_CREATE",
       "SHIP_CREATE"
     ],
-    "source": "com/casms/ship/controller/ShipModelController.java:78"
+    "source": "com/casms/ship/controller/ShipModelController.java:108"
   },
   {
     "method": "GET",
-    "path": "/ship-model-assets/{modelKey}/{assetVersion}/preview",
+    "path": "/ship-model-assets/{modelKey}/preview",
     "mode": "ALL",
     "permissions": [
       "SHIP_MODEL_CREATE",
       "SHIP_CREATE"
     ],
-    "source": "com/casms/ship/controller/ShipModelController.java:78"
+    "source": "com/casms/ship/controller/ShipModelController.java:115"
   }
 ]

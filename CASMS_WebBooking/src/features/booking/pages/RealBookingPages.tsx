@@ -6,18 +6,23 @@ import { realBookingApi, type BookingDetail } from '../api/real-booking-api';
 import { RealBookingFrame } from '../components/RealBookingUI';
 import { BookingPhotoNote } from '../components/BookingExperience';
 import { PublicBookingRecord } from '../components/PublicBookingRecord';
-import { bookingLookupFailure } from '../model/booking-feedback';
+import { bookingLookupFailure, isBookingLookupMismatch } from '../model/booking-feedback';
 import styles from '../components/LiveBooking.module.css';
 export { PublicBookingRecord as BookingRecord } from '../components/PublicBookingRecord';
 export function BookingLookupPage() {
     const [params] = useSearchParams();
     const [reference, setReference] = useState(() => params.get('reference') ?? ''), [email, setEmail] = useState(''), [phone, setPhone] = useState(''), [data, setData] = useState<BookingDetail | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false), lock = useRef(false);
     const requestRef = useRef<AbortController | null>(null);
-    const [missing, setMissing] = useState<Record<string, string>>({});
+    const [fields, setFields] = useState<{ reference?: string; contact?: string; email?: string }>({});
+    const [mismatch, setMismatch] = useState('');
+    const referenceInput = useRef<HTMLInputElement>(null);
+    const emailInput = useRef<HTMLInputElement>(null);
     const resultHeading = useRef<HTMLHeadingElement>(null);
     const errorSummary = useRef<HTMLDivElement>(null);
-    useEffect(() => { if (error && !Object.values(missing).some(Boolean))
-        errorSummary.current?.focus(); }, [error, missing, busy]);
+    useEffect(() => {
+        if (!busy && mismatch) referenceInput.current?.focus();
+        else if (!busy && error) errorSummary.current?.focus();
+    }, [busy, mismatch, error]);
     useEffect(() => { if (data)
         resultHeading.current?.focus(); }, [data]);
     useEffect(() => () => requestRef.current?.abort(), []);
@@ -26,18 +31,17 @@ export function BookingLookupPage() {
             return;
         setData(null);
         setError('');
-        if (!reference.trim() || (!email.trim() && !phone.trim())) {
-            const fields: Record<string, string> = {};
-            if (!reference.trim())
-                fields.reference = 'Nhập mã đặt chỗ đã nhận.';
-            if (!email.trim() && !phone.trim())
-                fields.email = 'Nhập email hoặc số điện thoại đại diện.';
-            setMissing(fields);
-            document.getElementById('lookup-' + Object.keys(fields)[0])?.focus();
-            setError('Nhập mã đặt chỗ và email hoặc số điện thoại đại diện.');
+        setMismatch('');
+        const errors = {
+            reference: reference.trim() ? undefined : 'Nhập mã đặt chỗ đã nhận.',
+            contact: email.trim() || phone.trim() ? undefined : 'Nhập email hoặc số điện thoại đại diện.',
+            email: emailInput.current?.validity.typeMismatch ? 'Kiểm tra định dạng email.' : undefined,
+        };
+        setFields(errors);
+        if (errors.reference || errors.contact || errors.email) {
+            (errors.reference ? referenceInput : emailInput).current?.focus();
             return;
         }
-        setMissing({});
         lock.current = true;
         setBusy(true);
         const controller = new AbortController();
@@ -48,24 +52,37 @@ export function BookingLookupPage() {
                 setData(result);
         }
         catch (value) {
-            if (!controller.signal.aborted)
-                setError(bookingLookupFailure(value instanceof ApiError ? value.status : undefined));
+            if (!controller.signal.aborted) {
+                const status = value instanceof ApiError ? value.status : undefined;
+                const message = bookingLookupFailure(status);
+                if (isBookingLookupMismatch(status)) setMismatch(message);
+                else setError(message);
+            }
         }
         finally {
             lock.current = false;
             setBusy(false);
         }
     }
+    function clearResult() {
+        setData(null);
+        setError('');
+        setMismatch('');
+    }
+    const contactDescription = ['lookup-contact-help', fields.contact && 'lookup-contact-error', mismatch && 'lookup-mismatch'].filter(Boolean).join(' ');
     return <RealBookingFrame><div className={styles.stack}>
     <div className={styles.journeyTopline}><Link to="/cruises">← Khám phá hành trình</Link><p className={styles.helper}>Không cần đăng nhập</p></div>
     <PageHeader title="Tra cứu đặt chỗ" breadcrumb="HÀNH TRÌNH / ĐẶT CHỖ"/>
-    <div className={styles.lookupGrid}><Panel title="Thông tin tra cứu"><form aria-busy={busy} onSubmit={event => { event.preventDefault(); void lookup(); }}><fieldset disabled={busy} className={styles.draftFields}>
-      <Field htmlFor="lookup-reference" label="Mã đặt chỗ" hint="Mã được hiển thị sau khi hệ thống tiếp nhận đặt chỗ." error={missing.reference}><input id="lookup-reference" value={reference} autoComplete="off" spellCheck={false} aria-required="true" aria-invalid={Boolean(missing.reference)} aria-describedby="lookup-reference-hint" onChange={event => { setReference(event.target.value); setMissing(current => ({ ...current, reference: '' })); setData(null); setError(''); }}/></Field>
+    <div className={styles.lookupGrid}><Panel title="Thông tin tra cứu"><form noValidate aria-busy={busy} onSubmit={event => { event.preventDefault(); void lookup(); }}><fieldset disabled={busy} className={styles.draftFields}>
+      <Field htmlFor="lookup-reference" label="Mã đặt chỗ" hint="Mã được hiển thị sau khi hệ thống tiếp nhận đặt chỗ." error={fields.reference}><input ref={referenceInput} id="lookup-reference" value={reference} autoComplete="off" spellCheck={false} aria-required="true" aria-invalid={Boolean(mismatch)} aria-describedby={mismatch ? 'lookup-mismatch' : undefined} onChange={event => { setReference(event.target.value); setFields(current => ({ ...current, reference: undefined })); clearResult(); }}/></Field>
       <p className={styles.helper} id="lookup-contact-help">Nhập email <strong>hoặc</strong> số điện thoại của người đại diện. Không cần nhập cả hai.</p>
-      <div className={styles.lookupContact}>
-        <Field htmlFor="lookup-email" label="Email đại diện" error={missing.email}><input id="lookup-email" type="email" autoComplete="email" value={email} aria-invalid={Boolean(missing.email)} aria-describedby={missing.email ? 'lookup-contact-help lookup-email-hint' : 'lookup-contact-help'} onChange={event => { setEmail(event.target.value); setMissing(current => ({ ...current, email: '' })); setData(null); setError(''); }}/></Field>
-        <Field htmlFor="lookup-phone" label="Số điện thoại đại diện"><input id="lookup-phone" type="tel" autoComplete="tel" value={phone} aria-describedby="lookup-contact-help" onChange={event => { setPhone(event.target.value); setMissing(current => ({ ...current, email: '' })); setData(null); setError(''); }}/></Field>
-      </div><Button type="submit" disabled={busy}>{busy ? 'Đang tra cứu…' : 'Tra cứu'}</Button>
+      <div className={styles.lookupContact} role="group" aria-label="Thông tin liên hệ">
+        <Field htmlFor="lookup-email" label="Email đại diện" error={fields.email}><input ref={emailInput} id="lookup-email" type="email" autoComplete="email" value={email} aria-invalid={Boolean(fields.contact || mismatch)} aria-describedby={contactDescription} onChange={event => { setEmail(event.target.value); setFields(current => ({ ...current, contact: undefined, email: undefined })); clearResult(); }}/></Field>
+        <Field htmlFor="lookup-phone" label="Số điện thoại đại diện"><input id="lookup-phone" type="tel" autoComplete="tel" value={phone} aria-invalid={Boolean(fields.contact || mismatch)} aria-describedby={contactDescription} onChange={event => { setPhone(event.target.value); setFields(current => ({ ...current, contact: undefined })); clearResult(); }}/></Field>
+      </div>
+      {fields.contact && <div id="lookup-contact-error"><Notice title={fields.contact} tone="error">{null}</Notice></div>}
+      {mismatch && <div id="lookup-mismatch"><Notice title="Kiểm tra thông tin tra cứu" tone="error">{mismatch}</Notice></div>}
+      <Button type="submit" disabled={busy}>{busy ? 'Đang tra cứu…' : 'Tra cứu'}</Button>
     </fieldset></form>{error && <div id="lookup-error-summary" ref={errorSummary} tabIndex={-1} role="region" aria-label="Không tra cứu được"><Notice title="Không tra cứu được" tone="error">{error}</Notice></div>}</Panel>
     <aside className={styles.lookupHelp}><BookingPhotoNote /><h2>Bạn cần chuẩn bị gì?</h2><p>Mã đặt chỗ và thông tin liên hệ đã dùng khi đặt. Kiểm tra lại ký tự và thông tin người đại diện nếu chưa tìm thấy.</p><p className={styles.helper}>Tra cứu chỉ hiển thị dữ liệu được hệ thống trả về; không tự xác nhận đặt chỗ hoặc thanh toán.</p></aside></div>
     {data && <section className={styles.stack} aria-label="Kết quả tra cứu"><h2 ref={resultHeading} tabIndex={-1}>Kết quả tra cứu · {data.bookingReference}</h2><PublicBookingRecord booking={data}/></section>}

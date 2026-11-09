@@ -32,13 +32,22 @@ export function ReadState({ loading, error, retry }: { loading: boolean; error: 
 
 export function ScheduleContents({ schedule, preview = false,cruiseId,entryTitles={},allowActions=true,selectedDay }: { schedule: DepartureSchedule; preview?: boolean;cruiseId?:string;entryTitles?:Record<string,string>;allowActions?:boolean;selectedDay?:number }) {
   const access=useSessionAccess()
+  const tripTimes = [
+    [preview ? 'Bắt đầu dự kiến' : 'Bắt đầu theo phản hồi', time(schedule.departureDatetime, SHIP_TIME_ZONE)],
+    ['Kết thúc dự kiến', time(schedule.returnDatetime, SHIP_TIME_ZONE)],
+  ] as const
   return <div className={scheduleStyles.scheduleDays}>
     {schedule.days.some(day=>day.shipTimeZoneId!==SHIP_TIME_ZONE)&&<Notice title="Cần đối chiếu cơ sở ngày của lịch" tone="warning">Múi giờ trong lịch trả về chưa khớp giờ tàu Việt Nam. Các thời điểm được giữ nguyên; cần xác nhận lịch từ hệ thống trước khi sử dụng.</Notice>}
-    <RecordFacts entries={[[preview ? 'Bắt đầu dự kiến' : 'Bắt đầu theo phản hồi', time(schedule.departureDatetime, 'Asia/Ho_Chi_Minh')], ['Kết thúc dự kiến', time(schedule.returnDatetime, 'Asia/Ho_Chi_Minh')]]} />
-    {!schedule.days.length && <Empty title="Chưa có ngày trong phản hồi lịch trình" />}
-    {schedule.days.filter(day=>selectedDay===undefined||day.dayNumber===selectedDay).map(day => <details className={scheduleStyles.scheduleDay} key={day.dayNumber} open={selectedDay!==undefined||day.dayNumber===1}>
-      <summary><span className={scheduleStyles.dayNumber}>Ngày {day.dayNumber}</span><span className={scheduleStyles.dayHeading}><strong>{day.title||itineraryDayRoleLabels[itineraryDayRole(day.dayNumber,schedule.days.length)]}</strong><span>{day.calendarDate?.split('-').reverse().join('/')??'Chưa có ngày'} · {day.dayType ? dayLabels[day.dayType]??day.dayType : 'Chưa xác định loại ngày'} · {day.entries.length} mục chương trình</span></span></summary>
-      <div className={scheduleStyles.dayBody}><p>{itineraryDayRoleLabels[itineraryDayRole(day.dayNumber,schedule.days.length)]} · Giờ tàu (Việt Nam)</p>
+    {selectedDay === undefined && <RecordFacts entries={tripTimes} />}
+    {!schedule.days.length && <Empty title="Chưa có ngày trong lịch trình" />}
+    {schedule.days.filter(day => selectedDay === undefined || day.dayNumber === selectedDay).map(day => {
+      const role = itineraryDayRoleLabels[itineraryDayRole(day.dayNumber, schedule.days.length)]
+      const label = `Ngày ${day.dayNumber}`
+      const customTitle = day.title?.trim()
+      const title = customTitle && customTitle !== label ? customTitle : role
+      const type = day.dayType ? dayLabels[day.dayType] ?? day.dayType : 'Chưa xác định loại ngày'
+      const body = <div className={selectedDay === undefined ? scheduleStyles.dayBody : scheduleStyles.selectedDayBody}>
+      {selectedDay === undefined && <p>{role} · Giờ tàu (Việt Nam)</p>}
       {day.description&&<p>{day.description}</p>}
       {day.stops.map((stop, index) => <div key={stop.sourceStopId ?? `${day.dayNumber}:${stop.stopOrder ?? index}`}>
         <h3>Lần ghé {stop.stopOrder ?? index + 1} · {stop.portName ?? 'Chưa có tên cảng'}</h3>
@@ -54,7 +63,23 @@ export function ScheduleContents({ schedule, preview = false,cruiseId,entryTitle
         const zone=entry.timeZoneId??(entry.kind==='SHORE_EXCURSION'?day.stops.find(stop=>stop.stopOrder===entry.stopOrder)?.portTimeZoneId??null:SHIP_TIME_ZONE)
         return <li key={entry.sourceEntryId ?? entry.clientKey ?? `${day.dayNumber}:${index}`}><strong>{entry.title||(entryTitles[entry.sourceEntryId??'']||entryTitles[entry.targetId??entry.clientKey??''])||`${entry.kind ? kindLabels[entry.kind] ?? entry.kind : 'Chương trình'} ${index+1}`}</strong>{(entryTitles[entry.sourceEntryId??'']||entryTitles[entry.targetId??entry.clientKey??''])&&<span className={scheduleStyles.entryKind}>{entry.kind?kindLabels[entry.kind]??entry.kind:''}</span>}<p>{time(entry.plannedStartTime, zone)} → {time(entry.plannedEndTime, zone)} · {entry.kind==='SHORE_EXCURSION'?'Giờ cảng':'Giờ tàu (Việt Nam)'}{entry.stopOrder != null ? ` · Lần ghé ${entry.stopOrder}` : ''}</p>{entry.locationText&&<p>Địa điểm: {entry.locationText}</p>}{entry.meetingPoint&&<p>Điểm tập trung: {entry.meetingPoint}</p>}{entry.notes&&<p>{entry.notes}</p>}</li>
       })}</ul></>}
-    </div></details>)}
+      {selectedDay !== undefined && !day.stops.length && !day.entries.length && <p>Chưa có cảng ghé hoặc chương trình trong ngày này.</p>}
+      </div>
+
+      if (selectedDay !== undefined) return <div className={scheduleStyles.selectedDay} key={day.dayNumber}>
+        <header><h3>{title}</h3><p>{type}</p></header>
+        {body}
+      </div>
+
+      return <details className={scheduleStyles.scheduleDay} key={day.dayNumber} open={day.dayNumber === 1}>
+        <summary><span className={scheduleStyles.dayNumber}>{label}</span><span className={scheduleStyles.dayHeading}><strong>{day.title || role}</strong><span>{day.calendarDate?.split('-').reverse().join('/') ?? 'Chưa có ngày'} · {type} · {day.entries.length} mục chương trình</span></span></summary>
+        {body}
+      </details>
+    })}
+    {selectedDay !== undefined && <details className={scheduleStyles.tripTimes}>
+      <summary>Mốc giờ toàn chuyến</summary>
+      <RecordFacts entries={tripTimes} />
+    </details>}
   </div>
 }
 

@@ -1,10 +1,11 @@
 import { cabinTypeLabels } from '@/shared/i18n/business-copy'
+import type { ShipProfile } from '@/shared/lib/ship-profile'
 export type ShipStatus = 'DRAFT' | 'READY' | 'IN_SERVICE' | 'MAINTENANCE' | 'SUSPENDED' | 'RETIRED'
 export type CabinStatus = 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE' | 'OUT_OF_SERVICE'
 export type CabinType = 'INTERIOR' | 'OCEAN_VIEW' | 'BALCONY' | 'SUITE'
 export type EntityKind = 'ships' | 'decks' | 'cabins'
 export type RecordBase = { id: string; createdAt?: string; updatedAt?: string }
-export type Ship = RecordBase & {
+export type Ship = RecordBase & ShipProfile & {
   code: string; name: string; status: ShipStatus
   capacity: number; totalDecks: number; commissionDate: string
   manifestModelId?: string | null; deckNumberLimit?: number; lengthMeters?: number | null; beamMeters?: number | null

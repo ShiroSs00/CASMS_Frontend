@@ -10,7 +10,7 @@ import { Badge, Button, Empty, Field, Loading, Modal, Notice, Panel } from '@/sh
 import { usePlanning, useSources, useUnsavedGuard } from '../hooks'
 import { failure } from '../api/live'
 import type { PlanningFault } from '../api/gateway'
-import { contentOf, versionLabels, type Content, type Entry, type Stop, type Trip, type Version, type Violation } from '../model/plan'
+import { contentOf, versionLabels, newKey, SHIP_ZONE, type Content, type Entry, type Stop, type Trip, type Version, type Violation } from '../model/plan'
 import { DepartureSourceSummary } from '../components/DepartureSourceSummary'
 import { DayPane } from '../components/DayPane'
 import { TripSteps } from '../components/TripSteps'
@@ -19,7 +19,7 @@ import { ConflictDialog, HistoryDialog, ValidationPanel } from '../components/Re
 import type { Report } from '../model/plan'
 import styles from '../Planning.module.css'
 import { violationTarget } from '../model/violation-target'
-import { normalizeBoundaryDays, scheduleDayTypeLabel } from '../model/day-labels'
+import { normalizeBoundaryDays } from '../model/day-labels'
 import { versionContext, workingVersionLabel } from '../model/version-context'
 import { durationRules, supportedDuration } from '../model/duration'
 import { stopTimingViolations, portScopeViolations, linkedTourViolations, routeOrderViolations, portMatchesScope } from '../model/port-rules'
@@ -69,7 +69,7 @@ function Schedule({initial}:{initial:Trip}) {
   const newVersion=can('TRIP_PLAN_WRITE')&&!gateway.readOnly&&trip.status!=='ARCHIVED'?()=>{setSource(trip.versions?.filter(v=>v.status==='PUBLISHED').at(-1)?.versionId??'');setCreate(true)}:undefined
   return <>
     {query.loading?<Loading label="Đang tải phiên bản lịch trình…"/>:query.error?<Notice title="Chưa mở được phiên bản" tone="error">{query.error.message}<div className={styles.actions}><Button onClick={query.retry}>Tải lại</Button><Link to={root}>Về danh sách chuyến</Link>{trip.versions?.map(v=><Button key={v.versionId} onClick={()=>setChosen(v.versionId)}>Mở phiên bản {v.versionNumber}</Button>)}</div></Notice>:query.data?<VersionEditor key={query.data.versionId} initial={query.data} trip={trip} setTrip={setTrip} onSwitch={setChosen} onNew={newVersion}/>:<Panel title={trip.name}><Empty title="Chưa có phiên bản lịch trình"/><Link to={root}>Về danh sách</Link>{newVersion&&<Button onClick={newVersion}>Tạo phiên bản nháp</Button>}</Panel>}
-    {create&&<Modal title="Tạo phiên bản lịch trình" onClose={()=>{if(!busy)setCreate(false)}} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setCreate(false)}>Hủy</Button><Button disabled={busy||creationUnknown} onClick={()=>void createVersion()}>{trip.versions?.some(v=>v.status==='DRAFT'||v.status==='IN_REVIEW')?'Mở bản chưa hoàn tất':busy?'Đang tạo…':'Tạo bản nháp'}</Button></>}>
+    {create&&<Modal title="Tạo phiên bản lịch trình" busy={busy} onClose={()=>{if(!busy)setCreate(false)}} footer={<><Button tone="secondary" data-overlay-dismiss disabled={busy} onClick={()=>setCreate(false)}>Hủy</Button><Button busy={busy} disabled={creationUnknown} onClick={()=>void createVersion()}>{trip.versions?.some(v=>v.status==='DRAFT'||v.status==='IN_REVIEW')?'Mở bản chưa hoàn tất':busy?'Đang tạo…':'Tạo bản nháp'}</Button></>}>
       <p>Chỉ tạo bản nháp mới khi không còn bản nháp hoặc mẫu cần xử lý theo quy trình cũ của chuyến đi này.</p>
       <Field htmlFor="planning-source-version" label="Nguồn nội dung"><select id="planning-source-version" value={source} disabled={busy} onChange={e=>setSource(e.target.value)}><option value="">Nội dung trống theo số ngày của chuyến</option>{trip.versions?.filter(v=>v.status==='PUBLISHED').map(v=><option key={v.versionId} value={v.versionId}>Phiên bản {v.versionNumber} · Mẫu đã chốt</option>)}</select></Field>
       {error&&<Notice title="Chưa tạo được phiên bản" tone="error">{error}<Button disabled={busy} onClick={()=>void reconcileVersions()}>Đọc lại danh sách phiên bản</Button></Notice>}
@@ -186,20 +186,96 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
         focusFinalizeIssue(error.violations)
     })
   }
+    const handleDisembarkation = (portId: string | null, plannedTime?: string | null) => {
+    const endingDayNumber = content.days.length
+    const existingIndex = content.stops.findIndex(s => s.isDisembarkation)
+    if (!portId) {
+      if (existingIndex >= 0) {
+        edit({
+          ...content,
+          stops: content.stops.filter((_, idx) => idx !== existingIndex),
+        })
+      }
+      return
+    }
+    const port = ports.data.find(p => p.id === portId)
+    const portName = port?.name ?? port?.label ?? 'Cảng'
+    const timeZoneId = port?.timeZoneId ?? SHIP_ZONE
+    const depTime = plannedTime ?? '18:00'
+    const arrTime = day.dayNumber === 1 && day.plannedDepartureTime ? day.plannedDepartureTime : '17:00'
+
+    if (existingIndex >= 0) {
+      const existing = content.stops[existingIndex]
+      const updated: Stop = {
+        ...existing,
+        portId,
+        portName,
+        timeZoneId,
+        countryCode: port?.countryCode ?? existing.countryCode,
+        domesticRegion: port?.domesticRegion ?? existing.domesticRegion,
+        departureDayNumber: endingDayNumber,
+        plannedDepartureTime: depTime,
+        isDisembarkation: true,
+      }
+      edit({
+        ...content,
+        stops: content.stops.map((s, idx) => (idx === existingIndex ? updated : s)),
+      })
+    } else {
+      const newStop: Stop = {
+        clientKey: newKey(),
+        portId,
+        portName,
+        stopOrder: Math.max(0, ...content.stops.map(s => s.stopOrder)) + 1,
+        arrivalDayNumber: endingDayNumber,
+        plannedArrivalTime: arrTime,
+        departureDayNumber: endingDayNumber,
+        plannedDepartureTime: depTime,
+        callType: 'NORMAL',
+        arrivalMethod: 'BERTH',
+        timeZoneId,
+        countryCode: port?.countryCode,
+        domesticRegion: port?.domesticRegion ?? null,
+        allAboardDayNumber: null,
+        allAboardTime: null,
+        isEmbarkation: false,
+        isDisembarkation: true,
+      }
+      edit({
+        ...content,
+        stops: [...content.stops, newStop],
+      })
+    }
+  }
+
   const switchNow=(id:string)=>{guard.allowLeave();setPendingSwitch('');onSwitch(id)}
   return <>
     {templatePreview&&<PublishedTemplateDialog trip={trip} onClose={()=>setTemplatePreview(false)}/>}
     {version.status==='IN_REVIEW'&&<Notice title="Mẫu theo quy trình duyệt cũ · Chỉ xem">Quy trình duyệt mẫu đã dừng. Nội dung, trạng thái và lịch sử của phiên bản này được giữ nguyên.</Notice>}
     <div className={styles.editorTop}>
       <header className={styles.editorHeading}>
-        <div className={styles.editorTitle}><h1>{trip.name}</h1><div className={styles.editorMeta}><span>{trip.tripCode} · {content.days.length} ngày</span><Badge tone={version.status==='PUBLISHED'?'success':version.status==='IN_REVIEW'?'warning':'neutral'} label={`${versionLabels[version.status]} · V${version.versionNumber} · Lần cập nhật ${version.revision}`}/></div></div>
+        <div className={styles.editorTitle}>
+          <h1>{trip.name}</h1>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginTop: '6px', fontSize: '13px' }}>
+            <span><strong>Mã chuyến:</strong> {trip.tripCode}</span>
+            <span>·</span>
+            <span><strong>Thời lượng:</strong> {content.days.length} ngày</span>
+            <span>·</span>
+            <span><strong>Người tạo:</strong> {version.creatorName ?? 'Quản lý lịch trình'}</span>
+            <span>·</span>
+            <span><strong>Ngày tạo:</strong> {version.createdAt ? new Date(version.createdAt).toLocaleDateString('vi-VN') : 'Mới tạo'}</span>
+            <span>·</span>
+            <span><strong>Loại chuyến:</strong> {trip.tripType === 'ROUND_TRIP' ? 'Khứ hồi' : trip.tripType === 'ONE_WAY' ? 'Một chiều' : 'Chưa chọn'}</span>
+            <Badge tone={version.status === 'PUBLISHED' ? 'success' : version.status === 'IN_REVIEW' ? 'warning' : 'neutral'} label={`${versionLabels[version.status]} · V${version.versionNumber}`} />
+          </div>
+        </div>
         <div className={styles.editorVersionTools}>
           {(trip.versions?.length??0)>1?<Field htmlFor="planning-version" label="Phiên bản lịch trình"><select id="planning-version" value={version.versionId} disabled={Boolean(busy)} onChange={e=>switchVersion(e.target.value)}>{trip.versions?.toSorted((a,b)=>b.versionNumber-a.versionNumber).map(v=><option key={v.versionId} value={v.versionId}>V{v.versionNumber} · {versionLabels[v.status]}</option>)}</select></Field>:null}
           <Button tone="text" size="compact" disabled={Boolean(busy)} onClick={()=>setHistory(true)}>Lịch sử</Button><Link to={root}>Danh sách chuyến</Link>
         </div>
       </header>
       <div className={styles.versionContext}>
-        <span>{[versions.published?`Phiên bản lịch trình nguồn: V${versions.published.versionNumber}`:'Chưa có phiên bản lịch trình nguồn được công bố',versions.working&&versions.working.versionId!==version.versionId?`${workingVersionLabel(versions.working.status)}: V${versions.working.versionNumber}`:null].filter(Boolean).join(' · ')}</span>
+        <span>{[versions.published?`Phiên bản lịch trình nguồn: V${versions.published.versionNumber}`:null,versions.working&&versions.working.versionId!==version.versionId?`${workingVersionLabel(versions.working.status)}: V${versions.working.versionNumber}`:null].filter(Boolean).join(' · ')}</span>
         <div className={styles.actions}>
           {versions.published&&versions.published.versionId!==version.versionId&&<Button tone="text" size="compact" disabled={Boolean(busy)} onClick={()=>setTemplatePreview(true)}>Xem mẫu đã chốt · V{versions.published.versionNumber}</Button>}
           {versions.working&&versions.working.versionId!==version.versionId&&<Button tone="secondary" size="compact" disabled={Boolean(busy)} onClick={()=>switchVersion(versions.working!.versionId)}>{can('TRIP_PLAN_WRITE')&&versions.working.status==='DRAFT'?'Tiếp tục bản nháp':versions.working.status==='DRAFT'?'Xem bản nháp':'Xem bản chờ duyệt'} · V{versions.working.versionNumber}</Button>}
@@ -217,8 +293,16 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
     {fault&&<Notice title="Chưa hoàn tất thao tác" tone="error">{fault.message}{uncertain&&<Button onClick={()=>setCompare(true)} disabled={Boolean(busy)}>Đối chiếu bản đã lưu</Button>}</Notice>}
 
     <div className={styles.tabs} role="tablist" aria-label="Nội dung lịch trình">{(['route','program'] as const).map(value=><button key={value} role="tab" tabIndex={tab===value?0:-1} onKeyDown={e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const next=e.key==='Home'?'route':e.key==='End'?'program':tab==='route'?'program':'route';setTab(next);document.getElementById(`planning-tab-${next}`)?.focus()}}} aria-selected={tab===value} aria-controls="planning-day-panel" id={`planning-tab-${value}`} onClick={()=>setTab(value)}>{value==='route'?'Tuyến tàu':'Chương trình ngày'}</button>)}</div>
-    <div className={styles.layout}><nav className={styles.rail} aria-label="Các ngày của chuyến"><strong className={styles.railTitle}>Các ngày</strong>{content.days.map(d=><button key={d.key} className={styles.dayButton} aria-current={day?.key===d.key} onClick={()=>setSelected(d.dayNumber)}><strong>Ngày {d.dayNumber}</strong><small>{scheduleDayTypeLabel(d.dayNumber,content.days.length,d.dayType)}</small><small>{content.entries.filter(e=>e.startDayNumber<=d.dayNumber&&e.endDayNumber>=d.dayNumber).length} mục chương trình</small></button>)}{editable&&<><Button tone="secondary" disabled={Boolean(busy)||!structureAllowed||content.days.length>=(limits?.[1]??0)} title={locked?'Số ngày đã khóa vì chuyến đi có mẫu đã chốt':content.days.length>=(limits?.[1]??0)?'Đã đạt số ngày tối đa của nhóm thời lượng':undefined} onClick={()=>setDayChange({})}>Thêm ngày</Button><Button tone="secondary" disabled={Boolean(busy)||!structureAllowed||content.days.length<=(limits?.[0]??0)||(!gateway.supportsMiddleDayRemoval&&day?.dayNumber!==content.days.length)} title={locked?'Số ngày đã khóa vì chuyến đi có mẫu đã chốt':content.days.length<=(limits?.[0]??0)?'Đã đạt số ngày tối thiểu của nhóm thời lượng':undefined} onClick={()=>setDayChange({remove:day?.dayNumber})}>Xóa ngày đang chọn</Button>{!limits&&<small>Thời lượng hiện có chưa nằm trong nhóm 1–2 hoặc 3–5 ngày.</small>}{!gateway.supportsMiddleDayRemoval&&<small>Chỉ có thể xóa ngày cuối.</small>}</>}</nav>
-      <section id="planning-day-panel" role="tabpanel" aria-labelledby={`planning-tab-${tab}`}>{day?<DayPane content={content} day={day} editable={editable} busy={Boolean(busy)} tab={tab} violation={located} departurePorts={{...ports,data:ports.data.filter(port=>portMatchesScope(port,trip.info))}} onDeparture={value=>edit({...content,days:content.days.map(d=>d.key===day.key?{...d,...value}:d)})}
+    <div className={styles.layout}>
+      <nav className={styles.rail} aria-label="Các ngày của chuyến">
+        {content.days.map(d => (
+          <button key={d.key} type="button" className={styles.dayButton} aria-current={day?.key === d.key} onClick={() => setSelected(d.dayNumber)}>
+            Ngày {d.dayNumber}
+          </button>
+        ))}
+        {editable&&<><Button tone="secondary" disabled={Boolean(busy)||!structureAllowed||content.days.length>=(limits?.[1]??0)} title={locked?'Số ngày đã khóa vì chuyến đi có mẫu đã chốt':content.days.length>=(limits?.[1]??0)?'Đã đạt số ngày tối đa của nhóm thời lượng':undefined} onClick={()=>setDayChange({})}>Thêm ngày</Button><Button tone="secondary" disabled={Boolean(busy)||!structureAllowed||content.days.length<=(limits?.[0]??0)||(!gateway.supportsMiddleDayRemoval&&day?.dayNumber!==content.days.length)} title={locked?'Số ngày đã khóa vì chuyến đi có mẫu đã chốt':content.days.length<=(limits?.[0]??0)?'Đã đạt số ngày tối thiểu của nhóm thời lượng':undefined} onClick={()=>setDayChange({remove:day?.dayNumber})}>Xóa ngày đang chọn</Button>{!limits&&<small>Thời lượng hiện có chưa nằm trong nhóm 1–2 hoặc 3–5 ngày.</small>}{!gateway.supportsMiddleDayRemoval&&<small>Chỉ có thể xóa ngày cuối.</small>}</>}
+      </nav>
+      <section id="planning-day-panel" role="tabpanel" aria-labelledby={`planning-tab-${tab}`}>{day?<DayPane content={content} day={day} editable={editable} busy={Boolean(busy)} tab={tab} violation={located} departurePorts={{...ports,data:ports.data.filter(port=>portMatchesScope(port,trip.info))}} onDeparture={value=>edit({...content,days:content.days.map(d=>d.key===day.key?{...d,...value}:d)})} onDisembarkation={handleDisembarkation}
         onTitle={title=>edit({...content,days:content.days.map(d=>d.key===day.key?{...d,title}:d)})}
         onType={dayType=>{if(dayType==='SEA_DAY'&&content.stops.some(s=>s.arrivalDayNumber<=day.dayNumber&&s.departureDayNumber>=day.dayNumber)){setMessage('Ngày còn lần ghé cảng. Hãy xử lý lần ghé và tham quan liên quan trước khi chuyển thành ngày trên biển.');return}edit({...content,days:content.days.map(d=>d.key===day.key?{...d,dayType}:d)})}}
         onStop={stop=>setStopDrawer({stop})} onEntry={(kind,entry,stopClientKey)=>setEntryDrawer({kind,entry,stopClientKey})}
@@ -238,8 +322,8 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
     {stopDrawer&&day&&<StopDrawer tripId={trip.tripId} tripRevision={trip.revision} tripInfo={trip.info} key={stopDrawer.stop?.clientKey??'new-stop'} content={content} dayNumber={day.dayNumber} readOnly={!editable||Boolean(busy)} stop={stopDrawer.stop} violation={stopDrawer.violation} onClose={()=>setStopDrawer(null)} onApply={stop=>{edit({...content,stops:content.stops.some(s=>s.clientKey===stop.clientKey)?content.stops.map(s=>s.clientKey===stop.clientKey?stop:s):[...content.stops,stop]});setStopDrawer(null)}}/>}
     {entryDrawer&&day&&<EntryDrawer key={entryDrawer.entry?.clientKey??`${entryDrawer.kind}:${selected}:${entryDrawer.stopClientKey??'new'}`} content={content} dayNumber={day.dayNumber} readOnly={!editable||Boolean(busy)||entryDrawer.kind==='SERVING_WINDOW'} kind={entryDrawer.kind} entry={entryDrawer.entry} initialStopClientKey={entryDrawer.stopClientKey} violation={entryDrawer.violation} onClose={()=>setEntryDrawer(null)} onApply={entries=>{const keys=new Set(entries.map(e=>e.clientKey));edit({...content,entries:[...content.entries.filter(e=>!keys.has(e.clientKey)),...entries]});setEntryDrawer(null)}}/>}
     {removal&&!(removal.kind==='entry'&&content.entries.some(e=>e.clientKey===removal.key&&e.kind==='SERVING_WINDOW'))&&<Modal title={removal.kind==='stop'?'Xóa lần ghé cảng?':'Xóa mục chương trình?'} onClose={()=>setRemoval(null)} footer={<><Button tone="secondary" onClick={()=>setRemoval(null)}>Giữ lại</Button><Button tone="danger" disabled={!editable||Boolean(busy)||(removal.kind==='stop'&&content.entries.some(e=>e.stopClientKey===removal.key))} onClick={()=>{edit(removal.kind==='stop'?{...content,stops:content.stops.filter(s=>s.clientKey!==removal.key)}:{...content,entries:content.entries.filter(e=>e.clientKey!==removal.key)});setRemoval(null)}}>Xóa khỏi bản nháp</Button></>}><p>Mục này sẽ được bỏ khỏi bản đang chỉnh. Chọn Lưu nháp để lưu thay đổi.</p>{removal.kind==='stop'&&content.entries.some(e=>e.stopClientKey===removal.key)?<Notice title="Còn nội dung liên quan" tone="warning">Hãy xử lý các tham quan gắn với lần ghé này trước. Không tự xóa nội dung liên quan.</Notice>:<p>Mục qua nhiều ngày sẽ được xóa ở cả các ngày tiếp diễn.</p>}</Modal>}
-    {dayChange&&<Modal title={removeDay?`Xóa Ngày ${removeDay}?`:'Thêm ngày vào chuyến?'} onClose={()=>{if(!busy)setDayChange(null)}} footer={<><Button tone="secondary" disabled={Boolean(busy)} onClick={()=>setDayChange(null)}>Hủy</Button><Button disabled={Boolean(busy)||!structureAllowed||Boolean(affectedStops.length||affectedEntries.length||invalidFinal)} onClick={()=>void changeStructure()}>Lưu nháp rồi cập nhật ngày</Button></>}><p>Nội dung đang chỉnh sẽ được lưu trước. Số ngày sẽ thay đổi ở mọi phiên bản nháp của chuyến.</p>{!gateway.supportsMiddleDayRemoval&&<Notice title="Lưu trước khi thay đổi số ngày" tone="warning">Nội dung được lưu trước khi cập nhật số ngày. Nếu cập nhật số ngày thất bại, bản nháp đã lưu vẫn được giữ.</Notice>}{removeDay&&<p>Ảnh hưởng: {affectedStops.length} lần ghé cảng, {affectedEntries.length} mục chương trình bao phủ ngày này. Các mục qua ngày cũng được tính.</p>}{Boolean(affectedStops.length||affectedEntries.length)&&<Notice title="Chưa thể xóa ngày" tone="warning">Hãy xử lý các mục liên quan trước. Không tự xóa dữ liệu hoặc cắt mục qua ngày.</Notice>}{invalidFinal&&<Notice title="Cảng kết thúc chuyến đang ở ngày cuối" tone="warning">Bỏ lựa chọn cảng hành khách kết thúc chuyến trong bản nháp trước khi thêm ngày, rồi chọn lại ở ngày cuối mới.</Notice>}</Modal>}
-    {action&&<Modal title={businessCopy('trip.template.FINALIZE_ACTION')} onClose={()=>{if(!busy)setAction(null)}} footer={<><Button tone="secondary" disabled={Boolean(busy)} onClick={()=>setAction(null)}>Hủy</Button><Button disabled={Boolean(finalizeUnavailable)} onClick={()=>void transition()}>{busy?'Đang xử lý…':businessCopy('trip.template.FINALIZE_ACTION')}</Button></>}><p>Thao tác áp dụng cho phiên bản {version.versionNumber}. Mẫu đã chốt không thể sửa trực tiếp.</p><p>{dirty?'Hệ thống sẽ lưu các thay đổi, kiểm tra bản vừa lưu rồi chốt nếu đủ điều kiện.':'Hệ thống sẽ kiểm tra bản đã lưu và chỉ chốt khi đủ điều kiện.'}</p>{fault&&<Notice title="Yêu cầu chưa hoàn tất" tone="error">{fault.message}</Notice>}</Modal>}
+    {dayChange&&<Modal title={removeDay?`Xóa Ngày ${removeDay}?`:'Thêm ngày vào chuyến?'} onClose={()=>{if(!busy)setDayChange(null)}} footer={<><Button tone="secondary" disabled={Boolean(busy)} onClick={()=>setDayChange(null)}>Hủy</Button><Button tone={removeDay ? "danger" : "primary"} busy={Boolean(busy)} disabled={!structureAllowed||Boolean(affectedStops.length||affectedEntries.length||invalidFinal)} onClick={()=>void changeStructure()}>Lưu nháp rồi cập nhật ngày</Button></>}><p>Nội dung đang chỉnh sẽ được lưu trước. Số ngày sẽ thay đổi ở mọi phiên bản nháp của chuyến.</p>{!gateway.supportsMiddleDayRemoval&&<Notice title="Lưu trước khi thay đổi số ngày" tone="warning">Nội dung được lưu trước khi cập nhật số ngày. Nếu cập nhật số ngày thất bại, bản nháp đã lưu vẫn được giữ.</Notice>}{removeDay&&<p>Ảnh hưởng: {affectedStops.length} lần ghé cảng, {affectedEntries.length} mục chương trình bao phủ ngày này. Các mục qua ngày cũng được tính.</p>}{Boolean(affectedStops.length||affectedEntries.length)&&<Notice title="Chưa thể xóa ngày" tone="warning">Hãy xử lý các mục liên quan trước. Không tự xóa dữ liệu hoặc cắt mục qua ngày.</Notice>}{invalidFinal&&<Notice title="Cảng kết thúc chuyến đang ở ngày cuối" tone="warning">Bỏ lựa chọn cảng hành khách kết thúc chuyến trong bản nháp trước khi thêm ngày, rồi chọn lại ở ngày cuối mới.</Notice>}</Modal>}
+    {action&&<Modal title={businessCopy('trip.template.FINALIZE_ACTION')} onClose={()=>{if(!busy)setAction(null)}} footer={<><Button tone="secondary" disabled={Boolean(busy)} onClick={()=>setAction(null)}>Hủy</Button><Button busy={Boolean(busy)} disabled={Boolean(finalizeUnavailable)} onClick={()=>void transition()}>{busy?'Đang xử lý…':businessCopy('trip.template.FINALIZE_ACTION')}</Button></>}><p>Thao tác áp dụng cho phiên bản {version.versionNumber}. Mẫu đã chốt không thể sửa trực tiếp.</p><p>{dirty?'Hệ thống sẽ lưu các thay đổi, kiểm tra bản vừa lưu rồi chốt nếu đủ điều kiện.':'Hệ thống sẽ kiểm tra bản đã lưu và chỉ chốt khi đủ điều kiện.'}</p>{fault&&<Notice title="Yêu cầu chưa hoàn tất" tone="error">{fault.message}</Notice>}</Modal>}
     {pendingSwitch&&<Modal title="Đổi phiên bản khi còn thay đổi?" onClose={()=>setPendingSwitch('')} footer={<><Button tone="secondary" disabled={Boolean(busy)} onClick={()=>setPendingSwitch('')}>Ở lại</Button><Button tone="danger" disabled={Boolean(busy)} onClick={()=>switchNow(pendingSwitch)}>Bỏ thay đổi và chuyển</Button>{editable&&<Button disabled={Boolean(busy)} onClick={()=>void run('Đang lưu nháp…',async()=>{await save();switchNow(pendingSwitch)})}>Lưu rồi chuyển</Button>}</>}><p>Chuyển phiên bản sẽ thay nội dung trên màn hình. Chọn rõ cách xử lý bản nháp hiện tại.</p></Modal>}
     {history&&<HistoryDialog tripId={trip.tripId} versionId={version.versionId} onClose={()=>setHistory(false)}/>}
     {compare&&<ConflictDialog trip={trip} version={version} local={content} onClose={()=>setCompare(false)} onReplace={(serverTrip,serverVersion)=>{setTrip(serverTrip);accept(serverVersion);setUncertain(false);setFault(null);setCompare(false);setSelected(n=>Math.min(n,serverVersion.days.length));setMessage('Đã dùng bản máy chủ theo xác nhận của bạn.')}}/>}{guard.prompt}

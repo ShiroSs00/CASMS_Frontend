@@ -12,6 +12,7 @@ import { motion } from '@/constants/motion';
 import { ApiError } from '@/lib/api';
 
 const errors: Record<string, string> = {
+  POS_FULFILLMENT_REQUIRED: 'Nhập đúng số lượng đã phục vụ và kiểm tra đơn vị trước khi hoàn tất.',
   POS_CRUISE_SELECTION_REQUIRED: 'Có nhiều chuyến phù hợp. Nhập mã chuyến do quản lý cung cấp.',
   POS_ALLOWANCE_EXCEEDED: 'Tài khoản trên tàu không còn đủ hạn mức.',
   POS_SPENDING_LIMIT_EXCEEDED: 'Hành khách không còn đủ hạn mức sử dụng.',
@@ -103,7 +104,7 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
   </View>;
 }
 
-type Operation = { title: string; description: string; run: () => Promise<unknown> };
+type Operation = { title: string; description: string; content?: (pending: boolean) => ReactNode; run: () => Promise<unknown> };
 export function usePosConfirmation(after: () => void, enabled = true, showSuccess = true) {
   const [operation, setOperation] = useState<Operation | null>(null);
   const [pending, setPending] = useState(false);
@@ -121,6 +122,7 @@ export function usePosConfirmation(after: () => void, enabled = true, showSucces
       <PassengerSheet visible={operation !== null} title={operation?.title ?? 'Xác nhận'}
         dismissible={!pending} onClose={() => { if (!lock.current) setOperation(null); }}>
         <Text style={ui.body}>{operation?.description}</Text>
+        {operation?.content?.(pending)}
         {!!failure && <Notice tone="error">{failure}</Notice>}
         <PassengerButton label="Xác nhận" loading={pending} disabled={!!failure || !enabled} onPress={async () => {
           if (!operation || lock.current || failure || !enabled) return;

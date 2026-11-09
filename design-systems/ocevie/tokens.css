@@ -1,0 +1,109 @@
+/*
+ * OceVie Design System — OpenDesign canonical shared token contract.
+ * Keep OpenDesign names available. Namespaced web tokens avoid collisions
+ * with existing application aliases and support both web apps.
+ */
+
+:root {
+  /* Surface */
+  --bg: #F8F6EC;
+  --surface: #FFFFFF;
+  --surface-warm: #F3EBDD;
+
+  /* Foreground */
+  --fg: #0B2A4A;
+  --fg-2: #0E6B7A;
+  --muted: #506777;
+  --meta: var(--muted);
+
+  /* Border */
+  --border: #718391;
+  --border-soft: #D5E0E4;
+
+  /* Brand accent: navy primary action; teal remains the focus/secondary interaction color. */
+  --accent: #0B2A4A;
+  --accent-on: #FFFFFF;
+  --accent-hover: #123C61;
+  --accent-active: #061A2B;
+
+  /* Semantic status */
+  --success: #167347;
+  --warn: #995700;
+  --danger: #B42318;
+
+  /* Web foundation */
+  --ocevie-brand-gold: #D4AF37;
+  --ocevie-brand-sand: #DBC9A7;
+  --ocevie-control-height-compact: 36px;
+  --ocevie-control-height-default: 44px;
+  --ocevie-control-height-large: 48px;
+  --ocevie-radius-dialog: 12px;
+  --ocevie-shadow-panel: 0 4px 20px rgb(6 26 43 / 4%);
+  --ocevie-shadow-dialog: 0 28px 90px #061a2b40;
+
+  /* Typography */
+  --ocevie-font-display: "Sora", "Be Vietnam Pro", "Segoe UI", sans-serif;
+  --font-display: var(--ocevie-font-display);
+  --ocevie-font-body: "Be Vietnam Pro", "Segoe UI", Arial, sans-serif;
+  --font-body: var(--ocevie-font-body);
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 24px;
+  --text-3xl: 32px;
+  --text-4xl: 40px;
+  --leading-body: 1.5;
+  --leading-tight: 1.25;
+  --tracking-display: 0;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* Section rhythm */
+  --section-y-desktop: 64px;
+  --section-y-tablet: 48px;
+  --section-y-phone: 32px;
+
+  /* Radius */
+  --ocevie-radius-sm: 6px;
+  --radius-sm: var(--ocevie-radius-sm);
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+
+  /* Elevation */
+  --elev-flat: none;
+  --elev-ring: 0 0 0 1px var(--border);
+  --elev-raised: 0 2px 8px rgba(6, 26, 43, 0.08);
+
+  /* Focus: teal outer ring carries contrast; gold inner ring preserves brand detail. */
+  --focus-ring: 0 0 0 2px var(--ocevie-brand-gold), 0 0 0 4px var(--fg-2);
+
+  /* Motion */
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Layout */
+  --container-max: 1440px;
+  --container-gutter-desktop: 32px;
+  --container-gutter-tablet: 24px;
+  --container-gutter-phone: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+  }
+}

@@ -1,3 +1,4 @@
-export { ModelViewerPage } from './ModelViewerPage'
-export { PassengerTrackingPage } from './PassengerTrackingPage'
-export { CustomerShipExplorer } from './CustomerShipExplorer'
+export const loadModelViewerPage = () => import('./ModelViewerPage')
+export const loadShipImportPage = () => import('./import/ShipImportPage')
+export const loadPassengerTrackingPage = () => import('./PassengerTrackingPage')
+export const loadCustomerShipExplorer = () => import('./CustomerShipExplorer')

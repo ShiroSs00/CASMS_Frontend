@@ -622,3 +622,30 @@
     width: calc(100% - 40px);
   }
 }
+.liveSurface.catalogRedesign .searchHero { min-height: 0; padding-block: var(--section-y-tablet); }
+.liveSurface.catalogRedesign .searchIntro h1 { font-size: var(--text-4xl); line-height: var(--leading-tight); max-width: 20ch; }
+.liveSurface.catalogRedesign .catalogWorkspace { gap: var(--space-6); }
+.liveSurface.catalogRedesign .liveFilterBar { background: var(--surface-warm); padding: var(--space-5); border: 0; border-radius: var(--radius-control); gap: var(--space-5); }
+.liveSurface.catalogRedesign .liveCard { border-color: var(--border-default); border-radius: var(--radius-dialog); }
+.liveSurface.catalogRedesign .searchCardBody { padding: var(--space-5); }
+.liveSurface.catalogRedesign .searchCardBody h2 { font-size: var(--text-2xl); line-height: var(--leading-tight); }
+.liveSurface.catalogRedesign .liveCardAside { padding: var(--space-4) var(--space-5); background: var(--surface-default); border-color: var(--border-default); }
+.liveSurface.catalogRedesign .liveModeNotice { padding-block: var(--space-4); margin-block: var(--space-4) var(--space-6); border-color: var(--border-default); }
+.liveSurface.catalogRedesign .liveDetailHero { min-height: 0; align-items: stretch; }
+.liveSurface.catalogRedesign .liveDetailHero > img { min-height: 0; max-height: 24rem; border-radius: 0; }
+.liveSurface.catalogRedesign .liveDetailHero > div { padding: var(--space-6); }
+.liveSurface.catalogRedesign .liveDetailHero h1 { font-size: var(--text-3xl); font-weight: 600; line-height: var(--leading-tight); }
+.liveSurface.catalogRedesign .liveInfoPanel { padding: var(--space-5); border-radius: var(--radius-dialog); border-color: var(--border-default); box-shadow: none; }
+.offerComparison { padding-block: var(--space-5); border-bottom: 1px solid var(--border-default); }
+.offerComparison h3 { margin-top: 0; font-size: var(--text-xl); }
+.offerComparison ul { display: grid; gap: var(--space-3); }
+@media (max-width: 760px) {
+  .liveSurface.catalogRedesign .searchHero { padding-block: var(--space-6); }
+  .liveSurface.catalogRedesign .searchIntro h1 { font-size: var(--text-3xl); }
+  .liveSurface.catalogRedesign .liveDetailHero { margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .liveSurface.catalogRedesign .liveDetailHero > div { order: 0; padding: var(--space-5); }
+  .liveSurface.catalogRedesign .liveDetailHero > img { order: 1; height: 12rem; width: 100%; padding: 0; }
+  .liveSurface.catalogRedesign .liveDetailHero h1 { font-size: var(--text-2xl); }
+  .liveSurface.catalogRedesign .liveInfoPanel { padding: var(--space-4); }
+  .liveSurface.catalogRedesign .livePagination { gap: var(--space-3); flex-wrap: wrap; }
+}

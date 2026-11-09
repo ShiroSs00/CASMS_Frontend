@@ -1,6 +1,7 @@
 import type { CabinStatus, CabinType, ShipStatus } from '../model/types'
+import type { ShipProfile } from '@/shared/lib/ship-profile'
 
-export type ShipDto = {
+export type ShipDto = ShipProfile & {
   shipId: string; shipCode: string; shipName: string; status: ShipStatus
   totalCapacity: number; totalDecks: number; commissionDate: string | null
   manifestModelId?: string | null; deckNumberLimit?: number; lengthMeters?: number | null; beamMeters?: number | null

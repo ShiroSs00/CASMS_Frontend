@@ -1,4 +1,5 @@
 import type { Cabin, CabinStatus, CabinType, Deck, Ship, ShipDraft } from './types'
+import { validateShipProfile } from '@/shared/lib/ship-profile'
 import { cabinTypeLabels } from '@/shared/i18n/business-copy'
 
 export const roomTypeLabels: Record<CabinType, string> = cabinTypeLabels
@@ -14,7 +15,7 @@ export function roomCounts(decks: Deck[], rooms: Cabin[]) {
     available: rooms.filter(room => room.deckId === deck.id && room.status === 'AVAILABLE').length }]))
 }
 export function validateShipEdit(draft: ShipDraft, current: Ship) {
-  const errors: Record<string, string> = {}
+  const errors = validateShipProfile(draft, current)
   if (!draft.name.trim() || draft.name.trim().length > 100) errors.name = 'Nhập tên tàu, tối đa 100 ký tự.'
   if (!Number.isInteger(draft.capacity) || draft.capacity < 1 || draft.capacity > 2147483647) errors.capacity = 'Sức chứa phải là số nguyên dương hợp lệ.'
   if (!Number.isInteger(draft.totalDecks) || draft.totalDecks < 1 || draft.totalDecks > 2147483647) errors.totalDecks = 'Số boong phải là số nguyên dương hợp lệ.'

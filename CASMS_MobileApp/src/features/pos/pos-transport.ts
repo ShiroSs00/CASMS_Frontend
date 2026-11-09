@@ -27,8 +27,8 @@ export function createScopedPosApi(client: Transport, sessionToken: string) {
     close: () => call<void>('/session', { method: 'DELETE' }),
     services: async (signal?: AbortSignal) => decode(z.array(service), await call('/services', { signal })),
     requests: async (signal?: AbortSignal) => decode(z.array(request), await call('/requests', { signal })),
-    requestAction: async (id: string, action: RequestAction) =>
-      decode(request, await call(`/requests/${uuid.parse(id)}/actions/${action}`, { method: 'POST' })),
+    requestAction: async (id: string, action: RequestAction, fulfillment?: { fulfilledQuantity: number; unitCode: string }) =>
+      decode(request, await call(`/requests/${uuid.parse(id)}/actions/${action}`, { method: 'POST', body: fulfillment })),
     activities: async (signal?: AbortSignal) => decode(z.array(activityEntry), await call('/activities', { signal })),
     activityAction: async (id: string, action: ActivityAction) => {
       const result = decode(activity, await call(`/activities/${uuid.parse(id)}/actions/${action}`, { method: 'POST' }));

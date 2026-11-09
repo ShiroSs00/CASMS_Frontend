@@ -278,7 +278,7 @@
   "pricing.review.approvalRequired": "Quản lý vận hành cần phê duyệt phiên bản chính sách giá USD hiện tại trước khi mở bán hoặc nhận đặt chỗ.",
   "pricing.review.pending": "Chính sách giá đang chờ Quản lý vận hành xét duyệt. Giữ nguyên bản đã gửi và đối chiếu kết quả trước khi chỉnh sửa.",
   "pricing.review.usdRequired": "Giá và phí mới phải sử dụng USD. Không đổi nhãn tiền tệ cho số tiền lịch sử.",
-  "program.field.priceUsd": "Giá mới · USD",
+  "program.field.priceUsd": "Giá",
   "program.activity.capacityUnknown": "Chưa cấu hình sức chứa",
   "program.activity.priceUnknown": "Chưa cấu hình giá hoạt động",
   "program.activity.configurationRequired": "Có hoạt động chưa đủ thông tin hoặc có thời gian chưa hợp lệ. Mở chương trình để kiểm tra hoạt động.",

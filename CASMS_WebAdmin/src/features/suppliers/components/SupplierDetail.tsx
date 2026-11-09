@@ -1,21 +1,13 @@
-import { PermissionLink as Link } from '@/shared/ui'
 import { useState } from 'react'
-
-import { Modal } from '@/shared/ui'
+import { Badge, Button, ButtonLink, Field, Modal, Notice, PageHeader, Panel, RecordFacts } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
-import {
-  supplierDateTime,
-  supplierStatusLabels,
-  supplierVerificationLabels,
-  type SupplierListItem,
-  type SupplierStatus,
-  type SupplierVerification,
-} from '../model/supplier-list'
+import { supplierDateTime, supplierStatusLabels, supplierVerificationLabels, type SupplierListItem, type SupplierVerification } from '../model/supplier-list'
 import type { SupplierVerificationRequest } from '../api/supplier-api'
-import styles from './SupplierDetail.module.css'
+import styles from './SupplierDetailPresentation.module.css'
 
 type Props = {
   supplier: SupplierListItem
+  embedded?: boolean
   actionInProgress?: string | null
   actionFeedback?: { type: 'success' | 'error'; message: string } | null
   onDismissFeedback?: () => void
@@ -23,351 +15,51 @@ type Props = {
   onVerify?: (request: SupplierVerificationRequest) => Promise<void>
   onDelete?: () => void
 }
-
-const statusTones: Record<SupplierStatus, string> = {
-  ACTIVE: styles.success,
-  INACTIVE: styles.neutral,
+function formatVerifier(value?: string | null) {
+  return !value || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value) ? 'Người dùng hệ thống' : value
 }
-
-const verificationTones: Record<SupplierVerification, string> = {
-  PENDING: styles.warning,
-  VERIFIED: styles.success,
-  REJECTED: styles.error,
-}
-
-function formatVerifier(verifiedBy?: string | null): string {
-  if (!verifiedBy) return 'Người dùng hệ thống'
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(verifiedBy)
-  return isUuid ? 'Người dùng hệ thống' : verifiedBy
-}
-
-export function SupplierDetail({
-  supplier,
-  actionInProgress = null,
-  actionFeedback = null,
-  onDismissFeedback,
-  onToggleStatus,
-  onVerify,
-  onDelete,
-}: Props) {
+export function SupplierDetail({ supplier, embedded = false, actionInProgress = null, actionFeedback = null, onDismissFeedback, onToggleStatus, onVerify, onDelete }: Props) {
   const access = useSessionAccess()
-  const [showVerifyModal, setShowVerifyModal] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [selectedVerification, setSelectedVerification] = useState<SupplierVerification>('VERIFIED')
-  const [verificationNotes, setVerificationNotes] = useState('')
-
-  const canActivate = supplier.verificationStatus === 'VERIFIED'
+  const [showVerifyModal, setShowVerifyModal] = useState(false), [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedVerification, setSelectedVerification] = useState<SupplierVerification>('VERIFIED'), [verificationNotes, setVerificationNotes] = useState('')
+  const canActivate = supplier.verificationStatus === 'VERIFIED', verifying = actionInProgress === 'verify'
   const isStatusBusy = actionInProgress === 'activate' || actionInProgress === 'deactivate'
-
   async function handleConfirmVerify() {
     if (!onVerify || !access.canDo('SUPPLIER_VERIFY')) return
-    try { await onVerify({
-      verificationStatus: selectedVerification,
-      verificationNotes: verificationNotes.trim() || null,
-    }) } catch { return }
-    setShowVerifyModal(false)
-    setVerificationNotes('')
+    try { await onVerify({ verificationStatus: selectedVerification, verificationNotes: verificationNotes.trim() || null }) } catch { return }
+    setShowVerifyModal(false); setVerificationNotes('')
   }
-
-  return (
-    <div className={styles.content}>
-      <nav className={styles.breadcrumb} aria-label="Đường dẫn điều hướng">
-        <Link to="/admin/suppliers">Nhà cung cấp</Link>
-        <span aria-hidden="true">/</span>
-        <span className={styles.breadcrumbCurrent}>{supplier.supplierName}</span>
-      </nav>
-
-      {actionFeedback && (
-        <aside
-          className={`${styles.feedbackBanner} ${
-            actionFeedback.type === 'success' ? styles.feedbackSuccess : styles.feedbackError
-          }`}
-          role="status"
-          aria-live="polite"
-        >
-          <span>{actionFeedback.message}</span>
-          {onDismissFeedback && (
-            <button
-              type="button"
-              className={styles.rowAction}
-              onClick={onDismissFeedback}
-              aria-label="Đóng thông báo"
-            >
-              ✕
-            </button>
-          )}
-        </aside>
-      )}
-
-      <header className={styles.headerRow}>
-        <div className={styles.titleArea}>
-          <h1>{supplier.supplierName}</h1>
-          <p>{supplier.supplierType || 'Chưa phân loại'}</p>
-        </div>
-        <div className={styles.headerActions}>
-          {access.canDo('SUPPLIER_UPDATE') && <Link to={`/admin/suppliers/${supplier.id}/edit`} className={styles.editButton}>
-            Chỉnh sửa
-          </Link>}
-          {access.canDo('SUPPLIER_STATUS_CHANGE') && <button
-            type="button"
-            className={styles.statusButton}
-            onClick={onToggleStatus}
-            disabled={isStatusBusy || !access.canDo('SUPPLIER_STATUS_CHANGE') || (supplier.status === 'INACTIVE' && !canActivate)}
-            title={
-              supplier.status === 'INACTIVE' && !canActivate
-                ? 'Nhà cung cấp cần được xác minh (VERIFIED) trước khi kích hoạt'
-                : supplier.status === 'ACTIVE'
-                  ? 'Tạm dừng hoạt động nhà cung cấp'
-                  : 'Kích hoạt nhà cung cấp'
-            }
-          >
-            {actionInProgress === 'activate'
-              ? 'Đang kích hoạt...'
-              : actionInProgress === 'deactivate'
-                ? 'Đang cập nhật...'
-                : supplier.status === 'ACTIVE'
-                  ? 'Tạm dừng'
-                  : 'Kích hoạt'}
-          </button>}
-          {access.canDo('SUPPLIER_DELETE') && <button
-            type="button"
-            className={styles.deleteButton}
-            onClick={() => setShowDeleteModal(true)}
-            disabled={actionInProgress !== null || !access.canDo('SUPPLIER_DELETE')}
-            title="Xóa nhà cung cấp nếu chưa được sử dụng"
-          >
-            {actionInProgress === 'delete' ? 'Đang xóa...' : 'Xóa'}
-          </button>}
-        </div>
-      </header>
-
-      {/* 4-card summary row */}
-      <section className={styles.summaryRow} aria-label="Tổng quan trạng thái">
-        <div className={styles.summaryCard}>
-          <p className={styles.cardLabel}>TRẠNG THÁI</p>
-          <span className={`${styles.badge} ${statusTones[supplier.status]}`}>
-            {supplierStatusLabels[supplier.status]}
-          </span>
-        </div>
-
-        <div className={styles.summaryCard}>
-          <p className={styles.cardLabel}>XÁC MINH</p>
-          <span className={`${styles.badge} ${verificationTones[supplier.verificationStatus]}`}>
-            {supplierVerificationLabels[supplier.verificationStatus]}
-          </span>
-        </div>
-
-        <div className={styles.summaryCard}>
-          <p className={styles.cardLabel}>CẬP NHẬT</p>
-          <p className={styles.cardValue}>{supplierDateTime(supplier.updatedAt)}</p>
-        </div>
-
-        {access.canDo('SUPPLIER_VERIFY') && <div className={styles.summaryCard}>
-          <p className={styles.cardLabel}>HÀNH ĐỘNG XÁC MINH</p>
-          {access.canDo('SUPPLIER_VERIFY') && <button
-            type="button"
-            className={styles.verifyActiveBtn}
-            onClick={() => setShowVerifyModal(true)}
-            disabled={actionInProgress !== null || !access.canDo('SUPPLIER_VERIFY')}
-          >
-            {actionInProgress === 'verify' ? 'Đang xác minh...' : 'Xác minh nhà cung cấp'}
-          </button>}
-        </div>}
-      </section>
-
-      {/* Two-column info cards */}
-      <section className={styles.infoRow} aria-label="Thông tin chi tiết">
-        <div className={styles.infoCard}>
-          <h2 className={styles.cardTitle}>Thông tin nhà cung cấp</h2>
-          <div className={styles.infoItem}>
-            <span className={styles.itemLabel}>Loại đối tác</span>
-            <p className={styles.itemValue}>{supplier.supplierType || 'Chưa phân loại'}</p>
-          </div>
-          <div className={styles.infoItem}>
-            <span className={styles.itemLabel}>Ghi chú</span>
-            <p className={styles.itemValue}>{supplier.notes || 'Chưa có ghi chú'}</p>
-          </div>
-        </div>
-
-        <div className={styles.infoCard}>
-          <h2 className={styles.cardTitle}>Liên hệ chính</h2>
-          <div className={styles.infoItem}>
-            <span className={styles.itemLabel}>Tên liên hệ</span>
-            <p className={styles.itemValue}>{supplier.contactName || 'Chưa có tên liên hệ'}</p>
-          </div>
-          <div className={styles.infoItem}>
-            <span className={styles.itemLabel}>Email</span>
-            <p className={styles.itemValue}>{supplier.contactEmail || 'Chưa có email'}</p>
-          </div>
-          <div className={styles.infoItem}>
-            <span className={styles.itemLabel}>Điện thoại</span>
-            <p className={styles.itemValue}>{supplier.contactPhone || 'Chưa có số điện thoại'}</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Verification section */}
-      <section className={styles.verificationBlock} aria-label="Chi tiết xác minh">
-        <h2 className={styles.cardTitle}>Xác minh</h2>
-        <div className={styles.verificationDetails}>
-          {supplier.verificationStatus === 'PENDING' && (
-            <>
-              <p>
-                <strong>Trạng thái hiện tại:</strong> Chờ xác minh
-              </p>
-              <p>Chưa có thời điểm/người xác minh.</p>
-            </>
-          )}
-          {supplier.verificationStatus === 'VERIFIED' && (
-            <>
-              <p>
-                <strong>Trạng thái hiện tại:</strong> Đã xác minh
-              </p>
-              <p>
-                <strong>Xác minh lúc:</strong> {supplierDateTime(supplier.verifiedAt)}
-              </p>
-              <p>
-                <strong>Người xác minh:</strong> {formatVerifier(supplier.verifiedBy)}
-              </p>
-              {supplier.verificationNotes && (
-                <p>
-                  <strong>Ghi chú:</strong> {supplier.verificationNotes}
-                </p>
-              )}
-            </>
-          )}
-          {supplier.verificationStatus === 'REJECTED' && (
-            <>
-              <p>
-                <strong>Trạng thái hiện tại:</strong> Bị từ chối
-              </p>
-              {supplier.verificationNotes && (
-                <p>
-                  <strong>Lý do:</strong> {supplier.verificationNotes}
-                </p>
-              )}
-            </>
-          )}
-        </div>
-      </section>
-
-      {/* Metadata row */}
-      <footer className={styles.metadataRow}>
-        <span>Tạo lúc: {supplierDateTime(supplier.createdAt)}</span>
-        <span>Cập nhật: {supplierDateTime(supplier.updatedAt)}</span>
-      </footer>
-
-      {/* Verification modal dialog */}
-      {showVerifyModal && access.canDo('SUPPLIER_VERIFY') && (
-        <Modal title="Xác minh nhà cung cấp" busy={actionInProgress === 'verify'} onClose={() => { setShowVerifyModal(false); setVerificationNotes('') }} footer={<div className={styles.dialogActions}>
-              {access.canDo('SUPPLIER_VERIFY') && <button
-                type="button"
-                className={styles.statusButton}
-                onClick={() => {
-                  setShowVerifyModal(false)
-                  setVerificationNotes('')
-                }}
-                disabled={actionInProgress === 'verify' || !access.canDo('SUPPLIER_VERIFY')} data-overlay-dismiss
-              >
-                Hủy
-              </button>}
-              {access.canDo('SUPPLIER_VERIFY') && <button
-                type="button"
-                className={styles.editButton}
-                onClick={handleConfirmVerify}
-                disabled={actionInProgress === 'verify' || !access.canDo('SUPPLIER_VERIFY')}
-              >
-                {actionInProgress === 'verify' ? 'Đang xác minh...' : 'Xác nhận'}
-              </button>}
-            </div>}>
-            <div className={styles.dialogBody}>
-              <p>
-                <strong>Nhà cung cấp:</strong> {supplier.supplierName}
-              </p>
-              <div>
-                <label className={styles.itemLabel} id="verification-result-label">
-                  Kết quả *
-                </label>
-                <div
-                  className={styles.radioGroup}
-                  role="radiogroup"
-                  aria-labelledby="verification-result-label"
-                >
-                  <label className={styles.radioOption}>
-                    <input
-                      type="radio"
-                      name="verificationStatus"
-                      value="VERIFIED"
-                      checked={selectedVerification === 'VERIFIED'}
-                      onChange={() => setSelectedVerification('VERIFIED')}
-                    />
-                    <span>Đã xác minh</span>
-                  </label>
-                  <label className={styles.radioOption}>
-                    <input
-                      type="radio"
-                      name="verificationStatus"
-                      value="REJECTED"
-                      checked={selectedVerification === 'REJECTED'}
-                      onChange={() => setSelectedVerification('REJECTED')}
-                    />
-                    <span>Bị từ chối</span>
-                  </label>
-                </div>
-              </div>
-              <div>
-                <label htmlFor="verificationNotesInput" className={styles.itemLabel}>
-                  Ghi chú xác minh
-                </label>
-                <textarea
-                  id="verificationNotesInput"
-                  className={styles.textareaField}
-                  placeholder="Nhập ghi chú hoặc lý do đánh giá năng lực..."
-                  maxLength={1000}
-                  value={verificationNotes}
-                  onChange={(e) => setVerificationNotes(e.target.value)}
-                />
-              </div
-            >
-            </div>
-        </Modal>
-      )}
-
-      {/* Delete confirmation modal dialog */}
-      {showDeleteModal && access.canDo('SUPPLIER_DELETE') && (
-        <Modal title="Xác nhận xóa nhà cung cấp" busy={actionInProgress === 'delete'} onClose={() => setShowDeleteModal(false)} footer={<div className={styles.dialogActions}>
-              {access.canDo('SUPPLIER_DELETE') && <button
-                type="button"
-                className={styles.statusButton}
-                onClick={() => setShowDeleteModal(false)}
-                disabled={actionInProgress === 'delete' || !access.canDo('SUPPLIER_DELETE')} data-overlay-dismiss
-              >
-                Hủy
-              </button>}
-              {access.canDo('SUPPLIER_DELETE') && <button
-                type="button"
-                className={styles.deleteButton}
-                onClick={() => {
-                  setShowDeleteModal(false)
-                  onDelete?.()
-                }}
-                disabled={actionInProgress === 'delete' || !access.canDo('SUPPLIER_DELETE')}
-              >
-                {actionInProgress === 'delete' ? 'Đang xóa...' : 'Xác nhận xóa'}
-              </button>}
-            </div>}>
-            <div className={styles.dialogBody}>
-              <p>
-                Bạn có chắc chắn muốn xóa nhà cung cấp <strong>{supplier.supplierName}</strong>?
-              </p>
-              <p>
-                Thao tác này chỉ thực hiện được khi nhà cung cấp chưa được liên kết với bất kỳ tour tham
-                quan hay hợp đồng nào.
-              </p
-            >
-            </div>
-        </Modal>
-      )}
-    </div>
-  )
+  const actions = <div className={styles.actions}>
+    {access.canDo('SUPPLIER_UPDATE') && <ButtonLink to={`/admin/suppliers/${supplier.id}/edit`}>Chỉnh sửa</ButtonLink>}
+    {access.canDo('SUPPLIER_VERIFY') && <Button tone="secondary" disabled={actionInProgress !== null} onClick={() => setShowVerifyModal(true)}>Xác minh nhà cung cấp</Button>}
+    {access.canDo('SUPPLIER_STATUS_CHANGE') && <Button tone="secondary" busy={isStatusBusy} disabled={supplier.status === 'INACTIVE' && !canActivate} onClick={onToggleStatus}>{supplier.status === 'ACTIVE' ? 'Tạm dừng' : 'Kích hoạt'}</Button>}
+    {access.canDo('SUPPLIER_DELETE') && <Button tone="danger" disabled={actionInProgress !== null} onClick={() => setShowDeleteModal(true)}>Xóa</Button>}
+    <ButtonLink tone="secondary" to={`/admin/shore-excursions?supplierId=${supplier.id}`}>Các chuyến tham quan</ButtonLink>
+  </div>
+  return <div className={styles.stack}>
+    {!embedded ? <PageHeader title={supplier.supplierName} breadcrumb="NHÀ CUNG CẤP" actions={actions} /> : actions}
+    {actionFeedback && <Notice title={actionFeedback.type === 'error' ? 'Chưa thực hiện được' : 'Đã cập nhật'} tone={actionFeedback.type === 'error' ? 'error' : 'success'}>{actionFeedback.message}{onDismissFeedback && <Button tone="text" onClick={onDismissFeedback}>Đóng thông báo</Button>}</Notice>}
+    <div className={styles.statuses}><Badge label={supplierStatusLabels[supplier.status]} tone={supplier.status === 'ACTIVE' ? 'success' : 'neutral'} /><Badge label={supplierVerificationLabels[supplier.verificationStatus]} tone={supplier.verificationStatus === 'VERIFIED' ? 'success' : supplier.verificationStatus === 'REJECTED' ? 'error' : 'warning'} /></div>
+    <Panel title="Thông tin nhà cung cấp"><RecordFacts entries={[
+      ['Loại đối tác', supplier.supplierType || 'Chưa phân loại'], ['Ghi chú', supplier.notes || 'Chưa có ghi chú'],
+      ['Tên liên hệ', supplier.contactName || 'Chưa có tên liên hệ'], ['Email', supplier.contactEmail || 'Chưa có email'],
+      ['Điện thoại', supplier.contactPhone || 'Chưa có số điện thoại'], ['Cập nhật', supplierDateTime(supplier.updatedAt)],
+      ['Tạo lúc', supplierDateTime(supplier.createdAt)],
+    ]} /></Panel>
+    {(supplier.verificationStatus === 'VERIFIED' || supplier.verificationNotes) && <Panel title="Thông tin xác minh"><RecordFacts entries={[
+      ...(supplier.verificationStatus === 'VERIFIED' ? [['Xác minh lúc', supplierDateTime(supplier.verifiedAt)] as const, ['Người xác minh', formatVerifier(supplier.verifiedBy)] as const] : []),
+      ...(supplier.verificationNotes ? [['Ghi chú xác minh', supplier.verificationNotes] as const] : []),
+    ]} /></Panel>}
+    {showVerifyModal && access.canDo('SUPPLIER_VERIFY') && <Modal title="Xác minh nhà cung cấp" busy={verifying} onClose={() => { setShowVerifyModal(false); setVerificationNotes('') }} footer={<>
+      <Button tone="secondary" data-overlay-dismiss disabled={verifying} onClick={() => { setShowVerifyModal(false); setVerificationNotes('') }}>Hủy</Button><Button busy={verifying} onClick={() => void handleConfirmVerify()}>Xác nhận</Button>
+    </>}><div className={styles.stack}>
+      <p>{supplier.supplierName}</p>
+      <fieldset className={styles.verificationChoices} disabled={verifying}><legend>Kết quả *</legend>{(['VERIFIED', 'REJECTED'] as const).map(value => <label key={value}><input type="radio" name="verificationStatus" value={value} checked={selectedVerification === value} onChange={() => setSelectedVerification(value)} />{supplierVerificationLabels[value]}</label>)}</fieldset>
+      <Field htmlFor="verificationNotesInput" label="Ghi chú xác minh"><textarea id="verificationNotesInput" maxLength={1000} disabled={verifying} value={verificationNotes} onChange={event => setVerificationNotes(event.target.value)} /></Field>
+      {actionFeedback?.type === 'error' && <Notice title="Chưa xác minh được" tone="error">{actionFeedback.message}</Notice>}
+    </div></Modal>}
+    {showDeleteModal && access.canDo('SUPPLIER_DELETE') && <Modal title="Xác nhận xóa nhà cung cấp" busy={actionInProgress === 'delete'} protectChanges={false} onClose={() => setShowDeleteModal(false)} footer={<>
+      <Button tone="secondary" disabled={actionInProgress === 'delete'} onClick={() => setShowDeleteModal(false)}>Hủy</Button><Button tone="danger" busy={actionInProgress === 'delete'} onClick={() => { setShowDeleteModal(false); onDelete?.() }}>Xác nhận xóa</Button>
+    </>}><p>Bạn có chắc chắn muốn xóa nhà cung cấp <strong>{supplier.supplierName}</strong>?</p><p>Chỉ xóa được nhà cung cấp chưa được liên kết với tour tham quan hoặc hợp đồng.</p></Modal>}
+  </div>
 }
