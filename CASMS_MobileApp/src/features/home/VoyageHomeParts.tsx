@@ -3,12 +3,13 @@ import { MaterialIcon } from '@/components/passenger/MaterialIcon';
 import { ui } from '@/components/passenger/PassengerUI';
 import { brand, darkTheme, lightTheme } from '@/constants/ocevie';
 
-export function VoyageSummaryCard({ title, ship, dates, label, cabin, onPress }: { title: string; ship: string; dates: string; label: string; cabin?: string; onPress: () => void }) {
+export function VoyageSummaryCard({ title, ship, dates, returnDate, label, cabin, onPress }: { title: string; ship: string; dates: string; returnDate?: string; label: string; cabin?: string; onPress: () => void }) {
   return <View style={homeStyles.voyage}>
     <View style={homeStyles.topline}><View style={homeStyles.liveDot} /><Text style={homeStyles.cardLabel}>{label}</Text><MaterialIcon name="sailing" color={brand.tealLight} size={24} /></View>
     <Text style={homeStyles.voyageTitle}>{title}</Text><Text style={homeStyles.ship}>{ship}</Text>
-    <View style={homeStyles.facts}><View style={homeStyles.fact}><MaterialIcon name="explore" color={brand.tealLight} size={18} /><Text style={homeStyles.factText}>{dates}</Text></View>
-      {cabin && <View style={homeStyles.fact}><MaterialIcon name="assignment_ind" color={brand.tealLight} size={18} /><Text style={homeStyles.factText}>Cabin {cabin}</Text></View>}</View>
+    <View style={homeStyles.facts}><View style={homeStyles.fact}><MaterialIcon name="explore" color={brand.tealLight} size={18} /><Text style={homeStyles.factText}>Khởi hành {dates}</Text></View>
+      {!!returnDate && <View style={homeStyles.fact}><MaterialIcon name="sailing" color={brand.tealLight} size={18} /><Text style={homeStyles.factText}>Kết thúc {returnDate}</Text></View>}
+      {!!cabin && <View style={homeStyles.fact}><MaterialIcon name="assignment_ind" color={brand.tealLight} size={18} /><Text style={homeStyles.factText}>Phòng {cabin}</Text></View>}</View>
     <Pressable accessibilityRole="button" accessibilityLabel="Xem thông tin chuyến đi" onPress={onPress} style={({ pressed }) => [homeStyles.voyageAction, pressed && { opacity: .7 }]}>
       <Text style={homeStyles.voyageActionText}>Thông tin chuyến đi</Text><MaterialIcon name="arrow_forward" color={brand.pearl} size={20} />
     </Pressable>

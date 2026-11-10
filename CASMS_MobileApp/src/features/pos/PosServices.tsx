@@ -22,7 +22,7 @@ const filters = [
 ];
 const serviceFilters = [
   { id: 'all', label: 'Tất cả dịch vụ' },
-  { id: 'usage', label: 'Có quyền ghi nhận sử dụng' },
+  { id: 'usage', label: 'Ghi nhận sử dụng' },
 ];
 const openStates = ['REQUESTED', 'ACCEPTED', 'IN_PROGRESS'];
 const normalize = (value: string) => value.trim().toLocaleLowerCase('vi-VN');
@@ -61,7 +61,6 @@ export function PosServices() {
       <Text style={ui.eyebrow}>{item.code}</Text>
       <Text style={ui.sectionTitle}>{item.name}</Text>
       <Text style={ui.body}>{money(item.unitPrice, item.currency)}</Text>
-      <StatusBadge status="ACTIVE" />
     </View>)}
   </PosPage>;
 }
@@ -106,7 +105,7 @@ export function PosRequests() {
       <Text style={ui.body}>Số lượng {row.quantity} · {dateTime(row.requestTime)}</Text>
       <Text style={ui.caption}>{row.assignedUserId === pos.owner ? 'Đã giao cho bạn' : row.assignedUserId ? 'Đã phân công' : 'Chưa phân công'}</Text>
       {!!row.note && <Text style={ui.body}>{row.note}</Text>}
-      {actions(row, pos.owner, service.permissions).map(action => <PassengerButton key={action}
+      {actions(row, pos.owner, service.permissions).map(action => <PassengerButton compact key={action}
         label={requestLabels[action]} variant={action === 'cancel' || action === 'reject' ? 'text' : 'secondary'}
         disabled={!pos.verified || query.isFetching || !!query.error || confirm.pending}
         onPress={() => { fulfilled.current = ''; confirm.open({

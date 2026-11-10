@@ -49,7 +49,8 @@ export function PassengerLoginScreen({ initialStatus = 'default', signIn = ({ us
       setPassword('');
       router.replace('/loading');
     } catch (error) {
-      setApiMessage(error instanceof Error ? error.message : 'Đăng nhập thất bại. Vui lòng thử lại.');
+      setApiMessage(error instanceof ApiError && error.status >= 500 ? 'Chưa đăng nhập được. Vui lòng thử lại.'
+        : error instanceof Error ? error.message : 'Đăng nhập thất bại. Vui lòng thử lại.');
       setStatus(error instanceof ApiError && error.status === 0 ? 'offline' : 'error');
     } finally {
       submitting.current = false;
@@ -67,24 +68,20 @@ export function PassengerLoginScreen({ initialStatus = 'default', signIn = ({ us
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" bounces={false}>
           <View style={styles.hero}>
             <View style={styles.brand}><OceVieBrand dark /></View>
-            <Text style={styles.heroTitle}>Biển mở lối.{'\n'}Hành trình bắt đầu.</Text>
-            <Text style={styles.heroDescription}>Bản sắc Việt. Những trải nghiệm vượt đường chân trời.</Text>
           </View>
           <View style={styles.middle}>
             <VoyageEntrance delay={60}><View style={styles.intro}>
-              <Text style={styles.tagline}>CHÀO MỪNG ĐẾN VỚI OCEVIE</Text>
               <Text style={styles.title} accessibilityRole="header">Đăng nhập</Text>
-            <Text style={styles.description}>Đăng nhập tài khoản được OceVie cấp để tiếp tục.</Text>
             </View></VoyageEntrance>
             {message && <View style={[styles.notice, status === 'error' && styles.errorNotice]}>
               <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={[styles.noticeText, status === 'error' && styles.errorText]}>{message}</Text>
             </View>}
             <View style={styles.form}>
-              <OutlinedField label="Tên đăng nhập" value={username} onChangeText={setUsername} helper="Tên đăng nhập được OceVie cấp" username
+              <OutlinedField label="Tên đăng nhập" value={username} onChangeText={setUsername} helper="" username
                 error={touched.username ? errors.username : undefined} disabled={busy} inputRef={emailRef}
                 onBlur={() => setTouched(value => ({ ...value, username: true }))}
                 onSubmitEditing={() => passwordRef.current?.focus()} />
-              <OutlinedField label="Mật khẩu" value={password} onChangeText={setPassword} helper="Nhập mật khẩu của bạn" password
+              <OutlinedField label="Mật khẩu" value={password} onChangeText={setPassword} helper="" password
                 error={touched.password ? errors.password : undefined} disabled={busy} inputRef={passwordRef}
                 onBlur={() => setTouched(value => ({ ...value, password: true }))}
                 onSubmitEditing={() => { void submit(); }} />
@@ -95,8 +92,7 @@ export function PassengerLoginScreen({ initialStatus = 'default', signIn = ({ us
                 disabled={!valid && !busy} loading={busy} onPress={() => { void submit(); }} />
             </View>
           <View style={styles.footer}>
-            <PassengerButton label="Cần hỗ trợ? Liên hệ OceVie" icon="support_agent" variant="text" disabled={busy} onPress={() => router.push('/support')} />
-            <Text style={styles.passenger}>VIETNAMESE HERITAGE · OCEAN LUXURY</Text>
+            <PassengerButton label="Liên hệ hỗ trợ" variant="text" disabled={busy} onPress={() => router.push('/support')} />
           </View>
           </View>
         </ScrollView>
@@ -108,11 +104,11 @@ export function PassengerLoginScreen({ initialStatus = 'default', signIn = ({ us
 const styles = StyleSheet.create({
   flex: { flex: 1 }, screen: { flex: 1, backgroundColor: brand.midnight },
   content: { flexGrow: 1, width: '100%', maxWidth: 600, alignSelf: 'center' },
-  hero: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 32, gap: 16 },
+  hero: { paddingHorizontal: 24, paddingTop: 32, paddingBottom: 32, gap: 16 },
   brand: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 12 },
   heroTitle: { color: brand.pearl, fontFamily: voyage.heading, fontSize: 32, lineHeight: 40, fontWeight: '600', letterSpacing: -.5 },
   heroDescription: { color: darkTheme.textSecondary, fontSize: 13, lineHeight: 22, maxWidth: 300 },
-  middle: { flexGrow: 1, backgroundColor: lightTheme.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, gap: 24 },
+  middle: { flexGrow: 1, backgroundColor: lightTheme.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 24 },
   intro: { gap: 8 }, tagline: { fontSize: 12, lineHeight: 18, letterSpacing: 1.3, color: brand.teal, fontWeight: '600' },
   title: { color: brand.navy, fontSize: 26, lineHeight: 34, fontWeight: '700' },
   description: { fontSize: 14, lineHeight: 22, color: lightTheme.textSecondary },

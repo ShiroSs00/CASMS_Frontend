@@ -28,8 +28,8 @@ export default function PassengerTabsLayout() {
       }}>
       <Tabs.Screen name="home" />
       <Tabs.Screen name="itinerary" />
-      <Tabs.Screen name="bookings" />
       <Tabs.Screen name="services" />
+      <Tabs.Screen name="notifications" />
       <Tabs.Screen name="account" />
     </Tabs>
   );

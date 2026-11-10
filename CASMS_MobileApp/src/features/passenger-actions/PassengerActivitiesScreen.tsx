@@ -4,7 +4,7 @@ import { Text, View } from 'react-native';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
 import { ApiError } from '@/lib/api';
 import { EmptyState, FilterChips, ui } from '@/components/passenger/PassengerUI';
-import { BookingSelection, ConfirmAction, ErrorNotice, Input, PageIntro, LivePage, Loading, StatusBadge } from './PassengerActionUI';
+import { BookingSelection, ConfirmAction, ErrorNotice, Input, LivePage, Loading, StatusBadge } from './PassengerActionUI';
 import { passengerApi, useBookingSelection, usePassengerAction, usePassengerContext, usePassengerQuery } from './passenger-hooks';
 import { canRegister, dateTime, money, positiveQuantity, registrationActions, statusText } from './passenger-model';
 import type { Registration } from './passenger-types';
@@ -77,14 +77,14 @@ export function PassengerActivitiesScreen() {
     finally { lock.current = false; }
   }
   return <LivePage title="Hoạt động và tour">
-    <PageIntro title="Hoạt động và tour" icon="explore" /><Text style={ui.caption}>Thời gian hiển thị theo múi giờ thiết bị.</Text>
+    <Text style={ui.caption}>Giờ thiết bị</Text>
     {success && <Text accessibilityLiveRegion="polite" style={ui.body}>Đã cập nhật đăng ký của bạn.</Text>}
     <FilterChips items={[{ key: 'activities', label: 'Trên tàu' }, { key: 'excursions', label: 'Tour trên bờ' }, { key: 'registrations', label: 'Đăng ký của tôi' }]} selected={tab} onSelect={setTab} />
     {tab !== 'registrations' && <BookingSelection selection={selection} />}
     {tab === 'activities' && (!context.can('ACTIVITY_READ') ? <Text style={ui.body}>Tài khoản chưa có quyền xem hoạt động trên tàu.</Text> : <>
       <ErrorNotice error={activities.error} retry={() => { void activities.refetch(); }} />
       {activities.isPending && <Loading />}
-      {cruiseId && !activities.isPending && !activities.error && !activeActivities.length && <EmptyState title="Chưa có hoạt động" description="Chưa có hoạt động được cung cấp cho chuyến đi đã chọn." />}
+      {!!cruiseId && !activities.isPending && !activities.error && !activeActivities.length && <EmptyState title="Chưa có hoạt động" />}
       {activeActivities.map(item => {
         const target: Target = { id: item.id, name: item.name, kind: 'activity', endTime: item.endTime, status: item.status, available: null };
         return <View key={item.id} style={ui.card}><StatusBadge status={item.status} /><Text style={ui.sectionTitle}>{item.name}</Text>
@@ -99,7 +99,7 @@ export function PassengerActivitiesScreen() {
       {!context.can('EXCURSION_READ') || !context.can('ITINERARY_READ') || !context.can('CRUISE_STOP_READ') ? <Text style={ui.body}>Tài khoản chưa có đủ quyền xem tour theo hải trình.</Text> : <>
         <ErrorNotice error={excursions.error} retry={() => { void excursions.refetch(); }} />
         {cruiseId && excursions.isPending && <Loading />}
-        {cruiseId && !excursions.isPending && !excursions.error && !excursions.data?.length && <EmptyState title="Chưa có tour" description="Chuyến đi đã chọn chưa có tour trên bờ được cung cấp." />}
+        {!!cruiseId && !excursions.isPending && !excursions.error && !excursions.data?.length && <EmptyState title="Chưa có tour" />}
         {excursions.data?.map(item => {
           const target: Target = { id: item.shoreExcursionId, name: item.excursionName, kind: 'excursion', endTime: item.plannedReturnTime, status: item.status, available: item.availableCapacity ?? null };
           return <View key={item.shoreExcursionId} style={ui.card}><StatusBadge status={item.status} /><Text style={ui.sectionTitle}>{item.excursionName}</Text>
@@ -113,7 +113,7 @@ export function PassengerActivitiesScreen() {
     </>}
     {tab === 'registrations' && (!context.can('ACTIVITY_REGISTRATION') ? <Text style={ui.body}>Tài khoản chưa có quyền xem đăng ký.</Text> : <>
       <ErrorNotice error={registrations.error} retry={() => { void registrations.refetch(); }} />{registrations.isPending && <Loading />}
-      {!registrations.isPending && !registrations.error && !registrations.data?.length && <EmptyState title="Chưa có đăng ký" description="Hoạt động và tour đã đăng ký bằng tài khoản sẽ xuất hiện tại đây." />}
+      {!registrations.isPending && !registrations.error && !registrations.data?.length && <EmptyState title="Chưa có đăng ký" />}
       {registrations.data?.map(row => <View key={row.id} style={ui.card}>
         <Text style={ui.sectionTitle}>{row.activityId ? activities.data?.find(a => a.id === row.activityId)?.name ?? 'Hoạt động trên tàu' : excursions.data?.find(e => e.shoreExcursionId === row.excursionId)?.excursionName ?? 'Tour trên bờ'}</Text>
         <Text style={ui.body}>{statusText(row.status)} · {row.quantity} chỗ</Text><Text style={ui.caption}>{dateTime(row.registeredAt)}</Text>

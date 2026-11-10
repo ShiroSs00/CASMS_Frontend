@@ -9,15 +9,11 @@ import { statusText } from './passenger-model';
 import { usePassengerContext, type useBookingSelection } from './passenger-hooks';
 import { ApiError } from '@/lib/api';
 import { MaterialIcon, type MaterialIconName } from '@/components/passenger/MaterialIcon';
-import { VoyageEntrance } from '@/components/passenger/VoyageEntrance';
 
-export function PageIntro({ eyebrow, title, description, icon = 'sailing' }: {
+export function PageIntro({ title, description }: {
   eyebrow?: string; title: string; description?: string; icon?: MaterialIconName;
 }) {
-  return <VoyageEntrance><View style={styles.intro}>
-    <View style={styles.introTop}><View style={styles.introIcon}><MaterialIcon name={icon} color={brand.teal} size={25} /></View><View style={styles.goldLine} /></View>
-    {!!eyebrow && <Text style={ui.eyebrow}>{eyebrow}</Text>}<Text accessibilityRole="header" style={ui.title}>{title}</Text>{!!description && <Text style={ui.body}>{description}</Text>}
-  </View></VoyageEntrance>;
+  return <View style={{ gap: 8 }}><Text accessibilityRole="header" style={ui.sectionTitle}>{title}</Text>{!!description && <Text style={ui.body}>{description}</Text>}</View>;
 }
 export function StatusBadge({ status }: { status: string }) {
   const key = status.toUpperCase();
@@ -25,7 +21,7 @@ export function StatusBadge({ status }: { status: string }) {
     : ['CANCELLED', 'REJECTED'].includes(key) ? 'error'
       : ['PENDING', 'REQUESTED', 'DRAFT'].includes(key) ? 'warning' : 'neutral';
   const colors = statusColors[tone];
-  return <View style={[styles.badge, { backgroundColor: colors.background }]}><View style={[styles.statusDot, { backgroundColor: colors.foreground }]} /><Text style={[styles.badgeText, { color: colors.foreground }]}>{statusText(status)}</Text></View>;
+  return <View style={[styles.badge, { backgroundColor: colors.background }]}><Text style={[styles.badgeText, { color: colors.foreground }]}>{statusText(status)}</Text></View>;
 }
 
 export function errorText(error: unknown) {
@@ -34,13 +30,14 @@ export function errorText(error: unknown) {
     if (error.status === 403) return 'Tài khoản chưa có quyền thực hiện thao tác hoặc hồ sơ này không thuộc bạn.';
     if (error.status === 404) return 'Thông tin này không còn khả dụng. Vui lòng tải lại.';
     if (error.status === 409) return 'Hệ thống chưa thể thực hiện thao tác ở trạng thái hiện tại. Vui lòng tải lại để kiểm tra.';
+    if (error.status >= 500) return 'Chưa nhận được kết quả. Kiểm tra trạng thái trước khi gửi lại.';
     if (error.status === 0) return `${error.message} Hãy kiểm tra lại trạng thái trước khi gửi lại.`;
   }
   return error instanceof Error ? error.message : 'Không xử lý được yêu cầu. Vui lòng thử lại.';
 }
 export function ErrorNotice({ error, retry }: { error: unknown; retry?: () => void }) {
   if (!error) return null;
-  const message = retry && error instanceof ApiError && error.status === 0 ? error.message : errorText(error);
+  const message = retry && error instanceof ApiError ? error.status >= 500 ? 'Không tải được dữ liệu. Vui lòng thử lại.' : error.status === 0 ? error.message : errorText(error) : errorText(error);
   return <View accessibilityLiveRegion="polite" style={styles.error}><Text accessibilityRole="alert" style={styles.errorText}>{message}</Text>{retry && <PassengerButton label="Tải lại" variant="text" onPress={retry} />}</View>;
 }
 export function Loading({ text = 'Đang tải dữ liệu…' }: { text?: string }) { return <View style={styles.row}><ActivityIndicator color={brand.teal} /><Text style={ui.body}>{text}</Text></View>; }
@@ -63,10 +60,10 @@ export function BookingSelection({ selection, draft = false }: { selection: Retu
   const context = usePassengerContext();
   if (!context.can('BOOKING_READ')) return <Text style={ui.body}>Tài khoản cần quyền xem đặt chỗ để chọn hồ sơ hành khách.</Text>;
   const error = selection.source.error ?? (draft ? selection.booking.error : null);
-  return <View style={ui.card}><Text style={ui.sectionTitle}>Chuyến đi và hành khách</Text>
+  return <View style={ui.card}>
     <ErrorNotice error={error} retry={() => { void selection.source.refetch(); if (selection.ownBooking) void selection.booking.refetch(); }} />
     {selection.source.isPending || (draft && selection.bookingId && selection.booking.isPending) ? <Loading /> : null}
-    {!selection.source.isPending && !selection.source.error && !selection.options.length ? <Text style={ui.body}>{draft ? 'Bạn chưa có đơn nháp để chọn gói dịch vụ.' : 'Bạn cần đặt chỗ đã xác nhận để sử dụng tính năng này.'}</Text> : null}
+    {!selection.source.isPending && !selection.source.error && !selection.options.length ? <Text style={ui.body}>{draft ? 'Chưa có chuyến đi đủ điều kiện chọn gói.' : 'Cần có đặt chỗ đã xác nhận.'}</Text> : null}
     {!!selection.options.length && <Choice label="Đặt chỗ" value={selection.bookingId} items={selection.options.map(b => ({ id: b.bookingId, label: `${b.bookingReference} · ${b.cruiseName}` }))} onChange={selection.choose} />}
     {!!selection.options.length && !selection.bookingId && <Text style={ui.body}>{selection.invalidSelection
       ? 'Đặt chỗ đã chọn không còn khả dụng. Vui lòng chọn lại.'
@@ -110,5 +107,5 @@ export const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
   input: { borderWidth: 1, borderColor: lightTheme.border, borderRadius: 12, padding: 14, minHeight: 50, color: brand.navy, backgroundColor: lightTheme.surface, fontSize: 15 },
   option: { minHeight: 56, padding: 16, borderRadius: 14, borderWidth: 1, borderColor: lightTheme.divider, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  error: { padding: 14, gap: 8, borderRadius: 12, backgroundColor: '#FFF0ED' }, errorText: { fontSize: 14, lineHeight: 22, color: '#8A3024' },
+  error: { padding: 14, gap: 8, borderRadius: 12, backgroundColor: statusColors.error.background }, errorText: { fontSize: 14, lineHeight: 22, color: statusColors.error.foreground },
 });

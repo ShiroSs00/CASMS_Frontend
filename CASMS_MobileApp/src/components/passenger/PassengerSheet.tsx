@@ -49,7 +49,7 @@ export function PassengerSheet({ visible, title, children, onClose, dismissible 
           transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [reduced ? 0 : 48, 0] }) }],
         }]}>
         <View style={styles.handle} />
-        <View style={styles.header}><View style={styles.heading}><Text style={styles.eyebrow}>OCEVIE</Text><Text accessibilityRole="header" style={styles.title}>{displayed.title}</Text></View>
+        <View style={styles.header}><View style={styles.heading}><Text accessibilityRole="header" style={styles.title}>{displayed.title}</Text></View>
           <Pressable accessibilityRole="button" accessibilityLabel="Đóng" accessibilityState={{ disabled: !dismissible || !visible }} disabled={!dismissible || !visible} onPress={close} style={({ pressed }) => [styles.close, pressed && styles.pressed, !dismissible && { opacity: .4 }]}><MaterialIcon name="close" color={brand.navy} size={22} /></Pressable>
         </View>
         <ScrollView key={displayed.contentKey} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content}>{displayed.children}</ScrollView>
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   heading: { flex: 1, gap: 6 },
   eyebrow: { fontSize: 10, lineHeight: 16, letterSpacing: 1.4, color: brand.teal, fontWeight: '600' },
   title: { fontSize: 22, lineHeight: 30, fontWeight: '700', color: brand.navy, letterSpacing: -.3 },
-  close: { width: 44, height: 44, borderRadius: 14, backgroundColor: lightTheme.surfaceHover, alignItems: 'center', justifyContent: 'center' },
+  close: { width: 48, height: 48, borderRadius: 14, backgroundColor: lightTheme.surfaceHover, alignItems: 'center', justifyContent: 'center' },
   pressed: { backgroundColor: brand.tealSoft },
   content: { gap: 18, paddingTop: 20, paddingBottom: 16 },
 });

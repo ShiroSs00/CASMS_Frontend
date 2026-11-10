@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import './register-typescript.mjs';
 const { createPassengerApi } = await import('../src/features/passenger-actions/passenger-api.ts');
-import { buildBooking, positiveQuantity, packageFits, canRegister, usablePassengers, registrationActions, serviceRequestActions, bookableCruises, money, personalPermissions } from '../src/features/passenger-actions/passenger-model.ts';
+import { positiveQuantity, packageFits, canRegister, usablePassengers, registrationActions, serviceRequestActions, money, personalPermissions } from '../src/features/passenger-actions/passenger-model.ts';
 import { createApiClient, ApiError } from '../src/lib/api/api-client.ts';
 import { readPermissions, toSession, readSession } from '../src/features/auth/session-model.ts';
 
@@ -24,28 +24,15 @@ test('passenger assignments request only the own-user API and filter actual book
   assert.equal(calls[0].path, '/servicepackage/package-assignments');
   assert.equal(calls[0].options.query, undefined);
 });
-const modelRow = { key: 'a', fullName: 'Nguyễn An', email: '', phoneNumber: '', cabinId: cabin };
 const details = { bookingId: booking, bookingReference: 'BK-TEST', cruiseId: shipCruise, cruiseCode: 'TEST', cruiseName: 'Test',
   departureDatetime: '2027-01-01T00:00:00Z', returnDatetime: '2027-01-02T00:00:00Z', createdAt: '2026-11-09T00:00:00Z',
   paymentPlan: 'FULL', installments: [], bookingStatus: 'Draft', passengers: [{ bookingPassengerId: bp, passengerId: user, fullName: 'Nguyễn An', participationStatus: 'Active' }] };
 
-test('booking checks combined cabin occupancy instead of checking each traveller separately', () => {
-  assert.throws(() => buildBooking(shipCruise, [modelRow, { ...modelRow, key: 'b' }], [{ cabinId: cabin, cabinNumber: '101', remainingCapacity: 1 }], 'DEPOSIT', ''), /không đủ chỗ/);
-  const payload = buildBooking(shipCruise, [modelRow], [{ cabinId: cabin, remainingCapacity: 1 }], 'STAGES', '  Ăn chay ');
-  assert.deepEqual(payload.passengers[0], { fullName: 'Nguyễn An', cabinId: cabin });
-  assert.equal(payload.notes, 'Ăn chay'); assert.equal(payload.paymentPlan, 'STAGES');
-  assert.equal('currency' in payload, false); assert.equal('agreedFareAmount' in payload, false);
-});
-test('booking validates contacts, removed cabins and integer quantities', () => {
-  assert.throws(() => buildBooking(shipCruise, [{ ...modelRow, phoneNumber: 'abc' }], [{ cabinId: cabin, remainingCapacity: 1 }], 'FULL', ''), /điện thoại/);
-  assert.throws(() => buildBooking(shipCruise, [modelRow], [], 'FULL', ''), /chọn phòng/);
+test('post-booking actions retain bounded integer quantity validation', () => {
   for (const value of ['0', '-1', '1.2', '1e3', '', '2147483648']) assert.throws(() => positiveQuantity(value));
   assert.equal(positiveQuantity(' 2 '), 2);
 });
-test('only published future cruises are offered for creating bookings', () => {
-  const date = '2026-11-01T00:00:00Z'; const now = Date.parse('2026-10-20T00:00:00Z');
-  assert.equal(bookableCruises([{ status: 'PUBLISHED', departureDatetime: date }, { status: 'DRAFT', departureDatetime: date }, { status: 'PUBLISHED', departureDatetime: '2020-01-01' }], now).length, 1);
-});
+
 test('bookingPassengerId comes from active confirmed booking rows, never user identity', () => {
   const value = { bookingStatus: 'Confirmed', passengers: [{ bookingPassengerId: bp, participationStatus: 'Active' }, { bookingPassengerId: user, participationStatus: 'Cancelled' }] };
   assert.deepEqual(usablePassengers(value).map(p => p.bookingPassengerId), [bp]);
@@ -96,14 +83,13 @@ test('API uses all booking pages and rejects incomplete or duplicate results', a
   await assert.rejects(createPassengerApi({ async request() { return { number: 0, totalPages: 1, totalElements: 2, content: [{ bookingId: booking }] }; } }).bookings(), /Chưa tải đủ/);
   await assert.rejects(createPassengerApi({ async request() { return { number: 0, totalPages: 1, totalElements: 2, content: [{ bookingId: booking }, { bookingId: booking }] }; } }).bookings(), /trùng/);
 });
-test('booking creation and cancellation use server IDs and do not invent a payment or confirmation API', async () => {
+test('existing booking cancellation uses the supported post-booking route', async () => {
   const calls = [];
   const api = createPassengerApi({ async request(path, options) { calls.push({ path, ...options }); return { ...details, cruiseId: shipCruise, bookedByUserId: user, bookingStatus: path.endsWith('/cancel') ? 'Cancelled' : 'Draft' }; } });
-  await api.createBooking({ cruiseId: shipCruise, quoteId: target, currency: 'USD', paymentPlan: 'FULL', passengers: [{ fullName: 'Nguyễn An', cabinId: cabin }] }, other, user);
   await api.cancelBooking(booking, '  Đổi kế hoạch  ');
-  assert.equal(calls[0].path, '/booking'); assert.equal(calls[0].method, 'POST');
-  assert.equal(calls[1].path, `/booking/${booking}/cancel`); assert.deepEqual(calls[1].body, { reason: 'Đổi kế hoạch' });
+  assert.equal(calls[0].path, `/booking/${booking}/cancel`); assert.deepEqual(calls[0].body, { reason: 'Đổi kế hoạch' });
   assert.equal('confirmBooking' in api, false);
+  for (const removed of ['createBooking', 'bookingQuote', 'recoverBooking', 'cabins', 'cruises']) assert.equal(removed in api, false);
   await assert.rejects(api.cancelBooking(booking, ' '));
   await assert.rejects(api.booking('../all'));
 });

@@ -23,13 +23,11 @@ before(async () => {
   assert.deepEqual(me.roles, ['PASSENGER']);
 });
 
-test('real JWT /auth/me and own booking, cruise and cabin reads match mobile adapters', async () => {
+test('real JWT /auth/me and own booking and assigned cabin reads match mobile adapters', async () => {
   const bookings = await api.bookings(); assert.ok(bookings.some(b => b.bookingId === id(61)));
   const booking = await api.booking(id(61));
   assert.equal(booking.bookingStatus, 'Confirmed'); assert.equal(booking.passengers[0].bookingPassengerId, id(71));
   assert.equal(booking.passengers[0].cabinNumber, '801');
-  assert.ok((await api.cruises()).some(c => c.cruiseId === id(31)));
-  assert.ok((await api.cabins(id(31))).some(c => c.cabinId === id(7)));
 });
 
 test('real old itinerary routes return four Asian ports and two ship time zones', async () => {
@@ -76,11 +74,4 @@ test('real package benefits and draft assignment use POST/PUT/DELETE without a f
   assert.equal((await api.savePackage(id(72), id(131), true)).packageId, id(131));
   assert.equal((await api.assignments([id(72)])).length, 1);
   await api.removePackage(id(72)); assert.deepEqual(await api.assignments([id(72)]), []);
-});
-
-test('real booking creation and cancellation return authoritative fare and state', async () => {
-  const created = await api.createBooking({ cruiseId: id(31), passengers: [{ fullName: 'QA Booking Passenger', email: 'booking@ocevie.example', cabinId: id(7) }], paymentPlan: 'DEPOSIT', notes: 'Real API integration' });
-  assert.equal(created.bookingStatus, 'Draft'); assert.equal(created.passengers.length, 1);
-  assert.equal(typeof created.agreedFareAmount, 'number');
-  assert.equal((await api.cancelBooking(created.bookingId, 'Integration cleanup')).bookingStatus, 'Cancelled');
 });

@@ -48,13 +48,9 @@ function PassengerJourneyLoading() {
         <VoyageEntrance><View style={styles.orbit} accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <View style={styles.indicator}><LaunchIndicator /></View><View style={styles.dot} />
         </View></VoyageEntrance>
-        <Text style={styles.kicker}>A NEW HORIZON AWAITS</Text>
-        <Text style={styles.title} accessibilityRole="header">Chân trời mới{'\n'}đang mở ra.</Text>
-        <Text style={styles.description}>Đồng bộ lịch trình, điểm dừng{'\n'}và thông tin chuyến đi.</Text>
         <View style={styles.track} accessibilityRole="progressbar" accessibilityLabel="Đang tải hành trình" accessibilityState={{ busy: true }}><Animated.View style={[styles.segment, moving]} /></View>
-        <Text style={styles.caption} accessibilityLiveRegion="polite">Đang tải thông tin chuyến đi…</Text>
+        <Text style={styles.caption} accessibilityLiveRegion="polite">Đang mở chuyến đi…</Text>
       </View>
-      <Text style={[styles.caption, { textAlign: 'center' }]}>OCEVIE CRUISES</Text>
     </ScrollView>
   </SafeAreaView>;
 }

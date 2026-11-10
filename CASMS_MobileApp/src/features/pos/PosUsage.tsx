@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { uuid as nativeUuid } from 'expo';
 import { Text, View } from 'react-native';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
-import { ui } from '@/components/passenger/PassengerUI';
+import { AmountRow, Disclosure, ui } from '@/components/passenger/PassengerUI';
 import { Choice } from '@/features/passenger-actions/PassengerActionUI';
 import { dateTime } from '@/features/passenger-actions/passenger-model';
 import { ApiError } from '@/lib/api';
@@ -134,7 +134,7 @@ export function PosUsage() {
           setIssue('Kết quả giao dịch chưa được xác nhận. Hồ sơ chờ giữ nguyên nội dung và mã giao dịch.');
         } else {
           try { await clearPendingSale(saleScope); updatePending(null); }
-          catch { setIssue('Không xóa được hồ sơ chờ trên iPhone. Liên hệ quản lý để đối soát.'); }
+          catch { setIssue('Không xóa được hồ sơ chờ trên thiết bị. Liên hệ quản lý để đối soát.'); }
         }
         throw error;
       }
@@ -149,7 +149,7 @@ export function PosUsage() {
         await clearPendingSale(saleScope);
         updatePending(null);
       } catch {
-        setIssue('Hệ thống đã xác nhận giao dịch nhưng iPhone chưa xóa được hồ sơ chờ. Dùng lại cùng mã để hoàn tất đối soát.');
+        setIssue('Giao dịch đã được xác nhận nhưng còn hồ sơ chờ trên thiết bị. Gửi lại cùng mã để đối soát.');
       }
     } finally { saleLocks.delete(terminalId); }
   }
@@ -175,7 +175,7 @@ export function PosUsage() {
   function reconcile(work: PendingSale) {
     confirm.open({
       title: 'Gửi lại cùng mã giao dịch',
-      description: `${work.serviceName} · 1 lượt · Hành khách ${work.input.bookingPassengerId}. Hệ thống sẽ trả lại giao dịch đã lưu hoặc ghi nhận một lần nếu yêu cầu trước chưa được lưu.`,
+      description: `${work.serviceName} · 1 lượt · Hành khách ${work.input.bookingPassengerId}. Gửi lại đúng giao dịch đang chờ để đối soát kết quả.`,
       run: () => submit(work),
     });
   }
@@ -200,7 +200,6 @@ export function PosUsage() {
 
   if (!sellable.length) return <PosPage title="Hạn mức nội bộ"><Notice tone="warning">Bạn chưa có quyền ghi nhận sử dụng hoặc xem sao kê trong phiên này.</Notice></PosPage>;
   return <PosPage title="Hạn mức nội bộ" refresh={reload} refreshing={pending.isRefetching || statement.isRefetching || detail.isRefetching}>
-    <Text style={ui.body}>Ghi nhận sử dụng dịch vụ trên tàu để đối soát sau chuyến.</Text>
     {!!pos.sessionError && <Notice tone="error" retry={pos.refreshSession}>{posError(pos.sessionError)}</Notice>}
     <QueryState query={pending} />
     {pending.data?.kind === 'blocked' &&
@@ -208,8 +207,8 @@ export function PosUsage() {
     {!!issue && <Notice tone="warning">{issue}</Notice>}
     {recovery && <View style={ui.card}>
       <Text style={ui.sectionTitle}>Giao dịch chờ đối soát</Text>
-      <Text style={ui.body}>{recovery.serviceName} · Hành khách {recovery.input.bookingPassengerId}</Text>
-      <Text style={ui.caption}>{recovery.input.idempotencyKey}</Text>
+      <Text style={ui.sectionTitle}>{recovery.serviceName}</Text>
+      <Disclosure title="Chi tiết đối soát"><Text selectable style={ui.caption}>Hành khách: {recovery.input.bookingPassengerId}{'\n'}Mã giao dịch: {recovery.input.idempotencyKey}</Text></Disclosure>
       {!canReplay && <Notice tone="warning">Quyền ghi nhận dịch vụ này đã thay đổi. Liên hệ quản lý để đối soát.</Notice>}
       <PassengerButton label="Gửi lại cùng mã" disabled={!pos.verified || !canReplay || confirm.pending || pending.isFetching}
         onPress={() => reconcile(recovery)} />
@@ -221,16 +220,15 @@ export function PosUsage() {
       {passengerOptions.length > 0 && <Choice label="Hành khách từ yêu cầu trong phiên" value={bookingPassengerId}
         onChange={updatePassenger} disabled={!pos.verified || confirm.pending}
         items={passengerOptions} />}
-      <Text style={ui.body}>Nếu không có yêu cầu phù hợp, dùng hồ sơ đã kiểm tra. ID tài khoản trên tàu lấy từ hồ sơ được cấp.</Text>
-      <Field label="ID hành khách trong đặt chỗ" value={passenger} onChangeText={updatePassenger} maxLength={36} />
-      <Field label="ID tài khoản trên tàu" value={account} onChangeText={updateAccount} maxLength={36} />
+      <Field label="Mã hồ sơ hành khách" value={passenger} onChangeText={updatePassenger} maxLength={36} />
+      <Field label="Mã tài khoản trên tàu" value={account} onChangeText={updateAccount} maxLength={36} />
       <PassengerButton label="Tra sao kê" variant="secondary" disabled={!validIds || !pos.verified || confirm.pending}
         loading={statement.isFetching} onPress={() => {
           if (matched) void statement.refetch();
           else { setSelectedSale(''); setLookup({ account: accountId, passenger: bookingPassengerId }); }
         }} />
       {lookup && <QueryState query={statement} />}
-      {budget && <Notice tone="info">Đã đối chiếu hồ sơ với chuyến trong phiên và xác nhận quyền chi tiêu trên tài khoản. Hạn mức hành khách còn {money(budget.remainingAmount, budget.currency)}.</Notice>}
+      {budget && <AmountRow label="Hạn mức còn lại" value={money(budget.remainingAmount, budget.currency)} prominent />}
       <Choice label="Dịch vụ" value={serviceId} onChange={value => { setServiceId(value); setSchedule(''); }}
         disabled={!budget || !!pending.data || confirm.pending}
         items={sellable.map(item => ({ id: item.serviceId, label: item.name }))} />
@@ -239,8 +237,8 @@ export function PosUsage() {
       {scheduleOptions.size > 0 && <Choice label="Lịch từ yêu cầu trong phiên" value={schedule}
         onChange={setSchedule} disabled={!!pending.data || confirm.pending}
         items={[...scheduleOptions].map(([id, label]) => ({ id, label }))} />}
-      <Field label="ID lịch dịch vụ (nếu có)" value={schedule} onChangeText={setSchedule} maxLength={36}
-        editable={!!service && !pending.data && !confirm.pending} />
+      <Disclosure title="Nhập mã lịch phục vụ"><Field label="Mã lịch phục vụ (tùy chọn)" value={schedule} onChangeText={setSchedule} maxLength={36}
+        editable={!!service && !pending.data && !confirm.pending} /></Disclosure>
       {!!fundsIssue && <Notice tone="warning">{fundsIssue}</Notice>}
       <PassengerButton label="Xem lại ghi nhận" disabled={!canReview || !pos.verified || confirm.pending} onPress={review} />
     </View>
@@ -248,10 +246,10 @@ export function PosUsage() {
       <Text accessibilityRole="header" style={ui.sectionTitle}>Sao kê hạn mức</Text>
       {statement.data && !statement.error && <>
         <View style={ui.card}>
-          <Text style={ui.body}>Hạn mức được cấp {money(statement.data.budget.allocatedAmount, statement.data.budget.currency)}</Text>
-          <Text style={ui.body}>Đã dùng {money(statement.data.budget.usedAmount, statement.data.budget.currency)}</Text>
-          <Text style={ui.body}>Tài khoản còn {money(statement.data.budget.accountRemaining, statement.data.budget.currency)}</Text>
-          <Text style={ui.sectionTitle}>Hành khách còn {money(statement.data.budget.remainingAmount, statement.data.budget.currency)}</Text>
+          <AmountRow label="Được cấp" value={money(statement.data.budget.allocatedAmount, statement.data.budget.currency)} />
+          <AmountRow label="Đã dùng" value={money(statement.data.budget.usedAmount, statement.data.budget.currency)} />
+          <AmountRow label="Tài khoản còn" value={money(statement.data.budget.accountRemaining, statement.data.budget.currency)} />
+          <AmountRow label="Hành khách còn" value={money(statement.data.budget.remainingAmount, statement.data.budget.currency)} prominent />
         </View>
         {!statement.data.history.length && <Notice tone="neutral">Chưa có giao dịch sử dụng hạn mức.</Notice>}
         {[...statement.data.history].reverse().map(row => <View style={ui.card} key={row.transactionId}>
@@ -273,11 +271,11 @@ export function PosUsage() {
 
 function SaleSummary({ sale, confirmed = false }: { sale: Sale; confirmed?: boolean }) {
   return <View style={ui.card}>
-    {confirmed && <Notice tone="success">Hệ thống đã xác nhận ghi nhận sử dụng.</Notice>}
+    {confirmed && <Notice tone="success">Đã ghi nhận sử dụng dịch vụ.</Notice>}
     <PosReveal>
-      <Text selectable style={ui.sectionTitle}>{money(sale.amount, sale.currency)}</Text>
+      <Text selectable style={ui.amount}>{money(sale.amount, sale.currency)}</Text>
       <Text style={ui.body}>{sale.reversedAt ? `Đã đảo ghi nhận · ${dateTime(sale.reversedAt)}` : dateTime(sale.createdAt)}</Text>
-      <Text selectable style={ui.caption}>Mã bản ghi {sale.saleId}</Text>
+      <Disclosure title="Mã giao dịch"><Text selectable style={ui.caption}>{sale.saleId}</Text></Disclosure>
     </PosReveal>
   </View>;
 }

@@ -5,23 +5,25 @@ import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { passengerLightColors as colors } from '@/constants/passenger-light-theme';
+import { brand, controls } from '@/constants/ocevie';
 
 import { MaterialIcon, type MaterialIconName } from './MaterialIcon';
 
-export function PassengerButton({ label, onPress, icon, variant = 'filled', disabled = false, loading = false }: {
+export function PassengerButton({ label, onPress, icon, variant = 'filled', disabled = false, loading = false, compact = false }: {
   label: string;
   onPress: () => void;
   icon?: MaterialIconName;
   variant?: 'filled' | 'text' | 'secondary' | 'premium';
   disabled?: boolean;
   loading?: boolean;
+  compact?: boolean;
 }) {
   const scale = useSharedValue(1);
   const reduceMotion = useMotionPreference();
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }], borderRadius: 14, overflow: 'hidden' as const }));
   const blocked = disabled || loading;
   useEffect(() => { if (blocked || reduceMotion) scale.set(1); }, [blocked, reduceMotion, scale]);
-  const textColor = disabled ? colors.onSurfaceVariant : variant === 'text' ? colors.secondary : variant === 'premium' ? colors.onTertiaryContainer : colors.onPrimary;
+  const textColor = blocked ? colors.onSurfaceVariant : variant === 'text' || variant === 'secondary' ? colors.secondary : variant === 'premium' ? colors.onTertiaryContainer : colors.onPrimary;
 
   return (
     <Animated.View style={animatedStyle}>
@@ -39,6 +41,7 @@ export function PassengerButton({ label, onPress, icon, variant = 'filled', disa
         variant === 'text' ? styles.text : styles.filled,
         variant === 'secondary' && styles.secondary,
         variant === 'premium' && styles.premium,
+        compact && styles.compact,
         blocked && variant !== 'text' && styles.disabled,
         pressed && variant === 'text' && styles.pressed,
       ]}>
@@ -53,10 +56,11 @@ export function PassengerButton({ label, onPress, icon, variant = 'filled', disa
 
 const styles = StyleSheet.create({
   base: { borderRadius: 14, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, overflow: 'hidden' },
-  filled: { minHeight: 56, paddingVertical: 14, backgroundColor: colors.primary },
-  secondary: { backgroundColor: colors.secondary },
+  filled: { minHeight: controls.buttonHeight, paddingVertical: 14, backgroundColor: colors.primary },
+  secondary: { backgroundColor: colors.surface, borderWidth: 1, borderColor: brand.teal },
   premium: { backgroundColor: colors.tertiaryContainer },
-  text: { minHeight: 44, paddingVertical: 8 },
+  text: { minHeight: controls.touch, paddingVertical: 8 },
+  compact: { minHeight: controls.touch, paddingHorizontal: 16, paddingVertical: 10 },
   disabled: { backgroundColor: colors.surfaceContainerHighest },
   pressed: { backgroundColor: colors.secondaryContainer },
   label: { fontSize: 14, lineHeight: 20, fontWeight: '600', flexShrink: 1, textAlign: 'center' },

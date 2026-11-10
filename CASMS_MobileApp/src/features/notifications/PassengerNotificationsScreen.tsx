@@ -12,7 +12,7 @@ import type { PassengerNotification } from '@/features/passenger-actions/passeng
 import { useAuth } from '@/features/auth/session-store';
 import { getApiUrl } from '@/lib/api';
 
-export function PassengerNotificationsScreen() {
+export function PassengerNotificationsScreen({ embedded = false }: { embedded?: boolean }) {
   const inbox = usePassengerQuery(['notifications'], passengerApi.notifications, 'NOTIFICATION_READ');
   const read = usePassengerAction<PassengerNotification>();
   const cache = useQueryClient();
@@ -34,11 +34,11 @@ export function PassengerNotificationsScreen() {
     catch { /* Keep the message open and show the mutation error. */ }
     finally { lock.current = false; }
   }
-  return <LivePage title="Thông báo" permission="NOTIFICATION_READ" onRefresh={() => { void inbox.refetch(); }} refreshing={inbox.isRefetching}>
+  return <LivePage title="Thông báo" permission="NOTIFICATION_READ" detail={!embedded} selected="notifications" onRefresh={() => { void inbox.refetch(); }} refreshing={inbox.isRefetching}>
     <ErrorNotice error={inbox.error} retry={() => { void inbox.refetch(); }} />
     {inbox.isPending ? <Loading text="Đang tải thông báo…" /> : !inbox.error && !inbox.data?.length &&
-      <EmptyState icon="notifications" title="Chưa có thông báo" description="Tin nhắn dành cho tài khoản của bạn sẽ xuất hiện tại đây." />}
-    {inbox.data?.map(item => <PassengerListItem key={item.notificationId} title={item.title}
+      <EmptyState icon="notifications" title="Chưa có thông báo" />}
+    {inbox.data?.map(item => <PassengerListItem compact key={item.notificationId} title={item.title}
       supporting={`${item.readAt ? 'Đã đọc' : 'Chưa đọc'} · ${dateTime(item.createdAt)}`} icon="notifications"
       disabled={read.isPending} onPress={() => {
         if (lock.current) return;

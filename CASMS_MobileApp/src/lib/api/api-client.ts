@@ -15,7 +15,7 @@ export async function readSection<T>(request: Promise<T>, label: string) {
     return { data: null, error: readErrorMessage(error, label) };
   }
 }
-export type RequestOptions = { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; query?: Record<string, string | number | undefined>; signal?: AbortSignal; authenticated?: boolean; posSession?: string; bookingIdempotencyKey?: string };
+export type RequestOptions = { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; query?: Record<string, string | number | undefined>; signal?: AbortSignal; authenticated?: boolean; posSession?: string };
 export function resolveApiUrl(configured: string | undefined, host: string | undefined, development: boolean) {
   if (configured?.trim()) {
     const url = new URL(configured.trim());
@@ -52,9 +52,6 @@ export function createApiClient(config: { baseUrl: () => string; fetch?: typeof 
         if (options.body !== undefined) headers['Content-Type'] = 'application/json';
         if (token) headers.Authorization = `Bearer ${token}`;
         if (options.posSession) headers['X-POS-Session'] = options.posSession;
-        if (path === '/booking' && options.method === 'POST' && options.bookingIdempotencyKey) {
-          headers['Idempotency-Key'] = options.bookingIdempotencyKey;
-        }
         const response = await (config.fetch ?? fetch)(`${config.baseUrl()}${path}${query.size ? `?${query}` : ''}`, { method: options.method ?? 'GET', headers, body: options.body === undefined ? undefined : JSON.stringify(options.body), signal: controller.signal });
         if (response.status === 204 && response.ok) return undefined as T;
         let payload: unknown;

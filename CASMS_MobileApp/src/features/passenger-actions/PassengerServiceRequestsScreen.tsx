@@ -6,8 +6,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
-import { EmptyState, FilterChips, SearchField, ui } from '@/components/passenger/PassengerUI';
-import { Choice, BookingSelection, ConfirmAction, ErrorNotice, Input, PageIntro, LivePage, Loading, StatusBadge } from './PassengerActionUI';
+import { Disclosure, EmptyState, FilterChips, SearchField, ui } from '@/components/passenger/PassengerUI';
+import { Choice, BookingSelection, ConfirmAction, ErrorNotice, Input, LivePage, Loading, StatusBadge } from './PassengerActionUI';
 import { passengerApi, useBookingSelection, usePassengerAction, usePassengerContext, usePassengerQuery } from './passenger-hooks';
 import { dateTime, money, positiveQuantity, serviceRequestActions, serviceRequestInput, statusText } from './passenger-model';
 import type { Service, ServiceRequest, ServiceSchedule } from './passenger-types';
@@ -71,8 +71,7 @@ function ServiceRequestsWorkspace({ embedded }: { embedded: boolean }) {
         throw new Error('Yêu cầu đã lưu chưa khớp thao tác của bạn.');
       await clearServiceOperation(owner, pending.key);
       pendingRef.current = null; payloadRef.current = null; setPendingOperation(null);
-      selection.choose(saved.bookingId ?? pending.bookingId);
-      selection.choosePerson(pending.bookingPassengerId);
+      selection.choose(saved.bookingId ?? pending.bookingId, pending.bookingPassengerId);
       setOperation(null); setTab('requests'); await requests.refetch();
     } catch (error) {
       setValidation(error instanceof ApiError && error.status === 404
@@ -166,12 +165,11 @@ function ServiceRequestsWorkspace({ embedded }: { embedded: boolean }) {
   }
 
   return <LivePage title="Dịch vụ trên tàu" permission="SERVICE_READ" detail={!embedded}>
-    <PageIntro title="Dịch vụ trên tàu" icon="room_service" />
-    <PassengerButton label="Hoạt động và tour" variant="secondary" onPress={() => router.push('/passenger-activities')} />
+    <PassengerButton compact label="Hoạt động và tour" variant="text" onPress={() => router.push('/passenger-activities')} />
     <BookingSelection selection={selection} />
     {pendingOperation && <View style={ui.card}>
       <Text style={ui.sectionTitle}>Yêu cầu cần đối chiếu</Text>
-      <Text style={ui.body}>Hệ thống cần xác định kết quả lần gửi trước trước khi tạo yêu cầu tiếp.</Text>
+      <Text style={ui.body}>Lần gửi trước chưa rõ kết quả. Kiểm tra trước khi gửi tiếp.</Text>
       <PassengerButton label="Kiểm tra yêu cầu đã lưu" disabled={action.isPending} onPress={() => { void recover(); }} />
     </View>}
     <ErrorNotice error={validation} />
@@ -180,22 +178,23 @@ function ServiceRequestsWorkspace({ embedded }: { embedded: boolean }) {
       <SearchField placeholder="Tìm dịch vụ trên tàu" value={search} onChangeText={setSearch} />
       <ErrorNotice error={services.error} retry={() => { void services.refetch(); }} />
       {services.isPending && <Loading />}
-      {!services.isPending && !services.error && !active.length && <EmptyState title="Chưa có dịch vụ phù hợp" description="Thử từ khóa khác hoặc kiểm tra lại sau." />}
+      {!services.isPending && !services.error && !active.length && <EmptyState title={search ? 'Không tìm thấy dịch vụ' : 'Chưa có dịch vụ'} />}
       {active.map(service => <View key={service.id} style={ui.card}><Text style={ui.caption}>{statusText(service.type ?? 'Dịch vụ trên tàu')}</Text><Text style={ui.sectionTitle}>{service.name}</Text>
-        {!!service.description && <Text style={ui.body}>{service.description}</Text>}<Text style={ui.body}>Giá tham chiếu {money(service.price, service.currency)}</Text>
+        <Text style={ui.amountValue}>{money(service.price, service.currency)}</Text>
+        {!!service.description && <Disclosure title="Chi tiết dịch vụ"><Text style={ui.body}>{service.description}</Text></Disclosure>}
         {context.can('SERVICE_REQUEST_CREATE') && <PassengerButton label="Gửi yêu cầu dịch vụ" disabled={!canCreate || !operationLoaded || service.canBuyPreCruise === false || Boolean(pendingOperation && (pendingOperation.serviceId !== service.id || pendingOperation.bookingPassengerId !== selection.bookingPassengerId))} onPress={() => open({ kind: 'create', service })} />}
       </View>)}
       <PassengerButton label="Cập nhật dịch vụ" variant="text" loading={services.isFetching} onPress={() => { void services.refetch(); }} />
     </> : !requestPermissions.some(context.can) ? <Text style={ui.body}>Tài khoản chưa có quyền xem yêu cầu dịch vụ.</Text> : <>
       <ErrorNotice error={requests.error} retry={() => { void requests.refetch(); }} />{requests.isPending && <Loading />}
-      {!selection.source.isPending && !selection.source.error && !!selection.bookingId && !requests.isPending && !requests.error && !visibleRequests.length && <EmptyState title="Chưa có yêu cầu" description="Các yêu cầu dịch vụ của chuyến đi này sẽ xuất hiện tại đây." />}
+      {!selection.source.isPending && !selection.source.error && !!selection.bookingId && !requests.isPending && !requests.error && !visibleRequests.length && <EmptyState title="Chưa có yêu cầu" />}
       {visibleRequests.map(request => <View key={request.id} style={ui.card}>
         <Text style={ui.sectionTitle}>{services.data?.find(s => s.id === request.serviceId)?.name ?? 'Yêu cầu dịch vụ'}</Text>
         <StatusBadge status={request.status} />{request.bookingPassengerId && <Text style={ui.caption}>{selection.booking.data?.passengers.find(p => p.bookingPassengerId === request.bookingPassengerId)?.fullName ?? 'Hành khách trong chuyến đi'}</Text>}<Text style={ui.body}>Số lượng {request.quantity}</Text><Text style={ui.caption}>{dateTime(request.requestTime)}</Text>
         {request.fareBenefitSnapshotId && <Text style={ui.body}>Đã liên kết quyền lợi gói du thuyền.</Text>}
         <Text style={ui.body}>Đã phục vụ {request.fulfilledQuantity ?? 'chưa ghi nhận'} {request.fulfillmentUnitCode ?? ''}</Text>
-        <Text style={ui.caption}>Kênh sử dụng {request.usageMode === 'PRE_CRUISE' ? 'trước chuyến' : request.usageMode === 'ONBOARD' ? 'trên tàu' : 'yêu cầu cũ'}</Text>
-        {request.usagePolicySnapshot && <Text style={ui.caption}>Định mức đã áp dụng {request.usagePolicySnapshot}{request.usageLimitSnapshot == null ? '' : ` · ${request.usageLimitSnapshot}`}{request.usageTimeZoneSnapshot ? ` · ${request.usageTimeZoneSnapshot}` : ''}</Text>}
+        {request.usageMode && request.usageMode !== 'LEGACY' && <Text style={ui.caption}>{request.usageMode === 'PRE_CRUISE' ? 'Trước chuyến' : 'Trên tàu'}</Text>}
+        {!!request.usagePolicySnapshot && <Text style={ui.caption}>Định mức {request.usagePolicySnapshot === 'UNLIMITED' ? 'không giới hạn' : request.usagePolicySnapshot === 'PER_DAY' ? 'mỗi ngày' : 'mỗi chuyến'}{request.usageLimitSnapshot == null ? '' : ` · ${request.usageLimitSnapshot}`}{request.usageTimeZoneSnapshot ? ` · ${request.usageTimeZoneSnapshot}` : ''}</Text>}
         {request.unitPriceSnapshot != null && <Text style={ui.caption}>Giá tham chiếu lúc yêu cầu {money(request.unitPriceSnapshot, request.currencySnapshot ?? null)}</Text>}
         {!!request.completedAt && <Text style={ui.caption}>Hoàn tất {dateTime(request.completedAt)}</Text>}
         {!!request.note && <Text style={ui.body}>{request.note}</Text>}
@@ -204,7 +203,7 @@ function ServiceRequestsWorkspace({ embedded }: { embedded: boolean }) {
       </View>)}
       <PassengerButton label="Cập nhật yêu cầu" variant="text" loading={requests.isFetching} onPress={() => { void requests.refetch(); }} />
     </>}
-    <ConfirmAction visible={!!operation} title={operation?.kind === 'create' ? 'Xác nhận gửi yêu cầu' : operation?.kind === 'edit' ? 'Lưu thay đổi yêu cầu' : 'Xác nhận hủy yêu cầu'} description={operation?.kind === 'cancel' ? 'Yêu cầu này sẽ được hủy nếu trạng thái hiện tại cho phép.' : 'Đội ngũ trên tàu sẽ tiếp nhận yêu cầu. Gửi yêu cầu chưa có nghĩa là dịch vụ đã được xác nhận hoặc thanh toán.'} onClose={() => { if (!submitLock.current) setOperation(null); }} onConfirm={submit} pending={action.isPending} disabled={!operationLoaded} error={action.error}>
+    <ConfirmAction visible={!!operation} title={operation?.kind === 'create' ? 'Xác nhận gửi yêu cầu' : operation?.kind === 'edit' ? 'Lưu thay đổi yêu cầu' : 'Xác nhận hủy yêu cầu'} description={operation?.kind === 'cancel' ? 'Bạn muốn hủy yêu cầu dịch vụ này?' : 'Yêu cầu cần được nhân viên xác nhận. Chưa thu tiền ở bước này.'} onClose={() => { if (!submitLock.current) setOperation(null); }} onConfirm={submit} pending={action.isPending} disabled={!operationLoaded} error={action.error}>
       {operation?.kind === 'create' && <View style={ui.card}><Text style={ui.sectionTitle}>{operation.service.name}</Text><Text style={ui.body}>{selectedPerson?.fullName}{selectedPerson?.cabinNumber ? ` · Phòng ${selectedPerson.cabinNumber}` : ''}</Text><Text style={ui.caption}>Đơn giá {money(operation.service.price, operation.service.currency)}</Text></View>}
       {!!operation && operation.kind !== 'create' && <Text style={ui.sectionTitle}>{services.data?.find(s => s.id === operation.request.serviceId)?.name ?? 'Yêu cầu dịch vụ'}</Text>}
       {operation?.kind === 'create' && <>

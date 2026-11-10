@@ -1,7 +1,6 @@
-import { ApiError, type RequestOptions } from '../../lib/api/api-client';
+import type { RequestOptions } from '../../lib/api/api-client';
 import { z } from 'zod';
-import { bookingErrorMessage } from './booking-policy';
-import type { Activity, BookingCreate, BookingDetail, BookingSummary, Cabin, Cruise, Excursion, Package, PackageAssignment, PackageBenefits, Registration, Service, ServiceRequest, ServiceSchedule, UserMe } from './passenger-types';
+import type { Activity, BookingDetail, BookingSummary, Excursion, Package, PackageAssignment, PackageBenefits, Registration, Service, ServiceRequest, ServiceSchedule, UserMe } from './passenger-types';
 
 type Transport = { request<T>(path: string, options?: RequestOptions): Promise<T> };
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -38,22 +37,6 @@ const checkin = z.object({
   locationTrackingAllowed: z.boolean().nullish(), locationSharingAllowed: z.boolean().nullish(),
   completedAt: date.nullish(), boardingReadyAt: date.nullish(),
 });
-const bookingQuote = z.object({
-  quoteId: uuid, cruiseId: uuid, currency: z.literal('USD'),
-  paymentPlan: z.enum(['FULL', 'DEPOSIT', 'STAGES']), status: z.literal('ACTIVE'),
-  totalAmount: z.number().nonnegative(), expiresAt: date,
-  guestToken: z.string().min(1).max(100).nullish(),
-  lineItems: z.array(z.object({ cabinId: uuid, tourPackageId: uuid.nullish() })),
-});
-const bookingInput = z.object({
-  cruiseId: uuid, currency: z.literal('USD'), quoteId: uuid,
-  quoteGuestToken: z.string().min(1).max(100).optional(),
-  paymentPlan: z.enum(['FULL', 'DEPOSIT', 'STAGES']), notes: z.string().max(500).optional(),
-  passengers: z.array(z.object({
-    fullName: z.string().trim().min(2).max(100), cabinId: uuid,
-    email: z.email().optional(), phoneNumber: z.string().regex(/^\+?\d{8,15}$/).optional(),
-  })).min(1),
-});
 const payment = z.object({
   paymentId: uuid, bookingId: uuid, operationType: z.enum(['Collect', 'Void']),
   requestedAmount: z.number().nullish(), confirmedAmount: z.number().nullish(), currency: z.string(),
@@ -83,14 +66,6 @@ function array<T>(value: unknown, key: string): T[] {
 function detail(value: unknown): BookingDetail {
   const booking = decode(bookingDetail, value);
   if (new Set(booking.passengers.map(person => person.bookingPassengerId)).size !== booking.passengers.length) throw new Error('Hành khách trong đặt chỗ bị trùng.');
-  return booking;
-}
-function ownedBooking(value: unknown, owner: string, cruiseId: string) {
-  const booking = detail(value);
-  if (!value || typeof value !== 'object' || !('bookedByUserId' in value)
-    || value.bookedByUserId !== owner || booking.cruiseId !== cruiseId) {
-    throw new Error('Không xác minh được chủ sở hữu hoặc chuyến của đặt chỗ.');
-  }
   return booking;
 }
 function serviceRequest(value: ServiceRequest): ServiceRequest {
@@ -159,50 +134,10 @@ export function createPassengerApi(client: Transport) {
     },
     decks: (shipId: string, signal?: AbortSignal) => pages<{ deckId: string; shipId: string; deckNumber: number; deckName?: string }>(
       `/decks/by-ship/${id(shipId)}`, 'deckId', signal),
-    cruises: (signal?: AbortSignal) => pages<Cruise>('/cruise', 'cruiseId', signal, { status: 'PUBLISHED', saleState: 'OPEN_FOR_SALE' }),
     async booking(bookingId: string, signal?: AbortSignal) {
       const value = detail(await client.request(`/booking/${id(bookingId)}`, { signal }));
       if (value.bookingId !== bookingId.toLowerCase()) throw new Error('Thông tin không khớp đặt chỗ.');
       return value;
-    },
-    async bookingQuote(body: BookingCreate) {
-      const { cruiseId, paymentPlan, passengers } = body;
-      // Quote requests omit passenger PII but still validate the same selection.
-      bookingInput.parse({ ...body, currency: 'USD', quoteId: cruiseId });
-      const value = decode(bookingQuote, await client.request('/booking/quotes', { method: 'POST', body: {
-        cruiseId, paymentPlan, currency: 'USD', passengers: passengers.map(({ cabinId }) => ({ cabinId })),
-      } }));
-      const selection = passengers.map(person => person.cabinId.toLowerCase()).sort();
-      const quoted = value.lineItems.map(line => line.cabinId).sort();
-      if (value.cruiseId !== cruiseId.toLowerCase() || value.paymentPlan !== paymentPlan || Date.parse(value.expiresAt) <= Date.now()
-        || value.lineItems.length !== passengers.length
-        || quoted.some((cabinId, i) => cabinId !== selection[i]) || value.lineItems.some(line => line.tourPackageId)) {
-        throw new Error('Báo giá đã hết hạn hoặc không khớp lựa chọn. Vui lòng lấy báo giá mới.');
-      }
-      return value;
-    },
-    async createBooking(body: BookingCreate & { quoteId: string; currency: 'USD' }, bookingIdempotencyKey: string, owner: string) {
-      z.uuidv4().parse(bookingIdempotencyKey);
-      uuid.parse(owner);
-      const input = bookingInput.parse(body);
-      try {
-        return ownedBooking(await client.request('/booking', { method: 'POST', body: input, bookingIdempotencyKey }), owner, input.cruiseId);
-      } catch (error) {
-        if (!(error instanceof ApiError)) throw error;
-        // A server message may echo the recovery key or contact information.
-        throw new ApiError(bookingErrorMessage(error), error.status, error.code);
-      }
-    },
-    async recoverBooking(idempotencyKey: string, owner: string, cruiseId: string) {
-      try {
-        const value = await client.request('/booking/recovery', { query: { idempotencyKey } });
-        return { state: 'completed' as const, booking: ownedBooking(value, owner, cruiseId) };
-      } catch (error) {
-        if (!(error instanceof ApiError)) throw error;
-        if (error.status === 404 && error.code === 'RECOVERY_NOT_FOUND') return { state: 'not-recorded' as const };
-        if (error.status === 409 && error.code === 'RECOVERY_IN_PROGRESS') return { state: 'processing' as const };
-        throw new ApiError(error.status === 0 ? error.message : 'Chưa xác minh được kết quả đặt chỗ.', error.status, error.code);
-      }
     },
     async cancelBooking(bookingId: string, reason: string) {
       if (!reason.trim()) throw new Error('Vui lòng nhập lý do hủy.');
@@ -210,7 +145,6 @@ export function createPassengerApi(client: Transport) {
       if (value.bookingId !== bookingId.toLowerCase() || value.bookingStatus !== 'Cancelled') throw new Error('Chưa xác nhận được việc hủy đặt chỗ.');
       return value;
     },
-    async cabins(cruiseId: string, signal?: AbortSignal) { return array<Cabin>(await client.request('/booking/available-cabins', { query: { cruiseId: id(cruiseId) }, signal }), 'cabinId'); },
     async services(signal?: AbortSignal) { return array<Service>(await client.request('/servicepackage/services', { signal }), 'id'); },
     serviceAvailability: (serviceId: string, quantity: number) => client.request<{ serviceId: string; requestedQuantity: number; available: boolean }>(`/servicepackage/services/${id(serviceId)}/availability`, { query: { quantity } }),
     async requests(signal?: AbortSignal) { return array<ServiceRequest>(await client.request('/servicepackage/requests', { signal }), 'id').map(serviceRequest); },

@@ -4,11 +4,12 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import { passengerColors } from '@/constants/passenger-theme';
 import { passengerLightColors } from '@/constants/passenger-light-theme';
 import { queryClient } from '@/lib/query-client';
+import { syncAppQueryFocus } from '@/lib/app-query-focus';
 import { authActions, useAuth } from '@/features/auth/session-store';
 
 void SplashScreen.preventAutoHideAsync().catch(console.warn);
@@ -20,7 +21,9 @@ function RootContent() {
   const reduced = useMotionPreference();
   useEffect(() => {
     void authActions.restore();
+    syncAppQueryFocus(AppState.currentState, Platform.OS);
     const subscription = AppState.addEventListener('change', state => {
+      syncAppQueryFocus(state, Platform.OS);
       const session = useAuth.getState().session;
       if (state === 'active' && session && session.expiresAt - Date.now() < 60000) void authActions.refresh();
     });

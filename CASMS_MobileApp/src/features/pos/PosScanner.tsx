@@ -16,7 +16,7 @@ export function PosScanner() {
   return <PosPage title="Quét QR hành khách">
     {canUse || canRegister ? <>
       {!!pos.sessionError && <Notice tone="error" retry={pos.refreshSession}>{posError(pos.sessionError)}</Notice>}
-      <Notice tone="warning">Chưa có dịch vụ xác minh QR hành khách. Hãy chọn hồ sơ từ yêu cầu trong phiên hoặc dùng hồ sơ đã được kiểm tra.</Notice>
+      <Notice tone="warning">Chưa thể xác minh hành khách bằng QR. Chọn hồ sơ để tiếp tục.</Notice>
       <ScannerCamera enabled={pos.verified} />
       {canUse && <PassengerButton label="Chọn hồ sơ và tra sao kê" variant="secondary" onPress={() => router.navigate('/staff-pos/usage')} />}
       {canRegister && <PassengerButton label="Mở đăng ký hoạt động" variant="text" onPress={() => router.navigate('/staff-pos/activities')} />}
@@ -64,7 +64,7 @@ function ScannerCamera({ enabled }: { enabled: boolean }) {
     <Text style={ui.sectionTitle}>Quyền truy cập camera</Text>
     <Text style={ui.body}>{permission.canAskAgain
       ? 'Cho phép camera để đọc mã QR tại quầy.'
-      : 'Camera đang bị từ chối. Quản lý có thể cấp quyền cho OceVie trong Cài đặt iPhone.'}</Text>
+      : 'Mở Cài đặt để cấp quyền camera cho OceVie.'}</Text>
     {permission.canAskAgain && <PassengerButton label="Cho phép camera" loading={requested} onPress={async () => {
       setRequested(true);
       try { await requestPermission(); setFailure(undefined); }
@@ -91,7 +91,7 @@ function ScannerCamera({ enabled }: { enabled: boolean }) {
         }} />}
       <View pointerEvents="none" accessible={false} style={styles.frame} />
     </View>
-    <Text style={ui.body}>Đặt mã QR vào giữa khung và giữ iPhone ổn định.</Text>
+    <Text style={ui.body}>Giữ mã QR trong khung.</Text>
   </>;
 }
 

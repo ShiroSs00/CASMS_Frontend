@@ -7,6 +7,7 @@ import { ApiError, getApiUrl } from '@/lib/api';
 import { Choice, ConfirmAction, ErrorNotice, Input, LivePage, Loading } from './PassengerActionUI';
 import { passengerApi, usePassengerAction, usePassengerContext, usePassengerQuery } from './passenger-hooks';
 import { dateTime } from './passenger-model';
+import { chooseVoyage, resolveVoyage, useVoyageSelection } from './voyage-selection';
 
 const labels = {
   NotStarted: 'Chưa bắt đầu', InProgress: 'Đang chuẩn bị', NeedsReview: 'Cần kiểm tra tại quầy',
@@ -18,11 +19,15 @@ export function PassengerCheckInScreen() {
   const requested = typeof bookingId === 'string' ? bookingId.toLowerCase() : '';
   const [choice, setChoice] = useState<{ requested: string; passengerId: string }>();
   const context = usePassengerContext();
+  const selected = useVoyageSelection(state => state.selection);
+  const scope = context.owner && context.auth.session ? { owner: context.owner, apiUrl: getApiUrl(), signedInAt: context.auth.session.signedInAt } : null;
   const voyages = usePassengerQuery(['voyages'], passengerApi.voyages, 'BOOKING_READ');
   const options = (voyages.error ? [] : voyages.data ?? []).filter(item => item.bookingStatus === 'Confirmed' && item.participationStatus === 'Active');
   const requestedRows = requested ? options.filter(item => item.bookingId === requested) : options;
-  const chosen = choice && choice.requested === requested ? options.find(item => item.bookingPassengerId === choice.passengerId)
-    : requestedRows.length === 1 ? requestedRows[0] : undefined;
+  const current = resolveVoyage(scope, selected, options);
+  const chosen = requested ? choice && choice.requested === requested ? requestedRows.find(item => item.bookingPassengerId === choice.passengerId)
+    : requestedRows.find(item => item.bookingPassengerId === current?.bookingPassengerId) ?? (requestedRows.length === 1 ? requestedRows[0] : undefined)
+    : current;
   const bookings = usePassengerQuery(['bookings'], passengerApi.bookings, 'BOOKING_READ', !!chosen);
   const ownBookingId = bookings.data?.find(item => item.bookingId === chosen?.bookingId)?.bookingId ?? '';
   const booking = usePassengerQuery(['booking', ownBookingId], signal => passengerApi.booking(ownBookingId, signal),
@@ -32,11 +37,14 @@ export function PassengerCheckInScreen() {
     {!context.can('BOOKING_READ') ? <Text style={ui.body}>Tài khoản cần quyền xem chuyến đã đặt để chọn hồ sơ check-in.</Text> : <>
       <ErrorNotice error={voyages.error} retry={() => { void voyages.refetch(); }} />
       {voyages.isPending && <Loading text="Đang tải chuyến đi của bạn…" />}
-      {voyages.isSuccess && options.length === 0 && <EmptyState title="Chưa có hồ sơ check-in của bạn"
-        description="Check-in sẽ xuất hiện khi tài khoản có hồ sơ hành khách trong đặt chỗ đã xác nhận." />}
+      {voyages.isSuccess && options.length === 0 && <EmptyState title="Chưa có hồ sơ check-in" description="Cần có đặt chỗ đã xác nhận." />}
       {!!options.length && <Choice label="Chuyến cần check-in" value={chosen?.bookingPassengerId ?? ''}
         items={options.map(item => ({ id: item.bookingPassengerId, label: `${item.cruiseName} · ${item.bookingReference}` }))}
-        onChange={passengerId => setChoice({ requested, passengerId })} />}
+        onChange={passengerId => {
+          const row = options.find(item => item.bookingPassengerId === passengerId);
+          if (scope && row) chooseVoyage(scope, options, row.bookingId, passengerId);
+          setChoice({ requested, passengerId });
+        }} />}
       {!!requested && requestedRows.length === 0 && !!options.length && !chosen &&
         <Text style={ui.body}>Đặt chỗ trong liên kết không khả dụng. Vui lòng chọn lại chuyến.</Text>}
       {chosen && <PassengerCheckIn key={chosen.bookingPassengerId} passengerId={chosen.bookingPassengerId} bookingId={chosen.bookingId}

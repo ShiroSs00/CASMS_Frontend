@@ -1,34 +1,34 @@
 import { useQuery } from '@tanstack/react-query';
-import { create } from 'zustand';
 
 import { api, ApiError, getApiUrl } from '@/lib/api';
 import { usePassengerContext, usePassengerQuery, passengerApi } from '@/features/passenger-actions/passenger-hooks';
 import { useAuth } from '@/features/auth/session-store';
+import { queryClient } from '@/lib/query-client';
+import type { PersonalVoyage } from '@/features/passenger-actions/passenger-api';
+import { availableVoyages, chooseVoyage, resolveVoyage, useVoyageSelection } from '@/features/passenger-actions/voyage-selection';
 
 import { createItineraryApi, type CruiseDto } from './itinerary-client';
 export type { CruiseDto, ItineraryDto, DayDto, StopDto, TourDto, GroupDto, HistoryDto } from './itinerary-client';
 export const itineraryApi = createItineraryApi(api);
-const useItinerarySelection = create<{ owner: string | null; signedInAt?: number; bookingId: string | null }>(() => ({ owner: null, bookingId: null }));
-export function selectVoyage(owner: string, bookingId: string) {
-  const session = useAuth.getState().session;
-  if (session?.user.id === owner) useItinerarySelection.setState({ owner, signedInAt: session.signedInAt, bookingId });
+/** Selection comes only from the current authenticated /itineraries/mine cache. */
+export function selectVoyage(owner: string, bookingId: string, bookingPassengerId?: string) {
+  const { session, status } = useAuth.getState();
+  if (!session || status !== 'authenticated' || session.user.id !== owner || session.expiresAt <= Date.now()) return;
+  const apiUrl = getApiUrl();
+  const state = queryClient.getQueryState<PersonalVoyage[]>(['passenger', apiUrl, owner, 'voyages']);
+  if (!state?.data || state.error) return;
+  chooseVoyage({ owner, apiUrl, signedInAt: session.signedInAt }, state.data, bookingId, bookingPassengerId);
 }
-const rank: Record<string, number> = { IN_PROGRESS: 0, PUBLISHED: 1, COMPLETED: 2, CANCELLED: 3 };
 export function useSelectedItinerary() {
   const context = usePassengerContext();
   const userId = context.owner;
-  const selected = useItinerarySelection();
+  const selected = useVoyageSelection(state => state.selection);
   const catalog = usePassengerQuery(['voyages'], passengerApi.voyages, 'BOOKING_READ');
   const rows = context.ready && context.can('BOOKING_READ') && !(catalog.error instanceof ApiError && [401, 403].includes(catalog.error.status))
     ? catalog.data ?? [] : [];
-  // /itineraries/mine already orders by the cruise departure timestamp, even without an itinerary.
-  const voyages = [...new Map(rows.filter(item => item.bookingStatus === 'Confirmed' && item.participationStatus === 'Active')
-    .map(item => [item.bookingId, item])).values()].map((item, index) => ({ item, index })).sort((a, b) => {
-      const order = (rank[a.item.cruiseStatus] ?? 4) - (rank[b.item.cruiseStatus] ?? 4);
-      return order || (a.item.cruiseStatus === 'COMPLETED' ? b.index - a.index : a.index - b.index);
-    }).map(({ item }) => item);
-  const hasSelection = selected.owner === userId && selected.signedInAt === context.auth.session?.signedInAt && !!selected.bookingId;
-  const voyage = hasSelection ? voyages.find(item => item.bookingId === selected.bookingId) : voyages[0];
+  const scope = userId && context.auth.session ? { owner: userId, apiUrl: getApiUrl(), signedInAt: context.auth.session.signedInAt } : null;
+  const voyages = availableVoyages(rows);
+  const voyage = resolveVoyage(scope, selected, rows);
   const itineraryId = voyage?.itineraryId ?? '';
   const cruiseId = voyage?.cruiseId ?? '';
   const cruise = usePassengerQuery(['cruise', cruiseId], async signal => {
