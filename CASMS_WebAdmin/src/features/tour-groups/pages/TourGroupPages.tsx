@@ -18,6 +18,7 @@ import { useTourMutation, useTourResource } from '../hooks/useTourResource'
 import { canPrepareGroup, displayTime, groupStatuses, groupStatusLabels, isUuid, type GroupRequest, type TourGroup } from '../model/tour-group'
 
 const root = '/admin/tour-groups'
+const groupListFor = (excursionId: string) => `${root}?excursionId=${encodeURIComponent(excursionId)}`
 export function TourGroupListPage() {
   const access = useSessionAccess()
   const excursions = useReadQuery('group-filter-excursions', listExcursionOptions)
@@ -45,7 +46,7 @@ export function TourGroupListPage() {
     {excursions.error && <Notice title="Không tải được danh mục chuyến tham quan" tone="warning">{excursions.error.message}<Button onClick={excursions.retry}>Thử lại</Button></Notice>}
     {query.loading ? <Loading label="Đang tải nhóm tour…" /> : query.error != null ? <TourError error={query.error} onRetry={query.reload} /> : query.data && <Panel title={`Danh sách · ${query.data.length}`}>
       {!query.data.length ? <Empty title="Chưa có nhóm tour phù hợp" /> : <DataTable label="Danh sách nhóm tour" headers={['Mã nhóm', 'Chuyến tham quan', 'Hướng dẫn viên', 'Đã phân công / tối đa', 'Chỗ còn lại', 'Trạng thái']}>
-        {query.data.map((group) => <tr key={group.tourGroupId}><td><Link className={styles.link} to={`${root}/${group.tourGroupId}`}>{group.groupCode}</Link></td><td>{group.excursionName}</td><td className={styles.text}>{group.guideId ? 'Đã phân công · chưa có tên' : 'Chưa phân công'}</td><td>{group.assignedPassengers} / {group.maximumCapacity}</td><td>{group.availableCapacity}</td><td><GroupBadge status={group.status} /></td></tr>)}
+        {query.data.map((group) => <tr key={group.tourGroupId}><td><Link className={styles.link} to={`${root}/${group.tourGroupId}`}>{group.groupCode}</Link></td><td>{group.excursionName}</td><td className={styles.text}>{group.guideId ? (group.guideName || 'Đã phân công · chưa có tên') : 'Chưa phân công'}</td><td>{group.assignedPassengers} / {group.maximumCapacity}</td><td>{group.availableCapacity}</td><td><GroupBadge status={group.status} /></td></tr>)}
       </DataTable>}
     </Panel>}
   </TourLayout>
@@ -59,7 +60,7 @@ function GroupDetail({ id }: { id: string }) {
   const load = useCallback((signal: AbortSignal) => tourGroupApi.get(id, signal), [id])
   const query = useTourResource(load), group = query.data
   const [receipt, setReceipt] = useState<PassengerReceipt | null>(null)
-  return <TourLayout><Link className={styles.link} to={root}>← Nhóm tour</Link>
+  return <TourLayout><Link className={styles.link} to={group ? groupListFor(group.shoreExcursionId) : root}>← Nhóm tour</Link>
     {receipt && <Notice title="Đã cập nhật phân công"><p>{receipt.message}</p>{receipt.targetId && <Link className={styles.link} to={`${root}/${receipt.targetId}`}>Xem nhóm đích {receipt.targetCode}</Link>}</Notice>}
     {query.loading ? <Loading label="Đang tải chi tiết nhóm…" /> : query.error != null ? <TourError error={query.error} onRetry={query.reload} /> : group && <>
       <PageHeader breadcrumb="Dịch vụ bờ / Nhóm tour" title={`Nhóm ${group.groupCode}`} description={group.excursionName} actions={<div className={styles.detailToolbar}>
@@ -77,7 +78,7 @@ function GroupDetail({ id }: { id: string }) {
 }
 function GroupFacts({ group }: { group: TourGroup }) {
   const facts: [string, string][] = [
-    ['Chuyến tham quan', group.excursionName], ['Hướng dẫn viên', group.guideId ? 'Đã phân công · Chưa có thông tin tên' : 'Chưa phân công'], ['Phương tiện', group.vehicleId ? 'Đã phân công · Chưa có thông tin tên' : 'Chưa đặt'],
+    ['Chuyến tham quan', group.excursionName], ['Hướng dẫn viên', group.guideId ? (group.guideName || 'Đã phân công · Chưa có thông tin tên') : 'Chưa phân công'], ['Phương tiện', group.vehicleId ? 'Đã phân công · Chưa có thông tin tên' : 'Chưa đặt'],
     ['Điểm tập trung', group.meetingPoint ?? 'Chưa đặt'], ['Giờ tập trung', displayTime(group.assemblyTime)], ['Khởi hành dự kiến', displayTime(group.plannedDepartureTime)],
     ['Trở về dự kiến', displayTime(group.plannedReturnTime)], ['Khởi hành thực tế', displayTime(group.actualDepartureTime)], ['Trở về thực tế', displayTime(group.actualReturnTime)], ['Ghi chú', group.notes ?? '—'],
   ]
@@ -87,7 +88,8 @@ export function TourGroupFormPage() {
   const { groupId } = useParams()
   const [search] = useSearchParams()
   const excursionId = search.get('excursionId')?.trim() ?? ''
-  return <TourLayout><Link className={styles.link} to={root}>← Nhóm tour</Link><PageHeader breadcrumb="Dịch vụ bờ / Nhóm tour" title={groupId ? 'Chỉnh sửa nhóm tour' : 'Tạo nhóm tour'}  />{groupId ? <EditGroup key={groupId} id={groupId} /> : <SaveGroup key={excursionId} initialExcursionId={excursionId} />}</TourLayout>
+  const back = groupId ? `${root}/${groupId}` : isUuid(excursionId) ? groupListFor(excursionId) : root
+  return <TourLayout><Link className={styles.link} to={back}>← {groupId ? 'Chi tiết nhóm' : 'Nhóm tour'}</Link><PageHeader breadcrumb="Dịch vụ bờ / Nhóm tour" title={groupId ? 'Chỉnh sửa nhóm tour' : 'Tạo nhóm tour'}  />{groupId ? <EditGroup key={groupId} id={groupId} /> : <SaveGroup key={excursionId} initialExcursionId={excursionId} />}</TourLayout>
 }
 function EditGroup({ id }: { id: string }) {
   const load = useCallback((signal: AbortSignal) => tourGroupApi.get(id, signal), [id])

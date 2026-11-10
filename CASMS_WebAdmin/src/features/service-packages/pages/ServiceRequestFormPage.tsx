@@ -27,19 +27,24 @@ function RequestEditor({ initial }: { initial?: ServiceRequest }) {
   const [openedAt] = useState(() => Date.now())
   const requestKey = useRef<{ payload: string; key: string } | null>(null)
   const slots = useReadQuery(`request-slots:${serviceId}`, useCallback(signal => !initial && serviceId ? serviceSlots(serviceId, signal) : Promise.resolve([]), [initial, serviceId]))
+  const [bookingCruiseId, setBookingCruiseId] = useState('')
   const [bookingPassengerId, setBookingPassengerId] = useState(initial?.bookingPassengerId ?? '')
+  const service = services.data?.find(item => item.id === serviceId)
+  const requiresSchedule = service?.requiresSchedule === true || service?.preCruiseUsagePolicy === 'PER_DAY'
+  const matchingSlots = slots.data?.filter(slot => !bookingCruiseId || slot.cruiseId === bookingCruiseId)
   const [quantity, setQuantity] = useState(String(initial?.quantity ?? 1)), [note, setNote] = useState(initial?.note ?? '')
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
   const lock = useRef(false)
   const canEditAssigned = access.canDo('SERVICE_REQUEST_EXECUTE') && (access.roles.includes('ACTIVITY_SERVICE_MANAGER') || initial?.assignedUserId === access.userId)
-  const allowed = initial ? access.canDo('SERVICE_REQUEST_CREATE') || canEditAssigned : access.canDo('SERVICE_REQUEST_CREATE')
+  const allowed = initial ? access.canDo('SERVICE_REQUEST_CREATE') || canEditAssigned : access.roles.includes('PASSENGER') && access.canDo('SERVICE_REQUEST_CREATE')
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (lock.current || !allowed) return
     if (!Number.isSafeInteger(Number(quantity)) || Number(quantity) < 1 || Number(quantity) > 2147483647 || note.length > 500 || (!initial && !services.data?.some(service => service.id === serviceId && service.status === 'ACTIVE'))) { setError('Chọn dịch vụ đang hoạt động, số lượng nguyên dương và ghi chú tối đa 500 ký tự.'); return }
-    if (initial?.scheduleId && Number(quantity) !== initial.quantity) { setError('Chưa hỗ trợ đổi số lượng của yêu cầu theo khung giờ. Liên hệ bộ phận dịch vụ để điều chỉnh.'); return }
+    if (!initial && service?.canBuyPreCruise === false) { setError('Dịch vụ này không nhận yêu cầu trước chuyến.'); return }
+    if (!initial && requiresSchedule && !slotId) { setError('Chọn khung giờ phục vụ cho dịch vụ này.'); return }
     if (!initial && serviceId && (slots.loading || slots.error)) { setError('Chưa tải được lịch dịch vụ. Vui lòng tải lại trước khi gửi.'); return }
-    if (!initial && slotId && !slots.data?.some(slot => slot.id === slotId && slot.status === 'OPEN' && slot.remainingCapacity >= Number(quantity) && Date.parse(slot.endsAt) > Date.now())) { setError('Khung giờ không còn đủ chỗ hoặc đã kết thúc.'); return }
+    if (!initial && slotId && !matchingSlots?.some(slot => slot.id === slotId && slot.status === 'OPEN' && slot.remainingCapacity >= Number(quantity) && Date.parse(slot.endsAt) > Date.now())) { setError('Khung giờ không còn đủ chỗ hoặc đã kết thúc.'); return }
     const payload = JSON.stringify({ serviceId, bookingPassengerId, slotId, quantity: Number(quantity), note })
     if (requestKey.current?.payload !== payload) requestKey.current = { payload, key: crypto.randomUUID() }
     lock.current = true; setBusy(true); setError('')
@@ -48,12 +53,13 @@ function RequestEditor({ initial }: { initial?: ServiceRequest }) {
     finally { lock.current = false; setBusy(false) }
   }
   return <Panel title="Nội dung yêu cầu"><EditorLayout ><form onSubmit={submit} className={styles.editor}>
-    {!initial && <><CatalogState {...services} /><Field htmlFor="request-service" label="Dịch vụ"><select id="request-service" required value={serviceId} disabled={busy || services.loading || Boolean(services.error)} onChange={event => { setServiceId(event.target.value); setSlotId('') }}><option value="">Chọn dịch vụ</option>{services.data?.map(service => <option key={service.id} value={service.id} disabled={service.status !== 'ACTIVE'}>{service.name} · {service.code}</option>)}</select></Field><BookingPassengerPicker value={bookingPassengerId} disabled={busy} allowedStatuses={['Confirmed']} onChange={passenger => setBookingPassengerId(passenger?.bookingPassengerId ?? '')} /><p>Liên kết đặt chỗ là tùy chọn; nếu chọn, hành khách phải thuộc tài khoản đang yêu cầu.</p></>}
+    {!initial && !allowed && <Notice title="Yêu cầu do hành khách gửi">Tài khoản nhân viên có thể xử lý yêu cầu theo quyền được cấp.</Notice>}
+    {!initial && allowed && <><CatalogState {...services} /><Field htmlFor="request-service" label="Dịch vụ"><select id="request-service" required value={serviceId} disabled={busy || services.loading || Boolean(services.error)} onChange={event => { setServiceId(event.target.value); setSlotId('') }}><option value="">Chọn dịch vụ</option>{services.data?.map(service => <option key={service.id} value={service.id} disabled={service.status !== 'ACTIVE'}>{service.name} · {service.code}</option>)}</select></Field><BookingPassengerPicker value={bookingPassengerId} disabled={busy} allowedStatuses={['Confirmed']} onChange={(passenger, booking) => { setBookingPassengerId(passenger?.bookingPassengerId ?? ''); setBookingCruiseId(booking?.cruiseId ?? ''); setSlotId('') }} /><p>Chọn đặt chỗ đã xác nhận của chính bạn. Nếu để trống, hệ thống chỉ tự chọn khi có đúng một đặt chỗ hợp lệ.</p></>}
     {initial && <ButtonLink tone="secondary" to={`/admin/services/${initial.serviceId}`}>Xem dịch vụ đã yêu cầu (không đổi)</ButtonLink>}
-    {initial?.scheduleId && <Notice title="Yêu cầu đã giữ khung giờ">Khung giờ và số lượng được giữ theo yêu cầu gốc. Bạn có thể cập nhật ghi chú; liên hệ bộ phận dịch vụ nếu cần đổi lịch hoặc số lượng.</Notice>}
+    {initial?.scheduleId && <Notice title="Yêu cầu đã giữ khung giờ">Bạn có thể sửa số lượng và ghi chú khi yêu cầu còn chờ tiếp nhận. Hệ thống kiểm tra lại số chỗ và định mức.</Notice>}
     {!initial && serviceId && <Button tone="secondary" disabled={busy || slots.loading} onClick={() => { slots.retry(); setError('') }}>Tải lại lịch & chỗ trống</Button>}
-    {!initial && serviceId && <><CatalogState {...slots} /><Field htmlFor="request-slot" label="Khung giờ dịch vụ"><select id="request-slot" key={serviceId} value={slots.data?.some(slot => slot.id === slotId) ? slotId : ''} disabled={busy || slots.loading || Boolean(slots.error)} onChange={event => setSlotId(event.target.value)}><option value="">Không chọn khung giờ</option>{slots.data?.map(slot => <option key={slot.id} value={slot.id} disabled={slot.status !== 'OPEN' || slot.remainingCapacity < Number(quantity) || Date.parse(slot.endsAt) <= openedAt}>{new Date(slot.startsAt).toLocaleString('vi-VN')} → {new Date(slot.endsAt).toLocaleString('vi-VN')} · {slot.location} · còn {slot.remainingCapacity} chỗ</option>)}</select></Field>{slots.data?.length === 0 && <p>Chưa có khung giờ được mở cho dịch vụ này.</p>}</>}
-    <Field htmlFor="request-quantity" label="Số lượng"><input id="request-quantity" required type="number" min={1} max={2147483647} step={1} disabled={busy || Boolean(initial?.scheduleId)} value={quantity} onChange={event => setQuantity(event.target.value)} /></Field>
+    {!initial && serviceId && <><CatalogState {...slots} /><Field htmlFor="request-slot" label="Khung giờ dịch vụ"><select id="request-slot" key={serviceId} value={matchingSlots?.some(slot => slot.id === slotId) ? slotId : ''} disabled={busy || slots.loading || Boolean(slots.error)} onChange={event => setSlotId(event.target.value)}><option value="">{requiresSchedule ? 'Chọn khung giờ' : 'Không chọn khung giờ'}</option>{matchingSlots?.map(slot => <option key={slot.id} value={slot.id} disabled={slot.status !== 'OPEN' || slot.remainingCapacity < Number(quantity) || Date.parse(slot.endsAt) <= openedAt}>{new Date(slot.startsAt).toLocaleString('vi-VN')} → {new Date(slot.endsAt).toLocaleString('vi-VN')} · {slot.location} · còn {slot.remainingCapacity} chỗ</option>)}</select></Field>{slots.data?.length === 0 && <p>Chưa có khung giờ được mở cho dịch vụ này.</p>}</>}
+    <Field htmlFor="request-quantity" label="Số lượng"><input id="request-quantity" required type="number" min={1} max={2147483647} step={1} disabled={busy || !allowed} value={quantity} onChange={event => setQuantity(event.target.value)} /></Field>
     <Field htmlFor="request-note" label="Ghi chú"><textarea id="request-note" maxLength={500} disabled={busy} value={note} onChange={event => setNote(event.target.value)} /></Field>
     {error && <Notice title="Không lưu được yêu cầu" tone="error">{error}</Notice>}
     {!allowed && <p>Tài khoản chưa có quyền lưu yêu cầu này.</p>}

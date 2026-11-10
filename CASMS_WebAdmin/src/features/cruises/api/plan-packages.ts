@@ -1,5 +1,5 @@
 import { apiRequest, ApiError } from '@/shared/api'
-import { decodeCruisePackageOffer, type CruisePackageOffer } from '@/domain/cruise-package/api'
+import { decodeCruisePackageOffer, type CruisePackageOffer } from '@/domain/cruise-package'
 
 export type Choice = { offerId: string; priceRevisionId: string }
 type Candidate = { product: CruisePackageOffer; eligiblePriceRevisionId: string | null; planEligibility: CruisePackageOffer['eligibility'] }

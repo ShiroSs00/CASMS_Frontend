@@ -1,3 +1,5 @@
+import { DepartureDelay } from '../components/DepartureDelay'
+import { DepartureDelayHistory } from '../components/DepartureDelayHistory'
 import {PlanWorkspace} from '../hooks/PlanWorkspace'
 import {usePlanQuery} from '../hooks/usePlanQuery'
 import {OperationsStatus} from '../components/OperationsStatus'
@@ -161,7 +163,7 @@ function CruiseDetailContent() {
 
 
             </section>}
-            {section==='schedule'&&<section id={"departure-panel-schedule"} role={"tabpanel"} aria-labelledby={"departure-tab-schedule"} className={preparationStyles.content}><div className={preparationStyles.scheduleToolbar}><div className={preparationStyles.sectionIntro}><h2>Lịch thực tế</h2></div>{operations&&section==='schedule'&&access.has('CRUISE_READ')&&<Button tone="secondary" onClick={()=>goSection('changes')}>Thay đổi lịch và theo dõi xử lý</Button>}</div>{section==='schedule'&&access.has('CRUISE_READ')&&<DepartureScheduleRead cruise={cruise}/>}
+            {section==='schedule'&&<section id={"departure-panel-schedule"} role={"tabpanel"} aria-labelledby={"departure-tab-schedule"} className={preparationStyles.content}><div className={preparationStyles.scheduleToolbar}><div className={preparationStyles.sectionIntro}><h2>Lịch thực tế</h2></div>{operations&&section==='schedule'&&access.has('CRUISE_READ')&&<Button tone="secondary" onClick={()=>goSection('changes')}>Thay đổi lịch và theo dõi xử lý</Button>}</div>{section==='schedule'&&access.has('CRUISE_READ')&&<><DepartureScheduleRead key={checkEpoch} cruise={cruise}/><DepartureDelayHistory id={cruise.cruiseId} userId={access.userId ?? ''} refreshKey={checkEpoch}/></>}
             </section>}
             {section==='resources'&&<section id={"departure-panel-resources"} role={"tabpanel"} aria-labelledby={"departure-tab-resources"} className={preparationStyles.content}><div className={preparationStyles.sectionIntro}><h2>{sectionLabel('resources')}</h2></div>
               {access.can({mode:'ANY',permissions:['SHIP_READ','CRUISE_ASSIGN_SHIP','CRUISE_CHANGE_SHIP','CRUISE_UNASSIGN_SHIP']}) && <Panel title="Tàu được phân công" subtitle={detail.ship ? `${({DRAFT:'Đang thiết lập',READY:'Sẵn sàng khai thác',IN_SERVICE:'Đang khai thác',MAINTENANCE:'Đang bảo trì',SUSPENDED:'Tạm dừng khai thác',RETIRED:'Đã ngừng khai thác'} as Record<string,string>)[detail.ship.status]??'Chưa xác định'} · ${detail.ship.totalCapacity} khách` : cruise.shipId?'Chưa tải được thông tin tàu đã phân công':'Chuyến khởi hành chưa được phân công tàu'}>
@@ -197,6 +199,11 @@ function CruiseDetailContent() {
                 </div>
               </Panel>}
 
+              {access.userId && access.roles.includes('OPERATIONS_MANAGER') && access.canDo('CRUISE_START') &&
+                <DepartureDelay key={JSON.stringify([access.userId, cruise.cruiseId])}
+                  id={cruise.cruiseId} userId={access.userId} revision={cruise.revision}
+                  eligible={state.status === 'ready' && cruise.status === 'PUBLISHED'}
+                  refreshKey={checkEpoch} onChanged={() => void reload()} onScheduleChange={() => goSection('changes')} />}
               {access.canDo('OPERATIONAL_ISSUE_READ') && <Panel title={detail.supplementaryLoading || detail.supplementaryErrors?.issues ? 'Sự cố liên quan' : `Sự cố liên quan · ${detail.issues.filter((issue) => issue.status === 'OPEN' || issue.status === 'IN_PROGRESS').length} đang mở`}>
             {detail.issues.length ? <ul className={styles.compactList}>{detail.issues.map((issue) => <li key={issue.issueId}><span><Badge label={issue.severity} tone={issue.severity === 'CRITICAL' ? 'error' : 'warning'} /> <strong>{issue.issueCode}</strong></span><span>{issue.description} · {issue.status}</span></li>)}</ul> : !detail.supplementaryLoading && !detail.supplementaryErrors?.issues && <Empty title="Không có sự cố liên quan" />}
             <Link className={styles.inlineLink} to={`/admin/issues?cruise=${cruise.cruiseId}`}>Xem danh sách sự cố →</Link>
@@ -230,6 +237,11 @@ function CruiseDetailContent() {
                 </div>
               </Panel>}
 
+              {access.userId && access.roles.includes('OPERATIONS_MANAGER') && access.canDo('CRUISE_START') &&
+                <DepartureDelay key={JSON.stringify([access.userId, cruise.cruiseId])}
+                  id={cruise.cruiseId} userId={access.userId} revision={cruise.revision}
+                  eligible={state.status === 'ready' && cruise.status === 'PUBLISHED'}
+                  refreshKey={checkEpoch} onChanged={() => void reload()} onScheduleChange={() => goSection('changes')} />}
               {access.canDo('OPERATIONAL_ISSUE_READ') && <Panel title={detail.supplementaryLoading || detail.supplementaryErrors?.issues ? 'Sự cố liên quan' : `Sự cố liên quan · ${detail.issues.filter((issue) => issue.status === 'OPEN' || issue.status === 'IN_PROGRESS').length} đang mở`}>
             {detail.issues.length ? <ul className={styles.compactList}>{detail.issues.map((issue) => <li key={issue.issueId}><span><Badge label={issue.severity} tone={issue.severity === 'CRITICAL' ? 'error' : 'warning'} /> <strong>{issue.issueCode}</strong></span><span>{issue.description} · {issue.status}</span></li>)}</ul> : !detail.supplementaryLoading && !detail.supplementaryErrors?.issues && <Empty title="Không có sự cố liên quan" />}
             <Link className={styles.inlineLink} to={`/admin/issues?cruise=${cruise.cruiseId}`}>Xem danh sách sự cố →</Link>

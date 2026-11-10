@@ -1,21 +1,23 @@
+@import "../../../design-systems/ocevie/tokens.css" layer(ocevie);
+
 /* OceVie Web Design Guidelines v1.0 — supplied brand reference. */
 :root {
-  --brand-midnight: #061A2B;
-  --brand-navy: #0B2A4A;
-  --brand-teal: #0E6B7A;
-  --brand-gold: #D4AF37;
-  --brand-sand: #DBC9A7;
-  --brand-pearl: #F8F6EC;
-  --font-family-body: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
-  --font-family-heading: 'Sora', 'Be Vietnam Pro', sans-serif;
+  --brand-midnight: var(--accent-active);
+  --brand-navy: var(--fg);
+  --brand-teal: var(--fg-2);
+  --brand-gold: var(--ocevie-brand-gold);
+  --brand-sand: var(--ocevie-brand-sand);
+  --brand-pearl: var(--bg);
+  --font-family-body: var(--ocevie-font-body);
+  --font-family-heading: var(--ocevie-font-display);
   --font-body: var(--font-family-body);
   --font-heading: var(--font-family-heading);
   --text-primary: var(--brand-navy);
-  --text-secondary: #506777;
-  --surface-default: #fff;
+  --text-secondary: var(--muted);
+  --surface-default: var(--surface);
   --surface-subtle: #F4F7F8;
   --surface-brand: var(--brand-navy);
-  --border-default: #D5E0E4;
+  --border-default: var(--border-soft);
   --color-navy-950: var(--brand-midnight);
   --color-navy-900: var(--brand-navy);
   --color-navy-800: #153E60;
@@ -23,9 +25,9 @@
   --color-cream-100: #F7EFD9;
   --color-gold-300: var(--brand-gold);
   --color-gold-400: #8E6B23;
-  --color-slate-300: #D5E0E4;
+  --color-slate-300: var(--border-soft);
   --color-slate-400: #607282;
-  --color-success-300: #167347;
+  --color-success-300: var(--success);
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -42,10 +44,14 @@
   --shadow-lg: 0 2rem 5rem rgb(0 0 0 / 24%);
   --surface-canvas: #F3F6F7;
   --surface-tinted: #EDF5F5;
-  --border-control: #8297A4;
-  --radius-control: 0.3125rem;
+  --border-control: var(--border);
+  --radius-control: var(--ocevie-radius-sm);
+  --control-height-compact: var(--ocevie-control-height-compact);
+  --control-height-default: var(--ocevie-control-height-default);
+  --control-height-large: var(--ocevie-control-height-large);
+  --radius-dialog: var(--ocevie-radius-dialog);
   --radius-panel: 0.5rem;
-  --shadow-panel: 0 4px 20px rgb(6 26 43 / 4%);
+  --shadow-panel: var(--ocevie-shadow-panel);
   --shadow-floating: 0 16px 48px rgb(6 26 43 / 12%);
   /* Animate UI transition.color/menu/fade, CSS fallback for custom controls. */
   --motion-feedback: 200ms;

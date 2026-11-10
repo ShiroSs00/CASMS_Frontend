@@ -1,6 +1,6 @@
 export { CruisePackageTemplatePage } from './Workspace'
 export { DepartureCruisePackages } from './DepartureCruisePackages'
-export { cruisePackageApi } from './api'
+export { cruisePackageApi, decodeCruisePackageOffer, type CruisePackageOffer } from './api'
 export { decodeCruisePackageCatalog, decodeCruisePackagePurchaseSelection, decodeCabinSelectionMode, decodeCapturedBenefit, decodeCruisePackageOccurrence, fareObject, fareText, fareUuid, fareAmount } from './purchase-contract'
 export type { CruisePackageCatalog, AvailableCruisePackage, CruisePackagePurchaseSelection, CapturedCruisePackageBenefit, CruisePackageOccurrence, CabinSelectionMode } from './purchase-contract'
 export {decodeCruisePackageBookingFields} from './purchase-contract'

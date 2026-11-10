@@ -1,13 +1,17 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
 import { useReadQuery } from '@/shared/api'
 import { Badge, Button, Empty, Field, Loading, Notice, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
+import { ExistingModelImport } from './import/ExistingModelImport'
+import { ImportJobDetails } from './import/ImportJobDetails'
+import type { ImportJob } from './import/model'
+import { refreshShipStructure } from '@/shared/lib/ship-structure-revision'
 import { viewerApi } from './api'
 import { ModelCanvas } from './ModelCanvas'
-import { serviceName, serviceType, cabinTypes, selectedAreas, selectedCabins, type Area, type Cabin, type Manifest, type ModelVersion, type ShipChoice } from './model'
+import { serviceName, serviceType, cabinTypes, selectedAreas, selectedCabins, type Area, type Cabin, type Manifest, type ShipChoice } from './model'
 import styles from './Viewer.module.css'
 import {BleSetup} from './BleSetup'
 
@@ -53,22 +57,49 @@ function Explore({ship,model,manifest}:{ship:string;model:string;manifest:Manife
     ]:[['Số boong',decks.length],['Số khu vực dịch vụ',manifest.areas?.length],['Số phòng',manifest.cabins.length]]}/></>}</aside>
   </div>
 }
-function VersionDetail({ship,version}:{ship:string;version:ModelVersion}) {
-  const access=useSessionAccess(),[tab,setTab]=useState('scene'),id=version.shipModelId
+function ModelDetail({ship,id}:{ship:string;id:string}) {
+  const access=useSessionAccess(),[tab,setTab]=useState('scene')
   const load=useCallback((signal:AbortSignal)=>viewerApi.manifest(ship,id,signal),[ship,id])
   const manifest=useReadQuery(`viewer-manifest:${ship}:${id}`,load)
-  return <>{access.canDo('BLE_ANCHOR_READ')&&<nav className={styles.tabs} aria-label="Nội dung sơ đồ tàu">{[['scene','Sơ đồ tàu'],['ble','Thiết bị định vị']].map(([value,label])=><button key={value} aria-pressed={tab===value} onClick={()=>setTab(value)}>{label}</button>)}</nav>}
+  const canManageTechnicalSetup = access.inWorkScope('ship-import') && access.canDo('BLE_ANCHOR_READ')
+  return <>{canManageTechnicalSetup&&<nav className={styles.tabs} aria-label="Nội dung sơ đồ tàu">{[['scene','Sơ đồ tàu'],['ble','Thiết bị định vị']].map(([value,label])=><button key={value} aria-pressed={tab===value} onClick={()=>setTab(value)}>{label}</button>)}</nav>}
     {manifest.loading&&<Loading label="Đang tải sơ đồ tàu…"/>}{manifest.error&&<Failure error={manifest.error} retry={manifest.retry}/>}
-    {manifest.data&&(tab==='ble'?<BleSetup ship={ship} model={id} manifest={manifest.data}/>:<Explore ship={ship} model={id} manifest={manifest.data}/>)}</>
+    {manifest.data&&(tab==='ble'&&canManageTechnicalSetup?<BleSetup ship={ship} model={id} manifest={manifest.data}/>:<Explore ship={ship} model={id} manifest={manifest.data}/>)}</>
 }
-function ShipModels({ship,requested,onShip}:{ship:ShipChoice;requested:string;onShip:(id:string)=>void}) {
-  const load=useCallback((signal:AbortSignal)=>viewerApi.versions(ship.shipId,signal),[ship.shipId]),query=useReadQuery(`viewer-versions:${ship.shipId}`,load)
-  const versions=query.data?[...query.data].sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt)):[]
-  const selected=requested?versions.find(v=>v.shipModelId===requested):versions[0]
+function ShipModels({ ship, requested, onModel, renderHeader }: {
+  ship: ShipChoice; requested: string; onModel: (id: string) => void; renderHeader: (action: ReactNode) => ReactNode
+}) {
+  const access = useSessionAccess()
+  const canUpdate = access.inWorkScope('ship-import') && access.canDo('SHIP_MODEL_UPDATE')
+  const [editing, setEditing] = useState(false)
+  const [result, setResult] = useState<{ job: ImportJob; fromHistory: boolean } | null>(null)
+  const resultFocus = useRef<HTMLDivElement>(null)
+  const load=useCallback((signal:AbortSignal)=>viewerApi.models(ship.shipId,signal),[ship.shipId]),query=useReadQuery(`viewer-models:${ship.shipId}`,load)
+  const models=query.data?[...query.data].sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt)):[]
+  const selected=requested?models.find(model=>model.shipModelId===requested):models[0]
+  function importFinished(job: ImportJob, fromHistory = false) {
+    setResult({ job, fromHistory })
+    setEditing(false)
+    onModel(job.modelId)
+    query.retry()
+    refreshShipStructure()
+    requestAnimationFrame(() => resultFocus.current?.focus())
+  }
+
   return <>
-    {query.loading&&<Loading label="Đang tải sơ đồ tàu…"/>}{query.error&&<Failure error={query.error} retry={query.retry}/>} {query.data?.length===0&&<Panel><Empty title="Tàu chưa có sơ đồ 3D"><Link to="/admin/ship-import">Tải mô hình</Link></Empty></Panel>}
-    {requested&&!selected&&!query.loading&&versions.length>0&&<Notice title="Không tìm thấy sơ đồ đã chọn" tone="warning"><Button tone="text" onClick={()=>onShip(ship.shipId)}>Tải lại sơ đồ tàu</Button></Notice>}
-    {selected&&<VersionDetail key={`${ship.shipId}:${selected.shipModelId}`} ship={ship.shipId} version={selected}/>}
+    {renderHeader(canUpdate && <Button autoWidth disabled={!query.data} onClick={() => setEditing(true)}>Cập nhật mô hình</Button>)}
+    {result && <Panel title={result.fromHistory ? 'Kết quả quan sát được trong lịch sử' : 'Kết quả import mô hình'}>
+      <div tabIndex={-1} ref={resultFocus}>
+        {result.fromHistory && <p>Máy chủ chưa cung cấp mã đối chiếu riêng cho yêu cầu đã mất kết nối.</p>}
+        <ImportJobDetails job={result.job} canRead={access.canDo('SHIP_READ')} />
+      </div>
+    </Panel>}
+    {query.loading&&<Loading label="Đang tải sơ đồ tàu…"/>}{query.error&&<Failure error={query.error} retry={query.retry}/>} {query.data?.length===0&&<Panel><Empty title="Tàu chưa có sơ đồ 3D" /></Panel>}
+    {requested&&!selected&&!query.loading&&models.length>0&&<Notice title="Không tìm thấy sơ đồ đã chọn" tone="warning"><Button tone="text" onClick={()=>onModel('')}>Xem sơ đồ khác</Button></Notice>}
+    {selected&&<ModelDetail key={`${ship.shipId}:${selected.shipModelId}:${selected.updatedAt}`} ship={ship.shipId} id={selected.shipModelId}/>}
+    {editing && canUpdate && query.data && <ExistingModelImport key={access.userId} shipId={ship.shipId}
+      shipName={ship.shipName} manifestModelId={ship.manifestModelId} models={query.data}
+      onResult={importFinished} onClose={() => { setEditing(false); query.retry() }} />}
   </>
 }
 export function ModelViewerPage() {
@@ -76,10 +107,21 @@ export function ModelViewerPage() {
   const canRead=access.canDo('SHIP_READ')
   const load=useCallback((signal:AbortSignal)=>canRead?viewerApi.ships(signal):Promise.resolve([]),[canRead])
   const query=useReadQuery('viewer-ships',load),shipId=params.get('ship')??'',ship=query.data?.find(s=>s.shipId===shipId)
-  return <AdminShell><div className={styles.page}><header className={styles.pageHeader}><div><h1>Sơ đồ tàu 3D</h1></div><Field htmlFor="viewer-ship" label="Mã tàu"><select id="viewer-ship" value={shipId} disabled={query.loading||!query.data?.length} onChange={event=>setParams(event.target.value?{ship:event.target.value}:{})}><option value="">Chọn mã tàu</option>{query.data?.map(s=><option key={s.shipId} value={s.shipId}>{s.shipCode}</option>)}</select></Field><Link className={styles.secondaryLink} to="/admin/ship-import">Thêm tàu</Link></header>
-
+  const renderHeader = (action: ReactNode) => <header className={styles.pageHeader}>
+    <div><h1>Sơ đồ tàu 3D</h1></div>
+    <Field htmlFor="viewer-ship" label="Mã tàu">
+      <select id="viewer-ship" value={shipId} disabled={query.loading || !query.data?.length}
+        onChange={event => setParams(event.target.value ? { ship: event.target.value } : {})}>
+        <option value="">Chọn mã tàu</option>
+        {query.data?.map(row => <option key={row.shipId} value={row.shipId}>{row.shipCode}</option>)}
+      </select>
+    </Field>
+    {action}
+  </header>
+  return <AdminShell><div className={styles.page}>
+    {!ship && renderHeader(!shipId && <Link className={styles.secondaryLink} to="/admin/ship-import">Thêm tàu</Link>)}
     {query.loading&&<Loading label="Đang tải tàu…"/>}{query.error&&<Failure error={query.error} retry={query.retry}/>}
     {!access.canDo('SHIP_READ')&&<Notice title="Chưa có quyền đọc tàu" tone="warning">Cần quyền SHIP_READ để xem mô hình thuộc tàu.</Notice>}
-    {ship?<ShipModels key={shipId} ship={ship} requested={params.get('model')??''} onShip={id=>setParams(id?{ship:id}:{})}/>:query.data&&<Panel title="Danh sách mã tàu"><div className={styles.shipCards}>{query.data.map(s=><button key={s.shipId} onClick={()=>setParams({ship:s.shipId})} aria-label={`Xem sơ đồ tàu ${s.shipCode} · ${s.shipName}`}><div className={styles.shipIdentity}><strong>{s.shipCode}</strong><span>{s.shipName}</span></div><span className={styles.shipArrow} aria-hidden="true">↗</span></button>)}</div>{!query.data.length&&<Empty title="Chưa có tàu"/>}</Panel>}
+    {ship?<ShipModels key={shipId} ship={ship} renderHeader={renderHeader} requested={params.get('model')??''} onModel={model=>setParams(model?{ship:shipId,model}:{ship:shipId})}/>:query.data&&<Panel title="Danh sách mã tàu"><div className={styles.shipCards}>{query.data.map(s=><button key={s.shipId} onClick={()=>setParams({ship:s.shipId})} aria-label={`Xem sơ đồ tàu ${s.shipCode} · ${s.shipName}`}><div className={styles.shipIdentity}><strong>{s.shipCode}</strong><span>{s.shipName}</span></div><span className={styles.shipArrow} aria-hidden="true">↗</span></button>)}</div>{!query.data.length&&<Empty title="Chưa có tàu"/>}</Panel>}
   </div></AdminShell>
 }

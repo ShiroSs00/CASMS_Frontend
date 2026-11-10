@@ -1,0 +1,125 @@
+.detail {
+  width: min(100%, var(--content-width));
+  margin-inline: auto;
+  padding: var(--space-6) var(--container-gutter-desktop) var(--section-y-desktop);
+  display: grid;
+  gap: var(--space-6);
+  overflow-wrap: anywhere;
+}
+
+.detail :is(h1, h2, h3, h4, p, figure, dl, dd) { margin: 0; }
+.detail :is(h1, h2, h3, h4) { font-family: var(--font-heading); line-height: var(--leading-tight); }
+.detail h1 { max-inline-size: 24ch; font-size: var(--text-4xl); }
+.detail h2 { font-size: var(--text-2xl); }
+.detail h3 { font-size: var(--text-xl); }
+.detail h4 { font-size: var(--text-lg); }
+.detail > a { justify-self: start; }
+.back, .sectionNav a { color: var(--brand-teal); font-weight: 600; text-underline-offset: var(--space-1); }
+
+.overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: stretch;
+}
+
+.photo {
+  position: relative;
+  min-inline-size: 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--surface-warm);
+}
+
+.photo img { display: block; width: 100%; height: 100%; min-height: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+.photo figcaption {
+  position: absolute;
+  inset: auto 0 0;
+  padding: var(--space-2) var(--space-4);
+  background: var(--brand-navy);
+  color: var(--accent-on);
+  font-size: var(--text-xs);
+}
+
+.detail .overviewPanel, .detail .shipPanel { margin: 0; box-shadow: none; border-radius: var(--radius-lg); }
+.detail .overviewPanel { justify-content: space-between; }
+.facts, .saleActions, .readResult, .offerGroup { display: grid; gap: var(--space-3); }
+.shipName { font-weight: 600; }
+.factList, .portTimes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.factList dt, .portTimes dt, .timeNote, .portHeading p, .offerCategory {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+.factList dd { display: grid; gap: var(--space-1); }
+.factList time, .portTimes time, .offerPrice { font-variant-numeric: tabular-nums; }
+.saleActions { border-top: 1px solid var(--border-default); padding-top: var(--space-4); }
+.actions, .shipDetails { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.bookingEntry { min-inline-size: 0; }
+.bookingEntry p, .saleStatus p { font-size: var(--text-sm); color: var(--text-secondary); }
+.saleStatus p + button, .readResult p + button { margin-top: var(--space-2); }
+
+.sectionNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  padding-block: var(--space-1);
+  border-block: 1px solid var(--border-default);
+}
+
+.sectionNav a { display: inline-flex; align-items: center; min-height: var(--control-height-default); }
+.detail :is(.facts, .section) { scroll-margin-top: var(--public-anchor-offset, var(--space-3)); }
+.detail h2[tabindex]:focus { outline: 2px solid var(--brand-teal); outline-offset: var(--space-1); }
+.section { display: grid; gap: var(--space-4); min-inline-size: 0; }
+.sectionHeading { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-4); }
+.sectionHeading p { color: var(--text-secondary); font-size: var(--text-sm); }
+
+.timeline, .ports, .visits, .benefits { list-style: none; padding: 0; margin: 0; }
+.timeline {
+  background: var(--surface-default);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 0 var(--space-5);
+}
+.day + .day, .port + .port { border-top: 1px solid var(--border-default); }
+.dayContent { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 4fr); gap: var(--space-4); padding-block: var(--space-4); }
+.dayHeader { display: grid; align-content: start; gap: var(--space-1); }
+.dayHeader time, .noStops { color: var(--text-secondary); }
+.port { display: grid; gap: var(--space-3); }
+.port + .port { margin-top: var(--space-4); padding-top: var(--space-4); }
+.portHeading { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
+.visits { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.visits li { background: var(--surface-tinted); border-radius: var(--radius-sm); padding: var(--space-1) var(--space-2); }
+.shipDetails { justify-content: space-between; }
+
+.offerGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: var(--space-4); }
+.offer {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  background: var(--surface-default);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+.offer header { display: grid; gap: var(--space-1); }
+.offerPrice strong { font-size: var(--text-2xl); }
+.offerPrice span { color: var(--text-secondary); }
+.benefits li { display: grid; justify-items: start; gap: var(--space-1); padding-block: var(--space-3); border-top: 1px solid var(--border-default); }
+.benefits li span { white-space: normal; }
+.benefits li p { font-size: var(--text-sm); }
+
+@media (max-width: 759px) {
+  .detail { padding: var(--space-4) var(--container-gutter-phone) var(--section-y-phone); gap: var(--space-5); }
+  .detail h1 { font-size: var(--text-3xl); }
+  .overview { grid-template-columns: 1fr; gap: var(--space-3); }
+  .photo img { height: auto; min-height: 0; aspect-ratio: 2 / 1; }
+  .photo figcaption { position: static; }
+  .detail .overviewPanel, .detail .shipPanel, .timeline { padding-inline: var(--space-4); }
+  .dayContent { grid-template-columns: 1fr; gap: var(--space-3); }
+  .dayHeader { grid-template-columns: auto 1fr; gap: var(--space-3); align-items: baseline; }
+  .sectionNav { gap: var(--space-1) var(--space-3); }
+}
+
+@media (max-width: 340px) {
+  .factList, .portTimes { grid-template-columns: 1fr; }
+}

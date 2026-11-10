@@ -3,7 +3,7 @@ import { prepareCreateBody } from './create-body'
 import { businessErrorMessage } from './business-errors'
 import { apiPermissionRequirement, getSessionAccess, hasPermissions } from '@/shared/auth'
 
-type ApiEnvelope<T> = { success: boolean; message?: string; error?: string; code?: string; data?: T; details?: unknown }
+type ApiEnvelope<T> = { success: boolean; message?: string; error?: string; code?: string; data?: T; details?: unknown; traceId?: string }
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   query?: Record<string, string | number | boolean | undefined>
@@ -20,6 +20,7 @@ export class ApiError extends Error {
   code?: string
   details?: unknown
   serverMessage?: string
+  traceId?: string
   constructor(message: string, status: number, code?: string, details?: unknown, serverMessage?: string) {
     super(message); this.name = 'ApiError'; this.status = status; this.code = code; this.details = details; this.serverMessage = serverMessage
   }
@@ -135,9 +136,11 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
       if (response.status === 401 && requestToken && requestToken === accessToken) {
         unauthorizedListeners.forEach((listener) => listener())
       }
-      throw new ApiError(response.status === 401 ? 'Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.'
+      const error = new ApiError(response.status === 401 ? 'Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.'
         : response.status === 403 ? 'Bạn không có quyền thực hiện thao tác này.'
           : (shipModelErrorMessage(path,message) ?? businessErrorMessage(payload?.code ?? payload?.error,message)) || `Không thể thực hiện yêu cầu (HTTP ${response.status}).`, response.status, payload?.code ?? payload?.error, payload?.details ?? payload?.data,message)
+      if (typeof payload?.traceId === 'string' && /^[a-f0-9-]{36}$/i.test(payload.traceId)) error.traceId = payload.traceId
+      throw error
     }
     if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
     if (required && !hasPermissions(getSessionAccess(), required)) throw new ApiError('Quyền truy cập đã thay đổi. Vui lòng tải lại dữ liệu.', 403, 'ACCESS_DENIED')

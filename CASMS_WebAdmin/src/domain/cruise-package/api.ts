@@ -3,6 +3,8 @@ import { decodeCruisePackageCatalog } from './purchase-contract'
 import {decodeEntitlement} from './entitlement-contract'
 
 export type ResourceType = 'ACTIVITY' | 'EXCURSION' | 'SERVICE'
+export type AddonCandidate = {resourceType:ResourceType;resourceId:string;name:string;unitCode:string|null;cutoffLimit:string|null;eligible:boolean;blocker:string|null;allowedStages:('BOOKING'|'PRE_DEPARTURE'|'ONBOARD')[]}
+export type AddonConfiguration = {cruiseId:string;shipId:string|null;canCreate:boolean;reason:string|null;departureAt:string|null;returnAt:string|null;bookingOpensAt:string|null;bookingClosesAt:string|null;candidates:AddonCandidate[]}
 export type Inclusion = 'INCLUDED' | 'LIMITED_INCLUDED' | 'OPTIONAL' | 'NOT_INCLUDED'
 export type ResourceOption = { id: string; name: string;unitCode:string|null }
 export type CruisePackageTemplate = { id: string; code: string; revision: number }
@@ -12,7 +14,7 @@ export type LogicalCategoryReference={id:string;templateVersionId:string;name:st
 export type CabinMappingEvidence={mappingId:string|null;cabinIds:string[];revision:number|null;confirmedBy:string|null;confirmedAt:string|null;blockers:{code:string;message:string}[]}
 export type CruisePackageVersion = { logicalCategoryReferences:LogicalCategoryReference[]; version: { id: string; templateId: string; revision: number; versionNumber: number; name: string; description?: string | null; logicalCategories: string[]; status: 'DRAFT' | 'PUBLISHED' | 'SUPERSEDED' }; benefits: Benefit[]; resourceNames: Record<string,string> }
 export type CruisePackagePrice = { id: string; offerId: string; templateVersionId: string; offerCommercialRevision: number; revision: number; revisionNumber: number; amount: string; createdBy:string; submittedBy:string|null; currencyCode: 'USD'; priceUnit: 'PERSON'; status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'RETURNED'; reviewReason?: string | null }
-export type CruisePackageContext = { cruiseId:string; shipId:string|null; planStatus:string; canConfigure:boolean; canCreatePrice:boolean; canReviewPrice:boolean }
+export type CruisePackageContext = { cruiseId:string; shipId:string|null; planStatus:string; canConfigure:boolean; canCreatePrice:boolean; canReviewPrice:boolean; unifiedPackageReview:boolean }
 export type CruisePackageOffer = { template:CruisePackageVersion; bindingNames:Record<string,string>; cabinMapping:CabinMappingEvidence;offer: { logicalCategoryId:string|null;id: string; cruiseId: string; templateVersionId: string; revision: number; commercialRevision: number; shipId: string; logicalCategory: string; proposedCabinType: string; salesStart: string; salesEnd: string; status: 'DRAFT' | 'PUBLISHED'; saleEnabled:boolean }; bindings: { id: string; benefitId: string; onboardActivityId?: string | null; shoreExcursionId?: string | null; serviceId?: string | null }[]; prices: CruisePackagePrice[]; currentApprovedPriceRevisionId?: string | null; publicationEligible?: boolean; eligibility: { eligible: boolean; blockers: { code: string; message: string; dependencyId: string | null }[] } }
 export type BenefitInput = BenefitUsage & { resourceType: ResourceType; resourceId: string; inclusion: Inclusion; quantityLimit: number | null; eligibility: string }
 export type OfferInput = { logicalCategoryId:string;templateVersionId: string; logicalCategory: string; proposedCabinType: string; salesStart: string; salesEnd: string }
@@ -56,6 +58,15 @@ const root='/cruise-package-templates'
 const departure=(id:string)=>`/cruise/${encodeURIComponent(id)}/cruise-package-offers`
 const matchedOffer=(cruiseId:string,offerId?:string)=>(value:unknown)=>{ const result=decodeCruisePackageOffer(value); if (result.offer.cruiseId!==cruiseId||offerId&&result.offer.id!==offerId) throw new Error('Phản hồi không khớp chuyến hoặc gói du thuyền.'); return result }
 export const cruisePackageApi = {
+  addonConfiguration:(cruiseId:string,signal?:AbortSignal)=>request(`/cruise/${encodeURIComponent(cruiseId)}/cruise-package-addons/configuration`,value=>{
+    const r=row(value)
+    if(r.cruiseId!==cruiseId||typeof r.canCreate!=='boolean')throw new Error('Không xác định được khả năng cấu hình Add-on của chuyến.')
+    return {cruiseId,shipId:optionalId(r.shipId),canCreate:r.canCreate,reason:optionalText(r.reason),departureAt:r.departureAt==null?null:instant(r.departureAt),returnAt:r.returnAt==null?null:instant(r.returnAt),bookingOpensAt:r.bookingOpensAt==null?null:instant(r.bookingOpensAt),bookingClosesAt:r.bookingClosesAt==null?null:instant(r.bookingClosesAt),candidates:array(r.candidates,value=>{
+      const c=row(value)
+      if(typeof c.eligible!=='boolean')throw new Error('Chưa có kết quả đối chiếu nguồn Add-on.')
+      return {resourceType:status(c.resourceType,['ACTIVITY','EXCURSION','SERVICE'] as const),resourceId:uuid(c.resourceId),name:string(c.name),unitCode:optionalText(c.unitCode),cutoffLimit:c.cutoffLimit==null?null:instant(c.cutoffLimit),eligible:c.eligible,blocker:optionalText(c.blocker),allowedStages:array(c.allowedStages,s=>status(s,['BOOKING','PRE_DEPARTURE','ONBOARD'] as const))}
+    })} satisfies AddonConfiguration
+  },{signal}),
   logicalCategories:(signal?:AbortSignal)=>request(`${root}/logical-categories`,v=>array(v,value=>{const c=row(value);return{id:uuid(c.id),templateVersionId:uuid(c.templateVersionId),name:string(c.name),packageName:string(c.packageName)}}),{signal}),
   entitlements:(bookingId:string,signal?:AbortSignal)=>request(`/booking/${encodeURIComponent(bookingId)}/cruise-package-entitlements`,v=>array(v,decodeEntitlement),{signal}),
   usageOptions:(signal?:AbortSignal)=>request(`${root}/benefit-usage-options`,v=>{const r=row(v);return {usagePolicies:array(r.usagePolicies,i=>status(i,['UNLIMITED','LIMITED'])),usageUnits:array(r.usageUnits,i=>status(i,['PARTICIPATION','SERVICE_UNIT']))}},{signal}),
@@ -66,7 +77,7 @@ export const cruisePackageApi = {
   createVersion:(id:string,body:{expectedTemplateRevision:number;name:string;description:string;logicalCategories:string[];benefits:BenefitInput[];reusedLogicalCategoryIds?:string[]})=>request(`${root}/${id}/versions`,v=>{ const result=version(v); if(result.version.templateId!==id)throw new Error('Phiên bản không khớp mẫu.'); return result },{method:'POST',body}),
   publishVersion:(id:string,expectedRevision:number)=>request(`${root}/versions/${id}/publish`,v=>{const result=version(v);if(result.version.id!==id||result.version.status!=='PUBLISHED')throw new Error('Chưa xác nhận phát hành đúng phiên bản.');return result},{method:'POST',body:{expectedRevision}}),
   resources:(type:ResourceType,cruiseId?:string,signal?:AbortSignal)=>request(`${root}/benefit-resources?${new URLSearchParams({type,...(cruiseId?{cruiseId}:{})})}`,v=>array(v,item=>{const r=row(item);return{id:uuid(r.id),name:string(r.name),unitCode:optionalText(r.unitCode)}}),{signal}),
-  context:(cruiseId:string,signal?:AbortSignal)=>request(`${departure(cruiseId)}/context`,v=>{const r=row(v);if(r.cruiseId!==cruiseId||typeof r.canConfigure!=='boolean'||typeof r.canCreatePrice!=='boolean'||typeof r.canReviewPrice!=='boolean')throw new Error('Không đọc được quyền cấu hình gói du thuyền.');return {cruiseId,shipId:optionalId(r.shipId),planStatus:string(r.planStatus),canConfigure:r.canConfigure,canCreatePrice:r.canCreatePrice,canReviewPrice:r.canReviewPrice} satisfies CruisePackageContext},{signal}),
+  context:(cruiseId:string,signal?:AbortSignal)=>request(`${departure(cruiseId)}/context`,v=>{const r=row(v);if(r.cruiseId!==cruiseId||typeof r.canConfigure!=='boolean'||typeof r.canCreatePrice!=='boolean'||typeof r.canReviewPrice!=='boolean')throw new Error('Không đọc được quyền cấu hình gói du thuyền.');return {cruiseId,shipId:optionalId(r.shipId),planStatus:string(r.planStatus),canConfigure:r.canConfigure,canCreatePrice:r.canCreatePrice,canReviewPrice:r.canReviewPrice,unifiedPackageReview:r.unifiedPackageReview===true} satisfies CruisePackageContext},{signal}),
   offers:(cruiseId:string,signal?:AbortSignal)=>request(departure(cruiseId),v=>array(v,matchedOffer(cruiseId)),{signal}),
   cabinOptions:(cruiseId:string,signal?:AbortSignal)=>request(`${departure(cruiseId)}/cabin-options`,v=>array(v,item=>status(item,['INTERIOR','OCEAN_VIEW','BALCONY','SUITE'])),{signal}),
   createOffer:(cruiseId:string,body:OfferInput)=>request(departure(cruiseId),matchedOffer(cruiseId),{method:'POST',body}),

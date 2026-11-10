@@ -1,6 +1,13 @@
+export const serviceUsagePolicyLabels = { UNLIMITED: 'Không giới hạn', PER_DAY: 'Giới hạn theo ngày', PER_CRUISE: 'Giới hạn theo chuyến' }
+export type ServiceUsagePolicy = keyof typeof serviceUsagePolicyLabels
+export const servicePurchaseFlags = {
+  canBuyPreCruise: 'Nhận yêu cầu trước chuyến',
+  canBuyOnboard: 'Cho phép sử dụng qua kênh trên tàu',
+  canSellIndependently: 'Cho phép bán lẻ',
+}
 export type CatalogKind = 'services' | 'products' | 'packages'
-export type CatalogItem = { id: string; code: string; name: string; description: string | null; type: string; price: number | null; currency: string | null; capacity?: number | null; status: string; startDate?: string | null; endDate?: string | null }
-export type ServiceRequest = { fareBenefitSnapshotId?:string|null;fulfillmentUnitCode?:string|null;fulfilledQuantity?:number|null;id: string; serviceId: string; passengerId: string; bookingId: string | null; bookingPassengerId: string | null; scheduleId?: string | null; unitPriceSnapshot?: number | null; currencySnapshot?: string | null; quantity: number; note: string | null; status: string; assignedUserId: string | null; requestTime: string; completedAt: string | null }
+export type CatalogItem = { canBuyPreCruise?: boolean; canBuyOnboard?: boolean; canSellIndependently?: boolean; preCruiseUsagePolicy?: ServiceUsagePolicy | null; preCruiseUsageLimit?: number | null; usageTimeZone?: string | null; requiresSchedule?:boolean;categoryId?:string|null;categoryName?:string|null;unitCode?:string|null;applicabilityScope?:string|null; id: string; code: string; name: string; description: string | null; type: string; price: number | null; currency: string | null; capacity?: number | null; status: string; startDate?: string | null; endDate?: string | null }
+export type ServiceRequest = { usageMode?: 'LEGACY' | 'PRE_CRUISE' | 'ONBOARD' | null; usagePolicySnapshot?: ServiceUsagePolicy | null; usageLimitSnapshot?: number | null; usageTimeZoneSnapshot?: string | null; fareBenefitSnapshotId?:string|null;fulfillmentUnitCode?:string|null;fulfilledQuantity?:number|null;id: string; serviceId: string; passengerId: string; bookingId: string | null; bookingPassengerId: string | null; scheduleId?: string | null; unitPriceSnapshot?: number | null; currencySnapshot?: string | null; quantity: number; note: string | null; status: string; assignedUserId: string | null; requestTime: string; completedAt: string | null }
 export type Benefits = { packageInfo: CatalogItem; services: { packageId: string; serviceId: string; benefitType: string }[]; activities: { packageId: string; activityId: string; benefitType: string }[]; excursions: { packageId: string; excursionId: string; benefitType: string }[]; entitlements?: { id: string; packageId: string; categoryId: string; benefitType: string; quantityLimit: number | null; unitCode: string | null; discountPercent: number | null; ownerScope: string | null }[] }
 export const catalogConfig = {
   services: { label: 'Dịch vụ', route: '/admin/services' },

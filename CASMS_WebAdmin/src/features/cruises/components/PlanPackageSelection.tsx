@@ -42,7 +42,7 @@ export function PlanPackageSelection({ cruiseId, onSaved }: { cruiseId: string; 
     <p>{editable ? 'Chọn gói và phiên bản giá đã được Quản lý hoạt động/dịch vụ chuẩn bị.' : 'Các gói Quản lý lịch trình lựa chọn để trình duyệt.'}</p>
     {query.loading && <Loading/>}
     {(query.error || error) && <Notice tone="error" title="Cần đối chiếu lựa chọn"><p>{error || 'Không tải được gói du thuyền.'}</p><Button tone="secondary" onClick={() => { setDraft(null); setError(''); query.retry() }}>Tải lại gói</Button></Notice>}
-    {!query.loading && !query.error && data?.offers.length === 0 && <p>Chưa có Offer đã phát hành để trình duyệt.</p>}
+    {!query.loading && !query.error && data?.offers.length === 0 && <p>Chưa có gói do ASM chuẩn bị để trình duyệt.</p>}
     {data?.offers.map(({ product, eligiblePriceRevisionId, planEligibility }) => {
       const id = product.offer.id
       const choice = selected.find(item => item.offerId === id)

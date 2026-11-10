@@ -5,7 +5,7 @@ import type { ShipListItem, SupplementField } from '../model/ship-list-types'
 import { StatusBadge } from './Common'
 import styles from './ShipManagement.module.css'
 
-export function FleetShipCards({ items, filtered, onReset }: { items: ShipListItem[]; filtered: boolean; onReset: () => void; onRetry: (id: string, field: SupplementField) => void }) {
+export function FleetShipCards({ items, filtered, onReset, onRetry }: { items: ShipListItem[]; filtered: boolean; onReset: () => void; onRetry: (id: string, field: SupplementField) => void }) {
   if (!items.length) return <Empty title={filtered ? 'Không có tàu phù hợp' : 'Chưa có tàu'}>{filtered ? <Button tone="secondary" onClick={onReset}>Xóa bộ lọc</Button> : null}</Empty>
   return <div className={styles.fleetCards}>{items.map(ship => <article key={ship.id} className={styles.fleetShip}>
     <div className={styles.fleetShipHeading}><span className={styles.shipCode}>{ship.code}</span><StatusBadge status={ship.status} /></div>
@@ -14,7 +14,14 @@ export function FleetShipCards({ items, filtered, onReset }: { items: ShipListIt
       {(['deckCount', 'cabinCount'] as const).map((key, index)=><div key={key}><dt>{index ? 'Phòng' : 'Boong'}</dt><dd>{ship.capacity.status==='loaded'?ship.capacity.data[key]:'—'}</dd></div>)}
       <ShipAreaCount count={ship.capacity.status==='loaded'?ship.capacity.data.serviceAreaCount:undefined}/>
     </dl>
-    <div className={styles.fleetShipState}><span>Chuyến hiện tại</span>{ship.currentCruise.status==='loaded'?<strong>{ship.currentCruise.data?.code??'—'}</strong>:ship.currentCruise.status==='loading'?<span role="status">Đang tải…</span>:<span>Không tải được dữ liệu</span>}</div>
+    <div className={styles.fleetShipState}>
+      <span>Chuyến hiện tại</span>
+      {ship.currentCruise.status === 'loaded' ? <strong>{ship.currentCruise.data?.code ?? 'Chưa có chuyến đang chạy'}</strong>
+        : ship.currentCruise.status === 'loading' ? <span role="status">Đang tải…</span>
+        : ship.currentCruise.status === 'denied' ? <span>Không có quyền xem</span>
+        : <Button tone="text" size="compact" aria-label={`Tải lại chuyến hiện tại của tàu ${ship.code}`}
+            onClick={() => onRetry(ship.id, 'currentCruise')}>Tải lại</Button>}
+    </div>
     <div className={styles.fleetShipActions}><Link className={styles.manageLink} to={`/admin/ships/${ship.id}`}>Chi tiết tàu <span aria-hidden="true">→</span></Link><Link className={styles.structureAction} to={`/admin/ships/${ship.id}?tab=cabins`}>Quản lý phòng <span aria-hidden="true">→</span></Link></div>
   </article>)}</div>
 }

@@ -1,5 +1,7 @@
 import {wallTimeToInstant,SHIP_TIME_ZONE} from '@/shared/lib/journey-time'
 export type Activity = {
+  catalogEntry?: false
+  sourceActivityId?: string | null; responsibleUserId?: string | null
   id: string; code: string; name: string; description: string | null; startTime: string; endTime: string
   location: string | null;deckId?:string|null;deckNumber?:number|null;deckName?:string|null;cabinId?:string|null;cabinNumber?:string|null; capacity: number; price: number | null; currencyCode: string | null; status: string; cruiseId: string | null
 }
@@ -7,7 +9,7 @@ export type ActivityDraft = {deckId?:string|null;cabinId?:string|null; activityC
 export type CruiseOption = { cruiseId: string; cruiseCode: string; cruiseName: string; departureDatetime: string; returnDatetime: string }
 export type Availability = { activityId: string; capacity: number; availableSeats: number; status: string }
 export type ScheduleCheck = { activityId: string; conflictFree: boolean; conflicts: number }
-export type Registration = { id: string; bookingPassengerId: string; activityId: string | null; excursionId: string | null; quantity: number; status: string; registeredAt: string }
+export type Registration = { id: string; bookingPassengerId: string; activityId: string | null; excursionId: string | null; quantity: number; status: string; registeredAt: string; notes?: string | null }
 export type Participation = { id: string; registrationId: string; status: string; checkInTime: string | null; checkOutTime: string | null }
 export const activityStatusLabels: Record<string, string> = { PLANNED: 'Đã lên kế hoạch', OPEN: 'Mở đăng ký', FULL: 'Đủ chỗ', IN_PROGRESS: 'Đang diễn ra', COMPLETED: 'Hoàn thành', CANCELLED: 'Đã hủy' }
 export const attendanceLabels: Record<string, string> = { PENDING: 'Chờ xác nhận', CONFIRMED: 'Đã xác nhận', CANCELLED: 'Đã hủy', COMPLETED: 'Hoàn thành', REGISTERED: 'Đã đăng ký', CHECKED_IN: 'Đã điểm danh', IN_PROGRESS: 'Đang tham gia', NO_SHOW: 'Vắng mặt' }

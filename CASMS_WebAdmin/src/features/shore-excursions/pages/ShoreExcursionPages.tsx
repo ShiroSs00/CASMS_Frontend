@@ -101,7 +101,8 @@ function ExcursionFacts({ item }: { item: ShoreExcursion }) {
 export function ShoreExcursionFormPage() {
   const { excursionId } = useParams()
   const [params] = useSearchParams(), contextKey = JSON.stringify([excursionId, params.get('cruiseId'), params.get('cruiseStopId'), params.get('returnTo')])
-  return <ShoreLayout><Link className={styles.link} to={root}>← Chuyến tham quan bờ</Link><PageHeader breadcrumb="Dịch vụ bờ / Chuyến tham quan" title={excursionId ? 'Chỉnh sửa chuyến tham quan' : 'Tạo chuyến tham quan'}  />{excursionId ? <EditExcursion key={contextKey} id={excursionId} /> : <SaveExcursion key={contextKey} />}</ShoreLayout>
+  const returnTo = cruiseContextReturn(params.get('returnTo'), params.get('cruiseId'))
+  return <ShoreLayout><Link className={styles.link} to={returnTo ?? root}>← {returnTo ? 'Chuyến khởi hành' : 'Chuyến tham quan bờ'}</Link><PageHeader breadcrumb="Dịch vụ bờ / Chuyến tham quan" title={excursionId ? 'Chỉnh sửa chuyến tham quan' : 'Tạo chuyến tham quan'}  />{excursionId ? <EditExcursion key={contextKey} id={excursionId} /> : <SaveExcursion key={contextKey} />}</ShoreLayout>
 }
 function EditExcursion({ id }: { id: string }) {
   const load = useCallback((signal: AbortSignal) => shoreExcursionApi.get(id, signal), [id])
