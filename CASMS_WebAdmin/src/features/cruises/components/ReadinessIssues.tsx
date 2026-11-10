@@ -19,12 +19,16 @@ export function ReadinessIssues({items,cruiseId,shipId}:{items:ReadinessIssueDto
       : readinessTarget(item,cruiseId,shipId)
     const url=target?new URL(target,'https://ocvviet.local'):null
     const allowed=Boolean(url&&item.requiredPermission&&(saleTerms ? access.roles.includes('OPERATIONS_MANAGER') && access.has('CRUISE_PRICING_APPROVE') : access.canDo(item.requiredPermission))&&canRoleOpenAdminPath(access.roles,url.pathname,url.search,access))
-    const unavailable=businessCopy(!validCruiseContextId(item.targetId)||!target?'cruise.readiness.targetUnavailable':'cruise.readiness.permissionUnavailable')
+    const isOtherRoleOwner = item.ownerRole && !access.roles.includes(item.ownerRole)
+    const ownerName = domainStatus('cruise.readiness.owner', item.ownerRole ?? 'UNKNOWN')
+    const unavailable = isOtherRoleOwner
+      ? `Hạng mục này do bộ phận ${ownerName} phụ trách hoàn tất trước khi mở bán.`
+      : businessCopy(!validCruiseContextId(item.targetId)||!target?'cruise.readiness.targetUnavailable':'cruise.readiness.permissionUnavailable')
     const message=saleTerms ? item.code==='SALE_TAX_APPROVAL_REQUIRED' ? 'Thuế trong hồ sơ chưa được phê duyệt' : 'Phí cảng trong hồ sơ chưa được phê duyệt' : readinessMessage(item.code,item.message)
     const action=readinessAction(item.code)
     return <li key={item.code+':'+item.targetId+':'+index}><Notice title={message} tone={item.severity==='BLOCKER'?'error':'warning'}>
       <p>{domainStatus('cruise.readiness',item.severity??'UNKNOWN')} · {businessCopy('cruise.readiness.scope')}: {domainStatus('cruise.readiness.scope',item.scope??'UNKNOWN')}</p>
-      <p>{businessCopy('cruise.readiness.owner')}: {domainStatus('cruise.readiness.owner',item.ownerRole??'UNKNOWN')}</p>
+      <p>{businessCopy('cruise.readiness.owner')}: {ownerName}</p>
       {action&&<p>{action}</p>}
       <details><summary>{businessCopy('cruise.readiness.technical')}</summary><code>{item.code}</code>{item.allowedAction&&<p>{item.allowedAction}</p>}{item.evidence&&<pre>{item.evidence}</pre>}</details>
       {allowed&&target?<ButtonLink tone="secondary" to={target+(target.includes('?')?'&':'?')+new URLSearchParams({cruiseId,targetType:item.targetType??'',targetId:item.targetId??'',returnTo:'/admin/cruises/'+cruiseId+'?section=checks'})}>{saleTerms?'Xem hồ sơ và thuế/phí':businessCopy('cruise.readiness.resolve')}</ButtonLink>:<p>{unavailable}</p>}

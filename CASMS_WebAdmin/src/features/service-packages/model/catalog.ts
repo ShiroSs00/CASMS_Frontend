@@ -11,7 +11,7 @@ export type ServiceRequest = { usageMode?: 'LEGACY' | 'PRE_CRUISE' | 'ONBOARD' |
 export type Benefits = { packageInfo: CatalogItem; services: { packageId: string; serviceId: string; benefitType: string }[]; activities: { packageId: string; activityId: string; benefitType: string }[]; excursions: { packageId: string; excursionId: string; benefitType: string }[]; entitlements?: { id: string; packageId: string; categoryId: string; benefitType: string; quantityLimit: number | null; unitCode: string | null; discountPercent: number | null; ownerScope: string | null }[] }
 export const catalogConfig = {
   services: { label: 'Dịch vụ', route: '/admin/services' },
-  products: { label: 'Sản phẩm', route: '/admin/products' },
+  products: { label: 'Mặt hàng bán lẻ', route: '/admin/products' },
   packages: { label: 'Gói dịch vụ', route: '/admin/service-packages' },
 } satisfies Record<CatalogKind, { label: string; route: string }>
 export const statusLabels: Record<string, string> = { ACTIVE: 'Đang hoạt động', INACTIVE: 'Ngừng hoạt động', SUSPENDED: 'Tạm ngừng', CANCELLED: 'Đã hủy', REQUESTED: 'Đã yêu cầu', ACCEPTED: 'Đã tiếp nhận', IN_PROGRESS: 'Đang thực hiện', COMPLETED: 'Hoàn thành', REJECTED: 'Đã từ chối', DRAFT: 'Nháp', PUBLISHED: 'Đã công bố', DISCONTINUED: 'Ngừng cung cấp', OUT_OF_STOCK: 'Hết hàng', AVAILABLE: 'Còn cung cấp' }

@@ -103,7 +103,7 @@ function DepartureOffersWorkspace({cruiseId,onChanged,shipName}:{cruiseId:string
     {access.roles.includes('ACTIVITY_SERVICE_MANAGER')&&access.canDo('TOUR_PACKAGE_MANAGE')&&<ButtonLink tone="secondary" to="/admin/cruise-package-templates">Mở mẫu gói du thuyền</ButtonLink>}
     {data&&!data.context.shipId&&<Notice title="Chưa được phân công tàu" tone="warning"><p>Cần có tàu trước khi cấu hình gói du thuyền của chuyến.</p></Notice>}
     {access.canDo('TOUR_PACKAGE_ASSIGN')&&<DeparturePackageManager cruiseId={cruiseId} onChanged={()=>{refresh();onChanged()}}/>}
-    {data?.offers.length===0&&!access.canDo('TOUR_PACKAGE_ASSIGN')&&<Empty title="Chưa có gói du thuyền của chuyến"/>}
+    {data?.offers.length===0&&!access.canDo('TOUR_PACKAGE_ASSIGN')&&<Empty title="Chưa có gói du thuyền được gán"><p>Nhờ người có quyền gán gói chọn phiên bản mẫu và tạo gói cho chuyến này.</p></Empty>}
     {data?.offers.map(item=><OfferCard key={item.offer.id} item={item} context={data.context} shipName={shipName} disabled={disabled} run={mutation.run}/>)}
     {data?.context.canConfigure&&<OfferForm cruiseId={cruiseId} disabled={disabled} run={mutation.run}/>}
     <CruisePackageAddons cruiseId={cruiseId} onChanged={onChanged}/>

@@ -6,6 +6,7 @@ import {mutationOutcomeUnknown} from '@/shared/lib/mutation-outcome'
 import {allowedDepartureSections,type DepartureSection} from '../model/preparation'
 import {operationsConditionTarget} from '../model/operations-workflow'
 import {ReadinessIssues} from './ReadinessIssues'
+import {readinessMessage} from '../model/readiness-copy'
 import styles from './ManagerWorkspace.module.css'
 import {useCallback,useRef,useState} from 'react'
 import {ApiError,apiRequest,useReadQuery} from '@/shared/api'
@@ -79,10 +80,11 @@ export function CruiseSale({cruise,onSection,onReview,onChanged}:{cruise:CruiseR
  }
  return <Panel title="Mở bán chuyến khởi hành">
   {saleRecord.data&&!saleRecord.loading&&!saleRecord.error&&<RecordFacts entries={[["Quyết định mở bán",activated?'Đã xác nhận':'Chưa ghi nhận quyết định mở bán'],["Thời điểm xác nhận",activated?journeyTime(saleRecord.data.openedForSaleAt!,SHIP_TIME_ZONE):'Chưa có thông tin']]}/>}
+  {!activated&&plan.data&&!plan.loading&&!plan.error&&plan.data.readyStatus!=='READY'&&<Notice title="Chuyến khởi hành chưa được xác nhận sẵn sàng mở bán" tone="warning"><p>Để mở bán, chuyến khởi hành cần hoàn tất Bước 2 (Xác nhận sẵn sàng mở bán) sau khi kế hoạch và giá đã được Quản lý vận hành duyệt.</p>{onReview&&<Button tone="secondary" onClick={onReview}>Quay lại Bước 2: Xác nhận sẵn sàng mở bán</Button>}</Notice>}
   {fares.loading&&<Loading label="Đang đối chiếu gói du thuyền…"/>}
   {fares.error&&<Notice title="Chưa đọc được gói du thuyền" tone="error"><p>{fares.error.message}</p><Button onClick={fares.retry}>Tải lại gói du thuyền</Button></Notice>}
   {!fares.loading&&!fares.error&&!plan.loading&&!plan.error&&plan.data&&<fieldset className={styles.salePackages}><legend>Gói du thuyền được mở bán</legend>
-   {eligibleFares?.length===0&&<p>Chưa có gói du thuyền của chuyến khởi hành.</p>}
+   {eligibleFares?.length===0&&<p>Chưa có gói du thuyền đủ điều kiện mở bán cho chuyến khởi hành. Quản lý lịch trình cần bổ sung gói và gửi duyệt giá trước khi mở bán.</p>}
    {eligibleFares?.map(f=><div key={f.offer.id}><label><input type="checkbox" checked={activated?f.offer.saleEnabled:selectedFares.includes(f.offer.id)} disabled={busy||uncertain||activated||!f.eligibility.eligible} onChange={e=>{operation.current=null;setSelectedCruisePackages(old=>e.target.checked?[...old,f.offer.id]:old.filter(id=>id!==f.offer.id));setConfirm(false)}}/>{f.template.version.name} — {f.offer.logicalCategory}{!f.eligibility.eligible?' — Chưa đủ điều kiện bán':''}</label>
     {(()=>{const price=f.prices.find(p=>p.id===f.currentApprovedPriceRevisionId);return <p>{price?`${offerAmount(price.amount)} USD/người · Giá phiên bản ${price.revisionNumber}`:'Chưa có giá đã duyệt hiện hành'}</p>})()}
     {f.eligibility.blockers.length>0&&<ul>{f.eligibility.blockers.map((blocker,index)=><li key={`${blocker.code}:${index}`}>{blocker.message}</li>)}</ul>}
@@ -110,7 +112,7 @@ export function CruiseSale({cruise,onSection,onReview,onChanged}:{cruise:CruiseR
   {(query.loading||packages.loading||sellability.loading||saleRecord.loading)&&<Loading/>}
   {(query.error||packages.error||sellability.error||saleRecord.error)&&<Notice title="Không thể hoàn tất thao tác"><Button onClick={()=>{query.retry();packages.retry();sellability.retry();saleRecord.retry();plan.retry()}}>Tải lại dữ liệu</Button></Notice>}
   {data&&simpleBlockers.length>0&&<ul className={styles.conditionList}>{uniqueConditionCodes(simpleBlockers).map(code=>{
-   const message=businessErrorMessage(code,'')
+   const message=readinessMessage(code,businessErrorMessage(code,''))
    const target=operationsConditionTarget(code)
    const destination=target&&target!=='review'?allowedDepartureSections(access).find(([key])=>key===target):null
    return <li key={code}><span>{code==='CRUISE_ALREADY_DEPARTED'?`Ngày khởi hành ${journeyTime(cruise.departureDatetime,SHIP_TIME_ZONE)} đã qua. Cần một chuyến khởi hành có lịch mới để khách đặt trên website.`:message}</span>{target==='review'&&onReview?<Button tone="text" onClick={onReview}>Xem xét duyệt</Button>:destination&&onSection&&destination[0]!=='checks'?<Button tone="text" onClick={()=>onSection(destination[0])}>Mở {destination[1].toLocaleLowerCase('vi-VN')}</Button>:null}</li>
@@ -132,6 +134,3 @@ export function CruiseSale({cruise,onSection,onReview,onChanged}:{cruise:CruiseR
   </Modal>}
  </Panel>
 }
-
-
-

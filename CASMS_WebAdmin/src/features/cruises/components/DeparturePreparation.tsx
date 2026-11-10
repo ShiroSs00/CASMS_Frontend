@@ -17,10 +17,10 @@ const preparationGroups: readonly { code:string; title:string; destination:Depar
   { code:'SAFETY_CREW', title:'An toàn và thuyền viên', destination:'resources' },
 ]
 
-export function DepartureTabs({section,onChange,operationsStage}:{section:DepartureSection;onChange:(section:DepartureSection)=>void;operationsStage?:1|3}) {
+export function DepartureTabs({section,onChange,operationsStage,excludeKeys}:{section:DepartureSection;onChange:(section:DepartureSection)=>void;operationsStage?:1|3;excludeKeys?:readonly DepartureSection[]}) {
   const access=useSessionAccess()
   const manager=access.roles.includes('CRUISE_MANAGER')&&!access.roles.includes('OPERATIONS_MANAGER')
-  const tabs=allowedDepartureSections(access).filter(([key])=>!operationsStage||key!=='changes'&&(operationsStage===3?operationsPreparationSections.includes(key):!operationsPreparationSections.includes(key))).sort((a,b)=>operationsStage===3?operationsPreparationSections.indexOf(a[0])-operationsPreparationSections.indexOf(b[0]):0)
+  const tabs = allowedDepartureSections(access).filter(([key]) => !excludeKeys?.includes(key) && (!operationsStage || (key !== 'changes' && (operationsStage === 3 ? operationsPreparationSections.includes(key) : !operationsPreparationSections.includes(key))))).sort((a, b) => operationsStage === 3 ? operationsPreparationSections.indexOf(a[0]) - operationsPreparationSections.indexOf(b[0]) : 0)
   return <div role="tablist" aria-label="Chuẩn bị chuyến khởi hành" className={`${styles.tabs} ${manager?styles.managerTabs:''}`}>{tabs.map(([key,label],index)=><button type="button" role="tab" key={key} id={'departure-tab-'+key} aria-selected={section===key} aria-controls={'departure-panel-'+key} tabIndex={section===key?0:-1} onClick={()=>onChange(key)} onKeyDown={event=>{
     if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return
     event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length
