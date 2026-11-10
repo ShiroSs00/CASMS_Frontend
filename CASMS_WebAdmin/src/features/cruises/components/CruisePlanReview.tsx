@@ -52,7 +52,9 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
   catch(e){setError(safeError(e));if(e instanceof ApiError&&e.status===409){setAction(null);query.retry()}if(!(e instanceof ApiError)||e.status===0||e.status>=500)setUncertain(true)}finally{lock.current=false;setBusy(false)}
  }
  if(!allowed)return null
- if(mode==='summary')return <Panel title="Trạng thái kế hoạch khởi hành">
+ if(mode==='summary'){
+  if(!query.loading&&!query.error&&data&&data.planStatus==='DRAFT'&&!data.reason&&!evidenceMissing)return null
+  return <Panel title="Trạng thái kế hoạch khởi hành">
   {query.loading&&<Loading label="Đang tải trạng thái kế hoạch…"/>}
   {query.error&&<Notice title="Chưa tải được trạng thái kế hoạch" tone="error"><Button tone="secondary" onClick={query.retry}>Tải lại trạng thái</Button></Notice>}
   {data&&!query.loading&&!query.error&&<>
@@ -63,6 +65,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
    {onReview&&data.planStatus!=='DRAFT'&&<Button tone="text" onClick={onReview}>Xem kết quả và phản hồi Quản lý vận hành</Button>}
   </>}
  </Panel>
+ }
  if(mode==='prepare')return <Panel title={embedded?undefined:"Thời gian nhận đặt chỗ và hướng dẫn"}>
   {query.loading&&<Loading/>}{query.error&&<Notice title="Chưa tải được khung thời gian" tone="error">{safeError(query.error)}<Button tone="secondary" onClick={query.retry}>Thử lại</Button></Notice>}
   {data&&<PlanWindows key={`${cruiseId}:${data.windows.expectedRevision}`} data={data} onSaved={()=>{setEpoch(n=>n+1);query.retry()}} editable={crm&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.planStatus)}/>}
@@ -179,8 +182,9 @@ function PlanWindows({data,onSaved,editable=true}:{data:PlanView;onSaved:()=>voi
   finally{lock.current=false;setBusy(false)}
  }
  return <>
+  <p className={styles.sectionMeta}>Khung thời gian được thiết lập tự động theo giờ khởi hành (đóng nhận đặt chỗ trước 2–3 ngày để chuyển sang hướng dẫn trước chuyến; đóng cổng trước 2 giờ tàu chạy).</p>
   <RecordFacts entries={fields.map(([key,label])=>[businessCopy(label),data.windows[key]?journeyTime(data.windows[key]!,SHIP_TIME_ZONE):'Chưa thiết lập'] as const)}/>
-  {editable&&<Button tone="secondary" disabled={busy||uncertain} onClick={()=>{setWindows(data.windows);setError('');setAttempted(false);setTouched({});setOpen(true)}}>Cấu hình thời gian nhận đặt chỗ và hướng dẫn</Button>}
+  {editable&&<Button tone="secondary" disabled={busy||uncertain} onClick={()=>{setWindows(data.windows);setError('');setAttempted(false);setTouched({});setOpen(true)}}>Tùy chỉnh thời gian nhận đặt chỗ và hướng dẫn</Button>}
   {open&&<Modal wide busy={busy} title={businessCopy('cruise.window.title')} description="Tất cả ngày giờ bên dưới theo giờ Việt Nam." onClose={()=>setOpen(false)} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setOpen(false)} data-overlay-dismiss>Hủy</Button><Button type="submit" form="plan-windows-form" disabled={busy||uncertain||departure.loading||Boolean(departure.error)||!departure.data}>{busy?'Đang lưu…':businessCopy('cruise.window.save')}</Button></>}>
    {departure.loading&&<Loading label="Đang tải giờ khởi hành để đối chiếu…"/>}
    {departure.error&&<Notice title="Chưa tải được giờ khởi hành" tone="error"><Button tone="secondary" onClick={departure.retry}>Tải lại giờ khởi hành</Button></Notice>}

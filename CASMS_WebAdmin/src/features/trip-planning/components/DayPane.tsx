@@ -1,7 +1,6 @@
 import { SourcePicker } from './SourcePicker'
 import { Button, Field, Panel } from '@/shared/ui'
-import { SHIP_ZONE, domesticRegionLabel, kindLabels, shortTime, type Source, type Content, type Day, type Entry, type Stop, type Violation } from '../model/plan'
-import { dayAgenda, type AgendaRow } from '../model/day-agenda'
+import { domesticRegionLabel, kindLabels, shortTime, type Source, type Content, type Day, type Entry, type Stop, type Violation } from '../model/plan'
 import { violationTarget } from '../model/violation-target'
 import styles from '../Planning.module.css'
 import { scheduleDayLabel, scheduleDayTypeLabel, stopRoleLabel } from '../model/day-labels'
@@ -9,11 +8,10 @@ import { scheduleDayLabel, scheduleDayTypeLabel, stopRoleLabel } from '../model/
 type Props = {
   departurePorts?: { data: Source[]; loading: boolean; error: string; retry: () => void }
   onDeparture?: (value: Partial<Pick<Day, 'departurePortId' | 'departurePortName' | 'plannedDepartureTime'>>) => void
-  onDisembarkation?: (portId: string | null, plannedTime?: string | null) => void
+  onDisembarkation?: (portId: string | null, times?: Partial<Pick<Stop, 'plannedArrivalTime' | 'plannedDepartureTime'>>) => void
   content: Content
   day: Day
   editable: boolean
-  tab: 'route' | 'program'
   busy: boolean
   violation?: Violation | null
   onType: (type: Day['dayType']) => void
@@ -32,7 +30,6 @@ export function DayPane({
   content,
   day,
   editable,
-  tab,
   busy,
   violation,
   onType,
@@ -47,35 +44,18 @@ export function DayPane({
   const fieldError = (id: string) => (target?.dayNumber === day.dayNumber && target?.fieldId === id ? violation?.message : undefined)
   const stops = content.stops.filter(s => s.arrivalDayNumber <= day.dayNumber && s.departureDayNumber >= day.dayNumber).sort((a, b) => a.stopOrder - b.stopOrder)
   const ordered = [...content.stops].sort((a, b) => a.stopOrder - b.stopOrder)
-  const agenda = dayAgenda(content, day.dayNumber)
+  const entries = content.entries.filter(entry => entry.startDayNumber <= day.dayNumber && entry.endDayNumber >= day.dayNumber)
+  const savedEntries = entries.filter(entry => entry.kind !== 'SHORE_EXCURSION' || !stops.some(stop => stop.clientKey === entry.stopClientKey))
 
   const isFirstDay = day.dayNumber === 1
   const isLastDay = day.dayNumber === content.days.length
   const disembarkationStop = content.stops.find(s => s.isDisembarkation)
   const canConfigurePort = day.dayType === 'PORT_DAY'
 
-  function agendaRow(row: AgendaRow, stopTarget: boolean) {
-    if (row.type === 'milestone')
-      return (
-        <article id={stopTarget ? `planning-${row.stop.clientKey}` : undefined} key={row.key} className={`${styles.agendaRow} ${styles.milestone}`}>
-          <div className={styles.agendaTime}>{row.time ? shortTime(row.time) : row.label === 'Tiếp tục ghé cảng' ? 'Tiếp diễn' : 'Chưa có giờ'}</div>
-          <div className={styles.agendaBody}>
-            <h3>
-              {row.label} · {row.stop.portName ?? 'Cảng'}
-            </h3>
-            <p className={styles.agendaMeta}>
-              {row.label === 'Tiếp tục ghé cảng' ? `Cùng lần ghé từ Ngày ${row.stop.arrivalDayNumber}` : `Lần ghé ${row.stop.stopOrder}`}
-            </p>
-          </div>
-          <Button tone="text" disabled={busy} onClick={() => onStop(row.stop)}>
-            Xem lần ghé
-          </Button>
-        </article>
-      )
-    const entry = row.entry,
-      continuation = entry.startDayNumber !== day.dayNumber
+  function agendaRow(entry: Entry) {
+    const continuation = entry.startDayNumber !== day.dayNumber
     return (
-      <article id={`planning-${entry.clientKey}`} key={row.key} className={styles.agendaRow}>
+      <article id={`planning-${entry.clientKey}`} key={entry.clientKey} className={styles.agendaRow}>
         <div className={styles.agendaTime}>
           {continuation ? 'Tiếp diễn' : shortTime(entry.plannedStartTime)}
           <span>{entry.endDayNumber === day.dayNumber ? `đến ${shortTime(entry.plannedEndTime)}` : `đến Ngày ${entry.endDayNumber} ${shortTime(entry.plannedEndTime)}`}</span>
@@ -118,7 +98,7 @@ export function DayPane({
 
   return (
     <div className={styles.dayPane}>
-      {editable && tab === 'route' ? (
+      {editable ? (
         <Panel title={scheduleDayLabel(day.dayNumber, content.days.length)}>
           <div className={styles.grid}>
             {(!isLastDay || !day.dayType || fieldError('planning-day-type')) && (
@@ -207,12 +187,7 @@ export function DayPane({
                     tone="secondary"
                     size="compact"
                     disabled={busy}
-                    onClick={() =>
-                      onDisembarkation?.(
-                        content.days[0].departurePortId ?? null,
-                        disembarkationStop?.plannedDepartureTime ?? '18:00'
-                      )
-                    }
+                    onClick={() => onDisembarkation?.(content.days[0].departurePortId ?? null)}
                   >
                     Dùng lại cảng khởi hành ({content.days[0].departurePortName})
                   </Button>
@@ -233,16 +208,24 @@ export function DayPane({
                   readOnly={busy}
                   onBlur={() => {}}
                   error={fieldError('planning-ending-port-info')}
-                  onChange={id =>
-                    onDisembarkation?.(
-                      id || null,
-                      disembarkationStop?.plannedDepartureTime ?? '18:00'
-                    )
-                  }
+                  onChange={id => onDisembarkation?.(id || null)}
                 />
+                <Field htmlFor="planning-disembarkation-arrival" label="Giờ tàu đến (giờ địa phương của cảng) *">
+                  <input
+                    id="planning-disembarkation-arrival"
+                    type="time"
+                    step="60"
+                    required
+                    value={disembarkationStop?.plannedArrivalTime ?? ''}
+                    disabled={busy || !disembarkationStop?.portId}
+                    onChange={event =>
+                      onDisembarkation?.(disembarkationStop?.portId ?? null, { plannedArrivalTime: event.target.value || null })
+                    }
+                  />
+                </Field>
                 <Field
                   htmlFor="planning-disembarkation-time"
-                  label="Giờ hoàn tất (giờ Việt Nam) *"
+                  label="Giờ hoàn tất trả khách (giờ địa phương của cảng) *"
                   error={fieldError('planning-disembarkation-time')}
                 >
                   <input
@@ -250,10 +233,10 @@ export function DayPane({
                     type="time"
                     step="60"
                     required
-                    value={disembarkationStop?.plannedDepartureTime ?? disembarkationStop?.plannedArrivalTime ?? ''}
+                    value={disembarkationStop?.plannedDepartureTime ?? ''}
                     disabled={busy || !disembarkationStop?.portId}
                     onChange={event =>
-                      onDisembarkation?.(disembarkationStop?.portId ?? null, event.target.value || null)
+                      onDisembarkation?.(disembarkationStop?.portId ?? null, { plannedDepartureTime: event.target.value || null })
                     }
                   />
                 </Field>
@@ -288,8 +271,7 @@ export function DayPane({
         </dl>
       )}
 
-      {tab === 'route' ? (
-        editable && !day.dayType ? null : (
+      {(!editable || day.dayType) && (
           <Panel title={day.dayType === 'SEA_DAY' ? 'Di chuyển trên biển' : 'Các điểm ghé cảng trong ngày'}>
             <div className={styles.sectionTitle}>
               <span className={styles.muted}>{canConfigurePort ? 'Giờ địa phương của từng cảng ghé' : 'Không xuống bờ trong ngày này'}</span>
@@ -397,78 +379,22 @@ export function DayPane({
                           )}
                         </div>
                       </div>
+                      {editable && (
+                        <Button tone="secondary" disabled={busy} onClick={() => onEntry('SHORE_EXCURSION', undefined, stop.clientKey)}>
+                          Thêm tour tham quan trên bờ
+                        </Button>
+                      )}
+                      {entries.filter(entry => entry.kind === 'SHORE_EXCURSION' && entry.stopClientKey === stop.clientKey).map(agendaRow)}
                     </article>
                   )
                 })}
               </div>
             )}
           </Panel>
-        )
-      ) : (
-        <Panel title="Chương trình trong ngày">
-          {editable && (
-            <div className={styles.agendaToolbar}>
-              <div className={styles.actions}>
-                <Button disabled={busy} onClick={() => onEntry('ONBOARD_ACTIVITY')}>
-                  Thêm hoạt động trên tàu
-                </Button>
-                <Button
-                  tone="secondary"
-                  disabled={busy || !stops.length}
-                  aria-describedby={!stops.length ? 'planning-shore-reason' : undefined}
-                  onClick={() => onEntry('SHORE_EXCURSION', undefined, stops.length === 1 ? stops[0].clientKey : undefined)}
-                >
-                  Thêm tour tham quan trên bờ
-                </Button>
-              </div>
-              {!stops.length && (
-                <p id="planning-shore-reason" className={styles.muted}>
-                  Thêm điểm ghé cảng trong Tuyến tàu để lập tour tham quan trên bờ.
-                </p>
-              )}
-            </div>
-          )}
-          {!agenda.some(group => group.rows.some(row => row.type === 'entry')) && <p className={styles.empty}>Chưa có hoạt động hoặc tour tham quan trong ngày này.</p>}
-          <div className={styles.agenda}>
-            {agenda
-              .filter(group => group.rows.some(row => row.type === 'entry'))
-              .map(group => (
-                <section className={styles.agendaGroup} key={group.key}>
-                  <div className={styles.clockHeading}>
-                    <h3>{group.timeZoneId === SHIP_ZONE ? 'Chương trình · Giờ Việt Nam' : 'Tour tham quan · Giờ địa phương của cảng'}</h3>
-                    <p>{group.timeZoneId === SHIP_ZONE ? 'Asia/Ho_Chi_Minh' : `${group.clocks.filter(clock => clock !== 'Tàu · Giờ Việt Nam').join(', ')} · ${group.timeZoneId ?? 'Chưa có múi giờ'}`}</p>
-                  </div>
-                  {group.rows.filter(row => row.type === 'entry').map(row => agendaRow(row, false))}
-                </section>
-              ))}
-          </div>
-          {agenda.some(group => group.rows.some(row => row.type === 'milestone')) && (
-            <section className={styles.portMilestones} aria-label="Mốc ghé cảng trong ngày">
-              <h3>Mốc ghé cảng trong ngày</h3>
-              <div className={styles.agenda}>
-                {agenda
-                  .filter(group => group.rows.some(row => row.type === 'milestone'))
-                  .map(group => {
-                    const targetedStops = new Set<string>()
-                    return (
-                      <section className={styles.agendaGroup} key={group.key}>
-                        <div className={styles.clockHeading}>
-                          <h4>{group.clocks.filter(clock => clock !== 'Tàu · Giờ Việt Nam').join(', ') || 'Cảng ghé'}</h4>
-                          <p>Giờ địa phương của cảng · {group.timeZoneId ?? 'Chưa có múi giờ'}</p>
-                        </div>
-                        {group.rows
-                          .filter(row => row.type === 'milestone')
-                          .map(row => {
-                            const stopTarget = row.type === 'milestone' && !targetedStops.has(row.stop.clientKey)
-                            if (row.type === 'milestone') targetedStops.add(row.stop.clientKey)
-                            return agendaRow(row, stopTarget)
-                          })}
-                      </section>
-                    )
-                  })}
-              </div>
-            </section>
-          )}
+      )}
+      {savedEntries.length > 0 && (
+        <Panel title="Nội dung đã lưu">
+          {savedEntries.map(agendaRow)}
         </Panel>
       )}
     </div>

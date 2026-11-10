@@ -20,7 +20,7 @@ const reasons: Record<string, string> = {
   FIXED_GUIDANCE_SESSION: 'Chuyến có phiên hướng dẫn đã lên lịch.',
   SHIP_SCHEDULE_CONFLICT: 'Giờ mới trùng lịch tàu.',
   STAFF_SCHEDULE_CONFLICT: 'Giờ mới trùng lịch nhân sự.',
-  PORT_WINDOW_BLOCKED: 'Giờ mới không phù hợp với cửa sổ cảng.',
+  PORT_WINDOW_BLOCKED: 'Giờ mới không phù hợp với điều kiện cảng.',
   SCHEDULE_DAY_BOUNDARY_CHANGED: 'Giờ mới cần phân bổ lại ngày trong lịch trình.',
 }
 const needsScheduleChange = ['SCHEDULE_DAY_BOUNDARY_CHANGED', 'FIXED_SERVICE_SCHEDULE', 'FIXED_GUIDANCE_SESSION']
@@ -34,11 +34,6 @@ function DelayChecks({ checks, onScheduleChange }: { checks: Checks; onScheduleC
       {onScheduleChange && blockers.some(code => needsScheduleChange.includes(code)) &&
         <Button tone="text" onClick={onScheduleChange}>Mở phần thay đổi lịch</Button>}
     </Notice>}
-    {checks.portWindowChecks.length > 0 && <details>
-      <summary>Kiểm tra cửa sổ cảng</summary>
-      <ul>{checks.portWindowChecks.map((check, index) =>
-        <li key={index}>{check.status === 'PASS' ? 'Đạt' : 'Cần kiểm tra'} · {check.message ?? (check.status === 'PASS' ? 'Giờ dự kiến phù hợp với cửa sổ cảng.' : 'Cần kiểm tra lại giờ tại cảng.')}</li>)}</ul>
-    </details>}
   </>
 }
 

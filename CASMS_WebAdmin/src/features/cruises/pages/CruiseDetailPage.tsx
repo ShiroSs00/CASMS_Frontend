@@ -32,8 +32,6 @@ import { useSessionAccess } from '@/shared/auth'
 import { Badge, Button, ButtonLink, Empty, Field, Loading, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
 
 import { CruiseFrame, CruiseStatusBadge } from '../components/CruiseUI'
-import { ShipAssignmentDialog, type AssignmentMode } from '../components/ShipAssignmentDialog'
-import { ShipAssignmentDependencies } from '../components/ShipAssignmentDependencies'
 import { cruiseApi } from '../api/cruise-api'
 import styles from '../components/Cruises.module.css'
 import { useCruiseDetail } from '../hooks/useCruiseDetail'
@@ -61,7 +59,6 @@ export function CruiseDetailPage() {
 }
 function CruiseDetailContent() {
   const access = useSessionAccess()
-  const canAssignShip=access.roles.includes('CRUISE_MANAGER')&&access.canDo('CRUISE_ASSIGN_SHIP')
   const operations=access.roles.includes('OPERATIONS_MANAGER')
   const manager=access.roles.includes('CRUISE_MANAGER')&&!access.roles.includes('OPERATIONS_MANAGER')
   const sectionLabel=(key:DepartureSection)=>allowedDepartureSections(access).find(([section])=>section===key)?.[1]
@@ -89,7 +86,6 @@ function CruiseDetailContent() {
   const goPreparationStep=(step:2|3)=>{const query=new URLSearchParams(params);query.set('section','overview');if(step===3)query.set('step','review');else query.delete('step');setParams(query,{preventScrollReset:true})}
   const goOperationsStep=(step:1|2|3)=>{const query=new URLSearchParams(params);query.delete('focus');query.set('section',step===1?'overview':'checks');if(step===1){query.set('step','review');query.delete('stage')}else{query.delete('step');query.set('stage',step===2?'ready':'sale')}setParams(query,{preventScrollReset:true})}
   const reload=()=>{setCheckEpoch(value=>value+1);salePlan.retry();return refresh()}
-  const [assignmentMode, setAssignmentMode] = useState<AssignmentMode | null>(null)
   const [lifecycleAction, setLifecycleAction] = useState<'publish' | 'start' | 'complete' | 'cancel' | null>(null)
   const [cancelReason, setCancelReason] = useState('')
   const [lifecycleError, setLifecycleError] = useState('')
@@ -132,20 +128,17 @@ function CruiseDetailContent() {
       {state.data && (() => {
         const detail = state.data
         const cruise = detail.cruise
-        const assignmentReason = detail.ship
-          ? detail.assignmentCapabilities.change.reason ?? detail.assignmentCapabilities.unassign.reason
-          : detail.assignmentCapabilities.assign.reason
         return <>
           {detail.supplementaryLoading && <Loading label="Đang tải thông tin liên quan đến chuyến…" />}
           {Object.entries(detail.supplementaryErrors ?? {}).map(([key, message]) => <Notice key={key} title={`Chưa tải được ${{ ship: 'tàu', departurePort: 'cảng đi', returnPort: 'cảng về', readiness: 'điều kiện sẵn sàng', capacity: 'sức chứa', issues: 'sự cố', regulations: 'quy định', itinerary: 'lịch trình' }[key] ?? 'thông tin liên quan'}`} tone="error"><p>{message}</p><Button onClick={()=>void reload()}>Thử lại</Button></Notice>)}
-          <PageHeader breadcrumb="Quản lý chuyến / Chuyến khởi hành" title={cruise.cruiseName} description={`Mã chuyến: ${cruise.cruiseCode}`} actions={!reviewStep&&(!manager||crmCanEdit)&&cruise.status === 'DRAFT' && access.canDo('CRUISE_UPDATE_DRAFT') && <ButtonLink to={`/admin/cruises/${cruise.cruiseId}/edit`} tone="secondary">Chỉnh sửa chuyến khởi hành</ButtonLink>} />
+          <PageHeader breadcrumb="Quản lý chuyến / Chuyến khởi hành" title={cruise.cruiseName} description={`Mã chuyến: ${cruise.cruiseCode}`} actions={<><ButtonLink to={cruiseListReturn(params.get('returnTo'))} tone="secondary">Danh sách chuyến khởi hành</ButtonLink>{!reviewStep&&(!manager||crmCanEdit)&&cruise.status === 'DRAFT' && access.canDo('CRUISE_UPDATE_DRAFT') && <ButtonLink to={`/admin/cruises/${cruise.cruiseId}/edit`} tone="secondary">Chỉnh sửa chuyến khởi hành</ButtonLink>}</>} />
           <dl className={preparationStyles.departureIdentity}>
            <div><dt>Khởi hành (giờ Việt Nam)</dt><dd>{formatDateTime(cruise.departureDatetime)}</dd></div>
            <div><dt>Kết thúc (giờ Việt Nam)</dt><dd>{formatDateTime(cruise.returnDatetime)}</dd></div>
            <div><dt>Tàu được phân công</dt><dd>{detail.ship?.shipName??(cruise.shipId?'Chưa tải được thông tin tàu':'Chưa phân công')}</dd></div>
            {cruise.sourceTripCode&&<div><dt>Lịch trình nguồn</dt><dd>{cruise.sourceTripCode}</dd></div>}
           </dl>
-          <div className={preparationStyles.objectToolbar}>{manager&&<span>Trạng thái chuyến khởi hành:</span>}<CruiseStatusBadge status={cruise.status}/><Link to={cruiseListReturn(params.get('returnTo'))}>Danh sách chuyến khởi hành</Link><Button tone="text" disabled={state.status==='loading'||lifecycleBusy} onClick={()=>void reload()}>Tải lại</Button></div>
+          <div className={preparationStyles.objectToolbar}>{manager&&<span>Trạng thái chuyến khởi hành:</span>}<CruiseStatusBadge status={cruise.status}/></div>
           {operations&&<OperationsStatus id={cruise.cruiseId} refreshKey={checkEpoch}/>}
           {(cruise.sourceVersionId||manager||operations)&&<div id="departure-steps" className={preparationStyles.stepNavigation}><DepartureMilestones sourceConfigured={Boolean(cruise.sourceVersionId)} operationsStep={operations?operationsStep:undefined} onOperationsStepChange={operations?goOperationsStep:undefined} receivingBookings={detail.itinerary?.status==='OPEN_FOR_SALE'} activeStep={manager?(reviewStep?3:2):undefined} onStepChange={manager?goPreparationStep:undefined}/></div>}
           {operations?<details className={preparationStyles.secondarySection}><summary>Hồ sơ và công việc liên quan</summary><div className={preparationStyles.secondaryBody}><DepartureTabs section={section} onChange={goSection}/></div></details>:!reviewStep&&section!=='changes'&&<DepartureTabs section={section} onChange={goSection}/>}
@@ -163,20 +156,14 @@ function CruiseDetailContent() {
 
 
             </section>}
-            {section==='schedule'&&<section id={"departure-panel-schedule"} role={"tabpanel"} aria-labelledby={"departure-tab-schedule"} className={preparationStyles.content}><div className={preparationStyles.scheduleToolbar}><div className={preparationStyles.sectionIntro}><h2>Lịch thực tế</h2></div>{operations&&section==='schedule'&&access.has('CRUISE_READ')&&<Button tone="secondary" onClick={()=>goSection('changes')}>Thay đổi lịch và theo dõi xử lý</Button>}</div>{section==='schedule'&&access.has('CRUISE_READ')&&<><DepartureScheduleRead key={checkEpoch} cruise={cruise}/><DepartureDelayHistory id={cruise.cruiseId} userId={access.userId ?? ''} refreshKey={checkEpoch}/></>}
+            {section==='schedule'&&<section id={"departure-panel-schedule"} role={"tabpanel"} aria-labelledby={"departure-tab-schedule"} className={preparationStyles.content}><div className={preparationStyles.scheduleToolbar}><div className={preparationStyles.sectionIntro}><h2>Lịch thực tế</h2></div>{operations&&section==='schedule'&&access.has('CRUISE_READ')&&<Button tone="secondary" onClick={()=>goSection('changes')}>Thay đổi lịch và theo dõi xử lý</Button>}</div>{section==='schedule'&&access.has('CRUISE_READ')&&<><DepartureScheduleRead key={checkEpoch} cruise={cruise}/>{cruise.status!=='DRAFT'&&<DepartureDelayHistory id={cruise.cruiseId} userId={access.userId ?? ''} refreshKey={checkEpoch}/>}</>}
             </section>}
             {section==='resources'&&<section id={"departure-panel-resources"} role={"tabpanel"} aria-labelledby={"departure-tab-resources"} className={preparationStyles.content}><div className={preparationStyles.sectionIntro}><h2>{sectionLabel('resources')}</h2></div>
               {access.can({mode:'ANY',permissions:['SHIP_READ','CRUISE_ASSIGN_SHIP','CRUISE_CHANGE_SHIP','CRUISE_UNASSIGN_SHIP']}) && <Panel title="Tàu được phân công" subtitle={detail.ship ? `${({DRAFT:'Đang thiết lập',READY:'Sẵn sàng khai thác',IN_SERVICE:'Đang khai thác',MAINTENANCE:'Đang bảo trì',SUSPENDED:'Tạm dừng khai thác',RETIRED:'Đã ngừng khai thác'} as Record<string,string>)[detail.ship.status]??'Chưa xác định'} · ${detail.ship.totalCapacity} khách` : cruise.shipId?'Chưa tải được thông tin tàu đã phân công':'Chuyến khởi hành chưa được phân công tàu'}>
                 {detail.ship&&<p className={preparationStyles.shipIdentity}>{detail.ship.shipName}</p>}
                 {!detail.ship&&detail.shipAssignmentContext?.shipId&&<p>Tàu hiện tại: {detail.shipAssignmentContext.shipName??'Chưa tải được tên tàu'} · {detail.shipAssignmentContext.shipCode??'Chưa tải được mã tàu'}</p>}
                 {detail.shipCompatibility&&<Notice title={detail.shipCompatibility.compatible?'Tàu đáp ứng kiểm tra hiện hành':'Cần đối chiếu điều kiện tàu'} tone={detail.shipCompatibility.compatible?'success':'warning'}><p>{detail.shipCompatibility.issues.join(' ')||'Tàu đáp ứng kiểm tra trạng thái, lịch, cấu hình và sức chứa hiện hành.'}</p></Notice>}
-
-
                 {detail.ship&&access.has('SHIP_READ')&&<p><Link to={`/admin/ships/${encodeURIComponent(detail.ship.shipId)}`}>Xem hồ sơ tàu được phân công</Link></p>}
-                {detail.shipAssignmentContext&&cruise.shipId&&<ShipAssignmentDependencies safety={detail.shipAssignmentContext.changeSafety}/>}
-                {!cruise.shipId && canAssignShip && <Button disabled={!detail.shipAssignmentContext} onClick={() => setAssignmentMode('assign')}>Phân công tàu</Button>}
-                {cruise.shipId && canAssignShip && <div className={preparationStyles.actionGroup}><Button disabled={!detail.shipAssignmentContext} onClick={() => setAssignmentMode('change')}>Đối chiếu đổi tàu</Button><Button tone="secondary" disabled={!detail.shipAssignmentContext} onClick={() => setAssignmentMode('unassign')}>Đối chiếu gỡ tàu</Button></div>}
-                {assignmentReason && <p className={styles.muted}>{assignmentReason}</p>}
               </Panel>}
 
 
@@ -251,7 +238,6 @@ function CruiseDetailContent() {
           </>}
           </div>
           {manager&&!reviewStep&&<div className={preparationStyles.reviewFooter}><Button onClick={()=>goPreparationStep(3)}>Kiểm tra và gửi hồ sơ</Button></div>}
-          {assignmentMode && canAssignShip && <ShipAssignmentDialog detail={detail} mode={assignmentMode} onClose={() => setAssignmentMode(null)} onChanged={() => { void reload(); setLifecycleSuccess('Đã cập nhật phân công tàu.') }} />}
           {lifecycleAction && access.canDo(lifecyclePermissions[lifecycleAction]) && <Modal busy={lifecycleBusy} title='Xác nhận chuyển trạng thái' onClose={() => { if (!lifecycleBusy) setLifecycleAction(null) }} footer={<div className={styles.dialogActions}>
 <Button tone="secondary" disabled={lifecycleBusy} onClick={() => setLifecycleAction(null)} data-overlay-dismiss>Quay lại</Button>
 <Button tone={lifecycleAction === 'cancel' ? 'danger' : 'primary'} disabled={lifecycleBusy || (lifecycleAction === 'cancel' && !cancelReason.trim())} onClick={() => void confirmLifecycle()}>{lifecycleBusy ? 'Đang xử lý…' : {publish:'Phát hành chuyến khởi hành',start:'Bắt đầu vận hành',complete:'Kết thúc chuyến khởi hành',cancel:'Hủy chuyến khởi hành'}[lifecycleAction]}</Button>

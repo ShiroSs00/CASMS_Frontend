@@ -66,7 +66,6 @@ export function CruisePackageAddons({cruiseId,onChanged}:{cruiseId:string;onChan
       </fieldset><ul>{windows.map(w=><li key={w.stage}>{stageNames[w.stage]} · {new Date(w.startsAt).toLocaleString('vi-VN')} → {new Date(w.endsAt).toLocaleString('vi-VN')}<Button type="button" tone="text" disabled={disabled} onClick={()=>setWindows(old=>old.filter(x=>x.stage!==w.stage))}>Bỏ giai đoạn</Button></li>)}</ul>
       {error&&<Notice title="Kiểm tra cấu hình Add-on" tone="error">{error}</Notice>}<Button type="submit" disabled={createBlocked||!candidate?.eligible||!resource||!windows.length||!amount||!eligibility.trim()||Boolean(stage||start||end||cutoff)}>Lưu cấu hình Add-on nháp</Button><Button type="button" tone="secondary" disabled={disabled} onClick={()=>{if(!resource&&!amount&&!eligibility&&!windows.length&&!stage&&!start&&!end&&!cutoff||window.confirm('Bỏ nội dung Add-on đang nhập?'))reset()}}>Quay lại danh sách</Button>
     </form>}
-    <p>Hiện chỉ cấu hình dịch vụ mua thêm; chưa có luồng mua và xác nhận giao dịch trên màn hình này. Cấu hình không cấp quyền lợi miễn phí hoặc giữ capacity. Mua và xác nhận dịch vụ cần giao dịch downstream hợp lệ; nội dung mô tả không được biến thành điều kiện máy tự suy luận.</p>
   </section>
 }
 

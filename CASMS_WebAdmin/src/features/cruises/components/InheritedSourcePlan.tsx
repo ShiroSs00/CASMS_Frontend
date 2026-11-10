@@ -1,6 +1,6 @@
 import {useCallback} from 'react'
 import {useReadQuery} from '@/shared/api'
-import {Badge,Button,Loading,Modal,Notice,Panel} from '@/shared/ui'
+import {Button,FormSection,Loading,Modal,Notice,RecordFacts} from '@/shared/ui'
 import {TemplateSchedule} from '@/domain/itinerary-day'
 import {readPublishedSource,type PublishedSource} from '../api/source-version'
 import styles from './Cruises.module.css'
@@ -20,58 +20,34 @@ export function InheritedSourcePlan({
  disabled
 }:{
  source:PublishedSource;
+ onPreviewSource?:()=>void;
  onChangeSource?:()=>void;
  disabled?:boolean;
 }){
- const durationLabel=source.durationGroup==='SHORT'
-  ?'Chuyến ngắn (1–2 ngày)'
-  :source.durationGroup==='LONG'
-   ?'Chuyến dài (3–5 ngày)'
-   :'Chuyến thông thường'
+ const day1=source.days.find(d=>d.dayNumber===1)
+ const sortedStops=[...source.stops].sort((a,b)=>a.stopOrder-b.stopOrder)
+ const firstStop=sortedStops[0]
+ const lastStop=sortedStops.find(s=>s.isDisembarkation)??sortedStops[sortedStops.length-1]
+ const departurePortLabel=day1?.departurePortName??(day1?.dayType==='SEA_DAY'?'Xuất phát trên biển (chọn cảng khi tạo)':firstStop?.portName)??'Chưa xác định'
+ const returnPortLabel=lastStop?.portName??'Chưa xác định'
 
- const formattedDate=source.publishedAt
-  ?new Date(source.publishedAt).toLocaleString('vi-VN',{
-    timeZone:'Asia/Ho_Chi_Minh',
-    hour:'2-digit',
-    minute:'2-digit',
-    second:'2-digit',
-    day:'2-digit',
-    month:'2-digit',
-    year:'numeric'
-   })
-  :'Chưa có thông tin'
-
- return <Panel title="Lịch trình được chọn" className={styles.inheritedPlan}>
-  <div className={styles.sourceHeader}>
-   <h2 className={styles.sourceTripName}>{source.tripName}</h2>
-   <Badge tone="success" label="Đã chốt lịch trình" />
+ return <FormSection title="Lịch trình mẫu">
+  <div className={styles.departureSourceRow}>
+   <div>
+    <strong>{source.tripName}</strong>
+    <p>{source.tripCode} · Phiên bản {source.versionNumber} · {source.durationDays} ngày{source.durationNights ? ` · ${source.durationNights} đêm` : ''}</p>
+   </div>
+   <div className={styles.departureSourceActions}>
+    {onChangeSource&&<Button tone="secondary" disabled={disabled} onClick={onChangeSource}>Đổi mẫu</Button>}
+   </div>
   </div>
-
-  <dl className={styles.sourceDetailsList}>
-   <div className={styles.sourceDetailRow}>
-    <dt>Mã</dt>
-    <dd><strong>{source.tripCode}</strong></dd>
-   </div>
-   <div className={styles.sourceDetailRow}>
-    <dt>Người tạo</dt>
-    <dd>{source.publishedByName||'cruise_manager'}</dd>
-   </div>
-   <div className={styles.sourceDetailRow}>
-    <dt>Ngày tạo</dt>
-    <dd>{formattedDate}</dd>
-   </div>
-   <div className={styles.sourceDetailRow}>
-    <dt>Loại chuyến</dt>
-    <dd>{durationLabel}</dd>
-   </div>
-   <div className={styles.sourceDetailRow}>
-    <dt>Trạng thái</dt>
-    <dd><Badge tone="success" label="Đã chốt lịch trình" /></dd>
-   </div>
-  </dl>
-
-  <div className={styles.sourceActions}>
-   {onChangeSource&&<Button tone="secondary" disabled={disabled} onClick={onChangeSource}>Đổi lịch trình khác</Button>}
+  <div className={styles.departureScheduleFull}>
+   <RecordFacts entries={[
+    ['Mã lịch trình', `${source.tripCode} · Phiên bản ${source.versionNumber}`],
+    ['Thời lượng', `${source.durationDays} ngày${source.durationNights != null ? ` · ${source.durationNights} đêm` : ''}`],
+    ['Cảng khởi hành mẫu', departurePortLabel],
+    ['Cảng trả khách mẫu', returnPortLabel],
+   ]} />
   </div>
- </Panel>
+ </FormSection>
 }

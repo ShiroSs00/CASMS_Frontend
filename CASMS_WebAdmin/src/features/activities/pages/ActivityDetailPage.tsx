@@ -27,13 +27,20 @@ export function ActivityDetailPage({ recordId, embedded = false }: { recordId?: 
   const query = useReadQuery('activity:' + activityId, useCallback(signal => activityApi.read(activityId, signal), [activityId]))
   const activity = query.data
   if (activity?.catalogEntry === true) return <Frame>
-    {!embedded ? <PageHeader breadcrumb="DỊCH VỤ TÀU / DANH MỤC" title={activity.name}
-      actions={<><ButtonLink tone="secondary" to="/admin/activities">Danh mục hoạt động</ButtonLink>{access.canDo('ACTIVITY_UPDATE') && <ButtonLink to={`/admin/activities/${activity.id}/edit`}>Chỉnh sửa</ButtonLink>}</>} /> : access.canDo('ACTIVITY_UPDATE') && <div className={styles.actions}><ButtonLink tone="secondary" to={`/admin/activities/${activity.id}/edit`}>Chỉnh sửa</ButtonLink></div>}
+    <ActivityOperations key={activity.id} activity={activity} onChanged={query.retry} renderCatalogHeader={deleteAction => {
+      const editAction = access.canDo('ACTIVITY_UPDATE') && <ButtonLink tone={embedded ? 'secondary' : 'primary'} to={`/admin/activities/${activity.id}/edit`}>Chỉnh sửa</ButtonLink>
+      return embedded
+        ? editAction && <div className={styles.actions}>{editAction}{deleteAction}</div>
+        : <PageHeader breadcrumb="DỊCH VỤ TÀU / DANH MỤC" title={activity.name} actions={<>
+          <ButtonLink tone="secondary" to="/admin/activities">Danh mục hoạt động</ButtonLink>
+          {editAction}
+          {deleteAction}
+        </>} />
+    }} />
     <Panel title="Thông tin hoạt động dùng chung"><RecordFacts entries={[
       ['Mã hoạt động', activity.code], ['Mô tả', activity.description || 'Chưa có mô tả'],
       ['Sức chứa', activity.capacity ?? 'Chưa cấu hình'], ['Giá tham chiếu', activity.price == null ? 'Chưa cấu hình' : `${activity.price} ${activity.currencyCode ?? ''}`],
     ]} /><p>Giờ và địa điểm phục vụ được chọn khi lập chương trình cho chuyến khởi hành.</p></Panel>
-    <ActivityOperations activity={activity} onChanged={query.retry} />
   </Frame>
   return <Frame>{!embedded && <PageHeader breadcrumb="DỊCH VỤ TÀU / HOẠT ĐỘNG" title={activity?.name ?? 'Chi tiết hoạt động'}  actions={<><ButtonLink tone="secondary" to="/admin/activities">Danh sách hoạt động</ButtonLink></>} />}<ActivityState {...query} />
     {activity && <><div className={styles.detailLayout}><Panel title="Thông tin hoạt động"><RecordFacts entries={[

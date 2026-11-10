@@ -18,6 +18,8 @@ export type ScheduleEntry = {
 }
 export type DepartureSchedule = {
   dependency?:string|null; sourceContentHash?:string|null
+  portCallWindowStatus?: string | null
+  portWindowChecks?: PortWindowCheck[]
   sourceTripCode: string | null; sourceTripName: string | null; sourceVersionNumber: number | null
   durationDays: number | null; durationNights: number | null
   departurePortName: string | null; departurePortCode: string | null; returnPortName: string | null; returnPortCode: string | null
@@ -26,6 +28,13 @@ export type DepartureSchedule = {
   departureDatetime: string | null; returnDatetime: string | null; departurePortId: string | null; returnPortId: string | null
   days: { itineraryDayId: string | null; dayNumber: number; calendarDate: string | null; dayRole?: string | null; dayType: string | null; title: string | null
     description?:string|null; shipTimeZoneId: string | null; stops: ScheduleStop[]; entries: ScheduleEntry[] }[]
+}
+export type PortWindowCheck = {
+  portId: string | null
+  movementType: string | null
+  status: string | null
+  message: string | null
+  localDateTime: string | null
 }
 export type InventorySummary = {
   blockedCabins:number|null;canSell:boolean|null;policyVersion:string|null
@@ -93,6 +102,13 @@ export function number(row: Row, key: string): number | null { const value = row
 export function flag(row: Row, key: string): boolean | null { const value = row[key]; if (value == null) return null; if (typeof value !== 'boolean') throw invalid(); return value }
 export function strings(row: Row, key: string): string[] | null { const value = row[key]; if (value == null) return null; if (!Array.isArray(value) || value.some(item => typeof item !== 'string')) throw invalid(); return value }
 export function rows(row: Row, key: string): Row[] | null { const value = row[key]; if (value == null) return null; if (!Array.isArray(value)) throw invalid(); return value.map(object) }
+export function decodePortWindowChecks(value: unknown): PortWindowCheck[] {
+  return (rows(object(value), 'portWindowChecks') ?? []).map(check => ({
+    portId: text(check, 'portId'), movementType: text(check, 'movementType'),
+    status: text(check, 'status'), message: text(check, 'message'),
+    localDateTime: text(check, 'evaluatedLocalDateTime'),
+  }))
+}
 export function context(value: unknown, id: string) { const row = object(value); if (text(row, 'cruiseId') !== id) throw invalid(); return row }
 function instant(row: Row, key: string) { const value = text(row, key); if (value != null && !Number.isFinite(Date.parse(value))) throw invalid(); return value }
 
@@ -183,6 +199,7 @@ export function decodeSchedule(value: unknown): DepartureSchedule {
   if (new Set(decoded.map(day => day.dayNumber)).size !== decoded.length) throw invalid()
   return {
     dependency:text(row,'dependency'),sourceContentHash:text(row,'sourceContentHash'),
+    portCallWindowStatus: text(row, 'portCallWindowStatus'), portWindowChecks: decodePortWindowChecks(row),
     sourceTripCode: text(row, 'sourceTripCode'), sourceTripName: text(row, 'sourceTripName'), sourceVersionNumber: number(row, 'sourceVersionNumber'),
     durationDays: number(row, 'durationDays'), durationNights: number(row, 'durationNights'),
     departurePortName: text(row, 'departurePortName'), departurePortCode: text(row, 'departurePortCode'), returnPortName: text(row, 'returnPortName'), returnPortCode: text(row, 'returnPortCode'),

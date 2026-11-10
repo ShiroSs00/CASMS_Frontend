@@ -12,10 +12,12 @@ import { violationTarget, violationFieldId } from '../model/violation-target'
 import { EntryDetails, StopDetails } from './PlanDetails'
 import { overlappingStops, portMatchesScope, routeOrderViolations } from '../model/port-rules'
 
-function useViolationField(violation:Violation|undefined,formId:string,readOnly:boolean){
+function useViolationField(violation:Violation|undefined,formId:string,readOnly:boolean,allowLocationInstead=false){
   const [dismissed,setDismissed]=useState<Violation|null>(null),target=violation?violationTarget(violation):null
+  const locationIssue=allowLocationInstead&&violation?.code==='MEETING_POINT_REQUIRED'
+  const message=locationIssue?'Bổ sung địa điểm tổ chức hoặc điểm tập trung.':violation?.message
   useEffect(()=>{if(!violation)return;const element=document.getElementById(target?.fieldId??formId);element?.scrollIntoView({block:'center'});if(readOnly)document.getElementById(formId)?.focus();else element?.focus()},[violation,target?.fieldId,formId,readOnly])
-  return {dismiss:(event:React.FormEvent<HTMLFormElement>)=>{if(event.target instanceof HTMLElement&&(event.target.id===target?.fieldId||(violation?.code==='CLIENT_STOP_TIME_OVERLAP'&&['stop-arrival-day','stop-arrival','stop-departure-day','stop-departure','stop-port'].includes(event.target.id))))setDismissed(violation??null)},errorFor:(field:string)=>dismissed!==violation&&Boolean(target?.fieldId)&&target?.fieldId===violationFieldId(formId==='stop-draft'?'stops':'entries',field)?violation?.message:undefined,notice:dismissed!==violation&&violation?<Notice title="Nội dung cần chỉnh sửa" tone="warning">{violation.message}</Notice>:null}
+  return {dismiss:(event:React.FormEvent<HTMLFormElement>)=>{if(event.target instanceof HTMLElement&&(event.target.id===target?.fieldId||(locationIssue&&event.target.id==='entry-location')||(violation?.code==='CLIENT_STOP_TIME_OVERLAP'&&['stop-arrival-day','stop-arrival','stop-departure-day','stop-departure','stop-port'].includes(event.target.id))))setDismissed(violation??null)},errorFor:(field:string)=>dismissed!==violation&&Boolean(target?.fieldId)&&target?.fieldId===violationFieldId(formId==='stop-draft'?'stops':'entries',field)?message:undefined,notice:dismissed!==violation&&violation?<Notice title="Nội dung cần chỉnh sửa" tone="warning">{message}</Notice>:null}
 }
 
 // Hide unnecessary seconds without truncating existing second-precision times.
@@ -91,7 +93,8 @@ export function EntryDrawer(props:EntryDrawerProps) {
 }
 
 function EntryForm({content,dayNumber,readOnly,entry,kind,initialStopClientKey,onClose,onApply,violation}:EntryDrawerProps) {
-  const server=useViolationField(violation,'entry-draft',readOnly)
+  const onboard=kind==='ONBOARD_ACTIVITY'
+  const server=useViolationField(violation,'entry-draft',readOnly,onboard)
   const [keyword,setKeyword]=useState(''),[categoryFilter,setCategoryFilter]=useState(''),[retained,setRetained]=useState<Source>()
   const categories=useSources('activityCategories',{},kind==='ONBOARD_ACTIVITY')
   const [draft,setDraft]=useState<Entry>(()=>structuredClone(entry??{clientKey:newKey(),dayNumber,kind,sourceId:null,serviceId:null,stopClientKey:kind==='SHORE_EXCURSION'&&content.stops.some(s=>s.clientKey===initialStopClientKey)?initialStopClientKey!:null,title:'',startDayNumber:dayNumber,plannedStartTime:'',endDayNumber:dayNumber,plannedEndTime:'',timeZoneId:kind==='SHORE_EXCURSION'?'':SHIP_ZONE,locationText:'',meetingPoint:'',notes:''})),[attempted,setAttempted]=useState(false),[touched,setTouched]=useState<Record<string,boolean>>({})
@@ -104,7 +107,7 @@ function EntryForm({content,dayNumber,readOnly,entry,kind,initialStopClientKey,o
   function filterCategory(value:string){if(chosen)setRetained(chosen);setCategoryFilter(value)}
 
   if(!draft.sourceId||!chosen)errors.sourceId='Chọn nguồn hợp lệ từ danh mục.'
-  if((draft.locationText?.length??0)>255)errors.locationText='Địa điểm tối đa 255 ký tự.'
+  if(onboard&&(draft.locationText?.length??0)>255)errors.locationText='Địa điểm tối đa 255 ký tự.'
   if(!draft.title.trim())errors.title='Nhập tiêu đề.'
   if(draft.title.length>200)errors.title='Tiêu đề tối đa 200 ký tự.'
   if(!draft.plannedStartTime)errors.plannedStartTime='Nhập giờ bắt đầu.'
@@ -137,9 +140,9 @@ function EntryForm({content,dayNumber,readOnly,entry,kind,initialStopClientKey,o
       <Field htmlFor="entry-title" label="Tiêu đề *" error={shown('title')}><input id="entry-title" maxLength={200} value={draft.title??''} disabled={readOnly} aria-invalid={Boolean(shown('title'))} onBlur={touch('title')} onChange={e=>change('title',e.target.value)}/></Field>
       {kind!=='SHORE_EXCURSION'&&<p className={styles.timeContext}>Giờ Việt Nam</p>}
       <div className={styles.grid}><Field htmlFor="entry-start-day" label="Ngày bắt đầu">{daySelect(draft.startDayNumber,n=>change('startDayNumber',n),'entry-start-day')}</Field><Field htmlFor="entry-start" label="Giờ bắt đầu *" error={shown('plannedStartTime')}><input id="entry-start" type="time" step={timeStep(draft.plannedStartTime)} value={draft.plannedStartTime??''} disabled={readOnly} aria-invalid={Boolean(shown('plannedStartTime'))} onBlur={touch('plannedStartTime')} onChange={e=>change('plannedStartTime',e.target.value)}/></Field><Field htmlFor="entry-end-day" label="Ngày kết thúc">{daySelect(draft.endDayNumber,n=>change('endDayNumber',n),'entry-end-day')}</Field><Field htmlFor="entry-end" label="Giờ kết thúc *" error={shown('plannedEndTime')}><input id="entry-end" type="time" step={timeStep(draft.plannedEndTime)} value={draft.plannedEndTime??''} disabled={readOnly} aria-invalid={Boolean(shown('plannedEndTime'))} onBlur={touch('plannedEndTime')} onChange={e=>change('plannedEndTime',e.target.value)}/></Field></div>
-      {kind!=='ONBOARD_ACTIVITY'&&<>
-      <Field htmlFor="entry-location" label="Địa điểm (tùy chọn)" error={shown('locationText')}><input id="entry-location" aria-invalid={Boolean(shown('locationText'))} onBlur={touch('locationText')} maxLength={255} value={draft.locationText??''} disabled={readOnly} onChange={e=>change('locationText',e.target.value)}/></Field>
-      <Field htmlFor="entry-meeting" label={kind==='SHORE_EXCURSION'?'Điểm tập trung (cần trước khi chốt mẫu)':'Điểm tập trung (tùy chọn)'} error={shown('meetingPoint')}><input id="entry-meeting" maxLength={255} value={draft.meetingPoint??''} disabled={readOnly} aria-invalid={Boolean(shown('meetingPoint'))} aria-describedby="entry-meeting-help" onBlur={touch('meetingPoint')} onChange={e=>change('meetingPoint',e.target.value)}/><small id="entry-meeting-help">{kind==='SHORE_EXCURSION'?'Có thể bổ sung sau, trước khi chốt mẫu.':''}</small></Field>
+      {onboard&&<>
+        <Field htmlFor="entry-location" label="Địa điểm tổ chức" error={shown('locationText')}><input id="entry-location" aria-invalid={Boolean(shown('locationText'))} aria-describedby="entry-meeting-help" onBlur={touch('locationText')} maxLength={255} value={draft.locationText??''} disabled={readOnly} onChange={e=>change('locationText',e.target.value)}/></Field>
+        <Field htmlFor="entry-meeting" label="Điểm tập trung" error={shown('meetingPoint')}><input id="entry-meeting" maxLength={255} value={draft.meetingPoint??''} disabled={readOnly} aria-invalid={Boolean(shown('meetingPoint'))} aria-describedby="entry-meeting-help" onBlur={touch('meetingPoint')} onChange={e=>change('meetingPoint',e.target.value)}/><small id="entry-meeting-help">Trước khi chốt mẫu, điền địa điểm tổ chức hoặc điểm tập trung.</small></Field>
       </>}
       <Field htmlFor="entry-notes" label="Ghi chú"><textarea id="entry-notes" rows={3} value={draft.notes??''} disabled={readOnly} onChange={e=>change('notes',e.target.value)}/></Field>
     </form>

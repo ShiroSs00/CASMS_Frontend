@@ -10,7 +10,7 @@ export function CruiseExcursionCommercialEditor({cruiseId,entry,revision,onSaved
  useEffect(()=>{if(!busy&&allocated!==null)capacity.current?.focus()},[busy,allocated])
  async function save(event:FormEvent<HTMLFormElement>){
   event.preventDefault();if(lock.current||uncertain)return
-  const f=new FormData(event.currentTarget),body={maximumCapacity:Number(f.get('capacity')),price:Number(f.get('price')),currencyCode:'USD'}
+  const f=new FormData(event.currentTarget),body={maximumCapacity:Number(f.get('capacity')),price:entry.price??0,currencyCode:entry.currency??'USD'}
   lock.current=true;setBusy(true);setError('');setAllocated(null)
   try{await updateExcursionCommercial(cruiseId,entry.id,revision,body);onSaved()}
   catch(reason){setError(businessErrorMessage(reason instanceof ApiError?reason.code:undefined,''));setAllocated(excursionCapacityConflict(reason));if(!(reason instanceof ApiError)||reason.status===0||reason.status>=500)setUncertain(true)}finally{lock.current=false;setBusy(false)}
@@ -19,7 +19,7 @@ export function CruiseExcursionCommercialEditor({cruiseId,entry,revision,onSaved
   <h3>{entry.name}</h3><p>{businessCopy('program.excursion.preserveStructure')}</p>
   <fieldset disabled={busy||uncertain}>
    <Field htmlFor="excursion-commercial-capacity" label={businessCopy('program.field.capacity')} error={allocated===null?undefined:businessCopy('program.excursion.capacityAllocated')+': '+allocated}><input ref={capacity} id="excursion-commercial-capacity" name="capacity" type="number" min={1} step={1} defaultValue={entry.capacity} required/></Field>
-   <Field htmlFor="excursion-commercial-price" label={businessCopy('program.field.priceUsd')}><input id="excursion-commercial-price" name="price" type="number" min={0} step="any" defaultValue={entry.currency==='USD'?entry.price??'':''} required/></Field>
+   <p>Giá áp dụng: <strong>{entry.price!=null?`${new Intl.NumberFormat('vi-VN').format(entry.price)} ${entry.currency??'USD'}`:'0 USD'}</strong> (do Quản lý dịch vụ & hoạt động cấu hình)</p>
 
   </fieldset>
 

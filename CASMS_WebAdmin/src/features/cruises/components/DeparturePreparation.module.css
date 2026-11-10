@@ -10,7 +10,7 @@
 .tabs button{flex:none;min-height:42px;padding:8px 0;border:0;border-bottom:2px solid transparent;background:transparent;font:inherit;font-size:14px;color:var(--ui-muted,#52697b);cursor:pointer}
 .tabs button[aria-selected=true]{color:var(--ui-ink,#102e47);border-bottom-color:var(--ui-brand,#102e47);font-weight:600}
 .tabs button:focus-visible,.problem button:focus-visible{outline:2px solid var(--ui-brand,#102e47);outline-offset:3px}
-.tabs.managerTabs{position:sticky;top:96px;z-index:10;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:6px;overflow:visible;border:1px solid var(--ui-border);border-radius:12px;background:var(--ui-surface);box-shadow:var(--shadow-panel)}
+.tabs.managerTabs{position:sticky;top:96px;z-index:10;display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:4px;padding:6px;overflow:visible;border:1px solid var(--ui-border);border-radius:12px;background:var(--ui-surface);box-shadow:var(--shadow-panel)}
 .managerTabs button{min-width:0;min-height:56px;padding:10px 12px;border:0;border-radius:8px;color:var(--ui-ink);line-height:1.5;white-space:normal;text-wrap:balance;scroll-margin-block:100px}
 .managerTabs button:hover:not([aria-selected=true]){background:var(--ui-surface)}
 .managerTabs button[aria-selected=true]{background:var(--ui-brand);color:var(--ui-surface);font-weight:600}

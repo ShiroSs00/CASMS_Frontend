@@ -81,7 +81,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
   const access=useSessionAccess()
   const canFinalize=access.status==='ready'&&access.roles.includes('CRUISE_MANAGER')
   const {gateway,root,can}=usePlanning(),[version,setVersion]=useState(initial),[content,setContent]=useState<Content>(()=>{const content=contentOf(initial);return initial.status==='DRAFT'&&can('TRIP_PLAN_WRITE')&&!gateway.readOnly&&trip.status!=='ARCHIVED'?{...content,days:normalizeBoundaryDays(content.days)}:content})
-  const [tab,setTab]=useState<'route'|'program'>('route'),[selected,setSelected]=useState(1),[busy,setBusy]=useState(''),lock=useRef(false)
+  const [selected,setSelected]=useState(1),[busy,setBusy]=useState(''),lock=useRef(false)
   const [fault,setFault]=useState<PlanningFault|null>(null),[message,setMessage]=useState(''),[report,setReport]=useState<Report|null>(null),[uncertain,setUncertain]=useState(false),[serverLocked,setServerLocked]=useState(false)
   const [templatePreview,setTemplatePreview]=useState(false)
   const [history,setHistory]=useState(false),[compare,setCompare]=useState(false),[pendingSwitch,setPendingSwitch]=useState('')
@@ -132,7 +132,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
     const target=violationTarget(v),stop=content.stops.find(s=>s.clientKey===target.key),entry=content.entries.find(e=>e.clientKey===target.key)
     const nextDay=target.dayNumber??stop?.arrivalDayNumber??entry?.startDayNumber??selected
     if(content.days.some(d=>d.dayNumber===nextDay))setSelected(nextDay)
-    setLocated(v);setAction(null);setTab(entry||target.kind==='entries'?'program':'route')
+    setLocated(v);setAction(null)
     if(stop)setStopDrawer({stop,violation:v})
     else if(entry)setEntryDrawer({kind:entry.kind,entry,violation:v})
     else requestAnimationFrame(()=>{const element=(target.fieldId?document.getElementById(target.fieldId):null)??document.getElementById('planning-located-error');element?.scrollIntoView({behavior:'smooth',block:'center'});if(element instanceof HTMLInputElement||element instanceof HTMLSelectElement){if(element.disabled)document.getElementById('planning-located-error')?.focus();else element.focus()}else element?.focus()})
@@ -186,7 +186,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
         focusFinalizeIssue(error.violations)
     })
   }
-    const handleDisembarkation = (portId: string | null, plannedTime?: string | null) => {
+  function handleDisembarkation(portId: string | null, times: Partial<Pick<Stop, 'plannedArrivalTime' | 'plannedDepartureTime'>> = {}) {
     const endingDayNumber = content.days.length
     const existingIndex = content.stops.findIndex(s => s.isDisembarkation)
     if (!portId) {
@@ -201,8 +201,6 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
     const port = ports.data.find(p => p.id === portId)
     const portName = port?.name ?? port?.label ?? 'Cảng'
     const timeZoneId = port?.timeZoneId ?? SHIP_ZONE
-    const depTime = plannedTime ?? '18:00'
-    const arrTime = day.dayNumber === 1 && day.plannedDepartureTime ? day.plannedDepartureTime : '17:00'
 
     if (existingIndex >= 0) {
       const existing = content.stops[existingIndex]
@@ -214,7 +212,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
         countryCode: port?.countryCode ?? existing.countryCode,
         domesticRegion: port?.domesticRegion ?? existing.domesticRegion,
         departureDayNumber: endingDayNumber,
-        plannedDepartureTime: depTime,
+        ...times,
         isDisembarkation: true,
       }
       edit({
@@ -228,9 +226,9 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
         portName,
         stopOrder: Math.max(0, ...content.stops.map(s => s.stopOrder)) + 1,
         arrivalDayNumber: endingDayNumber,
-        plannedArrivalTime: arrTime,
+        plannedArrivalTime: times.plannedArrivalTime ?? null,
         departureDayNumber: endingDayNumber,
-        plannedDepartureTime: depTime,
+        plannedDepartureTime: times.plannedDepartureTime ?? null,
         callType: 'NORMAL',
         arrivalMethod: 'BERTH',
         timeZoneId,
@@ -292,7 +290,6 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
     {trip.durationIssue&&<Notice title="Cần kiểm tra thời lượng" tone="warning">{trip.durationIssue}</Notice>}
     {fault&&<Notice title="Chưa hoàn tất thao tác" tone="error">{fault.message}{uncertain&&<Button onClick={()=>setCompare(true)} disabled={Boolean(busy)}>Đối chiếu bản đã lưu</Button>}</Notice>}
 
-    <div className={styles.tabs} role="tablist" aria-label="Nội dung lịch trình">{(['route','program'] as const).map(value=><button key={value} role="tab" tabIndex={tab===value?0:-1} onKeyDown={e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const next=e.key==='Home'?'route':e.key==='End'?'program':tab==='route'?'program':'route';setTab(next);document.getElementById(`planning-tab-${next}`)?.focus()}}} aria-selected={tab===value} aria-controls="planning-day-panel" id={`planning-tab-${value}`} onClick={()=>setTab(value)}>{value==='route'?'Tuyến tàu':'Chương trình ngày'}</button>)}</div>
     <div className={styles.layout}>
       <nav className={styles.rail} aria-label="Các ngày của chuyến">
         {content.days.map(d => (
@@ -302,7 +299,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
         ))}
         {editable&&<><Button tone="secondary" disabled={Boolean(busy)||!structureAllowed||content.days.length>=(limits?.[1]??0)} title={locked?'Số ngày đã khóa vì chuyến đi có mẫu đã chốt':content.days.length>=(limits?.[1]??0)?'Đã đạt số ngày tối đa của nhóm thời lượng':undefined} onClick={()=>setDayChange({})}>Thêm ngày</Button><Button tone="secondary" disabled={Boolean(busy)||!structureAllowed||content.days.length<=(limits?.[0]??0)||(!gateway.supportsMiddleDayRemoval&&day?.dayNumber!==content.days.length)} title={locked?'Số ngày đã khóa vì chuyến đi có mẫu đã chốt':content.days.length<=(limits?.[0]??0)?'Đã đạt số ngày tối thiểu của nhóm thời lượng':undefined} onClick={()=>setDayChange({remove:day?.dayNumber})}>Xóa ngày đang chọn</Button>{!limits&&<small>Thời lượng hiện có chưa nằm trong nhóm 1–2 hoặc 3–5 ngày.</small>}{!gateway.supportsMiddleDayRemoval&&<small>Chỉ có thể xóa ngày cuối.</small>}</>}
       </nav>
-      <section id="planning-day-panel" role="tabpanel" aria-labelledby={`planning-tab-${tab}`}>{day?<DayPane content={content} day={day} editable={editable} busy={Boolean(busy)} tab={tab} violation={located} departurePorts={{...ports,data:ports.data.filter(port=>portMatchesScope(port,trip.info))}} onDeparture={value=>edit({...content,days:content.days.map(d=>d.key===day.key?{...d,...value}:d)})} onDisembarkation={handleDisembarkation}
+      <section id="planning-day-panel" aria-label="Tuyến tàu">{day?<DayPane content={content} day={day} editable={editable} busy={Boolean(busy)} violation={located} departurePorts={{...ports,data:ports.data.filter(port=>portMatchesScope(port,trip.info))}} onDeparture={value=>edit({...content,days:content.days.map(d=>d.key===day.key?{...d,...value}:d)})} onDisembarkation={handleDisembarkation}
         onTitle={title=>edit({...content,days:content.days.map(d=>d.key===day.key?{...d,title}:d)})}
         onType={dayType=>{if(dayType==='SEA_DAY'&&content.stops.some(s=>s.arrivalDayNumber<=day.dayNumber&&s.departureDayNumber>=day.dayNumber)){setMessage('Ngày còn lần ghé cảng. Hãy xử lý lần ghé và tham quan liên quan trước khi chuyển thành ngày trên biển.');return}edit({...content,days:content.days.map(d=>d.key===day.key?{...d,dayType}:d)})}}
         onStop={stop=>setStopDrawer({stop})} onEntry={(kind,entry,stopClientKey)=>setEntryDrawer({kind,entry,stopClientKey})}

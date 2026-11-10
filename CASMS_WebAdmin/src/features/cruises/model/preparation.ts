@@ -37,7 +37,7 @@ export function allowedDepartureSections(access:ReturnType<typeof useSessionAcce
     ||key==='changes'&&access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_READ')
     ||key==='sales'&&!manager&&['CRUISE_READ','BOOKING_READ','CRUISE_MANIFEST_READ','TOUR_PACKAGE_ASSIGN'].some(p=>access.has(p))
     ||key==='checks'&&!manager&&(access.canDo('CRUISE_VALIDATE')||access.has('CRUISE_READ')))
-    .map(([key,label])=>[key,manager&&key==='schedule'?'Lịch khởi hành':access.roles.includes('OPERATIONS_MANAGER')&&key==='sales'?(access.has('CRUISE_MANIFEST_READ')?'Cabin và hành khách':'Tồn cabin'):manager&&key==='resources'&&!access.canDo('CRUISE_STAFF_READ')?(access.canDo('CRUISE_REGULATION_READ')?'Tàu và quy định':'Tàu'):label] as const)
+    .map(([key,label])=>[key,manager&&key==='schedule'?'Lịch khởi hành':manager&&key==='preparation'?'Phối hợp chuẩn bị':access.roles.includes('OPERATIONS_MANAGER')&&key==='sales'?(access.has('CRUISE_MANIFEST_READ')?'Cabin và hành khách':'Tồn cabin'):manager&&key==='resources'&&!access.canDo('CRUISE_STAFF_READ')?(access.canDo('CRUISE_REGULATION_READ')?'Tàu và quy định':'Tàu'):label] as const)
 }
 
 export const operationsPreparationSections:readonly DepartureSection[]=['preparation','staff','resources','guidance','checks','handoff']
