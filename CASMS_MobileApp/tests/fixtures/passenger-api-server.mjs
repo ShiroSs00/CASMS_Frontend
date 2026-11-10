@@ -3,7 +3,7 @@
 import http from 'node:http';
 import { randomUUID } from 'node:crypto';
 const ids = { user: '66666666-6666-4666-8666-666666666666', cruise: '11111111-1111-4111-8111-111111111111', cabin: '22222222-2222-4222-8222-222222222222', booking: '33333333-3333-4333-8333-333333333333', bp: '44444444-4444-4444-8444-444444444444', activity: '55555555-5555-4555-8555-555555555555', itinerary: '77777777-7777-4777-8777-777777777777', stop: '88888888-8888-4888-8888-888888888888', excursion: '99999999-9999-4999-8999-999999999999', service: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', package: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' };
-const permissions = ['BOOKING_READ','BOOKING_CREATE','BOOKING_CANCEL','CRUISE_READ','ITINERARY_READ','ITINERARY_DAY_READ','ITINERARY_CHANGE_READ','CRUISE_STOP_READ','EXCURSION_READ','EXCURSION_BOOKING','ACTIVITY_READ','ACTIVITY_REGISTRATION','SERVICE_READ','SERVICE_REQUEST_CREATE','TOUR_PACKAGE_ASSIGN'];
+const permissions = ['BOOKING_READ','BOOKING_CANCEL','CRUISE_READ','ITINERARY_READ','ITINERARY_DAY_READ','ITINERARY_CHANGE_READ','CRUISE_STOP_READ','EXCURSION_READ','EXCURSION_BOOKING','ACTIVITY_READ','ACTIVITY_REGISTRATION','SERVICE_READ','SERVICE_REQUEST_CREATE','TOUR_PACKAGE_ASSIGN'];
 const session = { accessToken: 'local-fixture-only', tokenType: 'Bearer', expiresIn: 3600, userId: ids.user, username: 'ui-passenger', email: 'fixture@example.test', roles: ['PASSENGER'], effectivePermissions: permissions };
 const cruise = { cruiseId: ids.cruise, cruiseCode: 'FIXTURE', cruiseName: 'Chuyến kiểm thử giao diện', shipName: 'Tàu kiểm thử', status: 'PUBLISHED', departureDatetime: '2027-11-01T03:00:00Z', returnDatetime: '2027-11-04T03:00:00Z' };
 const person = { bookingPassengerId: ids.bp, passengerId: ids.user, fullName: 'Hành khách kiểm thử', email: session.email, participationStatus: 'Active', cabinId: ids.cabin, cabinNumber: '101', cabinType: 'BALCONY', deckNumber: 1, tourPackageId: null, tourPackageName: null, agreedPackagePrice: null };
@@ -36,15 +36,13 @@ http.createServer(async (req,res) => {
   if(scenario==='service-error' && path==='/servicepackage/services'){send('Dịch vụ kiểm thử tạm thời không khả dụng.',503);return;}
   if(path==='/auth/me'){send({...session,status:'ACTIVE'});return;}
   if(path==='/booking'&&method==='GET'){send(page(bookings));return;}
-  if(path==='/booking'&&method==='POST'){
-    const next={...detail,bookingId:randomUUID(),bookingReference:`BK-UI-${bookings.length+1}`,bookingStatus:'Draft',paymentPlan:body.paymentPlan,passengers:body.passengers.map(p=>({...person,...p,bookingPassengerId:randomUUID()}))};bookings.push(next);send(next,201);return;
-  }
-  if(path==='/booking/available-cabins'){send([{cabinId:ids.cabin,cabinNumber:'101',deckId:ids.stop,deckNumber:1,deckName:'Deck khách',cabinType:'BALCONY',capacity:2,remainingCapacity:2,isAccessible:true}]);return;}
+  if(path==='/booking'&&method!=='GET'){send('Ticket booking is not supported in Mobile',405);return;}
   const matchBooking=path.match(/^\/booking\/([^/]+)(\/cancel)?$/);
   if(matchBooking){const b=bookings.find(b=>b.bookingId===matchBooking[1]);if(!b){send('Not found',404);return;}if(method==='POST'){b.bookingStatus='Cancelled';b.cancellationReason=body.reason;}send(b);return;}
   if(path==='/cruise'){send(page([cruise]));return;}
   if(path.startsWith('/cruise/')){send(cruise);return;}
   const itinerary={itineraryId:ids.itinerary,cruiseId:ids.cruise,itineraryName:'Hải trình kiểm thử',startDate:'2027-11-01',endDate:'2027-11-04',status:'ACTIVE'};
+  if(path==='/itineraries/mine'){send(bookings.filter(b=>b.bookingStatus==='Confirmed').map(b=>({...b,bookingPassengerId:b.passengers[0].bookingPassengerId,participationStatus:'Active',cruiseStatus:cruise.status,itineraryId:ids.itinerary,itineraryStatus:'ACTIVE',startDate:itinerary.startDate,endDate:itinerary.endDate})));return;}
   if(path==='/itineraries'){send(page([itinerary]));return;}
   if(path.endsWith('/days')){send([]);return;}
   if(path.startsWith('/itineraries/')){send(itinerary);return;}

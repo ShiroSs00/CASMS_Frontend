@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
-import { OceVieBrand } from '@/components/passenger/OceVieBrand';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
-import { ui } from '@/components/passenger/PassengerUI';
+import { ActionRow, Disclosure, ui } from '@/components/passenger/PassengerUI';
 import { brand, layout } from '@/constants/ocevie';
 import { usePos, usePosActivities } from './PosLayout';
 import { readAreaLabel, readCruiseLabel, readShipLabel } from './pos-api';
@@ -43,27 +42,28 @@ export function PosDashboard() {
     });
   }
 
-  return <PosPage title="Bàn điều hành POS" standalone refresh={pos.refreshSession} refreshing={!pos.verified && !pos.sessionError}>
-    <OceVieBrand />
+  return <PosPage title="Ca làm việc" standalone refresh={pos.refreshSession} refreshing={!pos.verified && !pos.sessionError}>
     <View style={styles.context}>
-      <Text style={styles.kicker}>PHIÊN LÀM VIỆC</Text>
       <Text style={styles.title}>{scope.terminal.name}</Text>
       <Text style={styles.detail}>{scope.terminal.code} · {pos.username}</Text>
-      <Text style={styles.detail}>Tàu · {cruiseLabel?.shipName ?? shipLabel ?? shipId}</Text>
-      <Text style={styles.detail}>Khu vực · {(!area.error && area.data) || areaId}</Text>
-      <Text style={styles.detail}>Chuyến · {cruiseLabel?.cruiseName ?? scope.cruiseId}</Text>
+      <Text style={styles.detail}>{cruiseLabel?.shipName ?? shipLabel ?? 'Tàu đã phân công'}</Text>
+      {!!area.data && !area.error && <Text style={styles.detail}>{area.data}</Text>}
+      {!!cruiseLabel?.cruiseName && <Text style={styles.detail}>{cruiseLabel.cruiseName}</Text>}
     </View>
+    <Disclosure title="Chi tiết ca làm việc"><Text selectable style={ui.caption}>Tàu: {shipId}{'\n'}Khu vực: {areaId}{'\n'}Chuyến: {scope.cruiseId}</Text></Disclosure>
     {!!pos.sessionError && <Notice tone="error" retry={pos.refreshSession}>{posError(pos.sessionError)}</Notice>}
-    <Text accessibilityRole="header" style={ui.sectionTitle}>Công việc trong phiên</Text>
-    {can('SERVICE_READ') && <PassengerButton label="Danh mục dịch vụ" icon="room_service" onPress={() => router.navigate('/staff-pos/services')} />}
-    {can('SERVICE_REQUEST_READ') && <PassengerButton label="Yêu cầu dịch vụ" variant="secondary" onPress={() => router.navigate('/staff-pos/requests')} />}
-    {hasActivities && <PassengerButton label="Hoạt động trên tàu" variant="secondary" onPress={() => router.navigate('/staff-pos/activities')} />}
+    <Text accessibilityRole="header" style={ui.sectionTitle}>Công việc</Text>
+    {(can('SERVICE_READ') || can('SERVICE_REQUEST_READ') || hasActivities || hasUsage) && <View style={ui.actionList}>
+    {can('SERVICE_READ') && <ActionRow title="Danh mục dịch vụ" icon="room_service" onPress={() => router.navigate('/staff-pos/services')} />}
+    {can('SERVICE_REQUEST_READ') && <ActionRow title="Yêu cầu dịch vụ" icon="assignment_ind" onPress={() => router.navigate('/staff-pos/requests')} />}
+    {hasActivities && <ActionRow title="Hoạt động trên tàu" icon="explore" onPress={() => router.navigate('/staff-pos/activities')} />}
+    {hasUsage && <ActionRow title="Hạn mức và sao kê" icon="restaurant" onPress={() => router.navigate('/staff-pos/usage')} />}
+    </View>}
     {canActivities && <QueryState query={activities} empty={activities.data?.length === 0 ? 'Chưa có hoạt động được phân công.' : undefined} />}
-    {hasUsage && <PassengerButton label="Ghi nhận sử dụng và sao kê" variant="premium" onPress={() => router.navigate('/staff-pos/usage')} />}
-    {(hasUsage || hasRegistration) && <PassengerButton label="Quét QR · Chưa hỗ trợ xác minh" variant="text" onPress={() => router.navigate('/staff-pos/scanner')} />}
+    {(hasUsage || hasRegistration) && <PassengerButton compact label="Quét QR" variant="text" onPress={() => router.navigate('/staff-pos/scanner')} />}
     {!scope.services.length && !hasActivities && (!canActivities || activities.data?.length === 0) &&
       <Notice tone="neutral">Chưa có công việc được phân công cho thiết bị và chuyến này.</Notice>}
-    <View style={ui.card}>
+    <View>
       <PassengerButton label="Kết thúc phiên POS" variant="text" onPress={() => end(false)} />
       <PassengerButton label="Đăng xuất nhân viên" variant="text" onPress={() => end(true)} />
     </View>

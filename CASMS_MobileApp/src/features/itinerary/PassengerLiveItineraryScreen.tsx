@@ -7,19 +7,22 @@ import { PassengerSheet } from '@/components/passenger/PassengerSheet';
 import { motion } from '@/constants/motion';
 
 import { PassengerButton } from '@/components/passenger/PassengerButton';
-import { Choice } from '@/features/passenger-actions/PassengerActionUI';
+import { Choice, errorText } from '@/features/passenger-actions/PassengerActionUI';
 import { PassengerScaffold } from '@/components/passenger/PassengerScaffold';
 import { passengerLightColors as colors } from '@/constants/passenger-light-theme';
 import { passengerApi, usePassengerContext, usePassengerQuery } from '@/features/passenger-actions/passenger-hooks';
 import { dateTime } from '@/features/passenger-actions/passenger-model';
 import { useAuth } from '@/features/auth/session-store';
 import { queryClient } from '@/lib/query-client';
-import { getApiUrl, readErrorMessage } from '@/lib/api';
+import { ApiError, getApiUrl, readErrorMessage } from '@/lib/api';
 import { dateAt, formatDay, formatTime, statusLabel, stopsForDay, timeZoneLabel, validTimeZone } from './api-format';
 import { itineraryApi, selectVoyage, useLiveItinerary, type StopDto, type TourDto } from './itinerary-api';
 import { Facts, InfoRow, Notice, SheetHeading, SmallButton, styles } from './ItineraryUI';
 
 type Sheet = 'port' | 'tour' | 'groups' | 'group' | 'history' | 'clock';
+function sectionError(error: unknown, section: string) {
+  return error instanceof ApiError && error.status >= 500 ? `Không tải được ${section}. Vui lòng thử lại.` : readErrorMessage(error, section);
+}
 export function PassengerLiveItineraryScreen() {
   const { detail: detailParam } = useLocalSearchParams<{ detail?: string }>();
   const auth = useAuth();
@@ -120,7 +123,7 @@ export function PassengerLiveItineraryScreen() {
     </>;
     if (sheet === 'groups') return <>
       {heading('Các nhóm tour', tour?.excursionName ?? 'Tour đang chọn')}
-      {!canReadGroups ? <Notice text="Tài khoản chưa được cấp quyền xem nhóm tour." /> : groups.isPending ? <Notice text="Đang tải nhóm tour…" /> : groups.error ? <><Notice text={readErrorMessage(groups.error, 'nhóm tour')} /><PassengerButton label="Thử lại" onPress={() => { void groups.refetch(); }} /></>
+      {!canReadGroups ? <Notice text="Tài khoản chưa được cấp quyền xem nhóm tour." /> : groups.isPending ? <Notice text="Đang tải nhóm tour…" /> : groups.error ? <><Notice text={sectionError(groups.error, 'nhóm tour')} /><PassengerButton label="Thử lại" onPress={() => { void groups.refetch(); }} /></>
         : !groups.data?.length ? <Notice text="Tour chưa có nhóm nào." /> : groups.data.map(item => <InfoRow key={item.tourGroupId} title={item.groupCode} subtitle={`${item.assignedPassengers}/${item.maximumCapacity} hành khách · ${statusLabel(item.status)}`} icon="assignment_ind" onPress={() => { setGroupId(item.tourGroupId); setSheet('group'); }} />)}
     </>;
     if (sheet === 'group' && group) return <>
@@ -134,18 +137,17 @@ export function PassengerLiveItineraryScreen() {
   function tourList() {
     if (!canLoadTours) return <Notice text="Không có tour khả dụng tại điểm dừng này." />;
     if (tours.isPending) return <Notice text="Đang tải tour tại điểm dừng…" />;
-    if (tours.error) return <><Notice text={readErrorMessage(tours.error, 'tour tại điểm dừng')} /><PassengerButton label="Tải lại tour" onPress={() => { void tours.refetch(); }} /></>;
+    if (tours.error) return <><Notice text={sectionError(tours.error, 'tour tại điểm dừng')} /><PassengerButton label="Tải lại tour" onPress={() => { void tours.refetch(); }} /></>;
     if (!tours.data?.length) return <Notice text="Điểm dừng này chưa có tour tham quan." />;
     return tours.data.map(item => <InfoRow key={item.shoreExcursionId} title={item.excursionName} subtitle={`${tourTime(item.startTime)} – ${tourTime(item.plannedReturnTime)} · ${statusLabel(item.status)}`} icon="explore" onPress={() => openTour(item)} />);
   }
   const error = context.error ?? catalog.error ?? detail.error;
   return <PassengerScaffold selected="itinerary">
     <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={catalog.isRefetching || detail.isRefetching} onRefresh={refresh} tintColor={colors.primary} />}>
-      <View style={styles.heading}><Text style={styles.title}>Lịch trình chuyến đi</Text></View>
-      {error && <><Notice tone="error" text={`${error.message}${data ? ' Đang hiển thị dữ liệu đã tải trước đó.' : ''}`} /><PassengerButton label="Thử lại" onPress={refresh} /></>}
-      {(catalog.voyages.length > 1 || (catalog.voyages.length === 1 && !catalog.voyage)) && <Choice label="Chuyến đi" value={catalog.voyage?.bookingId ?? ''}
-        items={catalog.voyages.map(item => ({ id: item.bookingId, label: `${item.cruiseName} · ${item.bookingReference}` }))}
-        onChange={bookingId => { if (catalog.userId) selectVoyage(catalog.userId, bookingId); }} />}
+      {error && <><Notice tone="error" text={`${errorText(error)}${data ? ' Đang hiển thị dữ liệu đã tải trước đó.' : ''}`} /><PassengerButton label="Thử lại" onPress={refresh} /></>}
+      {(catalog.voyages.length > 1 || (catalog.voyages.length === 1 && !catalog.voyage)) && <Choice label="Chuyến đi" value={catalog.voyage?.bookingPassengerId ?? ''}
+        items={catalog.voyages.map(item => ({ id: item.bookingPassengerId, label: `${item.cruiseName} · ${item.bookingReference}${catalog.voyages.filter(row => row.bookingId === item.bookingId).length > 1 ? ` · Hồ sơ …${item.bookingPassengerId.slice(-6)}` : ''}` }))}
+        onChange={passengerId => { const item = catalog.voyages.find(row => row.bookingPassengerId === passengerId); if (catalog.userId && item) selectVoyage(catalog.userId, item.bookingId, item.bookingPassengerId); }} />}
       {!error && (auth.status === 'restoring' || (context.live && !context.ready)
         || (context.can('BOOKING_READ') && catalog.isPending) || (catalog.itineraryId && canRead && detail.isPending))
         ? <Notice text="Đang tải hải trình…" />
@@ -153,7 +155,7 @@ export function PassengerLiveItineraryScreen() {
           ? <Notice text="Tài khoản chưa có quyền xem hải trình." />
           : !catalog.itineraryId && !error && <Notice text={catalog.voyage
             ? 'Lịch trình của chuyến này đang được cập nhật.' : catalog.voyages.length
-              ? 'Chọn chuyến để xem hải trình.' : 'Hải trình sẽ xuất hiện khi tài khoản có chuyến đi đã xác nhận.'} />}
+              ? 'Chọn chuyến đi.' : 'Chưa có chuyến đi đã xác nhận.'} />}
       {data && <>
         {data.accessErrors.map(message => <Notice key={message} text={message} />)}
         <View style={styles.cruise}><Text style={styles.ship}>{data.itinerary.itineraryName}</Text><Text style={styles.cruiseText}>{data.cruise?.shipName ?? data.cruise?.cruiseName ?? 'Thông tin chuyến tàu chưa khả dụng'}</Text><Text style={styles.cruiseText}>{formatDay(data.itinerary.startDate)} – {formatDay(data.itinerary.endDate)}</Text><Text style={styles.chip}>{statusLabel(data.itinerary.status)}</Text></View>
@@ -165,14 +167,14 @@ export function PassengerLiveItineraryScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} accessibilityRole="tablist" accessibilityLabel="Chọn ngày hải trình">{data.days.map(value => <Pressable key={value.itineraryDayId} accessibilityRole="tab" aria-selected={day?.itineraryDayId === value.itineraryDayId} accessibilityState={{ selected: day?.itineraryDayId === value.itineraryDayId }} onPress={() => { setDayId(value.itineraryDayId); setStopId(undefined); setTourId(undefined); }} style={[styles.dayInner, { minWidth: 82, borderRadius: 14, backgroundColor: day?.itineraryDayId === value.itineraryDayId ? colors.secondaryContainer : colors.surfaceContainerLow }]}><Text style={[styles.rowTitle, day?.itineraryDayId === value.itineraryDayId && { color: colors.onSecondaryContainer }]}>Ngày {value.dayNumber}</Text><Text style={[styles.small, day?.itineraryDayId === value.itineraryDayId && { color: colors.onSecondaryContainer }]}>{formatDay(value.date)}</Text></Pressable>)}</ScrollView>
               {!day ? data.daysDenied ? null : <Notice text="Lịch từng ngày chưa được cập nhật." /> : <VoyageEntrance key={day.itineraryDayId} duration={motion.content}><View style={styles.panel}>
                 <Text style={styles.sectionTitle}>{day.dayType === 'SEA_DAY' ? 'Ngày trên biển' : `Ngày ${day.dayNumber} · ${formatDay(day.date)}`}</Text>
-                {day.description && <Text style={styles.bodyText}>{day.description}</Text>}
+                {!!day.description && <Text style={styles.bodyText}>{day.description}</Text>}
                 {personalActivities.length > 0 && <>
                   <Text style={styles.sectionTitle}>Trải nghiệm bạn đã đăng ký</Text>
                   {personalActivities.map(item => <InfoRow key={item.registrationId} title={item.name} icon="explore"
                     subtitle={`${time(item.startTime)} – ${time(item.endTime)} · ${statusLabel(item.activityStatus === 'CANCELLED' ? 'CANCELLED' : item.registrationStatus)}${item.location ? ` · ${item.location}` : ''}`} />)}
                 </>}
                 {day.dayType === 'SEA_DAY' ? <Notice text="Tàu di chuyển trên biển. Không ghé cảng trong ngày này." /> : <>
-                  {dayStops.length ? dayStops.map(value => <InfoRow key={value.cruiseStopId} title={value.portName ?? value.destinationName ?? 'Điểm dừng'} subtitle={stopSummary(value)} icon="directions_boat" onPress={() => openStop(value)} />) : data.stopsDenied ? null : <Notice text="Chưa cấu hình điểm dừng cho ngày này." />}
+                  {dayStops.length ? dayStops.map(value => <InfoRow timeline key={value.cruiseStopId} title={value.portName ?? value.destinationName ?? 'Điểm dừng'} subtitle={stopSummary(value)} icon="directions_boat" onPress={() => openStop(value)} />) : data.stopsDenied ? null : <Notice text="Chưa có điểm dừng trong ngày." />}
                   {stop && !inactiveStop && <>
                     <Text style={styles.sectionTitle}>Tour tại {stop.destinationName ?? stop.portName ?? 'điểm dừng'}</Text>
                     {dayStops.length > 1 && <View style={styles.tools}>{dayStops.map(value => <SmallButton key={value.cruiseStopId} label={`${value.cruiseStopId === stop.cruiseStopId ? '● ' : ''}${value.portName ?? `Điểm ${value.stopOrder}`}`} icon="directions_boat" onPress={() => { setStopId(value.cruiseStopId); setTourId(undefined); }} />)}</View>}

@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
 import { EmptyState, ui } from '@/components/passenger/PassengerUI';
-import { BookingSelection, ConfirmAction, ErrorNotice, PageIntro, LivePage, Loading } from './PassengerActionUI';
+import { BookingSelection, ConfirmAction, ErrorNotice, LivePage, Loading } from './PassengerActionUI';
 import { passengerApi, useBookingSelection, usePassengerAction, usePassengerContext, usePassengerQuery } from './passenger-hooks';
 import { money, packageFits, statusText } from './passenger-model';
 import type { Package } from './passenger-types';
@@ -27,19 +27,17 @@ export function PassengerPackagesScreen() {
   const valid = !!selection.booking.data && selection.booking.data.bookingStatus === 'Draft' && !!selection.bookingPassengerId && !selection.booking.error && !selection.bookings.error;
   const fits = selected && selection.booking.data ? packageFits(selected, selection.booking.data) : false;
   return <LivePage title="Gói dịch vụ" permission="TOUR_PACKAGE_ASSIGN">
-    <PageIntro title="Gói dịch vụ" icon="restaurant" />
-    <Text style={ui.body}>Bạn có thể chọn hoặc đổi gói khi đơn còn ở trạng thái nháp. Gói của đơn đã xác nhận được hiển thị trong chi tiết đặt chỗ.</Text>
     <BookingSelection selection={selection} draft />
     <ErrorNotice error={assignments.error} retry={() => { if (selection.bookingId) void assignments.refetch(); }} />
-    {selection.bookingId && assignments.isPending && <Loading text="Đang tải gói đã chọn…" />}
+    {!!selection.bookingId && assignments.isPending && <Loading text="Đang tải gói đã chọn…" />}
     {assignment && <View style={ui.card}><Text style={ui.sectionTitle}>Gói đang chọn</Text><Text style={ui.body}>{currentPackage?.name ?? 'Gói dịch vụ đã liên kết'}</Text><Text style={ui.body}>Giá đã ghi nhận: {money(assignment.agreedPrice, assignment.currency)}</Text>
       <PassengerButton label="Bỏ gói đã chọn" variant="text" disabled={!valid || !!assignments.error} onPress={() => { action.reset(); setConfirm('remove'); }} />
     </View>}
     <ErrorNotice error={packages.error} retry={() => { void packages.refetch(); }} />{packages.isPending && <Loading />}
-    {!packages.isPending && !packages.error && !packages.data?.some(p => p.status === 'ACTIVE') && <EmptyState title="Chưa có gói dịch vụ" description="Các gói đang hoạt động sẽ xuất hiện tại đây." />}
+    {!packages.isPending && !packages.error && !packages.data?.some(p => p.status === 'ACTIVE') && <EmptyState title="Chưa có gói dịch vụ" />}
     {packages.data?.filter(p => p.status === 'ACTIVE').map(item => <View key={item.id} style={ui.card}>
       <Text style={ui.caption}>{statusText(item.type)}</Text><Text style={ui.sectionTitle}>{item.name}</Text>{!!item.description && <Text style={ui.body}>{item.description}</Text>}
-      <Text style={ui.body}>{money(item.price, item.currency)}</Text>
+      <Text style={ui.amount}>{money(item.price, item.currency)}</Text>
       {(item.startDate || item.endDate) && <Text style={ui.caption}>Áp dụng {item.startDate ?? 'không giới hạn đầu kỳ'} – {item.endDate ?? 'không giới hạn cuối kỳ'}</Text>}
       <PassengerButton label="Xem quyền lợi" variant="secondary" onPress={() => { setSelected(item); setConfirm(null); action.reset(); }} />
     </View>)}
@@ -56,7 +54,7 @@ export function PassengerPackagesScreen() {
       <PassengerButton label={assignment ? 'Đổi sang gói này' : 'Chọn gói này'} disabled={!valid || !fits || assignments.isPending || !!assignments.error || !!benefits.error || benefits.isPending || assignment?.packageId === selected.id} onPress={() => { action.reset(); setConfirm('save'); }} />
     </View>}
     <PassengerButton label="Cập nhật gói dịch vụ" variant="text" loading={packages.isFetching || assignments.isFetching} onPress={() => { void packages.refetch(); if (selection.bookingId) void assignments.refetch(); }} />
-    <ConfirmAction visible={!!confirm} title={confirm === 'remove' ? 'Xác nhận bỏ gói' : 'Xác nhận chọn gói'} description={confirm === 'remove' ? 'Bỏ gói đang liên kết với hồ sơ đã chọn trong đơn nháp.' : `${selected?.name ?? ''} · ${money(selected?.price, selected?.currency)}. Giá gói được ghi nhận theo phản hồi của hệ thống; đây chưa phải giao dịch thanh toán.`} onClose={() => setConfirm(null)} pending={action.isPending} error={action.error} onConfirm={() => {
+    <ConfirmAction visible={!!confirm} title={confirm === 'remove' ? 'Xác nhận bỏ gói' : 'Xác nhận chọn gói'} description={confirm === 'remove' ? 'Bỏ gói khỏi hành khách đã chọn?' : `${selected?.name ?? ''} · ${money(selected?.price, selected?.currency)}. Chưa thu tiền ở bước này.`} onClose={() => setConfirm(null)} pending={action.isPending} error={action.error} onConfirm={() => {
       if (!confirm || !valid || saving.current || !selection.ready || assignments.isFetching || assignments.error
         || (confirm === 'save' && (!selectedId || !fits || benefits.error || !benefits.data))
         || (confirm === 'remove' && !assignment)) return;

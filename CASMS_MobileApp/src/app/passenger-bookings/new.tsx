@@ -1,3 +1,3 @@
-import { PassengerNewBookingScreen } from '@/features/passenger-actions/PassengerBookingScreens';
-import { AccountBoundScreen } from '@/features/passenger-actions/AccountBoundScreen';
-export default function NewBookingRoute() { return <AccountBoundScreen component={PassengerNewBookingScreen} />; }
+import { Redirect } from 'expo-router';
+/** Legacy deep links must never open a ticket purchase flow in Mobile. */
+export default function RetiredBookingCreationRoute() { return <Redirect href="/passenger-bookings" />; }

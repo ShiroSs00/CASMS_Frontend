@@ -10,8 +10,10 @@ import { Loading } from '@/features/passenger-actions/PassengerActionUI';
 import { brand, lightTheme, statusColors } from '@/constants/ocevie';
 import { motion } from '@/constants/motion';
 import { ApiError } from '@/lib/api';
+import { OceVieBrand } from '@/components/passenger/OceVieBrand';
 
 const errors: Record<string, string> = {
+  POS_FULFILLMENT_REQUIRED: 'Nhập đúng số lượng đã phục vụ và kiểm tra đơn vị trước khi hoàn tất.',
   POS_CRUISE_SELECTION_REQUIRED: 'Có nhiều chuyến phù hợp. Nhập mã chuyến do quản lý cung cấp.',
   POS_ALLOWANCE_EXCEEDED: 'Tài khoản trên tàu không còn đủ hạn mức.',
   POS_SPENDING_LIMIT_EXCEEDED: 'Hành khách không còn đủ hạn mức sử dụng.',
@@ -20,10 +22,10 @@ const errors: Record<string, string> = {
   POS_PRICE_REQUIRED: 'Dịch vụ chưa có giá hợp lệ.',
   POS_ALLOWANCE_NOT_ALLOCATED: 'Tài khoản trên tàu chưa được cấp hạn mức.',
   POS_ACCOUNT_CURRENCY_MISMATCH: 'Sao kê có nhiều loại tiền tệ. Liên hệ quản lý để đối soát.',
-  POS_STORAGE: 'Không xóa được phiên đã lưu trên iPhone. Vui lòng thử lại.',
+  POS_STORAGE: 'Không xóa được phiên trên thiết bị. Vui lòng thử lại.',
   POS_SALE_BUSY: 'Thiết bị đang xử lý giao dịch này. Hãy kiểm tra lại kết quả.',
   POS_REVERIFY: 'Phiên POS hoặc dữ liệu cần được kiểm tra lại. Hãy đóng xác nhận và tải lại trước khi thực hiện tiếp.',
-  POS_JOURNAL: 'Không truy cập được hồ sơ chờ trên iPhone. Chưa gửi yêu cầu ghi nhận lần này.',
+  POS_JOURNAL: 'Không đọc được hồ sơ chờ trên thiết bị. Chưa gửi giao dịch này.',
   POS_DEVICE_ROLE: 'Hãy dùng tài khoản thiết bị chỉ có vai trò POS.',
   POS_PRICE_CHANGED: 'Đơn giá đã thay đổi. Hãy mở lại bước xác nhận để xem giá mới.',
   POS_ALLOWANCE_RECHECK: 'Cần tra lại sao kê và kiểm tra hạn mức trước khi ghi nhận.',
@@ -89,7 +91,7 @@ export function PosPage({ title, children, refresh, refreshing = false, standalo
     <ScrollView automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
       contentContainerStyle={styles.content}
       refreshControl={refresh ? <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={brand.teal} /> : undefined}>
-      <Text accessibilityRole="header" style={ui.title}>{title}</Text>
+      {standalone && <><OceVieBrand /><Text accessibilityRole="header" style={ui.title}>{title}</Text></>}
       {children}
     </ScrollView>
   </SafeAreaView>;
@@ -103,7 +105,7 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
   </View>;
 }
 
-type Operation = { title: string; description: string; run: () => Promise<unknown> };
+type Operation = { title: string; description: string; content?: (pending: boolean) => ReactNode; run: () => Promise<unknown> };
 export function usePosConfirmation(after: () => void, enabled = true, showSuccess = true) {
   const [operation, setOperation] = useState<Operation | null>(null);
   const [pending, setPending] = useState(false);
@@ -117,10 +119,11 @@ export function usePosConfirmation(after: () => void, enabled = true, showSucces
     },
     pending,
     ui: <>
-      {success && <Notice tone="success">Hệ thống đã xác nhận thao tác.</Notice>}
+      {success && <Notice tone="success">Đã hoàn tất.</Notice>}
       <PassengerSheet visible={operation !== null} title={operation?.title ?? 'Xác nhận'}
         dismissible={!pending} onClose={() => { if (!lock.current) setOperation(null); }}>
         <Text style={ui.body}>{operation?.description}</Text>
+        {operation?.content?.(pending)}
         {!!failure && <Notice tone="error">{failure}</Notice>}
         <PassengerButton label="Xác nhận" loading={pending} disabled={!!failure || !enabled} onPress={async () => {
           if (!operation || lock.current || failure || !enabled) return;

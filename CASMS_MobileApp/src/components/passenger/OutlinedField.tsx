@@ -62,9 +62,9 @@ export function OutlinedField({ label, value, onChangeText, helper, error, passw
           </Pressable>
         )}
       </View>
-      <Text style={[styles.helper, error && styles.error]} accessibilityLiveRegion="polite">
+      {!!(error || helper) && <Text style={[styles.helper, error && styles.error]} accessibilityLiveRegion="polite">
         {error || helper}
-      </Text>
+      </Text>}
     </View>
   );
 }
@@ -76,6 +76,6 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, lineHeight: 20, fontWeight: '500', color: colors.onSurface },
   helper: { paddingHorizontal: 16, fontSize: 12, lineHeight: 18, color: colors.onSurfaceVariant },
   error: { color: colors.error },
-  eye: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  eye: { width: 48, height: 48, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   eyePressed: { backgroundColor: colors.secondaryContainer, transform: [{ scale: 0.96 }] },
 });

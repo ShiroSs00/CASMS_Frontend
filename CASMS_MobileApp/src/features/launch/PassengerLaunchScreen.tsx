@@ -16,9 +16,8 @@ export function PassengerLaunchScreen() {
   const status = useAuth(state => state.status);
   useEffect(() => {
     if (status === 'restoring') return;
-    const timer = setTimeout(() => router.replace(status === 'authenticated' ? '/loading'
-      : { pathname: '/login', params: { state: status } }), 900);
-    return () => clearTimeout(timer);
+    router.replace(status === 'authenticated' ? '/loading'
+      : { pathname: '/login', params: { state: status } });
   }, [status]);
   return (
     <SafeAreaView
@@ -30,10 +29,6 @@ export function PassengerLaunchScreen() {
       <ScrollView contentContainerStyle={styles.content} bounces={false}>
         <View style={styles.center}>
           <VoyageEntrance><OceVieBrand variant="stacked" /></VoyageEntrance>
-          <View style={styles.brand}>
-            <Text style={styles.kicker}>VIETNAMESE HERITAGE · OCEAN LUXURY</Text>
-            <Text style={styles.headline}>Mỗi chân trời,{'\n'}một khởi đầu.</Text>
-          </View>
           <View style={styles.loading}>
             <View
               style={styles.indicator}
@@ -50,7 +45,6 @@ export function PassengerLaunchScreen() {
             </Text>
           </View>
         </View>
-        <View style={styles.horizon} /><Text style={styles.passenger}>YOUR VOYAGE, BEAUTIFULLY CONNECTED</Text>
       </ScrollView>
     </SafeAreaView>
   );

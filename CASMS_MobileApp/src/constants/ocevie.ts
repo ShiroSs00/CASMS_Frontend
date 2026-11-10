@@ -25,4 +25,14 @@ export const darkTheme = {
   selected: '#174A53', focus: brand.tealLight,
 } as const;
 export const layout = { gutter: 20, cardRadius: 20, buttonRadius: 14, buttonHeight: 56 } as const;
+/** Product UI scale. Brand colors remain the OceVie guideline values above. */
+export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, section: 32 } as const;
+export const typeScale = {
+  title: { fontSize: 24, lineHeight: 32, fontWeight: '700' as const, letterSpacing: -.4 },
+  section: { fontSize: 18, lineHeight: 26, fontWeight: '600' as const },
+  body: { fontSize: 15, lineHeight: 23 },
+  caption: { fontSize: 12, lineHeight: 18 },
+  amount: { fontSize: 22, lineHeight: 30, fontWeight: '700' as const, fontVariant: ['tabular-nums'] as ('tabular-nums')[] },
+} as const;
+export const controls = { touch: 48, radius: 14, cardRadius: 18, buttonHeight: 52 } as const;
 export const overlays = { hero: '#061A2BE6', modal: 'rgba(6,26,43,.46)', shadow: '0px 4px 16px rgba(6,26,43,.06)' } as const;

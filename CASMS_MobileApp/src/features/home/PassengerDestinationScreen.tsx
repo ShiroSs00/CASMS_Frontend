@@ -47,7 +47,6 @@ export function PassengerDestinationScreen() {
         {decks.isSuccess && !decks.data?.some(deck => deck.shipId === shipId) && <Text style={ui.body}>Thông tin tầng đang được cập nhật.</Text>}
       </>}
     </> : catalog.isSuccess && <EmptyState title="Chưa có chuyến đi đã xác nhận"
-      description="Chuyến đi và cabin của bạn sẽ xuất hiện sau khi đặt chỗ được xác nhận."
-      action="Xem đặt chỗ" onPress={() => router.dismissTo('/bookings')} />}
+      action="Chuyến đi của tôi" onPress={() => router.dismissTo('/passenger-bookings')} />}
   </LivePage>;
 }

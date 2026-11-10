@@ -33,7 +33,7 @@ let user = 5;
 const requests = [];
 globalThis.fetch = async (url, options) => {
   requests.push({ url, ...options });
-  if (url.endsWith('/auth/login')) return Response.json({ success: true, data: {
+  if (url.endsWith('/auth/login') || url.endsWith('/auth/refresh')) return Response.json({ success: true, data: {
     accessToken: `employee-${user}`, tokenType: 'Bearer', expiresIn: 3600, userId: id(user), username: `staff-${user}`, roles: ['ONBOARD_STAFF'], effectivePermissions: ['POS_ACCESS'],
   } });
   if (url.endsWith('/pos/session') && options.method === 'DELETE') return new Response(null, { status: 204 });
@@ -82,4 +82,27 @@ test('expired stored POS session is removed instead of restored', async () => {
   const result = await restorePosSession(login.user.id, login.signedInAt);
   assert.equal(result.session, null); assert.equal(result.expired, true);
   assert.equal(values.has('ocevie.pos.session.v1'), false);
+});
+
+test('refresh cannot change account identity or retain the outgoing private cache', async () => {
+  user = 5; await authActions.login('staff-5', 'test-only-password');
+  queryClient.setQueryData(['private-refresh-data'], { owner: id(5) });
+  user = 6;
+  await authActions.refresh();
+  assert.equal(useAuth.getState().status, 'expired');
+  assert.equal(useAuth.getState().session, null);
+  assert.equal(queryClient.getQueryData(['private-refresh-data']), undefined);
+  assert.ok(![...values.values()].some(value => value.includes('employee-6')));
+});
+
+test('same-owner refresh preserves the login epoch and current account cache', async () => {
+  user = 5; await authActions.login('staff-5', 'test-only-password');
+  const original = useAuth.getState().session;
+  queryClient.setQueryData(['current-account'], { owner: id(5) });
+  await authActions.refresh();
+  const refreshed = useAuth.getState().session;
+  assert.equal(useAuth.getState().status, 'authenticated');
+  assert.equal(refreshed.user.id, original.user.id);
+  assert.equal(refreshed.signedInAt, original.signedInAt);
+  assert.deepEqual(queryClient.getQueryData(['current-account']), { owner: id(5) });
 });

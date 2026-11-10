@@ -1,6 +1,5 @@
-import type { BookingCreate, BookingDetail, BookingPassenger, Cabin, Cruise, Package, PassengerDraft, Registration, Service, UserMe } from './passenger-types';
+import type { BookingDetail, BookingPassenger, Package, Registration, Service, UserMe } from './passenger-types';
 
-export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function personalPermissions(owner: string | undefined, me: UserMe | undefined): string[] | null {
   if (!owner || !me || me.userId !== owner || me.status !== 'ACTIVE' || !me.roles.length || !me.roles.every(r => r === 'PASSENGER')) return null;
   return me.effectivePermissions;
@@ -11,26 +10,6 @@ export function positiveQuantity(value: string): number {
   if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 2147483647) throw new Error('Số lượng không hợp lệ.');
   return quantity;
 }
-export function buildBooking(cruiseId: string, rows: PassengerDraft[], cabins: Cabin[], paymentPlan: BookingCreate['paymentPlan'], notes: string): BookingCreate {
-  if (!UUID.test(cruiseId)) throw new Error('Vui lòng chọn chuyến đi.');
-  if (!rows.length) throw new Error('Cần ít nhất một hành khách.');
-  if (!['FULL', 'DEPOSIT', 'STAGES'].includes(paymentPlan)) throw new Error('Phương án thanh toán không hợp lệ.');
-  if (notes.trim().length > 500) throw new Error('Ghi chú tối đa 500 ký tự.');
-  const occupied = new Map<string, number>();
-  const passengers = rows.map((row, index) => {
-    const name = row.fullName.trim(); const email = row.email.trim(); const phone = row.phoneNumber.trim();
-    if (name.length < 2 || name.length > 100) throw new Error(`Hành khách ${index + 1}: họ tên từ 2 đến 100 ký tự.`);
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error(`Hành khách ${index + 1}: email không hợp lệ.`);
-    if (phone && !/^\+?\d{8,15}$/.test(phone)) throw new Error(`Hành khách ${index + 1}: số điện thoại từ 8 đến 15 chữ số.`);
-    const cabin = cabins.find(c => c.cabinId === row.cabinId);
-    if (!cabin || !UUID.test(row.cabinId)) throw new Error(`Hành khách ${index + 1}: vui lòng chọn phòng còn chỗ.`);
-    const count = (occupied.get(row.cabinId) ?? 0) + 1; occupied.set(row.cabinId, count);
-    if (!Number.isSafeInteger(cabin.remainingCapacity) || cabin.remainingCapacity < count) throw new Error(`Phòng ${cabin.cabinNumber} không đủ chỗ cho số khách đã chọn.`);
-    return { fullName: name, cabinId: row.cabinId, ...(email ? { email } : {}), ...(phone ? { phoneNumber: phone } : {}) };
-  });
-  return { cruiseId, paymentPlan, passengers, ...(notes.trim() ? { notes: notes.trim() } : {}) };
-}
-export function bookableCruises(items: Cruise[], now = Date.now()) { return items.filter(c => c.status === 'PUBLISHED' && Date.parse(c.departureDatetime) > now); }
 export function usablePassengers(booking: BookingDetail | undefined, confirmed = true): BookingPassenger[] {
   if (!booking || (confirmed ? booking.bookingStatus !== 'Confirmed' : booking.bookingStatus === 'Cancelled')) return [];
   // Ownership is checked by BE. Never substitute a user UUID for bookingPassengerId.

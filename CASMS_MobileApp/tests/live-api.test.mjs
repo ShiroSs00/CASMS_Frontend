@@ -5,6 +5,33 @@ import { toSession, readSession } from '../src/features/auth/session-model.ts';
 import { formatTime, stopsForDay } from '../src/features/itinerary/api-format.ts';
 
 const make = impl => createApiClient({ baseUrl: () => 'http://backend.test/api', fetch: impl });
+
+test('transport timeout aborts passenger and POS writes once without expiring auth or replaying', async () => {
+  for (const path of ['/servicepackage/requests', '/pos/sales']) {
+    let attempts = 0, expired = false;
+    const client = createApiClient({ baseUrl: () => 'https://test.invalid/api', timeoutMs: 10,
+      fetch: async (_url, { signal }) => {
+        attempts++;
+        return new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true }));
+      },
+    });
+    client.setToken('fixture-token'); client.onUnauthorized(() => { expired = true; });
+    await assert.rejects(client.request(path, { method: 'POST', body: {} }), error =>
+      error instanceof ApiError && error.status === 0 && /quá thời gian/.test(error.message)
+      && (path === '/servicepackage/requests' ? error.code === undefined : error.code === 'POS_TIMEOUT'));
+    assert.equal(attempts, 1); assert.equal(expired, false);
+  }
+});
+
+test('navigation cancellation propagates AbortError rather than reporting a timeout', async () => {
+  const controller = new AbortController();
+  const client = make(async (_url, { signal }) => new Promise((_resolve, reject) => {
+    signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+  }));
+  const pending = client.request('/booking', { signal: controller.signal });
+  controller.abort();
+  await assert.rejects(pending, error => error.name === 'AbortError' && !(error instanceof ApiError));
+});
 test('tour and history access messages distinguish denied permissions from server failures', () => {
   assert.equal(readErrorMessage(new ApiError('Forbidden', 403), 'nhóm tour'), 'Tài khoản chưa được cấp quyền xem nhóm tour.');
   assert.equal(readErrorMessage(new ApiError('Server failed (500)', 500), 'nhóm tour'), 'Server failed (500)');

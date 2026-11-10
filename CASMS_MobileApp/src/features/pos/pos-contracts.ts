@@ -29,6 +29,8 @@ export const request = z.object({
   id: uuid, serviceId: uuid, quantity: z.number().int(), status: text,
   assignedUserId: optionalId, requestTime: instant, note: optionalText,
   bookingPassengerId: optionalId, scheduleId: optionalId,
+  fareBenefitSnapshotId: optionalId, fulfillmentUnitCode: optionalText,
+  fulfilledQuantity: z.number().int().nonnegative().nullable().default(null),
 });
 export const activity = z.object({
   id: uuid, name: text, code: text, startTime: instant, endTime: instant,

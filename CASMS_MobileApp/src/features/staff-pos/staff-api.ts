@@ -17,6 +17,6 @@ export function createStaffApi(client: Transport) {
     requests: async (signal?: AbortSignal) => rows<StaffRequest>(await client.request('/servicepackage/requests', { signal })),
     saveProduct: (form: ProductForm, productId?: string) => client.request<Product>(`/servicepackage/products${productId ? `/${id(productId)}` : ''}`, { method: productId ? 'PUT' : 'POST', body: productInput(form) }),
     productStatus: (productId: string, action: 'activate' | 'discontinue') => client.request<Product>(`/servicepackage/products/${id(productId)}/status/${action}`, { method: 'POST' }),
-    requestAction: (requestId: string, action: RequestAction) => client.request<StaffRequest>(`/servicepackage/requests/${id(requestId)}/actions/${action}`, { method: 'POST' }),
+    requestAction: (requestId: string, action: RequestAction, fulfillment?: { fulfilledQuantity: number; unitCode: string }) => client.request<StaffRequest>(`/servicepackage/requests/${id(requestId)}/actions/${action}`, { method: 'POST', body: fulfillment }),
   };
 }

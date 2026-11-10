@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
 import { ui } from '@/components/passenger/PassengerUI';
@@ -8,6 +8,7 @@ import { dateTime, money } from '@/features/passenger-actions/passenger-model';
 import { ApiError } from '@/lib/api';
 import { usePos, usePosRequests } from './PosLayout';
 import type { PosRequest, RequestAction } from './pos-api';
+import { fulfillmentInput } from './pos-lifecycle';
 import { Field, Notice, PosPage, QueryState, posError, usePosConfirmation } from './pos-ui';
 
 const requestLabels: Record<RequestAction, string> = {
@@ -21,7 +22,7 @@ const filters = [
 ];
 const serviceFilters = [
   { id: 'all', label: 'Tất cả dịch vụ' },
-  { id: 'usage', label: 'Có quyền ghi nhận sử dụng' },
+  { id: 'usage', label: 'Ghi nhận sử dụng' },
 ];
 const openStates = ['REQUESTED', 'ACCEPTED', 'IN_PROGRESS'];
 const normalize = (value: string) => value.trim().toLocaleLowerCase('vi-VN');
@@ -60,7 +61,6 @@ export function PosServices() {
       <Text style={ui.eyebrow}>{item.code}</Text>
       <Text style={ui.sectionTitle}>{item.name}</Text>
       <Text style={ui.body}>{money(item.unitPrice, item.currency)}</Text>
-      <StatusBadge status="ACTIVE" />
     </View>)}
   </PosPage>;
 }
@@ -75,6 +75,7 @@ export function PosRequests() {
   const query = usePosRequests(pos, true);
   const reload = () => { pos.refreshSession(); void query.refetch(); };
   const confirm = usePosConfirmation(reload, pos.verified && !query.error && !query.isFetching);
+  const fulfilled = useRef('');
   function send(row: PosRequest, action: RequestAction) {
     const service = pos.assertReady().services.find(item => item.serviceId === row.serviceId);
     const state = cache.getQueryState<PosRequest[]>([...pos.key, 'requests']);
@@ -83,7 +84,7 @@ export function PosRequests() {
       || !service?.permissions.includes('SERVICE_REQUEST_READ') || !actions(current, pos.owner, service.permissions).includes(action)) {
       throw new ApiError('Yêu cầu hoặc quyền đã thay đổi.', 409, 'POS_REVERIFY');
     }
-    return pos.client.requestAction(row.id, action);
+    return pos.client.requestAction(row.id, action, action === 'complete' ? fulfillmentInput(current, fulfilled.current) : undefined);
   }
   if (!services.size) return <PosPage title="Yêu cầu dịch vụ"><Notice tone="warning">Bạn chưa có quyền xem yêu cầu trong phiên này.</Notice></PosPage>;
   const rows = query.error instanceof ApiError && query.error.status === 403 ? [] : query.data?.flatMap(row => {
@@ -104,14 +105,28 @@ export function PosRequests() {
       <Text style={ui.body}>Số lượng {row.quantity} · {dateTime(row.requestTime)}</Text>
       <Text style={ui.caption}>{row.assignedUserId === pos.owner ? 'Đã giao cho bạn' : row.assignedUserId ? 'Đã phân công' : 'Chưa phân công'}</Text>
       {!!row.note && <Text style={ui.body}>{row.note}</Text>}
-      {actions(row, pos.owner, service.permissions).map(action => <PassengerButton key={action}
+      {actions(row, pos.owner, service.permissions).map(action => <PassengerButton compact key={action}
         label={requestLabels[action]} variant={action === 'cancel' || action === 'reject' ? 'text' : 'secondary'}
         disabled={!pos.verified || query.isFetching || !!query.error || confirm.pending}
-        onPress={() => confirm.open({
+        onPress={() => { fulfilled.current = ''; confirm.open({
           title: requestLabels[action], description: `${service.name} · Số lượng ${row.quantity}`,
+          content: action === 'complete' && row.fareBenefitSnapshotId ? pending =>
+            <FulfillmentField key={row.id} unit={row.fulfillmentUnitCode} quantity={row.quantity} disabled={pending}
+              onChange={value => { fulfilled.current = value; }} /> : undefined,
           run: () => send(row, action),
-        })} />)}
+        }); }} />)}
     </View>)}
     {confirm.ui}
   </PosPage>;
+}
+
+function FulfillmentField({ unit, quantity, disabled, onChange }: {
+  unit: string | null; quantity: number; disabled: boolean; onChange: (value: string) => void;
+}) {
+  const [value, setValue] = useState('');
+  return <View style={ui.card}>
+    <Text style={ui.body}>Xác nhận đã phục vụ đủ {quantity} {unit ?? '(chưa có đơn vị)'}.</Text>
+    <Field label={`Số lượng đã phục vụ (${unit ?? 'chưa có đơn vị'})`} value={value} keyboardType="number-pad"
+      editable={!disabled} onChangeText={next => { setValue(next); onChange(next); }} />
+  </View>;
 }

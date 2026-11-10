@@ -4,27 +4,28 @@ import { passengerLightColors as colors } from '@/constants/passenger-light-them
 
 import { MaterialIcon, type MaterialIconName } from './MaterialIcon';
 
-export function PassengerListItem({ title, supporting, icon, onPress, disabled = false, connected }: {
+export function PassengerListItem({ title, supporting, icon, onPress, disabled = false, connected, compact = false }: {
   title: string;
   supporting: string;
   icon: MaterialIconName;
   onPress?: () => void;
   disabled?: boolean;
   connected?: 'first' | 'last';
+  compact?: boolean;
 }) {
   return (
     <Pressable accessibilityRole={onPress ? 'button' : undefined}
       accessibilityLabel={`${title}. ${supporting}`} accessibilityState={{ disabled }}
       disabled={disabled || !onPress} onPress={onPress}
       android_ripple={{ color: colors.secondaryContainer }}
-      style={({ pressed }) => [styles.row, connected === 'first' && styles.first,
+      style={({ pressed }) => [styles.row, compact && styles.compact, connected === 'first' && styles.first,
         connected === 'last' && styles.last, pressed && styles.pressed]}>
       <View style={[styles.icon, disabled && styles.disabledIcon]}>
         <MaterialIcon name={icon} color={disabled ? colors.onSurfaceVariant : colors.onSecondaryContainer} />
       </View>
       <View style={styles.copy}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.supporting}>{supporting}</Text>
+        {!!supporting && <Text style={styles.supporting}>{supporting}</Text>}
       </View>
       {onPress && !disabled && <MaterialIcon name="chevron_right" color={colors.onSurfaceVariant} />}
     </Pressable>
@@ -33,6 +34,7 @@ export function PassengerListItem({ title, supporting, icon, onPress, disabled =
 
 const styles = StyleSheet.create({
   row: { minHeight: 72, padding: 16, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surfaceContainerLow, borderWidth: 1, borderColor: colors.divider, overflow: 'hidden' },
+  compact: { minHeight: 60, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14 },
   first: { borderTopLeftRadius: 20, borderTopRightRadius: 20, borderBottomLeftRadius: 8, borderBottomRightRadius: 8 },
   last: { borderTopLeftRadius: 8, borderTopRightRadius: 8, borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
   pressed: { backgroundColor: colors.secondaryContainer },

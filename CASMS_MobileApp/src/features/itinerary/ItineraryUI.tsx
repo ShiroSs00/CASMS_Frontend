@@ -4,9 +4,10 @@ import { passengerLightColors as colors } from '@/constants/passenger-light-them
 import { statusColors } from '@/constants/ocevie';
 import { voyage } from '@/constants/voyage';
 
-export function InfoRow({ title, subtitle, icon, onPress }: { title: string; subtitle: string; icon: MaterialIconName; onPress?: () => void }) {
-  const content = <><View style={styles.rowIcon}><MaterialIcon name={icon} color={colors.secondary} size={22} /></View><View style={styles.grow}><Text style={styles.rowTitle}>{title}</Text><Text style={styles.small}>{subtitle}</Text></View>{onPress && <MaterialIcon name="chevron_right" color={colors.onSurfaceVariant} size={20} />}</>;
-  return onPress ? <Pressable accessibilityRole="button" onPress={onPress} android_ripple={{ color: colors.secondaryContainer }} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>{content}</Pressable> : <View style={styles.row}>{content}</View>;
+export function InfoRow({ title, subtitle, icon, onPress, timeline = false }: { title: string; subtitle: string; icon: MaterialIconName; onPress?: () => void; timeline?: boolean }) {
+  const content = <>{timeline ? <View accessible={false} style={styles.timelineTrack}><View style={styles.timelineDot} /><View style={styles.timelineLine} /></View>
+    : <View style={styles.rowIcon}><MaterialIcon name={icon} color={colors.secondary} size={22} /></View>}<View style={styles.grow}><Text style={styles.rowTitle}>{title}</Text><Text style={styles.small}>{subtitle}</Text></View>{onPress && <MaterialIcon name="chevron_right" color={colors.onSurfaceVariant} size={20} />}</>;
+  return onPress ? <Pressable accessibilityRole="button" onPress={onPress} android_ripple={{ color: colors.secondaryContainer }} style={({ pressed }) => [styles.row, timeline && styles.timelineRow, pressed && styles.pressed]}>{content}</Pressable> : <View style={[styles.row, timeline && styles.timelineRow]}>{content}</View>;
 }
 export function SmallButton({ label, icon, onPress }: { label: string; icon: MaterialIconName; onPress: () => void }) {
   return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.tool, pressed && styles.pressed]}><MaterialIcon name={icon} color={colors.onSurface} size={18} /><Text style={styles.small}>{label}</Text></Pressable>;
@@ -32,14 +33,14 @@ export const styles = StyleSheet.create({
   cruiseText: { fontSize: 13, lineHeight: 20, color: colors.onSurfaceVariant },
   route: { fontSize: 13, lineHeight: 22, fontWeight: '500', color: colors.secondary, marginTop: 8 },
   tools: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tool: { minWidth: 44, minHeight: 44, maxWidth: '100%', flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.surfaceContainerLow },
+  tool: { minWidth: 48, minHeight: 48, maxWidth: '100%', flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.surfaceContainerLow },
   segmented: { flexDirection: 'row', backgroundColor: colors.surfaceContainerHigh, borderRadius: 14, padding: 4, gap: 4 },
-  segment: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
+  segment: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
   selectedSegment: { backgroundColor: colors.secondaryContainer },
   segmentText: { fontSize: 14, fontWeight: '600', color: colors.onSurface },
   days: { flexDirection: 'row', gap: 7 },
   day: { flex: 1, overflow: 'hidden' },
-  dayInner: { minHeight: 92, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  dayInner: { minHeight: 72, paddingVertical: 10, alignItems: 'center', justifyContent: 'center', gap: 2 },
   dayNumber: { fontSize: 24, lineHeight: 30, fontWeight: '700', color: colors.onSurface },
   panel: { gap: 14 },
   sectionTitle: { fontFamily: voyage.heading, fontWeight: '600', fontSize: 20, lineHeight: 28, letterSpacing: -.5, color: colors.onSurface, flexShrink: 1 },
@@ -49,6 +50,10 @@ export const styles = StyleSheet.create({
   grow: { flex: 1, minWidth: 100, gap: 4 },
   rowIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.secondaryContainer, alignItems: 'center', justifyContent: 'center' },
   row: { borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.surfaceContainerLow, borderRadius: 16, minHeight: 80, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden' },
+  timelineRow: { borderWidth: 0, backgroundColor: 'transparent', paddingHorizontal: 0, minHeight: 72 },
+  timelineTrack: { width: 20, alignSelf: 'stretch', alignItems: 'center', paddingTop: 5, gap: 8 },
+  timelineDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.secondary },
+  timelineLine: { flex: 1, width: 1, backgroundColor: colors.outlineVariant, minHeight: 20 },
   rowTitle: { fontSize: 15, lineHeight: 21, fontWeight: '600', color: colors.onSurface },
   small: { fontSize: 12, lineHeight: 18, color: colors.onSurfaceVariant, flexShrink: 1 },
   bodyText: { fontSize: 14, lineHeight: 23, color: colors.onSurfaceVariant },

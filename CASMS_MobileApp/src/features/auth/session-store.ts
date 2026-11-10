@@ -91,7 +91,10 @@ export const authActions = {
         const requestedAt = Date.now();
         const dto = await api.request<LoginDto>('/auth/refresh', { method: 'POST' });
         if (version !== generation) return;
-        const next = toSession(dto, requestedAt, session.signedInAt); await save(next);
+        const next = toSession(dto, requestedAt, session.signedInAt);
+        // A refresh may update grants, but must never switch the signed-in owner.
+        if (next.user.id !== session.user.id) { clear('expired'); return; }
+        await save(next);
         if (version === generation) publish(next);
       } catch (error) {
         if (version !== generation) return;

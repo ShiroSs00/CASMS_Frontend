@@ -10,7 +10,7 @@ import { MaterialIcon } from './MaterialIcon';
 import { type PassengerTab } from './PassengerNavigation';
 export type { PassengerTab } from './PassengerNavigation';
 
-const titles: Record<PassengerTab, string> = { home: 'OceVie', itinerary: 'Hải trình', bookings: 'Đặt chỗ', services: 'Khám phá', account: 'Cá nhân' };
+const titles: Record<PassengerTab, string> = { home: 'OceVie', itinerary: 'Lịch trình', services: 'Dịch vụ', notifications: 'Thông báo', account: 'Tài khoản' };
 export function PassengerScaffold({ children, selected = 'home', title, detail = false }: {
   children: ReactNode; selected?: PassengerTab; title?: string; detail?: boolean;
 }) {
@@ -25,7 +25,6 @@ export function PassengerScaffold({ children, selected = 'home', title, detail =
       }} style={styles.iconButton}><MaterialIcon name="arrow_back" color={brand.navy} /></Pressable> : null}
       <View style={styles.heading}>
         {!detail && selected === 'home' ? <OceVieBrand /> : <>
-          {!detail && <Text style={styles.kicker}>OCEVIE CRUISES</Text>}
           <Text accessibilityRole="header" style={[styles.title, detail && styles.detailTitle]}>{heading}</Text>
         </>}
       </View>
@@ -43,12 +42,12 @@ export function PassengerScaffold({ children, selected = 'home', title, detail =
 }
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: lightTheme.background },
-  header: { minHeight: 76, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 8, width: '100%', maxWidth: 600, alignSelf: 'center' },
+  header: { minHeight: 64, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8, width: '100%', maxWidth: 600, alignSelf: 'center' },
   heading: { flex: 1, gap: 2 },
   kicker: { fontSize: 12, lineHeight: 16, letterSpacing: 1.8, fontWeight: '600', color: brand.teal },
   title: { fontSize: 23, lineHeight: 32, fontWeight: '700', color: brand.navy },
   detailTitle: { fontSize: 18, lineHeight: 26 },
-  iconButton: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  avatar: { width: 44, height: 44, borderRadius: 14, backgroundColor: brand.tealSoft, alignItems: 'center', justifyContent: 'center' },
+  iconButton: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 48, height: 48, borderRadius: 14, backgroundColor: brand.tealSoft, alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1 },
 });

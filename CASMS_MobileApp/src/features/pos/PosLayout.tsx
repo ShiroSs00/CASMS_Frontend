@@ -3,7 +3,6 @@ import { Redirect, Stack } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform, Text, View } from 'react-native';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
-import { OceVieBrand } from '@/components/passenger/OceVieBrand';
 import { ui } from '@/components/passenger/PassengerUI';
 import { useMotionPreference } from '@/components/passenger/useMotionPreference';
 import { brand, lightTheme } from '@/constants/ocevie';
@@ -63,7 +62,7 @@ export default function PosLayout() {
     return <PosPage title="OceVie POS" standalone>
       <Notice tone="warning">{employee.roles.includes('POS')
         ? 'Đây là tài khoản thiết bị. Hãy đăng xuất và đăng nhập bằng tài khoản nhân viên.'
-        : Platform.OS === 'web' ? 'Hãy mở POS trên ứng dụng iPhone.' : 'Tài khoản này chưa có quyền sử dụng POS.'}</Notice>
+        : Platform.OS === 'web' ? 'Mở POS trong ứng dụng OceVie.' : 'Tài khoản này chưa có quyền sử dụng POS.'}</Notice>
       {employee.roles.includes('PASSENGER') ? <Redirect href="/home" /> :
         <PassengerButton label="Đăng xuất" onPress={() => { void authActions.logout(); }} />}
     </PosPage>;
@@ -74,7 +73,7 @@ export default function PosLayout() {
     if (!__DEV__ && !backend.startsWith('https://')) throw new Error('POS requires HTTPS');
   } catch {
     return <PosPage title="OceVie POS" standalone>
-      <Notice tone="error">Thiết bị chưa được cấu hình địa chỉ API an toàn cho POS.</Notice>
+      <Notice tone="error">Kết nối POS chưa an toàn. Liên hệ quản lý để kiểm tra thiết bị.</Notice>
       <PassengerButton label="Đăng xuất" variant="text" onPress={() => { void authActions.logout(); }} />
     </PosPage>;
   }
@@ -170,18 +169,17 @@ function PairTerminal({ owner, signedInAt, username, message, onOpened }: {
   }
 
   return <PosPage title="Mở phiên POS" standalone>
-    <OceVieBrand />
-    <Text style={ui.body}>Nhân viên {username}. Dùng thông tin thiết bị do quản lý cấp.</Text>
+    <Text style={ui.body}>{username}</Text>
     {!!message && <Notice tone="warning">{message}</Notice>}
     <View style={ui.card}>
-      <Field label="ID thiết bị POS" value={terminal} onChangeText={setTerminal} maxLength={36} editable={!pending} />
-      <Field label="ID khu vực (nếu được yêu cầu)" value={area} onChangeText={setArea} maxLength={36} editable={!pending} />
-      <Field label="ID chuyến (nếu được yêu cầu)" value={cruise} onChangeText={setCruise} maxLength={36} editable={!pending} />
+      <Field label="Mã thiết bị POS" value={terminal} onChangeText={setTerminal} maxLength={36} editable={!pending} />
+      <Field label="Mã khu vực (tùy chọn)" value={area} onChangeText={setArea} maxLength={36} editable={!pending} />
+      <Field label="Mã chuyến (tùy chọn)" value={cruise} onChangeText={setCruise} maxLength={36} editable={!pending} />
       {!legacy && <Field label="Tên tài khoản thiết bị" value={deviceUser} onChangeText={setDeviceUser} editable={!pending} />}
       <Field label={legacy ? 'Mã bí mật thiết bị' : 'Mật khẩu thiết bị'} value={credential} onChangeText={setCredential}
         secureTextEntry textContentType="password" autoComplete="off" editable={!pending} maxLength={legacy ? 128 : undefined} />
       <PassengerButton label="Mở phiên" onPress={() => { void open(); }} disabled={!valid} loading={pending} />
-      <PassengerButton label={legacy ? 'Dùng tài khoản thiết bị' : 'Dùng mã bí mật thiết bị cũ'} variant="text" disabled={pending}
+      <PassengerButton label={legacy ? 'Dùng tài khoản thiết bị' : 'Dùng mã thiết bị cũ'} variant="text" disabled={pending}
         onPress={() => { setCredential(''); setFailure(undefined); setLegacy(!legacy); }} />
     </View>
     {!!failure && <Notice tone="error">{failure}</Notice>}
@@ -250,7 +248,7 @@ function ActiveSession({ owner, signedInAt, username, employeePermissions, sessi
     setEnding(true);
     let note: string | undefined;
     try { await client.close(); }
-    catch { note = 'Đã kết thúc phiên trên iPhone. Hệ thống chưa xác nhận thu hồi phiên.'; }
+    catch { note = 'Đã kết thúc phiên trên thiết bị. Chưa xác nhận được việc thu hồi phiên.'; }
     try { await clearPosSession(owner, signedInAt, session.sessionToken); }
     catch {
       closed.current = false;

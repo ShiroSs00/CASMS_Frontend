@@ -142,12 +142,12 @@ function ActivityDetail({ item, onBack, reloadActivities, refreshing, activities
   const passengerByRegistration = new Map(registrations.data?.map(row => [row.id, row.bookingPassengerId]));
 
   return <PosPage title="Chi tiết hoạt động" refresh={reload} refreshing={registrations.isRefetching || participation.isRefetching}>
-    <PassengerButton label="Về danh sách hoạt động" variant="text" disabled={confirm.pending} onPress={onBack} />
+    <PassengerButton compact label="Danh sách hoạt động" variant="text" disabled={confirm.pending} onPress={onBack} />
     <View style={ui.card}><PosReveal><ActivitySummary item={item} /></PosReveal></View>
     {!!activitiesError && <Notice tone="error" retry={reload}>{posError(activitiesError)}</Notice>}
     {!!pos.sessionError && <Notice tone="error" retry={pos.refreshSession}>{posError(pos.sessionError)}</Notice>}
     {permissions.includes('ACTIVITY_LIFECYCLE') && activityActions(activity, now).map(action =>
-      <PassengerButton key={action} label={activityLabels[action]} variant={action === 'cancel' ? 'text' : 'secondary'}
+      <PassengerButton compact key={action} label={activityLabels[action]} variant={action === 'cancel' ? 'text' : 'secondary'}
         disabled={!verified || confirm.pending} onPress={() => confirm.open({
           title: activityLabels[action], description: activity.name, run: () => changeActivity(action),
         })} />)}
@@ -155,7 +155,7 @@ function ActivityDetail({ item, onBack, reloadActivities, refreshing, activities
       <Text accessibilityRole="header" style={ui.sectionTitle}>Đăng ký hành khách</Text>
       {passengerOptions.length > 0 && <Choice label="Hành khách từ yêu cầu trong phiên" value={passenger}
         items={passengerOptions} onChange={setPassenger} disabled={!pos.verified || confirm.pending} />}
-      <Field label="ID hành khách trong đặt chỗ" value={passenger} onChangeText={setPassenger} maxLength={36} />
+      <Field label="Mã hồ sơ hành khách" value={passenger} onChangeText={setPassenger} maxLength={36} />
       <Field label="Số chỗ" value={seats} onChangeText={setSeats} keyboardType="number-pad" maxLength={10} />
       {duplicate && <Notice tone="warning">Hành khách đã có đăng ký cho hoạt động này.</Notice>}
       <PassengerButton label="Xem lại đăng ký" disabled={!valid || !registrationReady} onPress={() => confirm.open({
@@ -204,7 +204,7 @@ function ActivityDetail({ item, onBack, reloadActivities, refreshing, activities
           <Text style={ui.body}>{attendanceStatus[row.status] ?? row.status}</Text>
           {!!row.checkInTime && <Text style={ui.caption}>Vào {dateTime(row.checkInTime)}</Text>}
           {!!row.checkOutTime && <Text style={ui.caption}>Rời {dateTime(row.checkOutTime)}</Text>}
-          {attendanceActions(row, activity).map(action => <PassengerButton key={action} label={attendanceLabels[action]} variant="secondary"
+          {attendanceActions(row, activity).map(action => <PassengerButton compact key={action} label={attendanceLabels[action]} variant="secondary"
             disabled={!attendanceReady} onPress={() => confirm.open({
               title: attendanceLabels[action], description: `${activity.name} · ${person ?? row.registrationId}`,
               run: () => changeAttendance(row.id, action),
