@@ -24,6 +24,7 @@ export type PageDto<T> = {
 }
 
 export type CruiseDto = {
+  actualDepartureDatetime?: string | null
   itineraryMode?: 'FIXED'|'CUSTOM'
   plannedScope?: 'DOMESTIC'|'INTERNATIONAL'
   revision?: number | null

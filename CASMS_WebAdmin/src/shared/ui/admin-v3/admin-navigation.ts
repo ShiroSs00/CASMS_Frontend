@@ -19,7 +19,7 @@ const tools: readonly AdminNavigationItem[] = [
   { label:'Tài khoản nhân sự', to:'/admin/system', permissionMode:'ANY', permissions:['USER_READ'] },
   { label:'Đặt chỗ', to:'/admin/bookings', permissionMode:'ANY', permissions:['BOOKING_READ'] },
   { label:'Quản lý điểm đến', to:'/admin/destinations', permissionMode:'ANY', permissions:['DESTINATION_READ'] },
-  { label:'Quản lý cảng', to:'/admin/ports', permissionMode:'ANY', permissions:['PORT_READ'] },
+  { label:'Cảng ghé', to:'/admin/ports', permissionMode:'ANY', permissions:['PORT_READ'] },
   { label:'Tàu', to:'/admin/ships', permissionMode:'ANY', permissions:['SHIP_READ'] },
   { label:'Boong', to:'/admin/decks', permissionMode:'ANY', permissions:['DECK_READ','CABIN_READ'] },
   { label:'Cabin', to:'/admin/cabins', permissionMode:'ANY', permissions:['CABIN_READ'] },
@@ -32,7 +32,7 @@ const tools: readonly AdminNavigationItem[] = [
   { label:'Đăng ký và điểm danh', to:'/admin/activity-registrations', permissionMode:'ANY', permissions:['ACTIVITY_ATTENDANCE','ACTIVITY_REGISTRATION'] },
   { label:'Hoạt động trên tàu', to:'/admin/activities', permissionMode:'ANY', permissions:['ACTIVITY_READ'] },
   { label:'Dịch vụ', to:'/admin/services', permissionMode:'ANY', permissions:['SERVICE_READ'] },
-  { label:'Sản phẩm', to:'/admin/products', permissionMode:'ANY', permissions:['PRODUCT_MANAGE'] },
+  { label:'Mặt hàng bán lẻ', to:'/admin/products', permissionMode:'ANY', permissions:['PRODUCT_MANAGE'] },
   { label:'Gói dịch vụ', to:'/admin/service-packages', permissionMode:'ANY', permissions:['TOUR_PACKAGE_MANAGE','PACKAGE_COMPONENT_MANAGE'] },
   { label:'Mẫu gói du thuyền', to:'/admin/cruise-package-templates', permissionMode:'ALL', permissions:['TOUR_PACKAGE_MANAGE'] },
   { label:'Yêu cầu dịch vụ', to:'/admin/service-requests', permissionMode:'ANY', permissions:['SERVICE_REQUEST_READ','SERVICE_REQUEST_CREATE'] },
@@ -80,13 +80,13 @@ export function workspaceForPath(pathname: string) {
 export const adminToolDescriptions: Record<string,string> = {
   trips:businessCopy('workspace.crm.tripDescription'),
   cruises:'Ngày khởi hành, tàu được phân công và vòng đời chuyến đi.', itineraries:'Lịch từng ngày, cảng ghé và thời gian dừng.',
-  destinations:'Thông tin điểm đến và quốc gia trong tuyến đi.', ports:'Cảng và thông tin phục vụ lịch trình.',
+  destinations:'Thông tin điểm đến và quốc gia trong tuyến đi.', ports:'Cảng ghé và thông tin phục vụ lịch trình.',
   ships:'Trạng thái đội tàu và mức sẵn sàng vận hành.', decks:'Cấu trúc boong và liên kết với từng tàu.',
   cabins:'Loại phòng, sức chứa và trạng thái sử dụng.', bookings:'Đặt chỗ, hành khách và hợp đồng.',
   issues:'Ghi nhận, theo dõi và xử lý sự cố.', regulations:'Quy định áp dụng cho tàu và chuyến đi.',
   suppliers:'Thông tin đối tác và dịch vụ cung ứng.', 'shore-excursions':'Chuyến tham quan theo lịch ghé cảng.',
   'tour-groups':'Nhóm hành khách và điều phối tour.', activities:'Hoạt động, sức chứa và đăng ký trên tàu.',
-  services:'Danh mục dịch vụ, giá và trạng thái.', products:'Sản phẩm cung cấp trong hành trình.',
+  services:'Danh mục dịch vụ, giá và trạng thái.', products:'Danh mục mặt hàng bán lẻ trên tàu, ví dụ quà lưu niệm.',
   'service-packages':'Gói dịch vụ, thành phần và quyền lợi.', 'service-requests':'Yêu cầu, phân công và tiến độ phục vụ.',
   'package-assignments':'Gói và quyền lợi của hành khách.',
 }
@@ -189,7 +189,7 @@ export function roleNavigationItems(roles: readonly string[], access: AdminAcces
 export type AdminNavigationGroup = { id: string; label: string; items: AdminNavigationItem[]; direct?: boolean }
 const navigationGroups = [
   {id:'experiences',label:'Hoạt động và tour',sections:['activities','shore-excursions','tour-groups']},
-  {id:'services',label:'Dịch vụ, sản phẩm và gói',sections:['services','products','service-packages','cruise-package-templates','service-requests','package-assignments']},
+  {id:'services',label:'Dịch vụ, mặt hàng và gói',sections:['services','products','service-packages','cruise-package-templates','service-requests','package-assignments']},
   {id:'locations',label:'Điểm đến và đối tác',sections:['destinations','ports','suppliers']},
   {id:'fleet',label:'Đội tàu',sections:['ships','decks','cabins']},
   {id:'schedule',label:'Lập lịch trình',sections:['trips']},

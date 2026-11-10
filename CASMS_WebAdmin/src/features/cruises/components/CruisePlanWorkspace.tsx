@@ -7,14 +7,13 @@ import {useSessionAccess} from '@/shared/auth'
 import styles from './ManagerWorkspace.module.css'
 
 /** One Cruise context and one instance of each editor; approvals remain separate commands. */
-export function CruisePlanWorkspace({cruiseId,refreshKey,onChanged,onSection,sections,onReview}:{
+export function CruisePlanWorkspace({cruiseId,refreshKey,onChanged,onSection,sections}:{
  cruiseId:string;refreshKey:string;onChanged:()=>void;
  onSection:(section:DepartureSection)=>void;sections:readonly DepartureSection[];onReview?:()=>void
 }) {
  const access=useSessionAccess()
  const manager=access.roles.includes('CRUISE_MANAGER')&&!access.roles.includes('OPERATIONS_MANAGER')
  if(manager)return <>
-  <CruisePlanReview cruiseId={cruiseId} refreshKey={refreshKey} mode="summary" onReview={onReview}/>
   <section className={styles.planWorkspace} aria-label="Hoàn thiện kế hoạch">
    <h2>Hoàn thiện kế hoạch</h2>
    <nav className={styles.planTaskList} aria-label="Nội dung kế hoạch">

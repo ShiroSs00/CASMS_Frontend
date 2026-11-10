@@ -2,6 +2,8 @@ import { decodeDelayEvent, decodeDelayHistory, decodeDelayPreview, type DelayReq
 import { ApiError, apiRequest } from '@/shared/api'
 import { decodeAuditEvents, decodeChange, decodeHandoff, decodeImpactTask, decodeInventory, decodeNotificationAggregate, decodePublicSellability, decodeReadiness, decodeSaleReadiness, decodeSchedule, type ChangeInput } from '../model/departure-contract'
 
+import type { CruiseDto } from './dto'
+
 const path = (id: string) => '/cruise/' + encodeURIComponent(id)
 function savedTasks(value: unknown, id: string) {
   if (!Array.isArray(value)) throw new ApiError('Chưa đọc được danh sách công việc.', 502)
@@ -10,6 +12,15 @@ function savedTasks(value: unknown, id: string) {
   return tasks
 }
 const delayPath = (id: string) => '/cruises/' + encodeURIComponent(id) + '/delays'
+
+function decodeDepartureState(row: CruiseDto, id: string) {
+  const actual = row?.actualDepartureDatetime
+  if (row?.cruiseId !== id || typeof row.status !== 'string' ||
+      (actual != null && (typeof actual !== 'string' || !Number.isFinite(Date.parse(actual))))) {
+    throw new ApiError('Chưa đọc được trạng thái xuất bến của chuyến.', 502)
+  }
+  return { status: row.status, actualDepartureDatetime: actual ?? null }
+}
 
 export const departureApi = {
   async delayHistory(id: string, signal?: AbortSignal) {
@@ -29,6 +40,16 @@ export const departureApi = {
   async schedule(id: string, signal?: AbortSignal) { return decodeSchedule(await apiRequest(path(id) + '/schedule', { signal })) },
   async inventory(id: string, signal?: AbortSignal) { return decodeInventory(await apiRequest(path(id) + '/inventory-summary', { signal }), id) },
   async departureReadiness(id:string,signal?:AbortSignal) { return decodeReadiness(await apiRequest(path(id)+'/departure-readiness',{signal}),id) },
+  async departureState(id: string, signal?: AbortSignal) {
+    return decodeDepartureState(await apiRequest<CruiseDto>(path(id), { signal }), id)
+  },
+  async start(id: string) {
+    const saved = decodeDepartureState(await apiRequest<CruiseDto>(path(id) + '/start', { method: 'POST' }), id)
+    if (saved.status !== 'IN_PROGRESS' || !saved.actualDepartureDatetime) {
+      throw new ApiError('Chưa xác nhận được kết quả xuất bến.', 502)
+    }
+    return saved
+  },
   async publicSellability(id:string,signal?:AbortSignal) { return decodePublicSellability(await apiRequest(path(id)+'/sellability',{signal}),id) },
   async auditEvents(id:string,signal?:AbortSignal) { return decodeAuditEvents(await apiRequest(path(id)+'/audit-events',{signal}),id) },
   async notificationAggregate(id:string,signal?:AbortSignal) { return decodeNotificationAggregate(await apiRequest(path(id)+'/impact-notifications/aggregate',{signal}),id) },

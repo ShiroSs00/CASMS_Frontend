@@ -20,8 +20,8 @@ import type { Destination, DestinationDraft, DestinationPortSummary, PageResult,
 type Kind = 'port' | 'destination'
 
 const meta = {
-  port: { singular: 'cảng', plural: 'Cảng', management:'Quản lý cảng', route: 'ports' },
-  destination: { singular: 'điểm đến', plural: 'Điểm đến', management:'Quản lý điểm đến', route: 'destinations' },
+  port: { singular: 'cảng ghé', plural: 'Cảng ghé', management:'Cảng ghé', route: 'ports' },
+  destination: { singular: 'điểm đến', plural: 'Điểm đến', management:'Điểm đến', route: 'destinations' },
 } as const
 
 function message(error: unknown) { return error instanceof ApiError ? businessErrorMessage(error.code,error.message) : error instanceof Error ? error.message : 'Thao tác không thành công.' }
@@ -57,7 +57,7 @@ function MasterList({ kind }: { kind: Kind }) {
   }, [kind, page, attempt, search, countryCode, status])
 
   return <ItineraryFrame>
-    <PageHeader breadcrumb="DANH MỤC VẬN HÀNH" title={copy.management}  actions={access.roles.includes('OPERATIONS_MANAGER')&&access.canDo(`${kind.toUpperCase()}_CREATE`) ? <ButtonLink to={`/admin/${copy.route}/new`}>Thêm {copy.singular}</ButtonLink> : undefined} />
+    <PageHeader breadcrumb="DANH MỤC VẬN HÀNH" title={copy.management} actions={access.roles.includes('OPERATIONS_MANAGER')&&access.canDo(`${kind.toUpperCase()}_CREATE`) ? <ButtonLink to={`/admin/${copy.route}/new`}>Thêm {copy.singular}</ButtonLink> : undefined} />
     <CollectionSummary count={loading || error ? null : data?.total ?? null} visible={data?.items.length} filtered={activeOnly} label={`${copy.plural} trong kết quả`} scope="Tổng kết quả từ hệ thống" />
     <Panel title={`Danh sách ${copy.singular}`}><div className={styles.formGrid}>
         <Field htmlFor="directory-search" label={kind==='port'?'Tìm theo tên hoặc mã cảng':'Tìm điểm đến'}><input id="directory-search" type="search" value={search} onChange={e=>{setSearch(e.target.value);setPage(1);setLoading(true)}}/></Field>
@@ -75,11 +75,16 @@ function MasterList({ kind }: { kind: Kind }) {
 }
 
 function CoordinateSourceInfo({source,embedded=false}:{source:PortCoordinateSource|null;embedded?:boolean}) {
-  const content=<>
-    {source?<dl><dt>Địa danh được chọn</dt><dd>{source.locationName}</dd><dt>ID địa danh bên ngoài</dt><dd>{source.externalLocationId}</dd><dt>Nhà cung cấp / dữ liệu</dt><dd>Open-Meteo / GeoNames</dd><dt>Loại tọa độ</dt><dd>Tham chiếu thành phố/đảo</dd>{source.countryCode&&<><dt>Quốc gia theo nguồn</dt><dd>{source.countryCode}</dd></>}{source.featureCode&&<><dt>Mã loại địa danh theo nguồn</dt><dd>{source.featureCode}</dd></>}{source.admin1&&<><dt>Khu vực theo nguồn</dt><dd>{source.admin1}</dd></>}{source.timezone&&<><dt>Múi giờ địa danh theo nguồn</dt><dd>{source.timezone}</dd></>}{source.recordedAt&&<><dt>Thời điểm ghi nhận</dt><dd>{new Date(source.recordedAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'})}</dd></>}</dl>:<p>Chưa có thông tin nguồn tọa độ. Có thể giữ nguyên tọa độ khi cập nhật thông tin khác của cảng.</p>}
-    <p>Tọa độ tham chiếu địa danh; không phải tọa độ chính xác của terminal, cầu cảng, bến tàu hoặc bến neo.</p>
-    <p>Location data by <a href="https://www.geonames.org/" target="_blank" rel="noreferrer">GeoNames</a> via <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a>. <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a>.</p>
-  </>
+  if (!source) return null
+  const content=<dl>
+    <dt>Địa danh được chọn</dt><dd>{source.locationName}</dd>
+    <dt>Nguồn dữ liệu</dt><dd>Open-Meteo / GeoNames</dd>
+    {source.countryCode&&<><dt>Quốc gia theo nguồn</dt><dd>{source.countryCode}</dd></>}
+    {source.featureCode&&<><dt>Mã loại địa danh theo nguồn</dt><dd>{source.featureCode}</dd></>}
+    {source.admin1&&<><dt>Khu vực theo nguồn</dt><dd>{source.admin1}</dd></>}
+    {source.timezone&&<><dt>Múi giờ địa danh theo nguồn</dt><dd>{source.timezone}</dd></>}
+    {source.recordedAt&&<><dt>Thời điểm ghi nhận</dt><dd>{new Date(source.recordedAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'})}</dd></>}
+  </dl>
   return embedded?<section aria-label="Nguồn tọa độ địa danh"><h3>Nguồn tọa độ địa danh</h3>{content}</section>:<Panel title="Nguồn tọa độ địa danh">{content}</Panel>
 }
 
@@ -156,11 +161,9 @@ function MasterForm({ kind }: { kind: Kind }) {
 
   const retryDestination = () => { setLoading(true); setError(''); setLoadAttempt(value => value + 1) }
   return <ItineraryFrame>
-    <PageHeader breadcrumb="DANH MỤC VẬN HÀNH" title={`${editing ? 'Chỉnh sửa' : 'Thêm'} ${copy.singular}`}
-       />
+    <PageHeader breadcrumb="DANH MỤC VẬN HÀNH" title={`${editing ? 'Chỉnh sửa' : 'Thêm'} ${copy.singular}`} />
     {loading ? <Loading label="Đang tải biểu mẫu…" /> : kind === 'destination' && editing && !canSave ? <Notice title="Không tải được điểm đến" tone="error"><p>{error}</p><Button onClick={retryDestination}>Thử lại</Button></Notice> : <EditorLayout ><form ref={form} noValidate={kind === 'destination'} onSubmit={submit}>
       <Panel title={kind === 'destination' ? 'Thông tin điểm đến' : 'Thông tin cơ bản'}>
-
         <div className={`${styles.formGrid} ${kind === 'destination' ? styles.destinationGrid : ''}`}>
           {kind === 'port' && <Field htmlFor="port-country" label="Quốc gia / vùng lãnh thổ *"><select id="port-country" required disabled={busy||editing} value={draft.countryCode} onChange={e=>{setNewCoordinatesSelected(false);setDraft(current=>({...current,countryCode:e.target.value,city:'',latitude:'',longitude:'',timeZoneId:'',coordinateSource:null}))}}><option value="">Chọn quốc gia</option>{draft.countryCode&&!portCountries.some(c=>c.code===draft.countryCode)&&<option value={draft.countryCode}>{draft.countryCode}</option>}{portCountries.map(c=><option key={c.code} value={c.code}>{c.name} ({c.code})</option>)}</select></Field>}
           {kind === 'port' && <Field htmlFor="master-code" label="Mã cảng"><input id="master-code" disabled={busy||editing} maxLength={50} required value={draft.code} onChange={event => update('code', event.target.value)} /></Field>}
@@ -176,7 +179,6 @@ function MasterForm({ kind }: { kind: Kind }) {
           </Field>}
           {kind === 'port' && <>
             <Field htmlFor="master-timezone" label="Múi giờ cảng *" error={timeZones.error?.message}><select id="master-timezone" required disabled={busy||timeZones.loading||Boolean(timeZones.error)} value={draft.timeZoneId} onChange={event=>update('timeZoneId',event.target.value)}><option value="">{timeZones.loading?'Đang tải múi giờ…':'Chọn múi giờ cảng'}</option>{draft.timeZoneId&&!timeZones.data?.some(zone=>zone.timeZoneId===draft.timeZoneId)&&<option value={draft.timeZoneId}>{draft.timeZoneId}</option>}{timeZones.data?.map(zone=><option key={zone.timeZoneId} value={zone.timeZoneId}>{zone.displayName}</option>)}</select>{timeZones.error&&<Button type="button" tone="text" onClick={timeZones.retry}>Tải lại múi giờ</Button>}</Field>
-
           </>}
           {kind==='destination'&&draft.countryCode==='VN'&&<Field htmlFor="destination-region" label="Miền nội địa"><select id="destination-region" disabled={busy} value={draft.domesticRegion??''} onChange={e=>update('domesticRegion',e.target.value)}><option value="">Chưa xác định</option><option value="BAC_BO">Miền Bắc</option><option value="TRUNG_BO">Miền Trung</option><option value="NAM_BO">Miền Nam</option></select></Field>}
           <Field htmlFor="master-status" label="Trạng thái" error={kind === 'destination' ? fieldErrors.status : undefined}>
@@ -196,12 +198,14 @@ function MasterForm({ kind }: { kind: Kind }) {
         <LocationPicker showCountry={false} key={draft.countryCode} country={draft.countryCode} city={draft.city} disabled={busy} countryLocked={editing} countryError={fieldErrors.countryCode}
           onCountry={()=>undefined} onCity={city=>setDraft(current=>({...current,city}))}
           onApply={place=>{setNewCoordinatesSelected(true);setDraft(current=>({...current,latitude:String(place.latitude),longitude:String(place.longitude),coordinateSource:coordinateSourceOf(place)}))}}/>
-        <div className={styles.formGrid}>            <Field htmlFor="master-latitude" label="Vĩ độ" hint="Tọa độ địa danh được lấy từ kết quả đã chọn; không phải vị trí chính xác của cầu cảng."><input id="master-latitude" type="number" min={-90} max={90} step="any" disabled={busy} readOnly value={draft.latitude} /></Field>
-            <Field htmlFor="master-longitude" label="Kinh độ"><input id="master-longitude" type="number" min={-180} max={180} step="any" disabled={busy} readOnly value={draft.longitude} /></Field></div>
+        <div className={styles.formGrid}>
+          <Field htmlFor="master-latitude" label="Vĩ độ"><input id="master-latitude" type="number" min={-90} max={90} step="any" disabled={busy} readOnly value={draft.latitude} /></Field>
+          <Field htmlFor="master-longitude" label="Kinh độ"><input id="master-longitude" type="number" min={-180} max={180} step="any" disabled={busy} readOnly value={draft.longitude} /></Field>
+        </div>
         <CoordinateSourceInfo embedded source={draft.coordinateSource??null}/>
       </Panel>}
-        {error && <Notice title="Chưa thể lưu" tone="error"><p>{error}</p></Notice>}
-        <div className={styles.actions}><Button tone="secondary" disabled={busy} onClick={() => navigate(`/admin/${copy.route}`)}>Hủy</Button><Button type="submit" disabled={busy || !canSave || !permitted}>{busy ? 'Đang lưu…' : kind === 'destination' ? editing ? 'Lưu thay đổi' : 'Thêm điểm đến' : 'Lưu'}</Button></div>
+      {error && <Notice title="Chưa thể lưu" tone="error"><p>{error}</p></Notice>}
+      <div className={styles.actions}><Button tone="secondary" disabled={busy} onClick={() => navigate(`/admin/${copy.route}`)}>Hủy</Button><Button type="submit" disabled={busy || !canSave || !permitted}>{busy ? 'Đang lưu…' : kind === 'destination' ? editing ? 'Lưu thay đổi' : 'Thêm điểm đến' : 'Lưu'}</Button></div>
     </form></EditorLayout>}
   </ItineraryFrame>
 }
@@ -263,7 +267,7 @@ function MasterDetail({ kind }: { kind: Kind }) {
 
   const title = record ? (kind === 'port' ? (record as Port).portName : (record as Destination).destinationName) : copy.plural
   const status = record?.status
-  return <ItineraryFrame><PageHeader breadcrumb="DANH MỤC VẬN HÀNH" title={title} description={`Chi tiết ${copy.singular} và các liên kết đang áp dụng.`} actions={record ? <div className={styles.detailActions} role="group" aria-label={`Thao tác ${copy.singular}`}>
+  return <ItineraryFrame><PageHeader breadcrumb="DANH MỤC VẬN HÀNH" title={title} actions={record ? <div className={styles.detailActions} role="group" aria-label={`Thao tác ${copy.singular}`}>
     <Badge label={status ? directoryStatusLabels[status] : 'Chưa xác định'} tone={status === 'ACTIVE' ? 'success' : 'neutral'} />
     {can('UPDATE') && <Button tone="secondary" disabled={busy} onClick={() => navigate(`/admin/${copy.route}/${id}/edit`)}>Chỉnh sửa</Button>}
     {can(kind === 'destination' ? 'UPDATE' : status === 'ACTIVE' ? 'DEACTIVATE' : 'ACTIVATE') && <Button disabled={busy} onClick={() => setStatusOpen(true)}>{status === 'ACTIVE' ? 'Ngừng kích hoạt' : 'Kích hoạt'}</Button>}
@@ -286,7 +290,6 @@ function MasterDetail({ kind }: { kind: Kind }) {
       ]}/>
     </Panel>
       {kind === 'destination' && <Panel title={`Cảng liên kết${!portsLoading && !portsError ? ` · ${linkedPorts.length}` : ''}`}>
-        <p>Các cảng hiện được liên kết với điểm đến này. Mở cảng để xem thông tin chi tiết.</p>
         {portsLoading ? <Loading label="Đang tải cảng liên kết…" /> : portsError ? <Notice title="Không tải được cảng liên kết" tone="error"><p>{portsError}</p><Button onClick={retryPorts}>Thử lại</Button></Notice>
           : linkedPorts.length ? <DataTable label="Cảng thuộc điểm đến" headers={['Mã', 'Tên cảng', '']}>
             {linkedPorts.map(port => <tr key={port.portId}><td>{port.portCode}</td><td>{port.portName}</td><td><Link className={styles.link} to={`/admin/ports/${port.portId}`}>Mở cảng →</Link></td></tr>)}

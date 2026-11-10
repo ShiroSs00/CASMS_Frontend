@@ -33,12 +33,12 @@ export function LocationPicker({ showCountry=true,country, city, disabled, count
           {portCountries.map(item => <option key={item.code} value={item.code}>{item.name} ({item.code})</option>)}
         </select>
       </Field>}
-      <Field htmlFor="master-featured-port" label="Gợi ý địa danh để tra tọa độ" hint="Gợi ý tìm kiếm, không phải danh mục cảng đã lưu trong CASMS.">
+      <Field htmlFor="master-featured-port" label="Gợi ý địa danh để tra tọa độ">
         <select id="master-featured-port" value={portCode} disabled={disabled || !country} onChange={event => { reset(); setPortCode(event.target.value); onCity(choices.find(item => item.code === event.target.value)?.searchName ?? '') }}>
           <option value="">Chọn cảng du lịch</option>{choices.map(item => <option key={item.code} value={item.code}>{item.label}</option>)}
         </select>
       </Field>
-      <Field htmlFor="master-city" label="Thành phố / đảo để tra tọa độ" hint="Tên địa điểm được điền từ cảng gợi ý; có thể đổi để tìm địa điểm khác.">
+      <Field htmlFor="master-city" label="Thành phố / đảo để tra tọa độ">
         <input id="master-city" maxLength={200} value={city} disabled={disabled || !country} onChange={event => { reset(); setPortCode(''); onCity(event.target.value) }} placeholder="Ví dụ: Ha Long" />
       </Field>
     </div>
@@ -46,6 +46,5 @@ export function LocationPicker({ showCountry=true,country, city, disabled, count
     {error && <Notice title="Chưa tra được tọa độ" tone="error">{error}</Notice>}
     {results?.length === 0 && <p role="status">Không tìm thấy thành phố hoặc đảo trong quốc gia đã chọn. Thử tên không dấu hoặc tên tiếng Anh; dữ liệu biểu mẫu được giữ nguyên.</p>}
     {Boolean(results?.length) && <div className={styles.results} role="group" aria-label="Chọn kết quả tọa độ">{results?.map(place => <button type="button" className={styles.result} key={place.id} disabled={disabled} aria-pressed={selected === place.id} onClick={() => { setSelected(place.id); onApply(place) }}><strong>{place.name}</strong><span>{place.kind === 'ISLAND' ? 'Đảo' : place.kind==='CITY'?'Thành phố':'Địa danh'} · {place.region}{place.countryCode?` · ${place.countryCode}`:''}</span><span>{place.latitude}, {place.longitude}{place.timeZoneId?` · ${place.timeZoneId}`:''}</span><span>{selected === place.id ? 'Đã áp dụng' : 'Dùng tọa độ này'}</span></button>)}</div>}
-    <p className={styles.note}>Tọa độ địa danh tham chiếu; không phải vị trí chính xác của terminal, cầu cảng, bến tàu hoặc bến neo. Location data by <a href="https://www.geonames.org/" target="_blank" rel="noreferrer">GeoNames</a> via <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a>. <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a>.</p>
   </section>
 }

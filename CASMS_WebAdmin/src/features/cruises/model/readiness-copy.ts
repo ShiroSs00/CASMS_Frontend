@@ -18,10 +18,27 @@ const keys:Readonly<Record<string,BusinessCopyKey>>={
  NO_ACTIVE_PACKAGES:'cruise.readiness.NO_ACTIVE_PACKAGES',
  PREPARATION_SECTION_UNCONFIRMED:'cruise.readiness.PREPARATION_SECTION_UNCONFIRMED',
 }
+
+const explicitMessages:Readonly<Record<string,string>>={
+ NO_ELIGIBLE_CRUISE_PACKAGE:'Chưa có gói du thuyền đủ điều kiện mở bán.',
+ ELIGIBLE_FARE_OFFER_REQUIRED:'Chưa có gói du thuyền đủ điều kiện mở bán cho chuyến.',
+ CRUISE_PACKAGE_SELECTION_INELIGIBLE:'Gói du thuyền đã chọn chưa đủ điều kiện mở bán.',
+ CRUISE_NOT_READY:'Chuyến khởi hành chưa được xác nhận sẵn sàng vận hành tại Bước 2.',
+ READY_CONFIRMATION_REQUIRED:'Cần hoàn tất xác nhận sẵn sàng vận hành tại Bước 2 trước khi mở bán.',
+ SALE_TERMS_APPROVAL_REQUIRED:'Chính sách giá và thuế/phí chưa được phê duyệt.',
+ SALE_WINDOW_NOT_ACTIVE:'Thời gian mở nhận đặt chỗ chưa đến hoặc đã kết thúc.',
+ BOOKING_WINDOW_CLOSED:'Thời gian nhận đặt chỗ đã đóng theo kế hoạch.',
+ BOOKING_WINDOW_NOT_OPEN:'Chưa đến thời gian mở nhận đặt chỗ theo kế hoạch.',
+ SALE_TAX_APPROVAL_REQUIRED:'Thuế trong hồ sơ chưa được phê duyệt.',
+ SALE_PORT_FEE_APPROVAL_REQUIRED:'Phí cảng trong hồ sơ chưa được phê duyệt.',
+}
+
 export function readinessMessage(code:string|null|undefined,message?:string|null):string {
- void message
  if(code==='MISSING_ONBOARD_STAFF'||code==='ONBOARD_STAFF_REQUIRED')return 'Chưa phân công nhân viên trên tàu cho chuyến khởi hành.'
- return code&&keys[code]?businessCopy(keys[code]):businessCopy('cruise.readiness.unknown')
+ if(code&&explicitMessages[code])return explicitMessages[code]
+ if(code&&keys[code])return businessCopy(keys[code])
+ if(message&&message.trim()&&!message.includes('Exception')&&!message.includes('Error:'))return message.trim()
+ return businessCopy('cruise.readiness.unknown')
 }
 
 // Reviewed against CruiseService readiness details. Never derive UI actions from API URLs.
@@ -41,5 +58,8 @@ const actions:Readonly<Record<string,string>>={
  CRUISE_PACKAGE_SELECTION_INELIGIBLE:'Đối chiếu các gói du thuyền đã chọn và điều kiện còn thiếu của từng gói.',
  ELIGIBLE_FARE_OFFER_REQUIRED:'Hoàn thiện gói du thuyền đủ điều kiện bán của chuyến.',
  PREPARATION_SECTION_UNCONFIRMED:'Hoàn thiện và xác nhận phần hồ sơ chuẩn bị còn thiếu.',
+ CRUISE_NOT_READY:'Hoàn tất Bước 2: Xác nhận sẵn sàng mở bán trước khi mở bán vé.',
+ READY_CONFIRMATION_REQUIRED:'Kế hoạch và giá chưa được Quản lý vận hành xác nhận sẵn sàng mở bán tại Bước 2.',
+ SALE_WINDOW_NOT_ACTIVE:'Đối chiếu thời gian mở và đóng nhận đặt chỗ trong kế hoạch.',
 }
 export const readinessAction=(code:string|null|undefined)=>code?actions[code]??null:null

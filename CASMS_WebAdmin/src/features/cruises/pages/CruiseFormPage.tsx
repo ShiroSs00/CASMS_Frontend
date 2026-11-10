@@ -370,6 +370,10 @@ export function CruiseFormPage() {
     } catch (error) {
       if (editing ? mutationOutcomeUnknown(error) : createIntent.record?.status === 'unknown' || createIntent.storageError) setUncertain(true)
       if (error instanceof ApiError && error.code === 'STALE_REVISION') setSubmitError('Chuyến khởi hành đã được người khác cập nhật. Nội dung bạn nhập vẫn được giữ. Mở bản đã lưu ở thẻ khác để đối chiếu trước khi chỉnh tiếp.')
+      if (error instanceof ApiError && error.code === 'DRAFT_ITINERARY_DAY_COUNT_MISMATCH') {
+        setErrors(current => ({ ...current, departureDatetime: 'Giờ mới làm thay đổi số ngày lịch trình. Chọn giờ giữ nguyên số ngày theo giờ Việt Nam.' }))
+        return
+      }
       if (error instanceof ApiError && ['INVALID_SCHEDULE', 'SHIP_SCHEDULE_CONFLICT'].includes(error.code ?? '')) setErrors(current => ({ ...current, returnDatetime: error.code === 'SHIP_SCHEDULE_CONFLICT' ? 'Thời gian này trùng lịch của tàu đã phân công.' : 'Kiểm tra ngày giờ khởi hành và kết thúc.' }))
       if (!(error instanceof ApiError && error.code === 'STALE_REVISION')) setSubmitError(error instanceof Error ? error.message : 'Không lưu được chuyến khởi hành.')
     } finally {
