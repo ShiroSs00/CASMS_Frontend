@@ -1,0 +1,140 @@
+.navContactWrap { display:inline-flex; align-items:center; }
+.navContactLink {
+  border:0 !important;
+  background:transparent !important;
+  padding:0 !important;
+  min-height:48px !important;
+  color:var(--brand-navy) !important;
+  font:600 13px/48px var(--font-family-body) !important;
+  border-bottom:2px solid transparent !important;
+  border-radius:0 !important;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  transition:all 0.15s ease;
+}
+.navContactLink:hover { color:var(--ui-ink) !important; border-bottom-color:var(--brand-gold) !important; }
+
+
+.contactWrap { position:relative; }
+.pillContactBtn {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:42px;
+  padding:8px 20px;
+  border:1.5px solid var(--brand-navy);
+  border-radius:999px;
+  background:white;
+  color:var(--brand-navy);
+  font:600 13px/1.2 var(--font-family-body);
+  cursor:pointer;
+  transition:all 0.2s ease;
+}
+.pillContactBtn:hover {
+  background:#F2F6F8;
+  border-color:var(--brand-midnight);
+}
+.chevronIcon { transition:transform 0.2s ease; }
+.pillContactBtn[aria-expanded='true'] .chevronIcon { transform:rotate(180deg); }
+
+
+/* Royal Caribbean Contact Support Modal Popup */
+.contactModalBackdrop {
+  position:fixed;
+  inset:0;
+  z-index:999;
+  background:rgba(6,26,43,0.5);
+  backdrop-filter:blur(3px);
+  display:grid;
+  place-items:center;
+  padding:20px;
+  animation:fadeIn 0.2s ease-out;
+}
+
+.contactModalCard {
+  position:relative;
+  width:100%;
+  max-width:440px;
+  background:white;
+  border-radius:24px;
+  padding:36px 32px 28px;
+  box-shadow:0 24px 60px rgba(6,26,43,0.3);
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  animation:popScale 0.25s cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes fadeIn {
+  from { opacity:0; }
+  to { opacity:1; }
+}
+
+@keyframes popScale {
+  from { opacity:0; transform:scale(0.94) translateY(8px); }
+  to { opacity:1; transform:scale(1) translateY(0); }
+}
+
+.modalHeader { display:flex; justify-content:space-between; align-items:center; }
+.modalTitle { font-size:24px; font-weight:700; color:#0B253A; margin:0; font-family:var(--font-family-heading); }
+.modalCloseBtn {
+  border:0;
+  background:transparent;
+  font-size:18px;
+  color:#6B7D8A;
+  cursor:pointer;
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  transition:all 0.15s ease;
+}
+.modalCloseBtn:hover { color:#0B253A; background:#EDF2F5; }
+.modalSubtitle { font-size:14px; color:#5A6E7C; margin:0 0 8px; line-height:1.5; }
+
+.modalActions { display:flex; flex-direction:column; gap:14px; }
+.modalCallBtn {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  min-height:50px;
+  padding:12px 24px;
+  border:1.5px solid #0E3752;
+  border-radius:999px;
+  background:white;
+  color:#0E3752 !important;
+  font-size:15px;
+  font-weight:700;
+  text-decoration:none !important;
+  transition:all 0.2s ease;
+}
+.modalCallBtn:hover { background:#F0F6FA; transform:translateY(-1px); }
+
+.modalChatBtn {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  min-height:50px;
+  padding:12px 24px;
+  border:1.5px solid #0E3752;
+  border-radius:999px;
+  background:#0E3752;
+  color:white !important;
+  font-size:15px;
+  font-weight:700;
+  text-decoration:none !important;
+  box-shadow:0 4px 14px rgba(14,55,82,0.2);
+  transition:all 0.2s ease;
+}
+.modalChatBtn:hover { background:#082436; transform:translateY(-1px); box-shadow:0 6px 18px rgba(14,55,82,0.3); }
+
+.modalFooterNote { text-align:center; margin-top:8px; font-size:12px; color:#7E909C; }
+
+
+@media(max-width:880px) { .navContactLink { font-size:12px !important; min-height:40px !important; } }
+@media(max-width:520px) { .pillContactBtn { padding:6px 14px; font-size:12px; min-height:36px; } .contactModalCard { padding:28px 20px 20px; border-radius:18px; } .modalTitle { font-size:20px; } }

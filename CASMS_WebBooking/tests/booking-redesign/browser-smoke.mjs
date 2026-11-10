@@ -89,7 +89,8 @@ try {
   await evaluate(`(() => { const b=[...document.querySelectorAll('button')].find(b=>b.textContent==='Xác nhận đặt chỗ'); b.click(); b.click(); })()`)
   await waitFor(`document.querySelector('h1')?.textContent==='Đã tiếp nhận đặt chỗ'`)
   assert.equal(await evaluate(`window.__bookingFixture.createCount`), 1)
-  assert.ok(!(await evaluate(`document.body.innerText`)).includes('Đã thanh toán'))
+  assert.equal(await evaluate(`(()=>{const label=[...document.querySelectorAll('dt')].find(e=>e.textContent==='Trạng thái thanh toán');return label?.nextElementSibling?.textContent})()`), 'Chưa thanh toán đủ')
+  assert.equal(await evaluate(`window.__bookingFixture.saved.bookingStatus`), 'Draft')
   await checkLayout(); await screenshot('receipt-mobile')
   if (!nativeZoom) {
     await send('Emulation.setDeviceMetricsOverride', { width: 1366, height: 900, deviceScaleFactor: 1, mobile: false })

@@ -7,6 +7,7 @@ import { PublicLayout } from './layouts/PublicLayout'
 import { BookingSessionLayout } from './layouts/BookingSessionLayout'
 import { RouteLoading } from './RouteLoading'
 import { RouteErrorPage } from './RouteErrorPage'
+import { AccountActivationRoute } from './AccountActivationRoute'
 function featurePage<T>(load: () => Promise<T>, key: keyof T) {
   return async () => ({ Component: (await load())[key] as ComponentType })
 }
@@ -20,6 +21,7 @@ export const router = createBrowserRouter([{
     { path: 'cruises', Component: CruiseSearchPage },
     { path: 'cruises/:cruiseId', Component: CustomerCruiseDetailPage },
     { path: 'booking/lookup', Component: BookingLookupPage },
+    { path: 'activate-booking-account', Component: AccountActivationRoute },
     { path: 'booking/party', Component: BookingPartyPage },
     { path: 'booking/travellers', Component: TravellerDetailsPage },
     { path: 'booking/cabin-experience', Component: CustomerCabinExperiencePage },

@@ -1,6 +1,6 @@
 import {PublicCruisePackages} from './PublicCruisePackages'
 import { PublicCruiseSaleState, PublicCruiseItinerary, PublicCruiseBookingEntry } from './PublicCruiseInformation'
-import { PublicContact } from '@/app/layouts/PublicContact'
+import { PublicContact } from '@/shared/ui/PublicContact'
 import { useCallback, useEffect, useRef } from 'react'
 import { Link, useLocation, useParams, useSearchParams } from 'react-router'
 import { catalogReturn, cruiseDetailPath, cruiseDetailSections } from '../model/live-booking-navigation'

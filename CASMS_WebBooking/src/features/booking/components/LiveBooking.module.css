@@ -70,6 +70,10 @@
 
 .recordFacts > div,.summary > div { min-width:0; }
 .recordFacts dd,.summary dd { overflow-wrap:anywhere; }
+.financialFacts dd { font-variant-numeric:tabular-nums; }
+.installmentAmounts { display:grid; gap:var(--space-3); margin-block:var(--space-4); font-variant-numeric:tabular-nums; }
+.installmentAmounts dt { color:var(--text-secondary); font-size:var(--text-sm); }
+.installmentAmounts dd { margin:0; overflow-wrap:anywhere; }
 .steps a { min-width:0; overflow-wrap:anywhere; }
 .publicJourney .rail :is(button,a) { max-width:100%; white-space:normal; }
 @media(max-width:1180px) { .publicJourney .layout > *, .publicJourney .lookupGrid > * { min-width:0; } }
