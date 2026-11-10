@@ -81,6 +81,42 @@
 
 .sourceCreationGrid{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:24px;align-items:stretch;margin-top:20px;margin-bottom:24px}.sourceCreationGrid>*{min-width:0}.sourceCreationGrid .inheritedPlan{margin:0;height:100%;display:flex;flex-direction:column}.sourceHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}.sourceTripName{font-size:20px;font-weight:700;color:var(--ui-ink,#0f172a);margin:0;line-height:1.3}.sourceDetailsList{display:grid;gap:10px;margin:16px 0;padding:14px 16px;background:var(--ui-subtle,#f8fafc);border:1px solid var(--ui-border,#e2e8f0);border-radius:var(--ui-radius,8px)}.sourceDetailRow{display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;align-items:baseline;font-size:13px;line-height:1.5}.sourceDetailRow dt{color:var(--ui-muted,#64748b);font-weight:500;margin:0}.sourceDetailRow dd{color:var(--ui-ink,#0f172a);font-weight:600;margin:0}.sourceActions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:auto;padding-top:12px}.shipCapacityNote{font-size:13px;color:var(--ui-muted,#64748b);margin:6px 0 0;line-height:1.5}.modeExplanation{font-size:12px;line-height:1.5;color:var(--ui-muted,#64748b);margin:6px 0 0;padding:8px 12px;background:var(--ui-subtle,#f8fafc);border-radius:6px;border-left:3px solid var(--brand-teal,#0d9488)}.departureBottomPanel{margin-top:24px}.departureScheduleRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:flex-end}.sourceIdentity{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}.sourceIdentity>span{font-size:12px;color:var(--text-secondary)}.sourceIdentity h2{width:100%;font-size:20px;margin:4px 0;line-height:1.4}.sourceDescription{white-space:pre-line;line-height:1.6;margin:0}.inheritedDays{list-style:none;margin:0;padding:0;display:grid;gap:12px}.inheritedDays>li{padding:16px;border:1px solid var(--border-default);border-radius:8px}.sourceDayHeading{display:flex;align-items:center;gap:12px}.sourceDayHeading>span{font-size:12px;color:var(--text-secondary)}.inheritedDays h3{font-size:15px;margin:8px 0}.inheritedDays p{font-size:13px;line-height:1.65;margin:8px 0}.inheritedDays small{color:var(--text-secondary)}.inheritedDays details{margin-top:12px;font-size:13px}.inheritedDays details>summary{cursor:pointer;font-weight:600}.inheritedDays details ul{padding-left:18px}.inheritedDays details li{margin-top:10px}.inheritedDays details li>span{display:block;font-size:12px;color:var(--text-secondary)}.sourceSwitch{margin:12px 0;font-size:14px}.sourceSwitch>summary{cursor:pointer;font-weight:600;padding:8px 0}.sourceFacts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:16px 0;padding:16px 20px;background:var(--ui-subtle,#f4f7f9);border:1px solid var(--ui-border,#e2e8f0);border-radius:8px}.sourceFacts>div{display:grid;gap:4px;font-size:13px;line-height:1.5}.sourceFacts dt{color:var(--ui-muted,#64748b);font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.02em}.sourceFacts dd{margin:0;font-size:14px;font-weight:600;color:var(--ui-ink,#0f172a)}.departureMilestones{display:flex;flex-wrap:wrap;gap:8px 20px;list-style:none;padding:12px 16px;margin:16px 0;border:1px solid var(--border-default);border-radius:8px;background:var(--ui-surface)}.departureMilestones li{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)}.departureMilestones [aria-current=step]{color:var(--brand-navy);font-weight:600}.departureMilestones li>span{display:grid;place-items:center;border:1px solid var(--border-default);border-radius:50%;width:24px;height:24px;font-size:12px}
 @media(max-width:1100px){.sourceCreationGrid{grid-template-columns:minmax(0,1fr)}}
+.departureCreateForm {
+  max-inline-size: 60rem;
+}
+.departureScheduleFull,
+.departureScheduleRow,
+.departureSourceRow,
+.departureCheckError {
+  grid-column: 1 / -1;
+}
+.departureSourceRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.departureSourceActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.departureCheckError {
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius, 8px);
+  padding: var(--space-4);
+  color: var(--ui-danger, var(--danger));
+}
+.departureCheckError ul {
+  margin-block: var(--space-2) 0;
+  padding-inline-start: var(--space-5);
+}
+@media (max-width: 600px) {
+  .departureScheduleRow { grid-template-columns: minmax(0, 1fr); }
+  .departureScheduleRow > button { justify-self: start; }
+}
 .interactiveMilestones{gap:8px 16px;align-items:center}.interactiveMilestones li{min-width:0}.interactiveMilestones button{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 12px;border:1px solid transparent;border-radius:var(--ui-radius);background:transparent;color:var(--ui-muted);font:inherit;font-size:13px;text-align:left;cursor:pointer}.interactiveMilestones button>span{display:grid;place-items:center;flex-shrink:0;width:24px;height:24px;border:1px solid var(--ui-border);border-radius:50%;font-size:12px}.interactiveMilestones button[aria-current=step]{background:var(--ui-brand);color:var(--ui-surface);font-weight:600}.interactiveMilestones button:hover:not([aria-current=step]){background:var(--ui-subtle);color:var(--ui-ink)}.interactiveMilestones button:focus-visible{outline:3px solid var(--ui-focus);outline-offset:2px}
 @media(max-width:600px){.interactiveMilestones{align-items:stretch}.interactiveMilestones li{width:100%}.interactiveMilestones button{width:100%}}
 

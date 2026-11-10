@@ -27,7 +27,7 @@ export function ScopedProgramEditor({cruiseId,kind,entry,revision,options,onClos
   if(!shore&&!options.services.some(s=>s.id===text('service')&&s.scheduled)){setError('Chọn dịch vụ khả dụng trên tàu. Ship Manager cần cập nhật nếu dịch vụ đang dùng đã bị gỡ.');return}
   let start:string,end:string
   try{const tz=stopId?options.stops.find(s=>s.id===stopId)?.timeZoneId:undefined;start=programInstant(text('start'),Boolean(stopId),tz);end=programInstant(text('end'),Boolean(stopId),tz)}catch{setError('Kiểm tra giờ bắt đầu, kết thúc và múi giờ cảng.');return}
-  const body=shore?{cruiseStopId:stopId,supplierId:text('supplier'),excursionName:text('name'),meetingPoint:text('location'),startTime:start,plannedReturnTime:end,minimumParticipants:tour?.minimumParticipants??null,maximumCapacity:Number(text('capacity')),price:Number(text('price')),currencyCode:'USD'}:{serviceId:text('service'),cruiseStopId:stopId,supplierId:text('supplier')||null,startsAt:start,endsAt:end,location:text('location'),capacity:Number(text('capacity'))}
+  const body=shore?{cruiseStopId:stopId,supplierId:text('supplier'),excursionName:text('name'),meetingPoint:text('location'),startTime:start,plannedReturnTime:end,minimumParticipants:tour?.minimumParticipants??null,maximumCapacity:Number(text('capacity')),price:tour?.price??0,currencyCode:tour?.currencyCode??'USD'}:{serviceId:text('service'),cruiseStopId:stopId,supplierId:text('supplier')||null,startsAt:start,endsAt:end,location:text('location'),capacity:Number(text('capacity'))}
   lock.current=true;setBusy(true);setError('')
   try{
    const saved=await apiRequest<{id?:string;shoreExcursionId?:string}>(root+'/'+encodeURIComponent(entry.id),{method:'PUT',ifMatch:revision,body})
@@ -56,7 +56,7 @@ export function ScopedProgramEditor({cruiseId,kind,entry,revision,options,onClos
    <Field htmlFor="scoped-start" label="Bắt đầu"><input id="scoped-start" name="start" type="datetime-local" step={1} defaultValue={wall(tour?.startTime??window?.startsAt)} required/></Field>
    <Field htmlFor="scoped-end" label="Kết thúc"><input id="scoped-end" name="end" type="datetime-local" step={1} defaultValue={wall(tour?.plannedReturnTime??window?.endsAt)} required/></Field>
    <Field htmlFor="scoped-capacity" label="Sức chứa"><input id="scoped-capacity" name="capacity" type="number" min={1} step={1} defaultValue={tour?.maximumCapacity??window?.capacity??''} required/></Field>
-   {shore&&<Field htmlFor="scoped-price" label="Giá tour (USD)"><input id="scoped-price" name="price" type="number" min={0} step="any" defaultValue={tour?.currencyCode==='USD'?tour.price??'':''} required/></Field>}
+
   </fieldset><Button tone="danger" disabled={busy||unknown} onClick={()=>setDeleting(true)}>Xóa nội dung này</Button></form>}
   {deleting&&<Notice title="Xóa nội dung đã chọn" tone="warning">{entry.name}. Chỉ xóa được nội dung chưa có đăng ký hoặc liên kết sử dụng.<Button onClick={()=>setDeleting(false)}>Quay lại chỉnh sửa</Button></Notice>}
   {error&&<Notice title="Chưa lưu được thay đổi" tone="error">{error}</Notice>}{unknown&&<Notice title="Chưa xác định kết quả">Đóng và tải lại hồ sơ để đối chiếu trước khi gửi tiếp.</Notice>}

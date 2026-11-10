@@ -191,12 +191,12 @@ export const cruiseApi = {
       optional('CRUISE_REGULATION_READ', () => apiRequest<{ direct: RegulationProjection[]; inherited: RegulationProjection[] }>(`/cruises/${encodeURIComponent(id)}/regulations/effective`, { signal })),
       optional('ITINERARY_READ', () => linkedItinerary(id, signal)),
       hasPermissions(access,{mode:'ANY',permissions:['CRUISE_READ','SHIP_READ','CRUISE_ASSIGN_SHIP','CRUISE_CHANGE_SHIP','CRUISE_UNASSIGN_SHIP']})
-        ? cruiseApi.assignmentContext(id,signal) : Promise.resolve(null),
+        ? cruiseApi.assignmentContext(id,signal).catch(()=>null) : Promise.resolve(null),
       cruise.shipId&&hasPermissions(access,{mode:'ANY',permissions:['CRUISE_READ','SHIP_READ','CRUISE_ASSIGN_SHIP','CRUISE_CHANGE_SHIP']})
-        ? cruiseApi.shipCompatibility(id,cruise.shipId,signal) : Promise.resolve(null),
+        ? cruiseApi.shipCompatibility(id,cruise.shipId,signal).catch(()=>null) : Promise.resolve(null),
     ])
     const supplementaryErrors: Record<string, string> = {}
-    for (const [index, key] of ['ship', 'departurePort', 'returnPort', 'readiness', 'capacity', 'issues', 'regulations', 'itinerary','bookingSafety','shipCompatibility'].entries()) {
+    for (const [index, key] of ['ship', 'departurePort', 'returnPort', 'readiness', 'capacity', 'issues', 'regulations', 'itinerary'].entries()) {
       const result = results[index]
       if (result.status === 'rejected') supplementaryErrors[key] = result.reason instanceof Error ? result.reason.message : 'Không tải được dữ liệu liên quan.'
     }
@@ -246,7 +246,7 @@ export const cruiseApi = {
   },
   async updateCruise(id: string, draft: CruiseDraft, original?: CruiseRecord) {
     const body = cruiseBody(draft)
-    const saved = await apiRequest<CruiseDto>(`${byId(id)}/draft`, { method: 'PATCH', body: { ...(draft.revision != null ? {expectedRevision:draft.revision} : {}), cruiseName: body.cruiseName, ...(original&&!original.sourceVersionId&&!original.sourceTripId?{plannedScope:body.plannedScope,itineraryMode:body.itineraryMode}:{}), ...(body.cruiseType ? {cruiseType:body.cruiseType} : {}), ...(!original || draft.departureDatetime !== localCruiseInput(original.departureDatetime) ? { departureDatetime: body.departureDatetime } : {}), ...(!original || draft.returnDatetime !== localCruiseInput(original.returnDatetime) ? { returnDatetime: body.returnDatetime } : {}), ...(!original || body.departurePortId !== original.departurePortId ? { departurePortId: body.departurePortId } : {}), ...(!original || body.returnPortId !== original.returnPortId ? { returnPortId: body.returnPortId } : {}) } })
+    const saved = await apiRequest<CruiseDto>(`${byId(id)}/draft`, { method: 'PATCH', body: { ...(draft.revision != null ? {expectedRevision:draft.revision} : {}), cruiseName: body.cruiseName, ...(original&&!original.sourceVersionId&&!original.sourceTripId?{plannedScope:body.plannedScope,itineraryMode:body.itineraryMode}:{}), ...(body.cruiseType ? {cruiseType:body.cruiseType} : {}), ...(draft.shipId && (!original || draft.shipId !== original.shipId) ? { shipId: draft.shipId } : {}), ...(!original || draft.departureDatetime !== localCruiseInput(original.departureDatetime) ? { departureDatetime: body.departureDatetime } : {}), ...(!original || draft.returnDatetime !== localCruiseInput(original.returnDatetime) ? { returnDatetime: body.returnDatetime } : {}), ...(!original || body.departurePortId !== original.departurePortId ? { departurePortId: body.departurePortId } : {}), ...(!original || body.returnPortId !== original.returnPortId ? { returnPortId: body.returnPortId } : {}) } })
     if(saved?.cruiseId!==id||typeof saved.status!=='string'||original&&!original.sourceVersionId&&!original.sourceTripId&&(body.plannedScope!=null&&saved.plannedScope!==body.plannedScope||body.itineraryMode!=null&&saved.itineraryMode!==body.itineraryMode))throw new ApiError('Phản hồi lưu chưa xác nhận đúng chuyến khởi hành. Giữ bản nhập và đối chiếu bản đã lưu trước khi gửi tiếp.',502)
     return toCruise(saved)
   },

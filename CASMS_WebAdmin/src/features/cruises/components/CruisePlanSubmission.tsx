@@ -1,4 +1,5 @@
 import {useState} from 'react'
+import {useSessionAccess} from '@/shared/auth'
 import {Button,Panel,RecordFacts} from '@/shared/ui'
 import {journeyTime} from '@/shared/lib/journey-time'
 import type {DepartureSection} from '../model/preparation'
@@ -9,6 +10,8 @@ import {DepartureScheduleRead} from './DepartureData'
 import styles from './DeparturePreparation.module.css'
 
 export function CruisePlanSubmission({detail,refreshKey,onChanged,onPrepare,onSection}:{detail:CruiseDetailView;refreshKey:string;onChanged:()=>void;onPrepare:()=>void;onSection:(section:DepartureSection)=>void}){
+ const access=useSessionAccess()
+ const canViewCommercial=access.roles.includes('OPERATIONS_MANAGER')
  const [showSchedule,setShowSchedule]=useState(false),[showPricing,setShowPricing]=useState(true)
  const cruise=detail.cruise
  return <section className={styles.content} aria-label="Kiểm tra và gửi hồ sơ">
@@ -21,12 +24,12 @@ export function CruisePlanSubmission({detail,refreshKey,onChanged,onPrepare,onSe
    ]}/>
    <div className={styles.actionGroup}>
     <Button tone="secondary" aria-expanded={showSchedule} aria-controls="review-schedule" onClick={()=>setShowSchedule(value=>!value)}>{showSchedule?'Thu gọn lịch khởi hành':'Xem lịch khởi hành'}</Button>
-    <Button tone="secondary" aria-expanded={showPricing} aria-controls="review-pricing" onClick={()=>setShowPricing(value=>!value)}>{showPricing?'Thu gọn chính sách giá':'Xem lại chính sách giá'}</Button>
+    {canViewCommercial&&<Button tone="secondary" aria-expanded={showPricing} aria-controls="review-pricing" onClick={()=>setShowPricing(value=>!value)}>{showPricing?'Thu gọn chính sách giá':'Xem lại chính sách giá'}</Button>}
     <Button tone="text" onClick={onPrepare}>Quay lại chuẩn bị hồ sơ</Button>
    </div>
    <div id="review-schedule">{showSchedule&&<DepartureScheduleRead cruise={cruise} readOnly/>}</div>
   </Panel>
-  <div id="review-pricing">{showPricing&&<DeparturePricingPolicy cruiseId={cruise.cruiseId} refreshKey={refreshKey} readOnly/>}</div>
+  {canViewCommercial&&<div id="review-pricing">{showPricing&&<DeparturePricingPolicy cruiseId={cruise.cruiseId} refreshKey={refreshKey} readOnly/>}</div>}
   <CruisePlanReview itineraryMode={cruise.itineraryMode} cruiseId={cruise.cruiseId} refreshKey={refreshKey} onChanged={onChanged} mode="submit" onSection={onSection}/>
  </section>
 }

@@ -1,5 +1,6 @@
 import {CruisePackageAddons} from './Addons'
 import {CruisePackageMappingEvidence} from './cabin-mapping'
+import {DeparturePackageManager} from '@/features/cruises/components/DeparturePackageManager'
 import { useCallback,  useState } from 'react'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
@@ -97,12 +98,12 @@ function DepartureOffersWorkspace({cruiseId,onChanged,shipName}:{cruiseId:string
   useFormChanges(false,mutation.busy)
   const disabled=mutation.busy||mutation.needsReview||query.loading||Boolean(query.error)||!query.data
   const data=query.data??(saved?.userId===access.userId?saved:null)
-  return <Panel title="Gói du thuyền của chuyến khởi hành"><Button tone="secondary" disabled={mutation.busy} onClick={()=>setEpoch(v=>v+1)}>Tải lại</Button>
+  return <Panel title="Gói du thuyền của chuyến khởi hành">
     <QueryState loading={query.loading} error={query.error}/>{mutation.feedback}
     {access.roles.includes('ACTIVITY_SERVICE_MANAGER')&&access.canDo('TOUR_PACKAGE_MANAGE')&&<ButtonLink tone="secondary" to="/admin/cruise-package-templates">Mở mẫu gói du thuyền</ButtonLink>}
     {data&&!data.context.shipId&&<Notice title="Chưa được phân công tàu" tone="warning"><p>Cần có tàu trước khi cấu hình gói du thuyền của chuyến.</p></Notice>}
-    {data&&!data.context.canConfigure&&data.context.shipId&&<p>Quyền thao tác và trạng thái kế hoạch hiện tại chưa cho phép sửa cấu hình gói du thuyền.</p>}
-    {data?.offers.length===0&&<Empty title="Chưa có gói du thuyền của chuyến"/>}
+    {access.canDo('TOUR_PACKAGE_ASSIGN')&&<DeparturePackageManager cruiseId={cruiseId} onChanged={()=>{refresh();onChanged()}}/>}
+    {data?.offers.length===0&&!access.canDo('TOUR_PACKAGE_ASSIGN')&&<Empty title="Chưa có gói du thuyền của chuyến"/>}
     {data?.offers.map(item=><OfferCard key={item.offer.id} item={item} context={data.context} shipName={shipName} disabled={disabled} run={mutation.run}/>)}
     {data?.context.canConfigure&&<OfferForm cruiseId={cruiseId} disabled={disabled} run={mutation.run}/>}
     <CruisePackageAddons cruiseId={cruiseId} onChanged={onChanged}/>

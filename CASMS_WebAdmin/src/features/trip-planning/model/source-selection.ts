@@ -20,7 +20,6 @@ export function selectEntrySource(entry:Entry,source:Source,previous?:Source):En
     }:{}),
     ...(entry.kind==='SHORE_EXCURSION'?{
       destinationId:source.destinationId??null,
-      meetingPoint:!entry.meetingPoint?.trim()||entry.meetingPoint===previous?.meetingPoint?source.meetingPoint??'':entry.meetingPoint,
     }:{}),
   }
 }
