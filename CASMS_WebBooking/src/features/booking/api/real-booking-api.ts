@@ -1,6 +1,7 @@
 import { ApiError, apiRequest } from '@/shared/api';
 import { decodeBookingContext, type BookingContext, type BookingSummary } from '@/domain/booking-context';
 import { decodeCruisePackageBookingFields, type CabinSelectionMode, type CruisePackageCatalog, type CruisePackageBookingFields } from '@/domain/cruise-package';
+import { financialAmount, financialFlag } from '../model/booking-financials';
 export type AvailableCabin = {
     cabinId: string;
     cabinNumber: string;
@@ -32,6 +33,9 @@ export type BookingDetail = Omit<BookingContext, 'passengers'> & {
     agreedFareAmount: number;
     currency: string;
     requiredDepositAmount: number;
+    totalPaidAmount: number | null;
+    outstandingBalance: number | null;
+    fullyPaid: boolean | null;
     finalPaymentDueAt: string | null;
     contractReference: string | null;
     contractStatus: string | null;
@@ -43,6 +47,9 @@ export type BookingDetail = Omit<BookingContext, 'passengers'> & {
     installments: {
         sequenceNo: number;
         requiredAmount: number;
+        paidAmount: number | null;
+        outstandingAmount: number | null;
+        paid: boolean | null;
         currency: string;
         dueAt: string | null;
         status: string;
@@ -101,7 +108,23 @@ export function decodeBookingDetail(value: unknown): BookingDetail {
         // Do not render or carry the Backend's protected document-number field.
         return { ...person, ...decodeCruisePackageBookingFields(source, person.bookingPassengerId, context.bookingId, context.bookingStatus), dateOfBirth: source.dateOfBirth ?? null, nationality: source.nationality ?? null, email: source.email ?? null, phoneNumber: source.phoneNumber ?? null };
     });
-    return { ...row, ...context, passengers, paymentPlan: row.paymentPlan ?? null } as BookingDetail;
+    financialAmount(row.agreedFareAmount); financialAmount(row.requiredDepositAmount);
+    const installments = row.installments.map(item => ({
+        sequenceNo: item.sequenceNo, requiredAmount: financialAmount(item.requiredAmount), currency: item.currency,
+        dueAt: item.dueAt ?? null, status: item.status, installmentType: item.installmentType, description: item.description ?? null,
+        paidAmount: financialAmount(item.paidAmount), outstandingAmount: financialAmount(item.outstandingAmount), paid: financialFlag(item.paid),
+    }));
+    if (new Set(installments.map(item => item.sequenceNo)).size !== installments.length || installments.some(item => item.currency !== row.currency))
+        throw new Error('Lịch thanh toán không khớp đặt chỗ.');
+    // Allowlist the detail DTO: never carry setup tokens or unrelated server fields into booking state.
+    return { ...context, passengers, installments,
+        agreedFareAmount: row.agreedFareAmount, currency: row.currency, requiredDepositAmount: row.requiredDepositAmount,
+        totalPaidAmount: financialAmount(row.totalPaidAmount), outstandingBalance: financialAmount(row.outstandingBalance), fullyPaid: financialFlag(row.fullyPaid),
+        paymentPlan: row.paymentPlan ?? null, finalPaymentDueAt: row.finalPaymentDueAt ?? null,
+        contractReference: row.contractReference ?? null, contractStatus: row.contractStatus ?? null,
+        contractSigningInstructions: row.contractSigningInstructions ?? null, cancellationReason: row.cancellationReason ?? null,
+        departureDatetime: row.departureDatetime ?? null, returnDatetime: row.returnDatetime ?? null,
+    } as BookingDetail;
 }
 export function serializeCabinSelection(person: BookingPersonDraft, quote = false) {
     const fare = Boolean(person.farePackageOfferId || person.farePackagePriceRevisionId || person.cabinSelectionMode === 'CATEGORY_HOLD');

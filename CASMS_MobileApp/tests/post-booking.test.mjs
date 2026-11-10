@@ -14,7 +14,7 @@ const voyage = (n, extra = {}) => ({ bookingId: id(n), bookingReference: `WEB-${
 const rows = [voyage(2), voyage(3)];
 const detail = { ...rows[0], cruiseCode: 'WEB', departureDatetime: '2027-01-01T00:00:00Z', returnDatetime: '2027-01-03T00:00:00Z', createdAt: '2026-11-10T00:00:00Z',
   agreedFareAmount: 500, currency: 'USD', requiredDepositAmount: 150, paymentPlan: 'DEPOSIT',
-  installments: [{ sequenceNo: 1, requiredAmount: 150, currency: 'USD', status: 'Paid' }],
+  installments: [{ sequenceNo: 1, requiredAmount: 150, currency: 'USD', status: 'Scheduled', paidAmount: 150, outstandingAmount: 0, paid: true }],
   passengers: [{ bookingPassengerId: rows[0].bookingPassengerId, passengerId: id(1), fullName: 'Passenger A', participationStatus: 'Active', cabinId: id(40), cabinNumber: '801' }] };
 
 test('companion adapter reads existing booking, assigned cabin, deposit and payments using the current bearer', async () => {

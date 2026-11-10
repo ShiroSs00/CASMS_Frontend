@@ -86,7 +86,7 @@ export function installBookingFixture(initialMode = 'normal') {
       fixture.createCount++
       await new Promise(resolve => setTimeout(resolve, 150))
       if (fixture.mode === 'bookingUnknown') throw new TypeError('Synthetic lost create response')
-      fixture.saved = { bookingId: id(21), bookingReference: 'UI-TEST-REF', cruiseId, cruiseName: cruise.cruiseName, bookingStatus: 'Draft', agreedFareAmount: fixture.quote.totalAmount, requiredDepositAmount: 0, currency: 'USD', installments: [], paymentPlan: body.paymentPlan, contractStatus: 'Draft', departureDatetime: cruise.departureDatetime, returnDatetime: cruise.returnDatetime,
+      fixture.saved = { bookingId: id(21), bookingReference: 'UI-TEST-REF', cruiseId, cruiseName: cruise.cruiseName, bookingStatus: 'Draft', agreedFareAmount: fixture.quote.totalAmount, totalPaidAmount: 0, outstandingBalance: fixture.quote.totalAmount, fullyPaid: false, requiredDepositAmount: 0, currency: 'USD', installments: [], paymentPlan: body.paymentPlan, contractStatus: 'Draft', departureDatetime: cruise.departureDatetime, returnDatetime: cruise.returnDatetime,
         passengers: body.passengers.map((p, i) => ({ ...p, bookingPassengerId: id(30 + i), passengerId: id(40 + i), participationStatus: 'Active', cabinNumber: p.cabinId ? cabins.find(c => c.cabinId === p.cabinId)?.cabinNumber : null, fareCabinCategory: p.farePackageOfferId ? 'BALCONY' : null, selectedFare: p.farePackageOfferId ? catalog.offers.find(o => o.selection.offerId === p.farePackageOfferId).selection : null, canSelectFareCabin: false })) }
       return ok(fixture.saved)
     }

@@ -8,15 +8,20 @@ const uuid = z.guid();
 const date = z.iso.datetime({ offset: true });
 const nullableText = z.string().nullable().default(null);
 const nullableAmount = z.number().finite().nonnegative().nullable().default(null);
+// At 2^39, binary64 spacing exceeds the Backend NUMERIC(19,4) unit of 0.0001.
+const requiredFinancialAmount = z.number().finite().nonnegative().lt(2 ** 39);
+const financialAmount = requiredFinancialAmount.nullable().default(null);
 const bookingDetail = z.object({
   bookingId: uuid, bookingReference: z.string().min(1), cruiseId: uuid, cruiseCode: z.string(), cruiseName: z.string(),
   bookingStatus: z.enum(['Draft', 'Confirmed', 'Cancelled']), departureDatetime: date, returnDatetime: date, createdAt: date,
-  agreedFareAmount: nullableAmount, currency: nullableText, shipName: nullableText, requiredDepositAmount: nullableAmount,
-  contractReference: nullableText, contractStatus: nullableText, contractSigningInstructions: nullableText, cancellationReason: nullableText,
+  agreedFareAmount: financialAmount, currency: nullableText, shipName: nullableText, requiredDepositAmount: financialAmount,
+  totalPaidAmount: financialAmount, outstandingBalance: financialAmount, fullyPaid: z.boolean().nullable().default(null),
+  contractReference: nullableText, contractStatus: z.enum(['Draft', 'Accepted', 'Cancelled']).nullable().default(null), contractSigningInstructions: nullableText, cancellationReason: nullableText,
   paymentPlan: z.enum(['FULL', 'DEPOSIT', 'STAGES']).nullable().default(null),
   installments: z.array(z.object({
-    sequenceNo: z.number().int().positive(), requiredAmount: z.number().finite().nonnegative(), currency: z.string(),
-    dueAt: date.nullable().default(null), status: z.string(), description: nullableText,
+    sequenceNo: z.number().int().positive(), requiredAmount: requiredFinancialAmount, currency: z.string(),
+    dueAt: date.nullable().default(null), status: z.enum(['Scheduled', 'Cancelled']), description: nullableText,
+    paidAmount: financialAmount, outstandingAmount: financialAmount, paid: z.boolean().nullable().default(null),
   })),
   passengers: z.array(z.object({
     bookingPassengerId: uuid, passengerId: uuid, fullName: z.string().min(1), email: nullableText,
@@ -66,6 +71,8 @@ function array<T>(value: unknown, key: string): T[] {
 function detail(value: unknown): BookingDetail {
   const booking = decode(bookingDetail, value);
   if (new Set(booking.passengers.map(person => person.bookingPassengerId)).size !== booking.passengers.length) throw new Error('Hành khách trong đặt chỗ bị trùng.');
+  if (new Set(booking.installments.map(item => item.sequenceNo)).size !== booking.installments.length
+    || booking.installments.some(item => !/^[A-Z]{3}$/.test(item.currency) || (booking.currency && item.currency !== booking.currency))) throw new Error('Lịch thanh toán không khớp đặt chỗ.');
   return booking;
 }
 function serviceRequest(value: ServiceRequest): ServiceRequest {

@@ -2,10 +2,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
-import { AmountRow, EmptyState, ui } from '@/components/passenger/PassengerUI';
+import { EmptyState, ui } from '@/components/passenger/PassengerUI';
 import { ConfirmAction, ErrorNotice, Input, LivePage, Loading, StatusBadge } from './PassengerActionUI';
 import { passengerApi, usePassengerAction, usePassengerContext, usePassengerQuery } from './passenger-hooks';
-import { dateTime, money, statusText } from './passenger-model';
+import { dateTime, statusText } from './passenger-model';
+import { PassengerBookingFinancialSummary } from './PassengerBookingFinancialSummary';
+import { bookingFinancialMoney } from './booking-financials';
 const paymentLabels = { Pending: 'Chờ xác nhận', Confirmed: 'Đã xác nhận', Failed: 'Thất bại', Cancelled: 'Đã hủy' };
 
 export function PassengerBookingsScreen() {
@@ -16,7 +18,7 @@ export function PassengerBookingsScreen() {
     {bookings.data?.map(booking => <View key={booking.bookingId} style={ui.card}>
       <Text style={ui.eyebrow}>{booking.bookingReference}</Text><StatusBadge status={booking.bookingStatus} />
       <Text style={ui.sectionTitle}>{booking.cruiseName}</Text><Text style={ui.body}>{dateTime(booking.departureDatetime)} · {booking.passengerCount} hành khách</Text>
-      <Text style={ui.body}>{money(booking.agreedFareAmount, booking.currency)}</Text>
+      <Text style={ui.body}>{bookingFinancialMoney(booking.agreedFareAmount, booking.currency)}</Text>
       <PassengerButton label="Xem đặt chỗ" variant="secondary" onPress={() => router.push({ pathname: '/passenger-bookings/[bookingId]', params: { bookingId: booking.bookingId } })} />
     </View>)}
     <PassengerButton label="Tải lại danh sách" variant="text" loading={bookings.isFetching} onPress={() => { void bookings.refetch(); }} />
@@ -40,10 +42,7 @@ export function PassengerBookingDetailScreen() {
       <Text style={ui.eyebrow}>{data.bookingReference} · {statusText(data.bookingStatus)}</Text>
       <Text style={ui.title}>{data.cruiseName}</Text><Text style={ui.body}>{data.shipName ?? 'Tàu chưa cập nhật'}</Text>
       <Text style={ui.body}>{dateTime(data.departureDatetime)} – {dateTime(data.returnDatetime)}</Text>
-      <View style={ui.card}><Text style={ui.sectionTitle}>Thông tin chi phí</Text><AmountRow label="Tổng giá" value={money(data.agreedFareAmount, data.currency)} prominent />
-        <AmountRow label="Thanh toán ban đầu" value={money(data.requiredDepositAmount, data.currency)} />
-        {data.installments?.map(part => <View key={part.sequenceNo}><Text style={ui.body}>Đợt {part.sequenceNo}: {money(part.requiredAmount, part.currency)} · {statusText(part.status)}</Text><Text style={ui.caption}>{dateTime(part.dueAt)}{part.description ? ` · ${part.description}` : ''}</Text></View>)}
-      </View>
+      <PassengerBookingFinancialSummary booking={data} />
       {context.can('PAYMENT_READ') && <>
         <Text accessibilityRole="header" style={ui.sectionTitle}>Lịch sử thanh toán chuyến đi</Text>
         <ErrorNotice error={payments.error} retry={() => { void payments.refetch(); }} />
@@ -52,7 +51,7 @@ export function PassengerBookingDetailScreen() {
         {payments.data?.map(payment => <View key={payment.paymentId} style={ui.card}>
           <Text style={ui.sectionTitle}>{payment.operationType === 'Void' ? 'Hủy khoản thanh toán' : 'Thanh toán chuyến đi'}</Text>
           <Text style={ui.body}>{paymentLabels[payment.status]}</Text>
-          <Text selectable style={ui.body}>{money(payment.status === 'Confirmed' ? payment.confirmedAmount : payment.requestedAmount, payment.currency)}</Text>
+          <Text selectable style={ui.body}>{bookingFinancialMoney(payment.status === 'Confirmed' ? payment.confirmedAmount : payment.requestedAmount, payment.currency)}</Text>
           <Text style={ui.caption}>{dateTime(payment.confirmedAt ?? payment.requestedAt)}</Text>
         </View>)}
       </>}
