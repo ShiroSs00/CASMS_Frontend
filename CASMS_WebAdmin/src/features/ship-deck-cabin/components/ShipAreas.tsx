@@ -1,4 +1,5 @@
-import {useCallback,useState} from 'react'
+import {useCallback,useRef,useState} from 'react'
+import {apiRequest,useReadQuery} from '@/shared/api'
 import {useSessionAccess} from '@/shared/auth'
 import {Badge,Button,Empty,Field,Loading,Notice,Panel} from '@/shared/ui'
 import {readShipServiceAreas} from '../api/ship-areas-api'
@@ -11,6 +12,64 @@ import styles from './ShipAreas.module.css'
 
 const areaKindLabel=(kind:string|null)=>kind?serviceType(kind):'Chưa phân loại'
 const displayName=(area:{name:string|null;kind:string|null})=>serviceAreaName({name:area.name??areaKindLabel(area.kind),kind:area.kind??''})
+
+type AreaUsage = {
+ id: string
+ display_name: string | null
+ area_usage: string
+ deck_id: string | null
+ cabin_id?: string | null
+ model_status: string
+ has_services: boolean
+}
+
+function ActivityAreaSetup({shipId,deckId}:{shipId:string;deckId:string}) {
+ const root = '/ships/'+encodeURIComponent(shipId)+'/areas'
+ const query = useReadQuery('activity-areas:'+shipId,
+   useCallback(signal=>apiRequest<AreaUsage[]>(root+'/usages',{signal}),[root]))
+ const [areaId,setAreaId] = useState('')
+ const [saving,setSaving] = useState(false)
+ const [error,setError] = useState('')
+ const lock = useRef(false)
+ const areas = query.data?.filter(area=>area.deck_id===deckId&&['DRAFT','READY'].includes(area.model_status)) ?? []
+ const candidates = areas.filter(area=>area.area_usage==='OTHER'&&!area.has_services&&!area.cabin_id)
+ const configured = areas.filter(area=>area.area_usage==='ACTIVITY_SPACE')
+
+ async function save() {
+  if(lock.current||query.loading||query.error||!candidates.some(area=>area.id===areaId))return
+  lock.current=true
+  setSaving(true)
+  setError('')
+  try{
+   await apiRequest(root+'/'+encodeURIComponent(areaId)+'/usage',{method:'PUT',body:{usage:'ACTIVITY_SPACE'}})
+   setAreaId('')
+   query.retry()
+  }catch(reason){
+   setError(reason instanceof Error?reason.message:'Chưa cập nhật được khu vực.')
+  }finally{
+   lock.current=false
+   setSaving(false)
+  }
+ }
+
+ return <section className={styles.stack} aria-label="Khu vực hoạt động">
+   <h3>Khu vực hoạt động</h3>
+   {query.loading&&<Loading label="Đang tải khu vực trên boong…" />}
+   {query.error&&<Notice title="Chưa tải được khu vực" tone="error"><Button onClick={query.retry}>Thử lại</Button></Notice>}
+   {configured.length>0&&<ul>{configured.map(area=><li key={area.id}>{area.display_name??'Khu vực chưa đặt tên'}</li>)}</ul>}
+   {candidates.length>0&&<>
+     <Field htmlFor="ship-activity-area" label="Khu vực để tổ chức hoạt động">
+       <select id="ship-activity-area" value={areaId} disabled={saving} onChange={event=>setAreaId(event.target.value)}>
+         <option value="">Chọn khu vực</option>
+         {candidates.map(area=><option key={area.id} value={area.id}>{area.display_name??'Khu vực chưa đặt tên'}</option>)}
+       </select>
+     </Field>
+     <div><Button busy={saving} disabled={!areaId} onClick={()=>void save()}>Đặt làm khu vực hoạt động</Button></div>
+   </>}
+   {query.data&&candidates.length===0&&configured.length===0&&<p>Boong này chưa có khu vực phù hợp để tổ chức hoạt động.</p>}
+   {error&&<Notice title="Chưa lưu được khu vực" tone="error">{error}</Notice>}
+ </section>
+}
 
 export function ShipAreas({shipId,initialDeck=''}:{shipId:string;initialDeck?:string}) {
  const access=useSessionAccess()
@@ -28,6 +87,7 @@ export function ShipAreas({shipId,initialDeck=''}:{shipId:string;initialDeck?:st
  return <Panel title="Khu vực dịch vụ">
   <div className={styles.stack}>
    <div className={styles.deckPicker}><Field htmlFor="service-area-deck" label="Boong"><select id="service-area-deck" value={selected?.id??''} disabled={decks.loading||!decks.data?.length} onChange={event=>{setDeck(event.target.value);setSearch('');setKind('');setPage(1)}}><option value="">{decks.loading?'Đang tải boong…':'Chọn boong'}</option>{decks.data?.map(value=><option key={value.id} value={value.id}>Boong {value.number} · {value.name}</option>)}</select></Field></div>
+   {selected&&access.roles.includes('SHIP_MANAGER')&&access.has('SHIP_MODEL_OBJECT_UPDATE')&&<ActivityAreaSetup key={selected.id} shipId={shipId} deckId={selected.id}/>}
    {decks.error&&<Notice title="Không tải được danh sách boong" tone="error">{decks.error}</Notice>}
    {!access.canDo('DECK_READ')&&<Empty title="Chưa có quyền xem boong"/>}
    {!decks.loading&&!decks.error&&decks.data?.length===0&&<Empty title="Tàu chưa có boong"/>}

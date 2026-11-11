@@ -28,6 +28,7 @@
 @media(prefers-reduced-motion:reduce) { .discard { animation:none; } }
 @media(max-width:420px) { .discardActions { flex-direction:column; } .discardActions>button { width:100%; } }
 .drawer { width:min(640px,calc(100vw - 24px)); height:100dvh; max-height:100dvh; margin:0 0 0 auto; border-radius:var(--radius-dialog) 0 0 var(--radius-dialog); }
+.drawer.large { width:min(780px,calc(100vw - 24px)); }
 .drawer .frame { height:100%; }
 @media(max-width:600px) { .header,.body { padding:20px 16px; } .footer,.discard { padding:16px; } .dialog { max-height:92dvh; } .drawer { max-height:100dvh; } }
 .footer > div { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:12px; width:100%; margin:0; }

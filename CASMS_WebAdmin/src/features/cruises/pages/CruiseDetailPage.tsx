@@ -61,6 +61,7 @@ export function CruiseDetailPage() {
 function CruiseDetailContent() {
   const access = useSessionAccess()
   const operations=access.roles.includes('OPERATIONS_MANAGER')
+  const serviceWorkspace=access.roles.includes('ACTIVITY_SERVICE_MANAGER') && !access.roles.some(role => ['ADMIN','CRUISE_MANAGER','OPERATIONS_MANAGER'].includes(role)) && access.has('TOUR_PACKAGE_MANAGE')
   const manager=access.roles.includes('CRUISE_MANAGER')&&!access.roles.includes('OPERATIONS_MANAGER')
   const sectionLabel=(key:DepartureSection)=>allowedDepartureSections(access).find(([section])=>section===key)?.[1]
   const { cruiseId } = useParams()
@@ -129,6 +130,13 @@ function CruiseDetailContent() {
       {state.data && (() => {
         const detail = state.data
         const cruise = detail.cruise
+        if (serviceWorkspace) return <>
+          <PageHeader breadcrumb="Gói và dịch vụ theo chuyến" title={cruise.cruiseName}
+            description={`${cruise.cruiseCode} · ${detail.ship?.shipName ?? 'Tàu chưa xác định'} · ${formatDateTime(cruise.departureDatetime)}`}
+            actions={<ButtonLink to={cruiseListReturn(params.get('returnTo'))} tone="secondary">Chọn chuyến khác</ButtonLink>} />
+          <DepartureCruisePackages key={cruise.cruiseId} shipName={detail.ship?.shipName}
+            cruiseId={cruise.cruiseId} onChanged={()=>void reload()} />
+        </>
         const showDepartureStart = Boolean(sectionLabel('departure-start')) && ['PUBLISHED', 'IN_PROGRESS', 'COMPLETED'].includes(cruise.status)
         return <>
           {detail.supplementaryLoading && <Loading label="Đang tải thông tin liên quan đến chuyến…" />}

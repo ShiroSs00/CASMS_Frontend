@@ -49,6 +49,8 @@ function toCruise(dto: CruiseDto): CruiseRecord {
     cruiseType: dto.cruiseType,
     departureDatetime: dto.departureDatetime,
     returnDatetime: dto.returnDatetime,
+    bookingOpensAt: dto.bookingOpensAt ?? null,
+    bookingClosesAt: dto.bookingClosesAt ?? null,
     departurePortId: dto.departurePortId,
     returnPortId: dto.returnPortId,
     status: dto.status,

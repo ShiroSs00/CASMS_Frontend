@@ -2,7 +2,7 @@ import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
-import { useReadQuery } from '@/shared/api'
+import { apiRequest, useReadQuery } from '@/shared/api'
 import { Badge, Button, Empty, Field, Loading, Notice, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { ExistingModelImport } from './import/ExistingModelImport'
@@ -20,6 +20,57 @@ function Facts({rows}:{rows:Array<[string, string | number | undefined]>}) {retu
 function CabinDetails({cabin,manifest}:{cabin:Cabin;manifest:Manifest}) {return <><div className={styles.detailTitle}><span>PHÒNG</span><h2>{cabin.cabinNumber}</h2><Badge label={cabinTypes[cabin.cabinType]??cabin.cabinType}/></div><Facts rows={[
   ['Boong',`${cabin.deckNumber} · ${manifest.decks.find(d=>d.id===cabin.deckId)?.name??''}`],['Sức chứa',cabin.capacity!=null?`${cabin.capacity} khách`:undefined],['Hạng phòng',cabin.gradeName],['Phòng hỗ trợ người khuyết tật',cabin.isAccessible==null?undefined:cabin.isAccessible?'Có':'Không'],['Diện tích',cabin.areaSquareMetres!=null?`${cabin.areaSquareMetres} m²`:undefined]
   ]}/></>}
+type AreaUsage = {
+  id: string
+  area_usage: string
+  model_status: string
+  has_services: boolean
+  cabin_id?: string | null
+}
+
+function AreaActivityUsage({ship,areaId}:{ship:string;areaId:string}) {
+  const access = useSessionAccess()
+  const canRead = access.has('SHIP_CONFIGURATION_READ') || (access.roles.includes('CRUISE_MANAGER') && access.has('CRUISE_UPDATE_DRAFT'))
+  const canUpdate = access.has('SHIP_MODEL_OBJECT_UPDATE')
+  const root = '/ships/'+encodeURIComponent(ship)+'/areas'
+  const query = useReadQuery('viewer-area-usage:'+access.userId+':'+ship,
+    useCallback(signal=>canRead ? apiRequest<AreaUsage[]>(root+'/usages',{signal}) : Promise.resolve([]),[canRead,root]))
+  const [busy,setBusy] = useState(false)
+  const [error,setError] = useState('')
+  const lock = useRef(false)
+  const area = query.data?.find(item=>item.id===areaId)
+  const eligible = area && ['DRAFT','READY'].includes(area.model_status) && !area.cabin_id && !area.has_services
+  async function configure() {
+    if(!canUpdate||!eligible||query.loading||query.error||lock.current)return
+    lock.current=true
+    setBusy(true)
+    setError('')
+    try {
+      await apiRequest(root+'/'+encodeURIComponent(areaId)+'/usage',{method:'PUT',body:{usage:'ACTIVITY_SPACE'}})
+      query.retry()
+    } catch(reason) {
+      setError(reason instanceof Error?reason.message:'Chưa lưu được mục đích sử dụng.')
+    } finally {
+      setBusy(false)
+      lock.current=false
+    }
+  }
+  if(!canRead)return null
+  return <section className={styles.serviceContents}>
+    <h3>Mục đích sử dụng</h3>
+    {query.loading&&<Loading label="Đang kiểm tra khu vực…" />}
+    {query.error&&<Notice title="Chưa đọc được mục đích sử dụng" tone="error"><Button onClick={query.retry}>Thử lại</Button></Notice>}
+    {area&&<>
+      <p>{area.area_usage==='ACTIVITY_SPACE' ? 'Khu vực hoạt động' : area.area_usage==='SERVICE' ? 'Khu vực phục vụ dịch vụ' : 'Chưa phân loại mục đích sử dụng'}</p>
+      {area.has_services&&area.area_usage!=='ACTIVITY_SPACE'&&<p>Khu vực đang được gán dịch vụ. Quản lý tàu cần gỡ phân công dịch vụ trước khi dùng cho hoạt động.</p>}
+      {canUpdate&&eligible&&area.area_usage!=='ACTIVITY_SPACE'&&
+        <Button tone="secondary" busy={busy} disabled={query.loading} onClick={()=>void configure()}>Đặt làm khu vực hoạt động</Button>}
+    </>}
+    {query.data&&!query.loading&&!area&&<p>Chưa tìm thấy cấu hình sử dụng của khu vực này.</p>}
+    {error&&<Notice title="Chưa cập nhật được khu vực" tone="error">{error}</Notice>}
+  </section>
+}
+
 function AreaDetails({area,manifest}:{area:Area;manifest:Manifest}) {
   return <><div className={styles.detailTitle}><span>KHU VỰC DỊCH VỤ</span><h2>{serviceName(area)}</h2><Badge label={serviceType(area.kind)}/></div><Facts rows={[
     ['Loại dịch vụ',serviceType(area.kind)],['Boong',`${area.deckNumber} · ${[...manifest.decks,...manifest.serviceDecks??[]].find(d=>d.id===area.deckId)?.name??''}`]
@@ -52,7 +103,7 @@ function Explore({ship,model,manifest}:{ship:string;model:string;manifest:Manife
       {file?<ModelCanvas key={`${model}:${file}`} ship={ship} model={model} file={file} autoFocusSelection selectionLabel={(area?serviceName(area):undefined)??(cabin?`Phòng ${cabin.cabinNumber}`:deck?.name)} selectionContext={deck?`Boong ${deck.number} · ${deck.name}`:undefined} selected={area?.nodeName??cabin?.nodeName??deck?.nodeName??''} onPick={pick}/>:<Notice title="Chưa có sơ đồ 3D" tone="warning">Không có dữ liệu hiển thị.</Notice>}
       <div className={styles.sceneLegend}><span><i/> {area?'Khu vực dịch vụ được chọn':cabin?'Phòng được chọn':'Đối tượng được chọn'}</span></div>
     </div>
-    <aside className={styles.inspector} aria-label="Chi tiết đối tượng">{area?<><button className={styles.clearSelection} onClick={()=>setArea('')}>← Thông tin boong</button><AreaDetails area={area} manifest={manifest}/></>:cabin?<><button className={styles.clearSelection} onClick={()=>setCabin('')}>← Thông tin boong</button><CabinDetails cabin={cabin} manifest={manifest}/></>:<><div className={styles.detailTitle}><span>{deck?'BOONG ĐANG XEM':'THÔNG TIN TỔNG THỂ'}</span><h2>{deck?.name??manifest.name}</h2></div><Facts rows={deck?[
+    <aside className={styles.inspector} aria-label="Chi tiết đối tượng">{area?<><button className={styles.clearSelection} onClick={()=>setArea('')}>← Thông tin boong</button><AreaDetails area={area} manifest={manifest}/><AreaActivityUsage key={area.id} ship={ship} areaId={area.id}/></>:cabin?<><button className={styles.clearSelection} onClick={()=>setCabin('')}>← Thông tin boong</button><CabinDetails cabin={cabin} manifest={manifest}/></>:<><div className={styles.detailTitle}><span>{deck?'BOONG ĐANG XEM':'THÔNG TIN TỔNG THỂ'}</span><h2>{deck?.name??manifest.name}</h2></div><Facts rows={deck?[
       ['Boong số',deck.number],['Cao độ',deck.elevationMetres!=null?`${deck.elevationMetres} m`:undefined],['Số khu vực dịch vụ',manifest.areas?.filter(a=>a.deckId===deck.id).length],['Số phòng',manifest.cabins.filter(c=>c.deckId===deck.id).length],
     ]:[['Số boong',decks.length],['Số khu vực dịch vụ',manifest.areas?.length],['Số phòng',manifest.cabins.length]]}/></>}</aside>
   </div>

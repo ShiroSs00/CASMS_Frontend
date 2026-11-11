@@ -24,6 +24,8 @@ export type CruiseRecord = {
   cruiseType: CruiseType
   departureDatetime: string
   returnDatetime: string
+  bookingOpensAt?: string | null
+  bookingClosesAt?: string | null
   departurePortId: string
   returnPortId: string
   status: CruiseStatus
