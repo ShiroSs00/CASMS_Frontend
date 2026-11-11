@@ -11,7 +11,7 @@ import styles from './DeparturePreparation.module.css'
 
 export function CruisePlanSubmission({detail,refreshKey,onChanged,onPrepare,onSection}:{detail:CruiseDetailView;refreshKey:string;onChanged:()=>void;onPrepare:()=>void;onSection:(section:DepartureSection)=>void}){
  const access=useSessionAccess()
- const canViewCommercial=access.roles.includes('OPERATIONS_MANAGER')
+ const canViewCommercial=access.roles.includes('CRUISE_MANAGER')||access.roles.includes('OPERATIONS_MANAGER')
  const [showSchedule,setShowSchedule]=useState(false),[showPricing,setShowPricing]=useState(true)
  const cruise=detail.cruise
  return <section className={styles.content} aria-label="Kiểm tra và gửi hồ sơ">
@@ -29,7 +29,7 @@ export function CruisePlanSubmission({detail,refreshKey,onChanged,onPrepare,onSe
    </div>
    <div id="review-schedule">{showSchedule&&<DepartureScheduleRead cruise={cruise} readOnly/>}</div>
   </Panel>
-  {canViewCommercial&&<div id="review-pricing">{showPricing&&<DeparturePricingPolicy cruiseId={cruise.cruiseId} refreshKey={refreshKey} readOnly/>}</div>}
+  {canViewCommercial&&<div id="review-pricing">{showPricing&&<DeparturePricingPolicy cruiseId={cruise.cruiseId} refreshKey={refreshKey} onChanged={onChanged}/>}</div>}
   <CruisePlanReview itineraryMode={cruise.itineraryMode} cruiseId={cruise.cruiseId} refreshKey={refreshKey} onChanged={onChanged} mode="submit" onSection={onSection}/>
  </section>
 }

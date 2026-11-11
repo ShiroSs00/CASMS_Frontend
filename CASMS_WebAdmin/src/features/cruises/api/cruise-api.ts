@@ -190,7 +190,7 @@ export const cruiseApi = {
       optional('OPERATIONAL_ISSUE_READ', () => apiRequest<CruiseDetailView['issues']>('/operational-issues', { query: { cruiseId: id }, signal })),
       optional('CRUISE_REGULATION_READ', () => apiRequest<{ direct: RegulationProjection[]; inherited: RegulationProjection[] }>(`/cruises/${encodeURIComponent(id)}/regulations/effective`, { signal })),
       optional('ITINERARY_READ', () => linkedItinerary(id, signal)),
-      hasPermissions(access,{mode:'ANY',permissions:['CRUISE_READ','SHIP_READ','CRUISE_ASSIGN_SHIP','CRUISE_CHANGE_SHIP','CRUISE_UNASSIGN_SHIP']})
+      access.roles.includes('CRUISE_MANAGER')&&hasPermissions(access,{mode:'ANY',permissions:['CRUISE_ASSIGN_SHIP','CRUISE_CHANGE_SHIP','CRUISE_UNASSIGN_SHIP']})
         ? cruiseApi.assignmentContext(id,signal).catch(()=>null) : Promise.resolve(null),
       cruise.shipId&&hasPermissions(access,{mode:'ANY',permissions:['CRUISE_READ','SHIP_READ','CRUISE_ASSIGN_SHIP','CRUISE_CHANGE_SHIP']})
         ? cruiseApi.shipCompatibility(id,cruise.shipId,signal).catch(()=>null) : Promise.resolve(null),

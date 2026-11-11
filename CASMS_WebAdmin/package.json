@@ -12,6 +12,8 @@
     "dev": "vite --port 5174 --strictPort",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
+    "test:ship-import": "node --import ./tests/helpers/import-loader.mjs --test ./tests/ship-import.test.mjs",
+    "test:pricing": "node --import ./tests/helpers/import-loader.mjs --test ./tests/pricing-authorization.test.mjs",
     "lint": "eslint . --max-warnings 0",
     "preview": "vite preview --port 5174 --strictPort"
   },

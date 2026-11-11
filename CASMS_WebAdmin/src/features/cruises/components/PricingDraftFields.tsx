@@ -1,3 +1,4 @@
+import {pricingCapabilities} from '../model/pricing-access'
 import {mutationOutcomeUnknown} from '@/shared/lib/mutation-outcome'
 import {useRef,useState,type FormEvent} from 'react'
 import {useSessionAccess} from '@/shared/auth'
@@ -6,11 +7,11 @@ import {businessErrorMessage} from '@/shared/api/business-errors'
 import {businessCopy} from '@/shared/i18n/business-copy'
 import {Button,Field,Notice,Modal} from '@/shared/ui'
 import {mainflowApi} from '../api/mainflow-api'
-import {decodePricingPolicy,type PricingPolicy} from '../model/pricing-policy'
+import {decodePricingPolicy,samePricingPolicy,type PricingPolicy} from '../model/pricing-policy'
 import styles from './PricingDraftFields.module.css'
 const fields=[['interiorBaseFare','pricing.field.interior'],['oceanViewBaseFare','pricing.field.oceanView'],['balconyBaseFare','pricing.field.balcony'],['suiteBaseFare','pricing.field.suite'],['portFeePerPassenger','pricing.field.portFee'],['taxRate','pricing.field.taxRate'],['depositPercentage','pricing.field.deposit'],['finalPaymentDueDays','pricing.field.finalDays'],['fullPaymentCutoffDays','pricing.field.cutoffDays']] as const
 export function PricingDraftFields({policy,cruiseId,onSaved}:{policy?:PricingPolicy;cruiseId:string;onSaved:()=>void}){
- const access=useSessionAccess(),owner=access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_PRICING_APPROVE')
+ const access=useSessionAccess(),owner=pricingCapabilities(access).draft
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[success,setSuccess]=useState(false),[uncertain,setUncertain]=useState(false),lock=useRef(false)
  const pendingSave=useRef<Record<string,unknown>|null>(null)
  const [open,setOpen]=useState(false),[errors,setErrors]=useState<Record<string,string>>({})
@@ -31,9 +32,9 @@ export function PricingDraftFields({policy,cruiseId,onSaved}:{policy?:PricingPol
   body.cancellationPolicy=String(data.get('cancellationPolicy')??'');if(commercialOnly&&!String(body.cancellationPolicy).trim()){setError('Nhập nội dung chính sách hủy để lưu bản nháp điều kiện thương mại.');return}
   pendingSave.current=body;lock.current=true;setBusy(true);setError('');setSuccess(false)
   try{
-   const saved=decodePricingPolicy(await apiRequest(`/cruise-plans/${cruiseId}/${commercialOnly?'commercial-terms':'pricing-policy'}`,{method:'PUT',ifMatch:base,body}),cruiseId)
+   const saved=decodePricingPolicy(await apiRequest(`/cruise-plans/${cruiseId}/pricing-policy`,{method:'PUT',ifMatch:base,body}),cruiseId)
    const actual=decodePricingPolicy(await apiRequest(`/cruise/${cruiseId}/pricing-policy`),cruiseId)
-   if(saved.status!=='DRAFT'||saved.currency!=='USD'||saved.revision!==policyRevision+1||!saved.pricingPolicyId||JSON.stringify(saved)!==JSON.stringify(actual)||activeFields.some(([key])=>actual[key]!==body[key]))throw new ApiError('',502)
+   if(saved.status!=='DRAFT'||saved.currency!=='USD'||saved.revision!==policyRevision+1||!saved.pricingPolicyId||!samePricingPolicy(saved,actual)||activeFields.some(([key])=>actual[key]!==body[key]))throw new ApiError('',502)
    setSuccess(true);setBase(null);setOpen(false);onSaved()
   }catch(reason){setError(businessErrorMessage(reason instanceof ApiError?reason.code:undefined,''));if(mutationOutcomeUnknown(reason))setUncertain(true)}finally{lock.current=false;setBusy(false)}
  }
@@ -54,7 +55,7 @@ export function PricingDraftFields({policy,cruiseId,onSaved}:{policy?:PricingPol
  return <>
   <Button tone="secondary" disabled={busy||uncertain} onClick={()=>{setOpen(true);setError('');setErrors({});setSuccess(false);void prepare()}}>{commercialOnly?'Thiết lập thanh toán, hủy và phí':policy?'Chỉnh sửa chính sách thương mại':'Thiết lập chính sách thương mại'}</Button>
   {success&&<Notice title={commercialOnly?'Đã lưu thanh toán, hủy và phí':'Đã lưu chính sách giá'} tone="success">{commercialOnly?'Đã lưu điều kiện thương mại nháp; chưa được phê duyệt hoặc mở bán.':businessCopy('pricing.action.saved')}</Notice>}
-  {open&&<Modal wide busy={busy||preparing} title={commercialOnly?'Thiết lập thanh toán, hủy và phí':policy?'Chỉnh sửa chính sách thương mại':'Thiết lập chính sách thương mại'} description={commercialOnly?'Giá Gói du thuyền do Quản lý hoạt động và dịch vụ cấu hình và gửi duyệt riêng. Mục này chỉ lưu điều kiện thanh toán, hủy, thuế và phí.':'Giá mới được lưu bằng USD. Quản lý vận hành lưu bản nháp rồi gửi chính sách để xét duyệt riêng.'} onClose={()=>setOpen(false)} footer={<><Button tone="secondary" disabled={busy||preparing} data-overlay-dismiss onClick={()=>setOpen(false)}>Hủy</Button><Button type="submit" form="pricing-draft-form" disabled={busy||preparing||uncertain||base==null}>{busy?'Đang lưu…':commercialOnly?'Lưu điều kiện thương mại nháp':businessCopy('pricing.action.saveDraft')}</Button></>}>
+  {open&&<Modal wide busy={busy||preparing} title={commercialOnly?'Thiết lập thanh toán, hủy và phí':policy?'Chỉnh sửa chính sách thương mại':'Thiết lập chính sách thương mại'} description={commercialOnly?'Giá Gói du thuyền do Quản lý hoạt động và dịch vụ cấu hình và gửi duyệt riêng. Mục này chỉ lưu điều kiện thanh toán, hủy, thuế và phí.':'Giá mới được lưu bằng USD. Quản lý lịch trình lưu bản nháp rồi gửi Quản lý vận hành xét duyệt.'} onClose={()=>setOpen(false)} footer={<><Button tone="secondary" disabled={busy||preparing} data-overlay-dismiss onClick={()=>setOpen(false)}>Hủy</Button><Button type="submit" form="pricing-draft-form" disabled={busy||preparing||uncertain||base==null}>{busy?'Đang lưu…':commercialOnly?'Lưu điều kiện thương mại nháp':businessCopy('pricing.action.saveDraft')}</Button></>}>
   {preparing&&<p role="status">Đang tải chính sách giá…</p>}
   {!preparing&&base==null&&!uncertain&&<Button tone="secondary" onClick={()=>void prepare()}>Thử lại</Button>}
   {!preparing&&base!=null&&<form key={`${base}:${policyRevision}`} id="pricing-draft-form" className={styles.form} noValidate onSubmit={e=>void save(e)}>

@@ -9,6 +9,16 @@ export type PricingPolicy = {
   fullPaymentCutoffDays: number | null; cancellationPolicy: string | null; approvedByName: string | null
 }
 
+/** PostgreSQL rounds Java nanoseconds to microseconds; IDs, money and decisions remain exact. */
+export function samePricingPolicy(saved: PricingPolicy, actual: PricingPolicy) {
+  const timestamps = new Set(['submittedAt', 'reviewedAt', 'approvedAt'])
+  return (Object.keys(saved) as Array<keyof PricingPolicy>).every(key => {
+    const left = saved[key], right = actual[key]
+    if (!timestamps.has(key) || left == null || right == null) return left === right
+    return typeof left === 'string' && typeof right === 'string' && Math.abs(Date.parse(left) - Date.parse(right)) <= 1
+  })
+}
+
 /** Decode source-backed fields without replacing absent prices or terms with defaults. */
 export function decodePricingPolicy(value: unknown, cruiseId: string): PricingPolicy {
   const invalid = () => new ApiError('Không đọc được chính sách giá của chuyến khởi hành này.', 502)

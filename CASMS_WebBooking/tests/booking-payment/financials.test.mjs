@@ -79,6 +79,16 @@ test('duplicate installments, currency mismatch and unknown enums are rejected',
   for (const change of [{ currency: 'EUR' }, { status: 'Paid' }, { installmentType: 'other' }]) assert.throws(() => decodeBookingDetail({ ...row, installments: [{ ...row.installments[0], ...change }] }))
 })
 
+test('expired hold has a readable cancellation reason while financial warnings and supplied text remain intact', () => {
+  const row = { ...fixture(), bookingStatus: 'Cancelled', contractStatus: 'Cancelled', cancellationReason: 'HOLD_EXPIRED' }
+  const html = render(row)
+  assert.match(html, /Lý do hủy: Hết thời hạn giữ chỗ/)
+  assert.doesNotMatch(html, /HOLD_EXPIRED/)
+  assert.match(html, /không phải yêu cầu thanh toán hoặc xác nhận hoàn tiền/)
+  assert.match(html, /650,4444 USD/)
+  assert.match(render({ ...row, cancellationReason: 'Khách yêu cầu hủy theo hợp đồng.' }), /Khách yêu cầu hủy theo hợp đồng\./)
+})
+
 test('booking state does not carry activation token or unrelated response fields', () => {
   const row = decodeBookingDetail({ ...fixture(), token: 'do-not-carry', activationToken: 'do-not-carry', accountSetupToken: 'do-not-carry' })
   for (const key of ['token', 'activationToken', 'accountSetupToken']) assert.equal(key in row, false)

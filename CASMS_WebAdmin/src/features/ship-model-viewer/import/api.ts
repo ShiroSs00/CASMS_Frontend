@@ -1,6 +1,8 @@
 import { apiAsset, apiRequest, ApiError } from '@/shared/api'
 import type { ShipProfile } from '@/shared/lib/ship-profile'
 import type { ImportIssue, ImportJob, ImportSession, ModelScope, Registration } from './model'
+import { validRegistration } from './model'
+import { previewFingerprint } from './preview-proof'
 
 const segment = encodeURIComponent
 const shipPath = (shipId: string) => `/ships/${segment(shipId)}`
@@ -28,6 +30,17 @@ function decodePreview(data: ImportPreview) {
   return data
 }
 export const shipImportApi = {
+  async verifyRegistration(session: ImportSession, signal: AbortSignal) {
+    const registration = session.registration
+    if (!validRegistration(registration) || !session.previewFingerprint) invalid()
+    const ship = await shipImportApi.ship(registration.shipId, signal)
+    if (!ship.shipName.trim() || !ship.shipCode.trim() || !(Number(ship.totalCapacity) > 0) || !(Number(ship.totalDecks) > 0)) invalid()
+    const model = await apiRequest<{ id: string; modelKey: string; status: string }>(modelPath(registration), { signal })
+    if (!model || model.id !== registration.shipModelId || model.modelKey !== session.modelKey || !['DRAFT', 'PROCESSING', 'ACTIVE', 'FAILED', 'ARCHIVED'].includes(model.status)) invalid()
+    const manifest = await shipImportApi.registeredPreview(registration, signal)
+    if (await previewFingerprint(manifest) !== session.previewFingerprint) throw new ApiError('Mô hình đã đăng ký không khớp bản đã xác nhận. Kiểm tra hồ sơ tàu trước khi tiếp tục.', 409)
+    return registration
+  },
   async importByCode(shipId: string, modelKey: string, file: File) {
     const body = new FormData()
     body.append('bundle', file)
@@ -64,7 +77,7 @@ export const shipImportApi = {
   },
   async register(session: ImportSession, supplements?: ShipProvisionFields): Promise<Registration> {
     const result = await apiRequest<Registration>(`/ship-model-assets/${segment(session.modelKey)}/register`, { method: 'POST', body:supplements, timeoutMs: 60_000 })
-    if (!result || typeof result.shipId !== 'string' || typeof result.shipModelId !== 'string' || result.shipCreated !== true) invalid()
+    if (!validRegistration(result)) invalid()
     return result
   },
   async importStructure(registration: Registration) {

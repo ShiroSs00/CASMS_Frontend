@@ -129,4 +129,4 @@
 .saleFilterState{display:grid;gap:12px;align-content:end;justify-items:start;min-height:72px}
 .saleFilterState>span{font-size:13px;color:var(--ui-muted)}
 
-@media(max-width:600px){.interactiveMilestones{display:flex;flex-direction:row;flex-wrap:nowrap;align-items:stretch;max-width:100%;overflow-x:auto;gap:12px;padding-bottom:8px}.interactiveMilestones>li{flex:0 0 160px;min-width:0}.interactiveMilestones button{min-height:48px;white-space:normal;text-align:left}}
+@media(max-width:600px){.interactiveMilestones{display:grid;grid-template-columns:minmax(0,1fr);align-items:stretch;gap:var(--space-2);padding:var(--space-3)}.interactiveMilestones>li{width:auto;min-width:0}.interactiveMilestones button{min-height:var(--control-height-large);white-space:normal;text-align:left}}
