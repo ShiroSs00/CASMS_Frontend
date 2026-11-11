@@ -80,7 +80,7 @@ export function BookingAccountActivationPage({ link, support }: { link: Activati
       <h1 id="activation-title">Thiết lập tài khoản OceVie</h1>
       {showForm ? <form onSubmit={event => { void submit(event) }} noValidate aria-busy={status === 'busy'}>
         {error && <Notice title="Chưa thể hoàn tất" tone="error">{error}</Notice>}
-        <Field htmlFor="activation-password" label="Mật khẩu mới" hint="Từ 12 đến 72 ký tự. Ký tự có dấu hoặc ký tự đặc biệt có thể làm giảm độ dài tối đa." error={fields.password}>
+        <Field htmlFor="activation-password" label="Mật khẩu mới" hint="Từ 8 đến 24 ký tự, tối đa 72 byte UTF-8." error={fields.password}>
           <input ref={password} id="activation-password" type={visible ? 'text' : 'password'} autoComplete="new-password" required disabled={status === 'busy'} />
         </Field>
         <Field htmlFor="activation-confirmation" label="Xác nhận mật khẩu" error={fields.confirmation}>

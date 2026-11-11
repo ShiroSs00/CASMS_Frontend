@@ -28,8 +28,9 @@ export function captureActivationLink(browser: Pick<Window, 'location' | 'histor
 export function validateActivationPassword(password: string, confirmation: string) {
   const errors: { password?: string; confirmation?: string } = {}
   if (!password.trim()) errors.password = 'Nhập mật khẩu mới.'
-  else if (password.length < 12) errors.password = 'Mật khẩu cần có ít nhất 12 ký tự.'
-  else if (password.length > 72) errors.password = 'Mật khẩu không được quá 72 ký tự.'
+  // Java @Size and String.length() use the same UTF-16 code units.
+  else if (password.length < 8) errors.password = 'Mật khẩu cần có ít nhất 8 ký tự.'
+  else if (password.length > 24) errors.password = 'Mật khẩu không được quá 24 ký tự.'
   else if (new TextEncoder().encode(password).length > 72) errors.password = 'Mật khẩu có quá nhiều ký tự có dấu hoặc ký tự đặc biệt. Vui lòng rút ngắn mật khẩu.'
   if (!confirmation) errors.confirmation = 'Nhập lại mật khẩu mới.'
   else if (confirmation !== password) errors.confirmation = 'Mật khẩu xác nhận chưa khớp.'

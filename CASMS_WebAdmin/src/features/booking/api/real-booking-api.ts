@@ -161,8 +161,8 @@ export const realBookingApi = {
     return catalog.filter(item => ids.has(item.id))
   },
   confirm: async (id: string) => decodeBookingDetail(await apiRequest<unknown>(path(id) + '/confirm', { method: 'POST' })),
-  acceptContract: async (id:string,documentReference:string,notes?:string) => {
-    const saved=decodeBookingDetail(await apiRequest<unknown>(path(id)+'/contract/accept',{method:'POST',body:{documentReference:documentReference.trim(),...(notes?.trim()?{notes:notes.trim()}:{})}}))
+  acceptContract: async (id:string,documentReference:string) => {
+    const saved=decodeBookingDetail(await apiRequest<unknown>(path(id)+'/contract/accept',{method:'POST',body:{documentReference:documentReference.trim()}}))
     if(saved.bookingId!==id||saved.contractStatus!=='Accepted')throw new ApiError('Chưa xác nhận được việc ghi nhận hợp đồng. Tải lại hồ sơ để đối chiếu.',502)
     return saved
   },

@@ -33,8 +33,8 @@ export type DeckCapacity = { totalCabins: number; availableCabins: number; total
 export type AvailableCabinQuery = { shipId?: string; deckId?: string; cabinType?: CabinType; minCapacity?: number; isAccessible?: boolean }
 
 export const shipStatuses: Record<ShipStatus,string> = {
-  DRAFT:'Đang thiết lập',READY:'Sẵn sàng khai thác',IN_SERVICE:'Đang khai thác',
-  MAINTENANCE:'Đang bảo trì',SUSPENDED:'Tạm dừng khai thác',RETIRED:'Đã ngừng khai thác',
+  DRAFT:'Đang thiết lập',READY:'Sẵn sàng hoạt động',IN_SERVICE:'Đang hoạt động',
+  MAINTENANCE:'Đang bảo trì',SUSPENDED:'Tạm dừng hoạt động',RETIRED:'Đã ngừng hoat động',
 }
 
 export const cabinStatuses: Record<CabinStatus, string> = {

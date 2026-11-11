@@ -21,9 +21,14 @@ export function decodeQuote(value:unknown,cruiseId:string,quoteId?:string):Quote
     if(fareSelection){
       if(!cabinSelectionMode||!cabinGroupKey||result.cabinType!==fareSelection.cabinType||result.itemTotal!==Number(fareSelection.amount)||result.baseFare!=null||result.cabinPrice!=null||result.packagePrice!=null||result.tourPackageId!=null)throw invalid()
       if(cabinSelectionMode==='CATEGORY_HOLD'&&(result.cabinId!=null||result.cabinNumber!=null||result.deckNumber!=null))throw invalid()
-      if(cabinSelectionMode==='PHYSICAL_CABIN'){fareUuid(result.cabinId);if(!result.cabinNumber)throw invalid()}
-    }
+      if(!fareSelection.logicalCategoryId||!fareSelection.cabinMappingId||!fareSelection.physicalCabinIds.length)throw invalid()
+      if(cabinSelectionMode==='PHYSICAL_CABIN'){
+        const cabinId=fareUuid(result.cabinId)
+        if(!result.cabinNumber||!fareSelection.physicalCabinIds.includes(cabinId))throw invalid()
+      }
+    }else if(cabinSelectionMode!=null||cabinGroupKey!=null)throw invalid()
     return result
   })??null
+  if(lineItems?.some(line=>line.fareSelection)&&lineItems.some(line=>!line.fareSelection))throw invalid()
   return {quoteId:id,cruiseId,quoteCode:text(r,'quoteCode'),cruiseCode:text(r,'cruiseCode'),departureDatetime:instant(r,'departureDatetime'),policyVersion:text(r,'policyVersion'),currency:text(r,'currency'),lineItems,subtotalAmount:number(r,'subtotalAmount'),portFeesAmount:number(r,'portFeesAmount'),taxesAmount:number(r,'taxesAmount'),taxesAndFeesAmount:number(r,'taxesAndFeesAmount'),totalAmount:number(r,'totalAmount'),paymentPlan:text(r,'paymentPlan'),depositAmount:number(r,'depositAmount'),remainingAmount:number(r,'remainingAmount'),finalPaymentDueAt:instant(r,'finalPaymentDueAt'),fingerprint:text(r,'fingerprint'),issuedAt:instant(r,'issuedAt'),expiresAt:instant(r,'expiresAt'),status:text(r,'status')}
 }

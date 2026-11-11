@@ -11,7 +11,7 @@ import { installBookingFixture } from '../helpers/booking-fixture.mjs'
 // Run against a local CDP browser and Vite server. All API responses are synthetic.
 const origin = process.env.BOOKING_ORIGIN || 'http://127.0.0.1:5174'
 assert.match(origin, /^http:\/\/127\.0\.0\.1:\d+$/)
-const token = 'fixture_only_' + 'a'.repeat(30), password = 'fixture-password-2026'
+const token = 'fixture_only_' + 'a'.repeat(30), password = '€'.repeat(24)
 const browser = await connectBrowser(), { send, evaluate, waitFor } = browser
 const passed = []
 const artifacts = process.env.ACTIVATION_ARTIFACT_DIR
@@ -41,7 +41,7 @@ try {
       const url=new URL(typeof input==='string'?input:input.url,location.href);
       if(url.pathname!=='/api/auth/booking-account/activate')return fixtureFetch(input,options);
       const f=window.__activation;f.count++;f.unauthorized=!!new Headers(options.headers).get('Authorization');
-      const body=JSON.parse(options.body);f.badBody=url.search!==''||options.method!=='POST'||Object.keys(body).sort().join(',')!=='password,token'||body.token!==${JSON.stringify(token)};
+      const body=JSON.parse(options.body);f.badBody=url.search!==''||options.method!=='POST'||Object.keys(body).sort().join(',')!=='password,token'||body.token!==${JSON.stringify(token)}||body.password!==${JSON.stringify(password)};
       await new Promise(resolve=>setTimeout(resolve,250));
       if(f.mode==='network')throw new TypeError('private-backend-detail');
       if(f.mode==='timeout')return new Promise((resolve,reject)=>options.signal.addEventListener('abort',()=>reject(new DOMException('Aborted','AbortError')),{once:true}));
@@ -50,6 +50,7 @@ try {
     };` })
 
   await open()
+  assert.match(await evaluate('document.querySelector("main").innerText'), /Từ 8 đến 24 ký tự, tối đa 72 byte UTF-8/)
   assert.equal(await evaluate('location.hash'), '')
   assert.equal(await evaluate(`window.__activation.count`), 0)
   assert.equal(await evaluate(`JSON.stringify(history.state).includes(${JSON.stringify(token)})`), false)
@@ -61,11 +62,11 @@ try {
   await waitFor(`document.getElementById('activation-password').getAttribute('aria-invalid')==='true'`)
   assert.equal(await evaluate('document.activeElement.id'), 'activation-password')
   assert.equal(await evaluate('window.__activation.count'), 0)
-  await fill('short'); await submit()
+  await fill('a'.repeat(7)); await submit()
   assert.equal(await evaluate('window.__activation.count'), 0)
-  await fill('a'.repeat(73)); await submit()
+  await fill('a'.repeat(25)); await submit()
   assert.equal(await evaluate('window.__activation.count'), 0)
-  await fill('á'.repeat(37)); await submit()
+  await fill(password + 'a'); await submit()
   assert.equal(await evaluate('window.__activation.count'), 0)
   await fill(password, 'mismatch'); await submit()
   assert.equal(await evaluate('document.activeElement.id'), 'activation-confirmation')
@@ -86,7 +87,7 @@ try {
   assert.equal(await evaluate('window.__activation.badBody || window.__activation.unauthorized || window.__activation.leaked'), false)
   assert.equal(await evaluate(`!!document.querySelector('input[type=password],input[autocomplete=new-password]')`), false)
   await screenshot('activation-success')
-  passed.push('double submit sends one public POST; success clears fields/token and does not log in')
+  passed.push('double submit sends one public POST with the unchanged 72-byte password; success clears fields/token and does not log in')
 
   await send('Page.reload'); await waitFor(`document.body?.innerText.includes('Liên kết kích hoạt không hợp lệ.')`)
   assert.equal(await evaluate('window.__activation.count'), 0)

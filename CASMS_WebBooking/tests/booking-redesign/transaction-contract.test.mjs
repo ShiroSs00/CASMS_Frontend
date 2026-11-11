@@ -1,7 +1,9 @@
 import '../helpers/booking-loader.mjs'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { requestBookingQuote, createQuotedBooking } from '../../src/features/booking/api/booking-quote-api.ts'
+import { requestBookingQuote, createQuotedBooking, matchesBookedFares } from '../../src/features/booking/api/booking-quote-api.ts'
+import { decodeQuote } from '../../src/features/booking/api/quote-contract.ts'
+import { decodeBookingDetail } from '../../src/features/booking/api/real-booking-api.ts'
 import { realBookingApi } from '../../src/features/booking/api/real-booking-api.ts'
 const person = { fullName: 'Fixture Guest', email: 'fixture@example.test', phoneNumber: '', documentType: '', documentNumber: '', dateOfBirth: '', nationality: '', cabinId: 'cabin', tourPackageId: '', uiOnlyField: 'must-not-send' }
 const draft = { cruiseId: 'cruise', currency: 'USD', paymentPlan: 'STAGES', notes: '', passengers: [person] }
@@ -44,4 +46,34 @@ test('legacy package selection intersects active cruise links with ACTIVE catalo
     assert.deepEqual((await realBookingApi.packagesForCruise('cruise')).map(p => p.id), ['allowed'])
     assert.deepEqual(paths, ['/api/cruise/cruise/packages', '/api/servicepackage/packages'])
   } finally { globalThis.fetch = original }
+})
+
+test('unified quote and booking readback retain selected offer, revision, mapping and group', () => {
+  const uuid = n => `00000000-0000-0000-0000-${String(n).padStart(12, '0')}`
+  const cabinId = uuid(1)
+  const fare = { offerId: uuid(2), templateVersionId: uuid(3), priceRevisionId: uuid(4),
+    shipId: uuid(5), logicalCategory: 'BALCONY', cabinType: 'BALCONY', amount: '123.0000',
+    templateName: 'Ban công', templateVersionNumber: 1, priceRevisionNumber: 1,
+    commercialRevision: 2, benefits: [], logicalCategoryId: uuid(6), cabinMappingId: uuid(7),
+    physicalCabinIds: [cabinId] }
+  const physical = { cabinId, cabinNumber: 'B101', cabinType: 'BALCONY',
+    cabinSelectionMode: 'PHYSICAL_CABIN', cabinGroupKey: 'one', itemTotal: 123, fareSelection: fare }
+  const category = { ...physical, cabinId: null, cabinNumber: null,
+    cabinSelectionMode: 'CATEGORY_HOLD', cabinGroupKey: 'two' }
+  const raw = { ...quote, policyVersion: 'TERMS-4', totalAmount: 246, lineItems: [physical, category] }
+  const decoded = decodeQuote(raw, 'cruise')
+  assert.equal(decoded.lineItems[1].fareSelection.priceRevisionId, uuid(4))
+  const booked = [category, physical].map((line, index) => ({ ...saved.passengers[0],
+    bookingPassengerId: uuid(20 + index), passengerId: uuid(30 + index),
+    cabinId: line.cabinId, cabinSelectionMode: line.cabinSelectionMode,
+    cabinGroupKey: line.cabinGroupKey, farePackageOfferId: fare.offerId,
+    fareCabinCategory: 'BALCONY', selectedFare: fare, canSelectFareCabin: false }))
+  const decodedBooking = decodeBookingDetail({ ...saved, agreedFareAmount: 246, passengers: booked })
+  assert.equal(matchesBookedFares(decoded, decodedBooking), true)
+  assert.equal(matchesBookedFares(decoded, decodeBookingDetail({
+    ...saved, agreedFareAmount: 246, passengers: [booked[0], { ...booked[1], cabinGroupKey: 'wrong' }],
+  })), false)
+  assert.throws(() => decodeQuote({ ...raw, lineItems: [{ ...physical, cabinId: uuid(8) }] }, 'cruise'))
+  assert.throws(() => decodeQuote({ ...raw, lineItems: [{ ...category, fareSelection: null }] }, 'cruise'))
+  assert.throws(() => decodeBookingDetail({ ...saved, bookingStatus: 'Confirmed', passengers: booked }))
 })
