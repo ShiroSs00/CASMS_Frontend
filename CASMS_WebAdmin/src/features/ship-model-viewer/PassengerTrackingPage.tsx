@@ -3,7 +3,7 @@ import {useSearchParams} from 'react-router'
 import {useSessionAccess} from '@/shared/auth'
 import {useReadQuery} from '@/shared/api'
 import {AdminShell} from '@/shared/ui/admin-v3'
-import {Badge,Button,Empty,Field,Loading,Notice,Panel} from '@/shared/ui'
+import {Badge,Button,ButtonLink,Empty,Field,Loading,Notice,PageHeader,Panel} from '@/shared/ui'
 import {viewerApi} from './api'
 import {bleApi,liveRegion,signalLabels,type Tracking} from './ble'
 import {formatTime,type Manifest} from './model'
@@ -42,7 +42,7 @@ function ShipTracking({ship,cruise,onCruise}:{ship:string;cruise:string;onCruise
   const load=useCallback((signal:AbortSignal)=>bleApi.cruises(ship,signal),[ship]),query=useReadQuery(`tracking-cruises:${ship}`,load),selected=query.data?.find(c=>c.cruiseId===cruise)??(!cruise?query.data?.[0]:undefined)
   return <>{query.loading&&<Loading label="Đang tải chuyến đang vận hành…"/>}{query.error&&<Notice title="Chưa tải được chuyến" tone="error">{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>}{query.data&&<Field htmlFor="tracking-cruise" label="Chuyến đang vận hành"><select id="tracking-cruise" value={selected?.cruiseId??''} onChange={e=>onCruise(e.target.value)}>{!selected&&<option value="">{query.data.length?'Chọn chuyến hợp lệ':'Chưa có chuyến đang vận hành'}</option>}{query.data.map(c=><option key={c.cruiseId} value={c.cruiseId}>{c.cruiseCode} · {c.cruiseName}</option>)}</select></Field>}{query.data?.length===0&&<Panel><Empty title="Tàu chưa có chuyến đang vận hành"/></Panel>}{selected&&<TrackingCruise key={`${ship}:${selected.cruiseId}`} ship={ship} cruise={selected.cruiseId}/>}</>
 }
-export function PassengerTrackingPage() {
+export function PassengerTrackingPage({ backTo }: { backTo?: string }) {
   const access=useSessionAccess()
   const [params,setParams]=useSearchParams()
   const allowed=access.roles.includes('SHIP_MANAGER')&&access.canDo('SHIP_READ')&&access.canDo('BLE_TELEMETRY_READ')
@@ -50,5 +50,37 @@ export function PassengerTrackingPage() {
   const query=useReadQuery('tracking-ships',load)
   const ship=params.get('ship')??''
   const validShip=query.data?.some(s=>s.shipId===ship)
-  return <AdminShell><div className={styles.page}><header className={styles.pageHeader}><div><span className={styles.eyebrow}>SHIP MANAGER</span><h1>Hành khách trên tàu</h1></div><Badge label="Chỉ xem"/></header>{!allowed&&<Notice title="Chưa đủ quyền theo dõi" tone="warning">Cần quyền đọc tàu và BLE telemetry.</Notice>}{query.error&&<Notice title="Chưa tải được tàu" tone="error">{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>}<Field htmlFor="tracking-ship" label="Tàu"><select id="tracking-ship" value={ship} onChange={e=>setParams(e.target.value?{ship:e.target.value}:{})}><option value="">Chọn tàu</option>{query.data?.map(s=><option key={s.shipId} value={s.shipId}>{s.shipName} · {s.shipCode}</option>)}</select></Field>{validShip?<ShipTracking key={ship} ship={ship} cruise={params.get('cruise')??''} onCruise={id=>setParams({ship,cruise:id})}/>:<Panel><Empty title="Chọn tàu để theo dõi hành khách"/></Panel>}</div></AdminShell>
+  function selectShip(shipId: string) {
+    const next = new URLSearchParams(params)
+    if (shipId) next.set('ship', shipId)
+    else next.delete('ship')
+    next.delete('cruise')
+    setParams(next)
+  }
+
+  function selectCruise(cruiseId: string) {
+    const next = new URLSearchParams(params)
+    if (cruiseId) next.set('cruise', cruiseId)
+    else next.delete('cruise')
+    setParams(next)
+  }
+
+  return <AdminShell>
+    <PageHeader title="Tra cứu vị trí hành khách" breadcrumb="HÀNH KHÁCH"
+      description="Chọn tàu và chuyến đang vận hành để xem vùng tín hiệu của hành khách."
+      actions={backTo && <ButtonLink to={backTo} tone="secondary">Về danh sách hành khách</ButtonLink>} />
+    <div className={styles.page}>
+      {!allowed && <Notice title="Chưa đủ quyền theo dõi" tone="warning">Cần quyền đọc tàu và BLE telemetry.</Notice>}
+      {query.error && <Notice title="Chưa tải được tàu" tone="error">{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>}
+      <Field htmlFor="tracking-ship" label="Tàu">
+        <select id="tracking-ship" value={ship} onChange={event => selectShip(event.target.value)}>
+          <option value="">Chọn tàu</option>
+          {query.data?.map(s => <option key={s.shipId} value={s.shipId}>{s.shipName} · {s.shipCode}</option>)}
+        </select>
+      </Field>
+      {validShip
+        ? <ShipTracking key={ship} ship={ship} cruise={params.get('cruise') ?? ''} onCruise={selectCruise} />
+        : <Panel><Empty title="Chọn tàu để theo dõi hành khách" /></Panel>}
+    </div>
+  </AdminShell>
 }
