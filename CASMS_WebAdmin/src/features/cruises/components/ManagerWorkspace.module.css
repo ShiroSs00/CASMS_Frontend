@@ -58,6 +58,14 @@
 @media(max-width:768px){.programList>li{align-items:stretch;flex-direction:column;gap:12px}.programToolbar>div{max-width:none;flex-basis:100%}.programToolbar{gap:8px}.programToolbar p{margin:0}.programList .sectionActions button{flex:1}}
 .modalForm > fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }
 .modalForm > fieldset > * { min-width: 0; }
+.activityTimeRange { grid-column: 1 / -1; display: grid; gap: var(--space-1); margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--ui-radius); background: var(--ui-subtle); color: var(--ui-muted); font-size: var(--text-sm); }
+.activityTimeRange strong { color: var(--ui-ink); }
+.activitySchedule { grid-column: 1 / -1; margin-top: var(--space-2); padding-top: var(--space-4); border-top: 1px solid var(--ui-border); font-size: var(--text-lg); }
+.prepGroupHeading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2) var(--space-4); align-items: baseline; }
+.prepReady { color: var(--ui-muted); font-size: var(--text-sm); }
+.prepMissing { margin: 0; padding-inline-start: var(--space-5); }
+.prepEvidenceDetails summary { width: fit-content; padding-block: var(--space-2); color: var(--ui-muted); cursor: pointer; }
+.prepEvidenceDetails summary:focus-visible { outline: 2px solid var(--ui-focus); }
 .sourceSearch { display: flex; gap: 12px; align-items: end; }
 :is(.managerRoot,.operationsRoot) .workspaceNav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
 :is(.managerRoot,.operationsRoot) .workspaceNav button { justify-content: flex-start; min-height: 64px; padding: 14px 16px; text-align: left; white-space: normal; }

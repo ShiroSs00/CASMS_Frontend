@@ -214,6 +214,7 @@
 .assignmentHeader h2 { margin: 0; }
 .sectionLabel { color: var(--reg-muted); font-size: 12px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
 .candidateList { display: grid; gap: 8px; }
+.candidateSummary { display: flex; align-items: center; justify-content: space-between; min-height: var(--control-height-compact); color: var(--ui-muted); }
 .candidateRow { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px; border: 1px solid var(--reg-border); border-radius: 4px; }
 .candidateRow input { width: 20px; height: 20px; accent-color: var(--reg-primary); }
 .candidateMeta { color: var(--reg-muted); font-size: 12px; line-height: 18px; }

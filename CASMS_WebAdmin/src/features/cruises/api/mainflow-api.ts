@@ -23,10 +23,11 @@ export function decodePlan(value:PlanView,id:string):PlanView{
 }
 export const mainflowApi={
  async get(id:string,signal?:AbortSignal){return decodePlan(await apiRequest<PlanView>(path(id),{signal}),id)},
- async queue(signal?:AbortSignal){const rows=await apiRequest<PlanView[]>('/cruise-plans',{signal});if(!Array.isArray(rows)||rows.some(row=>!row||typeof row.cruiseId!=='string'||!row.cruiseId))throw new ApiError('Chưa đọc được danh sách kế hoạch khởi hành.',502);return rows.map(row=>decodePlan(row,row.cruiseId))},
+ async queue(signal?:AbortSignal,includeReviewed=false){const rows=await apiRequest<PlanView[]>('/cruise-plans',{signal,query:{includeReviewed}});if(!Array.isArray(rows)||rows.some(row=>!row||typeof row.cruiseId!=='string'||!row.cruiseId))throw new ApiError('Chưa đọc được danh sách kế hoạch khởi hành.',502);return rows.map(row=>decodePlan(row,row.cruiseId))},
  async action(view:PlanView,action:MainflowAction,reason:string,dossier?:DossierSubmission){
   if(action==='submit'&&!dossier)throw new ApiError('Tải lại hồ sơ trước khi gửi.',422,'PREPARATION_REVISIONS_REQUIRED')
   const saved=decodePlan(await apiRequest<PlanView>(`${path(view.cruiseId)}/${action}`,{method:'POST',body:{expectedRevision:view.revision,reason,fingerprint:view.fingerprint,...(action==='submit'&&dossier?{preparationEvidence:dossier.preparationEvidence,preparationRevisions:dossier.preparationRevisions}:{})}}),view.cruiseId)
+  if(action==='request-revision'&&saved.planStatus==='REVISION_REQUESTED')return saved
   let readback:PlanView
   try{readback=await this.get(view.cruiseId)}catch{throw new ApiError('Chưa đối chiếu được kết quả. Tải lại hồ sơ trước khi tiếp tục.',502)}
   if(readback.revision!==saved.revision||readback.planStatus!==saved.planStatus||readback.readyStatus!==saved.readyStatus)throw new ApiError('Hệ thống chưa xác nhận được kết quả. Vui lòng kiểm tra lại trạng thái trước khi gửi tiếp.',502)

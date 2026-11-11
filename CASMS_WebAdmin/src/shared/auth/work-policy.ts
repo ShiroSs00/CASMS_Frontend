@@ -8,7 +8,7 @@ export const ROLE_WORK_MODULES: Readonly<Record<string, readonly string[]>> = {
   CRUISE_MANAGER: ['trips', 'cruises', 'itineraries', 'itinerary-history', 'cruise-regulations'],
   OPERATIONS_MANAGER: ['cruise-plan-reviews', 'issues', 'regulations', 'destinations', 'ports', 'trips', 'cruises', 'itineraries', 'itinerary-history', 'ship-regulations', 'cruise-regulations'],
   ACTIVITY_SERVICE_MANAGER: ['activities', 'shore-excursions', 'tour-groups', 'suppliers', 'services', 'products', 'service-packages', 'cruise-package-templates', 'fare-package-templates', 'service-requests', 'activity-registrations', 'cruises'],
-  BOOKING_AGENT: ['bookings', 'staff/checkin', 'package-assignments', 'cruises'],
+  BOOKING_AGENT: ['bookings', 'staff/checkin'],
   CHECKIN_STAFF: ['staff/checkin'],
   CUSTOMER_SERVICE: ['bookings', 'service-requests'],
   FINANCE_OFFICER: ['staff/finance', 'bookings'],

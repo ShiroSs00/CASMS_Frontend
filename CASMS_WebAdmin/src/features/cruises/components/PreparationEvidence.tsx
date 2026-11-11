@@ -2,11 +2,10 @@ import { useCallback, useRef, useState } from 'react'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { businessErrorMessage } from '@/shared/api/business-errors'
 import { useSessionAccess } from '@/shared/auth'
-import { businessCopy, domainStatus } from '@/shared/i18n/business-copy'
-import { Badge, Button, Field, Loading, Modal, Notice, Panel } from '@/shared/ui'
+import { businessCopy } from '@/shared/i18n/business-copy'
+import { Button, Field, Loading, Modal, Notice, Panel } from '@/shared/ui'
 import { preparationApi, type PreparationSection as Section, type PreparationAction } from '../api/preparation-api'
 import { PreparationCoordinator } from './PreparationCoordinator'
-import { journeyTime, SHIP_TIME_ZONE } from '@/shared/lib/journey-time'
 import { allowedDepartureSections, type DepartureSection } from '../model/preparation'
 import styles from './ManagerWorkspace.module.css'
 
@@ -15,20 +14,14 @@ const actions = {
   return: 'Yêu cầu bổ sung hồ sơ',
 } as const
 
-const sectionMeta: Record<string, { title: string; index: number; targetSection?: DepartureSection; targetLabel?: string }> = {
-  TECHNICAL_NAUTICAL: { title: 'Kỹ thuật hàng hải và tàu', index: 1, targetSection: 'resources', targetLabel: 'Xem thông tin tàu & quy định' },
-  HOTEL_CABIN: { title: 'Khách sạn và cabin', index: 2, targetSection: 'sales', targetLabel: 'Xem tồn cabin & sức chứa' },
-  ENTERTAINMENT_SHORE: { title: 'Hoạt động giải trí và tour bờ', index: 3, targetSection: 'program', targetLabel: 'Cấu hình chương trình & tour' },
-  SAFETY_CREW: { title: 'An toàn và thuyền viên', index: 4, targetSection: 'staff', targetLabel: 'Quản lý nhân sự trên tàu' },
+const sectionMeta: Record<string, { title: string; targetSection?: DepartureSection; targetLabel?: string }> = {
+  TECHNICAL_NAUTICAL: { title: 'Kỹ thuật hàng hải và tàu', targetSection: 'resources', targetLabel: 'Xem thông tin tàu & quy định' },
+  HOTEL_CABIN: { title: 'Khách sạn và cabin', targetSection: 'sales', targetLabel: 'Xem tồn cabin & sức chứa' },
+  ENTERTAINMENT_SHORE: { title: 'Hoạt động giải trí và tour bờ', targetSection: 'program', targetLabel: 'Cấu hình chương trình & tour' },
+  SAFETY_CREW: { title: 'An toàn và thuyền viên', targetSection: 'staff', targetLabel: 'Quản lý nhân sự trên tàu' },
 }
 
 const sectionOrder = ['TECHNICAL_NAUTICAL', 'HOTEL_CABIN', 'ENTERTAINMENT_SHORE', 'SAFETY_CREW']
-
-const owners: Record<string, { name: string; tone: 'neutral' | 'info' | 'warning' }> = {
-  SHIP_MANAGER: { name: 'Quản lý tàu', tone: 'neutral' },
-  CRUISE_MANAGER: { name: 'Quản lý lịch trình', tone: 'info' },
-  OPERATIONS_MANAGER: { name: 'Quản lý vận hành', tone: 'warning' },
-}
 
 const checks: Record<string, string> = {
   SHIP_ASSIGNED: 'Tàu đã được phân công',
@@ -42,20 +35,17 @@ const checks: Record<string, string> = {
 export function PreparationEvidence({
   cruiseId,
   onChanged,
-  onSubmit,
   refreshKey = 0,
   onNavigateSection,
 }: {
   cruiseId: string
   onChanged: () => void
-  onSubmit?: () => void
   refreshKey?: number
   onNavigateSection?: (section: DepartureSection) => void
 }) {
   const access = useSessionAccess()
   const availableSections = allowedDepartureSections(access)
   const allowed = access.has('CRUISE_PREPARATION_READ')
-  const manager = access.roles.includes('CRUISE_MANAGER') && !access.roles.includes('OPERATIONS_MANAGER')
   const isOps = access.roles.includes('OPERATIONS_MANAGER')
 
   const [epoch, setEpoch] = useState(0)
@@ -105,10 +95,6 @@ export function PreparationEvidence({
 
   const sections = query.data?.sections ?? []
   const sortedSections = [...sections].sort((a, b) => sectionOrder.indexOf(a.sectionCode) - sectionOrder.indexOf(b.sectionCode))
-  const pending = sections.filter(s => !['SUBMITTED', 'CONFIRMED'].includes(s.status))
-  const notSubmitted = sections.filter(s => ['NOT_STARTED', 'IN_PROGRESS', 'RETURNED'].includes(s.status))
-  const awaitingConfirmation = sections.filter(s => s.status === 'SUBMITTED')
-  const confirmedCount = sections.filter(s => s.status === 'CONFIRMED').length
 
   async function reconcile() {
     if (lock.current) return
@@ -141,86 +127,32 @@ export function PreparationEvidence({
         </Notice>
       )}
 
-      {query.data && !query.loading && !query.error && (
-        <Notice
-          title={
-            confirmedCount === sections.length && sections.length > 0
-              ? 'Tất cả 4 nhóm hồ sơ đã được Quản lý vận hành xác nhận đạt'
-              : notSubmitted.length > 0
-              ? 'Hồ sơ đang chuẩn bị hoặc cần bổ sung'
-              : 'Hồ sơ đã gửi, chờ Quản lý vận hành kiểm tra'
-          }
-          tone={confirmedCount === sections.length && sections.length > 0 ? 'success' : notSubmitted.length > 0 ? 'warning' : 'info'}
-        >
-          {notSubmitted.length > 0 && <p>Còn {notSubmitted.length} nhóm hồ sơ chưa gửi hoặc cần bổ sung dữ liệu.</p>}
-          {awaitingConfirmation.length > 0 && <p>{awaitingConfirmation.length} nhóm đã gửi. Quản lý vận hành kiểm tra từng nhóm bên dưới để bấm xác nhận.</p>}
-          {confirmedCount === sections.length && sections.length > 0 && <p>Tất cả các nhóm kỹ thuật, cabin, an toàn và tour đã sẵn sàng phục vụ chuyến.</p>}
-        </Notice>
-      )}
-
-      {manager && onSubmit && pending.length > 0 && (
-        <div className={styles.sectionActions} style={{ margin: '16px 0' }}>
-          <Button tone="primary" onClick={onSubmit}>
-            Kiểm tra và gửi hồ sơ chuyến khởi hành
-          </Button>
-        </div>
-      )}
-
       <div className={styles.prepCardList}>
         {sortedSections.map(section => {
-          const meta = sectionMeta[section.sectionCode] ?? { title: section.sectionName || 'Hồ sơ', index: 0 }
-          const owner = owners[section.ownerRole] ?? { name: 'Chưa phân công', tone: 'neutral' }
-          const totalChecks = section.checkItems.length
-          const passedChecks = section.checkItems.filter(i => i.ready).length
-          const allPassed = totalChecks > 0 && section.checkItems.every(i => !i.required || i.ready)
-          const isOwnerOps = section.ownerRole === 'OPERATIONS_MANAGER'
+          const meta = sectionMeta[section.sectionCode] ?? { title: section.sectionName || 'Hồ sơ' }
+          const missing = section.checkItems.filter(item => item.required && !item.ready)
+          const passed = section.checkItems.filter(item => item.ready)
+          const allPassed = section.checkItems.length > 0 && missing.length === 0
+          const target = meta.targetSection
+          const canNavigate = target && onNavigateSection && availableSections.some(([key]) => key === target)
+          const canReview = isOps && access.has('CRUISE_PREPARATION_CONFIRM') && ['SUBMITTED', 'CONFIRMED'].includes(section.status)
 
           return (
-            <div key={section.sectionCode} className={styles.prepCard}>
-              <header className={styles.prepCardHeader}>
-                <div className={styles.prepCardTitleRow}>
-                  <span className={styles.prepCardNum}>{meta.index}</span>
-                  <h3 className={styles.prepCardTitle}>{meta.title}</h3>
-                </div>
-                <div className={styles.prepCardTags}>
-                  <Badge label={`Phụ trách: ${owner.name}`} tone={owner.tone} />
-                  <Badge
-                    label={domainStatus('preparation.section', section.status)}
-                    tone={section.status === 'CONFIRMED' ? 'success' : section.status === 'RETURNED' ? 'error' : section.status === 'SUBMITTED' ? 'warning' : 'neutral'}
-                  />
-                  {totalChecks > 0 && (
-                    <Badge
-                      label={`${passedChecks}/${totalChecks} tiêu chí đạt`}
-                      tone={allPassed ? 'success' : 'warning'}
-                    />
-                  )}
-                </div>
-              </header>
-
+            <section key={section.sectionCode} className={styles.prepCard}>
               <div className={styles.prepCardBody}>
-                {section.checkItems.length === 0 ? (
-                  <p className={styles.help}>Quản lý vận hành đối chiếu nội dung hồ sơ đã nộp để xác nhận.</p>
-                ) : (
-                  <ul className={styles.prepCheckList}>
-                    {section.checkItems.map(item => (
-                      <li
-                        key={item.itemCode}
-                        className={`${styles.prepCheckItem} ${item.ready ? styles.prepCheckItemPass : styles.prepCheckItemFail}`}
-                      >
-                        <span className={`${styles.prepCheckSymbol} ${item.ready ? styles.prepCheckSymbolPass : styles.prepCheckSymbolFail}`}>
-                          {item.ready ? '✓' : '✕'}
-                        </span>
-                        <div className={styles.prepCheckDetails}>
-                          <p className={styles.prepCheckName}>{checks[item.itemCode] ?? item.itemCode}</p>
-                          {item.evidence && <p className={styles.prepCheckHint}>{item.evidence}</p>}
-                          {!item.ready && !item.evidence && (
-                            <p className={styles.prepCheckHint}>Hạng mục bắt buộc chưa đạt. Cần hoàn thiện trước khi xác nhận.</p>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <div className={styles.prepGroupHeading}>
+                  <h3 className={styles.prepCardTitle}>{meta.title}</h3>
+                  {allPassed&&<span className={styles.prepReady}>Đã đủ điều kiện</span>}
+                </div>
+                {missing.length>0&&<ul className={styles.prepMissing}>
+                  {missing.map(item=><li key={item.itemCode}>{item.evidence || checks[item.itemCode] || 'Cần bổ sung thông tin'}</li>)}
+                </ul>}
+                {passed.length>0&&<details className={styles.prepEvidenceDetails}>
+                  <summary>Xem thông tin kiểm tra</summary>
+                  <ul>{passed.map(item=><li key={item.itemCode}>
+                    {checks[item.itemCode] ?? 'Điều kiện đã đạt'}{item.evidence&&` · ${item.evidence}`}
+                  </li>)}</ul>
+                </details>}
 
                 {section.returnReason && (
                   <Notice title="Yêu cầu bổ sung từ Quản lý vận hành" tone="error">
@@ -228,40 +160,11 @@ export function PreparationEvidence({
                   </Notice>
                 )}
 
-                <footer className={styles.prepCardFooter}>
-                  <div className={styles.prepCardMeta}>
-                    {section.submittedAt && (
-                      <span>Đã nộp: {journeyTime(section.submittedAt, SHIP_TIME_ZONE)} · Giờ Việt Nam</span>
-                    )}
-                    {section.confirmedAt && section.status === 'CONFIRMED' && (
-                      <span style={{ marginLeft: section.submittedAt ? '12px' : 0 }}>
-                        Đã xác nhận: {journeyTime(section.confirmedAt, SHIP_TIME_ZONE)}
-                        {section.confirmedByUsername ? ` (${section.confirmedByUsername})` : ''}
-                      </span>
-                    )}
-                    {!section.submittedAt && !section.confirmedAt && (
-                      <span>Chưa nộp hồ sơ</span>
-                    )}
-                  </div>
-
-                  <div className={styles.prepCardActions}>
-                    {/* Navigation shortcut to fix incomplete items */}
-                    {!allPassed && meta.targetSection && onNavigateSection && availableSections.some(([key]) => key === meta.targetSection) && (
-                      <Button tone="secondary" onClick={() => onNavigateSection(meta.targetSection!)}>
-                        {meta.targetLabel} →
-                      </Button>
-                    )}
-
-                    {/* Explanatory note for non-owners */}
-                    {!allPassed && manager && isOwnerOps && section.sectionCode === 'SAFETY_CREW' && (
-                      <span className={styles.prepCardMeta}>
-                        Chờ Quản lý vận hành phân công nhân sự trên tàu.
-                      </span>
-                    )}
-
-                    {/* OPS confirmation actions */}
-                    {isOps && access.has('CRUISE_PREPARATION_CONFIRM') && ['SUBMITTED', 'CONFIRMED'].includes(section.status) && (
-                      <>
+                {(!allPassed&&canNavigate||canReview)&&<div className={styles.prepCardActions}>
+                  {!allPassed&&canNavigate&&<Button tone="secondary" autoWidth onClick={()=>onNavigateSection(target)}>
+                    {meta.targetLabel}
+                  </Button>}
+                  {canReview&&<>
                         {section.status === 'SUBMITTED' && (
                           <Button
                             tone="primary"
@@ -293,12 +196,10 @@ export function PreparationEvidence({
                             Người nộp hồ sơ không thể tự duyệt. Cần tài khoản QLVH khác.
                           </span>
                         )}
-                      </>
-                    )}
-                  </div>
-                </footer>
+                  </>}
+                </div>}
               </div>
-            </div>
+            </section>
           )
         })}
       </div>

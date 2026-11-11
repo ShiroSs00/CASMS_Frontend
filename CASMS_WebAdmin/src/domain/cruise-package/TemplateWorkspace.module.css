@@ -15,9 +15,8 @@
 .workspace :is(button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--brand-teal); outline-offset: 3px; }
 .helper { color: var(--text-secondary); font-size: 13px; line-height: 1.7; max-width: 75ch; }
 .actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-.workflow { display: grid; gap: 10px; margin: 0; padding-inline-start: 24px; }
-.templatePicker { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end; }
-.templateCreate { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: start; border-top: 1px solid var(--border-default); padding-top: 24px; }
+.catalogSearch { max-inline-size: 32rem; }
+.templateCreate { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: start; max-inline-size: 44rem; }
 .templateCreate > button { margin-top: 26px; }
 .sectionHeader { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
 .sectionHeader > div { display: grid; gap: 6px; min-width: 0; }
@@ -90,9 +89,8 @@
 @media (max-width: 700px) {
   .workspace { padding: 16px; gap: 20px; }
   .workspace .panel { padding: 20px 16px; gap: 20px; }
-  .templatePicker, .templateCreate, .fieldGrid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .templateCreate, .fieldGrid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
   .templateCreate > button { margin-top: 0; justify-self: start; }
-  .templatePicker > button { justify-self: start; }
   .sectionHeader, .formFooter, .publishRow { align-items: stretch; flex-direction: column; gap: 16px; }
   .sectionHeader > button { align-self: flex-start; }
   .benefitList > li { flex-direction: column; gap: 8px; }

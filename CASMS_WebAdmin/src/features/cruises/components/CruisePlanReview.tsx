@@ -1,9 +1,12 @@
+import {useNavigate} from 'react-router'
 import {usePlanQuery} from '../hooks/usePlanQuery'
 import {planEvidence} from '../model/plan-evidence'
 import {uniqueConditionCodes} from '../model/operations-issues'
 import {FrozenPlanPackages,PlanPackageSelection} from './PlanPackageSelection'
 import {allowedDepartureSections,type DepartureSection} from '../model/preparation'
 import {operationsConditionTarget,planMakerReason} from '../model/operations-workflow'
+import {DeparturePricingPolicy} from './DeparturePricingPolicy'
+import {SaleTermsSetupButton} from './SaleTermsSetupButton'
 import {PlanSnapshot} from './PlanSnapshot'
 import { useCallback, useRef, useState } from 'react'
 import { useReadQuery } from '@/shared/api'
@@ -22,6 +25,7 @@ const actionKeys={submit:'cruise.plan.SUBMIT_ACTION',withdraw:'cruise.plan.WITHD
 const safeError=(error:unknown)=>error instanceof ApiError&&error.code==='SELF_APPROVAL_FORBIDDEN'?'Bạn đã tham gia chuẩn bị hồ sơ hoặc điều khoản. Cần người xét duyệt khác.':businessErrorMessage(error instanceof ApiError?error.code:undefined,'')
 export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onReview,onNextStep,itineraryMode,mode='all',embedded=false}:{cruiseId:string;refreshKey?:number|string;onChanged?:()=>void;onSection?:(section:DepartureSection)=>void;onReview?:()=>void;onNextStep?:()=>void;itineraryMode?:'FIXED'|'CUSTOM';embedded?:boolean;mode?:'all'|'prepare'|'submit'|'review'|'ready'|'summary'}){
  const access=useSessionAccess(),[epoch,setEpoch]=useState(0)
+ const navigate=useNavigate()
  const allowed=['CRUISE_MANAGER','OPERATIONS_MANAGER','SHIP_MANAGER'].some(role=>access.roles.includes(role))&&access.has('CRUISE_READ')
  const query=usePlanQuery(cruiseId,`${epoch}:${refreshKey}`,allowed)
  const [action,setAction]=useState<MainflowAction|null>(null),[reason,setReason]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[success,setSuccess]=useState('')
@@ -46,15 +50,43 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
   if(action==='ready'?!(access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_VALIDATE')):['submit','withdraw'].includes(action)?!crm:!ops)return
   if(action==='submit'&&!dossierValid)return
   lock.current=true;setBusy(true);setError('');setSuccess('')
-  try{const actual=await mainflowApi.action(data,action,reason,action==='submit'&&dossier.data?{preparationEvidence:evidence.trim(),pendingPreparationCodes:pendingSections.map(section=>section.sectionCode),preparationRevisions:Object.fromEntries(dossier.data.sections.map(section=>[section.sectionCode,section.revision]))}:undefined);setAction(null);if(action==='submit')setEvidence('');setSuccess(action==='submit'?'Đã gửi hồ sơ chuyến khởi hành':action==='ready'?domainStatus('cruise.ready',actual.readyStatus):domainStatus('cruise.plan',actual.planStatus));setEpoch(n=>n+1);query.retry();onChanged?.()}
+  try{const actual=await mainflowApi.action(data,action,reason,action==='submit'&&dossier.data?{preparationEvidence:evidence.trim(),pendingPreparationCodes:pendingSections.map(section=>section.sectionCode),preparationRevisions:Object.fromEntries(dossier.data.sections.map(section=>[section.sectionCode,section.revision]))}:undefined);setAction(null);if(action==='submit')setEvidence('');if(action==='request-revision'&&mode==='review'){void navigate('/admin/cruise-plan-reviews');return}setSuccess(action==='submit'?'Đã gửi hồ sơ chuyến khởi hành':action==='ready'?domainStatus('cruise.ready',actual.readyStatus):domainStatus('cruise.plan',actual.planStatus));setEpoch(n=>n+1);query.retry();onChanged?.()}
   catch(e){setError(safeError(e));if(e instanceof ApiError&&e.status===409){setAction(null);query.retry()}if(!(e instanceof ApiError)||e.status===0||e.status>=500)setUncertain(true)}finally{lock.current=false;setBusy(false)}
  }
+ const planConditions=data&&data.planBlockers.length>0&&<Notice title={businessCopy('cruise.plan.missingInputs')} tone="warning">
+  <ul className={styles.conditionList}>
+   {uniqueConditionCodes(data.planBlockers).map(code=>{
+    const target=manager?operationsConditionTarget(code):null
+    const destination=target&&target!=='review'&&target!=='overview'?allowedDepartureSections(access).find(([key])=>key===target):null
+    return <li key={code}>
+     {manager&&code==='FARE_PLAN_SELECTION_REQUIRED'?<span>Chọn một gói đủ điều kiện để đưa vào hồ sơ.</span>
+       :manager&&code==='SALE_TERMS_REQUIRED'?<span>Quản lý vận hành cần cấu hình thuế và phí cảng.</span>
+       :<ProgramBlocker code={code} data={data} fixed={itineraryMode==='FIXED'}/>}
+     {destination&&onSection&&<Button autoWidth tone="secondary" onClick={()=>onSection(destination[0])}>{destination[0]==='fare-packages'?'Xem cấu hình gói':`Mở ${destination[1].toLocaleLowerCase('vi-VN')}`}</Button>}
+     {crm&&manager&&code==='SALE_TERMS_REQUIRED'&&<SaleTermsSetupButton key={cruiseId} cruiseId={cruiseId}/>}
+    </li>
+   })}
+  </ul>
+ </Notice>
+ const editablePlan=Boolean(data&&crm&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.planStatus))
+ const refreshPlan=()=>{setEpoch(n=>n+1);query.retry();onChanged?.()}
  if(!allowed)return null
  if(mode==='summary')return null
- if(mode==='prepare')return <Panel title={embedded?undefined:"Thời gian nhận đặt chỗ và hướng dẫn"}>
-  {query.loading&&<Loading/>}{query.error&&<Notice title="Chưa tải được khung thời gian" tone="error">{safeError(query.error)}<Button tone="secondary" onClick={query.retry}>Thử lại</Button></Notice>}
-  {data&&<PlanWindows key={`${cruiseId}:${data.windows.expectedRevision}`} data={data} onSaved={()=>{setEpoch(n=>n+1);query.retry()}} editable={crm&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.planStatus)}/>}
- </Panel>
+ if(mode==='prepare'){
+  const timeFields=<>
+   {query.loading&&<Loading/>}{query.error&&<Notice title="Chưa tải được khung thời gian" tone="error">{safeError(query.error)}<Button tone="secondary" onClick={query.retry}>Thử lại</Button></Notice>}
+   {data&&<PlanWindows key={`${cruiseId}:${data.windows.expectedRevision}`} data={data} onSaved={refreshPlan} editable={editablePlan}/>}
+  </>
+  return <>
+  {manager&&planConditions}
+  {embedded?<details className={styles.workspaceDisclosure}>
+   <summary>Nhận đặt chỗ và hướng dẫn trước chuyến</summary>
+   <div className={styles.workspaceBody}>{timeFields}</div>
+  </details>:<Panel title="Thời gian nhận đặt chỗ và hướng dẫn">{timeFields}</Panel>}
+  {manager&&editablePlan&&data?.cruisePackagePricing&&<PlanPackageSelection cruiseId={cruiseId} onSaved={refreshPlan}/>}
+  {manager&&data&&!data.unifiedPackageReview&&<DeparturePricingPolicy cruiseId={cruiseId} refreshKey={refreshKey} onChanged={onChanged}/>}
+ </>
+ }
  const supplement=Boolean(data&&['SUBMITTED','APPROVED'].includes(data.planStatus))
  const submitLabel=supplement?'Gửi bổ sung hồ sơ':'Gửi hồ sơ chuyến khởi hành'
  const actionLabel=(value:MainflowAction)=>value==='ready'?'Xác nhận sẵn sàng mở bán':value==='approve'?'Phê duyệt hồ sơ':value==='reject'?'Từ chối hồ sơ':value==='request-revision'?'Yêu cầu chỉnh sửa':businessCopy(actionKeys[value])
@@ -244,10 +276,10 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
    {makerReason&&mode==='review'&&data.planStatus==='SUBMITTED'&&<Notice title="Cần người xét duyệt khác">{makerReason}</Notice>}
    {evidenceMissing&&<Notice title="Bằng chứng thương mại chưa đầy đủ" tone="error">Tải lại bản hồ sơ để đối chiếu gói, phiên bản giá và thuế/phí trước khi phê duyệt.</Notice>}
    {data.reason&&<Notice title={data.planStatus==='APPROVED'?'Ghi nhận phê duyệt':'Phản hồi từ Quản lý vận hành'} tone={data.planStatus==='REJECTED'?'error':data.planStatus==='APPROVED'?'info':'warning'}>{data.reason}</Notice>}
-   {data.planBlockers.length>0&&<Notice title={businessCopy('cruise.plan.missingInputs')}><ul className={styles.conditionList}>{uniqueConditionCodes(data.planBlockers).map(code=>{const target=manager?code.startsWith('PRICING_')||code.endsWith('WINDOW_REQUIRED')?'overview':operationsConditionTarget(code):null;const destination=target&&target!=='review'?allowedDepartureSections(access).find(([key])=>key===target):null;return <li key={code}><ProgramBlocker code={code} data={data} fixed={itineraryMode==='FIXED'}/>{destination&&onSection&&<Button tone="text" onClick={()=>onSection(destination[0])}>Mở {destination[1].toLocaleLowerCase('vi-VN')}</Button>}</li>})}</ul></Notice>}
+   {planConditions}
 
    {crm&&mode!=='submit'&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.planStatus)&&<PlanWindows key={`${cruiseId}:${data.windows.expectedRevision}`} data={data} onSaved={()=>{setEpoch(n=>n+1);query.retry()}} editable/>}
-   {crm&&data.cruisePackagePricing&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.planStatus)&&<PlanPackageSelection cruiseId={cruiseId} onSaved={()=>{setEpoch(n=>n+1);query.retry();onChanged?.()}}/>}
+   {mode!=='submit'&&editablePlan&&data.cruisePackagePricing&&<PlanPackageSelection cruiseId={cruiseId} onSaved={refreshPlan}/>}
    {data.unifiedPackageReview&&data.submittedSnapshot!=null&&<FrozenPlanPackages snapshot={data.submittedSnapshot}/>}
    {data.submittedSnapshot!=null&&<details className={styles.snapshotDisclosure} open={mode==='review'}><summary>Nội dung kế hoạch đã gửi</summary><PlanSnapshot snapshot={data.submittedSnapshot} includePricing={mode!=='review'&&mode!=='submit'}/></details>}
    {reviewActions}

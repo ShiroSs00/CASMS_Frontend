@@ -2,7 +2,7 @@ import styles from './Workspace.module.css'
 import {useCallback,useRef,useState} from 'react'
 import {apiRequestRaw,useReadQuery} from '@/shared/api'
 import {useSessionAccess} from '@/shared/auth'
-import {Button,ButtonLink,Empty,Field,Notice,Panel,RecordFacts,TechnicalDetails,UnsavedForms,useFormChanges} from '@/shared/ui'
+import {Button,ButtonLink,Empty,Field,Notice,Panel,RecordFacts,UnsavedForms,useFormChanges} from '@/shared/ui'
 import {fareObject,fareText,fareUuid} from './purchase-contract'
 import {QueryState} from './Workspace'
 
@@ -56,21 +56,18 @@ function ShipCabinMappingWorkspace({shipId}:{shipId:string}) {
 
 export function CruisePackageCabinMapping(props:{shipId:string}){return <UnsavedForms><ShipCabinMappingWorkspace {...props}/></UnsavedForms>}
 
-export function CruisePackageMappingEvidence({shipId,shipName,categoryId,categoryName,mapping}:{shipId:string;shipName?:string|null;categoryId:string|null;categoryName:string;mapping:{mappingId:string|null;cabinIds:string[];revision:number|null;confirmedBy:string|null;confirmedAt:string|null;blockers:{code:string;message:string}[]}}){
+export function CruisePackageMappingEvidence({shipName,mapping}:{shipName?:string|null;mapping:{mappingId:string|null;cabinIds:string[];confirmedAt:string|null;blockers:{code:string;message:string}[]}}){
   const access=useSessionAccess()
-  return <section aria-label="Bằng chứng ánh xạ cabin"><h4>Ánh xạ cabin của gói du thuyền</h4>
+  return <section aria-label="Xác nhận cabin">
     <RecordFacts entries={[
-      ['Hạng cabin thương mại',categoryName],['Tàu',shipName??'Chưa đọc được tên tàu'],
-      ['Xác nhận mapping',mapping.mappingId?(mapping.blockers.length?'Cần đối chiếu':'Xác nhận còn hiện hành'):'Chưa có xác nhận'],
-      ['Lần cập nhật',mapping.revision??'Chưa xác định'],
-      ['Thời điểm xác nhận',mapping.confirmedAt?new Date(mapping.confirmedAt).toLocaleString('vi-VN'):'Chưa có thông tin'],
+      ['Tàu',shipName??'Chưa đọc được tên tàu'],
+      ['Xác nhận cabin',mapping.mappingId?(mapping.blockers.length?'Cần kiểm tra lại':'Đã xác nhận'):'Chưa xác nhận'],
+      ...(mapping.confirmedAt?[['Xác nhận lúc',new Date(mapping.confirmedAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'})] as const]:[]),
     ]}/>
-    {access.has('CABIN_READ')&&mapping.cabinIds.length>0&&<ul>{mapping.cabinIds.map((id,index)=><li key={id}><ButtonLink tone="secondary" to={`/admin/cabins/${encodeURIComponent(id)}`}>Xem thông tin cabin {index+1}</ButtonLink></li>)}</ul>}
-    <TechnicalDetails label="Định danh đối chiếu mapping" entries={[
-      ['Hạng cabin',categoryId],['Tàu',shipId],['Mapping',mapping.mappingId],['Tài khoản xác nhận',mapping.confirmedBy],
-      ...mapping.cabinIds.map((id,index)=>[`Cabin ${index+1}`,id] as const),
-    ]}/>
-    {mapping.blockers.map((b,i)=><Notice key={`${b.code}:${i}`} tone="warning" title="Quản lý tàu cần đối chiếu mapping">{b.message}</Notice>)}
+    {access.has('CABIN_READ')&&mapping.cabinIds.length>0&&<details>
+      <summary>Xem cabin đã xác nhận</summary>
+      <ul>{mapping.cabinIds.map((id,index)=><li key={id}><ButtonLink tone="secondary" to={`/admin/cabins/${encodeURIComponent(id)}`}>Xem cabin {index+1}</ButtonLink></li>)}</ul>
+    </details>}
   </section>
 }
 

@@ -1,7 +1,7 @@
 import {ApiError,apiRequest} from '@/shared/api'
 
 export type ScopedActivity={areaId?:string|null;sourceActivityId?:string|null;responsibleUserId?:string|null;id:string;cruiseId:string;name:string;description:string|null;startTime:string;endTime:string;location:string;meetingPoint?:string|null;deckId:string|null;cabinId:string|null;capacity:number|null;price:number|null;currencyCode:string|null}
-export type ActivityInput=Omit<ScopedActivity,'id'|'name'|'meetingPoint'|'capacity'|'price'|'currencyCode'>&{activityName:string;capacity:number;price:number;currencyCode:string}
+export type ActivityInput=Omit<ScopedActivity,'id'|'name'|'capacity'|'price'|'currencyCode'>&{activityName:string;capacity:number;price:number;currencyCode:string}
 const root=(id:string)=>`/cruise-plans/${encodeURIComponent(id)}/activities`
 export function activityCapacityConflict(reason:unknown):number|null{
  if(!(reason instanceof ApiError)||reason.code!=='CAPACITY_BELOW_ALLOCATED'||!reason.details||typeof reason.details!=='object')return null
@@ -23,6 +23,7 @@ export async function updateScopedActivity(cruiseId:string,id:string,revision:nu
  const rows=decodeActivities(await apiRequest<ScopedActivity[]>(root(cruiseId)),cruiseId),actual=rows.find(a=>a.id===id)
  if(saved.id!==id||saved.cruiseId!==cruiseId||!actual||Object.entries(body).some(([key,value])=>{
   const found=actual[key==='activityName'?'name':key as keyof ScopedActivity]
+  if(key==='meetingPoint')return (found??'')!==(value??'')
   return key==='startTime'||key==='endTime'?Date.parse(String(found))!==Date.parse(String(value)):found!==value
  }))throw new ApiError('',502)
  return actual

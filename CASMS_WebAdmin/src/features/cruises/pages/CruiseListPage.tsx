@@ -1,3 +1,4 @@
+import { Navigate } from 'react-router'
 import { useSessionAccess } from '@/shared/auth'
 import { Button, ButtonLink, Notice, PageHeader } from '@/shared/ui'
 
@@ -7,6 +8,14 @@ import styles from '../components/Cruises.module.css'
 import { bookingCruiseView } from '../model/cruise-visibility'
 
 export function CruiseListPage() {
+  const access = useSessionAccess()
+  if (access.roles.includes('OPERATIONS_MANAGER') && !access.roles.some(role=>['ADMIN','CRUISE_MANAGER'].includes(role))) {
+    return <Navigate replace to="/admin/cruise-plan-reviews"/>
+  }
+  return <CruiseListContentPage/>
+}
+
+function CruiseListContentPage() {
   const access = useSessionAccess()
   const booking = bookingCruiseView(access.roles)
   const serviceWorkspace = access.roles.includes('ACTIVITY_SERVICE_MANAGER') &&

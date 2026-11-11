@@ -7,7 +7,7 @@ import { QueryState } from './Workspace'
 import { useCruisePackageMutation } from './useCruisePackageMutation'
 import { fareObject, fareText, fareUuid, fareAmount } from './purchase-contract'
 import { cruisePackageApi, type ResourceType } from './api'
-import { zonedInput, SHIP_TIME_ZONE } from '@/shared/lib/journey-time'
+import { journeyTime, wallTimeToInstant, zonedInput, SHIP_TIME_ZONE } from '@/shared/lib/journey-time'
 
 type Stage = 'BOOKING' | 'PRE_DEPARTURE' | 'ONBOARD'
 type Window = { stage: Stage; startsAt: string; endsAt: string; operationalCutoff: string }
@@ -27,8 +27,8 @@ type Addon = {
 
 const root = (id: string) => `/cruise/${encodeURIComponent(id)}/cruise-package-addons`
 const stageNames: Record<Stage, string> = {
-  BOOKING: 'Khi đặt chỗ',
-  PRE_DEPARTURE: 'Trước khởi hành',
+  BOOKING: 'Trong khung nhận đặt chỗ',
+  PRE_DEPARTURE: 'Trước giờ khởi hành',
   ONBOARD: 'Trên tàu'
 }
 
@@ -170,35 +170,24 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
 
   const handleStageSelect = (selectedStage: Stage | '') => {
     setStage(selectedStage)
-    if (!selectedStage) return
-    const bounds = configuration.data
-    if (!bounds) return
-
-    if (selectedStage === 'BOOKING') {
-      if (bounds.bookingOpensAt) setStart(toInputDateTime(bounds.bookingOpensAt))
-      if (bounds.bookingClosesAt) setEnd(toInputDateTime(bounds.bookingClosesAt))
-      if (candidate?.cutoffLimit || bounds.departureAt) {
-        setCutoff(toInputDateTime(candidate?.cutoffLimit ?? bounds.departureAt))
-      }
-    } else if (selectedStage === 'PRE_DEPARTURE') {
-      if (bounds.bookingClosesAt) setStart(toInputDateTime(bounds.bookingClosesAt))
-      if (bounds.departureAt) setEnd(toInputDateTime(bounds.departureAt))
-      if (candidate?.cutoffLimit || bounds.departureAt) {
-        setCutoff(toInputDateTime(candidate?.cutoffLimit ?? bounds.departureAt))
-      }
-    } else if (selectedStage === 'ONBOARD') {
-      if (bounds.departureAt) setStart(toInputDateTime(bounds.departureAt))
-      if (bounds.returnAt) setEnd(toInputDateTime(bounds.returnAt))
-      if (candidate?.cutoffLimit || bounds.returnAt) {
-        setCutoff(toInputDateTime(candidate?.cutoffLimit ?? bounds.returnAt))
-      }
-    }
     setError('')
-  }
+    const bounds = configuration.data
+    if (!selectedStage || !bounds) {
+      setStart('')
+      setEnd('')
+      setCutoff('')
+      return
+    }
 
-  const applyStageBounds = () => {
-    if (!stage) return
-    handleStageSelect(stage)
+    const first = selectedStage === 'BOOKING' ? bounds.bookingOpensAt
+      : selectedStage === 'PRE_DEPARTURE' ? bounds.bookingClosesAt : bounds.departureAt
+    const last = selectedStage === 'BOOKING' ? bounds.bookingClosesAt
+      : selectedStage === 'PRE_DEPARTURE' ? bounds.departureAt : bounds.returnAt
+    const limit = candidate?.cutoffLimit
+    const endLimit = last && limit && Date.parse(last) > Date.parse(limit) ? limit : last
+    setStart(toInputDateTime(first))
+    setEnd(endLimit && (!first || Date.parse(endLimit) > Date.parse(first)) ? toInputDateTime(endLimit) : '')
+    setCutoff(toInputDateTime(limit))
   }
 
   return (
@@ -228,7 +217,7 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
           <ul>
             {a.salesWindows.map(w => (
               <li key={w.stage}>
-                {stageNames[w.stage]}: {new Date(w.startsAt).toLocaleString('vi-VN')} → {new Date(w.endsAt).toLocaleString('vi-VN')} · Cutoff vận hành {new Date(w.operationalCutoff).toLocaleString('vi-VN')}
+                {stageNames[w.stage]}: {journeyTime(w.startsAt)} → {journeyTime(w.endsAt)} · Hạn chốt phục vụ {journeyTime(w.operationalCutoff)}
               </li>
             ))}
           </ul>
@@ -262,7 +251,6 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
           variant="drawer"
           large
           title="Thêm dịch vụ mua thêm"
-          description="Chọn nội dung của chuyến, nhập giá và thiết lập các giai đoạn bán."
           busy={mutation.busy}
           onClose={reset}
           footer={
@@ -295,7 +283,7 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
                 return
               }
               if (type === 'SERVICE' && !unit) {
-                setError('Dịch vụ cần unitCode authoritative trước khi cấu hình giá theo đơn vị.')
+                setError('Dịch vụ chưa có đơn vị tính giá.')
                 return
               }
               pending.current = {
@@ -315,20 +303,16 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
           >
             {error && <Notice title="Kiểm tra thông tin dịch vụ" tone="error">{error}</Notice>}
 
-            {/* Bước 1: Nguồn dịch vụ & Nội dung chuyến */}
+            {/* Bước 1: Nội dung bán thêm */}
             <div className={styles.stepGroup}>
               <div className={styles.stepHeader}>
                 <h4 className={styles.stepTitle}>
-                  <span className={styles.stepBadge}>1</span>
-                  Nguồn dịch vụ & Nội dung chuyến
+                  Nội dung bán thêm
                 </h4>
                 {candidate && candidate.eligible && (
                   <Badge label="Đủ điều kiện" tone="success" />
                 )}
               </div>
-              <p className={styles.stepDesc}>
-                Chọn nhóm nội dung (Hoạt động trên tàu, Tour bờ hoặc Dịch vụ mua thêm) và mục đã được cấu hình cho chuyến.
-              </p>
 
               <div className={styles.fieldGrid2}>
                 <Field htmlFor="addon-type" label="Nguồn dịch vụ">
@@ -369,7 +353,7 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
                       setCutoff('')
                     }}
                   >
-                    <option value="">-- Chọn nội dung đã được đối chiếu --</option>
+                    <option value="">Chọn nội dung</option>
                     {sourceChoices.map(c => (
                       <option key={c.resourceId} value={c.resourceId} disabled={!c.eligible}>
                         {c.name}{!c.eligible ? ' · Chưa đủ điều kiện' : ''}
@@ -381,19 +365,20 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
 
               {configuration.data && !configuration.loading && sourceChoices.length === 0 && (
                 <Notice title="Chưa có nội dung thuộc nhóm này" tone="warning">
-                  Chuyến chưa có nội dung thuộc nhóm {type === 'ACTIVITY' ? 'Hoạt động trên tàu' : type === 'EXCURSION' ? 'Tour bờ' : 'Dịch vụ'}. Chọn nhóm khác hoặc cấu hình nội dung trên chuyến trước.
+                  Chọn nguồn khác hoặc bổ sung nội dung cho chuyến.
                 </Notice>
               )}
 
-              {configuration.data?.candidates.filter(c => c.resourceType === type && !c.eligible).map(c => (
-                <Notice key={c.resourceId} title={`Chưa đủ điều kiện: ${c.name}`} tone="warning">
-                  {c.blocker}
-                </Notice>
-              ))}
+              {sourceChoices.some(c=>!c.eligible)&&<details>
+                <summary>Xem nội dung chưa thể bán</summary>
+                <ul>{sourceChoices.filter(c=>!c.eligible).map(c=><li key={c.resourceId}>
+                  <strong>{c.name}</strong> · {c.blocker?.replace(/^[A-Z0-9_]+:\s*/, '')}
+                </li>)}</ul>
+              </details>}
 
               {candidate?.cutoffLimit && (
                 <p className={styles.templateHint}>
-                  Hạn vận hành tối đa từ lịch phục vụ: {new Date(candidate.cutoffLimit).toLocaleString('vi-VN')}.
+                  Hạn chốt tối đa · {journeyTime(candidate.cutoffLimit)}
                 </p>
               )}
             </div>
@@ -402,21 +387,16 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
             <div className={styles.stepGroup}>
               <div className={styles.stepHeader}>
                 <h4 className={styles.stepTitle}>
-                  <span className={styles.stepBadge}>2</span>
-                  Giá bán & Điều kiện sử dụng
+                  Giá và điều kiện sử dụng
                 </h4>
               </div>
-              <p className={styles.stepDesc}>
-                Nhập mức giá theo USD và các điều kiện sử dụng hoặc giới hạn đối tượng khách hàng.
-              </p>
 
               <Field htmlFor="addon-amount" label={`Giá USD / ${type === 'SERVICE' ? unit ?? 'chưa có đơn vị nguồn' : 'người'}`}>
                 <input
                   id="addon-amount"
                   required
                   inputMode="decimal"
-                  placeholder="Ví dụ: 25.00"
-                  value={amount}
+                                    value={amount}
                   disabled={disabled}
                   onChange={e => setAmount(e.target.value)}
                 />
@@ -428,28 +408,23 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
                   required
                   maxLength={4000}
                   rows={3}
-                  placeholder="Ví dụ: Áp dụng cho hành khách từ 12 tuổi trở lên..."
-                  value={eligibility}
+                                    value={eligibility}
                   disabled={disabled}
                   onChange={e => setEligibility(e.target.value)}
                 />
               </Field>
             </div>
 
-            {/* Bước 3: Giai đoạn & Thời gian mở bán */}
+            {/* Bước 3: Thời gian bán */}
             <div className={styles.stepGroup}>
               <div className={styles.stepHeader}>
                 <h4 className={styles.stepTitle}>
-                  <span className={styles.stepBadge}>3</span>
-                  Giai đoạn & Thời gian mở bán
+                  Thời gian bán · Giờ Việt Nam
                 </h4>
                 {windows.length > 0 && (
                   <Badge label={`Đã thêm ${windows.length} giai đoạn`} tone="neutral" />
                 )}
               </div>
-              <p className={styles.stepDesc}>
-                Thiết lập từng giai đoạn mở bán (Khi đặt chỗ, Trước khởi hành, Trên tàu). Chọn giai đoạn để tự động điền khung giờ phù hợp.
-              </p>
 
               <fieldset disabled={disabled || !candidate?.eligible} className={styles.controls}>
                 <div className={styles.fieldGrid2}>
@@ -459,7 +434,7 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
                       value={stage}
                       onChange={e => handleStageSelect(e.target.value as Stage | '')}
                     >
-                      <option value="">-- Chọn giai đoạn --</option>
+                      <option value="">Chọn giai đoạn</option>
                       {(Object.keys(stageNames) as Stage[])
                         .filter(s => candidate?.allowedStages.includes(s) && !windows.some(w => w.stage === s))
                         .map(s => (
@@ -468,13 +443,7 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
                     </select>
                   </Field>
 
-                  {stage && (
-                    <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '2px' }}>
-                      <Button type="button" tone="secondary" onClick={applyStageBounds}>
-                        Điền theo khung giờ giai đoạn
-                      </Button>
-                    </div>
-                  )}
+
                 </div>
 
                 <div className={styles.fieldGrid3}>
@@ -512,34 +481,41 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
                     tone="secondary"
                     onClick={() => {
                       if (!stage || !candidate?.allowedStages.includes(stage) || !start || !end || !cutoff ||
-                          ![start, end, cutoff].every(v => Number.isFinite(Date.parse(v))) ||
-                          Date.parse(start) >= Date.parse(end) || Date.parse(end) > Date.parse(cutoff) ||
                           windows.some(w => w.stage === stage)) {
-                        setError('Chọn giai đoạn riêng và các mốc: bắt đầu < kết thúc ≤ cutoff vận hành.')
+                        setError('Chọn giai đoạn và điền đủ các mốc giờ.')
                         return
                       }
-                      if (!candidate?.cutoffLimit || Date.parse(cutoff) > Date.parse(candidate.cutoffLimit)) {
-                        setError('Cutoff phải nằm trong lịch vận hành đã được Backend đối chiếu.')
+                      let startsAt: string, endsAt: string, operationalCutoff: string
+                      try {
+                        startsAt = wallTimeToInstant(start, SHIP_TIME_ZONE)
+                        endsAt = wallTimeToInstant(end, SHIP_TIME_ZONE)
+                        operationalCutoff = wallTimeToInstant(cutoff, SHIP_TIME_ZONE)
+                      } catch {
+                        setError('Nhập ngày và giờ hợp lệ theo giờ Việt Nam.')
+                        return
+                      }
+                      const startMs = Date.parse(startsAt), endMs = Date.parse(endsAt), cutoffMs = Date.parse(operationalCutoff)
+                      if (startMs >= endMs || endMs > cutoffMs) {
+                        setError('Giờ bán phải kết thúc sau giờ bắt đầu và không được muộn hơn hạn chốt phục vụ.')
+                        return
+                      }
+                      if (!candidate.cutoffLimit || cutoffMs > Date.parse(candidate.cutoffLimit)) {
+                        setError('Chọn hạn chốt không muộn hơn giờ kết thúc lần phục vụ.')
                         return
                       }
                       const bounds = configuration.data
                       if (stage === 'BOOKING' && (!bounds?.bookingOpensAt || !bounds.bookingClosesAt ||
-                          Date.parse(start) < Date.parse(bounds.bookingOpensAt) || Date.parse(end) > Date.parse(bounds.bookingClosesAt))) {
-                        setError('Giai đoạn đặt chỗ cần nằm trong khoảng nhận đặt chỗ đã cấu hình cho chuyến.')
+                          startMs < Date.parse(bounds.bookingOpensAt) || endMs > Date.parse(bounds.bookingClosesAt))) {
+                        setError('Thời gian bán phải nằm trong khung nhận đặt chỗ của chuyến.')
                         return
                       }
-                      if ((stage === 'PRE_DEPARTURE' && (!bounds?.departureAt || Date.parse(end) > Date.parse(bounds.departureAt))) ||
+                      if ((stage === 'PRE_DEPARTURE' && (!bounds?.departureAt || endMs > Date.parse(bounds.departureAt))) ||
                           (stage === 'ONBOARD' && (!bounds?.departureAt || !bounds.returnAt ||
-                          Date.parse(start) < Date.parse(bounds.departureAt) || Date.parse(end) > Date.parse(bounds.returnAt)))) {
-                        setError('Thời hạn không phù hợp ngày khởi hành và trở về của chuyến.')
+                          startMs < Date.parse(bounds.departureAt) || endMs > Date.parse(bounds.returnAt)))) {
+                        setError('Thời gian bán nằm ngoài phạm vi của giai đoạn đã chọn.')
                         return
                       }
-                      setWindows(old => [...old, {
-                        stage,
-                        startsAt: new Date(start).toISOString(),
-                        endsAt: new Date(end).toISOString(),
-                        operationalCutoff: new Date(cutoff).toISOString()
-                      }])
+                      setWindows(old => [...old, { stage, startsAt, endsAt, operationalCutoff }])
                       setStage('')
                       setStart('')
                       setEnd('')
@@ -560,7 +536,7 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
                   <ul style={{ margin: 0, paddingLeft: '1.25rem', display: 'grid', gap: '8px' }}>
                     {windows.map(w => (
                       <li key={w.stage}>
-                        <strong>{stageNames[w.stage]}</strong>: {new Date(w.startsAt).toLocaleString('vi-VN')} → {new Date(w.endsAt).toLocaleString('vi-VN')} (Hạn phục vụ: {new Date(w.operationalCutoff).toLocaleString('vi-VN')})
+                        <strong>{stageNames[w.stage]}</strong>: {journeyTime(w.startsAt)} → {journeyTime(w.endsAt)} (Hạn phục vụ: {journeyTime(w.operationalCutoff)})
                         <span style={{ marginLeft: '12px' }}>
                           <Button type="button" tone="text" disabled={disabled} onClick={() => setWindows(old => old.filter(x => x.stage !== w.stage))}>
                             Bỏ giai đoạn

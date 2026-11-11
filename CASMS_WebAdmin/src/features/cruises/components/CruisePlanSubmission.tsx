@@ -32,7 +32,7 @@ export function CruisePlanSubmission({detail,refreshKey,onChanged,onPrepare,onSe
    </div>
    <div id="review-schedule">{showSchedule&&<DepartureScheduleRead cruise={cruise} readOnly/>}</div>
   </Panel>
-  {canViewCommercial&&<div id="review-pricing">{showPricing&&<DeparturePricingPolicy cruiseId={cruise.cruiseId} refreshKey={refreshKey} onChanged={onChanged}/>}</div>}
+  {canViewCommercial&&<div id="review-pricing">{showPricing&&<DeparturePricingPolicy readOnly cruiseId={cruise.cruiseId} refreshKey={refreshKey}/>}</div>}
   <CruisePlanReview itineraryMode={cruise.itineraryMode} cruiseId={cruise.cruiseId} refreshKey={refreshKey} onChanged={onChanged} mode="submit" onSection={onSection}/>
  </section>
 }

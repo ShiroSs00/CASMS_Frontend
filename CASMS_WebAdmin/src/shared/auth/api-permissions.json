@@ -204,6 +204,30 @@
   },
   {
     "method": "GET",
+    "path": "/cruise-plans/{cruiseId}/sale-terms-request",
+    "mode": "ALL",
+    "permissions": ["CRUISE_READ"],
+    "roles": ["CRUISE_MANAGER"],
+    "source": "CruiseMainflowController.pendingSaleTermsRequest"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-plans/{cruiseId}/sale-terms-request",
+    "mode": "ALL",
+    "permissions": ["CRUISE_UPDATE_DRAFT"],
+    "roles": ["CRUISE_MANAGER"],
+    "source": "CruiseMainflowController.requestSaleTerms"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise-plans/sale-terms-requests",
+    "mode": "ALL",
+    "permissions": ["CRUISE_PRICING_APPROVE"],
+    "roles": ["OPERATIONS_MANAGER"],
+    "source": "CruiseMainflowController.saleTermsRequests"
+  },
+  {
+    "method": "GET",
     "path": "/cruise-plans/{cruiseId}/commercial-terms/sale",
     "mode": "ALL",
     "permissions": [],

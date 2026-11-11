@@ -7,9 +7,9 @@ import {useSessionAccess} from '@/shared/auth'
 import styles from './ManagerWorkspace.module.css'
 
 /** One Cruise context and one instance of each editor; approvals remain separate commands. */
-export function CruisePlanWorkspace({cruiseId,refreshKey,onChanged,onSection,sections}:{
+export function CruisePlanWorkspace({cruiseId,refreshKey,onChanged,onSection,sections,itineraryMode}:{
  cruiseId:string;refreshKey:string;onChanged:()=>void;
- onSection:(section:DepartureSection)=>void;sections:readonly DepartureSection[];onReview?:()=>void
+ onSection:(section:DepartureSection)=>void;sections:readonly DepartureSection[];itineraryMode?:'FIXED'|'CUSTOM'
 }) {
  const access=useSessionAccess()
  const manager=access.roles.includes('CRUISE_MANAGER')&&!access.roles.includes('OPERATIONS_MANAGER')
@@ -18,12 +18,12 @@ export function CruisePlanWorkspace({cruiseId,refreshKey,onChanged,onSection,sec
    <h2>Hoàn thiện kế hoạch</h2>
    <nav className={styles.planTaskList} aria-label="Nội dung kế hoạch">
     {([
-     ['schedule','Lịch khởi hành','Ngày thực tế và các lần ghé cảng','Xem lịch'],
-     ['resources','Tàu được phân công','Tàu áp dụng cho chuyến khởi hành này','Xem tàu'],
-     ['program','Chương trình và dịch vụ','Hoạt động, tour và gói dịch vụ','Xem chương trình'],
-    ] as const).filter(([section])=>sections.includes(section)).map(([section,title,description,label])=><div className={styles.planTaskRow} key={section}><div><h3>{title}</h3><p>{description}</p></div><Button tone="secondary" onClick={()=>onSection(section)}>{label}</Button></div>)}
+     ['schedule','Lịch khởi hành','Xem lịch'],
+     ['resources','Tàu và quy định','Xem tàu'],
+     ['program','Chương trình và dịch vụ','Xem chương trình'],
+    ] as const).filter(([section])=>sections.includes(section)).map(([section,title,label])=><div className={styles.planTaskRow} key={section}><h3>{title}</h3><Button tone="secondary" onClick={()=>onSection(section)}>{label}</Button></div>)}
    </nav>
-   <details className={styles.workspaceDisclosure} open><summary>Nhận đặt chỗ và hướng dẫn trước chuyến</summary><div className={styles.workspaceBody}><CruisePlanReview embedded cruiseId={cruiseId} refreshKey={refreshKey} onChanged={onChanged} mode="prepare"/></div></details>
+   <CruisePlanReview embedded itineraryMode={itineraryMode} onSection={onSection} cruiseId={cruiseId} refreshKey={refreshKey} onChanged={onChanged} mode="prepare"/>
   </section>
  </>
  if(access.roles.includes('OPERATIONS_MANAGER'))return <>
