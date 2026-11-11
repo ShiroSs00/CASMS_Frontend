@@ -1,3 +1,4 @@
+import {pricingCapabilities} from '../model/pricing-access'
 import {usePlanQuery} from '../hooks/usePlanQuery'
 import { useCallback,useState } from 'react'
 import { ApiError, apiRequest, useReadQuery } from '@/shared/api'
@@ -16,11 +17,12 @@ export function DeparturePricingPolicy({ cruiseId,onChanged,readOnly=false,refre
   const allowed=['CRUISE_READ','CRUISE_UPDATE_DRAFT','CRUISE_OPEN_SALE','BOOKING_READ'].some(permission=>access.has(permission))
   const query=useReadQuery(`pricing-policy:${access.userId}:${access.status}:${access.permissions.join(',')}:${cruiseId}:${allowed}:${refreshKey}`,useCallback(signal=>
     allowed ? apiRequest<unknown>(`/cruise/${encodeURIComponent(cruiseId)}/pricing-policy`,{signal}).then(value=>decodePricingPolicy(value,cruiseId)) : Promise.resolve(null),[allowed,cruiseId]))
-  const policyOwner=!readOnly&&access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_PRICING_APPROVE')
+  const capabilities=pricingCapabilities(access)
+  const policyOwner=!readOnly&&capabilities.draft
   const plan=usePlanQuery(cruiseId,`${refreshKey}:${query.data?.revision}`,policyOwner)
   const editable=Boolean(policyOwner&&plan.data&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(plan.data.planStatus)&&!plan.loading&&!plan.error)
   const [success,setSuccess]=useState(''),[historyOpen,setHistoryOpen]=useState(false)
-  const historyAllowed=(historyOpen||(policyOwner&&query.data?.status==='PENDING_APPROVAL'))&&access.has('CRUISE_READ')
+  const historyAllowed=(historyOpen||(capabilities.review&&query.data?.status==='PENDING_APPROVAL'))&&access.has('CRUISE_READ')
   const history=useReadQuery(`policy-history:${access.userId}:${access.status}:${cruiseId}:${refreshKey}:${query.data?.revision}:${historyAllowed}`,useCallback(signal=>historyAllowed?readPricingHistory(cruiseId,signal):Promise.resolve(null),[cruiseId,historyAllowed]))
   const historyLabels:Record<string,string>={SAVE_DRAFT:'Lưu bản chính sách',SUBMIT:'Gửi bản chính sách để duyệt',APPROVE:'Phê duyệt bản chính sách',RETURN:'Yêu cầu chỉnh sửa bản chính sách',PLAN_RECALL:'Thu hồi theo kế hoạch'}
   if(!allowed)return null
@@ -46,7 +48,6 @@ export function DeparturePricingPolicy({ cruiseId,onChanged,readOnly=false,refre
       </div>
       {canEdit&&<div className={styles.headerActions}><PricingDraftFields key={cruiseId} cruiseId={cruiseId} policy={data??undefined} onSaved={saved}/></div>}
     </header>
-    {!policyOwner&&access.roles.includes('CRUISE_MANAGER')&&<p>Quản lý vận hành quản lý chính sách thương mại. Bạn chỉ xem và sử dụng chính sách áp dụng cho chuyến.</p>}
     {success&&<Notice title="Đã ghi nhận kết quả" tone="success">{success}</Notice>}
     {query.loading&&<Loading label="Đang tải chính sách giá…"/>}
     {missing&&<Notice title={packageManaged?'Chưa cấu hình chính sách giao dịch':'Chưa thiết lập chính sách giá'}>{packageManaged?'Chưa cấu hình điều khoản giao dịch cho chuyến này.':'Chưa có chính sách giá cho chuyến khởi hành này.'}</Notice>}
@@ -88,7 +89,7 @@ export function DeparturePricingPolicy({ cruiseId,onChanged,readOnly=false,refre
           {history.data.map((event,index)=><tr key={`${event.policyId}:${event.revision}:${event.action}:${index}`}><td>{journeyTime(event.createdAt)}</td><td>{event.revision}</td><td>{historyLabels[event.action]??'Thao tác cần đối chiếu'}</td><td>{event.reason??'Không có lý do được ghi nhận'}<TechnicalDetails entries={[["Bản chính sách",event.policyId],["Tài khoản thực hiện",event.actorId],["Mã thao tác",event.action]]}/></td></tr>)}
         </DataTable>:<Empty title="Chưa có lịch sử bản chính sách"/>)}
       </details>}
-      {!readOnly&&access.roles.includes('OPERATIONS_MANAGER')&&<div className={styles.review}><PricingReview policy={data} onSaved={saved} onReload={reload} maker={data.submittedBy===access.userId||Boolean(history.data?.some(event=>event.policyId===data.pricingPolicyId&&event.action==='SAVE_DRAFT'&&event.actorId===access.userId))} reviewEvidenceReady={!history.loading&&!history.error&&Boolean(history.data)}/></div>}
+      {!readOnly&&(capabilities.draft||capabilities.review)&&<div className={styles.review}><PricingReview policy={data} onSaved={saved} onReload={reload} maker={data.submittedBy===access.userId||Boolean(history.data?.some(event=>event.policyId===data.pricingPolicyId&&event.action==='SAVE_DRAFT'&&event.actorId===access.userId))} reviewEvidenceReady={!history.loading&&!history.error&&Boolean(history.data)}/></div>}
     </>}
     {editable&&missing&&!query.loading&&<PricingDraftFields key={cruiseId} cruiseId={cruiseId} onSaved={saved}/>}
   </Panel>

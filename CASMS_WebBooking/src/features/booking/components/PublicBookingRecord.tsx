@@ -9,13 +9,14 @@ import styles from './LiveBooking.module.css'
 export function PublicBookingRecord({ booking, showPassengerDetails = false }: { booking: BookingDetail; showPassengerDetails?: boolean }) {
   const contract = booking.contractStatus ? ({ Draft: 'Bản nháp', Accepted: 'Đã chấp thuận', Cancelled: 'Đã hủy' } as Record<string, string>)[booking.contractStatus] ?? booking.contractStatus : 'Chưa có trạng thái'
   const plan = bookingPlanName(booking.paymentPlan)
+  const cancellationReason = booking.cancellationReason === 'HOLD_EXPIRED' ? 'Hết thời hạn giữ chỗ' : booking.cancellationReason
   return <div className={styles.publicRecord}>
     {booking.bookingStatus === 'Draft' && <Notice title="Đặt chỗ đang chờ xác nhận" tone="info">Thanh toán thành công chưa đồng nghĩa đặt chỗ đã được xác nhận. Đặt chỗ chỉ được xác nhận khi khoản thanh toán yêu cầu và hợp đồng bản ký đã được ghi nhận đầy đủ.</Notice>}
     {booking.bookingStatus === 'Confirmed' && <Notice title="Đặt chỗ đã được xác nhận" tone="success">Bạn có thể nhận email xác nhận kèm tên đăng nhập và hướng dẫn thiết lập mật khẩu cho tài khoản mới. Nếu chưa nhận được email, vui lòng liên hệ hỗ trợ. Tài khoản đã có giữ nguyên mật khẩu.</Notice>}
     <Panel title="Trạng thái đặt chỗ"><div className={styles.sectionHeading}><h3>{booking.cruiseName}</h3><Badge label={bookingStatusName[booking.bookingStatus]} /></div><dl className={styles.recordFacts}>
       <div><dt>Mã đặt chỗ</dt><dd>{booking.bookingReference}</dd></div><div><dt>Thời gian · giờ Việt Nam</dt><dd>{bookingWhen(booking.departureDatetime)} → {bookingWhen(booking.returnDatetime)}</dd></div>
       <div><dt>Hợp đồng</dt><dd>{booking.contractReference ?? 'Chưa có'} · {contract}</dd></div><div><dt>Kế hoạch thanh toán</dt><dd>{plan}</dd></div>
-    </dl>{booking.cancellationReason && <p>Lý do hủy: {booking.cancellationReason}</p>}</Panel>
+    </dl>{cancellationReason && <p>Lý do hủy: {cancellationReason}</p>}</Panel>
     <Panel title="Thanh toán"><dl className={`${styles.recordFacts} ${styles.financialFacts}`}>
       <div><dt>Tổng giá vé</dt><dd>{bookingMoney(booking.agreedFareAmount, booking.currency)}</dd></div>
       <div><dt>Đã thanh toán</dt><dd>{financialMoney(booking.totalPaidAmount, booking.currency)}</dd></div>

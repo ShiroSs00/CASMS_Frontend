@@ -98,7 +98,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
     {isReady ? (
      <Notice title="Chuyến khởi hành đã sẵn sàng mở bán" tone="success">
       <p>Kế hoạch khởi hành và chính sách giá đã được Quản lý vận hành xác nhận. Chuyến khởi hành đủ điều kiện để tiến hành mở bán vé.</p>
-      {onNextStep && <div className={styles.planActions}><Button tone="primary" onClick={onNextStep}>Tiếp tục sang Bước 3: Mở bán chuyến khởi hành →</Button></div>}
+      {onNextStep && <div className={styles.planActions}><Button tone="primary" onClick={onNextStep}>Tiếp tục: Mở bán</Button></div>}
      </Notice>
     ) : (
      <>
