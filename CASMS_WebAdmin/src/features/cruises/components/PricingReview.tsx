@@ -1,3 +1,4 @@
+import {pricingCapabilities} from '../model/pricing-access'
 import {mutationOutcomeUnknown} from '@/shared/lib/mutation-outcome'
 import {useRef,useState} from 'react'
 import {ApiError} from '@/shared/api'
@@ -11,18 +12,18 @@ import styles from './DeparturePricingPolicy.module.css'
 import {pricingReviewCopy} from '../model/pricing-review-copy'
 export function PricingReview({policy,onSaved,onReload,maker,reviewEvidenceReady}:{policy:PricingPolicy;onSaved:(message:string)=>void;onReload:()=>void;maker:boolean;reviewEvidenceReady:boolean}){
  const access=useSessionAccess(),[action,setAction]=useState<PricingAction|null>(null),[reason,setReason]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[unknown,setUnknown]=useState(false),lock=useRef(false)
- const ops=access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_PRICING_APPROVE')
+ const {draft:crm,review:ops}=pricingCapabilities(access)
  const copy=(value:PricingAction)=>pricingReviewCopy(policy.cruisePackagePricing===true,value)
  const actionLabel=(value:PricingAction)=>copy(value).label
  async function execute(){
-  if(!action||lock.current||unknown||!ops||policy.revision==null)return
+  if(!action||lock.current||unknown||(action==='submit'?!crm:!ops)||policy.revision==null)return
   if(action==='submit'?policy.status!=='DRAFT':policy.status!=='PENDING_APPROVAL'||maker||!reviewEvidenceReady)return
   lock.current=true;setBusy(true);setError('')
   try{await reviewPricing(policy,action,reason);const message=copy(action).success;setAction(null);onSaved(message)}
   catch(e){setError(businessErrorMessage(e instanceof ApiError?e.code:undefined,''));if(mutationOutcomeUnknown(e))setUnknown(true)}finally{lock.current=false;setBusy(false)}
  }
  async function recover(){
-  if(lock.current||!unknown||!ops)return
+  if(lock.current||!unknown||(!crm&&!ops))return
   lock.current=true;setBusy(true)
   try{
    const actual=await readPricingPolicy(policy.cruiseId)
@@ -33,10 +34,10 @@ export function PricingReview({policy,onSaved,onReload,maker,reviewEvidenceReady
   }catch(e){setError(businessErrorMessage(e instanceof ApiError?e.code:undefined,''))}
   finally{lock.current=false;setBusy(false)}
  }
- const actions:PricingAction[]=!ops?[]:policy.status==='DRAFT'?['submit']:policy.status==='PENDING_APPROVAL'?['approve','return']:[]
+ const actions:PricingAction[]=policy.status==='DRAFT'&&crm?['submit']:policy.status==='PENDING_APPROVAL'&&ops?['approve','return']:[]
  return <>
   <p className={styles.reviewHint}>{policy.cruisePackagePricing?'Duyệt thanh toán, hủy và phí độc lập với duyệt kế hoạch và giá Gói du thuyền.':'Duyệt giá là quyết định riêng với duyệt kế hoạch.'}</p>{policy.decisionReason&&<Notice title={businessCopy('pricing.policy.RETURNED')}>{policy.decisionReason}</Notice>}
-  {policy.status==='RETURNED'&&<p>Quản lý vận hành sửa và lưu bản nháp trước khi gửi chính sách để duyệt lại. Nếu kế hoạch đang khóa, cần yêu cầu bổ sung kế hoạch trước khi chỉnh sửa.</p>}
+  {policy.status==='RETURNED'&&<p>Quản lý lịch trình sửa và lưu bản nháp trước khi gửi chính sách để duyệt lại. Nếu kế hoạch đang khóa, cần yêu cầu bổ sung kế hoạch trước khi chỉnh sửa.</p>}
   {actions.length>0&&<div className={styles.reviewActions}>{actions.map(a=><Button key={a} tone={a==='approve'||a==='submit'?'primary':'secondary'} disabled={busy||unknown||policy.revision==null||(a!=='submit'&&(maker||!reviewEvidenceReady))} onClick={()=>{setAction(a);setReason('');setError('')}}>{actionLabel(a)}</Button>)}</div>}
   {policy.status==='PENDING_APPROVAL'&&maker&&<p className={styles.reviewHint}>Bạn đã cấu hình hoặc gửi bản chính sách này. Cần một tài khoản Quản lý vận hành khác xét duyệt.</p>}
   {policy.status==='PENDING_APPROVAL'&&!reviewEvidenceReady&&<p>Chưa đối chiếu đủ lịch sử người cấu hình. Tải lại chính sách và lịch sử trước khi xét duyệt.<Button tone="secondary" disabled={busy} onClick={onReload}>Tải lại chính sách và lịch sử</Button></p>}

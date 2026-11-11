@@ -135,7 +135,23 @@ export function CruiseFormPage() {
   const scheduleRequest = useRef<AbortController | null>(null)
   const [scheduleDetailOpen, setScheduleDetailOpen] = useState(false)
 
-  async function loadSchedule(apply: boolean) {
+  function handleOpenScheduleDetail() {
+    if (previewScheduleData || !draft.departureDatetime) setScheduleDetailOpen(true)
+    else void loadSchedule(false)
+  }
+  const [changeSourceOpen, setChangeSourceOpen] = useState(false)
+  const [previewRevision, setPreviewRevision] = useState<number | null>(restored?.previewRevision ?? null)
+  const [uncertain, setUncertain] = useState(() => !editing && (createIntent.storageError || ['unknown', 'sending', 'succeeded'].includes(createIntent.record?.status ?? '')))
+  const [params, setParams] = useSearchParams()
+  const requestedSource = params.get('sourceVersionId')
+  const invalidSource = !editing && params.has('sourceVersionId') && !requestedSource?.trim()
+  const sourceId = editing ? null : uncertain && createIntent.record ? createIntent.record.payload.sourceVersionId ?? null : requestedSource
+  const scheduleKey = JSON.stringify([sourceId, draft.departureDatetime])
+  const previewScheduleData = previewSchedule?.key === scheduleKey ? previewSchedule.data : null
+  useLayoutEffect(() => () => scheduleRequest.current?.abort(), [scheduleKey])
+
+  const canReadCruises = access.canDo('CRUISE_READ')
+  const loadSchedule = useCallback(async (apply: boolean) => {
     if (!draft.departureDatetime || !sourceId) return
     scheduleRequest.current?.abort()
     const request = new AbortController()
@@ -152,7 +168,7 @@ export function CruiseFormPage() {
       const schedule = await departureApi.preview(sourceId, instant, request.signal)
       if (request.signal.aborted) return
       let hasShipConflict = false
-      if (apply && draft.shipId && access.canDo('CRUISE_READ')) {
+      if (apply && draft.shipId && canReadCruises) {
         try {
           const existingCruises = await cruiseApi.list(
             { search: '', shipId: draft.shipId, status: '', cruiseType: '', departureDate: '', page: 1, pageSize: 100 },
@@ -193,22 +209,7 @@ export function CruiseFormPage() {
       scheduleRequest.current = null
       setApplyingSchedule(false)
     }
-  }
-
-  function handleOpenScheduleDetail() {
-    if (previewScheduleData || !draft.departureDatetime) setScheduleDetailOpen(true)
-    else void loadSchedule(false)
-  }
-  const [changeSourceOpen, setChangeSourceOpen] = useState(false)
-  const [previewRevision, setPreviewRevision] = useState<number | null>(restored?.previewRevision ?? null)
-  const [uncertain, setUncertain] = useState(() => !editing && (createIntent.storageError || ['unknown', 'sending', 'succeeded'].includes(createIntent.record?.status ?? '')))
-  const [params, setParams] = useSearchParams()
-  const requestedSource = params.get('sourceVersionId')
-  const invalidSource = !editing && params.has('sourceVersionId') && !requestedSource?.trim()
-  const sourceId = editing ? null : uncertain && createIntent.record ? createIntent.record.payload.sourceVersionId ?? null : requestedSource
-  const scheduleKey = JSON.stringify([sourceId, draft.departureDatetime])
-  const previewScheduleData = previewSchedule?.key === scheduleKey ? previewSchedule.data : null
-  useLayoutEffect(() => () => scheduleRequest.current?.abort(), [scheduleKey])
+  }, [sourceId, draft.departureDatetime, draft.shipId, scheduleKey, canReadCruises])
 
   const source = useReadQuery('cruise-source:' + sourceId, useCallback(signal => sourceId ? readPublishedSource(sourceId, signal) : Promise.resolve(null), [sourceId]))
   const displayName = !editing && sourceId && source.data && !nameEdited ? source.data.tripName : draft.cruiseName
@@ -291,7 +292,7 @@ export function CruiseFormPage() {
   useEffect(() => {
     if (editing || !sourceId || !draft.departureDatetime || invalidSource) return
     void loadSchedule(true)
-  }, [editing, sourceId, draft.departureDatetime, draft.shipId, invalidSource])
+  }, [editing, sourceId, draft.departureDatetime, draft.shipId, invalidSource, loadSchedule])
 
   function update<K extends keyof CruiseDraft>(key: K, value: CruiseDraft[K]) {
     if (key === 'departureDatetime' && value !== draft.departureDatetime) {

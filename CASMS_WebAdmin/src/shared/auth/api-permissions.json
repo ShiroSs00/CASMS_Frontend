@@ -1085,10 +1085,10 @@
     "mode": "ALL",
     "path": "/cruises/{cruiseId}/pricing-policy",
     "permissions": [
-      "CRUISE_PRICING_APPROVE"
+      "CRUISE_UPDATE_DRAFT"
     ],
     "roles": [
-      "OPERATIONS_MANAGER"
+      "CRUISE_MANAGER"
     ]
   },
   {
@@ -1121,10 +1121,10 @@
     "mode": "ALL",
     "path": "/cruises/{cruiseId}/pricing-policy/submit",
     "permissions": [
-      "CRUISE_PRICING_APPROVE"
+      "CRUISE_UPDATE_DRAFT"
     ],
     "roles": [
-      "OPERATIONS_MANAGER"
+      "CRUISE_MANAGER"
     ]
   },
   {
@@ -1142,10 +1142,10 @@
     "mode": "ALL",
     "path": "/cruise/{cruiseId}/pricing-policy",
     "permissions": [
-      "CRUISE_PRICING_APPROVE"
+      "CRUISE_UPDATE_DRAFT"
     ],
     "roles": [
-      "OPERATIONS_MANAGER"
+      "CRUISE_MANAGER"
     ]
   },
   {
@@ -1178,10 +1178,10 @@
     "mode": "ALL",
     "path": "/cruise/{cruiseId}/pricing-policy/submit",
     "permissions": [
-      "CRUISE_PRICING_APPROVE"
+      "CRUISE_UPDATE_DRAFT"
     ],
     "roles": [
-      "OPERATIONS_MANAGER"
+      "CRUISE_MANAGER"
     ]
   },
   {
@@ -1637,10 +1637,10 @@
     "mode": "ALL",
     "path": "/cruise-plans/{cruiseId}/pricing-policy",
     "permissions": [
-      "CRUISE_PRICING_APPROVE"
+      "CRUISE_UPDATE_DRAFT"
     ],
     "roles": [
-      "OPERATIONS_MANAGER"
+      "CRUISE_MANAGER"
     ]
   },
   {

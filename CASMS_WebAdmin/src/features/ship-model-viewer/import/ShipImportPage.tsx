@@ -1,10 +1,10 @@
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button, ButtonLink, Notice, PageHeader, Panel } from '@/shared/ui'
 import { getSessionAccess, useSessionAccess } from '@/shared/auth'
-import { useReadQuery } from '@/shared/api'
+import { ApiError, useReadQuery } from '@/shared/api'
 import { AdminShell } from '@/shared/ui/admin-v3'
-import { shipImportApi, type ShipProvisionFields } from './api'
+import { shipImportApi, type ImportPreview, type ShipProvisionFields } from './api'
 import {
   emptySession,
   importRequirements,
@@ -13,10 +13,11 @@ import {
   importOutcomeUnknown,
   rejectedImportIssues,
   jobLabel,
-  restoreSession,
+  importStage,
   type ImportSession,
-  type Registration,
 } from './model'
+import { createRegistrationStore, importScope, prepareImport } from './registration-store'
+import { previewFingerprint } from './preview-proof'
 import { ImportDialog } from './ImportDialog'
 import { ImportIssueList, ImportJobDetails } from './ImportJobDetails'
 import { ImportedShipProfile } from './ImportPreviewDetails'
@@ -33,39 +34,12 @@ function sourceLabel(session: ImportSession) {
 
 function ShipImportContent({ userId }: { userId: string }) {
   const access = useSessionAccess()
-  const storageKey = `ocevie:ship-import:${userId}`
-  const registerKeyFor = (draft: ImportSession) => `${storageKey}:register:${JSON.stringify([draft.modelKey])}`
-  function restoredRegistration(draft: ImportSession, legacyVersion?: string) {
-    if (!draft.uploaded || draft.registration) return { draft, pending: false }
-    const legacyPrefix = `${storageKey}:register:[${JSON.stringify(draft.modelKey)},`
-    for (let index = 0; index < localStorage.length; index++) {
-      const key = localStorage.key(index)
-      if (key?.startsWith(legacyPrefix) && localStorage.getItem(key) === 'pending') {
-        return { draft, pending: true }
-      }
-    }
-    const raw = localStorage.getItem(registerKeyFor(draft)) ?? (legacyVersion
-      ? localStorage.getItem(`${storageKey}:register:${JSON.stringify([draft.modelKey, legacyVersion])}`)
-      : null)
-    if (!raw) return { draft, pending: false }
-    if (raw === 'pending') return { draft, pending: true }
-    const result = JSON.parse(raw) as Registration
-    if (!result || typeof result.shipId !== 'string' || typeof result.shipModelId !== 'string' || result.shipCreated !== true) {
-      return { draft, pending: true }
-    }
-    return { draft: { ...draft, registration: result }, pending: false }
-  }
-
+  const scope = importScope(userId, import.meta.env.VITE_API_BASE_URL || '/api', window.location.origin)
+  const store = useMemo(() => createRegistrationStore(scope, userId, localStorage, sessionStorage), [scope, userId])
+  const storageKey = store.key
   const [restored] = useState(() => {
-    try {
-      const raw = sessionStorage.getItem(storageKey)
-      const draft = restoreSession(raw) ?? emptySession
-      // Recover an already confirmed registration from a pre-upgrade draft.
-      const legacyVersion = raw && draft.uploaded ? JSON.parse(raw).assetVersion : undefined
-      return restoredRegistration(draft, typeof legacyVersion === 'string' ? legacyVersion : undefined)
-    } catch {
-      return { draft: emptySession, pending: false }
-    }
+    try { return store.restore() }
+    catch { return { draft: emptySession, pending: true } }
   })
   const [session, setSession] = useState(restored.draft)
 
@@ -108,8 +82,13 @@ function ShipImportContent({ userId }: { userId: string }) {
       : canPrepare
 
   const canRead = access.canDo('SHIP_READ')
-  const registration = session.registration
-  const registerKey = registerKeyFor(session)
+  const candidate = session.registration
+  const loadVerification = useCallback((signal: AbortSignal) => candidate && canRead
+    ? shipImportApi.verifyRegistration(session, signal) : Promise.resolve(null), [candidate, canRead, session])
+  const verification = useReadQuery(`import-registration:${scope}:${session.attemptId}:${candidate?.shipModelId}:${canRead}:${refresh}`, loadVerification)
+  const registration = verification.data
+  const verifiedSession = registration ? session : { ...session, registration: null, job: null }
+  const registerKey = store.registerKey(session.modelKey)
   const pendingStructure = session.pendingStructure
 
   const loadHistory = useCallback(
@@ -139,13 +118,9 @@ function ShipImportContent({ userId }: { userId: string }) {
     )
   const canAdvance = registration
     ? historyReady && !running && !pendingStructure
-    : !registerUncertain
+    : !registerUncertain && !candidate
 
-  const activeStage = !session.uploaded
-    ? 0
-    : !registration
-      ? 1
-      : 2
+  const activeStage = importStage(session, Boolean(registration))
 
   const complete = job?.status === 'SUCCEEDED'
 
@@ -241,56 +216,54 @@ function ShipImportContent({ userId }: { userId: string }) {
         : 'Đang chuẩn bị mô hình đã tải lên…',
       file ? permissions.upload : permissions.register,
       async () => {
-        const prepared = { ...draft, uploaded: true }
-        const previous = restoredRegistration(prepared)
-        if (previous.pending || previous.draft.registration) {
-          if (alive.current) {
-            setSession(previous.draft)
-            setRegisterUncertain(previous.pending)
+        if (!navigator.locks) throw new ApiError('Trình duyệt chưa hỗ trợ khóa phiên tạo tàu. Vui lòng dùng phiên bản Chrome hoặc Edge mới.', 400)
+        await navigator.locks.request(store.registerKey(draft.modelKey), { ifAvailable: true }, async lock => {
+          if (!lock) throw new ApiError('Mô hình đang được xử lý ở cửa sổ khác. Kiểm tra kết quả trước khi tiếp tục.', 409)
+          if (store.read(draft).pending) {
+            setSession(draft)
+            setRegisterUncertain(true)
+            throw new ApiError('Lần tạo tàu trước chưa rõ kết quả. Kiểm tra hồ sơ tàu trước khi tải gói khác có cùng mã.', 409)
           }
-          return
-        }
-
-        if (file) {
-          await shipImportApi.upload(draft, file)
-        }
-
-        if (alive.current) {
-          const next = restoredRegistration(prepared)
-          setSession(next.draft)
-          setRegisterUncertain(next.pending)
-        }
+          const next = await prepareImport(draft, file, store, shipImportApi.upload)
+          if (alive.current) {
+            setSession(next)
+            setRegisterUncertain(false)
+          }
+        })
       },
     )
   }
 
-  async function register(supplements: ShipProvisionFields) {
+  async function register(supplements: ShipProvisionFields, preview: ImportPreview) {
     await run(
       'Đang đăng ký tàu và mô hình…',
-      permissions.register,
+      permissions.register && !candidate && !registerUncertain && session.uploaded,
       async () => {
         const create = async () => {
           if (getSessionAccess().userId !== userId) return
-          const previous = restoredRegistration(session)
+          const previous = store.read(session)
           if (previous.pending || previous.draft.registration) {
             setRegisterUncertain(previous.pending)
             setSession(previous.draft)
             return
           }
-          localStorage.setItem(registerKey, 'pending')
+          const fingerprint = await previewFingerprint(preview)
+          const current = await shipImportApi.preview(session.modelKey, new AbortController().signal)
+          if (await previewFingerprint(current) !== fingerprint) throw new ApiError('Mô hình đã thay đổi. Tải lại bản xem trước và xác nhận lại.', 409)
+          const confirmed = { ...session, previewFingerprint: fingerprint }
+          store.pending(confirmed)
+          setSession(confirmed)
           setRegisterUncertain(true)
           try {
-            const result = await shipImportApi.register(session, supplements)
-            const next = { ...session, registration: result }
-            localStorage.setItem(registerKey, JSON.stringify(result))
-            sessionStorage.setItem(storageKey, JSON.stringify(next))
+            const result = await shipImportApi.register(confirmed, supplements)
+            const next = store.registered(confirmed, result)
             if (alive.current) {
               setSession(next)
               setRegisterUncertain(false)
             }
           } catch (cause) {
             if (!importOutcomeUnknown(cause)) {
-              localStorage.removeItem(registerKey)
+              store.rejected(confirmed)
               setRegisterUncertain(false)
             }
             throw cause
@@ -300,7 +273,7 @@ function ShipImportContent({ userId }: { userId: string }) {
           if (lock) await create()
           else setRegisterUncertain(true)
         })
-        else await create()
+        else throw new ApiError('Trình duyệt chưa hỗ trợ khóa phiên tạo tàu. Vui lòng dùng phiên bản Chrome hoặc Edge mới.', 400)
       },
     )
   }
@@ -312,6 +285,7 @@ function ShipImportContent({ userId }: { userId: string }) {
       'Đang thiết lập cấu trúc tàu…',
       permissions.import,
       async () => {
+        await shipImportApi.verifyRegistration(session, new AbortController().signal)
         const next = { ...session, pendingStructure: (history.data ?? []).map(item => item.jobId) }
         sessionStorage.setItem(storageKey, JSON.stringify({ ...next, job: null }))
         setSession(next)
@@ -345,11 +319,6 @@ function ShipImportContent({ userId }: { userId: string }) {
 
   function startNew() {
     if (!canPrepare || inFlight.current || pendingStructure) return
-
-    if (registration) {
-      try { localStorage.removeItem(registerKey) }
-      catch { setError('Không thể làm mới phiên tạo tàu trên thiết bị.'); return }
-    }
 
     setSession(emptySession)
     setError('')
@@ -436,11 +405,16 @@ function ShipImportContent({ userId }: { userId: string }) {
         <ButtonLink tone="secondary" to="/admin/ship-models">Kiểm tra tàu trong sơ đồ 3D</ButtonLink>
         <Button tone="text" onClick={() => {
           try {
-            const next = restoredRegistration(session)
+            const next = store.read(session)
             setSession(next.draft)
             setRegisterUncertain(next.pending)
           } catch { setError('Không đọc được trạng thái đã lưu trên thiết bị.') }
         }}>Đọc lại trạng thái đã lưu</Button>
+      </Notice>}
+      {candidate && !registration && !busy && <Notice title="Chưa xác nhận được hồ sơ tàu" tone={verification.error ? 'error' : 'warning'}>
+        {verification.error?.message ?? (canRead ? 'Đang đối chiếu tàu và mô hình với hệ thống…' : 'Cần quyền đọc thông tin tàu để tiếp tục.')}
+        <Button tone="text" onClick={verification.retry}>Kiểm tra lại hồ sơ</Button>
+        <ButtonLink tone="secondary" to="/admin/ship-models">Kiểm tra tàu trong sơ đồ 3D</ButtonLink>
       </Notice>}
       {pendingStructure && <Notice title="Đối chiếu lần import" tone="warning">
         {job ? 'Lịch sử có một lần import mới. Đây là kết quả quan sát được từ hệ thống.' : 'Chưa xác định được lần import tương ứng. Kiểm tra lịch sử trước khi tiếp tục.'}
@@ -452,7 +426,7 @@ function ShipImportContent({ userId }: { userId: string }) {
       </Notice>}
       {rejectedImportIssues(failure).length > 0 && <ImportIssueList issues={rejectedImportIssues(failure)} />}
       {!job ? (
-        !open && <ImportDialog embedded session={session} busy={busy} error={error} allowed={canAdvance} importStatus={importStatus} permissions={permissions} onPrepare={prepare} onRegister={register} onImport={importStructure} onChooseBundle={chooseBundle} onClose={()=>setOpen(false)}/>
+        !open && <ImportDialog embedded session={verifiedSession} busy={busy} error={error} allowed={canAdvance} verifying={Boolean(candidate && !registration)} importStatus={importStatus} permissions={permissions} onPrepare={prepare} onRegister={register} onImport={importStructure} onChooseBundle={chooseBundle} onClose={()=>setOpen(false)}/>
       ) : (
         <div className={styles.sessionLayout}>
           <Panel className={styles.sessionPanel}>
@@ -576,10 +550,10 @@ function ShipImportContent({ userId }: { userId: string }) {
       </div>
       {open && (
         <ImportDialog
-          session={session}
+          session={verifiedSession}
           busy={busy}
           error={error}
-          allowed={canAdvance}
+          allowed={canAdvance} verifying={Boolean(candidate && !registration)}
           importStatus={importStatus}
           permissions={permissions}
           onPrepare={prepare}

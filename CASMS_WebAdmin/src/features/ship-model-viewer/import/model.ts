@@ -15,6 +15,7 @@ export type ImportSession = {
   modelKey: string; fileName: string; uploaded: boolean
   registration: Registration | null; job: ImportJob | null
   pendingStructure?: string[]
+  scope?: string; attemptId?: string; previewFingerprint?: string
 }
 export const emptySession: ImportSession = { modelKey: '', fileName: '', uploaded: false, registration: null, job: null }
 export const importSteps = ['Chọn mô hình 3D', 'Xác nhận thông tin tàu', 'Import cấu trúc tàu']
@@ -88,16 +89,28 @@ export function importErrorText(error: unknown) {
   if (error.status === 422 && error.code === 'SHIP_MODEL_IMPORT_REJECTED') return 'Gói có đối tượng không hợp lệ. Hệ thống đã từ chối lần import này.'
   return error.message
 }
-export function restoreSession(raw: string | null): ImportSession | null {
+export function validRegistration(value: unknown): value is Registration {
+  const row = value as Registration | null
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return !!row && uuid.test(row.shipId) && uuid.test(row.shipModelId) && row.shipCreated === true
+}
+export function restoreSession(raw: string | null, scope?: string): ImportSession | null {
   if (!raw) return null
   try {
     const value = JSON.parse(raw) as ImportSession
+    if (!scope || value?.scope !== scope || typeof value.attemptId !== 'string' || !/^[0-9a-f-]{36}$/i.test(value.attemptId)) return null
     if (!value || typeof value.modelKey !== 'string' || typeof value.fileName !== 'string' || value.uploaded !== true) return null
     if (Object.keys(validateBundle(value.modelKey, null, true)).length) return null
-    if (value.registration && (typeof value.registration.shipId !== 'string' || typeof value.registration.shipModelId !== 'string' || typeof value.registration.shipCreated !== 'boolean')) return null
+    if (value.registration && !validRegistration(value.registration)) return null
+    if (value.previewFingerprint !== undefined && !/^[0-9a-f]{64}$/.test(value.previewFingerprint)) return null
+    if (value.registration && !value.previewFingerprint) return null
     if (value.pendingStructure && (!Array.isArray(value.pendingStructure) || !value.pendingStructure.every(id => typeof id === 'string'))) return null
     // Re-read persisted jobs from the server, never trust a cached completion status.
-    const { modelKey, fileName, uploaded, registration, pendingStructure } = value
-    return { modelKey, fileName, uploaded, registration: registration ?? null, pendingStructure, job: null }
+    const { modelKey, fileName, uploaded, registration, pendingStructure, attemptId, previewFingerprint } = value
+    return { modelKey, fileName, uploaded, registration: registration ?? null, pendingStructure, attemptId, scope, previewFingerprint, job: null }
   } catch { return null }
+}
+
+export function importStage(session: ImportSession, verified: boolean) {
+  return !session.uploaded ? 0 : session.registration && verified ? 2 : 1
 }

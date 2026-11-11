@@ -1,6 +1,6 @@
 import {CruisePackageAddons} from './Addons'
 import {CruisePackageMappingEvidence} from './cabin-mapping'
-import {DeparturePackageManager} from '@/features/cruises/components/DeparturePackageManager'
+import type { ReactNode } from 'react'
 import { useCallback,  useState } from 'react'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
@@ -88,7 +88,8 @@ function OfferCard({item,context,disabled,run,shipName}:{shipName?:string|null;i
     {configure&&upgrade&&<OfferForm cruiseId={cruiseId} existing={item} disabled={disabled} run={run}/>}
   </fieldset></article>
 }
-function DepartureOffersWorkspace({cruiseId,onChanged,shipName}:{cruiseId:string;onChanged:()=>void;shipName?:string|null}) {
+type DepartureCruisePackagesProps = {cruiseId:string;onChanged:()=>void;shipName?:string|null;renderAssignment?:(onChanged:()=>void)=>ReactNode}
+function DepartureOffersWorkspace({cruiseId,onChanged,shipName,renderAssignment}:DepartureCruisePackagesProps) {
   const access=useSessionAccess(),[epoch,setEpoch]=useState(0)
   const [saved,setSaved]=useState<{userId:string|null;offers:CruisePackageOffer[];context:CruisePackageContext}|null>(null)
   const query=useReadQuery(`departure-fares:${access.userId}:${access.permissions.join(',')}:${cruiseId}:${epoch}`,useCallback(async signal=>{
@@ -102,7 +103,7 @@ function DepartureOffersWorkspace({cruiseId,onChanged,shipName}:{cruiseId:string
     <QueryState loading={query.loading} error={query.error}/>{mutation.feedback}
     {access.roles.includes('ACTIVITY_SERVICE_MANAGER')&&access.canDo('TOUR_PACKAGE_MANAGE')&&<ButtonLink tone="secondary" to="/admin/cruise-package-templates">Mở mẫu gói du thuyền</ButtonLink>}
     {data&&!data.context.shipId&&<Notice title="Chưa được phân công tàu" tone="warning"><p>Cần có tàu trước khi cấu hình gói du thuyền của chuyến.</p></Notice>}
-    {access.canDo('TOUR_PACKAGE_ASSIGN')&&<DeparturePackageManager cruiseId={cruiseId} onChanged={()=>{refresh();onChanged()}}/>}
+    {access.canDo('TOUR_PACKAGE_ASSIGN')&&renderAssignment?.(()=>{refresh();onChanged()})}
     {data?.offers.length===0&&!access.canDo('TOUR_PACKAGE_ASSIGN')&&<Empty title="Chưa có gói du thuyền được gán"><p>Nhờ người có quyền gán gói chọn phiên bản mẫu và tạo gói cho chuyến này.</p></Empty>}
     {data?.offers.map(item=><OfferCard key={item.offer.id} item={item} context={data.context} shipName={shipName} disabled={disabled} run={mutation.run}/>)}
     {data?.context.canConfigure&&<OfferForm cruiseId={cruiseId} disabled={disabled} run={mutation.run}/>}
@@ -111,7 +112,7 @@ function DepartureOffersWorkspace({cruiseId,onChanged,shipName}:{cruiseId:string
 }
 
 
-export function DepartureCruisePackages(props:{cruiseId:string;onChanged:()=>void;shipName?:string|null}){return <UnsavedForms><DepartureOffersWorkspace {...props}/></UnsavedForms>}
+export function DepartureCruisePackages(props:DepartureCruisePackagesProps){return <UnsavedForms><DepartureOffersWorkspace {...props}/></UnsavedForms>}
 
 
 

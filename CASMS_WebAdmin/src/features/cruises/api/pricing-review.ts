@@ -1,5 +1,5 @@
 import {ApiError,apiRequest} from '@/shared/api'
-import {decodePricingPolicy,type PricingPolicy} from '../model/pricing-policy'
+import {decodePricingPolicy,samePricingPolicy,type PricingPolicy} from '../model/pricing-policy'
 export type PricingAction='submit'|'approve'|'return'
 export async function readPricingPolicy(cruiseId:string,signal?:AbortSignal):Promise<PricingPolicy>{
  return decodePricingPolicy(await apiRequest(`/cruise/${encodeURIComponent(cruiseId)}/pricing-policy`,{signal}),cruiseId)
@@ -21,7 +21,7 @@ export async function reviewPricing(policy:PricingPolicy,action:PricingAction,re
  const saved=decodePricingPolicy(await apiRequest(`${root}/${action}`,{method:'POST',body:{expectedRevision:policy.revision,reason}}),policy.cruiseId)
  const actual=decodePricingPolicy(await apiRequest(root),policy.cruiseId)
  const expected=action==='submit'?'PENDING_APPROVAL':action==='approve'?'APPROVED':'RETURNED'
- if(saved.pricingPolicyId!==policy.pricingPolicyId||saved.status!==expected||saved.revision!==policy.revision+1||JSON.stringify(actual)!==JSON.stringify(saved))throw new ApiError('',502)
+ if(saved.pricingPolicyId!==policy.pricingPolicyId||saved.status!==expected||saved.revision!==policy.revision+1||!samePricingPolicy(saved,actual))throw new ApiError('',502)
  return actual
 }
 
