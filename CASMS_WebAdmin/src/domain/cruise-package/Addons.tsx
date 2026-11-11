@@ -164,7 +164,7 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
   const createBlocked = disabled || configuration.loading || Boolean(configuration.error) || !configuration.data?.canCreate
 
   const sourceChoices = configuration.data?.candidates.filter(item => item.resourceType === type) ?? []
-  const canSave = !createBlocked && Boolean(candidate?.eligible && resource && windows.length && amount.trim() && eligibility.trim()) && !Boolean(stage || start || end || cutoff)
+  const canSave = !createBlocked && Boolean(candidate?.eligible && resource && windows.length && amount.trim() && eligibility.trim()) && !(stage || start || end || cutoff)
 
   useFormChanges(Boolean(resource || amount || eligibility || windows.length || stage || start || end || cutoff), mutation.busy)
 

@@ -1,5 +1,6 @@
 import {ShipAreas} from '../components/ShipAreas'
 import {ShipOverview} from '../components/ShipOverview'
+import { CruisePackageCabinMapping } from '@/domain/cruise-package'
 import { useCallback, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router'
 import { PermissionLink as Link } from '@/shared/ui'
@@ -52,6 +53,7 @@ function ShipManagementContent({ id }: { id: string }) {
       {access.canDo('CABIN_READ')&&<Link to={`/admin/ships/${id}?tab=cabins`} aria-current={tab==='cabins'?'page':undefined}>Phòng</Link>}
     </nav>
     {tab==='overview'?<ShipOverview ship={ship}/>:tab==='areas'?<ShipAreas key={id} shipId={id} initialDeck={params.get('deck')??''}/>:<ShipInventory key={`${id}:${tab}:${params.get('deck')??''}`} ship={ship} view={tab} initialDeck={params.get('deck')??''} onDialog={setDialog}/>}
+    {tab==='cabins'&&<CruisePackageCabinMapping shipId={id}/>}
     <FleetDialogs dialog={dialog} ship={ship} onChange={setDialog} onSaved={setSaved} />
   </div>
 }

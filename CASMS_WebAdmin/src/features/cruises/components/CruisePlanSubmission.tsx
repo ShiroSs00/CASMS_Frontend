@@ -2,6 +2,7 @@ import {useState} from 'react'
 import {useSessionAccess} from '@/shared/auth'
 import {Button,Panel,RecordFacts} from '@/shared/ui'
 import {journeyTime} from '@/shared/lib/journey-time'
+import {usePlanQuery} from '../hooks/usePlanQuery'
 import type {DepartureSection} from '../model/preparation'
 import type {CruiseDetailView} from '../model/cruise-view'
 import {CruisePlanReview} from './CruisePlanReview'
@@ -11,9 +12,11 @@ import styles from './DeparturePreparation.module.css'
 
 export function CruisePlanSubmission({detail,refreshKey,onChanged,onPrepare,onSection}:{detail:CruiseDetailView;refreshKey:string;onChanged:()=>void;onPrepare:()=>void;onSection:(section:DepartureSection)=>void}){
  const access=useSessionAccess()
- const canViewCommercial=access.roles.includes('CRUISE_MANAGER')||access.roles.includes('OPERATIONS_MANAGER')
  const [showSchedule,setShowSchedule]=useState(false),[showPricing,setShowPricing]=useState(true)
  const cruise=detail.cruise
+ const canReadPlan=access.has('CRUISE_READ')&&(access.roles.includes('CRUISE_MANAGER')||access.roles.includes('OPERATIONS_MANAGER'))
+ const plan=usePlanQuery(cruise.cruiseId,refreshKey,canReadPlan)
+ const canViewCommercial=Boolean(plan.data&&!plan.data.unifiedPackageReview)
  return <section className={styles.content} aria-label="Kiểm tra và gửi hồ sơ">
   <div className={styles.sectionIntro}><h2>Kiểm tra và gửi hồ sơ</h2></div>
   <Panel title="Xem lại kế hoạch trước khi gửi">

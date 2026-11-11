@@ -1,6 +1,6 @@
 import {CruisePackageAddons} from './Addons'
 import {CruisePackageMappingEvidence} from './cabin-mapping'
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { cabinTypeLabel } from '@/shared/i18n/business-copy'
@@ -11,7 +11,7 @@ import {inclusionLabels,lifecycle} from './labels'
 import {useCruisePackageMutation} from './useCruisePackageMutation'
 import styles from './Workspace.module.css'
 import {benefitQuantity} from './benefit-copy'
-import { journeyTime, zonedInput, SHIP_TIME_ZONE } from '@/shared/lib/journey-time'
+import { journeyTime, wallTimeToInstant, zonedInput, SHIP_TIME_ZONE } from '@/shared/lib/journey-time'
 
 type Run=(action:()=>Promise<unknown>,message:string)=>Promise<boolean>
 
@@ -52,8 +52,8 @@ function OfferForm({
   const [versionId, setVersionId] = useState('')
   const [logical, setLogical] = useState('')
   const [actual, setActual] = useState('')
-  const [start, setStart] = useState(() => existing ? toInputDateTime(existing.offer.salesStart) : '')
-  const [end, setEnd] = useState(() => existing ? toInputDateTime(existing.offer.salesEnd) : '')
+  const [editedStart, setStart] = useState<string | null>(null)
+  const [editedEnd, setEnd] = useState<string | null>(null)
   const [validation, setValidation] = useState('')
 
   const templates = useReadQuery(`fare-offer-templates:${cruiseId}`, cruisePackageApi.templates)
@@ -64,50 +64,18 @@ function OfferForm({
   const selected = choices.find(v => v.version.id === versionId)
   const prefix = existing?.offer.id ?? 'new'
 
-  useFormChanges(Boolean(versionId || logical || actual || start || end || (!existing && templateId)))
-
-  // Auto-fetch & prefill cruise booking window into sales period when adding new package
-  useEffect(() => {
-    if (!existing && context) {
-      if (!start && context.bookingOpensAt) {
-        setStart(toInputDateTime(context.bookingOpensAt))
-      }
-      if (!end) {
-        const candidateEnd = context.bookingClosesAt ?? context.departureDatetime
-        if (candidateEnd) {
-          const startMs = Date.parse(context.bookingOpensAt ?? '')
-          const endMs = Date.parse(candidateEnd)
-          if (!isNaN(startMs) && !isNaN(endMs) && endMs <= startMs) {
-            const adjusted = new Date(startMs + 7 * 24 * 3600 * 1000)
-            setEnd(toInputDateTime(adjusted.toISOString()))
-          } else {
-            setEnd(toInputDateTime(candidateEnd))
-          }
-        }
-      }
-    }
-  }, [existing, context, start, end])
+  const minSalesStart = toInputDateTime(context?.bookingOpensAt)
+  const maxSalesEnd = toInputDateTime(context?.bookingClosesAt ?? context?.departureDatetime)
+  const start = editedStart ?? (existing ? toInputDateTime(existing.offer.salesStart) : minSalesStart)
+  const end = editedEnd ?? (existing ? toInputDateTime(existing.offer.salesEnd) : maxSalesEnd)
+  useFormChanges(Boolean(versionId || logical || actual || (!existing && templateId)) || editedStart !== null || editedEnd !== null)
 
   const applyCruiseBookingWindow = () => {
-    if (context?.bookingOpensAt) {
-      setStart(toInputDateTime(context.bookingOpensAt))
-    }
-    const candidateEnd = context?.bookingClosesAt ?? context?.departureDatetime
-    if (candidateEnd) {
-      const startMs = Date.parse(context?.bookingOpensAt ?? '')
-      const endMs = Date.parse(candidateEnd)
-      if (!isNaN(startMs) && !isNaN(endMs) && endMs <= startMs) {
-        const adjusted = new Date(startMs + 7 * 24 * 3600 * 1000)
-        setEnd(toInputDateTime(adjusted.toISOString()))
-      } else {
-        setEnd(toInputDateTime(candidateEnd))
-      }
-    }
+    if (minSalesStart) setStart(minSalesStart)
+    if (maxSalesEnd) setEnd(maxSalesEnd)
     setValidation('')
   }
 
-  const minSalesStart = toInputDateTime(context?.bookingOpensAt)
-  const maxSalesEnd = toInputDateTime(context?.bookingClosesAt ?? context?.departureDatetime)
 
   const unavailable = disabled || templates.loading || versions.loading || cabins.loading || Boolean(templates.error || versions.error || cabins.error)
   const formId = 'departure-offer-' + prefix
@@ -129,8 +97,16 @@ function OfferForm({
         e.preventDefault()
         if (unavailable || !selected) return
         setValidation('')
-        const parsedStart = Date.parse(start)
-        const parsedEnd = Date.parse(end)
+        let salesStart: string, salesEnd: string
+        try {
+          salesStart = wallTimeToInstant(start, SHIP_TIME_ZONE)
+          salesEnd = wallTimeToInstant(end, SHIP_TIME_ZONE)
+        } catch {
+          setValidation('Nhập thời gian bán hợp lệ theo giờ Việt Nam.')
+          return
+        }
+        const parsedStart = Date.parse(salesStart)
+        const parsedEnd = Date.parse(salesEnd)
         if (!selected.logicalCategoryReferences.some(c => c.id === logical) || !actual || !start || !end || isNaN(parsedStart) || isNaN(parsedEnd) || parsedStart >= parsedEnd) {
           setValidation('Chọn hạng phòng và thời gian bán hợp lệ; thời điểm bắt đầu phải trước kết thúc.')
           return
@@ -148,8 +124,8 @@ function OfferForm({
           logicalCategory: selected.logicalCategoryReferences.find(c => c.id === logical)!.name,
           logicalCategoryId: logical,
           proposedCabinType: actual,
-          salesStart: new Date(start).toISOString(),
-          salesEnd: new Date(end).toISOString()
+          salesStart,
+          salesEnd
         }
         const ok = await run(
           () => existing ? cruisePackageApi.upgradeOffer(cruiseId, existing.offer.id, existing.offer.revision, input) : cruisePackageApi.createOffer(cruiseId, input),
@@ -161,8 +137,8 @@ function OfferForm({
           setVersionId('')
           setLogical('')
           setActual('')
-          setStart('')
-          setEnd('')
+          setStart(null)
+          setEnd(null)
         }
       }}
     >

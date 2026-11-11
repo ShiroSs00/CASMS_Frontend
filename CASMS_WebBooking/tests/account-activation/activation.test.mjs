@@ -59,20 +59,47 @@ test('refresh and back to the cleaned history entry cannot restore the token', (
   assert.equal(captureActivationLink(browser).read(), null)
 })
 
-test('password required/12–72 character limits and confirmation mismatch', () => {
-  for (const value of ['', ' '.repeat(12), 'a'.repeat(11), 'a'.repeat(73)]) assert.ok(validateActivationPassword(value, value).password)
-  for (const value of ['a'.repeat(12), 'a'.repeat(72)]) assert.deepEqual(validateActivationPassword(value, value), {})
-  assert.ok(validateActivationPassword('a'.repeat(12), '').confirmation)
-  assert.ok(validateActivationPassword('a'.repeat(12), 'b'.repeat(12)).confirmation)
+test('password required/8–24 character limits and confirmation mismatch', () => {
+  for (const value of ['', ' '.repeat(8)]) {
+    assert.equal(validateActivationPassword(value, value).password, 'Nhập mật khẩu mới.')
+  }
+  const minimum = 'a'.repeat(8)
+  const maximum = 'a'.repeat(24)
+  assert.equal(validateActivationPassword(minimum.slice(1), minimum.slice(1)).password, 'Mật khẩu cần có ít nhất 8 ký tự.')
+  assert.deepEqual(validateActivationPassword(minimum, minimum), {})
+  assert.deepEqual(validateActivationPassword(maximum, maximum), {})
+  assert.equal(validateActivationPassword(maximum + 'a', maximum + 'a').password, 'Mật khẩu không được quá 24 ký tự.')
+  assert.deepEqual(validateActivationPassword(minimum, ''), { confirmation: 'Nhập lại mật khẩu mới.' })
+  assert.deepEqual(validateActivationPassword(minimum, 'b'.repeat(8)), { confirmation: 'Mật khẩu xác nhận chưa khớp.' })
 })
 
 test('UTF-8 boundary is checked without trimming or normalizing the password', () => {
-  const exact = 'á'.repeat(36)
+  const encoder = new TextEncoder()
+  const accented = 'á'.repeat(12) + 'a'
+  assert.equal(encoder.encode(accented).length, 25)
+  assert.deepEqual(validateActivationPassword(accented, accented), {})
+  const exact = '€'.repeat(24)
+  assert.equal(encoder.encode(exact).length, 72)
   assert.deepEqual(validateActivationPassword(exact, exact), {})
-  assert.ok(validateActivationPassword('á'.repeat(37), 'á'.repeat(37)).password)
-  assert.ok(validateActivationPassword('😀'.repeat(19), '😀'.repeat(19)).password)
+  const over = exact + 'a'
+  assert.equal(encoder.encode(over).length, 73)
+  assert.ok(validateActivationPassword(over, over).password)
   const spaced = '  secure-password  '
   assert.deepEqual(validateActivationPassword(spaced, spaced), {})
+  assert.ok(validateActivationPassword(spaced, spaced.trim()).confirmation)
+  const composed = 'á'.repeat(8)
+  assert.ok(validateActivationPassword(composed, composed.normalize('NFD')).confirmation)
+})
+
+test('password length counts UTF-16 code units like Backend Java validation', () => {
+  for (const count of [4, 12]) {
+    const password = '😀'.repeat(count)
+    assert.deepEqual(validateActivationPassword(password, password), {})
+  }
+  const belowMinimum = '😀'.repeat(3) + 'a'
+  const aboveMaximum = '😀'.repeat(12) + 'a'
+  assert.equal(validateActivationPassword(belowMinimum, belowMinimum).password, 'Mật khẩu cần có ít nhất 8 ký tự.')
+  assert.equal(validateActivationPassword(aboveMaximum, aboveMaximum).password, 'Mật khẩu không được quá 24 ký tự.')
 })
 
 test('activation is exactly one public POST, no Authorization, and does not mutate the existing auth session', async () => {
