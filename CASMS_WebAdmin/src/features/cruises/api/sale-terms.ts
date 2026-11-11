@@ -6,6 +6,7 @@ export type Terms = { tax: Charge; portFee: Charge }
 export type Action = 'submit' | 'approve' | 'return'
 const states = ['MISSING', 'DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'RETURNED'] as const
 export type SaleTerms = { planStatus?: string; revision: number; status: typeof states[number]; terms: Terms | null; submittedBy: string | null; submittedAt: string | null; reviewedAt: string | null }
+export type SaleTermsSetup = { cruiseId: string; cruiseCode: string; cruiseName: string; departurePort: string; returnPort: string; ports: string[] }
 type History = { actorId: string; action: string; recordedAt: string; evidence: { snapshot: SaleTerms; reason: string } }
 
 const invalid = () => new ApiError('Phản hồi điều kiện mở bán chưa đầy đủ.', 502)
@@ -24,12 +25,16 @@ function decode(value: SaleTerms): SaleTerms {
   return value
 }
 const path = (id: string) => `/cruise-plans/${encodeURIComponent(id)}/commercial-terms/sale`
+const setupPath = (id: string) => `/cruise-plans/${encodeURIComponent(id)}/sale-terms-request`
 async function mutate(id: string, revision: number, state: SaleTerms['status'], method: 'PUT' | 'POST', suffix: string, body: object) {
   const saved = decode(await apiRequest<SaleTerms>(path(id) + suffix, { method, body: { ...body, expectedRevision: revision } }))
   if (saved.revision !== revision + 1 || saved.status !== state) throw invalid()
   return saved
 }
 export const saleTermsApi = {
+  requestSetup: (id: string) => apiRequest<boolean>(setupPath(id), { method: 'POST' }),
+  pendingSetup: (id: string, signal: AbortSignal) => apiRequest<boolean>(setupPath(id), { signal }),
+  setupRequests: (signal: AbortSignal) => apiRequest<SaleTermsSetup[]>('/cruise-plans/sale-terms-requests', { signal }),
   read: (id: string, signal?: AbortSignal) => apiRequest<SaleTerms>(path(id), { signal }).then(decode),
   save: (id: string, revision: number, terms: Terms) => mutate(id, revision, 'DRAFT', 'PUT', '', { terms }),
   review: (id: string, revision: number, action: Action, reason: string) =>

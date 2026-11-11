@@ -71,12 +71,12 @@ function ChargeFields({ label, tax, value, onChange, error }: { label: string; t
   </section>
 }
 
-export function DepartureSaleTerms({ cruiseId, refreshKey, onChanged, focusOnMount, unified }: { cruiseId: string; refreshKey: string | number; onChanged?: () => void; focusOnMount?: boolean; unified?: boolean }) {
+export function DepartureSaleTerms({ cruiseId, refreshKey, onChanged, focusOnMount, unified, setupOnly = false }: { cruiseId: string; refreshKey: string | number; onChanged?: () => void; focusOnMount?: boolean; unified?: boolean; setupOnly?: boolean }) {
   const access = useSessionAccess()
   const allowed = access.roles.includes('OPERATIONS_MANAGER') && access.has('CRUISE_PRICING_APPROVE')
   const key = `${access.userId}:${cruiseId}:${refreshKey}:${allowed}`
   const terms = useReadQuery('sale-terms:' + key, useCallback(signal => allowed ? saleTermsApi.read(cruiseId, signal) : Promise.resolve(null), [allowed, cruiseId]))
-  const history = useReadQuery('sale-terms-history:' + key, useCallback(signal => allowed ? saleTermsApi.history(cruiseId, signal) : Promise.resolve(null), [allowed, cruiseId]))
+  const history = useReadQuery('sale-terms-history:' + key, useCallback(signal => allowed && !setupOnly ? saleTermsApi.history(cruiseId, signal) : Promise.resolve(null), [allowed, cruiseId, setupOnly]))
   const [editor, setEditor] = useState<{ revision: number; tax: Draft; portFee: Draft } | null>(null)
   const [fieldErrors, setFieldErrors] = useState({ tax: '', portFee: '' })
   const [reason, setReason] = useState('')
@@ -122,7 +122,7 @@ export function DepartureSaleTerms({ cruiseId, refreshKey, onChanged, focusOnMou
       setReturning(false)
       setReason('')
       setSuccess(message)
-      reload()
+      if (!setupOnly) reload()
       onChanged?.()
     } catch (cause) {
       if (cause instanceof ApiError) {
@@ -161,11 +161,10 @@ export function DepartureSaleTerms({ cruiseId, refreshKey, onChanged, focusOnMou
 
   if (!allowed) return null
   return <section ref={section} id="departure-sale-terms" tabIndex={-1}>
-    <Panel title="Điều kiện thương mại mở bán">
-      <p>Quản lý vận hành cấu hình và duyệt thuế, phí cảng cho chuyến này. Giá Gói du thuyền và chính sách giao dịch có luồng riêng.</p>
+    <Panel title={setupOnly ? undefined : "Điều kiện thương mại mở bán"}>
       {terms.loading && <Loading label="Đang tải điều kiện mở bán…"/>}
       {terms.error && <Notice tone="error" title="Chưa tải được điều kiện mở bán">{terms.error.message} <Button onClick={reload}>Tải lại</Button></Notice>}
-      {data && <><Badge label={labels[data.status]} tone={data.status === 'APPROVED' ? 'success' : 'neutral'}/>
+      {data && !setupOnly && <><Badge label={labels[data.status]} tone={data.status === 'APPROVED' ? 'success' : 'neutral'}/>
         <p>Phiên bản {data.revision}{data.reviewedAt ? ` · Xét duyệt lúc ${journeyTime(data.reviewedAt)}` : ''}</p>
         {data.terms && <dl className={styles.terms}>
           <div><dt>Thuế</dt><dd>{describe(data.terms.tax, true)}{data.terms.tax.evidence && <p>{data.terms.tax.evidence}</p>}</dd></div>

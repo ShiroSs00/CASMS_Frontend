@@ -1,5 +1,6 @@
 import {ApiError} from '@/shared/api'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ButtonLink } from '@/shared/ui'
 import { useParams } from 'react-router'
 import { useSessionAccess } from '@/shared/auth'
 
@@ -11,6 +12,8 @@ import type {
   ConflictResult,
   HostType,
   RegulationStatus,
+  RegulationScope,
+  RegulationType,
 } from '../model/regulation'
 import {
   formatDateTime,
@@ -98,11 +101,9 @@ function AssignmentTable({
   )
 }
 
-function AssignmentPage({ type }: { type: HostType }) {
+function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; routeId?: string; onAssigned?: () => void }) {
   const access = useSessionAccess()
   const prefix = type === 'ship' ? 'SHIP_REGULATION' : 'CRUISE_REGULATION'
-  const params = useParams()
-  const routeId = type === 'ship' ? params.shipId : params.cruiseId
   const [loadedSnapshot, setSnapshot] = useState<AssignmentSnapshot | null>(null)
   const snapshot = loadedSnapshot?.host.id === routeId ? loadedSnapshot : null
   const [loading, setLoading] = useState(true)
@@ -112,6 +113,8 @@ function AssignmentPage({ type }: { type: HostType }) {
   const [candidateLoading, setCandidateLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<RegulationStatus | 'ALL'>('ALL')
+  const [regulationType, setRegulationType] = useState<RegulationType | 'ALL'>('ALL')
+  const [scope, setScope] = useState<RegulationScope | 'ALL'>('ALL')
   const [selectedId, setSelectedId] = useState('')
   const [conflict, setConflict] = useState<ConflictResult | null>(null)
   const [checking, setChecking] = useState(false)
@@ -171,6 +174,8 @@ function AssignmentPage({ type }: { type: HostType }) {
     setActionError('')
     setSearch('')
     setStatus('ALL')
+    setRegulationType('ALL')
+    setScope('ALL')
     try {
       setCandidates(await regulationsApi.getCandidates(type, routeId ?? ''))
     } catch {
@@ -180,6 +185,13 @@ function AssignmentPage({ type }: { type: HostType }) {
     }
   }
 
+  const resetSelection = () => {
+    requestSequence.current += 1
+    setSelectedId('')
+    setConflict(null)
+    setChecking(false)
+  }
+
   const filteredCandidates = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('vi')
     return candidates.filter(({ regulation }) => {
@@ -187,9 +199,12 @@ function AssignmentPage({ type }: { type: HostType }) {
         !term ||
         regulation.code.toLocaleLowerCase('vi').includes(term) ||
         regulation.name.toLocaleLowerCase('vi').includes(term)
-      return matchesSearch && (status === 'ALL' || regulation.status === status)
+      return matchesSearch
+        && (status === 'ALL' || regulation.status === status)
+        && (regulationType === 'ALL' || regulation.type === regulationType)
+        && (scope === 'ALL' || regulation.scope === scope)
     })
-  }, [candidates, search, status])
+  }, [candidates, search, status, regulationType, scope])
 
   const checkCandidate = async (candidate: CandidateRegulation) => {
     if (!access.canDo(`${prefix}_READ`)) return
@@ -233,6 +248,7 @@ function AssignmentPage({ type }: { type: HostType }) {
         selected.regulation.id,
       )
       setAssignOpen(false)
+      onAssigned?.()
       const refreshed=await load()
       if(refreshed)setSuccess(result.message)
     } catch (error) {
@@ -269,12 +285,20 @@ function AssignmentPage({ type }: { type: HostType }) {
 
   const title = `${snapshot?.host.name ?? (type === 'ship' ? 'Tàu' : 'Chuyến khởi hành')} · Quy định`
 
-  return (
-    <AdminFrame>
+  const assignButton = access.canDo(`${prefix}_ASSIGN`) && <Button autoWidth
+    disabled={loading || Boolean(loadError) || outcomeUnknown || !snapshot} onClick={() => void openAssign()}>
+    Gán quy định
+  </Button>
+
+  const content = <>
+      {onAssigned ? assignButton : <>
       <PageHeader
         title={title}
         description={snapshot?.host.description ?? 'Quy định trực tiếp và kế thừa của đối tượng.'}
-        actions={(access.canDo(`${prefix}_ASSIGN`) ? <Button disabled={loading || Boolean(loadError) || outcomeUnknown || !snapshot || !access.canDo(`${prefix}_ASSIGN`)} onClick={() => void openAssign()}>Gán quy định</Button> : null)}
+        actions={<>
+          {type==='cruise'&&routeId&&<ButtonLink tone="secondary" to={`/admin/cruises/${encodeURIComponent(routeId)}?section=resources`}>Về chuyến khởi hành</ButtonLink>}
+          {assignButton}
+        </>}
       />
       <div className={styles.twoColumn}>
         <Field label="Hiệu lực được kiểm tra lúc">
@@ -285,7 +309,8 @@ function AssignmentPage({ type }: { type: HostType }) {
         </Field>
       </div>
 
-      {loading ? <LoadingPanel label="Đang tải quy định được gán…" /> : null}
+      </>}
+      {!onAssigned && loading && <LoadingPanel label="Đang tải quy định được gán…" />}
       {!loading && loadError ? (
         <Notice title="Không tải được dữ liệu" tone="error" role="alert">
           <p>{loadError}</p>
@@ -301,7 +326,7 @@ function AssignmentPage({ type }: { type: HostType }) {
           </Button>
         </Notice>
       ) : null}
-      {!loading && !loadError && snapshot ? (
+      {!onAssigned && !loading && !loadError && snapshot ? (
         <>
           <Panel title={`Gán trực tiếp cho ${type === 'ship' ? 'tàu' : 'chuyến khởi hành'} · ${snapshot.direct.length}`}>
             <AssignmentTable checkedAt={snapshot.checkedAt} direct removePermission={`${prefix}_REMOVE`} onRemove={setRemoveItem} rows={snapshot.direct} />
@@ -325,6 +350,7 @@ function AssignmentPage({ type }: { type: HostType }) {
             }
           }}
           title={`Gán quy định cho ${type === 'ship' ? 'tàu' : 'chuyến khởi hành'}`}
+          variant={type==='cruise'?'drawer':'modal'}
           wide
          footer={<div className={styles.modalActions}>
 <Button disabled={submitting} onClick={() => setAssignOpen(false)} tone="secondary" data-overlay-dismiss>Hủy</Button>
@@ -340,11 +366,8 @@ function AssignmentPage({ type }: { type: HostType }) {
               <input
                 id="candidate-search"
                 onChange={(event) => {
-                  requestSequence.current += 1
                   setSearch(event.target.value)
-                  setSelectedId('')
-                  setConflict(null)
-                  setChecking(false)
+                  resetSelection()
                 }}
                 placeholder="Nhập mã hoặc tên"
                 value={search}
@@ -354,11 +377,8 @@ function AssignmentPage({ type }: { type: HostType }) {
               <select
                 id="candidate-status"
                 onChange={(event) => {
-                  requestSequence.current += 1
                   setStatus(event.target.value as RegulationStatus | 'ALL')
-                  setSelectedId('')
-                  setConflict(null)
-                  setChecking(false)
+                  resetSelection()
                 }}
                 value={status}
               >
@@ -369,7 +389,31 @@ function AssignmentPage({ type }: { type: HostType }) {
                 <option value="EXPIRED">Hết hạn</option>
               </select>
             </Field>
+            <Field htmlFor="candidate-type" label="Loại quy định">
+              <select id="candidate-type" value={regulationType} onChange={event => {
+                setRegulationType(event.target.value as RegulationType | 'ALL')
+                resetSelection()
+              }}>
+                <option value="ALL">Tất cả loại</option>
+                {Object.entries(typeLabels).map(([key,label]) => <option key={key} value={key}>{label}</option>)}
+              </select>
+            </Field>
+            <Field htmlFor="candidate-scope" label="Phạm vi">
+              <select id="candidate-scope" value={scope} onChange={event => {
+                setScope(event.target.value as RegulationScope | 'ALL')
+                resetSelection()
+              }}>
+                <option value="ALL">Tất cả phạm vi</option>
+                {Object.entries(scopeLabels).map(([key,label]) => <option key={key} value={key}>{label}</option>)}
+              </select>
+            </Field>
           </div>
+          {!candidateLoading && !actionError && <div className={styles.candidateSummary}>
+            <span role="status">{filteredCandidates.length} quy định</span>
+            {(search || status!=='ALL' || regulationType!=='ALL' || scope!=='ALL')&&<Button tone="text" onClick={() => {
+              setSearch(''); setStatus('ALL'); setRegulationType('ALL'); setScope('ALL'); resetSelection()
+            }}>Xóa bộ lọc</Button>}
+          </div>}
           {candidateLoading ? <LoadingPanel label="Đang tải quy định có thể gán…" /> : null}
           {!candidateLoading && actionError ? <Notice title="Không tải được dữ liệu" tone="error" role="alert">{actionError}</Notice> : null}
           {!candidateLoading && !actionError && filteredCandidates.length === 0 ? (
@@ -404,13 +448,8 @@ function AssignmentPage({ type }: { type: HostType }) {
               {selected.capabilities.canAssign.reason}
             </Notice>
           ) : null}
-          {access.canDo(`${prefix}_READ`) && <Button tone="secondary" disabled={checking || submitting || outcomeUnknown || !selected || !access.canDo(`${prefix}_READ`)} onClick={() => { if (selected) void checkCandidate(selected) }}>Kiểm tra lại trước khi gán</Button>}{checking ? <LoadingPanel label="Đang kiểm tra xung đột…" /> : null}
+          {conflict?.severity==='unavailable' && <Button tone="secondary" disabled={checking || submitting || outcomeUnknown || !selected || !access.canDo(`${prefix}_READ`)} onClick={() => { if (selected) void checkCandidate(selected) }}>Kiểm tra lại trước khi gán</Button>}{checking ? <LoadingPanel label="Đang kiểm tra xung đột…" /> : null}
           {conflict ? <ConflictCard result={conflict} /> : null}
-          {!selectedId && !checking ? (
-            <Notice title="Chưa có kết quả kiểm tra" tone="neutral">
-              Chọn quy định cần gán. Hệ thống sẽ kiểm tra xung đột trước khi cho phép xác nhận.
-            </Notice>
-          ) : null}
 
         </Modal>
       ) : null}
@@ -453,14 +492,20 @@ function AssignmentPage({ type }: { type: HostType }) {
           <Notice title="Thao tác thành công" tone="success" role="status">{success}</Notice>
         </div>
       ) : null}
-    </AdminFrame>
-  )
+  </>
+  return onAssigned ? content : <AdminFrame>{content}</AdminFrame>
 }
 
 export function ShipRegulationsPage() {
-  return <AssignmentPage type="ship" />
+  const { shipId } = useParams()
+  return <RegulationAssignments key={shipId} type="ship" routeId={shipId} />
 }
 
 export function CruiseRegulationsPage() {
-  return <AssignmentPage type="cruise" />
+  const { cruiseId } = useParams()
+  return <RegulationAssignments key={cruiseId} type="cruise" routeId={cruiseId} />
+}
+
+export function CruiseRegulationAssign({ cruiseId, onAssigned }: { cruiseId: string; onAssigned: () => void }) {
+  return <RegulationAssignments key={cruiseId} type="cruise" routeId={cruiseId} onAssigned={onAssigned} />
 }

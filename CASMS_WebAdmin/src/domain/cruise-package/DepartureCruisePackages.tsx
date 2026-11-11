@@ -4,9 +4,9 @@ import { useCallback, useState, type ReactNode } from 'react'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { cabinTypeLabel } from '@/shared/i18n/business-copy'
-import { Badge, Button, ButtonLink, Empty, Field, Modal, Notice, Panel, UnsavedForms, useFormChanges, useWorkspaceChange } from '@/shared/ui'
+import { Badge, Button, ButtonLink, Empty, Field, Modal, Notice, Panel, UnsavedForms, useFormChanges } from '@/shared/ui'
 import { cruisePackageApi, type Benefit, type CruisePackageContext, type CruisePackageOffer, type OfferInput } from './api'
-import {QueryState,ResourceSelect} from './Workspace'
+import {QueryState} from './Workspace'
 import {inclusionLabels,lifecycle} from './labels'
 import {useCruisePackageMutation} from './useCruisePackageMutation'
 import styles from './Workspace.module.css'
@@ -14,6 +14,19 @@ import {benefitQuantity} from './benefit-copy'
 import { journeyTime, wallTimeToInstant, zonedInput, SHIP_TIME_ZONE } from '@/shared/lib/journey-time'
 
 type Run=(action:()=>Promise<unknown>,message:string)=>Promise<boolean>
+
+const offerConditionCopy: Record<string,string> = {
+  OFFER_NOT_PUBLISHED:'Gói chưa được phát hành.',
+  TEMPLATE_NOT_PUBLISHED:'Cần dùng phiên bản mẫu đã phát hành.',
+  SHIP_CHANGED:'Cần kiểm tra lại gói sau khi đổi tàu.',
+  PRICE_NOT_APPROVED:'Giá cần được Quản lý vận hành duyệt.',
+  OUTSIDE_SALES_WINDOW:'Chưa ở trong thời gian bán của gói.',
+  CABIN_MAPPING_INVENTORY_UNAVAILABLE:'Hạng phòng chưa có cabin khả dụng.',
+  BENEFIT_OCCURRENCE_UNBOUND:'Cần chọn lần phục vụ cho quyền lợi còn thiếu.',
+  SERVICE_NOT_AVAILABLE_ON_SHIP:'Cần bố trí dịch vụ đang hoạt động trên tàu.',
+  BENEFIT_OCCURRENCE_WRONG_CRUISE:'Cần chọn lần phục vụ thuộc chuyến này.',
+  INCLUDED_BENEFIT_UNAVAILABLE:'Quyền lợi đi kèm chưa có suất phục vụ khả dụng.',
+}
 
 function toInputDateTime(iso?: string | null): string {
   if (!iso) return ''
@@ -142,7 +155,9 @@ function OfferForm({
         }
       }}
     >
-      {existing && <h3>Nâng phiên bản mẫu của gói du thuyền</h3>}
+      {existing && <Notice tone="warning" title="Gói sẽ trở về bản nháp">
+        Kiểm tra lại quyền lợi và tạo giá cho phiên bản mới.
+      </Notice>}
       <QueryState loading={templates.loading || versions.loading || cabins.loading} error={templates.error ?? versions.error ?? cabins.error} />
       {(templates.error || versions.error || cabins.error) && (
         <Button type="button" tone="secondary" onClick={() => { templates.retry(); versions.retry(); cabins.retry() }}>
@@ -410,8 +425,7 @@ function OfferForm({
     <Modal
       variant="drawer"
       large
-      title={existing ? 'Nâng phiên bản mẫu của gói du thuyền' : 'Thêm gói du thuyền'}
-      description="Chọn phiên bản mẫu đã phát hành, ghép hạng phòng và thiết lập thời gian bán theo chuyến."
+      title={existing ? 'Áp dụng phiên bản mẫu khác' : 'Thêm gói du thuyền'}
       busy={busy}
       onClose={onClose}
       footer={
@@ -429,34 +443,99 @@ function OfferForm({
 function BenefitBinding({item,benefit,cruiseId,disabled,run}:{item:CruisePackageOffer;benefit:Benefit;cruiseId:string;disabled:boolean;run:Run}) {
   const [occurrence,setOccurrence]=useState('')
   const type=benefit.onboardActivityId?'ACTIVITY':benefit.shoreExcursionId?'EXCURSION':'SERVICE'
-  useFormChanges(Boolean(occurrence&&!bindingsForOccurrence()))
-  function bindingsForOccurrence(){return item.bindings.some(b=>b.benefitId===benefit.id&&[b.onboardActivityId,b.shoreExcursionId,b.serviceId].includes(occurrence))}
+  const bindings=item.bindings.filter(binding=>binding.benefitId===benefit.id)
+  const usedIds=item.bindings.flatMap(binding=>[binding.onboardActivityId,binding.shoreExcursionId,binding.serviceId].filter((id):id is string=>Boolean(id)))
+  const serviceId=benefit.serviceId
+  const canLink=!disabled&&benefit.inclusion!=='NOT_INCLUDED'
+  const canPick=canLink&&(!serviceId||!usedIds.includes(serviceId))
+  const resources=useReadQuery(`fare-binding-options:${cruiseId}:${type}:${canPick}`,
+    useCallback(signal=>canPick?cruisePackageApi.resources(type,cruiseId,signal):Promise.resolve([]),[canPick,cruiseId,type]))
+  const options=resources.data?.filter(resource=>!usedIds.includes(resource.id)&&(!serviceId||resource.id===serviceId))??[]
+  useFormChanges(Boolean(occurrence&&!usedIds.includes(occurrence)))
   const name=item.template.resourceNames[benefit.id]??'Chưa đọc được tên quyền lợi'
-  const bindings=item.bindings.filter(b=>b.benefitId===benefit.id)
-  return <div className={styles.card}><strong>{name}</strong><p>{inclusionLabels[benefit.inclusion]}{benefit.quantityLimit!=null&&` · ${benefitQuantity(benefit.quantityLimit,benefit)}`} · {benefit.eligibility}</p>
-    <ul>{bindings.map(b=><li key={b.id}>{item.bindingNames[b.id]??'Chưa đọc được tên lần phục vụ'}</li>)}</ul>
-    {!bindings.length&&benefit.inclusion!=='NOT_INCLUDED'&&<p>Chưa liên kết lần phục vụ trên chuyến.</p>}
-    {!disabled&&benefit.inclusion!=='NOT_INCLUDED'&&<div className={styles.form}>
-      <ResourceSelect type={type} cruiseId={cruiseId} id={`fare-binding-${item.offer.id}-${benefit.id}`} value={occurrence} onChange={setOccurrence}/>
-      <Button disabled={!occurrence||bindings.some(b=>[b.onboardActivityId,b.shoreExcursionId,b.serviceId].includes(occurrence))} onClick={()=>void run(()=>cruisePackageApi.bind(cruiseId,item.offer.id,item.offer.revision,benefit.id,occurrence),'Đã liên kết lần phục vụ. Nội dung thương mại đã đổi và cần phiên bản giá mới.')}>Liên kết lần phục vụ</Button>
+  const link=(id:string)=>run(()=>cruisePackageApi.bind(cruiseId,item.offer.id,item.offer.revision,benefit.id,id),'Đã liên kết quyền lợi.')
+  return <div className={styles.offerRow}>
+    <div>
+      <strong>{name}</strong>
+      <p className={styles.offerMeta}>{inclusionLabels[benefit.inclusion]}{benefit.quantityLimit!=null&&` · ${benefitQuantity(benefit.quantityLimit,benefit)}`}</p>
+      {bindings.length>0&&<ul>{bindings.map(binding=><li key={binding.id}>{item.bindingNames[binding.id]??'Đã liên kết'}</li>)}</ul>}
+    </div>
+    {canPick&&<div className={styles.bindingAction}>
+      {resources.loading&&<p className={styles.offerMeta} role="status">Đang tải lần phục vụ…</p>}
+      {resources.error&&<Button tone="secondary" autoWidth onClick={resources.retry}>Thử tải lại</Button>}
+      {resources.data&&options.length===0&&<p className={styles.offerMeta}>
+        {serviceId?'Cần bố trí dịch vụ trên tàu.':bindings.length===0?'Cần thêm lần phục vụ vào chương trình chuyến.':''}
+      </p>}
+      {serviceId&&options.length>0&&<Button tone="secondary" autoWidth onClick={()=>void link(serviceId)}>Liên kết dịch vụ</Button>}
+      {!serviceId&&options.length>0&&<div className={styles.bindingControls}>
+        <Field htmlFor={`fare-binding-${item.offer.id}-${benefit.id}`} label="Lần phục vụ">
+          <select id={`fare-binding-${item.offer.id}-${benefit.id}`} value={occurrence} onChange={event=>setOccurrence(event.target.value)}>
+            <option value="">Chọn lần phục vụ</option>
+            {options.map(option=><option key={option.id} value={option.id}>{option.name}</option>)}
+          </select>
+        </Field>
+        <Button autoWidth tone="secondary" disabled={!options.some(option=>option.id===occurrence)} onClick={()=>void link(occurrence)}>Liên kết</Button>
+      </div>}
     </div>}
   </div>
 }
-function OfferCard({item,context,disabled,run,shipName}:{shipName?:string|null;item:CruisePackageOffer;context:CruisePackageContext;disabled:boolean;run:Run}) {
-  const access=useSessionAccess(),[amount,setAmount]=useState(''),[upgrade,setUpgrade]=useState(false),[reasons,setReasons]=useState<Record<string,string>>({})
+function OfferCard({item,context,disabled,run,shipName,feedback}:{shipName?:string|null;item:CruisePackageOffer;context:CruisePackageContext;disabled:boolean;run:Run;feedback:ReactNode}) {
+  const access=useSessionAccess(),[amount,setAmount]=useState(''),[upgrade,setUpgrade]=useState(false),[addingPrice,setAddingPrice]=useState(false),[reasons,setReasons]=useState<Record<string,string>>({})
   useFormChanges(Boolean(amount||item.prices.some(price=>price.status==='SUBMITTED'&&reasons[price.id]?.trim())))
-  const switchWorkspace=useWorkspaceChange()
   const configure=context.canConfigure,checker=context.canReviewPrice,cruiseId=context.cruiseId,unified=context.unifiedPackageReview
-  return <article className={styles.card}><fieldset className={styles.controls} disabled={disabled} aria-label={`Gói du thuyền ${item.template.version.name}, ${item.offer.logicalCategory}`}><h3>{item.template.version.name} · {item.offer.logicalCategory}</h3>
-    <p>Phiên bản mẫu {item.template.version.versionNumber} · {lifecycle[item.template.version.status]} · Gói du thuyền: {lifecycle[item.offer.status]}</p>
-    <CruisePackageMappingEvidence shipId={item.offer.shipId} shipName={context.shipId===item.offer.shipId?shipName:null} categoryId={item.offer.logicalCategoryId} categoryName={item.offer.logicalCategory} mapping={item.cabinMapping}/><p>Hạng dự kiến trên tàu: {cabinTypeLabel(item.offer.proposedCabinType)}.</p>
-    <p>Thời gian bán: {new Date(item.offer.salesStart).toLocaleString('vi-VN')} – {new Date(item.offer.salesEnd).toLocaleString('vi-VN')} (giờ thiết bị).</p>
-    {!item.eligibility.eligible&&<Notice title="Gói du thuyền chưa đủ điều kiện bán" tone="warning"><ul>{item.eligibility.blockers.map((b,i)=><li key={`${b.code}:${b.dependencyId}:${i}`}>{b.message}</li>)}</ul></Notice>}
-    <p>Quyền lợi phụ thuộc chỗ phục vụ còn trống. Mua gói du thuyền không tự giữ chỗ; chỗ chỉ được xác nhận khi đăng ký thành công.</p>
-    <h4>Liên kết các lần phục vụ trên chuyến</h4>
-    {item.template.benefits.map(benefit=><BenefitBinding key={benefit.id} item={item} benefit={benefit} cruiseId={cruiseId} disabled={!configure||item.offer.status!=='DRAFT'} run={run}/>)}
-    <h4>Phiên bản giá của Gói du thuyền (USD/người)</h4><p>Liên kết các lần phục vụ trước khi lập và gửi giá. {unified?'CRM chọn gói và đúng phiên bản giá để gửi cùng hồ sơ. OPS duyệt hồ sơ, giá và thuế/phí trong một lần.':'Giá được xét duyệt theo quy trình của chuyến.'}</p>
-    {!item.prices.length&&<p>Chưa có phiên bản giá.</p>}
+  const templateId=item.template.version.templateId
+  const versions=useReadQuery(`offer-template-options:${templateId}:${configure}`,
+    useCallback(signal=>configure?cruisePackageApi.versions(templateId,signal):Promise.resolve([]),[templateId,configure]))
+  const canUpgrade=configure&&Boolean(versions.data?.some(version=>
+    version.version.status==='PUBLISHED'&&version.version.id!==item.offer.templateVersionId))
+  const price=item.prices.filter(entry=>entry.templateVersionId===item.offer.templateVersionId
+    &&entry.offerCommercialRevision===item.offer.commercialRevision)
+    .reduce<typeof item.prices[number]|null>((latest,entry)=>!latest||entry.revisionNumber>latest.revisionNumber?entry:latest,null)
+  const blockers=[...new Set(item.eligibility.blockers.map(blocker=>offerConditionCopy[blocker.code]
+    ??(blocker.code.startsWith('CABIN_MAPPING_')?'Quản lý tàu cần xác nhận cabin cho hạng phòng này.':blocker.message)))]
+  const needsBenefits=item.eligibility.blockers.some(({code})=>[
+    'BENEFIT_OCCURRENCE_UNBOUND','SERVICE_NOT_AVAILABLE_ON_SHIP','BENEFIT_OCCURRENCE_WRONG_CRUISE',
+  ].includes(code))
+  const canStartPrice=context.canCreatePrice&&(!price||price.status==='RETURNED'||price.status==='APPROVED')
+  const closePrice=()=>{setAmount('');setAddingPrice(false)}
+  const validAmount=/^\d{1,15}(\.\d{1,4})?$/.test(amount)
+  const benefits=item.template.benefits
+  const linkedCount=benefits.filter(benefit=>item.bindings.some(binding=>binding.benefitId===benefit.id)).length
+  return <article className={styles.offerCard}>
+    <header className={styles.offerHeader}>
+      <div>
+        <h3>{item.template.version.name}</h3>
+        <p className={styles.offerMeta}>{item.offer.logicalCategory} · Mẫu phiên bản {item.template.version.versionNumber}</p>
+      </div>
+      <div className={styles.offerPriceSummary}>
+        <strong>{price?`${new Intl.NumberFormat('vi-VN',{maximumFractionDigits:4}).format(Number(price.amount))} USD/người`:'Chưa có giá'}</strong>
+        {price&&<span className={styles.offerMeta}>{lifecycle[price.status]}</span>}
+      </div>
+    </header>
+    <fieldset className={styles.controls} disabled={disabled} aria-label={`Gói du thuyền ${item.template.version.name}, ${item.offer.logicalCategory}`}>
+      <details className={styles.offerSection}>
+        <summary><span>Thông tin gói</span></summary>
+        <div className={styles.offerBody}>
+          <p className={styles.offerMeta}>{cabinTypeLabel(item.offer.proposedCabinType)} · {journeyTime(item.offer.salesStart)} – {journeyTime(item.offer.salesEnd)} (giờ Việt Nam)</p>
+          <CruisePackageMappingEvidence shipName={context.shipId===item.offer.shipId?shipName:null} mapping={item.cabinMapping}/>
+          {canUpgrade&&<Button autoWidth tone="secondary" onClick={()=>setUpgrade(true)}>Áp dụng phiên bản mẫu khác</Button>}
+          {versions.error&&<Button autoWidth tone="secondary" onClick={versions.retry}>Kiểm tra phiên bản mẫu</Button>}
+        </div>
+      </details>
+      <details className={styles.offerSection}>
+        <summary><span>Quyền lợi và lần phục vụ</span><span className={styles.offerMeta}>{needsBenefits?'Cần liên kết':linkedCount>0?`${linkedCount} đã liên kết`:''}</span></summary>
+        <div className={styles.offerBody}>
+          {benefits.length===0&&<p>Gói chưa có quyền lợi.</p>}
+          {benefits.map(benefit=><BenefitBinding key={benefit.id} item={item} benefit={benefit} cruiseId={cruiseId} disabled={!configure||item.offer.status!=='DRAFT'} run={run}/>)}
+        </div>
+      </details>
+      <details className={styles.offerSection}>
+        <summary><span>Phiên bản giá</span><span className={styles.offerMeta}>{item.prices.length} phiên bản</span></summary>
+        <div className={styles.offerBody}>
+    {canStartPrice&&<div className={styles.listActions}>
+      <Button autoWidth tone="secondary" onClick={()=>setAddingPrice(true)}>{price?'Tạo giá thay thế':'Tạo giá nháp'}</Button>
+    </div>}
+    {!item.prices.length&&!context.canCreatePrice&&<p>Chưa có phiên bản giá.</p>}
     {item.prices.map(price=><div key={price.id} className={styles.card}><strong>Phiên bản giá {price.revisionNumber}: {price.amount} USD/người</strong><p>{lifecycle[price.status]}{price.id===item.currentApprovedPriceRevisionId?' · Giá hiện hành đã duyệt':''}{price.templateVersionId!==item.offer.templateVersionId||price.offerCommercialRevision!==item.offer.commercialRevision?' · Thuộc cấu hình thương mại trước':''}</p>{price.reviewReason&&<p>Lý do xét duyệt: {price.reviewReason}</p>}
       {context.canCreatePrice&&price.status==='DRAFT'&&price.templateVersionId===item.offer.templateVersionId&&price.offerCommercialRevision===item.offer.commercialRevision&&<Button onClick={()=>void run(()=>cruisePackageApi.reviewPrice(cruiseId,item.offer.id,price.id,price.revision,'submit'),unified?'Đã gửi phiên bản giá để CRM chọn vào hồ sơ chuyến.':'Đã gửi phiên bản giá để Quản lý vận hành xét duyệt.')}>{unified?'Gửi giá vào hồ sơ':'Gửi duyệt phiên bản giá'} {price.revisionNumber}</Button>}
       {checker&&price.createdBy!==access.userId&&price.submittedBy!==access.userId&&price.status==='SUBMITTED'&&price.templateVersionId===item.offer.templateVersionId&&price.offerCommercialRevision===item.offer.commercialRevision&&<div className={styles.form}>
@@ -464,16 +543,37 @@ function OfferCard({item,context,disabled,run,shipName}:{shipName?:string|null;i
         <div className={styles.actions}><Button onClick={()=>void run(()=>cruisePackageApi.reviewPrice(cruiseId,item.offer.id,price.id,price.revision,'approve',reasons[price.id]),'Đã phê duyệt phiên bản giá Gói du thuyền. Chưa phê duyệt thanh toán, hủy, phí hoặc mở bán.')}>Phê duyệt phiên bản giá {price.revisionNumber}</Button><Button tone="secondary" disabled={!reasons[price.id]?.trim()} onClick={()=>void run(()=>cruisePackageApi.reviewPrice(cruiseId,item.offer.id,price.id,price.revision,'return',reasons[price.id]),'Đã trả phiên bản giá kèm lý do.')}>Trả lại phiên bản giá {price.revisionNumber}</Button></div>
       </div>}
     </div>)}
-    {context.canCreatePrice&&<form className={styles.form} onSubmit={async e=>{e.preventDefault();if(!/^\d{1,15}(\.\d{1,4})?$/.test(amount))return;const ok=await run(()=>cruisePackageApi.createPrice(cruiseId,item.offer.id,item.offer.revision,amount),'Đã tạo phiên bản giá nháp mới; lịch sử giá được giữ nguyên.');if(ok)setAmount('')}}>
-      <Field htmlFor={`fare-price-${item.offer.id}`} label="Giá phiên bản mới (USD/người)"><input id={`fare-price-${item.offer.id}`} required inputMode="decimal" pattern="\d{1,15}(\.\d{1,4})?" value={amount} onChange={e=>setAmount(e.target.value)}/></Field><Button type="submit" disabled={!/^\d{1,15}(\.\d{1,4})?$/.test(amount)}>Tạo phiên bản giá</Button>
-    </form>}
-    <h4>{unified?'Hoàn thiện gói để trình duyệt':'Phát hành gói du thuyền của chuyến'}</h4><p>{unified?'Sau khi hoàn thiện quyền lợi và mapping, gửi giá để CRM chọn vào hồ sơ. OPS quyết định mở bán ở bước riêng.':'Hoàn thiện liên kết quyền lợi, giá được duyệt và ánh xạ cabin trước khi phát hành.'}</p>
-    {configure&&<div className={styles.actions}>
-      <Button tone="secondary" disabled={disabled} onClick={()=>upgrade?switchWorkspace(()=>setUpgrade(false)):setUpgrade(true)}>Nâng phiên bản mẫu</Button>
-      {!unified&&item.offer.status==='DRAFT'&&<Button disabled={disabled||!(item.publicationEligible ?? item.eligibility.blockers.every(b=>b.code==='OFFER_NOT_PUBLISHED'))} onClick={()=>void run(()=>cruisePackageApi.publishOffer(cruiseId,item.offer.id,item.offer.revision),'Đã phát hành gói du thuyền của chuyến; chưa mở bán.')}>Phát hành gói du thuyền</Button>}
+        </div>
+      </details>
+      {blockers.length>0&&<details className={styles.offerSection}>
+        <summary><span>Điều kiện mở bán</span><span className={styles.offerMeta}>Chưa đủ điều kiện</span></summary>
+        <div className={styles.offerBody}><ul>{blockers.map(message=><li key={message}>{message}</li>)}</ul></div>
+      </details>}
+    {configure&&!unified&&item.offer.status==='DRAFT'&&<div className={styles.offerActions}>
+      <Button disabled={disabled||!(item.publicationEligible ?? item.eligibility.blockers.every(b=>b.code==='OFFER_NOT_PUBLISHED'))} onClick={()=>void run(()=>cruisePackageApi.publishOffer(cruiseId,item.offer.id,item.offer.revision),'Đã phát hành gói du thuyền của chuyến; chưa mở bán.')}>Phát hành gói du thuyền</Button>
     </div>}
-    {configure&&upgrade&&<OfferForm cruiseId={cruiseId} context={context} shipName={shipName} existing={item} disabled={disabled} run={run}/>}
-  </fieldset></article>
+    </fieldset>
+    {addingPrice&&<Modal variant="drawer" title={price?'Tạo giá thay thế':'Tạo giá nháp'} description={item.template.version.name}
+      busy={disabled} onClose={closePrice} footer={<>
+        <Button tone="secondary" disabled={disabled} data-overlay-dismiss onClick={closePrice}>Hủy</Button>
+        <Button type="submit" form={`new-fare-price-${item.offer.id}`} disabled={disabled||!canStartPrice||!validAmount}>Lưu giá nháp</Button>
+      </>}>
+      {feedback}
+      <form id={`new-fare-price-${item.offer.id}`} onSubmit={async event=>{
+        event.preventDefault()
+        if(disabled||!canStartPrice||!validAmount)return
+        const ok=await run(()=>cruisePackageApi.createPrice(cruiseId,item.offer.id,item.offer.revision,amount),'Đã lưu giá nháp.')
+        if(ok)closePrice()
+      }}>
+        <Field htmlFor={`fare-price-${item.offer.id}`} label="Giá mới (USD/người)">
+          <input id={`fare-price-${item.offer.id}`} required inputMode="decimal" value={amount}
+            onChange={event=>setAmount(event.target.value)}/>
+        </Field>
+      </form>
+    </Modal>}
+    {configure&&upgrade&&<OfferForm cruiseId={cruiseId} context={context} shipName={shipName} existing={item}
+      disabled={disabled} busy={disabled} run={run} feedback={feedback} onClose={()=>setUpgrade(false)}/>}
+  </article>
 }
 type DepartureCruisePackagesProps = {cruiseId:string;onChanged:()=>void;shipName?:string|null;renderAssignment?:(onChanged:()=>void)=>ReactNode}
 function DepartureOffersWorkspace({cruiseId,onChanged,shipName,renderAssignment}:DepartureCruisePackagesProps) {
@@ -499,7 +599,7 @@ function DepartureOffersWorkspace({cruiseId,onChanged,shipName,renderAssignment}
     {data&&!data.context.shipId&&<Notice title="Chưa được phân công tàu" tone="warning"><p>Cần có tàu trước khi cấu hình gói du thuyền của chuyến.</p></Notice>}
     {access.canDo('TOUR_PACKAGE_ASSIGN')&&renderAssignment?.(()=>{refresh();onChanged()})}
     {!creatingOffer&&data?.offers.length===0&&!access.canDo('TOUR_PACKAGE_ASSIGN')&&<Empty title="Chưa có gói du thuyền được gán"><p>{canManageTemplates ? 'Chọn Thêm gói du thuyền để dùng một phiên bản mẫu đã phát hành.' : 'Quản lý hoạt động và dịch vụ tạo gói cho chuyến từ phiên bản mẫu đã phát hành.'}</p></Empty>}
-    {data?.offers.map(item=><OfferCard key={item.offer.id} item={item} context={data.context} shipName={shipName} disabled={disabled} run={mutation.run}/>)}
+    {data?.offers.map(item=><OfferCard key={item.offer.id} item={item} context={data.context} shipName={shipName} disabled={disabled} run={mutation.run} feedback={mutation.feedback}/>)}
     {creatingOffer&&<OfferForm cruiseId={cruiseId} context={data?.context} shipName={shipName} disabled={disabled||!data?.context.canConfigure} run={mutation.run} busy={mutation.busy} feedback={mutation.feedback} onClose={()=>setCreatingOffer(false)}/>}
     <CruisePackageAddons cruiseId={cruiseId} onChanged={onChanged}/>
   </Panel>

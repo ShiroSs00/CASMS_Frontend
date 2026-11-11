@@ -26,7 +26,7 @@ import { journeyTime } from '@/shared/lib/journey-time'
 import { PermissionLink as Link } from '@/shared/ui'
 import { DepartureScheduleRead, DepartureInventory, DepartureSaleReadiness, DepartureHandoff } from '../components/DepartureData'
 import { CruiseOperations } from '../components/CruiseOperations'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useParams, useSearchParams } from 'react-router'
 import { useSessionAccess } from '@/shared/auth'
 
@@ -54,11 +54,13 @@ function checkTone(state: ReadinessCheck['state']) {
   return 'warning' as const
 }
 
-export function CruiseDetailPage() {
+type CruiseDetailProps = { renderRegulationAssignment?: (cruiseId: string, onAssigned: () => void) => ReactNode }
+
+export function CruiseDetailPage({ renderRegulationAssignment }: CruiseDetailProps) {
  const {cruiseId}=useParams()
- return <PlanWorkspace key={cruiseId} id={cruiseId??''}><CruiseDetailContent/></PlanWorkspace>
+ return <PlanWorkspace key={cruiseId} id={cruiseId??''}><CruiseDetailContent renderRegulationAssignment={renderRegulationAssignment}/></PlanWorkspace>
 }
-function CruiseDetailContent() {
+function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) {
   const access = useSessionAccess()
   const operations=access.roles.includes('OPERATIONS_MANAGER')
   const serviceWorkspace=access.roles.includes('ACTIVITY_SERVICE_MANAGER') && !access.roles.some(role => ['ADMIN','CRUISE_MANAGER','OPERATIONS_MANAGER'].includes(role)) && access.has('TOUR_PACKAGE_MANAGE')
@@ -75,17 +77,32 @@ function CruiseDetailContent() {
   const crmCanEdit=Boolean(crmPlan.data&&!crmPlan.loading&&!crmPlan.error&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(crmPlan.data.planStatus))
   const requestedSection=preparationSection(params.get('section'))
   const section=allowedDepartureSections(access).some(([key])=>key===requestedSection)?requestedSection:'overview'
-  const reviewStep=(manager||operations)&&params.get('step')==='review'
+  const canReviewPreparation=Boolean(crmPlan.data&&(!crmCanEdit||crmPlan.data.planBlockers.length===0))
+  const requestedReview=params.get('step')==='review'
+  const reviewStep=requestedReview&&(operations||manager&&canReviewPreparation)
   const operationsChecks=operations&&!reviewStep&&operationsSectionStage(section)===3
   const operationsStep=reviewStep?1:params.get('stage')==='sale'?3:operationsChecks?2:1
   const canViewChecks=allowedDepartureSections(access).some(([key])=>key==='checks')
   useEffect(()=>{
-    if(access.status==='ready'&&params.has('section')&&params.get('section')!==section){
-      const query=new URLSearchParams(params);query.set('section',section);setParams(query,{replace:true})
+    if(access.status!=='ready')return
+    const invalidSection=params.has('section')&&params.get('section')!==section
+    const blockedReview=manager&&requestedReview&&crmPlan.data&&!canReviewPreparation
+    if(invalidSection||blockedReview){
+      const query=new URLSearchParams(params)
+      if(invalidSection)query.set('section',section)
+      if(blockedReview)query.delete('step')
+      setParams(query,{replace:true})
     }
-  },[access.status,params,section,setParams])
+  },[access.status,params,section,setParams,manager,requestedReview,crmPlan.data,canReviewPreparation])
   const goSection=(next:DepartureSection)=>{const query=new URLSearchParams(params);query.delete('step');if(next==='departure-start')query.delete('stage');query.set('section',allowedDepartureSections(access).some(([key])=>key===next)?next:'overview');setParams(query,{preventScrollReset:true})}
-  const goPreparationStep=(step:2|3)=>{const query=new URLSearchParams(params);query.set('section','overview');if(step===3)query.set('step','review');else query.delete('step');setParams(query,{preventScrollReset:true})}
+  const goPreparationStep=(step:2|3)=>{
+    if(step===3&&!canReviewPreparation)return
+    const query=new URLSearchParams(params)
+    query.set('section','overview')
+    if(step===3)query.set('step','review')
+    else query.delete('step')
+    setParams(query,{preventScrollReset:true})
+  }
   const goOperationsStep=(step:1|2|3)=>{const query=new URLSearchParams(params);query.delete('focus');query.set('section',step===1?'overview':'checks');if(step===1){query.set('step','review');query.delete('stage')}else{query.delete('step');query.set('stage',step===2?'ready':'sale')}setParams(query,{preventScrollReset:true})}
   const reload=()=>{setCheckEpoch(value=>value+1);salePlan.retry();return refresh()}
   const [lifecycleAction, setLifecycleAction] = useState<'publish' | 'complete' | 'cancel' | null>(null)
@@ -142,7 +159,7 @@ function CruiseDetailContent() {
         return <>
           {detail.supplementaryLoading && <Loading label="Đang tải thông tin liên quan đến chuyến…" />}
           {Object.entries(detail.supplementaryErrors ?? {}).map(([key, message]) => <Notice key={key} title={`Chưa tải được ${{ ship: 'tàu', departurePort: 'cảng đi', returnPort: 'cảng về', readiness: 'điều kiện sẵn sàng', capacity: 'sức chứa', issues: 'sự cố', regulations: 'quy định', itinerary: 'lịch trình' }[key] ?? 'thông tin liên quan'}`} tone="error"><p>{message}</p><Button onClick={()=>void reload()}>Thử lại</Button></Notice>)}
-          <PageHeader breadcrumb="Quản lý chuyến / Chuyến khởi hành" title={cruise.cruiseName} description={`Mã chuyến: ${cruise.cruiseCode}`} actions={<>{showDepartureStart&&section!=='departure-start'&&<Button tone="secondary" onClick={()=>goSection('departure-start')}>Chuẩn bị xuất bến</Button>}<ButtonLink to={cruiseListReturn(params.get('returnTo'))} tone="secondary">Danh sách chuyến khởi hành</ButtonLink>{!reviewStep&&(!manager||crmCanEdit)&&cruise.status === 'DRAFT' && access.canDo('CRUISE_UPDATE_DRAFT') && <ButtonLink to={`/admin/cruises/${cruise.cruiseId}/edit`} tone="secondary">Chỉnh sửa chuyến khởi hành</ButtonLink>}</>} />
+          <PageHeader breadcrumb="Quản lý chuyến / Chuyến khởi hành" title={cruise.cruiseName} description={`Mã chuyến: ${cruise.cruiseCode}`} actions={<>{showDepartureStart&&section!=='departure-start'&&<Button tone="secondary" onClick={()=>goSection('departure-start')}>Chuẩn bị xuất bến</Button>}<ButtonLink to={operations?'/admin/cruise-plan-reviews':cruiseListReturn(params.get('returnTo'))} tone="secondary">{operations?'Về hồ sơ đã tiếp nhận':'Danh sách chuyến khởi hành'}</ButtonLink>{!reviewStep&&(!manager||crmCanEdit)&&cruise.status === 'DRAFT' && access.canDo('CRUISE_UPDATE_DRAFT') && <ButtonLink to={`/admin/cruises/${cruise.cruiseId}/edit`} tone="secondary">Chỉnh sửa chuyến khởi hành</ButtonLink>}</>} />
           <dl className={preparationStyles.departureIdentity}>
            <div><dt>Khởi hành (giờ Việt Nam)</dt><dd>{formatDateTime(cruise.departureDatetime)}</dd></div>
            <div><dt>Kết thúc (giờ Việt Nam)</dt><dd>{formatDateTime(cruise.returnDatetime)}</dd></div>
@@ -151,7 +168,7 @@ function CruiseDetailContent() {
           </dl>
           <div className={preparationStyles.objectToolbar}>{manager&&<span>Trạng thái chuyến khởi hành:</span>}<CruiseStatusBadge status={cruise.status}/></div>
           {operations&&<OperationsStatus id={cruise.cruiseId} refreshKey={checkEpoch}/>}
-          {(cruise.sourceVersionId||manager||operations)&&<div id="departure-steps" className={preparationStyles.stepNavigation}><DepartureMilestones sourceConfigured={Boolean(cruise.sourceVersionId)} operationsStep={operations?operationsStep:undefined} onOperationsStepChange={operations?goOperationsStep:undefined} receivingBookings={detail.itinerary?.status==='OPEN_FOR_SALE'} activeStep={manager?(reviewStep?3:2):undefined} onStepChange={manager?goPreparationStep:undefined}/></div>}
+          {(cruise.sourceVersionId||manager||operations)&&<div id="departure-steps" className={preparationStyles.stepNavigation}><DepartureMilestones sourceConfigured={Boolean(cruise.sourceVersionId)} operationsStep={operations?operationsStep:undefined} onOperationsStepChange={operations?goOperationsStep:undefined} receivingBookings={detail.itinerary?.status==='OPEN_FOR_SALE'} activeStep={manager?(reviewStep?3:2):undefined} onStepChange={manager?goPreparationStep:undefined} canReviewPreparation={canReviewPreparation}/></div>}
           {operations?<details className={preparationStyles.secondarySection}><summary>Tra cứu thông tin chuyến (Lịch trình, Tàu, Cabin)</summary><div className={preparationStyles.secondaryBody}><DepartureTabs section={section} onChange={goSection} excludeKeys={['checks','departure-start']}/></div></details>:!reviewStep&&section!=='changes'&&<DepartureTabs section={section} onChange={goSection} excludeKeys={['departure-start']}/>}
           {operations&&!reviewStep&&section!=='checks'&&<Button tone="secondary" onClick={()=>goOperationsStep(operationsStep)}>Quay lại {operationsStep===1?'xét duyệt hồ sơ':operationsStep===2?'xác nhận sẵn sàng':'mở bán'}</Button>}
           <div id="departure-content">
@@ -168,7 +185,7 @@ function CruiseDetailContent() {
               ]}/><details><summary>Thông tin tuyến và cấu trúc lịch</summary><RecordFacts entries={[
                 ['Mã chuyến khởi hành',cruise.cruiseCode],['Phạm vi',domainStatus('source.scope',cruise.plannedScope??'UNKNOWN')],['Thời lượng chuyến',domainStatus('cruise.duration',cruise.cruiseType)],['Loại tuyến',domainStatus('route.type',detail.itinerary?.itineraryType??'UNKNOWN')],['Cấu trúc lịch',domainStatus('cruise.itinerary',cruise.itineraryMode??'UNKNOWN')],
               ]}/></details></Panel>
-              {!operations&&<CruisePlanWorkspace cruiseId={cruise.cruiseId} refreshKey={`${checkEpoch}:${cruise.revision}`} onChanged={()=>void reload()} onSection={goSection} sections={allowedDepartureSections(access).map(([key])=>key)} onReview={()=>goPreparationStep(3)}/>}{!cruise.sourceVersionId&&<PreparationOverview detail={detail} loading={state.status==='loading'} onSection={goSection}/>}
+              {!operations&&<CruisePlanWorkspace cruiseId={cruise.cruiseId} refreshKey={`${checkEpoch}:${cruise.revision}`} onChanged={()=>void reload()} onSection={goSection} sections={allowedDepartureSections(access).map(([key])=>key)} itineraryMode={cruise.itineraryMode}/>}{!cruise.sourceVersionId&&<PreparationOverview detail={detail} loading={state.status==='loading'} onSection={goSection}/>}
               {operations&&section==='overview'&&<Button onClick={()=>goOperationsStep(1)}>Xét duyệt hồ sơ</Button>}
 
 
@@ -187,12 +204,15 @@ function CruiseDetailContent() {
               {access.canDo('CRUISE_REGULATION_READ') && <Panel title={`Quy định vận hành${detail.supplementaryLoading || detail.supplementaryErrors?.regulations ? '' : ` · ${detail.regulations.length}`}`}>
             <p>Danh sách này hỗ trợ đối chiếu hồ sơ an toàn; không xác nhận giấy phép cảng hay thay thế việc kiểm tra điều kiện của thuyền viên.</p>
             {detail.regulations.length ? <ul className={styles.compactList}>{detail.regulations.map((regulation) => <li key={regulation.regulationId}><strong>{regulation.code} · {regulation.name}</strong><span>{regulation.source} · {regulation.status}</span></li>)}</ul> : !detail.supplementaryLoading && !detail.supplementaryErrors?.regulations && <Empty title="Chưa có quy định áp dụng" />}
-            <ButtonLink to={`/admin/cruises/${cruise.cruiseId}/regulations`}>Quản lý quy định</ButtonLink>
+            <div className={preparationStyles.actionGroup}>
+              {access.canDo('CRUISE_REGULATION_ASSIGN')&&renderRegulationAssignment?.(cruise.cruiseId,()=>void reload())}
+              {detail.regulations.length>0&&<ButtonLink tone="secondary" to={`/admin/cruises/${cruise.cruiseId}/regulations`}>Xem chi tiết quy định</ButtonLink>}
+            </div>
           </Panel>}
 
             </section>}
             {section==='program'&&<section id={"departure-panel-program"} role={"tabpanel"} aria-labelledby={"departure-tab-program"} className={preparationStyles.content}>{!operations&&<div className={preparationStyles.sectionIntro}><h2>Chương trình và dịch vụ</h2><p>Quản lý hoạt động, tour và khung phục vụ của chuyến khởi hành.</p></div>}
-              {section==='program'&&<CruisePrograms cruiseId={cruise.cruiseId} itineraryMode={cruise.itineraryMode} onChanged={()=>void reload()}/>}{!manager&&!operations&&<details className={preparationStyles.secondarySection}><summary>Gói áp dụng cho chuyến khởi hành</summary><div className={preparationStyles.secondaryBody}>{section==='program'&&<DeparturePackageManager cruiseId={cruise.cruiseId} onChanged={()=>void reload()}/>}</div></details>}{!manager&&!operations&&<ProgramDestinations detail={detail}/>}{!manager&&!operations&&<details className={preparationStyles.secondarySection}><summary>Đồng bộ chương trình từ nguồn</summary><div className={preparationStyles.secondaryBody}>{section==='program'&&<DepartureProgramSync cruise={cruise} onChanged={()=>void reload()}/>}</div></details>}</section>}
+              {section==='program'&&<CruisePrograms cruiseId={cruise.cruiseId} departure={cruise.departureDatetime} arrival={cruise.returnDatetime} itineraryMode={cruise.itineraryMode} onChanged={()=>void reload()}/>}{!manager&&!operations&&<details className={preparationStyles.secondarySection}><summary>Gói áp dụng cho chuyến khởi hành</summary><div className={preparationStyles.secondaryBody}>{section==='program'&&<DeparturePackageManager cruiseId={cruise.cruiseId} onChanged={()=>void reload()}/>}</div></details>}{!manager&&!operations&&<ProgramDestinations detail={detail}/>}{!manager&&!operations&&<details className={preparationStyles.secondarySection}><summary>Đồng bộ chương trình từ nguồn</summary><div className={preparationStyles.secondaryBody}>{section==='program'&&<DepartureProgramSync cruise={cruise} onChanged={()=>void reload()}/>}</div></details>}</section>}
             {operations&&section==='operation'&&<section id="departure-panel-operation" role="tabpanel" aria-labelledby="departure-tab-operation" className={preparationStyles.content}>              {((cruise.status==='DRAFT'&&!cruise.sourceVersionId&&access.canDo('CRUISE_PUBLISH'))||(cruise.status==='IN_PROGRESS'&&access.canDo('CRUISE_COMPLETE'))||(!['DRAFT','COMPLETED','CANCELLED'].includes(cruise.status)&&access.canDo('CRUISE_CANCEL'))) && <Panel title="Khởi hành và kết thúc chuyến" >
                 <div className={styles.lifecycleActions}>
                   {cruise.status === 'DRAFT' && !cruise.sourceVersionId && (access.canDo('CRUISE_PUBLISH') ? <Button disabled={lifecycleBusy || !access.canDo('CRUISE_PUBLISH') || state.status !== 'ready' || detail.readiness.state !== 'READY'} onClick={() => setLifecycleAction('publish')}>Phát hành chuyến khởi hành</Button> : null)}
@@ -215,7 +235,7 @@ function CruiseDetailContent() {
             {section==='transaction-policy'&&operations&&<section id="departure-panel-transaction-policy" role="tabpanel" aria-labelledby="departure-tab-transaction-policy"><p>Chính sách cho các giao dịch tiếp theo. Phê duyệt hồ sơ gói và mở bán là các quyết định riêng.</p><DeparturePricingPolicy packageManaged={showSaleTerms} cruiseId={cruise.cruiseId} refreshKey={`${checkEpoch}:${cruise.revision}`} onChanged={()=>void reload()}/></section>}
             {section==='fare-packages'&&<section id="departure-panel-fare-packages" role="tabpanel" aria-labelledby="departure-tab-fare-packages"><DepartureCruisePackages key={cruise.cruiseId} shipName={detail.ship?.shipName} cruiseId={cruise.cruiseId} onChanged={()=>void reload()} renderAssignment={onChanged=><DeparturePackageManager cruiseId={cruise.cruiseId} onChanged={onChanged}/>}/></section>}
             {section==='staff'&&<section id="departure-panel-staff" role="tabpanel" aria-labelledby="departure-tab-staff"><CruiseOperations key={cruise.cruiseId+':staff'} cruiseId={cruise.cruiseId} view="staff" onChanged={()=>void reload()}/></section>}
-            {section==='preparation'&&<section id="departure-panel-preparation" role="tabpanel" aria-labelledby="departure-tab-preparation"><PreparationEvidence onSubmit={manager?()=>goPreparationStep(3):undefined} cruiseId={cruise.cruiseId} refreshKey={cruise.revision??0} onChanged={()=>void reload()} onNavigateSection={goSection}/></section>}
+            {section==='preparation'&&<section id="departure-panel-preparation" role="tabpanel" aria-labelledby="departure-tab-preparation"><PreparationEvidence cruiseId={cruise.cruiseId} refreshKey={cruise.revision??0} onChanged={()=>void reload()} onNavigateSection={goSection}/></section>}
             {section==='changes'&&access.roles.includes('OPERATIONS_MANAGER')&&<section id="departure-panel-changes" aria-label="Thay đổi lịch và theo dõi xử lý" className={preparationStyles.content}><div className={preparationStyles.compactActions}><Button tone="text" onClick={()=>goSection('schedule')}>Quay lại lịch thực tế</Button></div><CruiseChangeTools cruise={cruise} onChanged={()=>void reload()}/></section>}
             {!manager&&section==='sales'&&<section id={"departure-panel-sales"} role={"tabpanel"} aria-labelledby={"departure-tab-sales"} className={preparationStyles.content}><div className={preparationStyles.sectionIntro}><h2>{sectionLabel('sales')}</h2><p>{access.canDo('CRUISE_MANIFEST_READ')?'Theo dõi cabin, sức chứa và danh sách hành khách của chuyến khởi hành.':'Theo dõi tồn cabin và sức chứa của chuyến khởi hành.'}</p></div>
               {section==='sales'&&<><DepartureInventory cruise={cruise}/></>}
@@ -252,7 +272,12 @@ function CruiseDetailContent() {
             </section>}
           </>}
           </div>
-          {manager&&!reviewStep&&<div className={preparationStyles.reviewFooter}><Button onClick={()=>goPreparationStep(3)}>Kiểm tra và gửi hồ sơ</Button></div>}
+          {manager&&!reviewStep&&<div className={preparationStyles.reviewFooter}>
+            {crmPlan.loading&&<Loading label="Đang kiểm tra hồ sơ…"/>}
+            {crmPlan.error&&<Notice title="Chưa kiểm tra được hồ sơ" tone="error"><Button tone="secondary" onClick={crmPlan.retry}>Thử lại</Button></Notice>}
+            {crmPlan.data&&!canReviewPreparation&&section!=='overview'&&<Button tone="secondary" onClick={()=>goSection('overview')}>Xem các mục cần hoàn thiện</Button>}
+            <Button disabled={!canReviewPreparation} onClick={()=>goPreparationStep(3)}>Kiểm tra và gửi hồ sơ</Button>
+          </div>}
           {lifecycleAction && access.canDo(lifecyclePermissions[lifecycleAction]) && <Modal busy={lifecycleBusy} title='Xác nhận chuyển trạng thái' onClose={() => { if (!lifecycleBusy) setLifecycleAction(null) }} footer={<div className={styles.dialogActions}>
 <Button tone="secondary" disabled={lifecycleBusy} onClick={() => setLifecycleAction(null)} data-overlay-dismiss>Quay lại</Button>
 <Button tone={lifecycleAction === 'cancel' ? 'danger' : 'primary'} disabled={lifecycleBusy || (lifecycleAction === 'cancel' && !cancelReason.trim())} onClick={() => void confirmLifecycle()}>{lifecycleBusy ? 'Đang xử lý…' : {publish:'Phát hành chuyến khởi hành',complete:'Kết thúc chuyến khởi hành',cancel:'Hủy chuyến khởi hành'}[lifecycleAction]}</Button>

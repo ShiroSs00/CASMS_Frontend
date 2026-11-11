@@ -2,7 +2,7 @@ import {SourceDefinitionEditor} from './SourceDefinitionEditor'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Badge, Button, Empty, Field, FormSection, Loading, Notice, PageHeader, Panel, TechnicalDetails,UnsavedForms,useFormChanges,useWorkspaceChange } from '@/shared/ui'
+import { Badge, Button, DataTable, Empty, Field, FormSection, Loading, Modal, Notice, PageHeader, Panel,UnsavedForms,useFormChanges,useWorkspaceChange } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { cruisePackageApi, type BenefitInput, type CruisePackageTemplate, type CruisePackageVersion, type Inclusion, type ResourceType } from './api'
 import styles from './TemplateWorkspace.module.css'
@@ -18,8 +18,8 @@ export function ResourceSelect({type,cruiseId,value,onChange,id,disabled=false,r
   const actor=useSessionAccess()
   const query=useReadQuery(`fare-resources:${actor.userId}:${type}:${cruiseId??'shared'}`,useCallback(signal=>cruisePackageApi.resources(type,cruiseId,signal),[type,cruiseId]))
   return <><Field htmlFor={id} label={label??(cruiseId?'Lần phục vụ trên chuyến':'Tham chiếu dùng chung')}>
-    <select id={id} required={required} value={value} disabled={disabled||query.loading||Boolean(query.error)} onChange={e=>{const item=query.data?.find(item=>item.id===e.target.value);onChange(e.target.value,item?.name,item?.unitCode)}}><option value="">Chọn {resourceLabels[type].toLocaleLowerCase('vi')}</option>{query.data?.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select>
-    {query.loading&&<p>Đang tải danh mục…</p>}{query.error&&<><p role="alert">{query.error.message}</p><Button tone="text" onClick={query.retry}>Tải lại danh mục</Button></>}{query.data?.length===0&&<p>Chưa có nội dung dùng chung cho loại quyền lợi này.</p>}
+    <select id={id} required={required} value={value} disabled={disabled||query.loading||Boolean(query.error)||query.data?.length===0} onChange={e=>{const item=query.data?.find(item=>item.id===e.target.value);onChange(e.target.value,item?.name,item?.unitCode)}}><option value="">Chọn {resourceLabels[type].toLocaleLowerCase('vi')}</option>{query.data?.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select>
+    {query.loading&&<p>Đang tải danh mục…</p>}{query.error&&<><p role="alert">{query.error.message}</p><Button tone="text" onClick={query.retry}>Tải lại danh mục</Button></>}{query.data?.length===0&&<p>{cruiseId?'Chưa có lần phục vụ khả dụng trên chuyến.':'Danh mục chưa có nội dung phù hợp.'}</p>}
     </Field>
     {allowCreate&&!cruiseId&&<div className={styles.fullWidth}>
       <SourceDefinitionEditor key={type} type={type} onPendingChange={onSourcePending} onOpenChange={onSourceOpen}
@@ -73,6 +73,7 @@ function TemplateVersions({template,onChanged,readOnly,startNew=false}:{template
   const [epoch,setEpoch]=useState(0),[name,setName]=useState(''),[description,setDescription]=useState(''),[categories,setCategories]=useState('')
   const [benefits,setBenefits]=useState<(BenefitInput & {resourceName:string})[]>([]),[localError,setLocalError]=useState('')
   const [reusedCategories,setReusedCategories]=useState<string[]>([]),[creating,setCreating]=useState(startNew),[benefitPending,setBenefitPending]=useState(false)
+  const [publishId, setPublishId] = useState<string | null>(null)
   const editorHeading=useRef<HTMLHeadingElement>(null)
   const changeWorkspace=useWorkspaceChange()
   const clearDraft=()=>{setName('');setDescription('');setCategories('');setBenefits([]);setReusedCategories([]);setBenefitPending(false);setCreating(false);setLocalError('')}
@@ -96,16 +97,57 @@ function TemplateVersions({template,onChanged,readOnly,startNew=false}:{template
   const newRoomNames = categories.split('\n').map(value => value.trim()).filter(Boolean)
   const logicalCategories = [...reusedRooms.map(category => category.name), ...newRoomNames]
   const hasDuplicateRooms = new Set(logicalCategories).size !== logicalCategories.length
+  const versions = query.data ?? []
+  const current = versions.find(item => item.version.status === 'PUBLISHED')
+  const drafts = versions.filter(item => item.version.status === 'DRAFT')
+    .sort((left, right) => right.version.versionNumber - left.version.versionNumber)
+  const history = versions.filter(item => item.version.status === 'SUPERSEDED')
+    .sort((left, right) => right.version.versionNumber - left.version.versionNumber)
+  const candidate = drafts.find(item => item.version.id === publishId)?.version
+  const canPublish = canWrite && !disabled
+    && Boolean(candidate && (!current || candidate.versionNumber > current.version.versionNumber))
+  const publishVersion = () => {
+    if (!candidate || !canPublish) return
+    pendingVersion.current = { kind: 'publish', id: candidate.id }
+    setPublishId(null)
+    void mutation.run(
+      () => cruisePackageApi.publishVersion(candidate.id, candidate.revision),
+      `Phiên bản ${candidate.versionNumber} đã sẵn sàng để tạo gói cho chuyến.`,
+    )
+  }
   return <>{!creating&&<Panel className={styles.panel}>
-    <div className={styles.sectionHeader}><div><h2>Phiên bản của mẫu</h2><p className={styles.helper}>{template.code} · Mở một phiên bản để xem hạng cabin và quyền lợi. Phiên bản đã phát hành có thể dùng cho chuyến.</p></div>{canWrite&&<Button id="fare-new-version" disabled={disabled||creating} aria-expanded={creating} aria-controls="fare-version-editor" onClick={()=>setCreating(true)}>Soạn phiên bản mới</Button>}</div>
+    <div className={styles.sectionHeader}><div><h2>Phiên bản của mẫu</h2></div>{canWrite&&<Button id="fare-new-version" disabled={disabled||creating} aria-expanded={creating} aria-controls="fare-version-editor" onClick={()=>setCreating(true)}>Soạn phiên bản mới</Button>}</div>
     <QueryState loading={query.loading} error={query.error}/>{mutation.feedback}
     {query.error&&<div className={styles.actions}><Button tone="secondary" onClick={query.retry}>Tải lại phiên bản</Button></div>}{query.data?.length===0&&<Empty title="Chưa có phiên bản mẫu"><p>Tạo phiên bản để cấu hình hạng cabin và quyền lợi.</p></Empty>}{categoryCatalog.error&&<Notice title="Chưa tải được hạng thương mại dùng chung" tone="warning">Không tự nối các hạng trùng tên.<Button onClick={categoryCatalog.retry}>Tải lại danh mục hạng</Button></Notice>}
-    {query.data?.map(item=><VersionCard key={item.version.id} item={item} canPublish={canWrite&&!disabled} onPublish={()=>{pendingVersion.current={kind:'publish',id:item.version.id};void mutation.run(()=>cruisePackageApi.publishVersion(item.version.id,item.version.revision),`Đã phát hành phiên bản ${item.version.versionNumber}. Các gói du thuyền đang dùng phiên bản cũ được giữ nguyên.`)}}/>)}
-  </Panel>}{canWrite&&creating&&<Panel className={styles.panel} id="fare-version-editor"><Button tone="text" disabled={mutation.busy||mutation.needsReview} onClick={()=>changeWorkspace(clearDraft)}>Quay lại các phiên bản</Button><header className={styles.editorHeading}><h2 ref={editorHeading} tabIndex={-1}>Soạn phiên bản mới</h2><p className={styles.helper}>Nhập tên gói, hạng cabin và quyền lợi, rồi lưu nháp. Khi nội dung đã chốt, mở bản nháp và bấm Phát hành. Giá bán được thiết lập khi tạo gói cho chuyến.</p></header>{mutation.feedback}<form aria-busy={mutation.busy} className={styles.versionForm} onSubmit={async e=>{e.preventDefault();if(disabled||benefitPending)return;setLocalError('');if(!logicalCategories.length||hasDuplicateRooms){setLocalError('Nhập ít nhất một hạng cabin, mỗi dòng một hạng và không trùng nhau.');document.getElementById('fare-logical-categories')?.focus();return}pendingVersion.current={kind:'create',ids:query.data?.map(v=>v.version.id)??[],content:versionContent(name.trim(),description,logicalCategories,benefits)};const ok=await mutation.run(()=>cruisePackageApi.createVersion(template.id,{expectedTemplateRevision:template.revision,name:name.trim(),description,logicalCategories,reusedLogicalCategoryIds:reusedRooms.map(category=>category.id),benefits:benefits.map(b=>({resourceType:b.resourceType,resourceId:b.resourceId,inclusion:b.inclusion,quantityLimit:b.quantityLimit,eligibility:b.eligibility,usagePolicy:b.usagePolicy,usageUnit:b.usageUnit,serviceUnitCode:b.serviceUnitCode,requiresReservation:b.requiresReservation,usageStartsAt:b.usageStartsAt,usageEndsAt:b.usageEndsAt}))}),'Đã lưu phiên bản nháp. Chưa phát hành mẫu hoặc mở bán.');if(ok){setName('');setDescription('');setCategories('');setBenefits([]);setReusedCategories([]);setCreating(false);document.getElementById('fare-new-version')?.focus()}}}>
-      {localError&&<Notice title="Kiểm tra bản soạn" tone="error"><p>{localError}</p></Notice>}<FormSection title="1. Thông tin khách sẽ thấy" description="Tên và mô tả hành khách sẽ đọc khi xem gói du thuyền.">
+    {current && <section aria-label="Phiên bản hiện hành">
+      <h3>Phiên bản hiện hành</h3>
+      <VersionCard item={current} />
+    </section>}
+    {drafts.length > 0 && <section aria-label="Bản nháp">
+      <h3>Bản nháp</h3>
+      {drafts.map(item => <VersionCard key={item.version.id} item={item}
+        onPublish={canWrite && (!current || item.version.versionNumber > current.version.versionNumber)
+          ? () => setPublishId(item.version.id) : undefined} disabled={disabled}
+        supersededDraft={Boolean(current && item.version.versionNumber <= current.version.versionNumber)} />)}
+    </section>}
+    {history.length > 0 && <section aria-label="Lịch sử phiên bản">
+      <h3>Lịch sử phiên bản</h3>
+      {history.map(item => <VersionCard key={item.version.id} item={item} />)}
+    </section>}
+    {candidate && <Modal title={`Phát hành phiên bản ${candidate.versionNumber}`} onClose={() => setPublishId(null)}
+      footer={<>
+        <Button tone="secondary" onClick={() => setPublishId(null)}>Quay lại</Button>
+        <Button disabled={!canPublish} onClick={publishVersion}>Phát hành phiên bản</Button>
+      </>}>
+      <p>Phiên bản {candidate.versionNumber} sẽ dùng để tạo gói cho chuyến mới.</p>
+      {current && <p>Các gói đã dùng phiên bản {current.version.versionNumber} tiếp tục dùng phiên bản đó.</p>}
+    </Modal>}
+  </Panel>}{canWrite&&creating&&<Panel className={styles.panel} id="fare-version-editor"><header className={styles.editorHeading}><h2 ref={editorHeading} tabIndex={-1}>Soạn phiên bản mới</h2></header>{mutation.feedback}<form aria-busy={mutation.busy} className={styles.versionForm} onSubmit={async e=>{e.preventDefault();if(disabled||benefitPending)return;setLocalError('');if(!logicalCategories.length||hasDuplicateRooms){setLocalError('Nhập ít nhất một hạng cabin, mỗi dòng một hạng và không trùng nhau.');document.getElementById('fare-logical-categories')?.focus();return}pendingVersion.current={kind:'create',ids:query.data?.map(v=>v.version.id)??[],content:versionContent(name.trim(),description,logicalCategories,benefits)};const ok=await mutation.run(()=>cruisePackageApi.createVersion(template.id,{expectedTemplateRevision:template.revision,name:name.trim(),description,logicalCategories,reusedLogicalCategoryIds:reusedRooms.map(category=>category.id),benefits:benefits.map(b=>({resourceType:b.resourceType,resourceId:b.resourceId,inclusion:b.inclusion,quantityLimit:b.quantityLimit,eligibility:b.eligibility,usagePolicy:b.usagePolicy,usageUnit:b.usageUnit,serviceUnitCode:b.serviceUnitCode,requiresReservation:b.requiresReservation,usageStartsAt:b.usageStartsAt,usageEndsAt:b.usageEndsAt}))}),'Đã lưu phiên bản nháp. Chưa phát hành mẫu hoặc mở bán.');if(ok){setName('');setDescription('');setCategories('');setBenefits([]);setReusedCategories([]);setCreating(false);document.getElementById('fare-new-version')?.focus()}}}>
+      {localError&&<Notice title="Kiểm tra bản soạn" tone="error"><p>{localError}</p></Notice>}<FormSection title="Thông tin gói">
       <div className={styles.fullWidth}><Field htmlFor="fare-version-name" label="Tên gói du thuyền *"><input id="fare-version-name" required maxLength={200} value={name} disabled={disabled} onChange={e=>setName(e.target.value)}/></Field></div>
-      <Field htmlFor="fare-version-description" label="Mô tả"><textarea rows={3} id="fare-version-description" maxLength={10000} value={description} disabled={disabled} onChange={e=>setDescription(e.target.value)}/></Field>
-      </FormSection><FormSection title="Hạng phòng trong gói" description="Chọn ít nhất một hạng phòng đã có hoặc thêm hạng phòng mới.">
+      <div className={styles.fullWidth}><Field htmlFor="fare-version-description" label="Mô tả"><textarea rows={3} id="fare-version-description" maxLength={10000} value={description} disabled={disabled} onChange={e=>setDescription(e.target.value)}/></Field></div>
+      </FormSection><FormSection title="Hạng phòng">
+        <div className={styles.fullWidth}>
         {knownCategories.length>0&&<details className={styles.disclosure}>
           <summary>Chọn hạng phòng đã có{reusedRooms.length>0&&` · ${reusedRooms.length} đã chọn`}</summary>
           <div className={styles.disclosureBody}>
@@ -129,30 +171,37 @@ function TemplateVersions({template,onChanged,readOnly,startNew=false}:{template
           <textarea rows={2} id="fare-logical-categories" value={categories} disabled={disabled}
             onChange={event=>setCategories(event.target.value)}/>
         </Field>
-        {logicalCategories.length>0&&<p className={styles.helper}>{logicalCategories.length} hạng phòng trong phiên bản</p>}
-      </FormSection><FormSection title="3. Hoạt động, tour và dịch vụ đi kèm" description="Thêm hoạt động trên tàu, tour tham quan và dịch vụ từ danh mục."><div className={styles.fullWidth}>
-      {benefits.length===0&&<p className={styles.emptyCopy}>Gói chưa có quyền lợi. Chọn “Thêm quyền lợi” nếu gói có hoạt động, tour hoặc dịch vụ đi kèm.</p>}
+        </div>
+      </FormSection><FormSection title="Quyền lợi đi kèm"><div className={styles.fullWidth}>
+      {benefits.length===0&&<p className={styles.emptyCopy}>Chưa thêm quyền lợi.</p>}
       <ul className={styles.benefitList}>{benefits.map((benefit,index)=><li key={`${benefit.resourceType}:${benefit.resourceId}`}><div><strong>{benefit.resourceName}</strong><p>{resourceLabels[benefit.resourceType]} · {inclusionLabels[benefit.inclusion]}{benefit.quantityLimit!=null&&` · ${benefitQuantity(benefit.quantityLimit,benefit)}`}</p><p className={styles.helper}>{benefit.eligibility}</p></div><Button tone="text" disabled={disabled} aria-label={`Bỏ quyền lợi ${benefit.resourceName}`} onClick={()=>setBenefits(v=>v.filter((_,i)=>i!==index))}>Bỏ quyền lợi</Button></li>)}</ul>
       <BenefitEditor disabled={disabled} onPendingChange={setBenefitPending} onAdd={benefit=>{if(benefits.some(b=>b.resourceType===benefit.resourceType&&b.resourceId===benefit.resourceId)){setLocalError('Quyền lợi đã có trong bản soạn.');return false}setLocalError('');setBenefits(v=>[...v,benefit]);return true}}/>
-      </div></FormSection><footer className={styles.formFooter}><div><strong>Bản nháp chưa phát hành</strong><p className={styles.helper}>{benefitPending?'Quyền lợi đang nhập chưa có trong danh sách. Thêm quyền lợi trước khi lưu phiên bản.':`${benefits.length} quyền lợi trong bản soạn. Lưu nháp không tự phát hành hoặc mở bán.`}</p></div><Button type="submit" disabled={disabled||!name.trim()||!logicalCategories.length||hasDuplicateRooms||benefitPending}>{mutation.busy?'Đang lưu…':'Lưu phiên bản nháp'}</Button></footer>
+      </div></FormSection><footer className={styles.formFooter}><Button autoWidth tone="secondary" disabled={mutation.busy||mutation.needsReview} onClick={()=>changeWorkspace(clearDraft)}>Quay lại</Button>{benefitPending&&<p className={styles.helper}>Thêm quyền lợi đang nhập trước khi lưu.</p>}<Button autoWidth type="submit" disabled={disabled||!name.trim()||!logicalCategories.length||hasDuplicateRooms||benefitPending}>{mutation.busy?'Đang lưu…':'Lưu phiên bản nháp'}</Button></footer>
     </form></Panel>}</>
 }
-function VersionCard({item,canPublish,onPublish}:{item:CruisePackageVersion;canPublish:boolean;onPublish:()=>void}) {
+function VersionCard({ item, onPublish, disabled, supersededDraft }: { item: CruisePackageVersion; onPublish?: () => void; disabled?: boolean; supersededDraft?: boolean }) {
   const version=item.version
-  return <details className={styles.version} open={version.status === 'DRAFT'}>
+  return <details className={styles.version} open={version.status === 'PUBLISHED'}>
     <summary><span className={styles.versionIdentity}><strong>{version.name}</strong><span>Phiên bản {version.versionNumber} · {item.benefits.length} quyền lợi</span></span><Badge label={lifecycle[version.status]} tone={version.status==='PUBLISHED'?'success':version.status==='DRAFT'?'warning':'neutral'}/><span className={styles.versionAction}>Xem chi tiết</span></summary>
     <div className={styles.versionBody}><div className={styles.versionFacts}><div><h3>Hạng cabin</h3><p>{version.logicalCategories.join(', ')||'Chưa khai báo hạng cabin'}</p></div>{version.description&&<div><h3>Mô tả gói</h3><p>{version.description}</p></div>}</div><h3>Quyền lợi</h3>
     {item.benefits.length===0&&<p className={styles.helper}>Phiên bản này chưa có quyền lợi.</p>}
     <ul className={styles.benefitList}>{item.benefits.map(b=><li key={b.id}><div><strong>{item.resourceNames[b.id]??'Chưa đọc được tên quyền lợi'}</strong><p>{inclusionLabels[b.inclusion]}{b.quantityLimit!=null&&` · ${benefitQuantity(b.quantityLimit,b)}`}</p><p className={styles.helper}>{b.eligibility}</p>{(b.inclusion==='INCLUDED'||b.inclusion==='LIMITED_INCLUDED')&&<dl className={styles.benefitFacts}><div><dt>Chính sách sử dụng</dt><dd>{b.usagePolicy==='UNLIMITED'?'Không giới hạn':b.usagePolicy==='LIMITED'?'Có giới hạn':'Chưa cấu hình'}</dd></div><div><dt>Đơn vị ghi nhận</dt><dd>{b.usageUnit==='PARTICIPATION'?'Lượt tham gia / hành khách':b.serviceUnitCode??'Chưa có đơn vị hỗ trợ'}</dd></div><div><dt>Đăng ký sử dụng</dt><dd>{b.requiresReservation===true?'Phải đăng ký / yêu cầu phục vụ':b.requiresReservation===false?'Không cần đăng ký':'Chưa cấu hình'}</dd></div>{(b.usageStartsAt||b.usageEndsAt)&&<div><dt>Khoảng sử dụng</dt><dd>{b.usageStartsAt?new Date(b.usageStartsAt).toLocaleString('vi-VN'):'Chưa có mốc bắt đầu'} — {b.usageEndsAt?new Date(b.usageEndsAt).toLocaleString('vi-VN'):'Chưa có mốc kết thúc'}</dd></div>}</dl>}{(b.inclusion==='OPTIONAL'||b.inclusion==='NOT_INCLUDED')&&<p className={styles.helper}>Không cấp quyền sử dụng miễn phí. Mua thêm theo Add-on Offer hợp lệ.</p>}</div></li>)}</ul>
-    <TechnicalDetails entries={[["ID phiên bản",version.id],["Lần cập nhật",version.revision]]}/>
-    {version.status==='DRAFT'&&<div className={styles.publishRow}><p className={styles.helper}>Phát hành để sử dụng phiên bản này khi tạo gói cho chuyến khởi hành.</p>{canPublish&&<Button onClick={onPublish}>Phát hành phiên bản {version.versionNumber}</Button>}</div>}
+    {onPublish && <div className={styles.publishRow}>
+      <Button autoWidth disabled={disabled} onClick={onPublish}>Phát hành phiên bản</Button>
+    </div>}
+    {supersededDraft && <p className={styles.helper}>Bản nháp này cũ hơn phiên bản hiện hành.</p>}
     </div></details>
 }
 export function CruisePackageTemplatePage(){return <UnsavedForms><TemplateWorkspace/></UnsavedForms>}
 function TemplateWorkspace() {
   const access=useSessionAccess(),canWrite=access.roles.includes('ACTIVITY_SERVICE_MANAGER')&&access.canDo('TOUR_PACKAGE_MANAGE')
   const [epoch,setEpoch]=useState(0),[selected,setSelected]=useState(''),[code,setCode]=useState(''),[creatingTemplate,setCreatingTemplate]=useState(false),[newTemplateId,setNewTemplateId]=useState('')
+  const [search, setSearch] = useState('')
   const codeInput=useRef<HTMLInputElement>(null)
+  const pageHeading = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    pageHeading.current?.focus()
+  }, [selected, creatingTemplate])
   useEffect(()=>{if(creatingTemplate)codeInput.current?.focus()},[creatingTemplate])
   const switchWorkspace=useWorkspaceChange()
   const loadTemplates=useCallback((signal:AbortSignal)=>cruisePackageApi.templates(signal),[])
@@ -168,26 +217,74 @@ function TemplateWorkspace() {
   })
   useFormChanges(Boolean(code),mutation.busy)
   const template=query.data?.find(item=>item.id===selected),disabled=mutation.busy||mutation.needsReview||query.loading||Boolean(query.error)||!query.data
+  const templates = query.data
+  const showCatalog = !selected && !creatingTemplate
+  const catalog = useReadQuery(`template-catalog:${access.userId}:${epoch}:${showCatalog}:${Boolean(templates)}`, useCallback(async signal => {
+    const rows: Array<{
+      item: CruisePackageTemplate
+      versions: Awaited<ReturnType<typeof cruisePackageApi.versions>> | null
+    }> = []
+    if (!showCatalog || !templates) return rows
+    for (let index = 0; index < templates.length && !signal.aborted; index += 6) {
+      const batch = templates.slice(index, index + 6)
+      const versions = await Promise.allSettled(batch.map(item => cruisePackageApi.versions(item.id, signal)))
+      rows.push(...batch.map((item, offset) => {
+        const result = versions[offset]
+        return { item, versions: result.status === 'fulfilled' ? result.value : null }
+      }))
+    }
+    return rows
+  }, [showCatalog, templates]))
+  const term = search.trim().toLocaleLowerCase('vi')
+  const rows = catalog.data?.filter(({ item, versions }) => item.code.toLocaleLowerCase('vi').includes(term)
+    || versions?.some(({ version }) => version.name.toLocaleLowerCase('vi').includes(term))) ?? []
+
   return <AdminShell><div className={styles.workspace}>
-    <PageHeader title="Mẫu gói du thuyền" description="Soạn hạng cabin và quyền lợi dùng chung, rồi phát hành để có thể dùng mẫu khi tạo gói cho từng chuyến." breadcrumb="HOẠT ĐỘNG VÀ DỊCH VỤ" actions={canWrite && <Button tone="primary" disabled={disabled||creatingTemplate} aria-expanded={creatingTemplate} aria-controls="fare-template-create" onClick={()=>switchWorkspace(()=>{setSelected('');setCreatingTemplate(true)})}>Tạo mẫu mới</Button>}/>
+    <div ref={pageHeading} tabIndex={-1}>
+      <PageHeader title={template?.code ?? 'Mẫu gói du thuyền'} breadcrumb="Hoạt động và dịch vụ"
+        actions={selected || creatingTemplate
+          ? <Button tone="secondary" disabled={mutation.busy || mutation.needsReview}
+            onClick={() => switchWorkspace(() => { setSelected(''); setCreatingTemplate(false); setCode('') })}>Về danh mục mẫu</Button>
+          : canWrite && <Button disabled={disabled} aria-controls="fare-template-create"
+            onClick={() => setCreatingTemplate(true)}>Tạo mẫu mới</Button>} />
+    </div>
     <QueryState loading={query.loading} error={query.error}/>{mutation.feedback}
-    {query.error&&<div className={styles.actions}><Button tone="secondary" onClick={query.retry}>Tải lại danh sách mẫu</Button></div>}
-    <Panel title="Cách dùng mẫu gói" className={styles.panel}>
-      <ol className={styles.workflow}>
-        <li><strong>Tạo mẫu.</strong> Đặt mã để nhận diện nhóm gói, ví dụ ROYAL.</li>
-        <li><strong>Soạn phiên bản.</strong> Nhập tên khách sẽ thấy, thêm hạng phòng và quyền lợi, rồi lưu nháp.</li>
-        <li><strong>Phát hành.</strong> Kiểm tra bản nháp và phát hành để chọn được phiên bản này khi tạo gói cho chuyến.</li>
-      </ol>
-    </Panel>
-    <Panel title="Chọn hoặc tạo mẫu" className={styles.panel}>
-      <div className={styles.templatePicker}>
-        <Field htmlFor="fare-template-select" label="Mẫu cần xem"><select id="fare-template-select" value={selected} disabled={disabled} onChange={e=>{const id=e.target.value;switchWorkspace(()=>{setSelected(id);setCode('');setCreatingTemplate(false)})}}><option value="">Chọn mẫu để xem phiên bản</option>{query.data?.map(item=><option key={item.id} value={item.id}>{item.code}</option>)}</select></Field>
-        
+    {query.error && <Button tone="secondary" onClick={query.retry}>Tải lại danh sách mẫu</Button>}
+    {showCatalog && !query.loading && !query.error && <Panel className={styles.panel}>
+      <div className={styles.catalogSearch}>
+        <Field htmlFor="fare-template-search" label="Tìm mẫu">
+          <input type="search" id="fare-template-search" value={search} onChange={event => setSearch(event.target.value)}
+            placeholder="Nhập tên hoặc mã mẫu" />
+        </Field>
       </div>
+      {catalog.loading && <Loading label="Đang tải phiên bản của các mẫu…" />}
+      {catalog.data?.some(row => row.versions === null) && <Notice tone="warning" title="Một số phiên bản chưa tải được">
+        <Button tone="secondary" onClick={catalog.retry}>Tải lại phiên bản</Button>
+      </Notice>}
+      {catalog.data && !rows.length && <Empty title={term ? 'Không tìm thấy mẫu phù hợp' : 'Chưa có mẫu gói'} />}
+      {rows.length > 0 && <DataTable label="Danh mục mẫu gói du thuyền"
+        headers={['Mẫu gói', 'Dùng cho chuyến mới', 'Bản nháp', '']}>
+        {rows.map(({ item, versions }) => {
+          const published = versions?.find(entry => entry.version.status === 'PUBLISHED')?.version
+          const drafts = versions?.filter(entry => entry.version.status === 'DRAFT') ?? []
+          const name = published?.name ?? drafts[0]?.version.name
+          return <tr key={item.id}>
+            <td><strong>{name || item.code}</strong>{name && <div className={styles.helper}>{item.code}</div>}</td>
+            <td>{published ? <Badge label={`Phiên bản ${published.versionNumber}`} tone="success" />
+              : versions ? 'Chưa phát hành' : 'Chưa tải được'}</td>
+            <td>{drafts.length === 1 ? `Phiên bản ${drafts[0].version.versionNumber}`
+              : drafts.length > 1 ? `${drafts.length} bản nháp` : '—'}</td>
+            <td><Button tone="secondary" autoWidth aria-label={`Mở mẫu ${item.code}`}
+              onClick={() => setSelected(item.id)}>Mở mẫu</Button></td>
+          </tr>
+        })}
+      </DataTable>}
+    </Panel>}
+    {creatingTemplate && <Panel className={styles.panel} title="Tạo mẫu mới">
       {canWrite&&creatingTemplate&&<form id="fare-template-create" className={styles.templateCreate} onSubmit={async e=>{e.preventDefault();if(disabled)return;pendingTemplate.current={code:code.trim(),ids:query.data?.map(row=>row.id)??[]};await mutation.run(async()=>{const created=await cruisePackageApi.createTemplate(code.trim());if(created.code!==code.trim())throw new Error('Chưa xác nhận đúng mẫu vừa tạo.');setSelected(created.id);setNewTemplateId(created.id);setCode('');setCreatingTemplate(false)},'Đã tạo mẫu. Tiếp tục tạo phiên bản để cấu hình nội dung.')}}>
         <Field htmlFor="fare-template-code" label="Mã mẫu mới *" hint="Ví dụ ROYAL. Tên hành khách nhìn thấy được nhập khi soạn phiên bản."><input ref={codeInput} id="fare-template-code" required maxLength={50} value={code} disabled={disabled} onChange={e=>setCode(e.target.value)}/></Field><Button type="submit" disabled={disabled||!code.trim()}>{mutation.busy?'Đang tạo…':'Tạo mẫu'}</Button>
       </form>}
-    </Panel>
+    </Panel>}
     {template&&<TemplateVersions key={template.id} template={template} startNew={template.id===newTemplateId} readOnly={disabled} onChanged={refresh}/>}
   </div></AdminShell>
 }
