@@ -11,6 +11,8 @@ export type CruiseSaveRequestDto = {
   cruiseType?: CruiseType
   departureDatetime: string
   returnDatetime: string
+  bookingOpensAt?: string | null
+  bookingClosesAt?: string | null
   departurePortId: string
   returnPortId: string
 }
@@ -50,6 +52,8 @@ export type CruiseDto = {
   cruiseType: CruiseType
   departureDatetime: string
   returnDatetime: string
+  bookingOpensAt?: string | null
+  bookingClosesAt?: string | null
   departurePortId: string
   returnPortId: string
   status: CruiseStatus

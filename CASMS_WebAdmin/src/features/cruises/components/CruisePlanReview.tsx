@@ -11,7 +11,7 @@ import { useSessionAccess } from '@/shared/auth'
 import { businessErrorMessage } from '@/shared/api/business-errors'
 import { ApiError, apiRequest } from '@/shared/api'
 import { businessCopy, domainStatus } from '@/shared/i18n/business-copy'
-import { Badge, Button, Field, Loading, Modal, Notice, Panel, RecordFacts,TechnicalDetails } from '@/shared/ui'
+import { Badge, Button, Field, Loading, Modal, Notice, Panel, RecordFacts } from '@/shared/ui'
 import { mainflowApi, type MainflowAction, type PlanView } from '../api/mainflow-api'
 import {preparationWallTime,preparationInstant} from '../model/preparation-time'
 import {journeyTime,SHIP_TIME_ZONE,validTimeZone} from '@/shared/lib/journey-time'
@@ -249,11 +249,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
    {crm&&mode!=='submit'&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.planStatus)&&<PlanWindows key={`${cruiseId}:${data.windows.expectedRevision}`} data={data} onSaved={()=>{setEpoch(n=>n+1);query.retry()}} editable/>}
    {crm&&data.cruisePackagePricing&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.planStatus)&&<PlanPackageSelection cruiseId={cruiseId} onSaved={()=>{setEpoch(n=>n+1);query.retry();onChanged?.()}}/>}
    {data.unifiedPackageReview&&data.submittedSnapshot!=null&&<FrozenPlanPackages snapshot={data.submittedSnapshot}/>}
-   {data.submittedSnapshot!=null&&<details className={styles.snapshotDisclosure} open={mode==='review'}><summary>Nội dung kế hoạch đã gửi <span>Phiên bản {data.submittedRevision??'chưa xác định'}</span></summary><PlanSnapshot snapshot={data.submittedSnapshot} includePricing={mode!=='review'&&mode!=='submit'}/></details>}
-   <TechnicalDetails label="Thông tin đối chiếu kế hoạch" entries={[
-    ['Lần cập nhật',data.revision],['Phiên bản đã gửi',data.submittedRevision],
-    ['Người gửi — mã tài khoản',data.submittedBy],['Người xét duyệt — mã tài khoản',data.reviewedBy],['Fingerprint',data.fingerprint],['Mã điều kiện hồ sơ',data.planBlockers.join(', ')],['Mã điều kiện sẵn sàng',data.readyBlockers.join(', ')],
-   ]}/>
+   {data.submittedSnapshot!=null&&<details className={styles.snapshotDisclosure} open={mode==='review'}><summary>Nội dung kế hoạch đã gửi</summary><PlanSnapshot snapshot={data.submittedSnapshot} includePricing={mode!=='review'&&mode!=='submit'}/></details>}
    {reviewActions}
   </>}
   {success&&<Notice title={manager?'Kết quả gửi hồ sơ':'Đã ghi nhận quyết định'} tone="success">{success}</Notice>} {error&&!action&&<Notice title="Không thể hoàn tất thao tác" tone="error">{error}</Notice>}

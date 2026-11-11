@@ -7,3 +7,149 @@
 .mappingCabins { display: grid; gap: .75rem; max-block-size: 24rem; overflow: auto; }
 .mappingCabins label { display: flex; align-items: flex-start; gap: .5rem; overflow-wrap: anywhere; }
 .mappingCabins input[type="checkbox"] { flex: 0 0 auto; inline-size: auto; }
+.listActions { display: flex; flex-wrap: wrap; gap: var(--space-3, 16px); }
+
+.stepGroup {
+  display: grid;
+  gap: var(--space-3, 14px);
+  padding: var(--space-4, 16px);
+  background: var(--surface-default, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.stepHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-subtle, #edf2f7);
+  padding-bottom: 8px;
+}
+
+.stepTitle {
+  font-family: var(--font-heading, inherit);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-navy, #0b2a4a);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-navy, #0b2a4a);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stepDesc {
+  font-size: 13px;
+  color: var(--text-secondary, #506777);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.windowCard {
+  background: #f0f7f9;
+  border: 1px solid #c7dbe2;
+  border-radius: 6px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.windowHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.windowTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-navy, #0b2a4a);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.windowFacts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  font-size: 13px;
+}
+
+.windowFactItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.windowFactLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, #506777);
+}
+
+.windowFactValue {
+  font-weight: 600;
+  color: var(--text-primary, #0b2a4a);
+}
+
+.fieldGrid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-3, 14px);
+}
+
+.fieldGrid3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3, 14px);
+}
+
+.guidanceBanner {
+  background: #fbfbf9;
+  border: 1px dashed var(--border-control, #cbd5e1);
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-secondary, #506777);
+}
+
+.templateHint {
+  font-size: 12px;
+  color: var(--text-secondary, #506777);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.selectedSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+  align-items: center;
+}

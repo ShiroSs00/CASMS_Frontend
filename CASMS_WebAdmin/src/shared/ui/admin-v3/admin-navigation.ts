@@ -33,7 +33,7 @@ const tools: readonly AdminNavigationItem[] = [
   { label:'Hoạt động trên tàu', to:'/admin/activities', permissionMode:'ANY', permissions:['ACTIVITY_READ'] },
   { label:'Dịch vụ', to:'/admin/services', permissionMode:'ANY', permissions:['SERVICE_READ'] },
   { label:'Mặt hàng bán lẻ', to:'/admin/products', permissionMode:'ANY', permissions:['PRODUCT_MANAGE'] },
-  { label:'Gói dịch vụ', to:'/admin/service-packages', permissionMode:'ANY', permissions:['TOUR_PACKAGE_MANAGE','PACKAGE_COMPONENT_MANAGE'] },
+  { label:'Danh mục gói dịch vụ', to:'/admin/service-packages', permissionMode:'ANY', permissions:['TOUR_PACKAGE_MANAGE','PACKAGE_COMPONENT_MANAGE'] },
   { label:'Mẫu gói du thuyền', to:'/admin/cruise-package-templates', permissionMode:'ALL', permissions:['TOUR_PACKAGE_MANAGE'] },
   { label:'Yêu cầu dịch vụ', to:'/admin/service-requests', permissionMode:'ANY', permissions:['SERVICE_REQUEST_READ','SERVICE_REQUEST_CREATE'] },
   { label:'Phân bổ gói dịch vụ', to:'/admin/package-assignments', permissionMode:'ANY', permissions:['TOUR_PACKAGE_ASSIGN','BOOKING_READ'] },
@@ -200,7 +200,8 @@ const navigationGroups = [
 export function roleNavigationGroups(roles: readonly string[], access: AdminAccess): AdminNavigationGroup[] {
   if(primaryStaffRole(access.roles ?? roles)==='SHIP_MANAGER') return roleNavigationItems(roles,access).map(item=>({id:item.to!.replace('/admin/',''),label:item.label,items:[item],direct:true}))
   if(primaryStaffRole(access.roles ?? roles)==='ACTIVITY_SERVICE_MANAGER') {
-    const items=roleNavigationItems(roles,access).filter(item=>item.to!=='/admin/cruises')
+    const items=roleNavigationItems(roles,access).map(item =>
+      item.to==='/admin/cruises' ? {...item,label:'Gói và dịch vụ theo chuyến'} : item)
     const groups=[
       {id:'preparation',label:'Chuẩn bị cho chuyến',sections:['cruises','activities','shore-excursions']},
       {id:'catalog',label:'Nội dung và mẫu gói',sections:['cruise-package-templates','services','products']},

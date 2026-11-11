@@ -10,7 +10,7 @@ import experience from '../Experience.module.css'
 import { AdminAccountContext, AdminRoleContext } from './admin-account-context'
 
 export function AdminShell({ children, className = '', topbar }: { children: ReactNode; className?: string; topbar?: ReactNode }) {
-  const { pathname, search } = useLocation()
+  const { pathname } = useLocation()
   const access = useSessionAccess()
   const roles=useContext(AdminRoleContext)
   const roleLabel=staffRoleLabel(roles)
@@ -21,7 +21,7 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
   let activeTo = pathname.startsWith('/admin/staff/') ? pathname : pathname.split('/').slice(0,3).join('/')
   if (pathname.includes('/regulations')) activeTo = pathname.startsWith('/admin/cruises/') ? '/admin/cruises' : pathname.startsWith('/admin/ships/') ? '/admin/ships' : '/admin/regulations'
   else if (pathname.startsWith('/admin/itinerary-history')) activeTo = '/admin/cruises'
-  else if (pathname.startsWith('/admin/activity-registrations')) activeTo = new URLSearchParams(search).has('excursionId') ? '/admin/shore-excursions' : '/admin/activities'
+  else if (pathname.startsWith('/admin/activity-registrations')) activeTo = '/admin/activity-registrations'
   const currentGroups = roleNavigationGroups(roles,access)
   if(activeTo==='/admin/cabins'&&currentGroups.some(group=>group.items.some(item=>item.to==='/admin/decks'&&item.label==='Boong và phòng'))) activeTo='/admin/decks'
   const activeLabel = currentGroups.flatMap(group => group.items).find(item => item.to === activeTo)?.label

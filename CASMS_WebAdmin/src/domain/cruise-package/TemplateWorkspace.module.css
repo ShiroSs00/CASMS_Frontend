@@ -15,6 +15,7 @@
 .workspace :is(button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--brand-teal); outline-offset: 3px; }
 .helper { color: var(--text-secondary); font-size: 13px; line-height: 1.7; max-width: 75ch; }
 .actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.workflow { display: grid; gap: 10px; margin: 0; padding-inline-start: 24px; }
 .templatePicker { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end; }
 .templateCreate { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: start; border-top: 1px solid var(--border-default); padding-top: 24px; }
 .templateCreate > button { margin-top: 26px; }

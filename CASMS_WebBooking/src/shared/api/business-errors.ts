@@ -112,6 +112,7 @@ const messages:Readonly<Record<string,string>>={
   PORTS_NOT_ACTIVE:businessCopy('cruise.readiness.PORTS_NOT_ACTIVE'),
   ITINERARY_MISSING:businessCopy('cruise.readiness.ITINERARY_MISSING'),
   STAFF_SCHEDULE_CONFLICT:businessCopy('cruise.readiness.STAFF_SCHEDULE_CONFLICT'),
+  SHIP_STAFF_SCHEDULE_CONFLICT:businessCopy('cruise.readiness.STAFF_SCHEDULE_CONFLICT'),
   NO_EFFECTIVE_REGULATIONS:businessCopy('cruise.readiness.NO_EFFECTIVE_REGULATIONS'),
   NO_ACTIVE_PACKAGES:businessCopy('cruise.readiness.NO_ACTIVE_PACKAGES'),
   PREPARATION_SECTION_UNCONFIRMED:businessCopy('cruise.readiness.PREPARATION_SECTION_UNCONFIRMED'),
