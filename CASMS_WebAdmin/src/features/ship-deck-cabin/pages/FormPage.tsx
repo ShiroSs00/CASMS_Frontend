@@ -1,3 +1,4 @@
+import { MAX_PASSENGER_DECKS, MIN_PASSENGER_DECKS, passengerDeckCountHint } from '@/shared/lib/ship-deck-count'
 import { EditorLayout } from '@/shared/ui'
 import { PermissionLink as Link } from '@/shared/ui'
 import { FormErrorSummary, FormSection } from '@/shared/ui'
@@ -45,12 +46,14 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
     setErrors(validation)
     if (Object.keys(validation).length) { focusError(); return }
     void mutation.run(async () => {
-      const saved = kind === 'ships' ? await shipDeckCabinApi.saveShip(shipDraft, source?.id)
+      const saved = kind === 'ships' ? await shipDeckCabinApi.saveShip(shipDraft, ship)
         : kind === 'decks' ? await shipDeckCabinApi.saveDeck(deckDraft, source?.id)
           : await shipDeckCabinApi.saveCabin(cabinDraft, source?.id)
       navigate(returnTo??`/admin/${kind}/${saved.id}`, { state: { saved: true } })
     })
   }
+  const deckShip = data.ships.find((row) => row.id === deckDraft.shipId)
+  const deckNumberLimit = deckShip?.deckNumberLimit ?? deckShip?.totalDecks
   const hostOptions = <><option value="">Chọn tàu</option>{data.ships.map((row) => <option key={row.id} value={row.id}>{row.code} · {row.name}</option>)}</>
   return <>
     <PageHeader breadcrumb={`Vận hành / Tàu & đội tàu / ${sectionLabels[kind]} / ${source ? 'Chỉnh sửa' : 'Tạo mới'}`} title={`${source ? 'Chỉnh sửa' : kind === 'ships' ? 'Tạo' : 'Thêm'} ${kindLabels[kind]}`}
@@ -65,12 +68,12 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
               <InputField label="Tên tàu *" value={shipDraft.name} maxLength={100} disabled={mutation.busy} error={errors.name} onChange={(event) => changeShip('name', event.target.value)} />
               <SelectField label="Trạng thái *" value={shipDraft.status} disabled={mutation.busy || Boolean(ship)} error={errors.status} onChange={(value) => changeShip('status', value as ShipStatus)}>{Object.entries(shipStatuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField>
               <InputField label="Sức chứa hành khách *" type="number" min={1} step={1} value={shipDraft.capacity || ''} disabled={mutation.busy} error={errors.capacity} onChange={(event) => changeShip('capacity', Number(event.target.value))} />
-              <InputField label="Tổng số boong *" type="number" min={1} step={1} value={shipDraft.totalDecks || ''} disabled={mutation.busy} error={errors.totalDecks} onChange={(event) => changeShip('totalDecks', Number(event.target.value))} />
+              <InputField label="Số boong hành khách *" type="number" min={MIN_PASSENGER_DECKS} max={MAX_PASSENGER_DECKS} step={1} hint={passengerDeckCountHint} value={shipDraft.totalDecks || ''} disabled={mutation.busy} error={errors.totalDecks} onChange={(event) => changeShip('totalDecks', Number(event.target.value))} />
               <InputField label="Ngày đưa vào hoạt động" type="date" value={shipDraft.commissionDate} disabled={mutation.busy} error={errors.commissionDate} onChange={(event) => changeShip('commissionDate', event.target.value)} />
               <ShipProfileFields profile={shipDraft} errors={errors} disabled={mutation.busy} onChange={changeShip} />
             </FormSection> : kind === 'decks' ? <FormSection title="Boong và tàu liên kết" >
               <SelectField label="Tàu *" value={deckDraft.shipId} disabled={mutation.busy || Boolean(deck)} error={errors.shipId} onChange={(value) => changeDeck('shipId', value)}>{hostOptions}</SelectField>
-              <InputField label="Số boong" type="number" min={1} step={1} max={data.ships.find((row) => row.id === deckDraft.shipId)?.totalDecks} value={deckDraft.number} disabled={mutation.busy} error={errors.number} onChange={(event) => changeDeck('number', event.target.value === '' ? '' : Number(event.target.value))} hint={deckDraft.shipId ? `Để trống để tự đánh số. Giới hạn theo tàu: ${data.ships.find((row) => row.id === deckDraft.shipId)?.totalDecks ?? 0} boong.` : 'Chọn tàu trước khi nhập số boong.'} />
+              <InputField label="Số hiệu boong" type="number" min={1} step={1} max={deckNumberLimit} value={deckDraft.number} disabled={mutation.busy} error={errors.number} onChange={(event) => changeDeck('number', event.target.value === '' ? '' : Number(event.target.value))} hint={deckNumberLimit != null ? `Để trống để tự đánh số. Số hiệu tối đa: ${deckNumberLimit}.` : 'Chọn tàu trước khi nhập số hiệu boong.'} />
               <InputField label="Tên boong" maxLength={50} value={deckDraft.name} disabled={mutation.busy} error={errors.name} onChange={(event) => changeDeck('name', event.target.value)} />
               <InputField label="Hệ số điều chỉnh giá cơ sở theo boong" type="number" min={0.5} max={5.0} step={0.05} value={deckDraft.priceMultiplier ?? 1.0} disabled={mutation.busy} error={errors.priceMultiplier} onChange={(event) => changeDeck('priceMultiplier', Number(event.target.value))} />
               <p>Giá cơ sở theo loại phòng được nhân với hệ số của boong. Hệ số 1.00 giữ nguyên giá cơ sở; không nhân trực tiếp vào giá gói dịch vụ hoặc phí cảng.</p>

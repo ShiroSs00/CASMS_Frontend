@@ -1,3 +1,7 @@
+import {
+  MAX_PASSENGER_DECKS, MIN_PASSENGER_DECKS, isPassengerDeckCount,
+  manifestPassengerDeckCountError, passengerDeckCountError, passengerDeckCountHint,
+} from '@/shared/lib/ship-deck-count'
 import { ImportPreviewDetails } from './ImportPreviewDetails'
 import { useCallback, useId, useRef, useState, type ReactNode, type SubmitEvent } from 'react'
 import { useReadQuery } from '@/shared/api'
@@ -57,13 +61,25 @@ export function ImportDialog({ embedded=false, session, busy, error, allowed, ve
     return uploaded && permissions.register ? shipImportApi.preview(preparedKey, signal) : Promise.resolve(null)
   }, [canReadShip, permissions.register, preparedKey, registration, uploaded, verifying])
   const preview = useReadQuery(`import-preview:${session.attemptId}:${preparedKey}:${uploaded}:${registration?.shipModelId ?? ''}:${verifying}`, loadPreview)
+  const listedPassengerDecks = preview.data?.decks.length ?? 0
+  const declaredPassengerDecks = preview.data?.deckCount
+  const needsDeckSupplement = declaredPassengerDecks == null && listedPassengerDecks < MIN_PASSENGER_DECKS
+  const deckManifestError = stage === 1 && preview.data && !needsDeckSupplement
+    ? manifestPassengerDeckCountError(declaredPassengerDecks ?? listedPassengerDecks, listedPassengerDecks)
+    : ''
+  const deckSupplementError = supplements.totalDecks !== undefined && !isPassengerDeckCount(supplements.totalDecks)
+    ? passengerDeckCountError
+    : ''
   const missing = preview.data ? ([
     ['shipName', 'Tên tàu', !preview.data.name?.trim()],
     ['totalCapacity', 'Sức chứa hành khách', !(Number(preview.data.passengerCapacity) > 0)],
-    ['totalDecks', 'Số boong hành khách', !(Number(preview.data.deckCount) > 0 || preview.data.decks.length)],
+    ['totalDecks', 'Số boong hành khách', needsDeckSupplement],
   ] as const).filter(([, , needed]) => needed) : []
-  const supplementReady = missing.every(([key]) => key === 'shipName' ? !!String(supplements[key] ?? '').trim()
-    : Number.isSafeInteger(supplements[key]) && Number(supplements[key]) > 0)
+  const supplementReady = missing.every(([key]) => {
+    if (key === 'shipName') return !!String(supplements[key] ?? '').trim()
+    if (key === 'totalDecks') return isPassengerDeckCount(supplements[key])
+    return Number.isSafeInteger(supplements[key]) && Number(supplements[key]) > 0
+  })
 
   async function prepare(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -102,7 +118,7 @@ export function ImportDialog({ embedded=false, session, busy, error, allowed, ve
         type="submit" form={formId} disabled={Boolean(busy) || !allowed}>
         {busy || (stored ? 'Dùng mô hình đã tải' : 'Tải mô hình lên')}
       </Button>}
-      {stage === 1 && permissions.register && <Button disabled={Boolean(busy) || !allowed || preview.loading || !preview.data || !supplementReady || Object.keys(profileErrors).length > 0}
+      {stage === 1 && permissions.register && <Button disabled={Boolean(busy) || !allowed || preview.loading || !preview.data || !supplementReady || Boolean(deckManifestError) || Object.keys(profileErrors).length > 0}
         onClick={() => preview.data && void onRegister({
           ...Object.fromEntries(missing.map(([key]) => [key, key === 'shipName' ? String(supplements[key]).trim() : supplements[key]])),
           ...shipProfilePayload(profile),
@@ -183,7 +199,27 @@ export function ImportDialog({ embedded=false, session, busy, error, allowed, ve
         </div>}
       </form> : <>
         <ImportPreviewDetails session={session} preview={preview}/>
-        {stage===1&&missing.length>0&&<div className={styles.fields}>{missing.map(([key,label])=><Field key={key} htmlFor={`supplement-${key}`} label={`${label} *`}><input id={`supplement-${key}`} name={key} autoComplete="off" type={key==='shipName'?'text':'number'} min={1} maxLength={key==='shipName'?100:undefined} disabled={Boolean(busy)} value={supplements[key]??''} onChange={event=>setSupplements(current=>({...current,[key]:key==='shipName'||!event.target.value?event.target.value:Number(event.target.value)}))} required/></Field>)}</div>}
+        {deckManifestError && <Notice title="Số boong trong mô hình không hợp lệ" tone="error">{deckManifestError}</Notice>}
+        {stage === 1 && missing.length > 0 && <div className={styles.fields}>
+          {missing.map(([key, label]) => {
+            const isDeckCount = key === 'totalDecks'
+            return <Field key={key} htmlFor={`supplement-${key}`} label={`${label} *`}
+              hint={isDeckCount ? passengerDeckCountHint : undefined}
+              error={isDeckCount ? deckSupplementError : undefined}>
+              <input id={`supplement-${key}`} name={key} autoComplete="off"
+                type={key === 'shipName' ? 'text' : 'number'}
+                min={isDeckCount ? MIN_PASSENGER_DECKS : 1}
+                max={isDeckCount ? MAX_PASSENGER_DECKS : undefined}
+                step={isDeckCount ? 1 : undefined}
+                maxLength={key === 'shipName' ? 100 : undefined}
+                disabled={Boolean(busy)} value={supplements[key] ?? ''} required
+                onChange={event => {
+                  const value = event.target.value
+                  setSupplements(current => ({ ...current, [key]: key === 'shipName' || !value ? value : Number(value) }))
+                }} />
+            </Field>
+          })}
+        </div>}
         {stage === 1 && permissions.register && preview.data && <FormSection title="Thông tin hồ sơ tàu (tùy chọn)">
           <ShipProfileFields profile={profile} errors={profileErrors} disabled={Boolean(busy)} onChange={changeProfile} />
         </FormSection>}
