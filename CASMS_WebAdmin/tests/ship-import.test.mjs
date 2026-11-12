@@ -4,8 +4,20 @@ import { createRegistrationStore, importScope, prepareImport } from '../src/feat
 import { emptySession, restoreSession, importStage } from '../src/features/ship-model-viewer/import/model.ts'
 import { previewFingerprint } from '../src/features/ship-model-viewer/import/preview-proof.ts'
 import { shipImportApi } from '../src/features/ship-model-viewer/import/api.ts'
+import { isPassengerDeckCount, manifestPassengerDeckCountError, passengerDeckCountError } from '../src/shared/lib/ship-deck-count.ts'
 import { setSessionAccess } from '../src/shared/auth/session-access.ts'
 import { setApiAccessToken } from '../src/shared/api/client.ts'
+test('passenger deck count accepts integers from 8 to 24', () => {
+  for (const value of [8, 12, 24]) assert.equal(isPassengerDeckCount(value), true)
+  for (const value of [7, 25, 8.5, null, '8']) assert.equal(isPassengerDeckCount(value), false)
+})
+
+test('manifest count permits partial structure but rejects a contradictory count', () => {
+  assert.equal(manifestPassengerDeckCountError(12, 9), '')
+  assert.equal(manifestPassengerDeckCountError(8, 9), 'Số boong khai báo ít hơn số boong hành khách trong mô hình.')
+  assert.equal(manifestPassengerDeckCountError(25, 8), passengerDeckCountError)
+})
+
 const uuid=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const registration={shipId:uuid(2),shipModelId:uuid(3),shipCreated:true}
 const manifest={modelId:'same-model',name:'Fixture ship',passengerCapacity:20,deckCount:1,decks:[],cabins:[]}

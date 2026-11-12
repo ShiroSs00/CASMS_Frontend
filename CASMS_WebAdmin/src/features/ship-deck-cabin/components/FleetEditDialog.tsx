@@ -1,3 +1,4 @@
+import { MAX_PASSENGER_DECKS, MIN_PASSENGER_DECKS, passengerDeckCountHint } from '@/shared/lib/ship-deck-count'
 import { useId, useRef, useState, type SubmitEvent } from 'react'
 import { useSessionAccess } from '@/shared/auth'
 import { Button, Field, Modal, Notice } from '@/shared/ui'
@@ -37,7 +38,7 @@ export function FleetEditDialog({ target, onClose, onSaved }: { target: FleetEdi
     setErrors(validation)
     if (Object.keys(validation).length) { requestAnimationFrame(() => form.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()); return }
     await mutation.run(async () => {
-      if (target.kind === 'ships') await shipDeckCabinApi.saveShip(draft, source.id)
+      if (target.kind === 'ships') await shipDeckCabinApi.saveShip(draft, target.item)
       else if (target.kind === 'decks') await shipDeckCabinApi.updateDeckOperations(source.id, deckName, multiplier)
       else await shipDeckCabinApi.saveCabin({ ...target.item, capacity, accessible }, source.id)
       onSaved('Thông tin đã được cập nhật.'); onClose()
@@ -51,7 +52,7 @@ export function FleetEditDialog({ target, onClose, onSaved }: { target: FleetEdi
         <Field htmlFor={`${formId}-name`} label="Tên tàu *" error={errors.name}><input id={`${formId}-name`} value={draft.name} maxLength={100} required disabled={mutation.busy} onChange={event => change('name', event.target.value)} /></Field>
         <div className={styles.formGrid}>
           <Field htmlFor={`${formId}-capacity`} label="Sức chứa hành khách *" error={errors.capacity}><input id={`${formId}-capacity`} type="number" min={1} step={1} value={draft.capacity || ''} required disabled={mutation.busy} onChange={event => change('capacity', Number(event.target.value))} /></Field>
-          <Field htmlFor={`${formId}-decks`} label="Tổng số boong *" error={errors.totalDecks}><input id={`${formId}-decks`} type="number" min={1} step={1} value={draft.totalDecks || ''} required disabled={mutation.busy} onChange={event => change('totalDecks', Number(event.target.value))} /></Field>
+          <Field htmlFor={`${formId}-decks`} label="Số boong hành khách *" hint={passengerDeckCountHint} error={errors.totalDecks}><input id={`${formId}-decks`} type="number" min={MIN_PASSENGER_DECKS} max={MAX_PASSENGER_DECKS} step={1} value={draft.totalDecks || ''} required disabled={mutation.busy} onChange={event => change('totalDecks', Number(event.target.value))} /></Field>
           <Field htmlFor={`${formId}-length`} label="Chiều dài (m)" error={errors.dimensions}><input id={`${formId}-length`} type="number" min={.01} step="any" value={draft.lengthMeters ?? ''} disabled={mutation.busy} onChange={event => change('lengthMeters', event.target.value === '' ? null : Number(event.target.value))} /></Field>
           <Field htmlFor={`${formId}-beam`} label="Chiều rộng (m)"><input id={`${formId}-beam`} type="number" min={.01} step="any" value={draft.beamMeters ?? ''} disabled={mutation.busy} onChange={event => change('beamMeters', event.target.value === '' ? null : Number(event.target.value))} /></Field>
           <ShipProfileFields profile={draft} errors={errors} disabled={mutation.busy} onChange={change} />

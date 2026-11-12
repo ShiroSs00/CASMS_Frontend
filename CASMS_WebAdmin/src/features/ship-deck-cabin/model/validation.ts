@@ -1,10 +1,11 @@
-import type { CabinDraft, DataSnapshot, DeckDraft, FieldErrors, ShipDraft } from './types'
-import { validateShipProfile, type ShipProfile } from '@/shared/lib/ship-profile'
+import type { CabinDraft, DataSnapshot, DeckDraft, FieldErrors, Ship, ShipDraft } from './types'
+import { validateShipProfile } from '@/shared/lib/ship-profile'
+import { isPassengerDeckCount, passengerDeckCountError } from '@/shared/lib/ship-deck-count'
 import { cabinStatuses, cabinTypes } from './types.ts'
 const positive = (value: number | ''): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value > 0
 
 // Form-level shape/required validation. Backend remains authoritative for business rules.
-export function validateShip(draft: ShipDraft, current?: ShipProfile): FieldErrors {
+export function validateShip(draft: ShipDraft, current?: Ship): FieldErrors {
   const errors: FieldErrors = validateShipProfile(draft, current)
   const code = draft.code.trim()
   if (code && !/^[A-Z0-9-]{3,20}$/.test(code)) errors.code = 'Mã tàu phải từ 3 đến 20 ký tự (chữ in hoa, số và dấu gạch nối, VD: OCV-GRAND-01).'
@@ -16,8 +17,7 @@ export function validateShip(draft: ShipDraft, current?: ShipProfile): FieldErro
   if (!positive(draft.capacity)) errors.capacity = 'Sức chứa phải là số nguyên dương.'
   else if (draft.capacity > 50000) errors.capacity = 'Sức chứa không được vượt quá 50,000 hành khách.'
 
-  if (!positive(draft.totalDecks)) errors.totalDecks = 'Số boong phải là số nguyên dương.'
-  else if (draft.totalDecks > 40) errors.totalDecks = 'Số boong không được vượt quá 40 boong.'
+  if (draft.totalDecks !== current?.totalDecks && !isPassengerDeckCount(draft.totalDecks)) errors.totalDecks = passengerDeckCountError
 
   if (draft.commissionDate && (Number.isNaN(Date.parse(draft.commissionDate)) || new Date(draft.commissionDate).getFullYear() < 1900 || new Date(draft.commissionDate).getFullYear() > 2100)) {
     errors.commissionDate = 'Ngày đưa vào hoạt động không hợp lệ.'

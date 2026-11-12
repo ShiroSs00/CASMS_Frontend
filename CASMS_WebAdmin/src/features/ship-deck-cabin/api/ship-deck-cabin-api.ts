@@ -119,9 +119,11 @@ export const shipDeckCabinApi = {
     if (kind === 'decks') return deck(await apiRequest<DeckDto>(idPath(kind, id), { signal }))
     return cabin(await apiRequest<CabinDto>(idPath(kind, id), { signal }))
   },
-  async saveShip(draft: ShipDraft, id?: string) {
+  async saveShip(draft: ShipDraft, current?: Ship) {
+    const id = current?.id
     const body = {
-      shipName: draft.name.trim(), totalCapacity: draft.capacity, totalDecks: draft.totalDecks,
+      shipName: draft.name.trim(), totalCapacity: draft.capacity,
+      ...(draft.totalDecks !== current?.totalDecks ? { totalDecks: draft.totalDecks } : {}),
       ...shipProfilePayload(draft, Boolean(id)),
       ...(draft.commissionDate ? { commissionDate: draft.commissionDate } : {}),
       ...(draft.lengthMeters != null ? { lengthMeters: draft.lengthMeters } : {}),
