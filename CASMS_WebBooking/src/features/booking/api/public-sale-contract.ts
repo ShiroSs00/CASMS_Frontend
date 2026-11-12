@@ -66,9 +66,12 @@ export function decodePublicItinerary(value: unknown, id: string) {
       return { dayNumber: sequence(day.dayNumber), date, shipTimeZoneId,
         portCalls: list(day.portCalls).map(value => {
           const port = row(value)
-          return { sequence: sequence(port.sequence), portName: typeof port.portName === 'string' ? port.portName : null,
+          const seq = sequence(port.sequence)
+          return { sequence: seq, portName: typeof port.portName === 'string' ? port.portName : null,
             countryCode: typeof port.countryCode === 'string' ? port.countryCode : null,
             portTimeZoneId: zone(port.portTimeZoneId), arrival: instant(port.arrival), departure: instant(port.departure),
+            isEmbarkation: typeof port.isEmbarkation === 'boolean' ? port.isEmbarkation : seq === 1,
+            isDisembarkation: typeof port.isDisembarkation === 'boolean' ? port.isDisembarkation : false,
             destinationVisits: list(port.destinationVisits).map(value => {
               const visit = row(value)
               return { sequence: sequence(visit.sequence), destinationName: typeof visit.destinationName === 'string' ? visit.destinationName : null }

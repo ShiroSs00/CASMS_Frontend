@@ -1,46 +1,12 @@
-import { useCallback } from 'react'
-import { useSearchParams } from 'react-router'
 import { ApiError, useReadQuery } from '@/shared/api'
-import { Badge, Button, ButtonLink, Empty, Loading, Notice } from '@/shared/ui'
+import { Button, Empty, Loading, Notice } from '@/shared/ui'
 import { liveCruiseCatalogApi } from '../api/booking-api'
-import { publicSaleLabels } from '../api/public-sale-contract'
-import { catalogReturn, cruiseDetailSections } from '../model/live-booking-navigation'
+import { cruiseDurationLabel } from '../model/cruise-duration'
+import { cruiseDetailSections } from '../model/live-booking-navigation'
 import { publicContentFailure } from '../model/public-content-feedback'
 import styles from './CruiseDetail.module.css'
 
-type PublicSaleRead = ReturnType<typeof useReadQuery<Awaited<ReturnType<typeof liveCruiseCatalogApi.publicSaleState>>>>
-type PublicItineraryRead = ReturnType<typeof useReadQuery<Awaited<ReturnType<typeof liveCruiseCatalogApi.publicItinerary>>>>
-
-export function PublicCruiseBookingEntry({ cruiseId }: { cruiseId: string }) {
-  const [params] = useSearchParams()
-  const query = useReadQuery('public-booking-state:' + cruiseId,
-    useCallback(signal => liveCruiseCatalogApi.saleState(cruiseId, signal), [cruiseId]))
-
-  return <div className={styles.bookingEntry} aria-live="polite">
-    {query.loading && <p>Đang kiểm tra khả năng đặt chỗ…</p>}
-    {query.error && <Notice title="Chưa thể kiểm tra khả năng đặt chỗ" tone="warning">
-      <p>{publicContentFailure(query.error)}</p>
-      <Button tone="secondary" onClick={query.retry}>Kiểm tra lại</Button>
-    </Notice>}
-    {query.data && (query.data.sellable && query.data.transactionReady
-      ? <ButtonLink to={'/booking/party?' + new URLSearchParams({ cruiseId, from: catalogReturn(params.get('from')) })}>Bắt đầu đặt chỗ</ButtonLink>
-      : <p>Chưa thể đặt chỗ cho chuyến này.</p>)}
-  </div>
-}
-
-export function PublicCruiseSaleState({ query }: { query: PublicSaleRead }) {
-  return <div className={styles.saleStatus} aria-live="polite">
-    {query.loading && <p>Đang tải trạng thái mở bán…</p>}
-    {query.error && <>
-      <p>{publicContentFailure(query.error)}</p>
-      <Button tone="secondary" onClick={query.retry}>Tải lại trạng thái</Button>
-    </>}
-    {query.data && <Badge
-      label={publicSaleLabels[query.data.publicSaleState] ?? 'Chưa xác định trạng thái mở bán'}
-      tone={query.data.publicSaleState === 'OPEN_FOR_SALE' ? 'success' : 'neutral'}
-    />}
-  </div>
-}
+export type PublicItineraryRead = ReturnType<typeof useReadQuery<Awaited<ReturnType<typeof liveCruiseCatalogApi.publicItinerary>>>>
 
 function PortTime({ instant, zone }: { instant: string; zone: string }) {
   const date = new Intl.DateTimeFormat('vi-VN', {
@@ -61,10 +27,7 @@ function PortTime({ instant, zone }: { instant: string; zone: string }) {
 export function PublicCruiseItinerary({ query }: { query: PublicItineraryRead }) {
   const { data, error, loading, retry } = query
   const pending = error instanceof ApiError && error.code === 'PUBLIC_ITINERARY_UNAVAILABLE'
-  const duration = [
-    data?.durationDays != null ? data.durationDays + ' ngày' : null,
-    data?.durationNights != null ? data.durationNights + ' đêm' : null,
-  ].filter(Boolean).join(' · ')
+  const duration = cruiseDurationLabel(data)
 
   return <section id={cruiseDetailSections.itinerary} aria-labelledby="public-schedule-heading" className={styles.section}>
     <div className={styles.sectionHeading}>
@@ -93,7 +56,7 @@ export function PublicCruiseItinerary({ query }: { query: PublicItineraryRead })
                   {day.portCalls.map(port => <li className={styles.port} key={port.sequence}>
                     <div className={styles.portHeading}>
                       <h4>{port.portName || 'Chưa có tên cảng'}{port.countryCode ? ' · ' + port.countryCode : ''}</h4>
-                      <p>Giờ địa phương</p>
+                      <p>Giờ địa phương · {port.portTimeZoneId}</p>
                     </div>
                     <dl className={styles.portTimes}>
                       <div><dt>Dự kiến đến</dt><dd><PortTime instant={port.arrival} zone={port.portTimeZoneId} /></dd></div>

@@ -1,12 +1,11 @@
-import {PublicCruisePackages} from './PublicCruisePackages'
-import { PublicCruiseSaleState, PublicCruiseItinerary, PublicCruiseBookingEntry } from './PublicCruiseInformation'
+import { CruiseDepartureExperience, UnavailableCruise } from './CruiseDepartureExperience'
 import { PublicContact } from '@/shared/ui/PublicContact'
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback } from 'react'
 import { Link, useLocation, useParams, useSearchParams } from 'react-router'
 import { catalogReturn, cruiseDetailPath, cruiseDetailSections } from '../model/live-booking-navigation'
 import { bookingReadFailure } from '../model/booking-feedback'
-import { ApiError, useReadQuery } from '@/shared/api'
-import { ButtonLink, Field, Loading, Notice, Panel } from '@/shared/ui'
+import { ApiError } from '@/shared/api'
+import { ButtonLink, Field, Loading, Notice } from '@/shared/ui'
 import { liveCruiseCatalogApi } from '../api/booking-api'
 import type { LiveCruise, LiveCruisePage } from '../api/live-cruise-contract'
 
@@ -15,22 +14,10 @@ import { Action, ActionLink, EmptyState, Heading } from './BookingUI'
 const catalogHero = '/images/ports/ha-long-bay.webp'
 import s from './Booking.module.css'
 import detailStyles from './CruiseDetail.module.css'
+import { cruisePortPhotos } from '../model/cruise-port-photos'
 
 type LoadIssue = { message: string; status: number }
 type LoadResult<T> = { value?: T; issue?: LoadIssue }
-
-const cruisePortPhotos = [
-  { image: '/images/ports/ha-long-bay.webp', caption: 'Ảnh cảng biển · Vịnh Hạ Long, Việt Nam', match: 'ha long' },
-  { image: '/images/ports/da-nang-panorama.webp', caption: 'Ảnh cảng biển · Đà Nẵng, Việt Nam', match: 'da nang' },
-  { image: '/images/ports/port-klang-cruise.webp', caption: 'Ảnh cảng biển · Port Klang, Malaysia', match: 'klang' },
-  { image: '/images/ports/kobe-port.webp', caption: 'Ảnh cảng biển · Kobe, Nhật Bản', match: 'kobe' },
-  { image: '/images/ports/yokohama-osanbashi.webp', caption: 'Ảnh cảng biển · Yokohama, Nhật Bản', match: 'yokohama' },
-  { image: '/images/ports/singapore-marina-bay.webp', caption: 'Ảnh cảng biển · Singapore', match: 'singapore' },
-  { image: '/images/ports/kyushu-nagasaki.webp', caption: 'Ảnh cảng biển · Nagasaki, Nhật Bản', match: 'nagasaki' },
-  { image: '/images/ports/hong-kong-victoria.webp', caption: 'Ảnh cảng biển · Hồng Kông', match: 'hong kong' },
-  { image: '/images/ports/keelung-harbour.webp', caption: 'Ảnh cảng biển · Keelung, Đài Loan', match: 'keelung' },
-  { image: '/images/ports/busan-port.webp', caption: 'Ảnh cảng biển · Busan, Hàn Quốc', match: 'busan' },
-]
 
 function getCruisePhoto(cruise: LiveCruise, index: number) {
   const text = `${cruise.title} ${cruise.departurePort ?? ''} ${cruise.returnPort ?? ''}`.toLowerCase()
@@ -140,13 +127,6 @@ function LiveCruiseCard({ cruise, from, index = 0 }: { cruise: LiveCruise; from:
   </article>
 }
 
-function UnavailableCruise({ back }: { back: string }) {
-  return <div className={detailStyles.detail}>
-    <h1>Chuyến này hiện không có trong danh mục</h1>
-    <ButtonLink to={back} tone="secondary" autoWidth>Về danh mục</ButtonLink>
-  </div>
-}
-
 export function LiveCruiseDetail() {
   const { cruiseId } = useParams()
   const [params] = useSearchParams()
@@ -175,84 +155,5 @@ export function LiveCruiseDetail() {
   }
   if (!cruise || cruise.id !== cruiseId) return <UnavailableCruise back={back} />
 
-  return <CruiseDetailContent key={cruise.id} cruise={cruise} back={back} />
-}
-
-function CruiseDetailContent({ cruise, back }: { cruise: LiveCruise; back: string }) {
-  const { hash, key, pathname, search } = useLocation()
-  const itinerary = useReadQuery('public-actual-itinerary:' + cruise.id,
-    useCallback(signal => liveCruiseCatalogApi.publicItinerary(cruise.id, signal), [cruise.id]))
-  const sale = useReadQuery('public-display-state:' + cruise.id,
-    useCallback(signal => liveCruiseCatalogApi.publicSaleState(cruise.id, signal), [cruise.id]))
-  const revoked = sale.data?.publicDisplayEligible === false ||
-    (itinerary.error instanceof ApiError && itinerary.error.code === 'CRUISE_NOT_OPEN_FOR_SALE')
-  const handledAnchor = useRef('')
-  const content = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const sectionId = Object.values(cruiseDetailSections).find(id => '#' + id === hash)
-    const navigation = key + hash
-    if (!sectionId) {
-      handledAnchor.current = ''
-      return
-    }
-    if (revoked || handledAnchor.current === navigation) return
-    const section = content.current?.querySelector<HTMLElement>('#' + sectionId)
-    const heading = section?.querySelector('h2')
-    if (!section || !heading) return
-
-    handledAnchor.current = navigation
-    const targetTop = parseFloat(getComputedStyle(section).scrollMarginTop) || 0
-    const bounds = heading.getBoundingClientRect()
-    if (bounds.top < targetTop || bounds.bottom > window.innerHeight || section.getBoundingClientRect().top > targetTop + 24) {
-      section.scrollIntoView({ block: 'start', behavior: 'instant' })
-    }
-    heading.focus({ preventScroll: true })
-  }, [hash, key, revoked])
-
-  if (revoked) return <UnavailableCruise back={back} />
-
-  const photo = getCruisePhoto(cruise, 0)
-  const sectionPath = (id: string) => pathname + search + '#' + id
-  return <div className={detailStyles.detail} ref={content}>
-    <Link to={back} className={detailStyles.back}>Về danh mục</Link>
-    <h1>{cruise.title}</h1>
-    <nav className={detailStyles.sectionNav} aria-label="Nội dung hành trình">
-      <Link to={sectionPath(cruiseDetailSections.facts)}>Thông tin chuyến</Link>
-      <Link to={sectionPath(cruiseDetailSections.itinerary)}>Lịch trình</Link>
-      <Link to={sectionPath(cruiseDetailSections.packages)}>Hạng cabin &amp; gói</Link>
-    </nav>
-    <div className={detailStyles.overview}>
-      <figure className={detailStyles.photo}>
-        <img src={photo.image} alt={photo.caption} width="1600" height="1000" />
-        <figcaption>Minh họa · {photo.caption}</figcaption>
-      </figure>
-      <Panel className={detailStyles.overviewPanel}>
-        <section id={cruiseDetailSections.facts} aria-labelledby="cruise-facts-heading" className={detailStyles.facts}>
-          <h2 id="cruise-facts-heading" tabIndex={-1}>Thông tin chuyến</h2>
-          <p className={detailStyles.shipName}>{cruise.ship ?? 'Chưa có tên tàu'}</p>
-          <dl className={detailStyles.factList}>
-            <div><dt>Khởi hành</dt><dd><strong>{cruise.departurePort ?? 'Chưa có tên cảng'}</strong><time dateTime={cruise.departure}>{when(cruise.departure)}</time></dd></div>
-            <div><dt>Trở về</dt><dd><strong>{cruise.returnPort ?? 'Chưa có tên cảng'}</strong><time dateTime={cruise.returnAt}>{when(cruise.returnAt)}</time></dd></div>
-          </dl>
-          <p className={detailStyles.timeNote}>Giờ Việt Nam</p>
-        </section>
-        <div className={detailStyles.saleActions}>
-          <PublicCruiseSaleState query={sale} />
-          <div className={detailStyles.actions}>
-            <PublicCruiseBookingEntry cruiseId={cruise.id} />
-            <ButtonLink to={sectionPath(cruiseDetailSections.itinerary)} tone="secondary" autoWidth>Xem lịch trình</ButtonLink>
-          </div>
-        </div>
-      </Panel>
-    </div>
-    <PublicCruiseItinerary query={itinerary} />
-    <Panel title="Tàu của chuyến" className={detailStyles.shipPanel}>
-      <div className={detailStyles.shipDetails}>
-        <p>{cruise.ship ?? 'Chưa có thông tin tàu'}</p>
-        {cruise.ship && cruise.shipId && <ButtonLink to="/ships" tone="secondary" autoWidth>Khám phá đội tàu</ButtonLink>}
-      </div>
-    </Panel>
-    <PublicCruisePackages cruiseId={cruise.id} />
-  </div>
+  return <CruiseDepartureExperience key={cruise.id} cruise={cruise} back={back} />
 }

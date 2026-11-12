@@ -60,6 +60,14 @@ function toCruise(dto: CruiseDto): CruiseRecord {
     sourceTripCode: dto.sourceTripCode ?? null,
     sourceVersionId: dto.sourceVersionId ?? null,
     sourceVersionNumber: dto.sourceVersionNumber ?? null,
+    saleStopped: dto.saleStopped ?? null,
+    stoppedAt: dto.stoppedAt ?? null,
+    stoppedByUsername: dto.stoppedByUsername ?? null,
+    stopReason: dto.stopReason ?? null,
+    stopEvidence: dto.stopEvidence ?? null,
+    stopScope: dto.stopScope ?? null,
+    stopEventIdentity: dto.stopEventIdentity ?? null,
+    openedForSaleAt: dto.openedForSaleAt ?? null,
   }
 }
 

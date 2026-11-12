@@ -4,21 +4,53 @@ import { toPublishedCruise, toPublishedPage, type LiveCruiseDto, type LiveCruise
 import { lookupItinerary, toLiveDays, toLivePortCalls, toLiveShip } from './live-itinerary-contract'
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+function readSellability(id: string, signal?: AbortSignal) {
+  return apiRequest<unknown>(`/cruise/${encodeURIComponent(id)}/sellability`, { signal })
+}
+
+function decodeBookingReadiness(value: unknown, id: string) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new ApiError('Chưa xác định được trạng thái bán.', 502)
+  const row = value as Record<string, unknown>
+  if (row.cruiseId !== id || typeof row.sellable !== 'boolean' || typeof row.saleState !== 'string'
+    || !['OPEN_FOR_SALE', 'STOPPED', 'NOT_YET_OPEN', 'DEPARTED', 'SOLD_OUT', 'DRAFT', 'CANCELLED'].includes(row.saleState)
+    || row.sellable !== (row.saleState === 'OPEN_FOR_SALE')
+    || row.evaluatedAt != null && (typeof row.evaluatedAt !== 'string' || !Number.isFinite(Date.parse(row.evaluatedAt)))) {
+    throw new ApiError('Trạng thái bán chưa khớp chuyến khởi hành.', 502)
+  }
+  return {
+    saleState: row.saleState,
+    sellable: row.sellable,
+    transactionReady: typeof row.transactionReady === 'boolean' ? row.transactionReady : row.sellable,
+    evaluatedAt: typeof row.evaluatedAt === 'string' ? row.evaluatedAt : null,
+  }
+}
+
+function project<T>(decode: () => T) {
+  try {
+    return { data: decode(), error: null }
+  } catch (error) {
+    return { data: null, error: error instanceof Error ? error : new Error('Chưa xác định được trạng thái bán.') }
+  }
+}
+
 export const liveCruiseCatalogApi = {
  async publicSaleState(id:string,signal?:AbortSignal) {
-  return decodePublicSale(await apiRequest<unknown>(`/cruise/${encodeURIComponent(id)}/sellability`,{signal}),id)
+  return decodePublicSale(await readSellability(id, signal), id)
  },
  async publicItinerary(id:string,signal?:AbortSignal) {
   return decodePublicItinerary(await apiRequest<unknown>(`/cruise/${encodeURIComponent(id)}/public-itinerary`,{signal}),id)
  },
  async saleState(id:string,signal?:AbortSignal) {
   if(!UUID_REGEX.test(id))throw new ApiError('Không xác định được chuyến khởi hành.',400)
-  const value=await apiRequest<unknown>(`/cruise/${encodeURIComponent(id)}/sellability`,{signal})
-  if(!value||typeof value!=='object'||Array.isArray(value))throw new ApiError('Chưa xác định được trạng thái bán.',502)
-  const row=value as Record<string,unknown>
-  if(row.cruiseId!==id||typeof row.sellable!=='boolean'||typeof row.saleState!=='string'||!['OPEN_FOR_SALE','STOPPED','NOT_YET_OPEN','DEPARTED','SOLD_OUT','DRAFT','CANCELLED'].includes(row.saleState)
-   ||row.sellable!==(row.saleState==='OPEN_FOR_SALE')||row.evaluatedAt!=null&&(typeof row.evaluatedAt!=='string'||!Number.isFinite(Date.parse(row.evaluatedAt))))throw new ApiError('Trạng thái bán chưa khớp chuyến khởi hành.',502)
-  return {saleState:row.saleState,sellable:row.sellable,transactionReady:typeof row.transactionReady==='boolean'?row.transactionReady:row.sellable,evaluatedAt:typeof row.evaluatedAt==='string'?row.evaluatedAt:null}
+  return decodeBookingReadiness(await readSellability(id, signal), id)
+ },
+ async departureSale(id: string, signal?: AbortSignal) {
+  if (!UUID_REGEX.test(id)) throw new ApiError('Không xác định được chuyến khởi hành.', 400)
+  const value = await readSellability(id, signal)
+  return {
+    display: project(() => decodePublicSale(value, id)),
+    booking: project(() => decodeBookingReadiness(value, id)),
+  }
  },
  async list(page:number, signal?:AbortSignal, cruiseType?: 'ONE_DAY' | 'MULTI_DAYS') {
   const data = await apiRequest<LiveCruisePageDto>('/cruise', {
