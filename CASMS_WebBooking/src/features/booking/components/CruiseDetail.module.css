@@ -1,7 +1,7 @@
 .detail {
   width: min(100%, var(--content-width));
   margin-inline: auto;
-  padding: var(--space-6) var(--container-gutter-desktop) var(--section-y-desktop);
+  padding: var(--space-5) var(--container-gutter-desktop) var(--section-y-desktop);
   display: grid;
   gap: var(--space-6);
   overflow-wrap: anywhere;
@@ -9,79 +9,112 @@
 
 .detail :is(h1, h2, h3, h4, p, figure, dl, dd) { margin: 0; }
 .detail :is(h1, h2, h3, h4) { font-family: var(--font-heading); line-height: var(--leading-tight); }
-.detail h1 { max-inline-size: 24ch; font-size: var(--text-4xl); }
+.detail h1 { max-inline-size: 24ch; font-size: clamp(var(--text-3xl), 4vw, 3.5rem); letter-spacing: -0.035em; text-wrap: balance; }
 .detail h2 { font-size: var(--text-2xl); }
 .detail h3 { font-size: var(--text-xl); }
 .detail h4 { font-size: var(--text-lg); }
 .detail > a { justify-self: start; }
-.back, .sectionNav a { color: var(--brand-teal); font-weight: 600; text-underline-offset: var(--space-1); }
+.back, .sectionNav a, .faq a { color: var(--brand-teal); font-weight: 600; text-underline-offset: var(--space-1); }
 
-.overview {
+.hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
-  gap: var(--space-5);
+  grid-template-areas: 'copy';
   align-items: stretch;
-}
-
-.photo {
-  position: relative;
-  min-inline-size: 0;
-  overflow: hidden;
-  border-radius: var(--radius-lg);
+  gap: var(--space-6);
   background: var(--surface-warm);
+  border-radius: var(--radius-lg);
+  overflow: clip;
 }
 
-.photo img { display: block; width: 100%; height: 100%; min-height: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
-.photo figcaption {
+.hero:has(.gallery) { grid-template-areas: 'copy gallery'; grid-template-columns: minmax(0, 1fr) minmax(0, 1.18fr); }
+.heroCopy { grid-area: copy; display: grid; align-content: center; gap: var(--space-5); padding: clamp(var(--space-5), 4vw, var(--space-7)); }
+.shipName { color: var(--brand-teal); font-weight: 700; }
+.gallery { grid-area: gallery; position: relative; min-inline-size: 0; background: var(--brand-navy); }
+.photo { position: relative; height: 100%; min-height: 22rem; }
+.photo img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 58%; }
+.galleryCaption {
   position: absolute;
-  inset: auto 0 0;
-  padding: var(--space-2) var(--space-4);
+  inset: var(--space-4) var(--space-4) auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3);
   background: var(--brand-navy);
   color: var(--accent-on);
+  border-radius: var(--radius-control);
   font-size: var(--text-xs);
 }
-
-.detail .overviewPanel, .detail .shipPanel { margin: 0; box-shadow: none; border-radius: var(--radius-lg); }
-.detail .overviewPanel { justify-content: space-between; }
-.facts, .saleActions, .readResult, .offerGroup { display: grid; gap: var(--space-3); }
-.shipName { font-weight: 600; }
-.factList, .portTimes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
-.factList dt, .portTimes dt, .timeNote, .portHeading p, .offerCategory {
+.galleryControls {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-variant-numeric: tabular-nums;
+}
+.galleryControls button {
+  width: var(--control-height-default);
+  min-block-size: var(--control-height-default);
+  padding: 0;
+  font-size: var(--text-2xl);
+  line-height: 1;
+}
+.galleryControls button:focus-visible { outline-color: var(--brand-gold); }
+.facts, .heroActions, .readResult, .offerGroup { display: grid; gap: var(--space-3); }
+.detail .facts h2 { font-size: var(--text-lg); }
+.factList, .portTimes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.factList dt, .portTimes dt, .timeNote, .portHeading p, .offerCategory, .highlightList dt {
   color: var(--text-secondary);
   font-size: var(--text-sm);
 }
 .factList dd { display: grid; gap: var(--space-1); }
-.factList time, .portTimes time, .offerPrice { font-variant-numeric: tabular-nums; }
-.saleActions { border-top: 1px solid var(--border-default); padding-top: var(--space-4); }
+.factCode { grid-column: 1 / -1; }
+.factList time, .portTimes time, .offerPrice, .referencePrice { font-variant-numeric: tabular-nums; }
+.heroActions { border-top: 1px solid var(--border-default); padding-top: var(--space-4); justify-items: start; }
 .actions, .shipDetails { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
-.bookingEntry { min-inline-size: 0; }
-.bookingEntry p, .saleStatus p { font-size: var(--text-sm); color: var(--text-secondary); }
-.saleStatus p + button, .readResult p + button { margin-top: var(--space-2); }
+.referencePrice strong { font-size: var(--text-2xl); }
+.referencePrice > span:first-child { display: block; }
+.referencePrice span, .bookingEntry p { font-size: var(--text-sm); color: var(--text-secondary); }
 
+.highlights { display: grid; gap: var(--space-4); padding: var(--space-3) 0; }
+.highlightList { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-7); }
+.highlightList > div { display: grid; gap: var(--space-1); border-inline-start: 2px solid var(--brand-gold); padding-inline-start: var(--space-4); }
+.highlightList dd { font-size: var(--text-lg); font-weight: 700; }
 .sectionNav {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-5);
+  gap: 0 var(--space-5);
   padding-block: var(--space-1);
   border-block: 1px solid var(--border-default);
 }
-
 .sectionNav a { display: inline-flex; align-items: center; min-height: var(--control-height-default); }
+
+.detailLayout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(15rem, 19rem); gap: var(--space-7); align-items: start; }
+.detailBody { display: grid; gap: var(--space-7); min-inline-size: 0; }
 .detail :is(.facts, .section) { scroll-margin-top: var(--public-anchor-offset, var(--space-3)); }
 .detail h2[tabindex]:focus { outline: 2px solid var(--brand-teal); outline-offset: var(--space-1); }
 .section { display: grid; gap: var(--space-4); min-inline-size: 0; }
 .sectionHeading { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-4); }
 .sectionHeading p { color: var(--text-secondary); font-size: var(--text-sm); }
+.readResult p + button, .bookingEntry p + button { margin-top: var(--space-2); }
 
-.timeline, .ports, .visits, .benefits { list-style: none; padding: 0; margin: 0; }
-.timeline {
-  background: var(--surface-default);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  padding: 0 var(--space-5);
+.timeline, .ports, .visits { list-style: none; padding: 0; margin: 0; }
+.timeline { border-inline-start: 2px solid var(--border-default); margin-inline-start: var(--space-2); }
+.day { position: relative; padding-inline-start: var(--space-5); }
+.day::before {
+  content: '';
+  position: absolute;
+  inset-block-start: var(--space-5);
+  inset-inline-start: calc(-1 * var(--space-2) - 1px);
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+  border-radius: 50%;
+  background: var(--brand-teal);
+  border: var(--space-1) solid var(--brand-pearl);
 }
-.day + .day, .port + .port { border-top: 1px solid var(--border-default); }
-.dayContent { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 4fr); gap: var(--space-4); padding-block: var(--space-4); }
+.day + .day .dayContent, .port + .port { border-top: 1px solid var(--border-default); }
+.dayContent { display: grid; grid-template-columns: minmax(6rem, 1fr) minmax(0, 4fr); gap: var(--space-4); padding-block: var(--space-4); }
 .dayHeader { display: grid; align-content: start; gap: var(--space-1); }
 .dayHeader time, .noStops { color: var(--text-secondary); }
 .port { display: grid; gap: var(--space-3); }
@@ -89,37 +122,114 @@
 .portHeading { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
 .visits { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .visits li { background: var(--surface-tinted); border-radius: var(--radius-sm); padding: var(--space-1) var(--space-2); }
+.shipExperience { padding-block: var(--space-5); border-block: 1px solid var(--border-default); }
 .shipDetails { justify-content: space-between; }
+.shipDetails p { font-size: var(--text-xl); font-weight: 600; }
 
-.offerGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: var(--space-4); }
+.offerGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--space-4); }
 .offer {
   display: grid;
   align-content: start;
   gap: var(--space-4);
   background: var(--surface-default);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
+  border-radius: var(--radius-panel);
+  padding: var(--space-5);
 }
-.offer header { display: grid; gap: var(--space-1); }
+.offer header, .benefitTerms { display: grid; gap: var(--space-1); }
 .offerPrice strong { font-size: var(--text-2xl); }
-.offerPrice span { color: var(--text-secondary); }
-.benefits li { display: grid; justify-items: start; gap: var(--space-1); padding-block: var(--space-3); border-top: 1px solid var(--border-default); }
-.benefits li span { white-space: normal; }
-.benefits li p { font-size: var(--text-sm); }
+.offerPrice span, .benefitTerms p { color: var(--text-secondary); }
+.offerPreview { margin: 0; padding-inline-start: var(--space-4); font-size: var(--text-sm); }
+.compareFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.benefitTable table { table-layout: fixed; width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.benefitTable caption { text-align: start; padding-block-end: var(--space-2); color: var(--text-secondary); }
+.benefitTable :is(th, td) { padding: var(--space-3); border-bottom: 1px solid var(--border-default); text-align: start; vertical-align: top; }
+.benefitTable thead { background: var(--surface-tinted); }
+.benefitTable thead th:first-child { width: 28%; }
+.benefitTable tbody th { font-weight: 600; }
+.benefitTerms span { justify-self: start; max-inline-size: 100%; white-space: normal; }
+.benefitTerms + .benefitTerms { border-top: 1px solid var(--border-default); margin-top: var(--space-2); padding-top: var(--space-2); }
+.benefitGroups { display: none; }
+.benefitUnpublished { color: var(--text-secondary); }
 
+.faq { border-top: 1px solid var(--border-default); }
+.faq details { padding: var(--space-3) 0; border-bottom: 1px solid var(--border-default); }
+.faq summary { cursor: pointer; font-weight: 600; line-height: var(--control-height-compact); }
+.faq summary:focus-visible { outline: 2px solid var(--brand-teal); outline-offset: var(--space-1); }
+.faq p { padding-block: var(--space-2); color: var(--text-secondary); }
+.bookingSummary {
+  position: sticky;
+  top: var(--public-anchor-offset, var(--space-3));
+  display: grid;
+  gap: var(--space-4);
+  min-inline-size: 0;
+  background: var(--surface-default);
+  border: 1px solid var(--border-default);
+  border-block-start: 3px solid var(--brand-gold);
+  border-radius: var(--radius-panel);
+  padding: var(--space-5);
+}
+.summaryFacts { display: grid; gap: var(--space-1); color: var(--text-secondary); }
+.bookingEntry { display: grid; gap: var(--space-3); min-inline-size: 0; }
+.mobileBooking { display: none; }
+
+@media (max-width: 959px), (max-height: 620px) {
+  .detailLayout { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
+  .bookingSummary { position: static; }
+}
 @media (max-width: 759px) {
-  .detail { padding: var(--space-4) var(--container-gutter-phone) var(--section-y-phone); gap: var(--space-5); }
-  .detail h1 { font-size: var(--text-3xl); }
-  .overview { grid-template-columns: 1fr; gap: var(--space-3); }
-  .photo img { height: auto; min-height: 0; aspect-ratio: 2 / 1; }
-  .photo figcaption { position: static; }
-  .detail .overviewPanel, .detail .shipPanel, .timeline { padding-inline: var(--space-4); }
+  .detail {
+    --booking-clearance: calc(var(--booking-bar-height, 0px) + var(--booking-viewport-gap, 0px));
+    padding: var(--space-4) var(--container-gutter-phone) var(--space-5);
+    gap: var(--space-5);
+  }
+  .hero:has(.gallery) { grid-template-areas: 'gallery' 'copy'; grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .heroCopy { gap: var(--space-4); padding: var(--space-5); }
+  .detail h1 { font-size: clamp(var(--text-2xl), 8vw, var(--text-3xl)); letter-spacing: -0.025em; }
+  .detail :is(a, button, summary, select, .section, .benefitGroups > li) {
+    scroll-margin-block-end: calc(var(--booking-clearance) + var(--space-3));
+  }
+  .detail:has(.mobileBooking) .detailLayout { padding-block-end: var(--booking-clearance); }
+  .photo { height: auto; min-height: 0; aspect-ratio: 16 / 9; }
+  .photo img { object-position: center 72%; }
+  .galleryCaption { position: static; border-radius: 0; }
+  .galleryCaption > span { flex: 1 1 9rem; }
   .dayContent { grid-template-columns: 1fr; gap: var(--space-3); }
   .dayHeader { grid-template-columns: auto 1fr; gap: var(--space-3); align-items: baseline; }
-  .sectionNav { gap: var(--space-1) var(--space-3); }
+  .sectionNav { gap: 0 var(--space-3); }
+  .benefitTable { display: none; }
+  .benefitGroups { display: grid; gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+  .benefitGroups > li { border: 1px solid var(--border-default); border-radius: var(--radius-panel); background: var(--surface-default); }
+  .benefitGroups h3 {
+    padding: var(--space-3) var(--space-4);
+    border-start-start-radius: var(--radius-panel);
+    border-start-end-radius: var(--radius-panel);
+    background: var(--surface-tinted);
+    font-size: var(--text-lg);
+  }
+  .benefitGroups dl > div { display: grid; gap: var(--space-2); padding: var(--space-3) var(--space-4); }
+  .benefitGroups dl > div + div { border-block-start: 1px solid var(--border-default); }
+  .benefitGroups dt { font-size: var(--text-sm); font-weight: 700; color: var(--brand-teal); }
+  .benefitGroups dd { font-size: var(--text-sm); }
+  .mobileBooking {
+    position: sticky;
+    inset-block-end: var(--booking-viewport-gap, 0px);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-inline: calc(-1 * var(--container-gutter-phone));
+    padding-block: var(--space-2) calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+    padding-inline: max(var(--container-gutter-phone), env(safe-area-inset-left, 0px))
+      max(var(--container-gutter-phone), env(safe-area-inset-right, 0px));
+    border-top: 1px solid var(--border-default);
+    background: var(--surface-default);
+  }
+  .mobileBooking .referencePrice strong { font-size: var(--text-lg); }
+  .mobileBooking a { flex: 0 0 auto; width: auto; max-inline-size: 50%; }
 }
 
-@media (max-width: 340px) {
-  .factList, .portTimes { grid-template-columns: 1fr; }
+@media (max-width: 360px) {
+  .factList, .portTimes, .compareFields { grid-template-columns: 1fr; }
 }

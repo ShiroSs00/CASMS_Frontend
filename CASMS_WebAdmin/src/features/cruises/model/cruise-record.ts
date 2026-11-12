@@ -35,6 +35,14 @@ export type CruiseRecord = {
   sourceTripCode?: string | null
   sourceVersionId?: string | null
   sourceVersionNumber?: number | null
+  saleStopped?: boolean | null
+  stoppedAt?: string | null
+  stoppedByUsername?: string | null
+  stopReason?: string | null
+  stopEvidence?: string | null
+  stopScope?: string | null
+  stopEventIdentity?: string | null
+  openedForSaleAt?: string | null
 }
 
 export type CruiseDraft = Omit<

@@ -2,7 +2,7 @@ import { decodeDelayEvent, decodeDelayHistory, decodeDelayPreview, type DelayReq
 import { ApiError, apiRequest } from '@/shared/api'
 import { decodeAuditEvents, decodeChange, decodeHandoff, decodeImpactTask, decodeInventory, decodeNotificationAggregate, decodePublicSellability, decodeReadiness, decodeSaleReadiness, decodeSchedule, type ChangeInput } from '../model/departure-contract'
 
-import type { CruiseDto } from './dto'
+import type { CruiseDto, CruiseStopSaleRequestDto, CruiseResumeSaleRequestDto } from './dto'
 
 const path = (id: string) => '/cruise/' + encodeURIComponent(id)
 function savedTasks(value: unknown, id: string) {
@@ -68,4 +68,10 @@ export const departureApi = {
     return task
   },
   async handoff(id: string, signal?: AbortSignal) { return decodeHandoff(await apiRequest(path(id) + '/downstream-handoff', { signal }), id) },
+  async stopSale(id: string, body: CruiseStopSaleRequestDto) {
+    return await apiRequest<CruiseDto>(path(id) + '/stop-sale', { method: 'POST', body })
+  },
+  async resumeSale(id: string, body?: CruiseResumeSaleRequestDto) {
+    return await apiRequest<CruiseDto>(path(id) + '/resume-sale', { method: 'POST', body: body ?? {} })
+  },
 }

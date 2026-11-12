@@ -42,6 +42,9 @@ export type CruiseDto = {
   stopEvidence?: string | null
   stopScope?: string | null
   stopEventIdentity?: string | null
+  openedForSaleAt?: string | null
+  openedForSaleByUsername?: string | null
+  saleScope?: string | null
   cruiseCode: string
   cruiseName: string
   shipId?: string | null

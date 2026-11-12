@@ -16,6 +16,7 @@
 .hiddenHelp { margin:16px 0 0; color:var(--cruise-muted); font-size:12px; }
 .formGrid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px 16px; }
 .formActions,.dialogActions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:12px; }
+.stopSaleForm { display: flex; flex-direction: column; gap: 16px; margin: 8px 0; }
 .detailColumns { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr); gap:16px; align-items:start; }
 .definitionGrid { display:grid; grid-template-columns:180px minmax(0,1fr); gap:12px 20px; margin:0; }
 .definitionGrid dt { color:var(--cruise-muted); font-size:13px; }

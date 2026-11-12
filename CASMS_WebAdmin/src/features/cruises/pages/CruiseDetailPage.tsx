@@ -1,4 +1,7 @@
 import { DepartureStart } from '../components/DepartureStart'
+import { CruiseHubDashboard } from '../components/CruiseHubDashboard'
+import { StopSaleModal } from '../components/StopSaleModal'
+import { departureApi } from '../api/departure-api'
 import { DepartureDelay } from '../components/DepartureDelay'
 import { DepartureDelayHistory } from '../components/DepartureDelayHistory'
 import {PlanWorkspace} from '../hooks/PlanWorkspace'
@@ -69,6 +72,9 @@ function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) 
   const { cruiseId } = useParams()
   const { state, refresh } = useCruiseDetail(cruiseId)
   const [params,setParams]=useSearchParams(),[checkEpoch,setCheckEpoch]=useState(0)
+  const [stopSaleModalOpen, setStopSaleModalOpen] = useState(false)
+  const [stopSaleNotice, setStopSaleNotice] = useState('')
+  const sellability = useReadQuery(`hub-sellability:${cruiseId}:${checkEpoch}`, useCallback(signal => cruiseId ? departureApi.publicSellability(cruiseId, signal) : Promise.resolve(null), [cruiseId]))
   const canReadCrmPlan=manager&&access.has('CRUISE_READ')
   const crmPlan=useReadQuery(`crm-plan-controls:${access.userId}:${access.status}:${cruiseId}:${checkEpoch}:${canReadCrmPlan}`,useCallback(signal=>canReadCrmPlan&&cruiseId?mainflowApi.get(cruiseId,signal):Promise.resolve(null),[canReadCrmPlan,cruiseId]))
   const canReadSaleTerms=operations&&access.has('CRUISE_PRICING_APPROVE')
@@ -104,7 +110,7 @@ function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) 
     setParams(query,{preventScrollReset:true})
   }
   const goOperationsStep=(step:1|2|3)=>{const query=new URLSearchParams(params);query.delete('focus');query.set('section',step===1?'overview':'checks');if(step===1){query.set('step','review');query.delete('stage')}else{query.delete('step');query.set('stage',step===2?'ready':'sale')}setParams(query,{preventScrollReset:true})}
-  const reload=()=>{setCheckEpoch(value=>value+1);salePlan.retry();return refresh()}
+  const reload=()=>{setCheckEpoch(value=>value+1);salePlan.retry();sellability.retry();return refresh()}
   const [lifecycleAction, setLifecycleAction] = useState<'publish' | 'complete' | 'cancel' | null>(null)
   const [cancelReason, setCancelReason] = useState('')
   const [lifecycleError, setLifecycleError] = useState('')
@@ -180,6 +186,21 @@ function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) 
               onSection={goSection} onChanged={()=>void reload()}
             />:<Panel title="Chuẩn bị xuất bến"><p>Mục này dành cho chuyến đã công bố hoặc đã khởi hành.</p></Panel>)}
             {section==='overview'&&<section id={"departure-panel-overview"} role={"tabpanel"} aria-labelledby={"departure-tab-overview"} className={preparationStyles.content}>
+              {stopSaleNotice && <Notice title="Đã cập nhật" tone="success">{stopSaleNotice}</Notice>}
+              <CruiseHubDashboard
+                detail={detail}
+                salePlan={salePlan}
+                sellability={sellability}
+                activeSection={section}
+                onNavigate={goSection}
+                canStopSale={
+                  operations &&
+                  (access.has('CRUISE_STOP_SALE') || access.has('CRUISE_OPEN_SALE')) &&
+                  (Boolean(cruise.openedForSaleAt) || detail.itinerary?.status === 'OPEN_FOR_SALE' || sellability.data?.publicSaleState === 'OPEN_FOR_SALE') &&
+                  !cruise.stoppedAt
+                }
+                onOpenStopSale={() => setStopSaleModalOpen(true)}
+              />
               <Panel title="Tuyến khởi hành"><RecordFacts entries={[
                 ['Cảng đi',detail.departurePort.portName],['Cảng về',detail.returnPort.portName],
               ]}/><details><summary>Thông tin tuyến và cấu trúc lịch</summary><RecordFacts entries={[
@@ -287,6 +308,16 @@ function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) 
             {lifecycleError && <Notice title="Không thể cập nhật" tone="error"><p>{lifecycleError}</p></Notice>}
 
           </Modal>}
+          <StopSaleModal
+            isOpen={stopSaleModalOpen}
+            cruise={cruise}
+            onClose={() => setStopSaleModalOpen(false)}
+            onSuccess={() => {
+              setStopSaleModalOpen(false)
+              setStopSaleNotice('Đã tạm dừng mở bán chuyến khởi hành thành công.')
+              void reload()
+            }}
+          />
         </>
       })()}
     </div>
