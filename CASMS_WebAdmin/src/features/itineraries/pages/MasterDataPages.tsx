@@ -13,6 +13,8 @@ import { ItineraryFrame } from '../components/ItineraryUI'
 import { DirectoryHistory } from '../components/DirectoryHistory'
 import { LocationPicker } from '../components/LocationPicker'
 import { portCountries, coordinateSourceOf, type PortCoordinateSource } from '../model/port-location'
+import { PortCallWindows } from '../components/PortCallWindows'
+import { PortDestinationLink } from '../components/PortDestinationLink'
 import styles from '../components/Itineraries.module.css'
 import { destinationStatusLabels as directoryStatusLabels, validateDestinationDraft } from '../model/itinerary'
 import type { Destination, DestinationDraft, DestinationPortSummary, PageResult, Port, PortDraft } from '../model/itinerary'
@@ -289,6 +291,7 @@ function MasterDetail({ kind }: { kind: Kind }) {
         ['Cập nhật gần nhất',record.updatedAt?new Date(record.updatedAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}):'Chưa có thông tin'],
       ]}/>
     </Panel>
+      {kind === 'port' && <><PortDestinationLink key={id} port={record as Port} onReadback={setRecord}/><PortCallWindows key={id} port={record as Port}/></>}
       {kind === 'destination' && <Panel title={`Cảng liên kết${!portsLoading && !portsError ? ` · ${linkedPorts.length}` : ''}`}>
         {portsLoading ? <Loading label="Đang tải cảng liên kết…" /> : portsError ? <Notice title="Không tải được cảng liên kết" tone="error"><p>{portsError}</p><Button onClick={retryPorts}>Thử lại</Button></Notice>
           : linkedPorts.length ? <DataTable label="Cảng thuộc điểm đến" headers={['Mã', 'Tên cảng', '']}>

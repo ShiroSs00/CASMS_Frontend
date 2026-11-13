@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import experience from './Experience.module.css'
 import styles from './Overlay.module.css'
 
@@ -46,6 +46,24 @@ export function Modal({ title, description, onClose, busy = false, wide = false,
     if (busy) return
     setConfirmDiscard(false)
   }
+  function keepTabFocus(event: KeyboardEvent<HTMLDialogElement>) {
+    if (event.key !== 'Tab') return
+    const element = event.currentTarget
+    const controls = Array.from(element.querySelectorAll<HTMLElement>(
+      'button, input, select, textarea, a[href], summary, [tabindex], [contenteditable="true"]',
+    )).filter(control => control.tabIndex >= 0 && !control.matches(':disabled, input[type="hidden"]')
+      && !control.closest('[inert]') && control.checkVisibility({ visibilityProperty: true }))
+    const first = controls[0]
+    const last = controls.at(-1)
+    const active = document.activeElement
+    const boundary = event.shiftKey ? first : last
+    if (!first || !last || active === element || !element.contains(active)
+      || active === boundary) {
+      event.preventDefault()
+      const next = event.shiftKey ? last : first
+      next?.focus()
+    }
+  }
   return <dialog ref={dialog} aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined} aria-busy={busy || undefined}
     className={`${experience.overlay} ${styles.dialog} ${large ? styles.large : wide ? styles.wide : ''} ${variant === 'drawer' ? styles.drawer : ''} ${quiet ? styles.quiet : ''}`}
     onChangeCapture={event => { dirty.current = true; if (event.target instanceof HTMLElement) lastControl.current = event.target }}
@@ -57,10 +75,11 @@ export function Modal({ title, description, onClose, busy = false, wide = false,
       const target = event.target instanceof Element ? event.target.closest('[data-overlay-dismiss]') : null
       if (target && (busy || (protectChanges && dirty.current))) { event.preventDefault(); event.stopPropagation(); requestClose() }
     }}
+    onKeyDown={keepTabFocus}
     onCancel={event => { event.preventDefault(); event.stopPropagation(); if (confirmDiscard) continueEditing(); else requestClose() }}>
     <div className={`${styles.frame} ${confirmDiscard ? styles.confirming : ''}`}>
       <header className={styles.header}><div><h2 id={titleId}>{title}</h2>{description && <p id={descriptionId}>{description}</p>}</div>
-        <button ref={closeControl} type="button" autoFocus aria-label="Đóng hộp thoại" disabled={busy} className={styles.close} onClick={requestClose}>{quiet ? 'Đóng' : '×'}</button>
+        <button ref={closeControl} type="button" aria-label="Đóng hộp thoại" disabled={busy} className={styles.close} onClick={requestClose}>{quiet ? 'Đóng' : '×'}</button>
       </header>
       <div className={styles.body} inert={confirmDiscard}>{children}</div>
       {footer && <footer className={styles.footer} inert={confirmDiscard}>{footer}</footer>}

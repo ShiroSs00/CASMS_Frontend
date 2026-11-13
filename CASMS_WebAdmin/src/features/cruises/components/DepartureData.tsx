@@ -117,7 +117,7 @@ export function DepartureInventory({ cruise }: { cruise: CruiseRecord }) {
   </>}<Button tone="secondary" onClick={query.retry}>Tải lại tồn</Button></Panel>
 }
 
-export function DepartureSaleReadiness({cruise,onSection,onReview,onChanged}:{cruise:CruiseRecord;onSection?:(section:DepartureSection)=>void;onReview?:()=>void;onChanged?:()=>void}) {return <CruiseSale cruise={cruise} onSection={onSection} onReview={onReview} onChanged={onChanged}/>}
+export function DepartureSaleReadiness({cruise,onSection,onReview,onReady,onChanged}:{cruise:CruiseRecord;onSection?:(section:DepartureSection)=>void;onReview?:()=>void;onReady?:()=>void;onChanged?:()=>void}) {return <CruiseSale cruise={cruise} onSection={onSection} onReview={onReview} onReady={onReady} onChanged={onChanged}/>}
 
 export function DepartureImpact({ cruise,onChanged,view='all' }: { cruise: CruiseRecord;onChanged?:()=>void;view?:'all'|'preview'|'tasks' }) {
   const access = useSessionAccess(), canShips = access.has('SHIP_READ')

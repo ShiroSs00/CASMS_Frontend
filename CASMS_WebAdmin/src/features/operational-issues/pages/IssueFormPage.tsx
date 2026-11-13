@@ -10,7 +10,7 @@ import { Badge, Button, Field, Loading, Notice, PageHeader, Panel } from '@/shar
 import { AdminFrame } from '../components/AdminFrame'
 import { operationalIssuesApi } from '../api/operational-issues-api'
 import { issueLocationApi, validateIssueLocation } from '../api/location-lookup-api'
-import { ISSUE_SEVERITIES, ISSUE_TYPES, type IssueSeverity, type IssueType, type OperationalIssue } from '../model/issue'
+import { ISSUE_SEVERITIES, ISSUE_TYPES, issueSeverityLabels, issueStatusLabels, issueTypeLabels, type IssueSeverity, type IssueType, type OperationalIssue } from '../model/issue'
 import styles from '../components/OperationalIssues.module.css'
 
 type FormData = {
@@ -147,7 +147,7 @@ export function IssueFormPage() {
       {isBlockedEdit && (
         <Notice title="Không thể chỉnh sửa sự cố" tone="warning">
           <p>
-            {existingIssue ? <>Sự cố đang ở trạng thái <strong>{existingIssue.status}</strong>. Chỉ có thể chỉnh sửa sự cố đang mở.</> : 'Chưa tải được hồ sơ sự cố để chỉnh sửa.'}
+            {existingIssue ? <>Sự cố đang ở trạng thái <strong>{issueStatusLabels[existingIssue.status]}</strong>. Chỉ có thể chỉnh sửa sự cố đang mở.</> : 'Chưa tải được hồ sơ sự cố để chỉnh sửa.'}
           </p>
           <Link className={styles.primaryButton} to={`/admin/issues/${issueId}`}>Quay lại chi tiết</Link>
         </Notice>
@@ -159,7 +159,7 @@ export function IssueFormPage() {
             {isEdit && existingIssue && (
               <div className={styles.readonlySummary}>
                 <span>Mã sự cố: <strong>{existingIssue.code}</strong> (chỉ đọc)</span>
-                <span>Trạng thái: <Badge label={existingIssue.status} tone="warning" /></span>
+                <span>Trạng thái: <Badge label={issueStatusLabels[existingIssue.status]} tone="warning" /></span>
                 <span>Người báo cáo: <strong>{existingIssue.reportedBy.name}</strong></span>
               </div>
             )}
@@ -173,7 +173,7 @@ export function IssueFormPage() {
                   onChange={(e) => setForm((curr) => ({ ...curr, issueType: e.target.value as IssueType }))}
                 >
                   {ISSUE_TYPES.map((type) => (
-                    <option key={type} value={type}>{type}</option>
+                    <option key={type} value={type}>{issueTypeLabels[type]}</option>
                   ))}
                 </select>
               </Field>
@@ -185,7 +185,7 @@ export function IssueFormPage() {
                   onChange={(e) => setForm((curr) => ({ ...curr, severity: e.target.value as IssueSeverity }))}
                 >
                   {ISSUE_SEVERITIES.map((sev) => (
-                    <option key={sev} value={sev}>{sev}</option>
+                    <option key={sev} value={sev}>{issueSeverityLabels[sev]}</option>
                   ))}
                 </select>
               </Field>

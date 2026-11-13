@@ -182,6 +182,7 @@ export const itineraryApi = {
     const { portCode, portName, countryCode, timeZoneId, latitude, longitude, status, description, coordinateSource } = draft
     return apiRequest<Port>('/ports', { method: 'POST', body: { portCode, portName, countryCode, timeZoneId, latitude, longitude, status, description, coordinateSource } })
   },
+  linkPortDestination: (id: string, destinationId: string) => apiRequest<Port>(portPath(id), { method: 'PATCH', body: { destinationId } }),
   updatePort: (id: string, draft: PortDraft, selectedGeocoding=false) => apiRequest<Port>(portPath(id), { method: 'PATCH', body: {
     portName:draft.portName,description:draft.description??undefined,timeZoneId:draft.timeZoneId,
     ...(selectedGeocoding?{latitude:draft.latitude,longitude:draft.longitude,coordinateSource:draft.coordinateSource}:{})

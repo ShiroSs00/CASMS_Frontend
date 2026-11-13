@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { businessErrorMessage } from '@/shared/api/business-errors'
 import { useSessionAccess } from '@/shared/auth'
+import { staffRoleLabel } from '@/shared/ui/admin-v3'
 import { businessCopy } from '@/shared/i18n/business-copy'
 import { Button, Field, Loading, Modal, Notice, Panel } from '@/shared/ui'
 import { preparationApi, type PreparationSection as Section, type PreparationAction } from '../api/preparation-api'
@@ -142,8 +143,10 @@ export function PreparationEvidence({
               <div className={styles.prepCardBody}>
                 <div className={styles.prepGroupHeading}>
                   <h3 className={styles.prepCardTitle}>{meta.title}</h3>
-                  {allPassed&&<span className={styles.prepReady}>Đã đủ điều kiện</span>}
+                  {allPassed&&<span className={styles.prepReady}>Dữ liệu đạt kiểm tra</span>}
                 </div>
+                <p>Phụ trách nội dung: {staffRoleLabel([section.ownerRole])}</p>
+                <p><strong>Hồ sơ</strong> · {section.status === 'CONFIRMED' ? 'Đã xác nhận' : section.status === 'RETURNED' ? 'Cần bổ sung' : section.status === 'SUBMITTED' ? 'Đã gửi · Chờ Quản lý vận hành xác nhận' : 'Chưa gửi'}</p>
                 {missing.length>0&&<ul className={styles.prepMissing}>
                   {missing.map(item=><li key={item.itemCode}>{item.evidence || checks[item.itemCode] || 'Cần bổ sung thông tin'}</li>)}
                 </ul>}

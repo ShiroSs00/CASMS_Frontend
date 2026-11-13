@@ -41,7 +41,7 @@ export function PlanPackageSelection({ cruiseId, onSaved }: { cruiseId: string; 
   return <Panel title="Gói du thuyền trình duyệt">
     {query.loading && <Loading/>}
     {(query.error || error) && <Notice tone="error" title="Cần đối chiếu lựa chọn"><p>{error || 'Không tải được gói du thuyền.'}</p><Button tone="secondary" onClick={() => { setDraft(null); setError(''); query.retry() }}>Tải lại gói</Button></Notice>}
-    {!query.loading && !query.error && data?.offers.length === 0 && <p>Chưa có gói để trình duyệt.</p>}
+    {!query.loading && !query.error && data?.offers.length === 0 && <p>Chuyến chưa có gói du thuyền. Đang chờ Quản lý hoạt động và dịch vụ cấu hình gói và gửi phiên bản giá.</p>}
     {data?.offers.map(({ product, eligiblePriceRevisionId, planEligibility }) => {
       const id = product.offer.id
       const choice = selected.find(item => item.offerId === id)

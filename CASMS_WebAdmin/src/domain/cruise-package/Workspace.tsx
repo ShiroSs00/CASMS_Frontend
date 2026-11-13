@@ -261,7 +261,7 @@ function TemplateWorkspace() {
       {catalog.data?.some(row => row.versions === null) && <Notice tone="warning" title="Một số phiên bản chưa tải được">
         <Button tone="secondary" onClick={catalog.retry}>Tải lại phiên bản</Button>
       </Notice>}
-      {catalog.data && !rows.length && <Empty title={term ? 'Không tìm thấy mẫu phù hợp' : 'Chưa có mẫu gói'} />}
+      {catalog.data && !rows.length && <Empty title={term ? 'Không tìm thấy mẫu phù hợp' : 'Chưa có mẫu gói'}><p>{term ? 'Thử tìm bằng tên hoặc mã khác.' : 'Tạo mẫu và phát hành phiên bản để dùng khi cấu hình gói theo chuyến.'}</p></Empty>}
       {rows.length > 0 && <DataTable label="Danh mục mẫu gói du thuyền"
         headers={['Mẫu gói', 'Dùng cho chuyến mới', 'Bản nháp', '']}>
         {rows.map(({ item, versions }) => {
