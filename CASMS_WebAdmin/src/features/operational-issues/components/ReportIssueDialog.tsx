@@ -4,7 +4,7 @@ import { useSessionAccess } from '@/shared/auth'
 
 import { operationalIssuesApi } from '../api/operational-issues-api'
 import { issueLocationApi, validateIssueLocation } from '../api/location-lookup-api'
-import { ISSUE_SEVERITIES, ISSUE_TYPES, type IssueSeverity, type IssueType } from '../model/issue'
+import { ISSUE_SEVERITIES, ISSUE_TYPES, issueSeverityLabels, issueTypeLabels, type IssueSeverity, type IssueType } from '../model/issue'
 import { ActionDialog } from './ActionDialog'
 import styles from './OperationalIssues.module.css'
 
@@ -72,8 +72,8 @@ function ReportIssueDialogContent({ open, onClose, onCreated }: Props) {
     </>}
   >
     <div className={styles.formGrid}>
-      <label className={styles.field}>Loại sự cố<select value={issueType} disabled={pending} onChange={(event) => setIssueType(event.target.value as IssueType)}>{ISSUE_TYPES.map((value) => <option key={value}>{value}</option>)}</select></label>
-      <label className={styles.field}>Mức độ nghiêm trọng<select value={severity} disabled={pending} onChange={(event) => setSeverity(event.target.value as IssueSeverity)}>{ISSUE_SEVERITIES.map((value) => <option key={value}>{value}</option>)}</select></label>
+      <label className={styles.field}>Loại sự cố<select value={issueType} disabled={pending} onChange={(event) => setIssueType(event.target.value as IssueType)}>{ISSUE_TYPES.map((value) => <option key={value} value={value}>{issueTypeLabels[value]}</option>)}</select></label>
+      <label className={styles.field}>Mức độ nghiêm trọng<select value={severity} disabled={pending} onChange={(event) => setSeverity(event.target.value as IssueSeverity)}>{ISSUE_SEVERITIES.map((value) => <option key={value} value={value}>{issueSeverityLabels[value]}</option>)}</select></label>
       <label className={styles.field}>Tàu *<select value={shipId} disabled={pending || ships.loading || Boolean(ships.error)} onChange={(event) => { setShipId(event.target.value); setCruiseId(''); setCabinId(''); setError('') }} required><option value="">Chọn tàu</option>{ships.data?.map(ship => <option key={ship.shipId} value={ship.shipId}>{ship.shipName} · {ship.shipCode}</option>)}</select></label>
       <label className={styles.field}>Chuyến liên quan (không bắt buộc)<select value={cruiseId} disabled={pending || cruises.loading || Boolean(cruises.error) || !shipId} onChange={(event) => { setCruiseId(event.target.value); setError('') }}><option value="">Không gắn chuyến</option>{cruises.data?.filter(cruise => cruise.shipId === shipId).map(cruise => <option key={cruise.cruiseId} value={cruise.cruiseId}>{cruise.cruiseName} · {cruise.cruiseCode}</option>)}</select></label>
       <label className={styles.field}>Cabin liên quan (không bắt buộc)<select value={cabinId} disabled={pending || cabins.loading || Boolean(cabins.error) || !shipId} onChange={(event) => { setCabinId(event.target.value); setError('') }}><option value="">Không gắn cabin</option>{cabins.data?.filter(cabin => cabin.shipId === shipId).map(cabin => <option key={cabin.cabinId} value={cabin.cabinId}>Cabin {cabin.cabinNumber}</option>)}</select></label>

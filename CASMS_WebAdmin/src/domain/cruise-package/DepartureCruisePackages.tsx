@@ -598,7 +598,7 @@ function DepartureOffersWorkspace({cruiseId,onChanged,shipName,renderAssignment}
     {canManageTemplates&&data?.context.shipId&&!data.context.canConfigure&&<Notice title="Chưa thể thêm gói cho chuyến" tone="warning">Cấu hình gói chỉ khả dụng khi chuyến và hồ sơ đang cho phép chỉnh sửa.</Notice>}
     {data&&!data.context.shipId&&<Notice title="Chưa được phân công tàu" tone="warning"><p>Cần có tàu trước khi cấu hình gói du thuyền của chuyến.</p></Notice>}
     {access.canDo('TOUR_PACKAGE_ASSIGN')&&renderAssignment?.(()=>{refresh();onChanged()})}
-    {!creatingOffer&&data?.offers.length===0&&!access.canDo('TOUR_PACKAGE_ASSIGN')&&<Empty title="Chưa có gói du thuyền được gán"><p>{canManageTemplates ? 'Chọn Thêm gói du thuyền để dùng một phiên bản mẫu đã phát hành.' : 'Quản lý hoạt động và dịch vụ tạo gói cho chuyến từ phiên bản mẫu đã phát hành.'}</p></Empty>}
+    {!creatingOffer&&data?.offers.length===0&&!access.canDo('TOUR_PACKAGE_ASSIGN')&&<Empty title="Chưa có gói du thuyền được gán"><p>{canManageTemplates ? 'Chọn phiên bản mẫu đã phát hành để thêm gói cho chuyến này.' : 'Đang chờ Quản lý hoạt động và dịch vụ cấu hình gói và gửi phiên bản giá.'}</p></Empty>}
     {data?.offers.map(item=><OfferCard key={item.offer.id} item={item} context={data.context} shipName={shipName} disabled={disabled} run={mutation.run} feedback={mutation.feedback}/>)}
     {creatingOffer&&<OfferForm cruiseId={cruiseId} context={data?.context} shipName={shipName} disabled={disabled||!data?.context.canConfigure} run={mutation.run} busy={mutation.busy} feedback={mutation.feedback} onClose={()=>setCreatingOffer(false)}/>}
     <CruisePackageAddons cruiseId={cruiseId} onChanged={onChanged}/>

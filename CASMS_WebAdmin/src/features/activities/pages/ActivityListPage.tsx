@@ -40,7 +40,7 @@ export function ActivityListPage() {
         <Field htmlFor="activity-catalog-search" label="Tên hoặc mã hoạt động"><input type="search" value={search} onChange={event => setSearch(event.target.value)} /></Field>
       </ListFilters>
       <ActivityState {...catalog} />
-      {catalog.data && !catalogItems.length && <Empty title={search ? 'Không có hoạt động khớp tìm kiếm' : 'Chưa có hoạt động trong danh mục'} />}
+      {catalog.data && !catalogItems.length && <Empty title={search ? 'Không có hoạt động khớp tìm kiếm' : 'Chưa có hoạt động trong danh mục'}><p>{search ? 'Thử tìm bằng tên hoặc mã khác.' : 'Hoạt động trong danh mục có thể được chọn khi lập lịch trình hoặc cấu hình gói.'}</p></Empty>}
       {catalogItems.length > 0 && <DataTable label="Danh mục hoạt động" headers={['Hoạt động', 'Sức chứa', 'Giá tham chiếu', '']}>
         {catalogItems.map(item => <tr key={item.id}><td><span className={styles.recordName}>{item.name}</span><span className={styles.recordCode}>{item.code}</span></td><td>{item.capacity ?? 'Chưa cấu hình'}</td><td>{item.price == null ? 'Chưa cấu hình' : `${item.price} ${item.currencyCode ?? ''}`}</td><td><Button tone="secondary" size="compact" autoWidth onClick={() => setSelected({id:item.id,name:item.name})}>Xem chi tiết</Button></td></tr>)}
       </DataTable>}

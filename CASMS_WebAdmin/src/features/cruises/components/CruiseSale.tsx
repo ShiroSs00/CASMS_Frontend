@@ -24,6 +24,7 @@ import {decodeSaleReadiness} from '../model/departure-contract'
 import {useReadinessClock} from '../hooks/useReadinessClock'
 import {CRUISE_STATUSES,type CruiseRecord} from '../model/cruise-record'
 import type {CruiseOpenSaleResponseDto} from '../api/dto'
+import { ResumeSale } from './ResumeSale'
 import {StopSaleModal} from './StopSaleModal'
 type SaleRecord={cruiseId:string;revision:number;status:string;saleScope:string|null;openedForSaleAt:string|null;saleEventIdentity?:string|null}
 function decodeSaleRecord(value:SaleRecord,id:string):SaleRecord{
@@ -34,7 +35,7 @@ const scopeLabels={WHOLE_CRUISE:'Bán kèm tất cả gói tour đang hoạt đ�
 const scopeEffects={WHOLE_CRUISE:'Bật bán tất cả gói tour đang hoạt động đã gắn với chuyến.',CABIN_ONLY:'Chuyến mở bán các gói du thuyền đã chọn ở trên.',SELECTED_PACKAGES:'Tích chọn các gói tour muốn bán kèm chuyến.'} as const
 type Scope='WHOLE_CRUISE'|'CABIN_ONLY'|'SELECTED_PACKAGES'
 const offerAmount=(value:string|number)=>new Intl.NumberFormat('vi-VN',{maximumFractionDigits:4}).format(Number(value))
-export function CruiseSale({cruise,onSection,onReview,onChanged}:{cruise:CruiseRecord;onSection?:(section:DepartureSection)=>void;onReview?:()=>void;onChanged?:()=>void}){
+export function CruiseSale({cruise,onSection,onReview,onReady,onChanged}:{cruise:CruiseRecord;onSection?:(section:DepartureSection)=>void;onReview?:()=>void;onReady?:()=>void;onChanged?:()=>void}){
  const access=useSessionAccess(),[scope,setScope]=useState<Scope>('WHOLE_CRUISE'),[selected,setSelected]=useState<string[]>([]),[epoch,setEpoch]=useState(0),[confirm,setConfirm]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false),[success,setSuccess]=useState(''),lock=useRef(false),operation=useRef<{key:string;id:string}|null>(null)
  const [stopSaleOpen, setStopSaleOpen] = useState(false), [stopSaleSuccess, setStopSaleSuccess] = useState('')
  const [selectedFares,setSelectedCruisePackages]=useState<string[]>([])
@@ -59,7 +60,7 @@ export function CruiseSale({cruise,onSection,onReview,onChanged}:{cruise:CruiseR
  const saleKeys:Record<string,string>={OPEN_FOR_SALE:'OPEN',NOT_YET_OPEN:'NOT_OPEN',DRAFT:'NOT_OPEN',STOPPED:'STOPPED',SOLD_OUT:'SOLD_OUT',CANCELLED:'CANCELLED',DEPARTED:'DEPARTED'}
  async function open(){
   if(needsFares&&(fares.loading||fares.error||!selectedFares.length||selectedFares.some(id=>!eligibleFares?.some(f=>f.offer.id===id&&f.eligibility.eligible))))return
-  if(!data||query.loading||query.error||packages.loading||packages.error||sellability.loading||sellability.error||saleRecord.loading||saleRecord.error||activated||blocked||lock.current||uncertain||!access.roles.includes('OPERATIONS_MANAGER')||!access.has('CRUISE_OPEN_SALE'))return
+  if(!data||query.loading||query.error||packages.loading||packages.error||sellability.loading||sellability.error||saleRecord.loading||saleRecord.error||activated||cruise.stoppedAt||blocked||lock.current||uncertain||!access.roles.includes('OPERATIONS_MANAGER')||!access.has('CRUISE_OPEN_SALE'))return
   lock.current=true;setBusy(true);setError('');setSuccess('')
   try{
    const operationKey=JSON.stringify([cruise.cruiseId,data.cruiseRevision,data.fingerprint,scope,selection,offerSelection])
@@ -93,6 +94,7 @@ export function CruiseSale({cruise,onSection,onReview,onChanged}:{cruise:CruiseR
     {cruise.stopReason && <p>Lý do dừng bán: <strong>{cruise.stopReason}</strong></p>}
    </Notice>
   )}
+  {cruise.stoppedAt && <ResumeSale key={cruise.revision} cruise={cruise} plan={plan.loading || plan.error ? null : plan.data} onReady={onReady} onChanged={()=>{setEpoch(n=>n+1);plan.retry();onChanged?.()}}/>}
   {saleRecord.data&&!saleRecord.loading&&!saleRecord.error&&<RecordFacts entries={[["Quyết định mở bán",activated?'Đã xác nhận':'Chưa ghi nhận quyết định mở bán'],["Thời điểm xác nhận",activated?journeyTime(saleRecord.data.openedForSaleAt!,SHIP_TIME_ZONE):'Chưa có thông tin']]}/>}
   {!activated&&plan.data&&!plan.loading&&!plan.error&&plan.data.readyStatus!=='READY'&&<Notice title="Chuyến khởi hành chưa được xác nhận sẵn sàng mở bán" tone="warning"><p>Để mở bán, chuyến khởi hành cần hoàn tất Bước 2 (Xác nhận sẵn sàng mở bán) sau khi kế hoạch và giá đã được Quản lý vận hành duyệt.</p>{onReview&&<Button tone="secondary" onClick={onReview}>Quay lại Bước 2: Xác nhận sẵn sàng mở bán</Button>}</Notice>}
   {!activated&&needsFares&&fares.loading&&<Loading label="Đang đối chiếu gói du thuyền…"/>}
@@ -110,7 +112,7 @@ export function CruiseSale({cruise,onSection,onReview,onChanged}:{cruise:CruiseR
   {!plan.loading&&!plan.error&&!windows&&<Notice title="Cần kế hoạch đã được phê duyệt còn hiệu lực">Thời gian nhận đặt chỗ chỉ được lấy sau khi Quản lý vận hành phê duyệt kế hoạch.{onReview&&<Button tone="text" onClick={onReview}>Xem xét duyệt kế hoạch</Button>}</Notice>}
   {plan.data&&!plan.loading&&!plan.error&&!activated&&<p>Trạng thái sẵn sàng của chuyến: {domainStatus('cruise.ready',plan.data.readyStatus)}. Phát hành lịch trình và xác nhận sẵn sàng không tự mở bán.</p>}
   {windows&&!plan.loading&&!plan.error&&<RecordFacts entries={[["Mở nhận đặt chỗ · Kế hoạch đã duyệt",journeyTime(windows.bookingOpensAt,SHIP_TIME_ZONE)],["Đóng nhận đặt chỗ · Giờ Việt Nam",journeyTime(windows.bookingClosesAt,SHIP_TIME_ZONE)]]}/>}
-  {activated&&sellability.data?.publicDisplayEligible!==true&&windows&&<p className={styles.help}>{now<Date.parse(windows.bookingOpensAt)?'Đã xác nhận mở bán, đang chờ đến giờ nhận đặt chỗ theo kế hoạch.':now>=Date.parse(windows.bookingClosesAt)?'Đã hết thời gian nhận đặt chỗ theo kế hoạch.':'Đã ghi nhận quyết định mở bán nhưng hiện chưa đủ điều kiện hiển thị công khai. Đối chiếu các điều kiện bên dưới.'}</p>}
+  {activated&&!cruise.stoppedAt&&sellability.data?.publicDisplayEligible!==true&&windows&&<p className={styles.help}>{now<Date.parse(windows.bookingOpensAt)?'Đã xác nhận mở bán, đang chờ đến giờ nhận đặt chỗ theo kế hoạch.':now>=Date.parse(windows.bookingClosesAt)?'Đã hết thời gian nhận đặt chỗ theo kế hoạch.':'Đã ghi nhận quyết định mở bán nhưng hiện chưa đủ điều kiện hiển thị công khai. Đối chiếu các điều kiện bên dưới.'}</p>}
   {activated&&!sellability.loading&&!sellability.error&&sellability.data?.publicDisplayEligible===true&&publicUrl&&<p><a href={publicUrl} target="_blank" rel="noopener noreferrer">Xem chuyến khởi hành trên website khách hàng ↗</a></p>}
   {activated&&<ul>{fares.data?.filter(f=>f.offer.saleEnabled).map(f=><li key={f.offer.id}>{f.template.version.name} · {f.offer.logicalCategory}</li>)}</ul>}
   {sellability.data&&!sellability.loading&&!sellability.error&&<p>Nhận đặt chỗ: {sellability.data.sellable===true?'Đang nhận đặt chỗ':sellability.data.sellable===false?'Chưa nhận đặt chỗ':'Chưa xác định'}</p>}
@@ -137,8 +139,8 @@ export function CruiseSale({cruise,onSection,onReview,onChanged}:{cruise:CruiseR
   {data&&!query.loading&&!query.error&&<ReadinessIssues items={data.details} cruiseId={cruise.cruiseId} shipId={cruise.shipId??null}/>}
   {data&&!query.loading&&!query.error&&expired&&<Notice title="Cần kiểm tra lại điều kiện mở bán">Kết quả kiểm tra đã hết hạn hoặc chưa có thời hạn hiệu lực.</Notice>}
   <div className={styles.sectionActions}><Button tone="secondary" disabled={busy||(!activated&&needsFares&&!selectedFares.length)||plan.loading||Boolean(plan.error)} onClick={()=>{setEpoch(n=>n+1);setConfirm(false)}}>Kiểm tra lại điều kiện mở bán</Button>
-  {access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_OPEN_SALE')&&<Button disabled={busy||uncertain||blocked||activated||saleRecord.loading||packages.loading||sellability.loading||query.loading||Boolean(query.error||packages.error||sellability.error||saleRecord.error)} onClick={()=>setConfirm(true)}>{activated?'Đã xác nhận mở bán':saleAction}</Button>}
-   {access.roles.includes('OPERATIONS_MANAGER')&&(access.has('CRUISE_STOP_SALE')||access.has('CRUISE_OPEN_SALE'))&&activated&&!cruise.stoppedAt&&<Button tone="danger" disabled={busy} onClick={()=>setStopSaleOpen(true)}>Tạm dừng mở bán</Button>}</div>
+  {access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_OPEN_SALE')&&!cruise.stoppedAt&&<Button disabled={busy||uncertain||blocked||activated||saleRecord.loading||packages.loading||sellability.loading||query.loading||Boolean(query.error||packages.error||sellability.error||saleRecord.error)} onClick={()=>setConfirm(true)}>{activated?'Đã xác nhận mở bán':saleAction}</Button>}
+   {access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_STOP_SALE')&&activated&&!cruise.stoppedAt&&<Button tone="danger" disabled={busy} onClick={()=>setStopSaleOpen(true)}>Tạm dừng mở bán</Button>}</div>
   {success&&<Notice title="Đã xác nhận mở bán" tone="success">{success}</Notice>}
   {error&&!confirm&&<Notice title="Chưa xác nhận được mở bán" tone="error">{error}</Notice>}{uncertain&&<Notice title="Hệ thống chưa xác nhận được kết quả">Đọc lại quyết định và trạng thái bán hiện tại trước khi thao tác tiếp.<Button disabled={busy} onClick={()=>{setConfirm(false);saleRecord.retry();sellability.retry();query.retry();fares.retry();packages.retry();plan.retry()}}>Đối chiếu trạng thái hiện tại</Button></Notice>}
   {confirm&&<Modal busy={busy} title={saleAction} onClose={()=>{if(!busy)setConfirm(false)}} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setConfirm(false)}>Quay lại</Button><Button disabled={busy||blocked||uncertain||activated||query.loading||Boolean(query.error||packages.error||sellability.error||saleRecord.error)} onClick={()=>void open()}>{busy?'Đang xác nhận…':saleAction}</Button></>}>

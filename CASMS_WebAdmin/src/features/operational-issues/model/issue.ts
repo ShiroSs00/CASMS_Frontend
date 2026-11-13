@@ -67,6 +67,14 @@ export type OperationalIssue = {
   updatedAt: string
 }
 
+export const issueTypeLabels: Record<IssueType, string> = {
+  WEATHER: 'Thời tiết',
+  TECHNICAL: 'Kỹ thuật',
+  CABIN: 'Cabin',
+  SAFETY: 'An toàn',
+  OPERATIONAL: 'Vận hành',
+}
+
 export const issueStatusLabels: Record<IssueStatus, string> = {
   OPEN: 'Chờ xử lý',
   IN_PROGRESS: 'Đang xử lý',

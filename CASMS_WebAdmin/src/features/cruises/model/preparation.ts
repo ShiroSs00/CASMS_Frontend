@@ -31,6 +31,7 @@ export function allowedDepartureSections(access:ReturnType<typeof useSessionAcce
     return departureSections.filter(([key])=>
       key==='overview'
       ||key==='departure-start'&&canReadDepartureGate(access)
+      ||key==='transaction-policy'&&access.has('CRUISE_READ')
       ||key==='schedule'&&['ITINERARY_READ','CRUISE_READ'].some(p=>access.has(p))
       ||key==='resources'&&['SHIP_READ','CRUISE_REGULATION_READ'].some(p=>access.canDo(p))
       ||key==='staff'&&access.canDo('CRUISE_STAFF_READ')
@@ -45,7 +46,7 @@ export function allowedDepartureSections(access:ReturnType<typeof useSessionAcce
 
   return departureSections.filter(([key])=>
     key==='overview'
-    ||key==='departure-start'&&canReadDepartureGate(access)
+    ||key==='departure-start'&&!manager&&canReadDepartureGate(access)
     ||key==='schedule'&&['ITINERARY_READ','CRUISE_READ'].some(p=>access.has(p))
     ||key==='resources'&&['SHIP_READ','CRUISE_REGULATION_READ','CRUISE_ASSIGN_SHIP','CRUISE_CHANGE_SHIP'].some(p=>access.canDo(p))
     ||key==='program'&&access.has('CRUISE_UPDATE_DRAFT')

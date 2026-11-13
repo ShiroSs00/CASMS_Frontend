@@ -129,6 +129,8 @@ export type Port = {
   portId: string
   portCode: string
   portName: string
+  destinationId?: string | null
+  destinationName?: string | null
   countryCode: string
   timeZoneId: string
   latitude?: number | null
