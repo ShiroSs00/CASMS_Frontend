@@ -92,43 +92,57 @@ export function FrozenPlanPackages({ snapshot }: { snapshot: unknown }) {
   const frozen = planEvidence(snapshot)
   if (!frozen.hasPackages) return <Notice title="Chưa có bằng chứng gói trong hồ sơ">Cần đọc lại bản đã gửi trước khi xét duyệt.</Notice>
   return <section className={styles.commercial} aria-label="Gói và giá trong hồ sơ đã gửi">
-    <h3>Gói du thuyền trong hồ sơ</h3>
-    {!frozen.packages.length && <p>Hồ sơ chưa chọn gói du thuyền.</p>}
-    {frozen.packages.map((item, index) => <section className={styles.package} key={item.offerId ?? index}>
-      <h4>{item.name ?? 'Chưa có tên gói trong hồ sơ'}</h4>
-      <p>{item.category ?? 'Chưa có hạng cabin'} · Mẫu phiên bản {item.version ?? 'chưa xác định'}</p>
-      <p className={styles.packagePrice}>{item.amount !== null && (item.currency === 'USD' || item.currency === 'VND') && item.priceUnit === 'PERSON' ? `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 4 }).format(item.amount)} ${item.currency}/người` : 'Chưa xác nhận được giá'} · Giá phiên bản {item.priceRevision ?? 'chưa xác định'}</p>
-      {!item.valid && <Notice title="Bằng chứng giá chưa đầy đủ" tone="error">Đọc lại hồ sơ để đối chiếu đúng gói và phiên bản giá trước khi quyết định.</Notice>}
-      <details className={styles.group}><summary>Quyền lợi và lần phục vụ <span>{item.benefits.length} quyền lợi</span></summary><div className={styles.groupBody}>
-        {item.benefits.length === 0 && <p>Chưa có chi tiết quyền lợi trong bản đã gửi.</p>}
-        {item.benefits.map((benefit, bIndex) => {
-          const binding = item.bindings.find(b => b.benefit_id === benefit.benefit_id)
-          const resource = frozenResource(snapshot, binding ?? benefit)
-          const quantity = evidenceNumber(benefit.quantity_limit)
-          return <section key={evidenceText(benefit.benefit_id) ?? bIndex}>
-            <strong>{resource.name ?? resource.kind}</strong>
-            {!resource.name && <p>Chưa có tên trong bản đã gửi. Mã tham chiếu: {resource.id ?? 'Chưa có'}</p>}
-            <p>{inclusionLabels[String(benefit.inclusion)] ?? 'Chưa xác định loại quyền lợi'}</p>
-            {benefit.inclusion === 'LIMITED_INCLUDED' && <p>Giới hạn: {quantity ?? 'Chưa có số lượng'} · {benefit.usage_unit==='PARTICIPATION'?'Lần tham gia':show(benefit.service_unit_code ?? benefit.usage_unit)}</p>}
-            {benefit.usage_policy === 'UNLIMITED' && <p>Sử dụng không giới hạn theo chính sách của bản đã gửi.</p>}
-            {typeof benefit.requires_reservation === 'boolean' && <p>{benefit.requires_reservation ? 'Cần đăng ký trước; quyền lợi chưa giữ suất phục vụ.' : 'Không yêu cầu đăng ký theo cấu hình quyền lợi.'}</p>}
-            {evidenceText(benefit.eligibility) && <p>{String(benefit.eligibility)}</p>}
-            {benefit.usage_starts_at != null && <p>Được sử dụng từ: {journeyTime(String(benefit.usage_starts_at))}</p>}
-            {benefit.usage_ends_at != null && <p>Được sử dụng đến: {journeyTime(String(benefit.usage_ends_at))}</p>}
-            <p>{binding ? 'Đã gắn lần phục vụ trong hồ sơ' : 'Chưa có liên kết lần phục vụ trong hồ sơ'}</p>
-            {resource.row.start_time != null && <p>Bắt đầu (giờ Việt Nam): {journeyTime(String(resource.row.start_time))}</p>}
-            {resource.row.end_time != null && <p>Kết thúc (giờ Việt Nam): {journeyTime(String(resource.row.end_time))}</p>}
-            {resource.row.service_id != null && <ul>{(Array.isArray(frozen.source.servingWindows) ? frozen.source.servingWindows : []).map(evidenceRow).filter(w => w.service_id === resource.id).map((w, i) => <li key={i}>{journeyTime(String(w.starts_at))} – {journeyTime(String(w.ends_at))}{w.location ? ` · ${String(w.location)}` : ''}</li>)}</ul>}
-          </section>
-        })}
-      </div></details>
-
-    </section>)}
-    <section className={styles.terms}><h3>Thuế và phí cảng trong hồ sơ</h3>{(['tax', 'portFee'] as const).map(key => {
-      const charge = evidenceRow(frozen.terms[key])
-      return <div key={key}><strong>{key === 'tax' ? 'Thuế' : 'Phí cảng'}: {chargeText(charge, key === 'tax')}</strong>
-        {evidenceText(charge.reason) && <p>Lý do: {String(charge.reason)}</p>}{evidenceText(charge.evidence) && <p>Căn cứ: {String(charge.evidence)}</p>}
+    <div className={styles.commercialGrid}>
+      <div className={styles.commercialBox}>
+        <h3>Gói du thuyền trong hồ sơ ({frozen.packages.length})</h3>
+        {!frozen.packages.length && <p>Hồ sơ chưa chọn gói du thuyền.</p>}
+        {frozen.packages.map((item, index) => <section className={styles.package} key={item.offerId ?? index}>
+          <div className={styles.packageTitleRow}>
+            <h4>{item.name ?? 'Chưa có tên gói trong hồ sơ'}</h4>
+            <Badge label={`Mẫu v${item.version ?? '—'} · Giá v${item.priceRevision ?? '—'}`} tone="neutral" />
+          </div>
+          <p className={styles.reference}>{item.category ?? 'Chưa có hạng cabin'}</p>
+          <p className={styles.packagePrice}>{item.amount !== null && (item.currency === 'USD' || item.currency === 'VND') && item.priceUnit === 'PERSON' ? `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 4 }).format(item.amount)} ${item.currency}/người` : 'Chưa xác nhận được giá'}</p>
+          {!item.valid && <Notice title="Bằng chứng giá chưa đầy đủ" tone="error">Đọc lại hồ sơ để đối chiếu đúng gói và phiên bản giá trước khi quyết định.</Notice>}
+          <details className={styles.group}><summary>Quyền lợi và lần phục vụ <span>{item.benefits.length} quyền lợi</span></summary><div className={styles.groupBody}>
+            {item.benefits.length === 0 && <p>Chưa có chi tiết quyền lợi trong bản đã gửi.</p>}
+            {item.benefits.map((benefit, bIndex) => {
+              const binding = item.bindings.find(b => b.benefit_id === benefit.benefit_id)
+              const resource = frozenResource(snapshot, binding ?? benefit)
+              const quantity = evidenceNumber(benefit.quantity_limit)
+              return <section key={evidenceText(benefit.benefit_id) ?? bIndex}>
+                <strong>{resource.name ?? resource.kind}</strong>
+                {!resource.name && <p>Chưa có tên trong bản đã gửi. Mã tham chiếu: {resource.id ?? 'Chưa có'}</p>}
+                <p>{inclusionLabels[String(benefit.inclusion)] ?? 'Chưa xác định loại quyền lợi'}</p>
+                {benefit.inclusion === 'LIMITED_INCLUDED' && <p>Giới hạn: {quantity ?? 'Chưa có số lượng'} · {benefit.usage_unit==='PARTICIPATION'?'Lần tham gia':show(benefit.service_unit_code ?? benefit.usage_unit)}</p>}
+                {benefit.usage_policy === 'UNLIMITED' && <p>Sử dụng không giới hạn theo chính sách của bản đã gửi.</p>}
+                {typeof benefit.requires_reservation === 'boolean' && <p>{benefit.requires_reservation ? 'Cần đăng ký trước; quyền lợi chưa giữ suất phục vụ.' : 'Không yêu cầu đăng ký theo cấu hình quyền lợi.'}</p>}
+                {evidenceText(benefit.eligibility) && <p>{String(benefit.eligibility)}</p>}
+                {benefit.usage_starts_at != null && <p>Được sử dụng từ: {journeyTime(String(benefit.usage_starts_at))}</p>}
+                {benefit.usage_ends_at != null && <p>Được sử dụng đến: {journeyTime(String(benefit.usage_ends_at))}</p>}
+                <p>{binding ? 'Đã gắn lần phục vụ trong hồ sơ' : 'Chưa có liên kết lần phục vụ trong hồ sơ'}</p>
+                {resource.row.start_time != null && <p>Bắt đầu (giờ Việt Nam): {journeyTime(String(resource.row.start_time))}</p>}
+                {resource.row.end_time != null && <p>Kết thúc (giờ Việt Nam): {journeyTime(String(resource.row.end_time))}</p>}
+                {resource.row.service_id != null && <ul>{(Array.isArray(frozen.source.servingWindows) ? frozen.source.servingWindows : []).map(evidenceRow).filter(w => w.service_id === resource.id).map((w, i) => <li key={i}>{journeyTime(String(w.starts_at))} – {journeyTime(String(w.ends_at))}{w.location ? ` · ${String(w.location)}` : ''}</li>)}</ul>}
+              </section>
+            })}
+          </div></details>
+        </section>)}
       </div>
-    })}</section>
+
+      <section className={styles.commercialBox}>
+        <h3>Thuế và phí cảng trong hồ sơ</h3>
+        <div className={styles.termsGrid}>
+          {(['tax', 'portFee'] as const).map(key => {
+            const charge = evidenceRow(frozen.terms[key])
+            return <div key={key} className={styles.termItem}>
+              <strong>{key === 'tax' ? 'Thuế áp dụng' : 'Phí cảng'}: {chargeText(charge, key === 'tax')}</strong>
+              {evidenceText(charge.reason) && <p>Lý do: {String(charge.reason)}</p>}
+              {evidenceText(charge.evidence) && <p className={styles.reference}>Căn cứ: {String(charge.evidence)}</p>}
+            </div>
+          })}
+        </div>
+      </section>
+    </div>
   </section>
 }

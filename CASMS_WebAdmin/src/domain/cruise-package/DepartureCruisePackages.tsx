@@ -509,11 +509,11 @@ function OfferCard({item,context,disabled,run,shipName,feedback}:{shipName?:stri
       </div>
       <div className={styles.offerPriceSummary}>
         <strong>{price?`${new Intl.NumberFormat('vi-VN',{maximumFractionDigits:4}).format(Number(price.amount))} ${price.currencyCode}/người`:'Chưa có giá'}</strong>
-        {price&&<span className={styles.offerMeta}>{lifecycle[price.status]}</span>}
+        {price&&<Badge label={lifecycle[price.status]} tone={price.status==='APPROVED'?'success':price.status==='RETURNED'?'error':'warning'}/>}
       </div>
     </header>
     <fieldset className={styles.controls} disabled={disabled} aria-label={`Gói du thuyền ${item.template.version.name}, ${item.offer.logicalCategory}`}>
-      <details className={styles.offerSection}>
+      <details className={styles.offerSection} open>
         <summary><span>Thông tin gói</span></summary>
         <div className={styles.offerBody}>
           <p className={styles.offerMeta}>{cabinTypeLabel(item.offer.proposedCabinType)} · {journeyTime(item.offer.salesStart)} – {journeyTime(item.offer.salesEnd)} (giờ Việt Nam)</p>

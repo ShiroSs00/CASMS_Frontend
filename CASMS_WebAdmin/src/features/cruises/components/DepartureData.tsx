@@ -63,7 +63,7 @@ export function ScheduleContents({ schedule, preview = false,cruiseId,entryTitle
         const zone=entry.timeZoneId??(entry.kind==='SHORE_EXCURSION'?day.stops.find(stop=>stop.stopOrder===entry.stopOrder)?.portTimeZoneId??null:SHIP_TIME_ZONE)
         return <li key={entry.sourceEntryId ?? entry.clientKey ?? `${day.dayNumber}:${index}`}><strong>{entry.title||(entryTitles[entry.sourceEntryId??'']||entryTitles[entry.targetId??entry.clientKey??''])||`${entry.kind ? kindLabels[entry.kind] ?? entry.kind : 'Chương trình'} ${index+1}`}</strong>{(entryTitles[entry.sourceEntryId??'']||entryTitles[entry.targetId??entry.clientKey??''])&&<span className={scheduleStyles.entryKind}>{entry.kind?kindLabels[entry.kind]??entry.kind:''}</span>}<p>{time(entry.plannedStartTime, zone)} → {time(entry.plannedEndTime, zone)} · {entry.kind==='SHORE_EXCURSION'?'Giờ cảng':'Giờ tàu (Việt Nam)'}{entry.stopOrder != null ? ` · Lần ghé ${entry.stopOrder}` : ''}</p>{entry.locationText&&<p>Địa điểm: {entry.locationText}</p>}{entry.meetingPoint&&<p>Điểm tập trung: {entry.meetingPoint}</p>}{entry.notes&&<p>{entry.notes}</p>}</li>
       })}</ul></>}
-      {selectedDay !== undefined && !day.stops.length && !day.entries.length && <p>Chưa có cảng ghé hoặc chương trình trong ngày này.</p>}
+      {!day.stops.length && !day.entries.length && <p>Chưa có cảng ghé hoặc hoạt động cố định riêng trong ngày này.</p>}
       </div>
 
       if (selectedDay !== undefined) return <div className={scheduleStyles.selectedDay} key={day.dayNumber}>
@@ -71,7 +71,8 @@ export function ScheduleContents({ schedule, preview = false,cruiseId,entryTitle
         {body}
       </div>
 
-      return <details className={scheduleStyles.scheduleDay} key={day.dayNumber} open={day.dayNumber === 1}>
+      const defaultOpenDay = schedule.days.find(d => d.stops.length > 0 || d.entries.length > 0)?.dayNumber ?? 1
+      return <details className={scheduleStyles.scheduleDay} key={day.dayNumber} open={day.dayNumber === defaultOpenDay}>
         <summary><span className={scheduleStyles.dayNumber}>{label}</span><span className={scheduleStyles.dayHeading}><strong>{day.title || role}</strong><span>{day.calendarDate?.split('-').reverse().join('/') ?? 'Chưa có ngày'} · {type} · {day.entries.length} mục chương trình</span></span></summary>
         {body}
       </details>
@@ -97,8 +98,8 @@ export function DepartureScheduleRead({ cruise,readOnly=false }: { cruise: Cruis
   const mismatch = query.data && (query.data.sourceVersionId !== (cruise.sourceVersionId??null) || !query.data.departureDatetime || Date.parse(query.data.departureDatetime)!==Date.parse(cruise.departureDatetime) || !query.data.returnDatetime || Date.parse(query.data.returnDatetime)!==Date.parse(cruise.returnDatetime))
   return <Panel title="Lịch theo ngày thực tế" subtitle="Các mốc dự kiến do hệ thống trả về; giờ cảng và giờ tàu được ghi riêng.">
     <ReadState {...query} />
-    {mismatch ? <Notice title="Lịch chưa khớp nguồn" tone="error">Phiên bản nguồn hoặc mốc thời gian trong lịch chưa khớp hồ sơ chuyến khởi hành. Tải lại để đối chiếu.</Notice> : query.data && <><details><summary>Thông tin đối chiếu lịch</summary><RecordFacts entries={[["Lịch thực tế đã khởi tạo",yesNo(query.data.materialized)],['Trạng thái lịch thực tế',query.data.itineraryStatus==='DRAFT'?'Nháp':shown(query.data.itineraryStatus)],['Revision nguồn đã sử dụng',shown(query.data.sourceVersionRevision)],['Hash nội dung nguồn',shown(query.data.sourceContentHash)]]}/></details>{programNames.error&&<Notice title="Chưa tải được tên chương trình">Giờ và lần ghé vẫn hiển thị theo lịch thực tế.<Button tone="text" onClick={programNames.retry}>Thử tải lại tên</Button></Notice>}<ScheduleContents schedule={query.data} cruiseId={cruise.cruiseId} entryTitles={entryTitles} allowActions={!readOnly}/><p>Lịch này chưa xác nhận các chương trình vận hành đã được tạo đầy đủ. Kiểm tra riêng tại Chương trình và dịch vụ.</p></>}
-    <Button tone="secondary" onClick={query.retry}>Tải lại lịch</Button>
+    {mismatch ? <Notice title="Lịch chưa khớp nguồn" tone="error">Phiên bản nguồn hoặc mốc thời gian trong lịch chưa khớp hồ sơ chuyến khởi hành. Tải lại để đối chiếu.</Notice> : query.data && <><details className={scheduleStyles.reconcileDisclosure}><summary>Thông tin đối chiếu lịch nguồn</summary><RecordFacts entries={[["Lịch thực tế đã khởi tạo",yesNo(query.data.materialized)],['Trạng thái lịch thực tế',query.data.itineraryStatus==='DRAFT'?'Nháp':shown(query.data.itineraryStatus)],['Revision nguồn đã sử dụng',shown(query.data.sourceVersionRevision)],['Hash nội dung nguồn',shown(query.data.sourceContentHash)]]}/></details>{programNames.error&&<Notice title="Chưa tải được tên chương trình">Giờ và lần ghé vẫn hiển thị theo lịch thực tế.<Button tone="text" onClick={programNames.retry}>Thử tải lại tên</Button></Notice>}<ScheduleContents schedule={query.data} cruiseId={cruise.cruiseId} entryTitles={entryTitles} allowActions={!readOnly}/><div className={scheduleStyles.scheduleFooterBar}><p>Lịch này chưa xác nhận các chương trình vận hành đã được tạo đầy đủ. Kiểm tra riêng tại Chương trình và dịch vụ.</p><Button tone="secondary" size="compact" autoWidth onClick={query.retry}>Tải lại lịch</Button></div></>}
+    {(!query.data || mismatch) && <div className={scheduleStyles.scheduleFooterBar}><Button tone="secondary" size="compact" autoWidth onClick={query.retry}>Tải lại lịch</Button></div>}
   </Panel>
 }
 

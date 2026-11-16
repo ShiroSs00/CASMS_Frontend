@@ -13,7 +13,7 @@ export function PreparationCoordinator({view,onChanged}:{view:PreparationDashboa
  async function save(event:FormEvent){event.preventDefault();if(!allowed||!selected||lock.current||unknown)return;lock.current=true;setBusy(true);setError('')
   try{await preparationApi.assign(view,selected);onChanged()}catch(e){setError(businessErrorMessage(e instanceof ApiError?e.code:undefined,''));if(!(e instanceof ApiError)||e.status===0||e.status>=500)setUnknown(true)}finally{lock.current=false;setBusy(false)}
  }
- return <div className={styles.coordinator}><p>{businessCopy('preparation.coordinator')}: <strong>{view.coordinatorUsername??businessCopy('preparation.coordinator.missing')}</strong></p>
+ return <div className={styles.coordinator}><p className={styles.prepSummaryValue}><strong>{view.coordinatorUsername??businessCopy('preparation.coordinator.missing')}</strong></p>
  {allowed&&<details className={styles.coordinatorEditor} open={!view.coordinatorUserId}><summary>{view.coordinatorUserId?'Thay đổi người phụ trách':'Phân công người phụ trách'}</summary>
  {candidates.loading&&<Loading/>}{candidates.error&&<Notice title={businessCopy('preparation.coordinator.loadFailed')}><Button onClick={candidates.retry}>Thử lại</Button></Notice>}
  <form className={styles.coordinatorForm} onSubmit={save}>

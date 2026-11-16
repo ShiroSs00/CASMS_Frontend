@@ -2,8 +2,45 @@
 :is(.managerRoot,.operationsRoot) { min-width: 0; }
 .modalForm { display: grid; gap: 16px; min-width: 0; }
 .reviewPanel{min-width:0}
-.planWorkspace{min-width:0;padding:24px;background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:var(--ui-panel-radius)}
-.planWorkspace>h2{font-size:18px;line-height:1.5;margin:0 0 12px}
+.planWorkspace{display:grid;gap:24px;min-width:0;padding:24px;background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:var(--ui-panel-radius)}
+.planWorkspaceHeader{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--ui-border)}
+.planWorkspaceHeader h2{font-size:18px;line-height:1.4;margin:0 0 4px}
+.prepWorkflowStack{display:grid;gap:24px;min-width:0}
+.prepWorkflowStep{display:grid;gap:16px;padding:20px;background:var(--ui-subtle,#f8fafc);border:1px solid var(--ui-border,#dce4ec);border-radius:8px;min-width:0}
+.prepWorkflowStepHead{display:flex;align-items:flex-start;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--ui-border,#e2e8f0)}
+.prepWorkflowStepHead h3{margin:0 0 4px;font-size:16px;line-height:1.4}
+.prepWorkflowBadge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;flex:0 0 28px;border-radius:50%;background:var(--ui-brand,#0b2a4a);color:#fff;font-size:13px;font-weight:600}
+.departmentGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:stretch}
+@media(max-width:1100px){.departmentGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.departmentGrid{grid-template-columns:minmax(0,1fr)}}
+.deptUnitBox{display:flex;flex-direction:column;gap:14px;padding:16px;background:var(--ui-surface,#fff);border:1px solid var(--ui-border,#dce4ec);border-radius:8px;min-width:0;height:100%}
+.deptEmptyNote{margin:0;padding:12px;background:var(--ui-subtle,#f8fafc);border:1px dashed var(--ui-border,#cbd5e1);border-radius:6px;font-size:13px;color:var(--ui-muted,#506777);line-height:1.5;flex:1}
+.deptUnitHeader{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--ui-border,#e2e8f0)}
+.deptUnitHeader h4{margin:0 0 2px;font-size:15px;font-weight:600;color:var(--ui-ink,#0b2a4a)}
+.deptResponseBox{display:grid;gap:4px;padding:12px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;font-size:13px}
+.deptResponseBox strong{color:var(--ui-ink,#0b2a4a)}
+.deptResponseBox p{margin:0;line-height:1.55}
+.budgetInlineCard{padding:14px 16px;background:var(--ui-surface,#fff);border:1px solid var(--ui-border,#dce4ec);border-radius:8px}
+.budgetSummaryRow{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px 20px}
+.budgetAmountGroup{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+.windowsInlineBox{display:grid;gap:12px;padding:16px;background:var(--ui-surface,#fff);border:1px solid var(--ui-border,#dce4ec);border-radius:8px}
+.windowsInlineBox h4{margin:0;font-size:15px;font-weight:600;color:var(--ui-ink,#0b2a4a)}
+.disembarkationBlock{display:grid;gap:16px;min-width:0}
+.disembarkationHeader{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:12px 16px;background:var(--ui-subtle,#f8fafc);border:1px solid var(--ui-border,#dce4ec);border-radius:8px}
+.disembarkationHeader>div{display:grid;gap:2px}
+.disembarkationMetrics3Col{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media(max-width:760px){.disembarkationMetrics3Col{grid-template-columns:minmax(0,1fr)}}
+.disembarkationMetricItem{display:grid;gap:4px;padding:12px 14px;background:var(--ui-surface,#fff);border:1px solid var(--ui-border,#dce4ec);border-radius:6px}
+.disembarkationMetricItem span{font-size:12px;color:var(--ui-muted,#506777)}
+.disembarkationMetricItem strong{font-size:14px;font-weight:600;color:var(--ui-ink,#0b2a4a);font-variant-numeric:tabular-nums}
+.programKindTabs{display:flex;flex-wrap:wrap;gap:8px;padding-bottom:14px;border-bottom:1px solid var(--ui-border,#dce4ec)}
+.programKindTab{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:6px 14px;border:1px solid var(--ui-border,#dce4ec);border-radius:6px;background:var(--ui-surface,#fff);color:var(--ui-muted,#506777);font:inherit;font-size:13px;font-weight:500;cursor:pointer}
+.programKindTab:hover:not(:disabled){background:var(--ui-subtle,#f8fafc);color:var(--ui-ink,#0b2a4a)}
+.programKindTabActive{background:var(--ui-brand,#0b2a4a);border-color:var(--ui-brand,#0b2a4a);color:#fff;font-weight:600}
+.programKindCount{font-variant-numeric:tabular-nums;font-size:12px;padding:1px 7px;border-radius:999px;background:rgb(11 42 74 / 8%);color:inherit}
+.programKindTabActive .programKindCount{background:rgb(255 255 255 / 22%)}
+.programToolbarRight{display:flex;align-items:center;flex-wrap:wrap;gap:14px}
+.programRoleHint{padding:12px 16px;background:var(--ui-subtle,#f8fafc);border:1px solid var(--ui-border,#dce4ec);border-radius:6px;font-size:13px;color:var(--ui-muted,#506777)}
 .planTaskList{display:grid;min-width:0}
 .planTaskRow{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 0;border-bottom:1px solid var(--ui-border)}
 .planTaskRow>div{min-width:0}
@@ -143,12 +180,62 @@
 
 .conditionBody>.issueHint{margin-top:12px;font-size:14px;line-height:1.65}
 
+.prepSummaryStrip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 16px;
+  background: var(--ui-subtle, #f8fafc);
+  border: 1px solid var(--ui-border, #dce4ec);
+  border-radius: 8px;
+}
+@media (max-width: 900px) {
+  .prepSummaryStrip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.prepSummaryMetric {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.prepSummaryLabel {
+  font-size: 12px;
+  color: var(--ui-muted, #506777);
+}
+.prepSummaryValue {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ui-ink, #0b2a4a);
+  font-variant-numeric: tabular-nums;
+}
+.prepSummaryProgressRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.prepCardGrid2x2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+  align-items: stretch;
+}
+@media (max-width: 960px) {
+  .prepCardGrid2x2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .prepCardList {
   display: grid;
   gap: 16px;
   margin-top: 16px;
 }
 .prepCard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-panel-radius, 8px);
   background: var(--ui-surface);
@@ -156,7 +243,7 @@
 }
 .prepCardHeader {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   padding: 14px 18px;
@@ -166,15 +253,15 @@
 }
 .prepCardTitleRow {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
-  flex-wrap: wrap;
 }
 .prepCardNum {
   display: inline-grid;
   place-items: center;
   width: 26px;
   height: 26px;
+  flex: 0 0 26px;
   border-radius: 50%;
   background: var(--color-navy-800, #0B2A4A);
   color: #fff;
@@ -201,7 +288,7 @@
 }
 .prepCheckList {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -209,17 +296,33 @@
 .prepCheckItem {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: 10px;
+  padding: 10px 12px;
   border-radius: var(--ui-radius, 6px);
-  background: var(--color-pearl, #F8F6EC);
+  background: var(--ui-subtle, #f8fafc);
   border: 1px solid var(--ui-border);
 }
+.prepCheckSvgPass {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin-top: 1px;
+  color: var(--color-success, #167347);
+}
+.prepCheckSvgWarn {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin-top: 1px;
+  color: var(--color-danger, #B42318);
+}
 .prepCheckItemPass {
-  border-left: 4px solid var(--color-success, #167347);
+  background: #f0fdf4;
+  border-color: #bbf7d0;
 }
 .prepCheckItemFail {
-  border-left: 4px solid var(--color-danger, #B42318);
+  background: #fef2f2;
+  border-color: #fecaca;
 }
 .prepCheckSymbol {
   font-weight: 700;
