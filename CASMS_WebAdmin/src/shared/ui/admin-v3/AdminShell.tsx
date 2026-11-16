@@ -18,20 +18,22 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
   const [navigationQuery, setNavigationQuery] = useState('')
   const menuOpen = menu.path === pathname && menu.open
   const account = useContext(AdminAccountContext)
+  const creatingCruise = pathname.replace(/\/$/, '') === '/admin/cruises/new'
   let activeTo = pathname.startsWith('/admin/staff/') ? pathname : pathname.split('/').slice(0,3).join('/')
-  if (pathname.includes('/regulations')) activeTo = pathname.startsWith('/admin/cruises/') ? '/admin/cruises' : pathname.startsWith('/admin/ships/') ? '/admin/ships' : '/admin/regulations'
+  if (creatingCruise) activeTo = ''
+  else if (pathname.includes('/regulations')) activeTo = pathname.startsWith('/admin/cruises/') ? '/admin/cruises' : pathname.startsWith('/admin/ships/') ? '/admin/ships' : '/admin/regulations'
   else if (pathname.startsWith('/admin/itinerary-history')) activeTo = '/admin/cruises'
   else if (pathname.startsWith('/admin/activity-registrations')) activeTo = '/admin/activity-registrations'
   const currentGroups = roleNavigationGroups(roles,access)
   if(activeTo==='/admin/cabins'&&currentGroups.some(group=>group.items.some(item=>item.to==='/admin/decks'&&item.label==='Boong và phòng'))) activeTo='/admin/decks'
-  const activeLabel = currentGroups.flatMap(group => group.items).find(item => item.to === activeTo)?.label
+  const activeLabel = creatingCruise ? 'Tạo tour' : currentGroups.flatMap(group => group.items).find(item => item.to === activeTo)?.label
   const query = navigationQuery.trim().toLocaleLowerCase('vi-VN')
   const visibleGroups = currentGroups.map(group => ({ ...group, items: group.label.toLocaleLowerCase('vi-VN').includes(query) ? group.items : group.items.filter(item => item.label.toLocaleLowerCase('vi-VN').includes(query)) })).filter(group => group.items.length)
   return <div className={`${styles.shell} ${experience.admin} ${className}`.trim()}>
     <a href="#admin-v3-main" className={styles.skipLink}>Chuyển đến nội dung chính</a>
     <header className={styles.masthead} aria-label="Thanh thông tin quản trị">
       <Link to="/admin" className={styles.brand} aria-label="Trang chủ OceVie"><BrandLogo variant="dark" /></Link>
-      {topbar ?? <div className={styles.context}><span className={styles.contextEyebrow}>OPERATIONS / OCEVIE</span><p>{activeLabel ?? roleLabel}</p></div>}
+      {topbar ?? <div className={styles.context}><span className={styles.contextEyebrow}>Điều hành OceVie</span><p>{activeLabel ?? roleLabel}</p></div>}
       {account}
       <div className={styles.mobileBar}><button type="button" aria-expanded={menuOpen} aria-controls="admin-navigation" onClick={() => setMenu({ path: pathname, open: !menuOpen })}>{menuOpen ? 'Đóng menu' : 'Mở menu'}</button></div>
     </header>

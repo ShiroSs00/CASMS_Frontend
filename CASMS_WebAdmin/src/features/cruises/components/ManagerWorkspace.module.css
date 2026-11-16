@@ -37,6 +37,20 @@
 .coordinatorForm{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:end;margin-top:12px}
 .coordinatorForm>button{margin-bottom:0;min-height:48px}
 @media(max-width:600px){.coordinatorForm{grid-template-columns:minmax(0,1fr)}}
+.budgetSummary,.budgetEditor,.budgetActions{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-4)}
+.budgetSummary{justify-content:space-between}
+.budgetSummary p,.budgetFeedback{margin:var(--space-2) 0 0;color:var(--ui-muted)}
+.budgetAmount{font-size:var(--text-xl);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.budgetEditor{align-items:flex-start}
+.budgetEditor>div:first-child{flex:1 1 16rem;max-width:25rem;min-width:0}
+.budgetActions{margin-block-start:var(--space-5)}
+.budgetFeedback{color:var(--success)}
+.budgetPanel{scroll-margin-block-start:7rem;padding:var(--space-3) var(--space-4);background:var(--ui-subtle);border-radius:var(--radius-md)}
+.budgetPanel .budgetTitle{margin:0 0 var(--space-1);font-weight:650;color:var(--ui-ink)}
+.departmentWork{display:grid;gap:var(--space-4);min-inline-size:0;border-block-start:1px solid var(--ui-border);padding-block-start:var(--space-5)}
+.departmentWork>h3{margin:0;font-size:var(--text-xl)}
+.departmentWork>.departmentPanel{border:0;box-shadow:none;padding:0}
+@media(max-width:600px){.budgetActions{margin-block-start:0}}
 .reviewHeader{display:flex;align-items:center;justify-content:space-between;gap:12px 24px;flex-wrap:wrap;margin-bottom:16px}
 .reviewHeader h2{margin:0;font-size:18px;line-height:1.5}
 .reviewHeader>button{flex:none;width:auto;min-height:44px}
@@ -254,3 +268,7 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+.sourceOptions { list-style:none; padding:0; margin:var(--space-4) 0 0; }
+.sourceOptions li { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:var(--space-2) var(--space-4); padding-block:var(--space-3); border-block-start:1px solid var(--border-soft); }
+.sourceOptions strong,.sourceOptions small { display:block; overflow-wrap:anywhere; }
+.sourceOptions small { color:var(--muted); }

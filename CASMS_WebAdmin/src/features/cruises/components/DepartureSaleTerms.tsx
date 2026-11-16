@@ -22,14 +22,14 @@ const errorText: Record<string, string> = {
   SALE_TERMS_SNAPSHOT_STALE: 'Nội dung không còn khớp bản đã gửi duyệt.',
   REASON_REQUIRED: 'Nhập lý do trả về.',
 }
-function validate(draft: Draft, tax: boolean): string {
+function validate(draft: Draft, tax: boolean, currency = 'USD'): string {
   if (!draft.applicability) return 'Chọn có áp dụng hoặc không áp dụng.'
   if (draft.applicability === 'NOT_APPLICABLE') return draft.reason.trim() ? '' : 'Nhập lý do không áp dụng.'
   const value = Number(draft.value)
   if (!draft.value.trim() || !Number.isFinite(value) || value < 0 || tax && value > 1) {
-    return tax ? 'Nhập tỷ lệ từ 0 đến 1.' : 'Nhập số USD từ 0 trở lên.'
+    return tax ? 'Nhập tỷ lệ từ 0 đến 1.' : `Nhập số ${currency} từ 0 trở lên.`
   }
-  return ''
+  return !tax && currency === 'VND' && !Number.isInteger(value) ? 'Nhập phí cảng theo số đồng nguyên.' : ''
 }
 function payload(draft: Draft): Charge {
   return {
@@ -39,7 +39,7 @@ function payload(draft: Draft): Charge {
     evidence: draft.evidence.trim() || null,
   }
 }
-function ChargeFields({ label, tax, value, onChange, error }: { label: string; tax: boolean; value: Draft; onChange: (value: Draft) => void; error: string }) {
+function ChargeFields({ label, tax, value, onChange, error, currency = 'USD' }: { currency?: string; label: string; tax: boolean; value: Draft; onChange: (value: Draft) => void; error: string }) {
   const id = useId()
   const patch = (change: Partial<Draft>) => onChange({ ...value, ...change })
   const applies = value.applicability === 'APPLICABLE'
@@ -55,8 +55,8 @@ function ChargeFields({ label, tax, value, onChange, error }: { label: string; t
         <option value="NOT_APPLICABLE">Không áp dụng</option>
       </select>
     </Field>
-    {applies && <Field label={tax ? 'Tỷ lệ thuế (0–1)' : 'Phí cảng mỗi khách (USD)'} htmlFor={id + '-value'}>
-      <input id={id + '-value'} type="number" min="0" max={tax ? 1 : undefined} step="any" value={value.value}
+    {applies && <Field label={tax ? 'Tỷ lệ thuế (0–1)' : `Phí cảng mỗi khách (${currency})`} htmlFor={id + '-value'}>
+      <input id={id + '-value'} type="number" min="0" max={tax ? 1 : undefined} step={!tax && currency === 'VND' ? '1' : 'any'} value={value.value}
         aria-invalid={Boolean(error)} aria-describedby={error ? id + '-error' : undefined}
         onChange={event => patch({ value: event.target.value })}/>
     </Field>}
@@ -142,7 +142,7 @@ export function DepartureSaleTerms({ cruiseId, refreshKey, onChanged, focusOnMou
   function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!editor || !data || !editable || editor.revision !== data.revision) return
-    const errors = { tax: validate(editor.tax, true), portFee: validate(editor.portFee, false) }
+    const errors = { tax: validate(editor.tax, true), portFee: validate(editor.portFee, false, terms.data?.currency) }
     setFieldErrors(errors)
     if (errors.tax || errors.portFee) return
     const input: Terms = { tax: payload(editor.tax), portFee: payload(editor.portFee) }
@@ -157,7 +157,7 @@ export function DepartureSaleTerms({ cruiseId, refreshKey, onChanged, focusOnMou
   const describe = (charge: Charge, tax: boolean) => charge.applicability === 'NOT_APPLICABLE'
     ? `Không áp dụng · ${charge.reason}`
     : tax ? new Intl.NumberFormat('vi-VN', { style: 'percent', maximumFractionDigits: 8 }).format(charge.value!)
-      : `${charge.value} USD/khách`
+      : `${charge.value} ${terms.data?.currency ?? 'USD'}/khách`
 
   if (!allowed) return null
   return <section ref={section} id="departure-sale-terms" tabIndex={-1}>
@@ -190,7 +190,7 @@ export function DepartureSaleTerms({ cruiseId, refreshKey, onChanged, focusOnMou
         <fieldset disabled={busy}>
           <div className={styles.groups}>
             <ChargeFields label="Thuế" tax value={editor.tax} error={fieldErrors.tax} onChange={tax => setEditor({ ...editor, tax })}/>
-            <ChargeFields label="Phí cảng" tax={false} value={editor.portFee} error={fieldErrors.portFee} onChange={portFee => setEditor({ ...editor, portFee })}/>
+            <ChargeFields label="Phí cảng" tax={false} currency={terms.data?.currency} value={editor.portFee} error={fieldErrors.portFee} onChange={portFee => setEditor({ ...editor, portFee })}/>
           </div>
           <div className={styles.reviewActions}>
             <Button type="submit" disabled={!editable || reconcile || editor.revision !== data?.revision}>Lưu bản nháp</Button>

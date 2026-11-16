@@ -1,4 +1,8 @@
 [
+  { "method": "GET", "path": "/cruise-preparation-reviews", "mode": "ALL", "permissions": ["CRUISE_PREPARATION_CONFIRM"], "roles": ["OPERATIONS_MANAGER"] },
+  { "method": "GET", "path": "/cruise-preparation-reviews/{cruiseId}/{sectionCode}", "mode": "ALL", "permissions": ["CRUISE_PREPARATION_CONFIRM"], "roles": ["OPERATIONS_MANAGER"] },
+  { "method": "POST", "path": "/cruise-preparation-reviews/{cruiseId}/{sectionCode}/confirm", "mode": "ALL", "permissions": ["CRUISE_PREPARATION_CONFIRM"], "roles": ["OPERATIONS_MANAGER"] },
+  { "method": "POST", "path": "/cruise-preparation-reviews/{cruiseId}/{sectionCode}/return", "mode": "ALL", "permissions": ["CRUISE_PREPARATION_CONFIRM"], "roles": ["OPERATIONS_MANAGER"] },
   { "method": "GET", "path": "/cruises/{cruiseId}/delays", "mode": "ALL", "permissions": ["CRUISE_READ"] },
   { "method": "POST", "path": "/cruises/{cruiseId}/delays/preview", "mode": "ALL", "permissions": ["CRUISE_START"], "roles": ["OPERATIONS_MANAGER"] },
   { "method": "POST", "path": "/cruises/{cruiseId}/delays", "mode": "ALL", "permissions": ["CRUISE_START"], "roles": ["OPERATIONS_MANAGER"] },
@@ -48,36 +52,54 @@
     "method": "POST",
     "path": "/cruise-plans/{cruiseId}/activities/from-catalog",
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
-    "mode": "ALL",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "mode": "ANY",
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
+      }
     ]
   },
   {
     "method": "PUT",
     "path": "/cruise-plans/{cruiseId}/activities/{id}/responsible-user",
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
-    "mode": "ALL",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "mode": "ANY",
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
+      }
     ]
   },
   {
     "method": "PUT",
     "path": "/cruise-plans/{cruiseId}/serving-windows/{id}/responsible-user",
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
-    "mode": "ALL",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "mode": "ANY",
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
+      }
     ]
   },
   {
@@ -1211,13 +1233,19 @@
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "PATCH",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/excursions/{id}/commercial",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
+      }
     ]
   },
   {
@@ -1243,6 +1271,15 @@
         ],
         "roles": [
           "OPERATIONS_MANAGER"
+        ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
         ]
       }
     ]
@@ -1412,6 +1449,15 @@
         "roles": [
           "OPERATIONS_MANAGER"
         ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
       }
     ]
   },
@@ -1438,6 +1484,15 @@
         ],
         "roles": [
           "OPERATIONS_MANAGER"
+        ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
         ]
       }
     ]
@@ -1466,6 +1521,15 @@
         "roles": [
           "OPERATIONS_MANAGER"
         ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
       }
     ]
   },
@@ -1492,6 +1556,15 @@
         ],
         "roles": [
           "OPERATIONS_MANAGER"
+        ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
         ]
       }
     ]
@@ -1520,139 +1593,214 @@
         "roles": [
           "OPERATIONS_MANAGER"
         ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
       }
     ]
   },
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "POST",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/activities",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
+      }
     ]
   },
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "PUT",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/activities/{id}",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
+      }
     ]
   },
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "POST",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/excursions",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
+      }
     ]
   },
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "PUT",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/excursions/{id}",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
+      }
     ]
   },
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "POST",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/packages",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
+      }
     ]
   },
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "PUT",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/packages/{id}",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
+      }
     ]
   },
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "POST",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/serving-windows",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
+      }
     ]
   },
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "DELETE",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/activities/{id}",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
+      }
     ]
   },
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "POST",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/packages/{id}/services",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
+      }
     ]
   },
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "POST",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/packages/{id}/activities",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
+      }
     ]
   },
   {
     "source": "com/casms/ship/controller/CruiseScopedProgramsController.java",
     "method": "POST",
-    "mode": "ALL",
+    "mode": "ANY",
     "path": "/cruise-plans/{cruiseId}/packages/{id}/excursions",
-    "permissions": [
-      "CRUISE_UPDATE_DRAFT"
-    ],
-    "roles": [
-      "CRUISE_MANAGER"
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
+      }
     ]
   },
   {
@@ -5080,6 +5228,13 @@
     "source": "com/casms/trip/controller (4ac7ff7)"
   },
   {
+    "method": "PUT",
+    "path": "/trip-schedule-versions/{versionId}/days/{dayNumber}/idea",
+    "mode": "ALL",
+    "permissions": ["TRIP_PLAN_WRITE"],
+    "source": "com/casms/trip/controller/TripScheduleVersionController"
+  },
+  {
     "method": "POST",
     "path": "/trip-schedule-versions/{versionId}/validate",
     "mode": "ALL",
@@ -5174,6 +5329,15 @@
         ],
         "roles": [
           "OPERATIONS_MANAGER"
+        ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
         ]
       }
     ]

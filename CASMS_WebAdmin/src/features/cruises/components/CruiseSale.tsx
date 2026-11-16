@@ -90,7 +90,7 @@ export function CruiseSale({cruise,onSection,onReview,onReady,onChanged}:{cruise
   {stopSaleSuccess && <Notice title="Đã cập nhật" tone="success">{stopSaleSuccess}</Notice>}
   {cruise.stoppedAt && (
    <Notice title="Chuyến khởi hành đang tạm dừng mở bán" tone="warning">
-    <p>Hệ thống WebBooking hiện đã tạm ngừng tiếp nhận đặt chỗ mới cho chuyến này.</p>
+    <p>Website đã tạm ngừng nhận đặt chỗ mới cho tour này.</p>
     {cruise.stopReason && <p>Lý do dừng bán: <strong>{cruise.stopReason}</strong></p>}
    </Notice>
   )}
@@ -102,7 +102,7 @@ export function CruiseSale({cruise,onSection,onReview,onReady,onChanged}:{cruise
   {!activated&&needsFares&&!fares.loading&&!fares.error&&!plan.loading&&!plan.error&&plan.data&&<fieldset className={styles.salePackages}><legend>Gói du thuyền được mở bán</legend>
    {eligibleFares?.length===0&&<p>Chưa có gói du thuyền đủ điều kiện mở bán. Quản lý hoạt động và dịch vụ cần cấu hình gói và gửi giá để Quản lý vận hành xét duyệt.</p>}
    {eligibleFares?.map(f=><div key={f.offer.id}><label><input type="checkbox" checked={activated?f.offer.saleEnabled:selectedFares.includes(f.offer.id)} disabled={busy||uncertain||activated||!f.eligibility.eligible} onChange={e=>{operation.current=null;setSelectedCruisePackages(old=>e.target.checked?[...old,f.offer.id]:old.filter(id=>id!==f.offer.id));setConfirm(false)}}/>{f.template.version.name} — {f.offer.logicalCategory}{!f.eligibility.eligible?' — Chưa đủ điều kiện bán':''}</label>
-    {(()=>{const price=f.prices.find(p=>p.id===f.currentApprovedPriceRevisionId);return <p>{price?`${offerAmount(price.amount)} USD/người · Giá phiên bản ${price.revisionNumber}`:'Chưa có giá đã duyệt hiện hành'}</p>})()}
+    {(()=>{const price=f.prices.find(p=>p.id===f.currentApprovedPriceRevisionId);return <p>{price?`${offerAmount(price.amount)} ${price.currencyCode}/người · Giá phiên bản ${price.revisionNumber}`:'Chưa có giá đã duyệt hiện hành'}</p>})()}
     {f.eligibility.blockers.length>0&&<ul>{f.eligibility.blockers.map((blocker,index)=><li key={`${blocker.code}:${index}`}>{blocker.message}</li>)}</ul>}
    </div>)}
   </fieldset>}
@@ -144,8 +144,8 @@ export function CruiseSale({cruise,onSection,onReview,onReady,onChanged}:{cruise
   {success&&<Notice title="Đã xác nhận mở bán" tone="success">{success}</Notice>}
   {error&&!confirm&&<Notice title="Chưa xác nhận được mở bán" tone="error">{error}</Notice>}{uncertain&&<Notice title="Hệ thống chưa xác nhận được kết quả">Đọc lại quyết định và trạng thái bán hiện tại trước khi thao tác tiếp.<Button disabled={busy} onClick={()=>{setConfirm(false);saleRecord.retry();sellability.retry();query.retry();fares.retry();packages.retry();plan.retry()}}>Đối chiếu trạng thái hiện tại</Button></Notice>}
   {confirm&&<Modal busy={busy} title={saleAction} onClose={()=>{if(!busy)setConfirm(false)}} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setConfirm(false)}>Quay lại</Button><Button disabled={busy||blocked||uncertain||activated||query.loading||Boolean(query.error||packages.error||sellability.error||saleRecord.error)} onClick={()=>void open()}>{busy?'Đang xác nhận…':saleAction}</Button></>}>
-   <p>{needsFares?'Thao tác này mở bán đúng các gói bên dưới sau khi Backend kiểm tra lại điều kiện.':'Mở bán vé cabin theo chính sách giá đã được phê duyệt. Hệ thống kiểm tra lại điều kiện trước khi ghi nhận.'} Việc nhận Booking tiếp tục phụ thuộc chính sách giao dịch.</p><p><strong>{cruise.cruiseCode}</strong> · {unified?'Gói du thuyền đã chọn':scopeLabels[scope]}</p>{!unified&&<p>{scopeEffect}</p>}
-   <ul>{fares.data?.filter(f=>selectedFares.includes(f.offer.id)).map(f=><li key={f.offer.id}>{f.template.version.name} · {f.offer.logicalCategory}{(()=>{const price=f.prices.find(p=>p.id===f.currentApprovedPriceRevisionId);return price?` · ${offerAmount(price.amount)} USD/người · Giá phiên bản ${price.revisionNumber}`:''})()}</li>)}</ul>
+   <p>{needsFares?'Website sẽ mở bán các gói bên dưới sau khi hệ thống kiểm tra lại điều kiện.':'Mở bán vé cabin theo chính sách giá đã được phê duyệt. Hệ thống kiểm tra lại điều kiện trước khi ghi nhận.'} Khách đặt chỗ trong thời gian nhận đặt chỗ đã định.</p><p><strong>{cruise.cruiseCode}</strong> · {unified?'Gói du thuyền đã chọn':scopeLabels[scope]}</p>{!unified&&<p>{scopeEffect}</p>}
+   <ul>{fares.data?.filter(f=>selectedFares.includes(f.offer.id)).map(f=><li key={f.offer.id}>{f.template.version.name} · {f.offer.logicalCategory}{(()=>{const price=f.prices.find(p=>p.id===f.currentApprovedPriceRevisionId);return price?` · ${offerAmount(price.amount)} ${price.currencyCode}/người · Giá phiên bản ${price.revisionNumber}`:''})()}</li>)}</ul>
    {scope==='SELECTED_PACKAGES'&&<ul>{packages.data?.filter(p=>selected.includes(p.tourPackageId)).map(p=><li key={p.tourPackageId}>{p.packageName}</li>)}</ul>}
    {windows&&<p>Nhận đặt chỗ từ {journeyTime(windows.bookingOpensAt,SHIP_TIME_ZONE)} đến {journeyTime(windows.bookingClosesAt,SHIP_TIME_ZONE)} · Giờ Việt Nam.</p>}
    {error&&<Notice title="Chưa xác nhận được mở bán" tone="error">{error}</Notice>}

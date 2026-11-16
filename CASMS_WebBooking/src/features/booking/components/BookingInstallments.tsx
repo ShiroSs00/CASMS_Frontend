@@ -6,9 +6,12 @@ import styles from './LiveBooking.module.css'
 
 export function BookingInstallments({ booking }: { booking: BookingDetail }) {
   const installments = [...booking.installments].sort((a,b)=>a.sequenceNo-b.sequenceNo)
+  const singlePayment = installments.length === 1 ? installments[0] : null
+  if (booking.paymentPlan === 'FULL' && singlePayment?.status === 'Scheduled' && singlePayment.dueAt) {
+    return <p>Hạn thanh toán toàn bộ: <strong>{bookingWhen(singlePayment.dueAt)}</strong></p>
+  }
   return <>
     <h3>Lịch thanh toán từng đợt</h3>
-    <p>Đặt chỗ được xác nhận không đồng nghĩa đã thanh toán đầy đủ.</p>
     {!installments.length && <p>Chưa có lịch thanh toán. Liên hệ bộ phận đặt chỗ để được hỗ trợ.</p>}
     <ol className={styles.installments} aria-label="Các đợt thanh toán">
     {installments.map((item,index)=><li key={item.sequenceNo}>
@@ -18,7 +21,7 @@ export function BookingInstallments({ booking }: { booking: BookingDetail }) {
         <strong>{bookingMoney(item.requiredAmount,item.currency)}</strong>
         <dl className={styles.installmentAmounts}>
           <div><dt>Đã thanh toán</dt><dd>{financialMoney(item.paidAmount,item.currency)}</dd></div>
-          <div><dt>Còn phải thanh toán</dt><dd>{financialMoney(item.outstandingAmount,item.currency)}</dd></div>
+          <div><dt>Còn phải trả</dt><dd>{financialMoney(item.outstandingAmount,item.currency)}</dd></div>
         </dl>
         <p>{paymentState(item.paid)}</p>
         <p>Hạn thanh toán: {bookingWhen(item.dueAt)}</p>

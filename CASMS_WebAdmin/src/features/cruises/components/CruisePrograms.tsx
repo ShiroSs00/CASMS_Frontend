@@ -12,7 +12,7 @@ import {businessCopy} from '@/shared/i18n/business-copy'
 import {Button,Field,Loading,Notice,Panel,Modal} from '@/shared/ui'
 import {journeyTime,SHIP_TIME_ZONE} from '@/shared/lib/journey-time'
 import {programInstant} from '../model/program-time'
-import {mainflowApi} from '../api/mainflow-api'
+import {mainflowApi,type ProgramIssue} from '../api/mainflow-api'
 import {decodeActivities,type ScopedActivity} from '../api/scoped-activity'
 import {CruiseActivityEditor} from './CruiseActivityEditor'
 import {ActivityAreaField,ActivityMeetingPointField,ActivityTimeFields,type CruiseTimeRange,type CruiseVenueOptions} from './CruiseActivityFields'
@@ -26,15 +26,19 @@ type Choice={id:string;name:string;sequence?:number;scheduled?:boolean;timeZoneI
 type Program={id:string;cruiseId?:string;sourceActivityId?:string|null;responsibleUserId?:string|null;name:string;ownerCruiseId?:string|null;price?:number|null;currency?:string|null;currencyCode?:string|null;capacity?:number|null;location?:string;startsAt?:string;endsAt?:string;cruiseStopId?:string|null}
 type Options=CruiseVenueOptions&{services:Choice[];suppliers:Choice[];stops:Choice[]}
 const titles:Record<Kind,string>={activities:businessCopy('program.onboardActivity'),excursions:businessCopy('program.SHORE_EXCURSION'),packages:businessCopy('program.TOUR_PACKAGE'),'serving-windows':businessCopy('program.SERVING_WINDOW')}
-export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChanged}:CruiseTimeRange&{cruiseId:string;itineraryMode?:'FIXED'|'CUSTOM';onChanged:()=>void}){
- const access=useSessionAccess(),crm=access.roles.includes('CRUISE_MANAGER')&&access.has('CRUISE_UPDATE_DRAFT'),ops=access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_READ'),allowed=crm||ops,root=`/cruise-plans/${cruiseId}`
+type ProgramContext = {planStatus:string;unifiedPackageReview?:boolean;mayConfigure?:boolean;programIssues?:ProgramIssue[];windows:{expectedRevision:number}}
+export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChanged,programWork=false}:CruiseTimeRange&{cruiseId:string;itineraryMode?:'FIXED'|'CUSTOM';onChanged:()=>void;programWork?:boolean}){
+ const access=useSessionAccess(),crm=access.roles.includes('CRUISE_MANAGER')&&access.has('CRUISE_UPDATE_DRAFT'),ops=access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_READ'),allowed=crm||ops||programWork,root=`/cruise-plans/${cruiseId}`
+ const readPlan=useCallback((signal?:AbortSignal):Promise<ProgramContext> =>
+  ops&&!programWork&&!crm?mainflowApi.get(cruiseId,signal):apiRequest(`/cruise-work/${cruiseId}/program-context`,{signal}),
+  [ops,programWork,crm,cruiseId])
  const [epoch,setEpoch]=useState(0),[kind,setKind]=useState<Kind>('activities'),[editing,setEditing]=useState<{activity:ScopedActivity;revision:number}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false),lock=useRef(false)
  const [repairing,setRepairing]=useState<string|null>(null),[repairSuccess,setRepairSuccess]=useState(false)
  const [areaEditing,setAreaEditing]=useState<ScopedActivity|null>(null)
  const [selectedArea,setSelectedArea]=useState('')
  const [creating,setCreating]=useState(false),[search,setSearch]=useState('')
  const [sourceId,setSourceId]=useState('')
- const choosingActivity=crm&&creating&&kind==='activities'
+ const choosingActivity=programWork&&creating&&kind==='activities'
  const catalog=useReadQuery(`program-activity-catalog:${access.userId}:${choosingActivity}`,useCallback(
   signal=>choosingActivity?readActivityCatalog(signal):Promise.resolve([]),[choosingActivity]))
  const source=catalog.data?.find(item=>item.id===sourceId)
@@ -50,13 +54,13 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
  const [editingProgram,setEditingProgram]=useState<{kind:'excursions'|'serving-windows';entry:EditableProgram}|null>(null)
  const query=useReadQuery(`scoped-programs:${cruiseId}:${epoch}:${allowed}`,useCallback(async signal=>{
   if(!allowed)return null
-  const plan=await mainflowApi.get(cruiseId,signal)
+  const plan=await readPlan(signal)
   const [options,activityRows,excursionRows,packages,windows]=await Promise.all([apiRequest<Options>(root+'/program-options',{signal}),apiRequest<ScopedActivity[]>(root+'/activities',{signal}),apiRequest<ExcursionCommercial[]>(root+'/excursions',{signal}),plan.unifiedPackageReview?Promise.resolve([]):apiRequest<Program[]>(root+'/packages',{signal}),apiRequest<Program[]>(root+'/serving-windows',{signal})])
   const activities=decodeActivities(activityRows,cruiseId)
   const excursions=decodeCommercialExcursions(excursionRows)
   return {plan,options,activities,excursions,programs:{activities:activities.map(a=>({...a,currency:a.currencyCode})),excursions,packages,'serving-windows':windows}}
- },[allowed,cruiseId,root]))
- const data=query.data,editable=crm&&data&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.plan.planStatus),fixed=itineraryMode!=='CUSTOM'&&['activities','excursions'].includes(kind)
+ },[allowed,cruiseId,root,readPlan]))
+ const data=query.data,editable=programWork&&data?.plan.mayConfigure&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.plan.planStatus),fixed=itineraryMode!=='CUSTOM'&&['activities','excursions'].includes(kind)
  const fixedActivity=itineraryMode==='FIXED'&&kind==='activities'
  const isPackageKind:boolean=kind==='packages'
  const canCreate=Boolean(editable&&!isPackageKind&&(!fixed||fixedActivity&&Boolean(data.options.ship.id)))
@@ -71,7 +75,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
    await apiRequest<null>(`${root}/${coordinator.kind}/${coordinator.row.id}/responsible-user`,
     {method:'PUT',ifMatch:coordinator.revision,body:{userId}})
    written=true
-   const [rows,plan]=await Promise.all([apiRequest<Program[]>(root+'/'+coordinator.kind),mainflowApi.get(cruiseId)])
+   const [rows,plan]=await Promise.all([apiRequest<Program[]>(root+'/'+coordinator.kind),readPlan()])
    const updated=rows.find(row=>row.id===coordinator.row.id)
    if(!updated||(updated.responsibleUserId??null)!==userId||plan.windows.expectedRevision<=coordinator.revision)throw new ApiError('Chưa đối chiếu được người phụ trách đã lưu.',502)
    setCoordinator(null);setEpoch(n=>n+1);onChanged()
@@ -150,7 +154,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
    }
    if(fromCatalog){
     const activity=decodeActivities(rows as ScopedActivity[],cruiseId).find(row=>row.id===id)
-    const plan=await mainflowApi.get(cruiseId)
+    const plan=await readPlan()
     if(!activity||activity.sourceActivityId!==sourceId||activity.location!==body.location
       ||(activity.deckId??null)!==body.deckId||(activity.cabinId??null)!==body.cabinId
       ||Date.parse(activity.startTime)!==Date.parse(instant('start'))||Date.parse(activity.endTime)!==Date.parse(instant('end'))
@@ -228,7 +232,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
 
    {editingProgram&&editable&&<ScopedProgramEditor cruiseId={cruiseId} kind={editingProgram.kind} entry={editingProgram.entry} options={data.options} revision={data.plan.windows.expectedRevision} onClose={()=>setEditingProgram(null)} onSaved={()=>{setEditingProgram(null);setEpoch(n=>n+1);onChanged()}}/>}
    {kind==='packages'&&editable&&access.canDo('TOUR_PACKAGE_ASSIGN')&&<div className={styles.disclosureBody}><DeparturePackageManager cruiseId={cruiseId} onChanged={()=>{setEpoch(n=>n+1);onChanged()}}/></div>}
-   {crm&&!editable&&<Notice title={businessCopy('program.locked')}>{businessErrorMessage('PLAN_FROZEN','')}</Notice>}
+   {crm&&!programWork&&<p>Quản lý dịch vụ phụ trách cấu hình chương trình của tour.</p>}
    {crm&&fixed&&(!fixedActivity||!data.options.ship.id)&&<Notice title={businessCopy('cruise.itinerary.FIXED')}>{fixedActivity?'Phân công tàu trước khi thêm hoạt động.':businessErrorMessage('FIXED_ITINERARY_READ_ONLY','')}</Notice>}
    {crm&&kind==='serving-windows'&&data.options.services.filter(s=>s.scheduled).length===0&&<Notice title={data.options.ship.id?'Tàu chưa có dịch vụ cần xếp khung phục vụ':'Chưa phân công tàu'}>{data.options.ship.id?'Ship Manager cần gán dịch vụ cho tàu trước khi Quản lý lịch trình xếp khung phục vụ.':'Phân công tàu tại mục Tàu và quy định trước khi chọn dịch vụ.'}</Notice>}
    {canCreate&&!editing&&!editingPackage&&!editingExcursion&&!editingProgram&&<Button disabled={busy||uncertain||kind==='serving-windows'&&!data.options.services.some(s=>s.scheduled)} onClick={()=>{setError('');setSourceId('');setCreating(true)}}>Thêm {titles[kind].toLocaleLowerCase('vi')}</Button>}

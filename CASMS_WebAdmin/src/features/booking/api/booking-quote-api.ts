@@ -3,9 +3,9 @@ import {decodeQuote,type Quote,type QuoteLine} from './quote-contract'
 import {decodeBookingDetail,serializeBooking,serializeCabinSelection,type BookingDraft} from './real-booking-api'
 
 export type BookingQuoteIntent={quote:Quote;selection:string;guestToken?:string;idempotencyKey:string}
-export const quoteSelection=(draft:BookingDraft)=>JSON.stringify({cruiseId:draft.cruiseId,currency:'USD',paymentPlan:draft.paymentPlan,passengers:draft.passengers.map(p=>serializeCabinSelection(p,true))})
+export const quoteSelection=(draft:BookingDraft)=>JSON.stringify({cruiseId:draft.cruiseId,currency:draft.currency,paymentPlan:draft.paymentPlan,passengers:draft.passengers.map(p=>serializeCabinSelection(p,true))})
 function valid(quote:Quote,draft:BookingDraft){
- if(quote.currency!=='USD'||quote.status!=='ACTIVE'||!quote.expiresAt||Date.parse(quote.expiresAt)<=Date.now()||quote.totalAmount===null||!quote.policyVersion||!quote.fingerprint||quote.paymentPlan!==draft.paymentPlan||!quote.lineItems||quote.lineItems.length!==draft.passengers.length||quote.lineItems.some((line,i)=>{
+ if(quote.currency!==draft.currency||quote.status!=='ACTIVE'||!quote.expiresAt||Date.parse(quote.expiresAt)<=Date.now()||quote.totalAmount===null||!quote.policyVersion||!quote.fingerprint||quote.paymentPlan!==draft.paymentPlan||!quote.lineItems||quote.lineItems.length!==draft.passengers.length||quote.lineItems.some((line,i)=>{
   const p=draft.passengers[i],fare=Boolean(p.farePackageOfferId)
   if((line.cabinId??'')!==p.cabinId||(line.tourPackageId??'')!==p.tourPackageId||Boolean(line.fareSelection)!==fare)return true
   if(!fare)return false
@@ -45,7 +45,7 @@ export async function createQuotedBooking(draft:BookingDraft,intent:BookingQuote
  const actual=decodeQuote(await apiRequest('/booking/quotes/'+encodeURIComponent(intent.quote.quoteId),{guestToken:intent.guestToken}),draft.cruiseId,intent.quote.quoteId)
  valid(actual,draft)
  if(actual.fingerprint!==intent.quote.fingerprint||actual.totalAmount!==intent.quote.totalAmount||actual.policyVersion!==intent.quote.policyVersion||fareContent(actual)!==fareContent(intent.quote))throw new ApiError('',409,'QUOTE_INVALIDATED')
- const saved=decodeBookingDetail(await apiRequest('/booking',{method:'POST',idempotencyKey:intent.idempotencyKey,body:{...serializeBooking(draft),currency:'USD',quoteId:actual.quoteId,quoteGuestToken:intent.guestToken}}))
- if(saved.cruiseId!==draft.cruiseId||saved.currency!=='USD'||saved.agreedFareAmount!==actual.totalAmount||!matchesBookedFares(actual,saved))throw new ApiError('',502)
+ const saved=decodeBookingDetail(await apiRequest('/booking',{method:'POST',idempotencyKey:intent.idempotencyKey,body:{...serializeBooking(draft),currency:draft.currency,quoteId:actual.quoteId,quoteGuestToken:intent.guestToken}}))
+ if(saved.cruiseId!==draft.cruiseId||saved.currency!==actual.currency||saved.agreedFareAmount!==actual.totalAmount||!matchesBookedFares(actual,saved))throw new ApiError('',502)
  return saved
 }

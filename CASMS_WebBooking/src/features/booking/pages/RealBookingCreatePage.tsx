@@ -69,6 +69,10 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
   const packages = useReadQuery('booking-cruise-packages:' + draft.cruiseId, useCallback(signal => realBookingApi.packagesForCruise(draft.cruiseId, signal), [draft.cruiseId]))
   const fares = useReadQuery('booking-fares:' + draft.cruiseId, useCallback(signal => draft.cruiseId ? cruisePackageApi.available(draft.cruiseId, signal) : Promise.resolve(null), [draft.cruiseId]))
   const selected = cruises.data?.find(c => c.cruiseId === draft.cruiseId)
+  useEffect(() => {
+    const currency = selected?.saleCurrency === 'VND' ? 'VND' : 'USD'
+    if (selected && !locked && draft.currency !== currency) setDraft(current => ({ ...current, currency }))
+  }, [selected, locked, draft.currency, setDraft])
   const choicesLoading = cruises.loading || cabins.loading || packages.loading || fares.loading
   const readError = cruises.error || cabins.error || fares.error
   const available = availableBookingStage(draft, partyConfirmed, selected, cabins.data, packages.data, fares.data, !access.userId, clock)
@@ -140,7 +144,7 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
       <div><dt>Khởi hành · Giờ Việt Nam</dt><dd>{bookingWhen(selected?.departureDatetime)}</dd></div>
       <div><dt>Trở về · Giờ Việt Nam</dt><dd>{bookingWhen(selected?.returnDatetime)}</dd></div>
       <div><dt>Người đi & phòng</dt><dd>{draft.passengers.length} khách · {groupPassengers(draft.passengers).length} phòng</dd></div>
-      <div><dt>Giá</dt><dd>{usable && quoteIntent ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'USD' }).format(quoteIntent.quote.totalAmount ?? 0) : 'Chưa có báo giá hiệu lực'}</dd></div>
+      <div><dt>Giá</dt><dd>{usable && quoteIntent ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: quoteIntent.quote.currency ?? draft.currency }).format(quoteIntent.quote.totalAmount ?? 0) : 'Chưa có báo giá hiệu lực'}</dd></div>
     </dl><p className={flow.muted}>Lựa chọn chưa phải là giữ chỗ.</p>
   </>}>
     {(uncertain || quoteUnknown) && <div ref={recovery} tabIndex={-1} role="region" aria-label="Cần đối chiếu kết quả"><Notice title={uncertain ? 'Cần kiểm tra kết quả trước khi đặt lại' : 'Chưa nhận được kết quả báo giá'} tone="warning"><p>{uncertain ? 'Hệ thống có thể đã tiếp nhận yêu cầu. Đã khóa gửi lại để tránh tạo trùng. Nếu chưa có mã, liên hệ bộ phận hỗ trợ để kiểm tra bằng thông tin người đại diện.' : 'Chưa có mã báo giá để đối chiếu. Thông tin đã nhập được giữ; vui lòng liên hệ bộ phận hỗ trợ trước khi tiếp tục.'}</p><ButtonLink tone="secondary" to="/booking/lookup">Tra cứu khi đã có mã</ButtonLink></Notice></div>}

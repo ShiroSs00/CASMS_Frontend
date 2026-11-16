@@ -508,7 +508,7 @@ function OfferCard({item,context,disabled,run,shipName,feedback}:{shipName?:stri
         <p className={styles.offerMeta}>{item.offer.logicalCategory} · Mẫu phiên bản {item.template.version.versionNumber}</p>
       </div>
       <div className={styles.offerPriceSummary}>
-        <strong>{price?`${new Intl.NumberFormat('vi-VN',{maximumFractionDigits:4}).format(Number(price.amount))} USD/người`:'Chưa có giá'}</strong>
+        <strong>{price?`${new Intl.NumberFormat('vi-VN',{maximumFractionDigits:4}).format(Number(price.amount))} ${price.currencyCode}/người`:'Chưa có giá'}</strong>
         {price&&<span className={styles.offerMeta}>{lifecycle[price.status]}</span>}
       </div>
     </header>
@@ -536,7 +536,7 @@ function OfferCard({item,context,disabled,run,shipName,feedback}:{shipName?:stri
       <Button autoWidth tone="secondary" onClick={()=>setAddingPrice(true)}>{price?'Tạo giá thay thế':'Tạo giá nháp'}</Button>
     </div>}
     {!item.prices.length&&!context.canCreatePrice&&<p>Chưa có phiên bản giá.</p>}
-    {item.prices.map(price=><div key={price.id} className={styles.card}><strong>Phiên bản giá {price.revisionNumber}: {price.amount} USD/người</strong><p>{lifecycle[price.status]}{price.id===item.currentApprovedPriceRevisionId?' · Giá hiện hành đã duyệt':''}{price.templateVersionId!==item.offer.templateVersionId||price.offerCommercialRevision!==item.offer.commercialRevision?' · Thuộc cấu hình thương mại trước':''}</p>{price.reviewReason&&<p>Lý do xét duyệt: {price.reviewReason}</p>}
+    {item.prices.map(price=><div key={price.id} className={styles.card}><strong>Phiên bản giá {price.revisionNumber}: {price.amount} {price.currencyCode}/người</strong><p>{lifecycle[price.status]}{price.id===item.currentApprovedPriceRevisionId?' · Giá hiện hành đã duyệt':''}{price.templateVersionId!==item.offer.templateVersionId||price.offerCommercialRevision!==item.offer.commercialRevision?' · Thuộc cấu hình thương mại trước':''}</p>{price.reviewReason&&<p>Lý do xét duyệt: {price.reviewReason}</p>}
       {context.canCreatePrice&&price.status==='DRAFT'&&price.templateVersionId===item.offer.templateVersionId&&price.offerCommercialRevision===item.offer.commercialRevision&&<Button onClick={()=>void run(()=>cruisePackageApi.reviewPrice(cruiseId,item.offer.id,price.id,price.revision,'submit'),unified?'Đã gửi phiên bản giá để CRM chọn vào hồ sơ chuyến.':'Đã gửi phiên bản giá để Quản lý vận hành xét duyệt.')}>{unified?'Gửi giá vào hồ sơ':'Gửi duyệt phiên bản giá'} {price.revisionNumber}</Button>}
       {checker&&price.createdBy!==access.userId&&price.submittedBy!==access.userId&&price.status==='SUBMITTED'&&price.templateVersionId===item.offer.templateVersionId&&price.offerCommercialRevision===item.offer.commercialRevision&&<div className={styles.form}>
         <Field htmlFor={`fare-review-${price.id}`} label="Lý do xét duyệt (bắt buộc khi trả lại)"><textarea id={`fare-review-${price.id}`} maxLength={4000} value={reasons[price.id]??''} onChange={e=>setReasons(v=>({...v,[price.id]:e.target.value}))}/></Field>
@@ -565,7 +565,7 @@ function OfferCard({item,context,disabled,run,shipName,feedback}:{shipName?:stri
         const ok=await run(()=>cruisePackageApi.createPrice(cruiseId,item.offer.id,item.offer.revision,amount),'Đã lưu giá nháp.')
         if(ok)closePrice()
       }}>
-        <Field htmlFor={`fare-price-${item.offer.id}`} label="Giá mới (USD/người)">
+        <Field htmlFor={`fare-price-${item.offer.id}`} label={`Giá mới (${context.currency}/người)`}>
           <input id={`fare-price-${item.offer.id}`} required inputMode="decimal" value={amount}
             onChange={event=>setAmount(event.target.value)}/>
         </Field>

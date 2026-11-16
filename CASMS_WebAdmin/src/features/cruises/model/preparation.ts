@@ -20,7 +20,7 @@ export function preparationProblems(detail: CruiseDetailView): ReadinessCheck[] 
 }
 
 export function canReadDepartureGate(access: ReturnType<typeof useSessionAccess>) {
-  return access.has('CRUISE_READ') || access.has('CRUISE_VALIDATE')
+  return access.has('CRUISE_VALIDATE') || access.has('CRUISE_START')
 }
 
 export function allowedDepartureSections(access:ReturnType<typeof useSessionAccess>){
@@ -31,16 +31,16 @@ export function allowedDepartureSections(access:ReturnType<typeof useSessionAcce
     return departureSections.filter(([key])=>
       key==='overview'
       ||key==='departure-start'&&canReadDepartureGate(access)
-      ||key==='transaction-policy'&&access.has('CRUISE_READ')
+      ||key==='transaction-policy'&&access.has('CRUISE_PRICING_APPROVE')
       ||key==='schedule'&&['ITINERARY_READ','CRUISE_READ'].some(p=>access.has(p))
       ||key==='resources'&&['SHIP_READ','CRUISE_REGULATION_READ'].some(p=>access.canDo(p))
       ||key==='staff'&&access.canDo('CRUISE_STAFF_READ')
-      ||key==='sales'&&['CRUISE_READ','BOOKING_READ','CRUISE_MANIFEST_READ'].some(p=>access.has(p))
+      ||key==='sales'&&['CABIN_AVAILABILITY','CRUISE_MANIFEST_READ'].some(p=>access.has(p))
       ||key==='preparation'&&access.has('CRUISE_PREPARATION_READ')
-      ||key==='guidance'&&access.has('CRUISE_READ')
+      ||key==='guidance'&&access.has('CRUISE_GUIDANCE_READ')
       ||key==='operation'&&['CRUISE_START','CRUISE_COMPLETE','CRUISE_CANCEL','OPERATIONAL_ISSUE_READ'].some(p=>access.has(p))
       ||key==='changes'&&access.has('CRUISE_READ')
-      ||key==='checks'&&(access.canDo('CRUISE_VALIDATE')||access.has('CRUISE_READ'))
+      ||key==='checks'&&access.canDo('CRUISE_VALIDATE')
     ).map(([key,label])=>[key,key==='sales'?(access.has('CRUISE_MANIFEST_READ')?'Cabin và hành khách':'Tồn cabin'):key==='operation'?'Vận hành chuyến':label] as const)
   }
 
@@ -55,7 +55,7 @@ export function allowedDepartureSections(access:ReturnType<typeof useSessionAcce
     ||key==='preparation'&&access.has('CRUISE_PREPARATION_READ')
     ||key==='sales'&&!manager&&['CRUISE_READ','BOOKING_READ','CRUISE_MANIFEST_READ'].some(p=>access.has(p))
     ||key==='checks'&&!manager&&(access.canDo('CRUISE_VALIDATE')||access.has('CRUISE_READ'))
-  ).map(([key,label])=>[key,manager&&key==='schedule'?'Lịch khởi hành':manager&&key==='preparation'?'Phối hợp chuẩn bị':manager&&key==='resources'&&!access.canDo('CRUISE_STAFF_READ')?(access.canDo('CRUISE_REGULATION_READ')?'Tàu và quy định':'Tàu'):label] as const)
+  ).map(([key,label])=>[key,manager&&key==='schedule'?'Lịch khởi hành':manager&&key==='preparation'?'Hồ sơ gửi Vận hành':manager&&key==='resources'&&!access.canDo('CRUISE_STAFF_READ')?(access.canDo('CRUISE_REGULATION_READ')?'Tàu và quy định':'Tàu'):label] as const)
 }
 
 export const operationsPreparationSections:readonly DepartureSection[]=['resources','checks']

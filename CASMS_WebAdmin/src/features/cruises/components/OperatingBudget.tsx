@@ -1,0 +1,76 @@
+import { useEffect, useId, useRef, useState } from 'react'
+import { ApiError } from '@/shared/api'
+import { Button, Field, Notice } from '@/shared/ui'
+import { formatOperatingBudget, preparationApi, type OperatingBudget as Budget } from '../api/preparation-api'
+import styles from './ManagerWorkspace.module.css'
+
+export function OperatingBudget({ cruiseId, budget, loading, loadError, retry, onSaved }: {
+  cruiseId: string; budget: Budget | null; loading: boolean; loadError: Error | null
+  retry: () => void; onSaved: () => void
+}) {
+  const field = useId()
+  const [draft, setDraft] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
+  const lock = useRef(false)
+  const input = useRef<HTMLInputElement>(null)
+  const editing = draft !== null
+  useEffect(() => { if (editing) input.current?.focus() }, [editing])
+
+  if (loadError instanceof ApiError && loadError.status === 403) return null
+  const text = draft?.trim() ?? ''
+  const value = /^[1-9][0-9]{0,2}(\.[0-9]{3})+$/.test(text) ? text.replaceAll('.', '') : text
+  const valid = /^[1-9][0-9]{0,17}$/.test(value)
+  return <section id="operating-budget" className={styles.budgetPanel} aria-label="Ngân sách vận hành">
+    {loading && <p className={styles.budgetTitle} role="status">Đang tải ngân sách…</p>}
+    {loadError && <Notice tone="error" title="Chưa tải được ngân sách">
+      <Button tone="secondary" onClick={retry}>Thử lại</Button>
+    </Notice>}
+    {budget && draft === null && <div className={styles.budgetSummary}>
+      <div>
+        <p className={styles.budgetTitle}>Ngân sách vận hành dự kiến</p>
+        <strong className={styles.budgetAmount}>{budget.amountVnd ? formatOperatingBudget(budget.amountVnd) : 'Chưa nhập ngân sách'}</strong>
+        {budget.amountVnd && <p>Chưa gồm thuế và phí cảng.</p>}
+        {!budget.amountVnd && budget.canEdit && <p>Nhập số tiền trước khi gửi yêu cầu cho các bộ phận.</p>}
+      </div>
+      {budget.canEdit && <Button tone="secondary" autoWidth onClick={() => {
+        setDraft(budget.amountVnd ?? ''); setSaved(false); setError('')
+      }}>{budget.amountVnd ? 'Chỉnh ngân sách' : 'Nhập ngân sách'}</Button>}
+    </div>}
+    {budget?.canEdit && draft !== null && <form className={styles.budgetEditor} noValidate onSubmit={async event => {
+        event.preventDefault()
+        if (!valid || value === budget.amountVnd || lock.current) return
+        lock.current = true
+        setBusy(true)
+        setError('')
+        try {
+          await preparationApi.saveOperatingBudget(cruiseId, budget.revision, value)
+          setDraft(null)
+          setSaved(true)
+          onSaved()
+        } catch (cause) {
+          if (cause instanceof ApiError && cause.status === 409) retry()
+          setError(cause instanceof ApiError && cause.status === 409
+            ? 'Tour vừa được cập nhật. Kiểm tra ngân sách mới nhất rồi lưu lại.'
+            : 'Chưa lưu được ngân sách. Vui lòng thử lại.')
+        } finally {
+          lock.current = false
+          setBusy(false)
+        }
+      }}>
+        <Field htmlFor={field} label="Ngân sách vận hành dự kiến (VND)"
+          hint={valid ? formatOperatingBudget(value) : 'Ví dụ 18.000.000'}
+          error={text && !valid ? 'Nhập số tiền nguyên lớn hơn 0, tối đa 18 chữ số.' : undefined}>
+          <input id={field} inputMode="numeric" ref={input}
+            value={draft} maxLength={24} required disabled={busy} onChange={event => setDraft(event.target.value)} />
+        </Field>
+        <div className={styles.budgetActions}>
+          <Button type="submit" busy={busy} disabled={!valid || value === budget.amountVnd}>Lưu ngân sách</Button>
+          <Button tone="text" disabled={busy} onClick={() => {setDraft(null);setError('')}}>Hủy</Button>
+        </div>
+      </form>}
+    {saved && budget && <p className={styles.budgetFeedback} role="status">Đã lưu ngân sách.</p>}
+    {error && <Notice tone="error" title="Không thể lưu ngân sách">{error}</Notice>}
+  </section>
+}

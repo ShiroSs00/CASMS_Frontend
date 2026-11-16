@@ -4,6 +4,7 @@ import { violationTarget } from './violation-target'
 const copy: Record<string, string> = {
   EMPTY_SCHEDULE: 'Thêm nội dung cho lịch trình trước khi chốt mẫu.',
   INVALID_DAY_COUNT: 'Số ngày trong lịch trình không khớp thời lượng chuyến đi.',
+  INVALID_TERMINAL_CALL_TYPE: 'Chọn kiểu ghé Thông thường cho cảng kết thúc.',
   INVALID_DAY_SEQUENCE: 'Kiểm tra thứ tự các ngày trong lịch trình.',
   INVALID_DURATION: 'Kiểm tra thời lượng chuyến đi.',
   TRIP_TYPE_MISMATCH: 'Loại chuyến đi không khớp số ngày của lịch trình.',

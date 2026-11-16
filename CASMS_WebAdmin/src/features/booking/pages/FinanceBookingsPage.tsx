@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { UsdDisplayRate } from '../components/UsdDisplayRate'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import {Button,DataTable,Empty,Field,Notice,PageHeader,Panel} from '@/shared/ui'
@@ -36,6 +37,7 @@ function FinanceWorkspace() {
     setSelected({ id, reference: known?.bookingReference ?? 'Đặt chỗ được tra cứu', currency: known?.currency ?? '' }); setError('')
   }
   return <RealBookingFrame><PageHeader title="Tài chính & lịch thanh toán" breadcrumb="TÀI CHÍNH"  />
+    {access.roles.includes('FINANCE_OFFICER') && access.has('PAYMENT_REPORT') && <UsdDisplayRate />}
 
     {!canBookings && <Notice title="Danh sách đặt chỗ chưa khả dụng">{access.status === 'loading' ? 'Đang kiểm tra quyền truy cập…' : 'Tài khoản cần quyền xem đặt chỗ để mở danh sách và hợp đồng.'}</Notice>}
     <div className={styles.financeGrid}>
