@@ -95,10 +95,19 @@ function resolveTemplateDepartureClock(source: PublishedSource | null | undefine
     const clock = day1.plannedDepartureTime.length === 5 ? `${day1.plannedDepartureTime}:00` : day1.plannedDepartureTime.slice(0, 8)
     return { clock, label: `${clock.slice(0, 5)} (giờ Việt Nam)` }
   }
-  const firstStop = source.stops.find(stop => stop.isEmbarkation && stop.departureDayNumber === 1)
-  const rawTime = firstStop?.plannedDepartureTime
-  if (!rawTime) return null
-  return convertPortClockToVietnamClock(rawTime, firstStop?.timeZoneId, referenceDate)
+  const firstStop = source.stops.find(stop => (stop.isEmbarkation || stop.stopOrder === 1) && stop.departureDayNumber === 1 && stop.plannedDepartureTime)
+  if (firstStop?.plannedDepartureTime) {
+    return convertPortClockToVietnamClock(firstStop.plannedDepartureTime, firstStop.timeZoneId, referenceDate)
+  }
+  const day1Entries = source.entries
+    .filter(entry => entry.startDayNumber === 1 && entry.plannedStartTime)
+    .sort((a, b) => a.plannedStartTime.localeCompare(b.plannedStartTime))
+  if (day1Entries[0]?.plannedStartTime) {
+    const raw = day1Entries[0].plannedStartTime
+    const clock = raw.length === 5 ? `${raw}:00` : raw.slice(0, 8)
+    return { clock, label: `${clock.slice(0, 5)} (theo lịch ngày 1)` }
+  }
+  return { clock: '08:00:00', label: '08:00 (giờ gợi ý theo mẫu)' }
 }
 
 export function CruiseFormPage() {
@@ -430,6 +439,7 @@ export function CruiseFormPage() {
               <CruiseDateTimeFields key={dateFieldsGeneration} id="departure-time" label="khởi hành"
                 value={draft.departureDatetime} error={errors.departureDatetime}
                 suggestClock={resolveTemplateDepartureClock(source.data) ? date => resolveTemplateDepartureClock(source.data, date)?.clock : undefined}
+                templateClockLabel={resolveTemplateDepartureClock(source.data)?.label}
                 onChange={value => update('departureDatetime', value)} onIncompleteChange={setDateFieldsIncomplete} />
               <Field htmlFor="cruise-name" label="Tên tour *" error={errors.cruiseName}>
                 <input id="cruise-name" value={displayName} aria-invalid={Boolean(errors.cruiseName)} onChange={event => update('cruiseName', event.target.value)} />

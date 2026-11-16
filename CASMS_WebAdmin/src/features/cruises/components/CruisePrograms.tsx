@@ -32,16 +32,12 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
  const readPlan=useCallback((signal?:AbortSignal):Promise<ProgramContext> =>
   ops&&!programWork&&!crm?mainflowApi.get(cruiseId,signal):apiRequest(`/cruise-work/${cruiseId}/program-context`,{signal}),
   [ops,programWork,crm,cruiseId])
- const [epoch,setEpoch]=useState(0),[kind,setKind]=useState<Kind>('activities'),[editing,setEditing]=useState<{activity:ScopedActivity;revision:number}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false),lock=useRef(false)
+ const [epoch,setEpoch]=useState(0),[manualKind,setKind]=useState<Kind|null>(null),[editing,setEditing]=useState<{activity:ScopedActivity;revision:number}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false),lock=useRef(false)
  const [repairing,setRepairing]=useState<string|null>(null),[repairSuccess,setRepairSuccess]=useState(false)
  const [areaEditing,setAreaEditing]=useState<ScopedActivity|null>(null)
  const [selectedArea,setSelectedArea]=useState('')
  const [creating,setCreating]=useState(false),[search,setSearch]=useState('')
  const [sourceId,setSourceId]=useState('')
- const choosingActivity=programWork&&creating&&kind==='activities'
- const catalog=useReadQuery(`program-activity-catalog:${access.userId}:${choosingActivity}`,useCallback(
-  signal=>choosingActivity?readActivityCatalog(signal):Promise.resolve([]),[choosingActivity]))
- const source=catalog.data?.find(item=>item.id===sourceId)
  const canReadStaff=allowed&&access.canDo('CRUISE_STAFF_READ')
  const staff=useReadQuery(`program-staff:${access.userId}:${cruiseId}:${canReadStaff}`,useCallback(
   signal=>canReadStaff?cruiseStaffApi.list(cruiseId,signal):Promise.resolve([]),[canReadStaff,cruiseId]))
@@ -60,7 +56,13 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
   const excursions=decodeCommercialExcursions(excursionRows)
   return {plan,options,activities,excursions,programs:{activities:activities.map(a=>({...a,currency:a.currencyCode})),excursions,packages,'serving-windows':windows}}
  },[allowed,cruiseId,root,readPlan]))
- const data=query.data,editable=programWork&&data?.plan.mayConfigure&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.plan.planStatus),fixed=itineraryMode!=='CUSTOM'&&['activities','excursions'].includes(kind)
+ const data=query.data
+ const kind:Kind = manualKind ?? (data ? ((['activities','excursions','serving-windows'] as Kind[]).find(k=>data.programs[k].length>0) ?? 'activities') : 'activities')
+ const choosingActivity=programWork&&creating&&kind==='activities'
+ const catalog=useReadQuery(`program-activity-catalog:${access.userId}:${choosingActivity}`,useCallback(
+  signal=>choosingActivity?readActivityCatalog(signal):Promise.resolve([]),[choosingActivity]))
+ const source=catalog.data?.find(item=>item.id===sourceId)
+ const editable=programWork&&data?.plan.mayConfigure&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.plan.planStatus),fixed=itineraryMode!=='CUSTOM'&&['activities','excursions'].includes(kind)
  const fixedActivity=itineraryMode==='FIXED'&&kind==='activities'
  const isPackageKind:boolean=kind==='packages'
  const canCreate=Boolean(editable&&!isPackageKind&&(!fixed||fixedActivity&&Boolean(data.options.ship.id)))
@@ -168,8 +170,28 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
  return <Panel className={styles.programPanel} title={ops?'Chương trình và dịch vụ đã cấu hình':businessCopy('program.configuration')}>
   {repairSuccess&&<Notice title="Đã sửa giờ hoạt động" tone="success">Giờ hợp lệ đã được khóa lại theo lịch trình cố định.</Notice>}
   {query.loading&&<Loading label="Đang tải chương trình của chuyến khởi hành…"/>}{query.error&&<Notice title={query.error instanceof ApiError&&query.error.status===403?'Chưa có quyền xem chương trình':'Chưa tải được chương trình'} tone="error"><p>{query.error instanceof ApiError&&query.error.status===403?'Tài khoản hiện tại chưa được cấp đủ quyền đọc chương trình của chuyến khởi hành.':query.error.message}</p><Button onClick={query.retry}>Tải lại dữ liệu</Button></Notice>}
-  {data&&<><Field htmlFor="program-kind" label={businessCopy('program.field.content')}><select id="program-kind" value={kind} disabled={busy||Boolean(editing)||Boolean(editingPackage)||Boolean(editingExcursion)} onChange={e=>{setKind(e.target.value as Kind);setSearch('');setError('')}}>{(Object.keys(titles) as Kind[]).filter(k=>!data.plan.unifiedPackageReview||k!=='packages').map(k=><option key={k} value={k}>{titles[k]}</option>)}</select></Field>
-   <div className={styles.programToolbar}><Field htmlFor="program-search" label="Tìm trong danh sách"><input id="program-search" type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nhập tên nội dung…"/></Field><p role="status">{data.programs[kind].filter(p=>p.name.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))).length} / {data.programs[kind].length} mục</p></div>
+  {data&&<>
+   <div className={styles.programKindTabs} role="tablist" aria-label={businessCopy('program.field.content')}>
+    {((Object.keys(titles) as Kind[]).filter(k=>!data.plan.unifiedPackageReview||k!=='packages')).map(k=>{
+     const active=kind===k
+     const count=data.programs[k].length
+     return <button key={k} type="button" role="tab" aria-selected={active} className={`${styles.programKindTab} ${active?styles.programKindTabActive:''}`} disabled={busy||Boolean(editing)||Boolean(editingPackage)||Boolean(editingExcursion)} onClick={()=>{setKind(k);setSearch('');setError('')}}>
+      <span>{titles[k]}</span>
+      <span className={styles.programKindCount}>{count}</span>
+     </button>
+    })}
+   </div>
+   {(data.programs[kind].length>0||canCreate)&&<div className={styles.programToolbar}>
+    {data.programs[kind].length>0&&<div>
+     <Field htmlFor="program-search" label="Tìm trong danh sách">
+      <input id="program-search" type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder={`Tìm ${titles[kind].toLocaleLowerCase('vi')}…`}/>
+     </Field>
+    </div>}
+    <div className={styles.programToolbarRight}>
+     {data.programs[kind].length>0&&<p role="status">Hiển thị {data.programs[kind].filter(p=>p.name.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))).length} / {data.programs[kind].length} mục</p>}
+     {canCreate&&!editing&&!editingPackage&&!editingExcursion&&!editingProgram&&<Button autoWidth disabled={busy||uncertain||kind==='serving-windows'&&!data.options.services.some(s=>s.scheduled)} onClick={()=>{setError('');setSourceId('');setCreating(true)}}>+ Thêm {titles[kind].toLocaleLowerCase('vi')}</Button>}
+    </div>
+   </div>}
    <ul className={styles.programList}>{data.programs[kind].filter(p=>p.name.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))).map(p=>{
     const activity=kind==='activities'?data.activities.find(a=>a.id===p.id):null
     const invalidArea=activity&&(!activity.areaId||data.plan.programIssues?.some(issue=>issue.itemId===activity.id&&issue.code==='ACTIVITY_AREA_REQUIRED'))
@@ -202,7 +224,12 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
       </div>}
     </li>
    })}</ul>
-   {!data.programs[kind].length&&<p className={styles.emptyProgram}>Chưa có {titles[kind].toLocaleLowerCase('vi')} trong chuyến khởi hành này.</p>}
+   {!data.programs[kind].length&&(
+    <div className={styles.emptyProgram}>
+     <strong>Chưa có {titles[kind].toLocaleLowerCase('vi')} trong chuyến khởi hành này.</strong>
+     {crm&&!programWork&&<p style={{margin:'4px 0 0'}}>Bộ phận Quản lý hoạt động và dịch vụ (ASM) chịu trách nhiệm cấu hình chi tiết {titles[kind].toLocaleLowerCase('vi')} theo yêu cầu chuẩn bị của chuyến.</p>}
+    </div>
+   )}
    {data.programs[kind].length>0&&!data.programs[kind].some(p=>p.name.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi')))&&<p className={styles.emptyProgram}>Không có nội dung khớp với “{search}”. <Button tone="text" onClick={()=>setSearch('')}>Xóa tìm kiếm</Button></p>}
    {areaEditing&&editable&&<Modal busy={busy} title="Chọn khu vực hoạt động"
       description={areaEditing.name} onClose={()=>setAreaEditing(null)} footer={<>
@@ -232,10 +259,9 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
 
    {editingProgram&&editable&&<ScopedProgramEditor cruiseId={cruiseId} kind={editingProgram.kind} entry={editingProgram.entry} options={data.options} revision={data.plan.windows.expectedRevision} onClose={()=>setEditingProgram(null)} onSaved={()=>{setEditingProgram(null);setEpoch(n=>n+1);onChanged()}}/>}
    {kind==='packages'&&editable&&access.canDo('TOUR_PACKAGE_ASSIGN')&&<div className={styles.disclosureBody}><DeparturePackageManager cruiseId={cruiseId} onChanged={()=>{setEpoch(n=>n+1);onChanged()}}/></div>}
-   {crm&&!programWork&&<p>Quản lý dịch vụ phụ trách cấu hình chương trình của tour.</p>}
+   {crm&&!programWork&&data.programs[kind].length>0&&<div className={styles.programRoleHint}><strong>Phân công nghiệp vụ:</strong> Bộ phận Quản lý hoạt động và dịch vụ (ASM) chịu trách nhiệm cấu hình chi tiết {titles[kind].toLocaleLowerCase('vi')} theo yêu cầu chuẩn bị của chuyến.</div>}
    {crm&&fixed&&(!fixedActivity||!data.options.ship.id)&&<Notice title={businessCopy('cruise.itinerary.FIXED')}>{fixedActivity?'Phân công tàu trước khi thêm hoạt động.':businessErrorMessage('FIXED_ITINERARY_READ_ONLY','')}</Notice>}
    {crm&&kind==='serving-windows'&&data.options.services.filter(s=>s.scheduled).length===0&&<Notice title={data.options.ship.id?'Tàu chưa có dịch vụ cần xếp khung phục vụ':'Chưa phân công tàu'}>{data.options.ship.id?'Ship Manager cần gán dịch vụ cho tàu trước khi Quản lý lịch trình xếp khung phục vụ.':'Phân công tàu tại mục Tàu và quy định trước khi chọn dịch vụ.'}</Notice>}
-   {canCreate&&!editing&&!editingPackage&&!editingExcursion&&!editingProgram&&<Button disabled={busy||uncertain||kind==='serving-windows'&&!data.options.services.some(s=>s.scheduled)} onClick={()=>{setError('');setSourceId('');setCreating(true)}}>Thêm {titles[kind].toLocaleLowerCase('vi')}</Button>}
    {coordinator&&editable&&<Modal title="Người phụ trách" busy={busy} onClose={()=>setCoordinator(null)} footer={
     <Button type="submit" form="program-coordinator" disabled={busy||uncertain||staff.loading||Boolean(staff.error)||!staff.data}>Lưu người phụ trách</Button>}>
     <p>{coordinator.row.name}</p>

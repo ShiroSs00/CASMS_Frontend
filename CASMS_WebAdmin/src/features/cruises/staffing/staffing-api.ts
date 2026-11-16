@@ -43,6 +43,8 @@ export const staffingApi = {
     apiRequest<void>(staffPath(cruise,user)+'/service', {method:'PUT',body:{serviceId}}),
   assignShift: (cruise: string, user: string, kind: 'ONBOARD'|'SHORE', occurrence: string) =>
     apiRequest<void>(`${staffPath(cruise,user)}/activity-shifts/${kind}/${encodeURIComponent(occurrence)}`, {method:'PUT'}),
+  grantQualification: (user: string, kind: 'ONBOARD'|'SHORE', definitionId: string) =>
+    apiRequest<void>(`/staff/${encodeURIComponent(user)}/activity-qualifications/${kind}/${encodeURIComponent(definitionId)}`, {method:'PUT'}),
 }
 
 const errors: Record<string,string> = {

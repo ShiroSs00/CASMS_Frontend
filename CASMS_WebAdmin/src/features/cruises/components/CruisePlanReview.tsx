@@ -84,10 +84,9 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
   </>
   return <>
   {manager&&planConditions}
-  {embedded?<details className={styles.workspaceDisclosure}>
-   <summary>Nhận đặt chỗ và hướng dẫn trước chuyến</summary>
+  {embedded?<div className={styles.windowsInlineBox}>
    <div className={styles.workspaceBody}>{timeFields}</div>
-  </details>:<Panel title="Thời gian nhận đặt chỗ và hướng dẫn">{timeFields}</Panel>}
+  </div>:<Panel title="Thời gian nhận đặt chỗ và hướng dẫn">{timeFields}</Panel>}
   {manager&&editablePlan&&data?.cruisePackagePricing&&<PlanPackageSelection cruiseId={cruiseId} onSaved={refreshPlan}/>}
   {manager&&data&&!data.unifiedPackageReview&&<DeparturePricingPolicy cruiseId={cruiseId} refreshKey={refreshKey} onChanged={onChanged}/>}
  </>
