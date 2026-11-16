@@ -4,7 +4,7 @@ import {ShipAreaCount} from '../components/ShipAreaCount'
 import {useState} from 'react'
 import {shipStatuses,type ShipStatus} from '../model/types'
 import { PermissionLink as Link } from '@/shared/ui'
-import { Button, Empty, Loading, Notice, PageHeader } from '@/shared/ui'
+import { Button, ButtonLink, Empty, Loading, Notice, PageHeader } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { useShipList } from '../model/useShipList'
@@ -20,7 +20,8 @@ export function FleetDashboardPage() {
   const ships=state.status==='data'?state.data.items.filter(ship=>status==='ALL'||ship.status===status):[]
   const pagination=paginateFleet(ships,page,6)
   return <AdminShell><div className={styles.stack}>
-    <PageHeader breadcrumb="QUẢN LÝ TÀU" title="Tàu được phân công" />
+    <PageHeader breadcrumb="QUẢN LÝ TÀU" title="Tàu được phân công"
+      actions={<ButtonLink to="/admin/ships">Danh sách tàu</ButtonLink>} />
     <section className={styles.overview} aria-label="Tình hình đội tàu"><div className={styles.metricSummary}><ShipListMetrics selected={status} onSelect={value=>{setStatus(current=>current===value?'ALL':value);setPage(1)}} metrics={state.status === 'data' ? state.data.metrics : undefined} /></div></section>
     {state.status === 'loading' && <Loading label="Đang tải tổng quan tàu…" />}
     {state.status === 'error' && <Notice title="Chưa tải được tổng quan" tone="error">{state.message}</Notice>}

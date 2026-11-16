@@ -75,11 +75,6 @@ export const shipImportApi = {
     })
     if (!result || result.modelKey !== session.modelKey || !Number.isInteger(result.fileCount) || !Number.isSafeInteger(result.expandedBytes)) invalid()
   },
-  async register(session: ImportSession, supplements?: ShipProvisionFields): Promise<Registration> {
-    const result = await apiRequest<Registration>(`/ship-model-assets/${segment(session.modelKey)}/register`, { method: 'POST', body:supplements, timeoutMs: 60_000 })
-    if (!validRegistration(result)) invalid()
-    return result
-  },
   async importStructure(registration: Registration) {
     const job = decodeJob(await apiRequest<unknown>(`${modelPath(registration)}/imports`, { method: 'POST', timeoutMs: 10 * 60_000 }))
     if (job.shipId !== registration.shipId || job.modelId !== registration.shipModelId) invalid()

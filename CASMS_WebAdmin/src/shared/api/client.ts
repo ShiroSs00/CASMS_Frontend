@@ -45,7 +45,7 @@ const baseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 
 /** Authenticated asset bytes; credentials are only sent through the configured API origin. */
 export async function apiAsset(path: string, signal: AbortSignal, progress?: (loaded: number, total: number) => void, publicModel = false): Promise<ArrayBuffer> {
-  if (!(publicModel ? /^\/ships\/[^/]+\/public-model\/[^/]+\/assets\/[\w./-]+\.glb$/.test(path) : /^\/ships\/[^/]+\/models\/[^/]+\/assets\//.test(path)) || path.includes('..') || /[?#\\]/.test(path)) throw new ApiError('Đường dẫn asset không hợp lệ.', 400)
+  if (!(publicModel ? /^\/ships\/[^/]+\/public-model\/[^/]+\/assets\/[\w./-]+\.glb$/.test(path) : /^\/ships\/[^/]+\/models\/[^/]+\/assets\//.test(path) || /^\/ship-model-assets\/[a-z0-9-]{1,80}\/versions\/[a-zA-Z0-9._-]{1,80}\/assets\/[\w./-]+\.glb$/.test(path)) || path.includes('..') || /[?#\\]/.test(path)) throw new ApiError('Đường dẫn asset không hợp lệ.', 400)
   const token = publicModel ? null : accessToken, generation = sessionGeneration
   const required = apiPermissionRequirement(path)
   const checkAccess = () => {

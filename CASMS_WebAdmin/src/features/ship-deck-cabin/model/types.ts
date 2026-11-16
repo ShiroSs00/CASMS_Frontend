@@ -6,6 +6,7 @@ export type CabinType = 'INTERIOR' | 'OCEAN_VIEW' | 'BALCONY' | 'SUITE'
 export type EntityKind = 'ships' | 'decks' | 'cabins'
 export type RecordBase = { id: string; createdAt?: string; updatedAt?: string }
 export type Ship = RecordBase & ShipProfile & {
+  shipTypeId?: string | null; shipTypeName?: string | null; shipTypeCode?: string | null
   code: string; name: string; status: ShipStatus
   capacity: number; totalDecks: number; commissionDate: string
   manifestModelId?: string | null; deckNumberLimit?: number; lengthMeters?: number | null; beamMeters?: number | null

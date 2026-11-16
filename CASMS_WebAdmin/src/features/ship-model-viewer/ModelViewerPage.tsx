@@ -2,7 +2,7 @@ import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
-import { apiRequest, useReadQuery } from '@/shared/api'
+import { apiRequest, ApiError, useReadQuery } from '@/shared/api'
 import { Badge, Button, Empty, Field, Loading, Notice, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { ExistingModelImport } from './import/ExistingModelImport'
@@ -11,7 +11,7 @@ import type { ImportJob } from './import/model'
 import { refreshShipStructure } from '@/shared/lib/ship-structure-revision'
 import { viewerApi } from './api'
 import { ModelCanvas } from './ModelCanvas'
-import { serviceName, serviceType, cabinTypes, selectedAreas, selectedCabins, type Area, type Cabin, type Manifest, type ShipChoice } from './model'
+import { serviceName, serviceType, cabinTypes, selectedAreas, selectedCabins, type Area, type AssetInfo, type Cabin, type Manifest, type ShipChoice } from './model'
 import styles from './Viewer.module.css'
 import {BleSetup} from './BleSetup'
 
@@ -76,7 +76,10 @@ function AreaDetails({area,manifest}:{area:Area;manifest:Manifest}) {
     ['Loại dịch vụ',serviceType(area.kind)],['Boong',`${area.deckNumber} · ${[...manifest.decks,...manifest.serviceDecks??[]].find(d=>d.id===area.deckId)?.name??''}`]
   ]}/>{Boolean(area.interiorDetails?.length)&&<section className={styles.serviceContents}><h3>Tiện ích</h3><ul>{area.interiorDetails?.map(detail=><li key={detail}>{detail}</li>)}</ul></section>}</>
 }
-function Explore({ship,model,manifest}:{ship:string;model:string;manifest:Manifest}) {
+type ShipMappings = { decks: ReadonlySet<string>; cabins: ReadonlySet<string> }
+function Explore({ ship, model, manifest, mappings }: {
+  ship: string; model: string; manifest: Manifest; mappings?: ShipMappings
+}) {
   const [deckId,setDeck]=useState(''),[cabinId,setCabin]=useState(''),[areaId,setArea]=useState(''),[areaSearch,setAreaSearch]=useState(''),[search,setSearch]=useState(''),[full,setFull]=useState(false),[list,setList]=useState<'rooms'|'services'>('rooms')
   const decks=[...manifest.decks,...manifest.serviceDecks??[]]
   const deck=decks.find(d=>d.id===deckId),cabin=manifest.cabins.find(c=>c.id===cabinId)
@@ -105,9 +108,47 @@ function Explore({ship,model,manifest}:{ship:string;model:string;manifest:Manife
     </div>
     <aside className={styles.inspector} aria-label="Chi tiết đối tượng">{area?<><button className={styles.clearSelection} onClick={()=>setArea('')}>← Thông tin boong</button><AreaDetails area={area} manifest={manifest}/><AreaActivityUsage key={area.id} ship={ship} areaId={area.id}/></>:cabin?<><button className={styles.clearSelection} onClick={()=>setCabin('')}>← Thông tin boong</button><CabinDetails cabin={cabin} manifest={manifest}/></>:<><div className={styles.detailTitle}><span>{deck?'BOONG ĐANG XEM':'THÔNG TIN TỔNG THỂ'}</span><h2>{deck?.name??manifest.name}</h2></div><Facts rows={deck?[
       ['Boong số',deck.number],['Cao độ',deck.elevationMetres!=null?`${deck.elevationMetres} m`:undefined],['Số khu vực dịch vụ',manifest.areas?.filter(a=>a.deckId===deck.id).length],['Số phòng',manifest.cabins.filter(c=>c.deckId===deck.id).length],
-    ]:[['Số boong',decks.length],['Số khu vực dịch vụ',manifest.areas?.length],['Số phòng',manifest.cabins.length]]}/></>}</aside>
+    ]:[['Số boong',decks.length],['Số khu vực dịch vụ',manifest.areas?.length],['Số phòng',manifest.cabins.length]]}/></>}
+    {mappings && (cabin || deck) && <p role="status" className={styles.note}>
+      {(cabin ? mappings.cabins.has(cabin.id) : deck && mappings.decks.has(deck.id)) ? 'Đã liên kết với cấu trúc của tàu' : 'Chưa có liên kết với cấu trúc của tàu'}
+    </p>}</aside>
   </div>
 }
+export function ShipRecordViewer({ ship }: { ship: string }) {
+  const load = useCallback(async (signal: AbortSignal) => {
+    const shipPath = '/ships/' + encodeURIComponent(ship)
+    let active: AssetInfo
+    try {
+      active = await apiRequest<AssetInfo>(shipPath + '/model', { signal })
+    } catch (failure) {
+      if (failure instanceof ApiError && failure.status === 404) return null
+      throw failure
+    }
+    if (!active?.id) return null
+    const path = shipPath + '/models/' + encodeURIComponent(active.id)
+    const [manifest, decks, cabins] = await Promise.all([
+      viewerApi.manifest(ship, active.id, signal),
+      apiRequest<Array<{ modelDeckId: string }>>(path + '/deck-mappings', { signal }),
+      apiRequest<Array<{ modelId: string }>>(path + '/cabin-mappings', { signal }),
+    ])
+    return {
+      id: active.id, manifest,
+      mappings: { decks: new Set(decks.map(deck => deck.modelDeckId)), cabins: new Set(cabins.map(cabin => cabin.modelId)) },
+    }
+  }, [ship])
+  const result = useReadQuery('ship-record-viewer:' + ship, load)
+  return <div className={styles.page}>
+    <Panel title="Hình ảnh 2D"><Empty title="Chưa có hình ảnh 2D trong dữ liệu mô hình" /></Panel>
+    {result.loading && <Loading label="Đang tải mô hình của tàu…" />}
+    {result.error && <Failure error={result.error} retry={result.retry} />}
+    {!result.loading && !result.error && (result.data ? <>
+      <p>{result.data.mappings.decks.size} boong và {result.data.mappings.cabins.size} cabin đã liên kết với tàu.</p>
+      <Explore key={ship + ':' + result.data.id} ship={ship} model={result.data.id} manifest={result.data.manifest}
+        mappings={result.data.mappings} />
+    </> : <Panel><Empty title="Tàu chưa có mô hình 3D đang sử dụng" /></Panel>)}
+  </div>
+}
+
 function ModelDetail({ship,id}:{ship:string;id:string}) {
   const access=useSessionAccess(),[tab,setTab]=useState('scene')
   const load=useCallback((signal:AbortSignal)=>viewerApi.manifest(ship,id,signal),[ship,id])
@@ -170,7 +211,7 @@ export function ModelViewerPage() {
     {action}
   </header>
   return <AdminShell><div className={styles.page}>
-    {!ship && renderHeader(!shipId && <Link className={styles.secondaryLink} to="/admin/ship-import">Thêm tàu</Link>)}
+    {!ship && renderHeader(!shipId && <Link className={styles.secondaryLink} to="/admin/ship-types/new">Thêm loại tàu</Link>)}
     {query.loading&&<Loading label="Đang tải tàu…"/>}{query.error&&<Failure error={query.error} retry={query.retry}/>}
     {!access.canDo('SHIP_READ')&&<Notice title="Chưa có quyền đọc tàu" tone="warning">Cần quyền SHIP_READ để xem mô hình thuộc tàu.</Notice>}
     {ship?<ShipModels key={shipId} ship={ship} renderHeader={renderHeader} requested={params.get('model')??''} onModel={model=>setParams(model?{ship:shipId,model}:{ship:shipId})}/>:query.data&&<Panel title="Danh sách mã tàu"><div className={styles.shipCards}>{query.data.map(s=><button key={s.shipId} onClick={()=>setParams({ship:s.shipId})} aria-label={`Xem sơ đồ tàu ${s.shipCode} · ${s.shipName}`}><div className={styles.shipIdentity}><strong>{s.shipCode}</strong><span>{s.shipName}</span></div><span className={styles.shipArrow} aria-hidden="true">↗</span></button>)}</div>{!query.data.length&&<Empty title="Chưa có tàu"/>}</Panel>}

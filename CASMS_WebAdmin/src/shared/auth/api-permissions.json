@@ -1,4 +1,18 @@
 [
+  {"method": "POST", "path": "/ship-types/from-stored", "mode": "ALL", "permissions": [], "source": "com/casms/ship/controller/ShipTypeController.java", "roles": ["ADMIN"]},
+  {"method": "GET", "path": "/ship-types", "mode": "ALL", "permissions": [], "source": "com/casms/ship/controller/ShipTypeController.java", "roles": ["ADMIN", "SHIP_MANAGER"]},
+  {"method": "GET", "path": "/ship-types/{typeId}", "mode": "ALL", "permissions": [], "source": "com/casms/ship/controller/ShipTypeController.java", "roles": ["ADMIN", "SHIP_MANAGER"]},
+  {"method": "POST", "path": "/ship-types", "mode": "ALL", "permissions": [], "source": "com/casms/ship/controller/ShipTypeController.java", "roles": ["ADMIN"]},
+  {"method": "PUT", "path": "/ship-types/{typeId}/model", "mode": "ALL", "permissions": [], "source": "com/casms/ship/controller/ShipTypeController.java", "roles": ["ADMIN"]},
+  {"method": "PATCH", "path": "/ship-types/{typeId}/status", "mode": "ALL", "permissions": [], "source": "com/casms/ship/controller/ShipTypeController.java", "roles": ["ADMIN"]},
+  {"method": "DELETE", "path": "/ship-types/{typeId}", "mode": "ALL", "permissions": [], "source": "com/casms/ship/controller/ShipTypeController.java", "roles": ["ADMIN"]},
+  {"method": "GET", "path": "/ship-types/{typeId}/ships", "mode": "ALL", "permissions": ["SHIP_READ"], "source": "com/casms/ship/controller/ShipTypeController.java", "roles": ["ADMIN", "SHIP_MANAGER"]},
+  {"method": "POST", "path": "/ship-types/{typeId}/ships", "mode": "ALL", "permissions": [], "source": "com/casms/ship/controller/ShipTypeController.java", "roles": ["SHIP_MANAGER"]},
+  {"method": "GET", "path": "/ship-types/{typeId}/ships/provisioning/{requestKey}", "mode": "ALL", "permissions": [], "source": "com/casms/ship/controller/ShipTypeController.java", "roles": ["SHIP_MANAGER"]},
+  {"method": "GET", "path": "/ship-model-assets/{modelKey}/versions/{assetVersion}/assets/{*assetPath}", "mode": "ALL", "permissions": ["SHIP_MODEL_READ"], "source": "com/casms/ship/controller/ShipModelController.java", "roles": ["ADMIN"]},
+  {"method": "GET", "path": "/ships/{shipId}/operational-profile", "mode": "ALL", "permissions": [], "source": "com/casms/ship/controller/ShipOperationalProfileController.java", "roles": ["SHIP_MANAGER"]},
+  {"method": "PUT", "path": "/ships/{shipId}/operational-profile", "mode": "ALL", "permissions": [], "source": "com/casms/ship/controller/ShipOperationalProfileController.java", "roles": ["SHIP_MANAGER"]},
+  {"method": "PATCH", "path": "/ships/{shipId}/name", "mode": "ALL", "permissions": ["SHIP_READ"], "source": "com/casms/ship/controller/ShipController.java", "roles": ["SHIP_MANAGER"]},
   { "method": "GET", "path": "/cruise-preparation-reviews", "mode": "ALL", "permissions": ["CRUISE_PREPARATION_CONFIRM"], "roles": ["OPERATIONS_MANAGER"] },
   { "method": "GET", "path": "/cruise-preparation-reviews/{cruiseId}/{sectionCode}", "mode": "ALL", "permissions": ["CRUISE_PREPARATION_CONFIRM"], "roles": ["OPERATIONS_MANAGER"] },
   { "method": "POST", "path": "/cruise-preparation-reviews/{cruiseId}/{sectionCode}/confirm", "mode": "ALL", "permissions": ["CRUISE_PREPARATION_CONFIRM"], "roles": ["OPERATIONS_MANAGER"] },
@@ -2105,6 +2119,7 @@
     "method": "POST",
     "path": "/ship-model-assets",
     "mode": "ALL",
+    "roles": ["ADMIN"],
     "permissions": [
       "SHIP_MODEL_CREATE"
     ],

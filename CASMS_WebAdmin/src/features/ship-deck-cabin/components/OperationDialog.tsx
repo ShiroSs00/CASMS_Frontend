@@ -1,3 +1,5 @@
+import { ApiError } from '@/shared/api'
+import { missingProfileLabels } from '../ship-types/profile'
 import { useSessionAccess } from '@/shared/auth'
 import { operationPermission } from '../model/permissions'
 import { useState } from 'react'
@@ -34,6 +36,7 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
   const [results, setResults] = useState<CheckResult[]>([])
   const [cruises, setCruises] = useState<CruisePreview[] | null>(null)
   const [validation, setValidation] = useState('')
+  const [missing, setMissing] = useState<string[]>([])
   const mutation = useMutation()
   const shipChoicesUnavailable = operation === 'ownership' && Boolean(shipChoicesState?.loading || shipChoicesState?.error)
   const clear = () => { setResults([]); setCruises(null); setValidation(''); mutation.clear() }
@@ -60,10 +63,21 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
   }
   const confirm = () => {
     if (!permitted || mutation.busy) return
+    setMissing([])
     void mutation.run(async () => {
       if (operation === 'block') await shipDeckCabinApi.blockCabin(item.id, reasonStatus)
       else if (operation === 'release') await shipDeckCabinApi.releaseCabin(item.id)
-      else if (isShip) await shipDeckCabinApi.changeShipStatus(item.id, status as ShipStatus)
+      else if (isShip) {
+        try {
+          await shipDeckCabinApi.changeShipStatus(item.id, status as ShipStatus)
+        } catch (failure) {
+          if (failure instanceof ApiError && failure.code === 'SHIP_OPERATIONAL_PROFILE_INCOMPLETE') {
+            setMissing(missingProfileLabels(failure.details))
+            throw new Error('Bổ sung các nhóm hồ sơ còn thiếu trong Thông tin chung trước khi đổi trạng thái.', { cause: failure })
+          }
+          throw failure
+        }
+      }
       else await shipDeckCabinApi.changeCabinStatus(item.id, status as CabinStatus)
       onClose()
     })
@@ -97,7 +111,7 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
         {operation === 'block' && <><SelectField label="Trạng thái khóa" value={reasonStatus} disabled={mutation.busy} onChange={(value) => { setReasonStatus(value as typeof reasonStatus); mutation.clear() }}><option value="MAINTENANCE">Bảo trì</option><option value="OUT_OF_SERVICE">Ngừng phục vụ</option></SelectField><Notice title="Xác nhận khóa cabin" tone="warning">Khóa cabin sẵn sàng sang trạng thái đã chọn. Hệ thống sẽ kiểm tra điều kiện trước khi cập nhật.</Notice></>}
         {operation === 'release' && <Notice title="Xác nhận mở cabin" tone="warning">Cabin sẽ được chuyển về trạng thái Sẵn sàng nếu hệ thống cho phép.</Notice>}
       </>}
-      {mutation.error && <Notice title="Thao tác chưa hoàn tất" tone="error">{mutation.error}</Notice>}
+      {mutation.error && <Notice title="Thao tác chưa hoàn tất" tone="error">{mutation.error}{missing.length > 0 && <ul>{missing.map(group => <li key={group}>{group}</li>)}</ul>}</Notice>}
       <div className={styles.actions}>
         <Button disabled={!permitted || mutation.busy || shipChoicesUnavailable || (operation === 'status' && 'status' in item && status === item.status)} onClick={() => isCheck ? void check() : confirm()}>
           {mutation.busy ? 'Đang xử lý…' : isCheck ? results.length || cruises || mutation.error ? 'Kiểm tra lại' : 'Kiểm tra' : 'Xác nhận'}
