@@ -22,6 +22,7 @@ export function operationsConditionTarget(code:string):DepartureSection|'review'
 
 const staffRoles:Readonly<Record<string,string>>={
  ONBOARD_STAFF:'Nhân viên phục vụ trên tàu',CHECKIN_STAFF:'Nhân viên đón khách',ACTIVITY_SERVICE_MANAGER:'Quản lý hoạt động và dịch vụ',
+ SHIP_MANAGER:'Quản lý tàu',OPERATIONS_MANAGER:'Quản lý vận hành',CRUISE_MANAGER:'Quản lý lịch trình',HR_MANAGER:'Quản lý nhân sự',
  TOUR_GUIDE:'Hướng dẫn viên',PORT_COORDINATOR:'Điều phối cảng',BOOKING_AGENT:'Nhân viên đặt chỗ',
  FINANCE_OFFICER:'Nhân viên tài chính',CUSTOMER_SERVICE:'Chăm sóc khách hàng',CAPTAIN:'Thuyền trưởng',DECK_OFFICER:'Sĩ quan boong',
 }

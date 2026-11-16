@@ -4,7 +4,7 @@ import {ShipAreaCount} from '../components/ShipAreaCount'
 import {useState} from 'react'
 import {shipStatuses,type ShipStatus} from '../model/types'
 import { PermissionLink as Link } from '@/shared/ui'
-import { Button, Empty, Loading, Notice, PageHeader } from '@/shared/ui'
+import { Button, ButtonLink, Empty, Loading, Notice, PageHeader } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { useShipList } from '../model/useShipList'
@@ -20,12 +20,13 @@ export function FleetDashboardPage() {
   const ships=state.status==='data'?state.data.items.filter(ship=>status==='ALL'||ship.status===status):[]
   const pagination=paginateFleet(ships,page,6)
   return <AdminShell><div className={styles.stack}>
-    <PageHeader breadcrumb="VẬN HÀNH / ĐỘI TÀU" title="Tàu được phân công"  actions={<Link className={styles.allShips} to="/admin/ships">Quản lý tàu <span aria-hidden="true">↗</span></Link>} />
+    <PageHeader breadcrumb="QUẢN LÝ TÀU" title="Tàu được phân công"
+      actions={<ButtonLink to="/admin/ships">Danh sách tàu</ButtonLink>} />
     <section className={styles.overview} aria-label="Tình hình đội tàu"><div className={styles.metricSummary}><ShipListMetrics selected={status} onSelect={value=>{setStatus(current=>current===value?'ALL':value);setPage(1)}} metrics={state.status === 'data' ? state.data.metrics : undefined} /></div></section>
     {state.status === 'loading' && <Loading label="Đang tải tổng quan tàu…" />}
     {state.status === 'error' && <Notice title="Chưa tải được tổng quan" tone="error">{state.message}</Notice>}
     {state.status === 'data' && <div className={styles.workspace}>
-      <section aria-labelledby="fleet-vessels"><div className={styles.sectionHeading}><div><h2 id="fleet-vessels">{status==='ALL'?'Tàu được phân công':shipStatuses[status]} <span className={styles.resultCount} aria-live="polite">{ships.length}</span></h2></div><div className={styles.listActions}>{status!=='ALL'&&<Button tone="text" onClick={()=>{setStatus('ALL');setPage(1)}}>Xem tất cả tàu được phân công</Button>}<Link to="/admin/ships">Quản lý tàu ↗</Link></div></div>
+      <section aria-labelledby="fleet-vessels"><div className={styles.sectionHeading}><div><h2 id="fleet-vessels">{status==='ALL'?'Tàu được phân công':shipStatuses[status]} <span className={styles.resultCount} aria-live="polite">{ships.length}</span></h2></div><div className={styles.listActions}>{status!=='ALL'&&<Button tone="text" onClick={()=>{setStatus('ALL');setPage(1)}}>Xem tất cả tàu được phân công</Button>}</div></div>
       {ships.length ? <div className={styles.vessels}>{pagination.items.map((ship)=><article key={ship.id} className={styles.vessel}>
         <div className={styles.vesselTop}><span className={styles.shipCode}>{ship.code}</span><StatusBadge status={ship.status}/></div>
 

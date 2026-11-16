@@ -16,3 +16,7 @@
 .selectedDayBody > div h3 { font-size:15px; }
 .tripTimes { border-top:1px solid var(--ui-border); }
 .tripTimes summary { color:var(--ui-ink); font-size:14px; font-weight:600; }
+.reconcileDisclosure { border:1px solid var(--ui-border); border-radius:8px; padding:10px 14px; background:var(--ui-subtle,#f8fafc); }
+.reconcileDisclosure summary { cursor:pointer; font-weight:600; font-size:13px; color:var(--ui-ink); }
+.scheduleFooterBar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding-top:12px; border-top:1px solid var(--ui-border); }
+.scheduleFooterBar p { margin:0; font-size:13px; color:var(--ui-muted); }

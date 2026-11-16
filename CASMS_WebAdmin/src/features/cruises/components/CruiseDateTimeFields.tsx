@@ -3,7 +3,15 @@ import { Button, Field } from '@/shared/ui'
 import { parseCruiseDate, validCruiseClock } from '../model/cruise-validation'
 import styles from './Cruises.module.css'
 
-function PickerButton({ type, value, text, label, onSelect }: {
+const QUICK_CLOCKS = ['08:00', '09:00', '12:00', '16:00']
+
+function PickerButton({
+  type,
+  value,
+  text,
+  label,
+  onSelect,
+}: {
   type: 'date' | 'time'
   value: string
   text: string
@@ -24,22 +32,45 @@ function PickerButton({ type, value, text, label, onSelect }: {
     }
   }
 
-  return <span className={expanded ? styles.pickerExpanded : styles.pickerSlot}>
-    {!expanded && <Button type="button" tone="secondary" autoWidth aria-label={label} onClick={openPicker}>{text}</Button>}
-    <input ref={input} type={type} value={value} aria-label={label} aria-hidden={!expanded}
-      className={expanded ? undefined : styles.pickerAnchor} tabIndex={expanded ? 0 : -1}
-      onChange={event => {
-        if (event.target.value) onSelect(event.target.value)
-      }} />
-  </span>
+  return (
+    <span className={expanded ? styles.pickerExpanded : styles.pickerSlot}>
+      {!expanded && (
+        <Button type="button" tone="secondary" autoWidth aria-label={label} onClick={openPicker}>
+          {text}
+        </Button>
+      )}
+      <input
+        ref={input}
+        type={type}
+        value={value}
+        aria-label={label}
+        aria-hidden={!expanded}
+        className={expanded ? undefined : styles.pickerAnchor}
+        tabIndex={expanded ? 0 : -1}
+        onChange={event => {
+          if (event.target.value) onSelect(event.target.value)
+        }}
+      />
+    </span>
+  )
 }
 
-export function CruiseDateTimeFields({ id, label, value, error, suggestClock, onChange, onIncompleteChange }: {
+export function CruiseDateTimeFields({
+  id,
+  label,
+  value,
+  error,
+  suggestClock,
+  templateClockLabel,
+  onChange,
+  onIncompleteChange,
+}: {
   id: string
   label: string
   value: string
   error?: string
   suggestClock?: (isoDate: string) => string | undefined
+  templateClockLabel?: string | null
   onChange: (value: string) => void
   onIncompleteChange?: (incomplete: boolean) => void
 }) {
@@ -49,8 +80,16 @@ export function CruiseDateTimeFields({ id, label, value, error, suggestClock, on
   const [clockEdited, setClockEdited] = useState(Boolean(initialClock))
   const [dateTouched, setDateTouched] = useState(false)
   const [clockTouched, setClockTouched] = useState(false)
-  const dateError = dateTouched && !parseCruiseDate(date) ? 'Nhập ngày hợp lệ theo dạng 25/04/2028.' : undefined
-  const clockError = clockTouched && !validCruiseClock(clock) ? 'Nhập giờ theo dạng 24 tiếng, ví dụ 08:30 hoặc 16:00.' : undefined
+
+  const parsedDay = parseCruiseDate(date)
+  const rawSuggested = suggestClock ? suggestClock(parsedDay ?? '2026-11-10') : undefined
+  const normalizedSuggested = rawSuggested?.replace(/^(\d{2}:\d{2}):00$/, '$1')
+
+  const dateError = dateTouched && !parsedDay ? 'Nhập ngày hợp lệ theo dạng 25/04/2028.' : undefined
+  const clockError =
+    clockTouched && !validCruiseClock(clock)
+      ? 'Nhập giờ theo dạng 24 tiếng, ví dụ 08:30 hoặc 16:00.'
+      : undefined
 
   function apply(nextDate: string, nextClock: string) {
     const day = parseCruiseDate(nextDate)
@@ -75,24 +114,103 @@ export function CruiseDateTimeFields({ id, label, value, error, suggestClock, on
     apply(date, nextClock)
   }
 
-  return <div className={styles.departureDateTime}>
-    <div className={styles.pickerField}>
-    <Field htmlFor={id} label={`Ngày ${label} *`} hint="Ngày/tháng/năm, ví dụ 25/04/2028" error={dateError ?? error}>
-      <input id={id} value={date} required autoComplete="off" maxLength={10}
-        onBlur={() => { if (date) setDateTouched(true) }} onChange={event => changeDate(event.target.value)} />
-      <PickerButton type="date" value={parseCruiseDate(date) ?? ''} text="Chọn ngày" label={`Chọn ngày ${label}`}
-        onSelect={selected => changeDate(selected.split('-').reverse().join('/'))} />
-    </Field>
+  function applyTemplateClock() {
+    if (!normalizedSuggested) return
+    setClockEdited(false)
+    setClockTouched(false)
+    setClock(normalizedSuggested)
+    apply(date, normalizedSuggested)
+  }
+
+  const isUsingTemplateClock = Boolean(normalizedSuggested && clock.trim() === normalizedSuggested)
+
+  const clockHint = normalizedSuggested
+    ? `Giờ theo mẫu: ${templateClockLabel ?? normalizedSuggested}. Nhấn "Dùng giờ mẫu" bên dưới hoặc tự nhập giờ khác.`
+    : 'Nhập theo định dạng 24 tiếng (ví dụ 08:00, 16:00) hoặc chọn nhanh bên dưới.'
+
+  return (
+    <div className={styles.departureDateTime}>
+      <div className={styles.pickerField}>
+        <Field
+          htmlFor={id}
+          label={`Ngày ${label} *`}
+          hint="Ngày/tháng/năm, ví dụ 25/04/2028"
+          error={dateError ?? error}
+        >
+          <input
+            id={id}
+            value={date}
+            required
+            autoComplete="off"
+            maxLength={10}
+            placeholder="DD/MM/YYYY"
+            onBlur={() => {
+              if (date) setDateTouched(true)
+            }}
+            onChange={event => changeDate(event.target.value)}
+          />
+          <PickerButton
+            type="date"
+            value={parsedDay ?? ''}
+            text="Chọn ngày"
+            label={`Chọn ngày ${label}`}
+            onSelect={selected => changeDate(selected.split('-').reverse().join('/'))}
+          />
+        </Field>
+      </div>
+
+      <div className={styles.pickerField}>
+        <Field
+          htmlFor={id + '-clock'}
+          label={`Giờ ${label} (giờ Việt Nam) *`}
+          hint={clockHint}
+          error={clockError}
+        >
+          <input
+            id={id + '-clock'}
+            value={clock}
+            required
+            autoComplete="off"
+            maxLength={8}
+            placeholder={normalizedSuggested ?? 'Ví dụ: 08:00'}
+            onBlur={() => {
+              if (clock) setClockTouched(true)
+            }}
+            onChange={event => changeClock(event.target.value)}
+          />
+          <PickerButton
+            type="time"
+            value={validCruiseClock(clock) ? clock.trim() : ''}
+            text="Chọn giờ"
+            label={`Chọn giờ ${label}`}
+            onSelect={changeClock}
+          />
+        </Field>
+
+        <div className={styles.clockQuickActions} aria-label="Chọn nhanh giờ khởi hành">
+          {normalizedSuggested && (
+            <button
+              type="button"
+              className={`${styles.clockQuickBtn} ${styles.clockTemplateBtn} ${isUsingTemplateClock ? styles.clockQuickBtnActive : ''}`}
+              onClick={applyTemplateClock}
+            >
+              {isUsingTemplateClock
+                ? `Đang dùng giờ mẫu (${normalizedSuggested})`
+                : `Dùng giờ theo mẫu (${normalizedSuggested})`}
+            </button>
+          )}
+          {QUICK_CLOCKS.filter(preset => preset !== normalizedSuggested).map(preset => (
+            <button
+              key={preset}
+              type="button"
+              className={`${styles.clockQuickBtn} ${clock.trim() === preset ? styles.clockQuickBtnActive : ''}`}
+              onClick={() => changeClock(preset)}
+            >
+              {preset}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
-    <div className={styles.pickerField}>
-    <Field htmlFor={id + '-clock'} label={`Giờ ${label} (giờ Việt Nam) *`}
-      hint={suggestClock ? 'Dùng giờ theo mẫu nếu có. Bạn có thể chỉnh, ví dụ 16:00.' : 'Dạng 24 tiếng, ví dụ 16:00'}
-      error={clockError}>
-      <input id={id + '-clock'} value={clock} required autoComplete="off" maxLength={8}
-        onBlur={() => { if (clock) setClockTouched(true) }} onChange={event => changeClock(event.target.value)} />
-      <PickerButton type="time" value={validCruiseClock(clock) ? clock.trim() : ''} text="Chọn giờ" label={`Chọn giờ ${label}`}
-        onSelect={changeClock} />
-    </Field>
-    </div>
-  </div>
+  )
 }
