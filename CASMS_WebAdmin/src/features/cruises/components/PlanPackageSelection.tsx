@@ -50,7 +50,7 @@ export function PlanPackageSelection({ cruiseId, onSaved }: { cruiseId: string; 
       const staleSelection = choice && choice.priceRevisionId !== eligiblePriceRevisionId
       const blockers = [...new Set(planEligibility.blockers.map(blocker => blocker.message))]
       const benefits = product.template.benefits
-      const priceLabel = price ? `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 4 }).format(Number(price.amount))} USD/người` : 'Chưa có giá'
+      const priceLabel = price ? `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 4 }).format(Number(price.amount))} ${price.currencyCode}/người` : 'Chưa có giá'
       return <article key={id} className={styles.selectionItem}>
         <div className={styles.selectionHeader}>
           <label className={styles.selectionChoice}>
@@ -97,7 +97,7 @@ export function FrozenPlanPackages({ snapshot }: { snapshot: unknown }) {
     {frozen.packages.map((item, index) => <section className={styles.package} key={item.offerId ?? index}>
       <h4>{item.name ?? 'Chưa có tên gói trong hồ sơ'}</h4>
       <p>{item.category ?? 'Chưa có hạng cabin'} · Mẫu phiên bản {item.version ?? 'chưa xác định'}</p>
-      <p className={styles.packagePrice}>{item.amount !== null && item.currency === 'USD' && item.priceUnit === 'PERSON' ? `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 4 }).format(item.amount)} USD/người` : 'Chưa xác nhận được giá'} · Giá phiên bản {item.priceRevision ?? 'chưa xác định'}</p>
+      <p className={styles.packagePrice}>{item.amount !== null && (item.currency === 'USD' || item.currency === 'VND') && item.priceUnit === 'PERSON' ? `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 4 }).format(item.amount)} ${item.currency}/người` : 'Chưa xác nhận được giá'} · Giá phiên bản {item.priceRevision ?? 'chưa xác định'}</p>
       {!item.valid && <Notice title="Bằng chứng giá chưa đầy đủ" tone="error">Đọc lại hồ sơ để đối chiếu đúng gói và phiên bản giá trước khi quyết định.</Notice>}
       <details className={styles.group}><summary>Quyền lợi và lần phục vụ <span>{item.benefits.length} quyền lợi</span></summary><div className={styles.groupBody}>
         {item.benefits.length === 0 && <p>Chưa có chi tiết quyền lợi trong bản đã gửi.</p>}

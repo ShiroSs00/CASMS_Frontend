@@ -8,12 +8,12 @@ export function DepartureMilestones({creating=false,creationStep=1,receivingBook
  if(activeStep&&onStepChange)return <ol className={`${styles.departureMilestones} ${styles.interactiveMilestones}`} aria-label="Chuẩn bị và gửi duyệt chuyến khởi hành">
   <li><span aria-hidden="true">1</span>{sourceConfigured?businessCopy('trip.template.PUBLISHED'):'Lịch trình nhập trực tiếp'}</li>
   <li><button type="button" aria-current={activeStep===2?'step':undefined} onClick={()=>onStepChange(2)}><span aria-hidden="true">2</span>Chuẩn bị hồ sơ</button></li>
-  <li><button type="button" disabled={!canReviewPreparation} aria-current={activeStep===3?'step':undefined} onClick={()=>onStepChange(3)}><span aria-hidden="true">3</span>Kiểm tra và gửi hồ sơ</button></li>
+  <li><button type="button" disabled={!canReviewPreparation} aria-current={activeStep===3?'step':undefined} onClick={()=>onStepChange(3)}><span aria-hidden="true">3</span>Nộp hồ sơ tour cho Vận hành</button></li>
  </ol>
  const current=receivingBookings?2:1
  return <ol className={styles.departureMilestones} aria-label="Từ lịch trình nguồn đến nhận đặt chỗ">
    <li><span>✓</span>{businessCopy('trip.template.PUBLISHED')}</li>
    <li aria-current={current===1?'step':undefined}><span>{receivingBookings?'✓':'2'}</span>{creating?'Tạo chuyến khởi hành':'Hoàn thiện hồ sơ chuyến khởi hành'}</li>
-   <li aria-current={current===2?'step':undefined}><span>3</span>{receivingBookings?'Kiểm tra phạm vi nhận đặt chỗ':'Kiểm tra và gửi hồ sơ'}</li>
+   <li aria-current={current===2?'step':undefined}><span>3</span>{receivingBookings?'Kiểm tra phạm vi nhận đặt chỗ':'Nộp hồ sơ tour cho Vận hành'}</li>
  </ol>
 }

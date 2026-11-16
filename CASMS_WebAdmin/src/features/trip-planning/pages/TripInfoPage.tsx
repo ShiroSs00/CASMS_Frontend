@@ -13,7 +13,7 @@ import { OperationRecovery } from '../components/OperationNotice'
 import { TripSteps } from '../components/TripSteps'
 import { CatalogChoices } from '../components/CatalogChoices'
 import { portScopeViolations } from '../model/port-rules'
-import { supportedDuration } from '../model/duration'
+import { durationRules, supportedDuration } from '../model/duration'
 
 export function TripInfoPage({id}:{id?:string}) {
   const {gateway}=usePlanning()
@@ -46,7 +46,7 @@ function InfoForm({trip:initial}:{trip?:Trip}) {
   const show=(field:string)=>attempted||touched[field]?errors[field]:undefined
   const change=<K extends keyof TripInfo>(field:K,value:TripInfo[K])=>setForm(old=>({...old,[field]:value}))
   const geography=form.scope==='DOMESTIC'?regions:countries
-  const catalogBlocked=durations.loading||Boolean(durations.error)||!durations.data.some(item=>item.id===form.durationBand&&supportedDuration(item.id))||(Boolean(form.scope)&&(geography.loading||Boolean(geography.error)))
+  const catalogBlocked=durations.loading||Boolean(durations.error)||(Boolean(form.durationBand)&&!durations.data.some(item=>item.id===form.durationBand&&supportedDuration(item.id)))||(Boolean(form.scope)&&(geography.loading||Boolean(geography.error)))
   async function save(event:React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();setAttempted(true)
     if(!permitted||lock.current||(!full&&!trip)||(full&&catalogBlocked))return
@@ -57,20 +57,32 @@ function InfoForm({trip:initial}:{trip?:Trip}) {
     try {const input={...form,name:form.name.trim()},request=trip?{payload:input,key:''}:operation.begin(input);const saved=await gateway.saveInfo(request.payload,request.key,trip);if(!trip)operation.succeeded(saved.tripId);guard.allowLeave();navigate(`${root}/${saved.tripId}/schedule`)} catch(e){if(!trip)operation.failed(e);setError(failure(e).message)} finally {lock.current=false;setBusy(false)}
   }
   return <div className={styles.info}>
-    <header className={styles.heading}><div><h1>{trip?'Thông tin chuyến':'Tạo chuyến đi'}</h1><p className={styles.muted}>{trip?.tripCode??'Mã chuyến được tạo khi lưu thành công.'}</p></div><Link to={root}>Về danh sách</Link></header><TripSteps stage="info" tripId={trip?.tripId}/>
-    {!full&&<Notice title={trip?'Phạm vi chỉnh sửa hiện có':'Chức năng tạo đang chờ cập nhật'} tone="warning">{trip?'Chế độ hiện tại chỉ lưu tên và giới thiệu. Thời lượng, nhiều miền/quốc gia của biểu mẫu mới chưa có hợp đồng lưu đầy đủ.':'Biểu mẫu mới chưa lưu được đầy đủ bằng API hiện tại. Chưa gửi dữ liệu và không tự chọn loại tuyến để vượt kiểm tra.'}</Notice>}
+    <header className={styles.heading}><div><h1>{trip?'Thông tin khung chuyến':'Tạo khung chuyến'}</h1><p className={styles.muted}>{trip?.tripCode??'Chọn phạm vi và thời lượng để bắt đầu lập tuyến cảng.'}</p></div><Link to={root}>Về danh sách</Link></header><TripSteps stage="info" tripId={trip?.tripId}/>
+    {!full&&<Notice title={trip?'Phạm vi chỉnh sửa hiện có':'Chức năng tạo đang chờ cập nhật'} tone="warning">{trip?'Chế độ hiện tại chỉ lưu tên và giới thiệu. Thời lượng, nhiều miền/quốc gia của biểu mẫu mới chưa có hợp đồng lưu đầy đủ.':'Chưa thể tạo khung chuyến ở đây. Bạn có thể quay lại danh sách và mở lịch trình của chuyến đã có.'}</Notice>}
     {!permitted&&<Notice title="Chỉ xem thông tin chuyến">Tài khoản hoặc trạng thái chuyến hiện tại không cho phép chỉnh sửa.</Notice>}
     {trip?.durationIssue&&<Notice title="Cần đối soát thời lượng" tone="warning">{trip.durationIssue}</Notice>}{locked&&<Notice title="Thời lượng đã khóa">Chuyến đi có mẫu đã chốt nên không thể đổi số ngày. Hãy nhân bản chuyến.</Notice>}
-    {recovery&&<OperationRecovery operation={operation} onClose={()=>setRecovery(false)}/>}<Panel title="Thông tin cơ bản"><form id="trip-info" className={styles.single} onSubmit={e=>void save(e)} noValidate>
+    {recovery&&<OperationRecovery operation={operation} onClose={()=>setRecovery(false)}/>}<Panel title="Thiết lập khung chuyến"><form id="trip-info" className={styles.single} onSubmit={e=>void save(e)} noValidate>
+      <section className={styles.infoSection} aria-labelledby="trip-identity-heading">
+        <h3 id="trip-identity-heading">Nhận diện chuyến</h3>
       <Field htmlFor="trip-name" label="Tên chuyến *" error={show('name')}><input id="trip-name" value={form.name} maxLength={200} required disabled={!permitted||busy} aria-invalid={Boolean(show('name'))} onBlur={()=>setTouched(t=>({...t,name:true}))} onChange={e=>change('name',e.target.value)}/></Field>
-      <Field htmlFor="trip-band" label="Thời lượng *" error={durations.error||show('durationBand')}><select id="trip-band" value={form.durationBand} disabled={!permitted||busy||locked||durations.loading||Boolean(durations.error)||(gateway.mode==='api'&&Boolean(trip))} aria-invalid={Boolean(show('durationBand'))} onBlur={()=>setTouched(t=>({...t,durationBand:true}))} onChange={e=>change('durationBand',e.target.value as TripInfo['durationBand'])}><option value="">{durations.loading?'Đang tải thời lượng…':'Chọn thời lượng'}</option>{durations.data.filter(item=>supportedDuration(item.id)).map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select>{durations.error&&<Button type="button" tone="text" onClick={durations.retry}>Tải lại thời lượng</Button>}{gateway.mode==='api'&&trip&&!locked&&<small>Chuyến đang có giữ nhóm thời lượng để bảo toàn số ngày và nội dung. Chọn nhóm khác khi tạo chuyến mới.</small>}</Field>
-      {trip&&<p>Nhóm {trip.info.durationBand==='LONG'?'3–5':'1–2'} ngày · Hiện {trip.durationDays} ngày</p>}
+      <Field htmlFor="trip-description" label="Giới thiệu (tùy chọn)"><textarea id="trip-description" rows={4} value={form.description} disabled={!permitted||busy} onChange={e=>change('description',e.target.value)}/></Field>
+      </section>
+      <section className={styles.infoSection} aria-labelledby="trip-scope-heading">
+        <h3 id="trip-scope-heading">Phạm vi hành trình</h3>
+        <p>Phạm vi quyết định danh mục cảng có thể chọn.</p>
       <Field htmlFor="trip-scope" label="Phạm vi *" error={show('scope')}><select id="trip-scope" value={form.scope} disabled={!permitted||busy||(!full&&Boolean(trip))} aria-invalid={Boolean(show('scope'))} onBlur={()=>setTouched(t=>({...t,scope:true}))} onChange={e=>change('scope',e.target.value as TripInfo['scope'])}><option value="">Chọn phạm vi</option><option value="DOMESTIC">Trong nước</option><option value="INTERNATIONAL">{businessCopy('source.scope.INTERNATIONAL')}</option></select></Field>
       {form.scope&&<fieldset disabled={!permitted||busy||!full}><legend>{form.scope==='DOMESTIC'?'Chọn các miền *':'Chọn quốc gia/vùng lãnh thổ *'}</legend><CatalogChoices catalog={geography} values={form.scope==='DOMESTIC'?form.regionIds:form.countryCodes} onChange={values=>change(form.scope==='DOMESTIC'?'regionIds':'countryCodes',values)}/>{show(form.scope==='DOMESTIC'?'regions':'countries')&&<p className={styles.error} role="alert">{show(form.scope==='DOMESTIC'?'regions':'countries')}</p>}</fieldset>}
       {scopeChanged&&<section aria-label="Đối chiếu cảng khi đổi phạm vi">{(scopeData.loading||portCatalog.loading)?<Loading label="Đang đối chiếu các lần ghé cảng…"/>:(scopeData.error||portCatalog.error)?<Notice title="Chưa đối chiếu được phạm vi" tone="warning">{scopeData.error?.message||portCatalog.error}<Button type="button" tone="secondary" onClick={()=>{scopeData.retry();portCatalog.retry()}}>Thử lại</Button></Notice>:Boolean(scopeData.data?.length)&&<Notice title="Các lần ghé cần xử lý trước khi đổi phạm vi" tone="warning"><ul>{scopeData.data?.map((issue,index)=><li key={issue.clientKey+':'+index}>{issue.message}</li>)}</ul><Link to={root+'/'+trip!.tripId+'/schedule'}>Mở lịch trình để xử lý</Link></Notice>}</section>}
+      </section>
+      <section className={styles.infoSection} aria-labelledby="trip-duration-heading">
+        <h3 id="trip-duration-heading">Thời lượng</h3>
+      <Field htmlFor="trip-band" label="Thời lượng *" error={durations.error||show('durationBand')}><select id="trip-band" value={form.durationBand} disabled={!permitted||busy||locked||durations.loading||Boolean(durations.error)||(gateway.mode==='api'&&Boolean(trip))} aria-invalid={Boolean(show('durationBand'))} onBlur={()=>setTouched(t=>({...t,durationBand:true}))} onChange={e=>change('durationBand',e.target.value as TripInfo['durationBand'])}><option value="">{durations.loading?'Đang tải thời lượng…':'Chọn thời lượng'}</option>{durations.data.filter(item=>supportedDuration(item.id)).map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select>{durations.error&&<Button type="button" tone="text" onClick={durations.retry}>Tải lại thời lượng</Button>}{gateway.mode==='api'&&trip&&!locked&&<small>Chuyến đang có giữ nhóm thời lượng để bảo toàn số ngày và nội dung. Chọn nhóm khác khi tạo chuyến mới.</small>}</Field>
+      {trip
+        ? <p>Khung hiện có {trip.durationDays} ngày.</p>
+        : supportedDuration(form.durationBand) && <p>Lịch trình bắt đầu với {durationRules[form.durationBand].defaultDays} ngày. Bạn có thể thêm ngày ở bước lập lịch trình, trong nhóm thời lượng đã chọn.</p>}
+      </section>
       {trip&&!full&&<p className={styles.note}>Dữ liệu hiện có: {trip.durationDays} ngày · Phạm vi: {domainStatus('source.scope',trip.plannedScope??'')}.</p>}
-      <Field htmlFor="trip-description" label="Giới thiệu (tùy chọn)"><textarea id="trip-description" rows={4} value={form.description} disabled={!permitted||busy} onChange={e=>change('description',e.target.value)}/></Field>
-      {error&&<Notice title="Chưa lưu được thông tin" tone="error">{error}<p>Bản nhập vẫn được giữ. Không tự gửi lại yêu cầu tạo chuyến.</p>{trip&&<Button type="button" tone="secondary" onClick={()=>setCompare(true)}>So sánh thông tin máy chủ</Button>}</Notice>}
+      {error&&<Notice title="Chưa lưu được thông tin" tone="error">{error}<p>Bản nhập vẫn được giữ. Bạn có thể sửa rồi thử lại.</p>{trip&&<Button type="button" tone="secondary" onClick={()=>setCompare(true)}>Đối chiếu bản đã lưu</Button>}</Notice>}
       <div className={styles.formFooter}><Link to={root}>Hủy</Link>{trip&&<Link to={`${root}/${trip.tripId}/schedule`}>Lịch trình</Link>}{permitted&&<Button type="submit" busy={busy} disabled={scopeBlocked||(!full&&!trip)||(full&&catalogBlocked)}>{busy?'Đang lưu…':!full?'Lưu tên và giới thiệu':'Lưu và lập lịch trình'}</Button>}</div>
     </form></Panel>{compare&&trip&&<InfoConflictDialog trip={trip} local={form} onClose={()=>setCompare(false)} onReplace={server=>{setTrip(server);setBaseline(structuredClone(server.info));setForm(structuredClone(server.info));setCompare(false);setError('');setAttempted(false);setTouched({})}}/>}{guard.prompt}
   </div>

@@ -7,7 +7,7 @@ import {realBookingApi,type BookingDetail} from '../api/real-booking-api'
 
 export function CruisePackageBookingHistory({booking}:{booking:BookingDetail}) {
   return <>{booking.passengers.filter(p=>p.purchasedFare||p.selectedFare).map(p=><Panel key={p.bookingPassengerId} title={`Gói du thuyền · ${p.fullName}`}>
-    <p>{p.purchasedFare?.fare.templateName??p.selectedFare?.templateName} · {p.purchasedFare?.fare.logicalCategory??p.selectedFare?.logicalCategory} · {p.purchasedFare?.fare.amount??p.selectedFare?.amount} USD/người</p>
+    <p>{p.purchasedFare?.fare.templateName??p.selectedFare?.templateName} · {p.purchasedFare?.fare.logicalCategory??p.selectedFare?.logicalCategory} · {p.purchasedFare?.fare.amount??p.selectedFare?.amount} {p.purchasedFare?.fare.currencyCode??p.selectedFare?.currencyCode}/người</p>
     <p>{p.purchasedFare?'Nội dung gói du thuyền đã mua được lưu tại thời điểm xác nhận.':'Lựa chọn theo báo giá đã chốt; đặt chỗ chưa xác nhận mua.'}</p>
     <details><summary>Tham chiếu phiên bản gói và giá</summary><p>Phiên bản mẫu: {p.purchasedFare?.fare.templateVersionId??p.selectedFare?.templateVersionId}</p><p>Phiên bản giá: {p.purchasedFare?.fare.priceRevisionId??p.selectedFare?.priceRevisionId}</p>{p.purchasedFare&&<p>Mua lúc: {new Date(p.purchasedFare.fare.purchasedAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'})} (giờ tàu)</p>}</details>
     <p>{p.cabinSelectionMode==='CATEGORY_HOLD'?`Chưa phân Cabin · giữ nguyên nhóm theo hạng ${p.purchasedFare?.fare.logicalCategory??p.selectedFare?.logicalCategory??cabinTypeLabel(p.fareCabinCategory??'')}`:`Cabin vật lý: ${p.cabinNumber??'Chưa phân Cabin'}`}</p>

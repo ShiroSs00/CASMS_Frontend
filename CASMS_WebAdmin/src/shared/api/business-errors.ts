@@ -161,6 +161,8 @@ const messages:Readonly<Record<string,string>>={
   READY_CONFIRMATION_REQUIRED:'Chuyến chưa được xác nhận sẵn sàng. Quản lý vận hành cần xác nhận trước khi mở bán.',
   PRICING_APPROVER_UNRESOLVED:'Chưa duyệt chính sách giá.',
   SHIP_REQUIRED:'Chưa gán tàu cho chuyến khởi hành. Quản lý lịch trình cần gán tàu trước khi gửi kế hoạch.',
+  ASM_HANDOFF_PENDING:'Cần kết quả từ Quản lý dịch vụ trước khi gửi hồ sơ.',
+  SHIP_HANDOFF_PENDING:'Cần xác nhận từ Quản lý tàu trước khi gửi hồ sơ.',
   SHIP_ASSIGNMENT_VALIDATION_REQUIRED:'Tàu được phân công chưa đáp ứng hoặc chưa đủ dữ liệu để xác nhận điều kiện khai thác, lịch và sức chứa. Mở phần tàu để đối chiếu.',
   SHIP_CHANGE_IMPACT_BLOCKED:'Dữ liệu phụ thuộc chưa có quy trình chuyển tàu an toàn. Giữ nguyên phân công và liên hệ người phụ trách nghiệp vụ.',
   CHANGE_SHIP_REQUIRES_IMPACT_WORKFLOW:'Thay đổi tàu cần qua bước đánh giá tác động. Mở phần đổi tàu để đối chiếu.',

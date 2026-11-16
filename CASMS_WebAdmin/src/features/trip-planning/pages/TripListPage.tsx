@@ -36,7 +36,7 @@ export function TripListPage() {
         </div>
         {can('TRIP_CREATE') && !gateway.readOnly && (
           <Link className={styles.primaryLink} to={`${root}/new`}>
-            + Tạo chuyến đi
+            + Tạo khung chuyến
           </Link>
         )}
       </header>
@@ -98,7 +98,7 @@ export function TripListPage() {
               can('TRIP_CREATE') &&
               !gateway.readOnly && (
                 <Link className={styles.primaryLink} to={`${root}/new`}>
-                  Tạo chuyến đi
+                  Tạo khung chuyến
                 </Link>
               )
             )}

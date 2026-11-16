@@ -45,6 +45,7 @@ function toCruise(dto: CruiseDto): CruiseRecord {
     cruiseId: dto.cruiseId,
     cruiseCode: dto.cruiseCode,
     cruiseName: dto.cruiseName,
+    expectedPassengerCount: dto.expectedPassengerCount ?? null,
     shipId: dto.shipId ?? dto.ship?.shipId ?? null,
     cruiseType: dto.cruiseType,
     departureDatetime: dto.departureDatetime,
@@ -171,6 +172,14 @@ export const cruiseApi = {
     }
   },
   listShips,
+  eligibleShips(sourceVersionId: string, expectedSourceVersionRevision: number, departureDatetime: string, expectedPassengerCount: number, signal?: AbortSignal) {
+    return apiRequest<{
+      sourceVersionId: string; sourceVersionRevision: number; departureDatetime: string; returnDatetime: string;
+      expectedPassengerCount: number; ships: Pick<ShipRecord, 'shipId'|'shipName'|'shipCode'|'totalCapacity'|'status'>[];
+    }>(`${root}/eligible-ships`, {method:'POST', signal, body:{
+      sourceVersionId, expectedSourceVersionRevision, departureDatetime:scheduleInstant(departureDatetime).toISOString(), expectedPassengerCount,
+    }})
+  },
   async listPorts(signal?: AbortSignal,tripId?:string) {
     // Planning catalog returns ACTIVE ports only, scoped authoritatively by Trip.
     const rows = await apiRequest<PortRecord[]>(tripId?'/trip-planning/catalogs/sources/ports':'/ports/active',{signal,...(tripId?{query:{tripId}}:{})})
@@ -245,13 +254,13 @@ export const cruiseApi = {
   async createCruise(draft: CruiseDraft, idempotencyKey: string, expectedSourceVersionRevision = draft.expectedSourceVersionRevision ?? undefined) {
     if (!idempotencyKey?.trim()) throw new ApiError('Thiếu mã thao tác tạo chuyến khởi hành.', 400, 'INVALID_INPUT')
     if (expectedSourceVersionRevision != null && (!draft.sourceVersionId || !Number.isSafeInteger(expectedSourceVersionRevision) || expectedSourceVersionRevision < 0)) throw new ApiError('Phiên dữ liệu nguồn không hợp lệ. Xem trước lại lịch trước khi tạo.', 400, 'INVALID_INPUT')
-    if(draft.creationPayloadVersion===2&&(!draft.sourceVersionId||expectedSourceVersionRevision==null||expectedSourceVersionRevision<1))throw new ApiError('Chọn phiên bản nguồn và xem trước lại lịch trước khi tạo chuyến.',400,'SOURCE_VERSION_REQUIRED')
+    if(draft.creationPayloadVersion&&(!draft.sourceVersionId||expectedSourceVersionRevision==null||expectedSourceVersionRevision<1))throw new ApiError('Chọn phiên bản nguồn và xem trước lại lịch trước khi tạo chuyến.',400,'SOURCE_VERSION_REQUIRED')
     // New source-linked intents omit inherited schedule fields. Older pending intents retain their exact wire shape.
-    const body = draft.creationPayloadVersion===2
-      ? {cruiseName:draft.cruiseName.trim(),sourceVersionId:draft.sourceVersionId,expectedSourceVersionRevision,departureDatetime:scheduleInstant(draft.departureDatetime).toISOString(),itineraryMode:draft.itineraryMode,...(draft.shipId?{shipId:draft.shipId}:{})}
+    const body = draft.creationPayloadVersion
+      ? {cruiseName:draft.cruiseName.trim(),sourceVersionId:draft.sourceVersionId,expectedSourceVersionRevision,departureDatetime:scheduleInstant(draft.departureDatetime).toISOString(),itineraryMode:draft.itineraryMode,...(draft.shipId?{shipId:draft.shipId}:{}),...(draft.creationPayloadVersion===3?{creationPayloadVersion:3,expectedPassengerCount:draft.expectedPassengerCount}:{})}
       : {...cruiseBody(draft),...(expectedSourceVersionRevision!=null?{expectedSourceVersionRevision}:{})}
     const saved=await apiRequest<CruiseDto>(root, { method: 'POST', body, idempotencyKey })
-    if(typeof saved?.cruiseId!=='string'||!saved.cruiseId.trim()||typeof saved.status!=='string'||draft.creationPayloadVersion===2&&(saved.sourceVersionId!==draft.sourceVersionId||draft.shipId&&saved.shipId!==draft.shipId))throw new ApiError('Phản hồi tạo chưa xác nhận được bản ghi đã lưu. Giữ mã thao tác để đối chiếu.',502)
+    if(typeof saved?.cruiseId!=='string'||!saved.cruiseId.trim()||typeof saved.status!=='string'||draft.creationPayloadVersion&&(saved.sourceVersionId!==draft.sourceVersionId||draft.shipId&&saved.shipId!==draft.shipId)||draft.creationPayloadVersion===3&&saved.expectedPassengerCount!==draft.expectedPassengerCount)throw new ApiError('Phản hồi tạo chưa xác nhận được bản ghi đã lưu. Giữ mã thao tác để đối chiếu.',502)
     return toCruise(saved)
   },
   async updateCruise(id: string, draft: CruiseDraft, original?: CruiseRecord) {

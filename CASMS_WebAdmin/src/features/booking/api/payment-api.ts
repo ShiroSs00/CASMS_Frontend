@@ -23,7 +23,7 @@ export const paymentApi = {
     return result
   },
   create: async (body: { bookingId: string; requestedAmount: number; currency: string; paymentMethod: string; idempotencyKey: string }) => {
-    if (body.currency !== 'USD') throw new Error('Giao dịch mới chỉ dùng USD. Cần đối chiếu tiền tệ đặt chỗ.')
+    if (!['USD', 'VND'].includes(body.currency)) throw new Error('Cần đối chiếu đơn vị tiền tệ của đặt chỗ.')
     return payment(await apiRequest<unknown>('/payment/process', { method: 'POST', body }), body.bookingId)
   },
   confirm: async (row: Payment, reference: string) => {

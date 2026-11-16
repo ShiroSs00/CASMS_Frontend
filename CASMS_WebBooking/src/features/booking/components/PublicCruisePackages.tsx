@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import type { useReadQuery } from '@/shared/api'
+import { useReadQuery } from '@/shared/api'
 import type { CapturedCruisePackageBenefit, cruisePackageApi } from '@/domain/cruise-package'
 import { Badge, Button, Empty, Field, Loading, Notice } from '@/shared/ui'
 import { cabinTypeName } from '../model/booking-presentation'
 import { cruiseDetailSections } from '../model/live-booking-navigation'
 import { publicContentFailure } from '../model/public-content-feedback'
+import { useUsdReference } from './UsdReference'
 import styles from './CruiseDetail.module.css'
 
 const inclusionLabels = {
@@ -18,7 +19,11 @@ type Catalog = Awaited<ReturnType<typeof cruisePackageApi.available>>
 type CatalogOffer = Catalog['offers'][number]
 export type CruisePackageRead = ReturnType<typeof useReadQuery<Catalog>>
 
-function OfferCard({ offer }: { offer: CatalogOffer }) {
+type DisplayRate = { effectiveOn: string; vndPerUsd: number; source: string }
+const money = (amount: number, currency: string) =>
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency }).format(amount)
+
+function OfferCard({ offer, rate }: { offer: CatalogOffer; rate?: DisplayRate | null }) {
   const { selection } = offer
   const included = selection.benefits.filter(benefit =>
     benefit.inclusion === 'INCLUDED' || benefit.inclusion === 'LIMITED_INCLUDED',
@@ -30,8 +35,11 @@ function OfferCard({ offer }: { offer: CatalogOffer }) {
       {selection.templateDescription && <p>{selection.templateDescription}</p>}
     </header>
     <p className={styles.offerPrice}>
-      <strong>{selection.amount.replace('.', ',')} {offer.currencyCode}</strong><span> / người</span>
+      <strong>{money(Number(selection.amount), offer.currencyCode)}</strong><span> / người</span>
     </p>
+    {rate && offer.currencyCode === 'VND' && <p className={styles.timeNote}>
+      Ước tính {money(Number(selection.amount) / rate.vndPerUsd, 'USD')} mỗi người
+    </p>}
     {included.length > 0 && <ul className={styles.offerPreview} aria-label="Quyền lợi bao gồm">
       {included.map(benefit => <li key={benefit.sourceBenefitId}>{benefit.resourceName}
         {benefit.inclusion === 'LIMITED_INCLUDED' && ' (có giới hạn)'}</li>)}
@@ -40,6 +48,9 @@ function OfferCard({ offer }: { offer: CatalogOffer }) {
 }
 
 export function PublicCruisePackages({ query }: { query: CruisePackageRead }) {
+  const [showUsd, setShowUsd] = useState(false)
+  const hasVnd = query.data?.offers.some(offer => offer.currencyCode === 'VND') ?? false
+  const { rate, loading: rateLoading } = useUsdReference(showUsd && hasVnd)
   const groups = new Map<string, CatalogOffer[]>()
   for (const offer of query.data?.offers ?? []) {
     const cabinType = offer.selection.cabinType
@@ -50,6 +61,14 @@ export function PublicCruisePackages({ query }: { query: CruisePackageRead }) {
 
   return <section id={cruiseDetailSections.packages} className={styles.section} aria-labelledby="public-packages-heading">
     <div className={styles.sectionHeading}><h2 id="public-packages-heading" tabIndex={-1}>Hạng cabin &amp; gói du thuyền</h2></div>
+    {hasVnd && <div>
+      <Button tone="secondary" aria-pressed={showUsd} onClick={() => setShowUsd(value => !value)}>
+        {showUsd ? 'Ẩn giá USD tham khảo' : 'Xem giá USD tham khảo'}
+      </Button>
+      {showUsd && <p className={styles.timeNote} role="status">{rateLoading ? 'Đang tải tỷ giá…'
+        : rate ? `Giá USD ước tính theo tỷ giá ngày ${rate.effectiveOn.split('-').reverse().join('/')}. Bạn thanh toán bằng VND.`
+          : 'Chưa có tỷ giá tham khảo. Bạn vẫn có thể đặt và thanh toán bằng VND.'}</p>}
+    </div>}
     <div className={styles.readResult} aria-live="polite" aria-busy={query.loading}>
       {query.loading && <Loading label="Đang tải hạng cabin và gói du thuyền…" />}
       {query.error && <Notice title="Chưa tải được hạng cabin và gói du thuyền" tone="warning">
@@ -59,7 +78,7 @@ export function PublicCruisePackages({ query }: { query: CruisePackageRead }) {
       {query.data && groups.size === 0 && <Empty title="Chưa có gói để hiển thị" />}
       {[...groups].map(([cabinType, offers]) => <section className={styles.offerGroup} key={cabinType}>
         <h3>{cabinTypeName(cabinType)}</h3>
-        <div className={styles.offerGrid}>{offers.map(offer => <OfferCard key={offer.selection.offerId} offer={offer} />)}</div>
+        <div className={styles.offerGrid}>{offers.map(offer => <OfferCard key={offer.selection.offerId} offer={offer} rate={rate} />)}</div>
       </section>)}
     </div>
   </section>

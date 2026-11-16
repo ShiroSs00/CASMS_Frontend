@@ -56,6 +56,7 @@ export function decodePublicItinerary(value: unknown, id: string) {
   if (data.cruiseId !== id) throw new ApiError('Lịch trình không khớp chuyến khởi hành.', 502)
   return {
     cruiseId: id, departureDatetime: instant(data.departureDatetime), returnDatetime: instant(data.returnDatetime),
+    departurePortName: typeof data.departurePortName === 'string' ? data.departurePortName : null,
     durationDays: duration(data.durationDays), durationNights: duration(data.durationNights),
     days: list(data.days).map(value => {
       const day = row(value)
@@ -70,8 +71,10 @@ export function decodePublicItinerary(value: unknown, id: string) {
           return { sequence: seq, portName: typeof port.portName === 'string' ? port.portName : null,
             countryCode: typeof port.countryCode === 'string' ? port.countryCode : null,
             portTimeZoneId: zone(port.portTimeZoneId), arrival: instant(port.arrival), departure: instant(port.departure),
-            isEmbarkation: typeof port.isEmbarkation === 'boolean' ? port.isEmbarkation : seq === 1,
+            isEmbarkation: port.isEmbarkation === true,
             isDisembarkation: typeof port.isDisembarkation === 'boolean' ? port.isDisembarkation : false,
+            disembarkationStartsAt: port.disembarkationStartsAt == null ? null : instant(port.disembarkationStartsAt),
+            disembarkationEndsAt: port.disembarkationEndsAt == null ? null : instant(port.disembarkationEndsAt),
             destinationVisits: list(port.destinationVisits).map(value => {
               const visit = row(value)
               return { sequence: sequence(visit.sequence), destinationName: typeof visit.destinationName === 'string' ? visit.destinationName : null }

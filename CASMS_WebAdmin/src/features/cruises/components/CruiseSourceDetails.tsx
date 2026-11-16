@@ -14,7 +14,7 @@ export function CruiseSourceDetails({cruise}:{cruise:CruiseRecord}) {
     {preview&&<SourceScheduleDialog versionId={cruise.sourceVersionId} onClose={()=>setPreview(false)}/>}
     <RecordFacts entries={[["Chuyến đi nguồn",cruise.sourceTripCode??'Chưa có mã chuyến trong phản hồi'],['Phiên bản',cruise.sourceVersionNumber==null?'Chưa có số phiên bản trong phản hồi':'Phiên bản '+cruise.sourceVersionNumber]]}/>
     <div className={styles.links}>
-    {cruise.sourceTripId&&access.canDo('TRIP_READ')&&<div className={styles.linkRow}><div><strong>Lịch trình mẫu đang áp dụng</strong></div><Button tone="secondary" onClick={()=>setPreview(true)}>Xem lịch trình đã chốt</Button></div>}
+    {cruise.sourceTripId&&access.roles.includes('CRUISE_MANAGER')&&access.canDo('CRUISE_CREATE')&&<div className={styles.linkRow}><div><strong>Lịch trình mẫu đang áp dụng</strong></div><Button tone="secondary" onClick={()=>setPreview(true)}>Xem lịch trình đã chốt</Button></div>}
     {access.has('CRUISE_READ')&&<div className={styles.linkRow}><div><strong>Các chuyến khởi hành từ cùng mẫu</strong></div><ButtonLink tone="secondary" to={'/admin/cruises?'+new URLSearchParams({sourceVersionId:cruise.sourceVersionId,...(cruise.sourceTripId?{sourceTripId:cruise.sourceTripId}:{})})}>Xem các chuyến khởi hành cùng mẫu</ButtonLink></div>}
     </div>
 

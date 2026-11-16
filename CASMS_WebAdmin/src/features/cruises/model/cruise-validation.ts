@@ -5,6 +5,19 @@ export type CruiseFormErrors = Partial<Record<keyof CruiseDraft, string>>
 
 const DISPLAY_TIME_ZONE = 'Asia/Ho_Chi_Minh'
 
+export function parseCruiseDate(value: string) {
+  const match = /^(\d{2})\/(\d{2})\/([1-9]\d{3})$/.exec(value.trim())
+  if (!match) return null
+  const [, day, month, year] = match
+  const iso = `${year}-${month}-${day}`
+  const date = new Date(`${iso}T00:00:00Z`)
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === iso ? iso : null
+}
+
+export function validCruiseClock(value: string) {
+  return /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(value.trim())
+}
+
 export function scheduleInstant(value: string) {
   const hasTimeZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)
   try { return new Date(hasTimeZone ? value : wallTimeToInstant(value, SHIP_TIME_ZONE)) } catch { return new Date(NaN) }

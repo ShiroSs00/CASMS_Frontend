@@ -41,13 +41,13 @@ function journeyFacts(itinerary: PublicItineraryRead['data']) {
 }
 
 function startingPrice(offers: NonNullable<CruisePackageRead['data']>['offers']) {
-  let lowest: { amount: string; units: bigint } | undefined
-  for (const { selection: { amount } } of offers) {
+  let lowest: { amount: string; currency: string; units: bigint } | undefined
+  for (const { selection: { amount }, currencyCode } of offers) {
     const [whole, fraction = ''] = amount.split('.')
     const units = BigInt(whole + fraction.padEnd(4, '0'))
-    if (!lowest || units < lowest.units) lowest = { amount, units }
+    if (!lowest || units < lowest.units) lowest = { amount, currency: currencyCode, units }
   }
-  return lowest?.amount.replace('.', ',')
+  return lowest && new Intl.NumberFormat('vi-VN', { style: 'currency', currency: lowest.currency }).format(Number(lowest.amount))
 }
 
 function DepartureGallery({ photos }: { photos: ReturnType<typeof photosForPorts> }) {
@@ -118,7 +118,7 @@ function TrustAssurance() {
     <h2 id="cruise-trust-heading" tabIndex={-1}>Thông tin đặt chỗ</h2>
     <div className={styles.faq}>
       <details><summary>Tôi có cần tài khoản để đặt chỗ?</summary><p>Bạn có thể gửi yêu cầu đặt chỗ mà không cần đăng nhập.</p></details>
-      <details><summary>Khi nào tôi biết tổng giá đặt chỗ?</summary><p>Tổng giá được xác nhận trong báo giá sau khi bạn chọn gói, cabin và phương án thanh toán.</p></details>
+      <details><summary>Khi nào tôi biết tổng tiền đặt chỗ?</summary><p>Tổng tiền được xác nhận trong báo giá sau khi bạn chọn gói, cabin và phương án thanh toán.</p></details>
       <details><summary>Làm sao để xem lại thông tin đã đặt?</summary><p>Dùng mã đặt chỗ cùng email hoặc số điện thoại của người đại diện để tra cứu.</p><Link to="/booking/lookup">Tra cứu đặt chỗ</Link></details>
     </div>
   </section>
@@ -126,7 +126,7 @@ function TrustAssurance() {
 
 function BookingPrice({ price }: { price?: string }) {
   return price === undefined ? null : <p className={styles.referencePrice}>
-    <span>Giá tham khảo từ</span><strong>{price} USD</strong><span> / người</span>
+    <span>Giá từ</span><strong>{price}</strong><span> / người</span>
   </p>
 }
 
@@ -237,7 +237,7 @@ export function CruiseDepartureExperience({ cruise, back }: { cruise: LiveCruise
           />}
           <BookingPrice price={price} />
           <div className={styles.actions}>
-            {bookingUrl && <ButtonLink to={bookingUrl} autoWidth>Chọn cabin</ButtonLink>}
+            {bookingUrl && <ButtonLink to={bookingUrl} autoWidth>Bắt đầu đặt chỗ</ButtonLink>}
             <ButtonLink to={sectionPath(cruiseDetailSections.itinerary)} tone="secondary" autoWidth>Xem lịch trình</ButtonLink>
           </div>
         </div>
@@ -269,14 +269,14 @@ export function CruiseDepartureExperience({ cruise, back }: { cruise: LiveCruise
             <p>{publicContentFailure(bookingError ?? displayError)}</p>
             <Button tone="secondary" onClick={sale.retry}>Kiểm tra lại</Button>
           </Notice>}
-          {bookingUrl && <ButtonLink to={bookingUrl} fullWidth>Chọn cabin</ButtonLink>}
+          {bookingUrl && <ButtonLink to={bookingUrl} fullWidth>Bắt đầu đặt chỗ</ButtonLink>}
           {booking?.data && !bookingUrl && <p>Chưa thể đặt chỗ cho chuyến này.</p>}
         </div>
       </aside>
     </div>
     {bookingUrl && <div className={styles.mobileBooking} ref={mobileBooking}>
       {price !== undefined ? <BookingPrice price={price} /> : <p>Đang mở bán</p>}
-      <ButtonLink to={bookingUrl} autoWidth>Chọn cabin</ButtonLink>
+      <ButtonLink to={bookingUrl} autoWidth>Bắt đầu đặt chỗ</ButtonLink>
     </div>}
   </div>
 }

@@ -22,6 +22,7 @@ import { scheduleInstant } from '../model/cruise-validation'
 import { ItineraryDayBrowser, TemplateSchedule } from '@/domain/itinerary-day'
 import { ScheduleContents } from '../components/DepartureData'
 import { CruiseSourceDetails } from '../components/CruiseSourceDetails'
+import { CruiseDateTimeFields } from '../components/CruiseDateTimeFields'
 import styles from '../components/Cruises.module.css'
 import type { CruiseDraft, CruiseRecord, CruiseStatus, CruiseType, PortRecord } from '../model/cruise-record'
 import { validateCruiseDraft, localCruiseInput, type CruiseFormErrors } from '../model/cruise-validation'
@@ -39,7 +40,7 @@ const EMPTY_DRAFT: CruiseDraft = {
 
 const calendarLabel = (value: string) => {
   const [date, time] = value.split('T')
-  return time ? date.split('-').reverse().join('/') + ' · ' + time.slice(0, 5) : 'Chưa xác định'
+  return time ? date.split('-').reverse().join('/') + ' · ' + time.replace(/^(\d{2}:\d{2}):00$/, '$1') : 'Chưa xác định'
 }
 
 function convertPortClockToVietnamClock(rawTime: string, portTimeZoneId?: string | null, referenceDate?: string): { clock: string; label: string } {
@@ -94,14 +95,15 @@ function resolveTemplateDepartureClock(source: PublishedSource | null | undefine
     const clock = day1.plannedDepartureTime.length === 5 ? `${day1.plannedDepartureTime}:00` : day1.plannedDepartureTime.slice(0, 8)
     return { clock, label: `${clock.slice(0, 5)} (giờ Việt Nam)` }
   }
-  const sortedStops = [...source.stops].sort((a, b) => a.stopOrder - b.stopOrder)
-  const firstStop = sortedStops.find(s => s.arrivalDayNumber === 1) ?? sortedStops[0]
-  const rawTime = firstStop?.plannedArrivalTime ?? firstStop?.plannedDepartureTime
+  const firstStop = source.stops.find(stop => stop.isEmbarkation && stop.departureDayNumber === 1)
+  const rawTime = firstStop?.plannedDepartureTime
   if (!rawTime) return null
   return convertPortClockToVietnamClock(rawTime, firstStop?.timeZoneId, referenceDate)
 }
 
 export function CruiseFormPage() {
+  const [dateFieldsGeneration, setDateFieldsGeneration] = useState(0)
+  const [dateFieldsIncomplete, setDateFieldsIncomplete] = useState(false)
   const access = useSessionAccess()
   const { cruiseId } = useParams()
   const editing = Boolean(cruiseId)
@@ -126,6 +128,9 @@ export function CruiseFormPage() {
   const [errors, setErrors] = useState<CruiseFormErrors>({})
   const [hasSubmitted, setHasSubmitted] = useState(false)
   const [nameEdited, setNameEdited] = useState(() => Boolean(createIntent.record?.payload.cruiseName) || Boolean(restored?.nameEdited))
+  const [initialSourceId] = useState(() => new URLSearchParams(location.search).get('sourceVersionId'))
+  const [shipEdited, setShipEdited] = useState(() => Boolean(restored?.draft.shipId))
+  const [passengerInput, setPassengerInput] = useState(() => String(createIntent.record?.payload.expectedPassengerCount ?? restored?.draft.expectedPassengerCount ?? ''))
   const [submitError, setSubmitError] = useState('')
   const [busy, setBusy] = useState(false)
   const [appliedPreview, setAppliedPreview] = useState('')
@@ -150,7 +155,6 @@ export function CruiseFormPage() {
   const previewScheduleData = previewSchedule?.key === scheduleKey ? previewSchedule.data : null
   useLayoutEffect(() => () => scheduleRequest.current?.abort(), [scheduleKey])
 
-  const canReadCruises = access.canDo('CRUISE_READ')
   const loadSchedule = useCallback(async (apply: boolean) => {
     if (!draft.departureDatetime || !sourceId) return
     scheduleRequest.current?.abort()
@@ -167,30 +171,6 @@ export function CruiseFormPage() {
       const instant = scheduleInstant(draft.departureDatetime).toISOString()
       const schedule = await departureApi.preview(sourceId, instant, request.signal)
       if (request.signal.aborted) return
-      let hasShipConflict = false
-      if (apply && draft.shipId && canReadCruises) {
-        try {
-          const existingCruises = await cruiseApi.list(
-            { search: '', shipId: draft.shipId, status: '', cruiseType: '', departureDate: '', page: 1, pageSize: 100 },
-            request.signal
-          )
-          if (request.signal.aborted) return
-          const startMs = schedule.departureDatetime ? Date.parse(schedule.departureDatetime) : NaN
-          const endMs = schedule.returnDatetime ? Date.parse(schedule.returnDatetime) : NaN
-          const overlapping = existingCruises?.items?.find(item => {
-            if (item.cruise.status === 'CANCELLED' || item.cruise.status === 'COMPLETED') return false
-            const itemStart = Date.parse(item.cruise.departureDatetime)
-            const itemEnd = Date.parse(item.cruise.returnDatetime)
-            return Number.isFinite(itemStart) && Number.isFinite(itemEnd) && Number.isFinite(startMs) && Number.isFinite(endMs) && itemStart < endMs && itemEnd > startMs
-          })
-          if (overlapping) {
-            hasShipConflict = true
-            setApplyScheduleError(`Tàu phân công đang trùng lịch với chuyến ${overlapping.cruise.cruiseCode} (${overlapping.cruise.cruiseName}). Vui lòng chọn ngày giờ khác hoặc đổi tàu.`)
-          }
-        } catch {
-          // Bỏ qua nếu không truy vấn được danh sách chuyến; Backend vẫn kiểm tra tại POST /cruise
-        }
-      }
       if (apply) {
         setDraft(current => ({
           ...current,
@@ -199,17 +179,19 @@ export function CruiseFormPage() {
           returnPortId: schedule.returnPortId ?? current.returnPortId,
         }))
         setPreviewRevision(schedule.sourceVersionRevision)
-        setAppliedPreview(!hasShipConflict ? scheduleKey : '')
+        setAppliedPreview(scheduleKey)
       }
       setPreviewSchedule({ key: scheduleKey, data: schedule })
       if (!apply) setScheduleDetailOpen(true)
     } catch (err) {
       if (!request.signal.aborted) setApplyScheduleError(err instanceof Error ? err.message : 'Không tải được lịch trình theo ngày giờ này.')
     } finally {
-      scheduleRequest.current = null
-      setApplyingSchedule(false)
+      if (scheduleRequest.current === request) {
+        scheduleRequest.current = null
+        setApplyingSchedule(false)
+      }
     }
-  }, [sourceId, draft.departureDatetime, draft.shipId, scheduleKey, canReadCruises])
+  }, [sourceId, draft.departureDatetime, scheduleKey])
 
   const source = useReadQuery('cruise-source:' + sourceId, useCallback(signal => sourceId ? readPublishedSource(sourceId, signal) : Promise.resolve(null), [sourceId]))
   const displayName = !editing && sourceId && source.data && !nameEdited ? source.data.tripName : draft.cruiseName
@@ -227,11 +209,26 @@ export function CruiseFormPage() {
   const [detailAttempt, setDetailAttempt] = useState(0)
   const [storedPorts, setStoredPorts] = useState<PortRecord[]>([])
   const [loadedId, setLoadedId] = useState<string | null>(null)
-  const newDraftChanged = !editing && Boolean(sourceId || draft.shipId || Object.entries(EMPTY_DRAFT).some(([key, value]) => draft[key as keyof CruiseDraft] !== value))
+  const newDraftChanged = !editing && Boolean(
+    sourceId !== initialSourceId || shipEdited || passengerInput || dateFieldsIncomplete || (draft.plannedScope ?? EMPTY_DRAFT.plannedScope) !== EMPTY_DRAFT.plannedScope ||
+    Object.entries(EMPTY_DRAFT).some(([key, value]) => draft[key as keyof CruiseDraft] !== value),
+  )
   const existingDraftChanged = Boolean(editing && storedCruise && loadedId === cruiseId && (draft.cruiseName !== storedCruise.cruiseName || draft.shipId !== storedCruise.shipId || draft.departureDatetime !== localCruiseInput(storedCruise.departureDatetime) || draft.returnDatetime !== localCruiseInput(storedCruise.returnDatetime) || draft.departurePortId !== storedCruise.departurePortId || draft.returnPortId !== storedCruise.returnPortId || draft.plannedScope !== (storedCruise.plannedScope ?? undefined) || draft.itineraryMode !== storedCruise.itineraryMode))
   const guard = useUnsavedFormGuard(newDraftChanged || existingDraftChanged, busy, (current, next) => current.pathname !== next.pathname)
   const submitLock = useRef(false)
-  const canSave = (!sourceId || appliedPreview === JSON.stringify([sourceId, draft.departureDatetime]) && previewRevision != null && source.data?.revision === previewRevision) && (editing || Boolean(sourceId)) && (!canChooseInitialShip || Boolean(draft.shipId)) && !uncertain && !invalidSource && createIntent.owner === (access.userId ?? '') && (!sourceId || !source.loading && !source.error && source.data?.versionId === sourceId) && !portsLoading && !portsError && access.canDo(editing ? 'CRUISE_UPDATE_DRAFT' : 'CRUISE_CREATE') && (!editing || (loadedId === cruiseId && currentStatus === 'DRAFT'))
+  const passengerCount = Number(passengerInput)
+  const validPassengerCount = /^[0-9]+$/.test(passengerInput) && Number.isInteger(passengerCount) && passengerCount > 0 && passengerCount <= 2147483647
+  const eligibilityKey = !editing && canChooseInitialShip && !uncertain && sourceId && validPassengerCount &&
+    appliedPreview === scheduleKey && previewRevision != null && previewScheduleData ? JSON.stringify([scheduleKey, previewRevision, passengerCount]) : ''
+  const eligible = useReadQuery('cruise-eligible-ships:' + eligibilityKey, useCallback(
+    signal => eligibilityKey && sourceId && previewRevision != null
+      ? cruiseApi.eligibleShips(sourceId, previewRevision, draft.departureDatetime, passengerCount, signal)
+      : Promise.resolve(null),
+    [eligibilityKey, sourceId, previewRevision, draft.departureDatetime, passengerCount]))
+  const suitableShips = eligibilityKey && eligible.data?.expectedPassengerCount === passengerCount &&
+    eligible.data?.sourceVersionId === sourceId && eligible.data?.sourceVersionRevision === previewRevision &&
+    Date.parse(eligible.data.departureDatetime) === scheduleInstant(draft.departureDatetime).getTime() ? eligible.data.ships : []
+  const canSave = (!sourceId || appliedPreview === JSON.stringify([sourceId, draft.departureDatetime]) && previewRevision != null && source.data?.revision === previewRevision) && (editing || Boolean(sourceId)) && (editing || !canChooseInitialShip || suitableShips.some(ship => ship.shipId === draft.shipId)) && !uncertain && !invalidSource && createIntent.owner === (access.userId ?? '') && (!sourceId || !source.loading && !source.error && source.data?.versionId === sourceId) && !portsLoading && !portsError && access.canDo(editing ? 'CRUISE_UPDATE_DRAFT' : 'CRUISE_CREATE') && (!editing || (loadedId === cruiseId && currentStatus === 'DRAFT'))
 
   useEffect(() => {
     if (!cruiseId) return
@@ -279,20 +276,12 @@ export function CruiseFormPage() {
   }, [portsAttempt, sourceId, sourceTripId, portRequestKey, invalidSource, editing, storedCruise, cruiseId])
 
   const portOptions = [...(portsLoadedKey === portRequestKey ? ports : []), ...(loadedId === cruiseId ? storedPorts : []).filter((port, index, all) => port && !ports.some(item => item.portId === port.portId) && all.findIndex(item => item?.portId === port.portId) === index)]
-  const selectedShip = canChooseInitialShip && draft.shipId ? initialShips.data?.find(ship => ship.shipId === draft.shipId) ?? null : null
-
-  useEffect(() => {
-    if (!canChooseInitialShip || editing || draft.shipId || !initialShips.data?.length) return
-    const operationalShips = initialShips.data.filter(ship => ['READY', 'IN_SERVICE'].includes(ship.status))
-    if (operationalShips.length >= 1) {
-      setDraft(current => current.shipId ? current : { ...current, shipId: operationalShips[0].shipId })
-    }
-  }, [canChooseInitialShip, editing, draft.shipId, initialShips.data])
+  const selectedShip = suitableShips.find(ship => ship.shipId === draft.shipId)
 
   useEffect(() => {
     if (editing || !sourceId || !draft.departureDatetime || invalidSource) return
     void loadSchedule(true)
-  }, [editing, sourceId, draft.departureDatetime, draft.shipId, invalidSource, loadSchedule])
+  }, [editing, sourceId, draft.departureDatetime, invalidSource, loadSchedule])
 
   function update<K extends keyof CruiseDraft>(key: K, value: CruiseDraft[K]) {
     if (key === 'departureDatetime' && value !== draft.departureDatetime) {
@@ -304,11 +293,12 @@ export function CruiseFormPage() {
       setSubmitError('')
     }
     if (key === 'shipId' && value !== draft.shipId) {
+      setShipEdited(true)
       setApplyScheduleError('')
       setSubmitError('')
     }
     if (key === 'cruiseName') setNameEdited(true)
-    let next: CruiseDraft = { ...draft, cruiseName: displayName, [key]: value }
+    let next: CruiseDraft = { ...draft, cruiseName: displayName, ...(!editing && key === 'departureDatetime' && value !== draft.departureDatetime ? {shipId:null} : {}), [key]: value }
     if (key === 'departureDatetime' && sourceEditing && storedCruise && typeof value === 'string' && value) {
       try {
         const durationMs = Date.parse(storedCruise.returnDatetime) - Date.parse(storedCruise.departureDatetime)
@@ -335,8 +325,9 @@ export function CruiseFormPage() {
     setPreviewSchedule(null)
     setApplyScheduleError('')
     setParams(next, { replace: true }); setAppliedPreview(''); setPreviewRevision(null)
-    setDraft(old => ({ ...old, cruiseName: nameEdited ? old.cruiseName : name ?? '', returnDatetime: '', departurePortId: '', returnPortId: '' }))
+    setDraft(old => ({ ...old, cruiseName: nameEdited ? old.cruiseName : name ?? '', shipId: null, returnDatetime: '', departurePortId: '', returnPortId: '' }))
     setErrors({}); setSubmitError('')
+    setDateFieldsIncomplete(false)
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -347,8 +338,8 @@ export function CruiseFormPage() {
     const mayReplay = !editing && replay && createIntent.record?.status === 'unknown' && !createIntent.storageError && createIntent.owner === (access.userId ?? '') && access.canDo('CRUISE_CREATE')
     if (submitLock.current || (!canSave && !mayReplay)) return
     if (editing && storedCruise && !storedCruise.sourceVersionId && !storedCruise.sourceTripId && !['DOMESTIC', 'INTERNATIONAL'].includes(draft.plannedScope ?? '')) { setSubmitError('Chọn phạm vi hành trình trước khi lưu chuyến khởi hành nhập trực tiếp.'); return }
-    const input = mayReplay ? createIntent.record!.payload : { ...draft, cruiseName: displayName, ...(!editing && sourceId && source.data ? { itineraryMode: draft.itineraryMode || ('FIXED' as const), sourceVersionId: sourceId, expectedSourceVersionRevision: previewRevision, creationPayloadVersion: 2 as const, cruiseType: source.data.durationDays === 1 ? 'ONE_DAY' as const : 'MULTI_DAYS' as const } : {}) }
-    if (!editing && !mayReplay && canChooseInitialShip && (!input.shipId || initialShips.loading || initialShips.error || !initialShips.data?.some(ship => ship.shipId === input.shipId && ['READY', 'IN_SERVICE'].includes(ship.status)))) { setSubmitError('Vui lòng chọn tàu phân công đang sẵn sàng hoặc đang khai thác từ danh sách hiện tại.'); return }
+    const input = mayReplay ? createIntent.record!.payload : { ...draft, cruiseName: displayName, ...(!editing && sourceId && source.data ? { itineraryMode: draft.itineraryMode || ('FIXED' as const), sourceVersionId: sourceId, expectedSourceVersionRevision: previewRevision, creationPayloadVersion: canChooseInitialShip ? 3 as const : 2 as const, ...(canChooseInitialShip ? {expectedPassengerCount:passengerCount} : {}), cruiseType: source.data.durationDays === 1 ? 'ONE_DAY' as const : 'MULTI_DAYS' as const } : {}) }
+    if (!editing && !mayReplay && canChooseInitialShip && (eligible.loading || eligible.error || !suitableShips.some(ship => ship.shipId === input.shipId))) { setSubmitError('Nhập số khách dự kiến và chọn tàu đủ chỗ, còn lịch trống.'); return }
     if (sourceEditing && storedCruise && (draft.departurePortId !== storedCruise.departurePortId || draft.returnPortId !== storedCruise.returnPortId)) { setSubmitError('Cảng đi và cảng về được kế thừa cố định từ lịch trình mẫu.'); return }
     setHasSubmitted(true)
     const nextErrors = validateCruiseDraft(input)
@@ -377,6 +368,17 @@ export function CruiseFormPage() {
       }
       if (error instanceof ApiError && ['INVALID_SCHEDULE', 'SHIP_SCHEDULE_CONFLICT'].includes(error.code ?? '')) setErrors(current => ({ ...current, returnDatetime: error.code === 'SHIP_SCHEDULE_CONFLICT' ? 'Thời gian này trùng lịch của tàu đã phân công.' : 'Kiểm tra ngày giờ khởi hành và kết thúc.' }))
       if (!(error instanceof ApiError && error.code === 'STALE_REVISION')) setSubmitError(error instanceof Error ? error.message : 'Không lưu được chuyến khởi hành.')
+      if (error instanceof ApiError && ['SHIP_CAPACITY_INSUFFICIENT','SHIP_SCHEDULE_CONFLICT','SHIP_NOT_ACTIVE'].includes(error.code ?? '') && !editing) {
+        const reason = error.code === 'SHIP_CAPACITY_INSUFFICIENT' ? 'Tàu không còn đủ chỗ cho số khách dự kiến.'
+          : error.code === 'SHIP_SCHEDULE_CONFLICT' ? 'Tàu vừa có chuyến trùng lịch.' : 'Tàu không còn sẵn sàng.'
+        setDraft(current => ({...current, shipId:null}))
+        setErrors(current => ({...current, shipId:reason}))
+        setSubmitError(reason + ' Chọn tàu khác trong danh sách mới.')
+        eligible.retry()
+      }
+      if (error instanceof ApiError && ['EXCURSION_DESTINATION_NOT_PLANNED', 'EXCURSION_DESTINATION_NOT_SERVED'].includes(error.code ?? '')) {
+        setSubmitError('Có tour bờ chưa gắn với điểm tham quan phù hợp của lần ghé. Về mẫu lịch trình để kiểm tra điểm tham quan và tour bờ.')
+      }
     } finally {
       submitLock.current = false
       setBusy(false)
@@ -387,78 +389,51 @@ export function CruiseFormPage() {
 
   return <CruiseFrame>
     <div className={styles.content}>
-      {uncertain && <Notice title={createIntent.record?.status === 'succeeded' ? 'Chuyến khởi hành đã được tạo' : 'Chưa xác định được kết quả lưu'} tone="warning"><p>{createIntent.record?.status === 'succeeded' ? 'Mở bản ghi đã được hệ thống xác nhận.' : 'Bản nhập và mã thao tác cũ được giữ nguyên. Chưa có API tra cứu riêng kết quả thao tác.'}</p><ButtonLink tone="secondary" to={createIntent.record?.cruiseId ? '/admin/cruises/' + createIntent.record.cruiseId : editing ? '/admin/cruises/' + cruiseId : '/admin/cruises'}>Đối chiếu chuyến khởi hành</ButtonLink>{!editing && createIntent.record?.status === 'unknown' && access.canDo('CRUISE_CREATE') && <Button disabled={busy || createIntent.storageError} onClick={() => void saveDraft(true)}>Gửi lại cùng yêu cầu</Button>}{!editing && createIntent.record?.status === 'succeeded' && <Button disabled={busy} onClick={() => { if (createIntent.startNew()) { setDraft(EMPTY_DRAFT); setNameEdited(false); setAppliedPreview(''); setPreviewRevision(null); setUncertain(false); setErrors({}); setSubmitError('') } }}>Tạo chuyến khởi hành khác</Button>}</Notice>}
-      <PageHeader breadcrumb="" title={editing ? 'Chỉnh sửa chuyến khởi hành' : businessCopy('cruise.source.create')} />
+      {uncertain && <Notice title={createIntent.record?.status === 'succeeded' ? 'Đã tạo tour' : editing ? 'Chưa xác nhận được thay đổi' : 'Chưa rõ tour đã được tạo hay chưa'} tone="warning">
+        {createIntent.record?.status !== 'succeeded' && <p>{editing ? 'Mở lại tour để kiểm tra thông tin đã lưu.' : 'Thông tin bạn đã nhập vẫn ở đây. Kiểm tra Danh sách tour trước khi thử lại.'}</p>}
+        <ButtonLink tone="secondary" to={createIntent.record?.cruiseId ? '/admin/cruises/' + createIntent.record.cruiseId : editing ? '/admin/cruises/' + cruiseId : '/admin/cruises'}>
+          {createIntent.record?.status === 'succeeded' && createIntent.record.cruiseId ? 'Mở tour vừa tạo' : editing ? 'Mở chi tiết tour' : 'Mở Danh sách tour'}
+        </ButtonLink>
+        {!editing && createIntent.record?.status === 'unknown' && access.canDo('CRUISE_CREATE') && <Button disabled={busy || createIntent.storageError} onClick={() => void saveDraft(true)}>Thử tạo tour lại</Button>}
+        {!editing && createIntent.record?.status === 'succeeded' && <Button disabled={busy} onClick={() => {
+          if (createIntent.startNew()) {
+            setDraft(EMPTY_DRAFT); setDateFieldsGeneration(generation => generation + 1); setDateFieldsIncomplete(false); setNameEdited(false); setAppliedPreview(''); setPreviewRevision(null); setUncertain(false); setErrors({}); setSubmitError('')
+          }
+        }}>Tạo tour khác</Button>}
+      </Notice>}
+      <PageHeader breadcrumb="" title={editing ? 'Chỉnh sửa chuyến khởi hành' : businessCopy('cruise.source.create')}
+        actions={!editing && access.canDo('CRUISE_READ') && <ButtonLink tone="secondary" to="/admin/cruises">Về danh sách tour</ButtonLink>} />
       {!editing && !sourceId && <DepartureSourcePicker value={sourceId} disabled={busy || uncertain} onChange={chooseSource} />}
       {changeSourceOpen && <Modal large title="Đổi lịch trình mẫu đã chọn" onClose={() => setChangeSourceOpen(false)} footer={<Button tone="secondary" onClick={() => setChangeSourceOpen(false)}>Đóng</Button>}>
         <DepartureSourcePicker value={sourceId} disabled={busy || uncertain} hidePreviewButton asPanel={false} onChange={(id, name) => { chooseSource(id, name); setChangeSourceOpen(false) }} />
       </Modal>}
-      {invalidSource && <Notice title="Thiếu phiên bản nguồn" tone="error">Liên kết tạo đang thiếu định danh phiên bản. Mở lại đúng phiên bản lịch trình đã phát hành; không tự chuyển sang tạo trực tiếp.</Notice>}
+      {invalidSource && <Notice title="Chưa chọn mẫu lịch trình" tone="error">Chọn mẫu ở trên để tiếp tục tạo tour.</Notice>}
       {storedCruise && <CruiseSourceDetails cruise={storedCruise} />}
-      {sourceId && source.loading && <Loading label="Đang đọc tuyến và chương trình đã phát hành…" />}
-      {sourceId && source.error && <Notice title="Chưa đọc được lịch trình nguồn" tone="error">{source.error.message}<Button tone="secondary" onClick={source.retry}>Tải lại</Button><Button disabled={busy || uncertain} onClick={() => chooseSource('')}>Chọn lịch trình khác</Button></Notice>}
+      {sourceId && source.loading && <Loading label="Đang tải mẫu lịch trình…" />}
+      {sourceId && source.error && <Notice title="Chưa tải được mẫu lịch trình" tone="error">{source.error.message}<Button tone="secondary" onClick={source.retry}>Thử lại</Button><Button disabled={busy || uncertain} onClick={() => chooseSource('')}>Chọn mẫu khác</Button></Notice>}
       {!editing && sourceId && source.data && <EditorLayout><form className={styles.departureCreateForm} onSubmit={submit} noValidate>
         <fieldset disabled={busy || uncertain} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
           <FormErrorSummary errors={errors} />
-          <Panel title="Hồ sơ chuyến khởi hành">
-            <InheritedSourcePlan
-              source={source.data}
-              disabled={busy || uncertain}
-              onChangeSource={() => setChangeSourceOpen(true)}
-            />
-            <FormSection title="Thông tin chuyến">
-              <Field htmlFor="cruise-name" label="Tên chuyến khởi hành *" error={errors.cruiseName}>
+          <div className={styles.departureCreateLayout}>
+          <aside className={styles.departureCreateSource} aria-label="Mẫu dùng cho tour">
+            <Panel className={styles.departureSourcePanel}>
+              <InheritedSourcePlan
+                source={source.data}
+                disabled={busy || uncertain}
+                onChangeSource={() => setChangeSourceOpen(true)}
+              />
+              {!previewScheduleData && <Button tone="text" onClick={() => setScheduleDetailOpen(true)}>Xem lịch từng ngày</Button>}
+            </Panel>
+          </aside>
+          <Panel className={styles.departureCreateMain}>
+            <FormSection title="Ngày khởi hành và tên tour">
+              <CruiseDateTimeFields key={dateFieldsGeneration} id="departure-time" label="khởi hành"
+                value={draft.departureDatetime} error={errors.departureDatetime}
+                suggestClock={resolveTemplateDepartureClock(source.data) ? date => resolveTemplateDepartureClock(source.data, date)?.clock : undefined}
+                onChange={value => update('departureDatetime', value)} onIncompleteChange={setDateFieldsIncomplete} />
+              <Field htmlFor="cruise-name" label="Tên tour *" error={errors.cruiseName}>
                 <input id="cruise-name" value={displayName} aria-invalid={Boolean(errors.cruiseName)} onChange={event => update('cruiseName', event.target.value)} />
               </Field>
-              {canChooseInitialShip && <>
-                <Field htmlFor="departure-initial-ship" label="Tàu phân công *" error={errors.shipId}>
-                  <select id="departure-initial-ship" value={draft.shipId ?? ''} aria-invalid={Boolean(errors.shipId)} disabled={initialShips.loading || Boolean(initialShips.error)} onChange={event => update('shipId', event.target.value || null)}>
-                    <option value="">Chọn tàu phân công</option>
-                    {draft.shipId && !initialShips.data?.some(ship => ship.shipId === draft.shipId) && <option value={draft.shipId}>Tàu đã chọn · cần tải lại</option>}
-                    {initialShips.data?.map(ship => <option key={ship.shipId} value={ship.shipId} disabled={!['READY', 'IN_SERVICE'].includes(ship.status)}>
-                      {ship.shipName} · {ship.shipCode}{Number.isSafeInteger(ship.totalCapacity) && ship.totalCapacity >= 0 ? ` · ${ship.totalCapacity} khách` : ''}
-                    </option>)}
-                  </select>
-                </Field>
-                {selectedShip && (
-                  <div className={styles.departureScheduleFull}>
-                    <RecordFacts entries={[
-                      ['Mã tàu', selectedShip.shipCode],
-                      ['Sức chứa tối đa', `${selectedShip.totalCapacity} khách`],
-                      ['Số tầng boong', selectedShip.totalDecks != null ? `${selectedShip.totalDecks} tầng` : 'Chưa cập nhật'],
-                      ['Trạng thái tàu', selectedShip.status === 'READY' ? 'Sẵn sàng' : selectedShip.status === 'IN_SERVICE' ? 'Đang khai thác' : selectedShip.status],
-                    ]} />
-                  </div>
-                )}
-                {initialShips.loading && <Loading label="Đang tải danh sách tàu…" />}
-                {initialShips.error && <div role="alert"><p>Chưa tải được danh sách tàu.</p><Button tone="secondary" onClick={initialShips.retry}>Tải lại</Button></div>}
-              </>}
-            </FormSection>
-
-            <FormSection title="Ngày giờ khởi hành">
-              <div className={styles.departureScheduleRow}>
-                <Field
-                  htmlFor="departure-time"
-                  label="Khởi hành dự kiến (giờ Việt Nam) *"
-                  error={errors.departureDatetime}
-                >
-                  <input id="departure-time" type="datetime-local" step="1" value={draft.departureDatetime}
-                    aria-invalid={Boolean(errors.departureDatetime)} onChange={event => {
-                      const value = event.target.value
-                      const datePart = value ? value.slice(0, 10) : undefined
-                      const resolvedClock = resolveTemplateDepartureClock(source.data, datePart)?.clock
-                      update(
-                        'departureDatetime',
-                        resolvedClock && value && value.slice(0, 10) !== draft.departureDatetime.slice(0, 10)
-                          ? `${value.slice(0, 10)}T${resolvedClock}`
-                          : value
-                      )
-                    }} />
-                </Field>
-                <Button tone="secondary" disabled={applyingSchedule} onClick={handleOpenScheduleDetail}>
-                  Xem lịch trình
-                </Button>
-              </div>
 
               {source.data.days.find(day => day.dayNumber === 1)?.dayType === 'SEA_DAY' && !source.data.days.find(day => day.dayNumber === 1)?.departurePortId && (
                 <Field htmlFor="source-departure-port" label="Cảng khởi hành *" error={errors.departurePortId}>
@@ -470,17 +445,50 @@ export function CruiseFormPage() {
               )}
 
               {applyingSchedule && <p role="status">Đang tính lịch trình dự kiến…</p>}
-              {previewScheduleData && <div className={styles.departureScheduleFull}><RecordFacts entries={[
-                ['Cảng khởi hành', previewScheduleData.departurePortName ?? portOptions.find(port => port.portId === draft.departurePortId)?.portName ?? 'Chưa chọn'],
-                ['Cảng trả khách', previewScheduleData.returnPortName ?? portOptions.find(port => port.portId === draft.returnPortId)?.portName ?? 'Chưa xác định'],
-                ['Kết thúc dự kiến (giờ Việt Nam)', calendarLabel(previewScheduleData.returnDatetime ? localCruiseInput(previewScheduleData.returnDatetime) : '')],
-              ]} /></div>}
+              {previewScheduleData && <div className={styles.departureTiming}>
+                <RecordFacts entries={[
+                  ['Khởi hành (giờ Việt Nam)', calendarLabel(draft.departureDatetime)],
+                  ['Kết thúc dự kiến (giờ Việt Nam)', calendarLabel(previewScheduleData.returnDatetime ? localCruiseInput(previewScheduleData.returnDatetime) : '')],
+                ]} />
+                <Button tone="text" disabled={applyingSchedule} onClick={handleOpenScheduleDetail}>Xem lịch theo ngày khởi hành</Button>
+              </div>}
               {applyScheduleError && (
                 <div className={styles.departureCheckError} role="alert">
                   <strong>{applyScheduleError}</strong>
                 </div>
               )}
             </FormSection>
+            {canChooseInitialShip && <FormSection title="Số khách và tàu">
+                <Field htmlFor="departure-passengers" label="Số khách dự kiến *"
+                  hint="Dùng để tìm tàu đủ chỗ và còn lịch trống."
+                  error={passengerInput && !validPassengerCount ? 'Nhập số nguyên lớn hơn 0.' : undefined}>
+                  <input id="departure-passengers" inputMode="numeric" required value={passengerInput} onChange={event => {
+                    setPassengerInput(event.target.value)
+                    if (draft.shipId) update('shipId', null)
+                  }} />
+                </Field>
+                <Field htmlFor="departure-initial-ship" label="Tàu cho tour *" error={errors.shipId}
+                  hint={!draft.departureDatetime || !validPassengerCount ? 'Chọn ngày khởi hành và nhập số khách để tìm tàu.' : undefined}>
+                  <select id="departure-initial-ship" value={selectedShip?.shipId ?? ''} aria-invalid={Boolean(errors.shipId)} disabled={eligible.loading || Boolean(eligible.error) || !suitableShips.length} onChange={event => update('shipId', event.target.value || null)}>
+                    <option value="">{!draft.departureDatetime ? 'Chọn ngày và giờ khởi hành trước' : !validPassengerCount ? 'Nhập số khách trước' : 'Chọn tàu đủ chỗ'}</option>
+                    {suitableShips.map(ship => <option key={ship.shipId} value={ship.shipId}>
+                      {ship.shipName} · {ship.totalCapacity} chỗ
+                    </option>)}
+                  </select>
+                </Field>
+                {eligibilityKey && eligible.data && !eligible.loading && !eligible.error && !suitableShips.length &&
+                  <p className={styles.departureScheduleFull} role="status">Không có tàu đủ chỗ và còn lịch trống.</p>}
+                {selectedShip && (
+                  <div className={styles.departureScheduleFull}>
+                    <RecordFacts entries={[
+                      ['Sức chứa tối đa', `${selectedShip.totalCapacity} khách`],
+                      ['Trạng thái tàu', selectedShip.status === 'READY' ? 'Sẵn sàng' : selectedShip.status === 'IN_SERVICE' ? 'Đang khai thác' : selectedShip.status],
+                    ]} />
+                  </div>
+                )}
+                {eligibilityKey && eligible.loading && <Loading label="Đang tìm tàu phù hợp…" />}
+                {eligibilityKey && eligible.error && <div role="alert"><p>{eligible.error.message}</p><Button tone="secondary" onClick={eligible.retry}>Tải lại danh sách tàu</Button></div>}
+            </FormSection>}
             {scheduleDetailOpen && (
               <Modal
                 wide
@@ -510,12 +518,13 @@ export function CruiseFormPage() {
             {portsLoading && !source.error && !invalidSource && <Loading label="Đang tải danh sách cảng…" />}
             {portsError && <Notice title="Không tải được danh sách cảng" tone="error"><p>{portsError}</p><Button type="button" tone="secondary" onClick={() => { setPortsLoading(true); setPortsError(''); setPortsAttempt(value => value + 1) }}>Tải lại danh sách cảng</Button></Notice>}
             {!portsLoading && !portsError && !ports.length && <Notice title="Chưa có cảng hoạt động" tone="warning">Cần tạo hoặc kích hoạt cảng trước khi lập chuyến mới.</Notice>}
-            {submitError && !uncertain && <div className={styles.departureCheckError} role="alert"><strong>Chưa tạo được chuyến</strong><p>{submitError}</p></div>}
+            {submitError && !uncertain && <div className={styles.departureCheckError} role="alert"><strong>Chưa tạo được tour</strong><p>{submitError}</p></div>}
             <div className={styles.formActions}>
-              {access.canDo('CRUISE_CREATE') && <Button type="submit" tone="primary" value="draft" disabled={busy || !canSave}>{busy ? 'Đang lưu…' : 'Tạo chuyến khởi hành'}</Button>}
-              <Button tone="secondary" disabled={busy} onClick={() => navigate('/admin/cruises')}>Hủy</Button>
+              <ButtonLink tone="secondary" to={'/admin/trips/' + encodeURIComponent(source.data.tripId) + '/schedule?versionId=' + encodeURIComponent(source.data.versionId)}>Về lịch trình đã chọn</ButtonLink>
+              {access.canDo('CRUISE_CREATE') && <Button type="submit" tone="primary" value="draft" disabled={busy || !canSave}>{busy ? 'Đang tạo tour…' : 'Tạo tour'}</Button>}
             </div>
           </Panel>
+          </div>
         </fieldset>
       </form></EditorLayout>}
       {editing && <EditorLayout><form onSubmit={submit} noValidate>
@@ -530,8 +539,11 @@ export function CruiseFormPage() {
               <Field htmlFor="legacy-mode" label="Chỉnh sửa lịch trình"><select id="legacy-mode" value={draft.itineraryMode ?? 'FIXED'} onChange={e => update('itineraryMode', e.target.value as 'FIXED' | 'CUSTOM')}><option value="FIXED">Giữ cố định lịch trình hiện có</option><option value="CUSTOM">Cho phép chỉnh sửa lịch trình</option></select></Field>
             </>}
           </FormSection>
-            <FormSection title="02 · Thời gian"><Field htmlFor="departure-time" label="Khởi hành (giờ Việt Nam)" error={errors.departureDatetime}><input id="departure-time" type="datetime-local" step="1" value={draft.departureDatetime} aria-invalid={Boolean(errors.departureDatetime)} aria-describedby={errors.departureDatetime ? 'departure-time-hint' : undefined} onChange={(event) => update('departureDatetime', event.target.value)} /></Field>
-              <Field htmlFor="return-time" label="Kết thúc (giờ Việt Nam)" error={errors.returnDatetime}><input id="return-time" disabled={sourceEditing || Boolean(sourceId)} type="datetime-local" value={draft.returnDatetime} aria-invalid={Boolean(errors.returnDatetime)} aria-describedby={errors.returnDatetime ? 'return-time-hint' : undefined} onChange={(event) => update('returnDatetime', event.target.value)} /></Field>
+            <FormSection title="Ngày và giờ">
+              <CruiseDateTimeFields key={loadedId} id="departure-time" label="khởi hành" value={draft.departureDatetime} error={errors.departureDatetime} onChange={value => update('departureDatetime', value)} />
+              {sourceEditing || sourceId
+                ? <RecordFacts entries={[[ 'Kết thúc (giờ Việt Nam)', calendarLabel(draft.returnDatetime) ]]} />
+                : <CruiseDateTimeFields key={loadedId + ':return'} id="return-time" label="kết thúc" value={draft.returnDatetime} error={errors.returnDatetime} onChange={value => update('returnDatetime', value)} />}
             </FormSection>
             {!sourceEditing && <FormSection title="03 · Cảng đi và về"><Field htmlFor="departure-port" label="Cảng khởi hành" error={errors.departurePortId}><select id="departure-port" disabled={busy || sourceEditing || portsLoading || Boolean(portsError)} value={draft.departurePortId} aria-invalid={Boolean(errors.departurePortId)} aria-describedby={errors.departurePortId ? 'departure-port-hint' : undefined} onChange={(event) => update('departurePortId', event.target.value)}><option value="">Chọn cảng khởi hành</option>{portOptions.map(port => <option value={port.portId} key={port.portId}>{port.portName}{port.countryCode ? ` · ${port.countryCode}` : ''}{port.status === 'INACTIVE' ? ' · Cảng đã lưu, không còn hoạt động' : port.status === 'UNKNOWN' ? ' · Chưa xác định trạng thái' : ''}</option>)}</select></Field>
               <Field htmlFor="return-port" label="Cảng trở về" error={errors.returnPortId}><select id="return-port" disabled={busy || sourceEditing || portsLoading || Boolean(portsError)} value={draft.returnPortId} aria-invalid={Boolean(errors.returnPortId)} aria-describedby={errors.returnPortId ? 'return-port-hint' : undefined} onChange={(event) => update('returnPortId', event.target.value)}><option value="">Chọn cảng trở về</option>{portOptions.map(port => <option value={port.portId} key={port.portId}>{port.portName}{port.countryCode ? ` · ${port.countryCode}` : ''}{port.status === 'INACTIVE' ? ' · Cảng đã lưu, không còn hoạt động' : port.status === 'UNKNOWN' ? ' · Chưa xác định trạng thái' : ''}</option>)}</select></Field>

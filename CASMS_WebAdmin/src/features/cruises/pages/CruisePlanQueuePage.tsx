@@ -8,6 +8,7 @@ import { mainflowApi } from '../api/mainflow-api'
 import { saleTermsApi, type SaleTermsSetup } from '../api/sale-terms'
 import { CruiseFrame } from '../components/CruiseUI'
 import { DepartureSaleTerms } from '../components/DepartureSaleTerms'
+import { SubmittedPreparationGroups } from '../components/SubmittedPreparationGroups'
 import styles from '../components/Cruises.module.css'
 
 export function CruisePlanQueuePage() {
@@ -20,8 +21,11 @@ export function CruisePlanQueuePage() {
     useCallback(signal => canSetFees ? saleTermsApi.setupRequests(signal) : Promise.resolve(null), [canSetFees]))
   const [selected, setSelected] = useState<SaleTermsSetup | null>(null)
   const [saved, setSaved] = useState('')
-  const [reviewed, setReviewed] = useState(false)
-  const rows = query.data?.filter(plan => reviewed ? plan.planStatus !== 'SUBMITTED' : plan.planStatus === 'SUBMITTED') ?? []
+  const [filter, setFilter] = useState<'pending'|'reviewed'|'returned'>('pending')
+  const filters = { pending:'Chờ xét duyệt', reviewed:'Đã xét duyệt', returned:'Trả bổ sung' } as const
+  const rows = query.data?.filter(plan => filter === 'pending' ? plan.planStatus === 'SUBMITTED'
+    : filter === 'returned' ? plan.planStatus === 'REVISION_REQUESTED'
+      : ['APPROVED','REJECTED'].includes(plan.planStatus)) ?? []
 
   return <CruiseFrame><div className={styles.content}>
     <PageHeader breadcrumb="Vận hành" title="Hồ sơ chuyến khởi hành" />
@@ -41,28 +45,29 @@ export function CruisePlanQueuePage() {
             </tr>)}
           </DataTable>}
         </Panel>}
-      <Panel title="Hồ sơ đã tiếp nhận">
+      <Panel title="Hồ sơ toàn tour">
         <div className={styles.lifecycleActions} role="group" aria-label="Lọc theo tiến độ xét duyệt">
-          <Button autoWidth tone={reviewed ? 'secondary' : 'primary'} aria-pressed={!reviewed} onClick={() => setReviewed(false)}>Chờ xét duyệt</Button>
-          <Button autoWidth tone={reviewed ? 'primary' : 'secondary'} aria-pressed={reviewed} onClick={() => setReviewed(true)}>Đã xét duyệt</Button>
+          {(Object.keys(filters) as (keyof typeof filters)[]).map(key=><Button key={key} autoWidth
+            tone={filter===key?'primary':'secondary'} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{filters[key]}</Button>)}
         </div>
         {query.loading && <Loading />}
         {query.error && <Notice tone="error" title="Chưa tải được hồ sơ">
           <Button tone="secondary" onClick={query.retry}>Thử lại</Button>
         </Notice>}
-        {!query.loading && !query.error && rows.length === 0 && <Empty title={reviewed ? 'Chưa có hồ sơ đã xét duyệt' : 'Chưa có hồ sơ chờ xét duyệt'} />}
+        {!query.loading && !query.error && rows.length === 0 && <Empty title={`Chưa có hồ sơ ${filters[filter].toLowerCase()}`} />}
         {rows.length > 0 && <DataTable label="Hồ sơ chuyến khởi hành" headers={['Chuyến khởi hành', 'Người gửi', 'Thời điểm gửi', 'Trạng thái', 'Thao tác']}>
           {rows.map(plan => <tr key={plan.cruiseId}>
             <td>{plan.cruiseCode}</td>
             <td>{plan.submittedByName ?? '—'}</td>
             <td>{plan.submittedAt ? journeyTime(plan.submittedAt) : '—'}</td>
             <td>{domainStatus('cruise.plan', plan.planStatus)}</td>
-            <td><ButtonLink tone="secondary" to={`/admin/cruises/${encodeURIComponent(plan.cruiseId)}?step=review&section=overview`}>
-              {reviewed ? 'Mở hồ sơ' : 'Xét duyệt'}
+            <td><ButtonLink tone="secondary" to={`/admin/cruises/${encodeURIComponent(plan.cruiseId)}?work=review&step=review&section=overview`}>
+              {filter === 'pending' ? 'Xét duyệt' : 'Mở hồ sơ'}
             </ButtonLink></td>
           </tr>)}
         </DataTable>}
       </Panel>
+      {access.has('CRUISE_PREPARATION_CONFIRM') && <SubmittedPreparationGroups />}
     </>}
     {selected && canSetFees && <Modal variant="drawer" title="Thuế và phí cảng" description={`${selected.cruiseName} · ${selected.cruiseCode}`} onClose={() => setSelected(null)}>
       <div>

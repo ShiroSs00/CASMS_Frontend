@@ -1,9 +1,11 @@
+import { useId } from 'react'
+import { describeRouteDays, projectRoute } from '../model/route-order'
 import { SourcePicker } from './SourcePicker'
 import { Button, Field, Panel } from '@/shared/ui'
-import { domesticRegionLabel, kindLabels, shortTime, type Source, type Content, type Day, type Entry, type Stop, type Violation } from '../model/plan'
+import { domesticRegionLabel, kindLabels, shortTime, timeNumber, type Source, type Content, type Day, type Entry, type Stop, type Violation } from '../model/plan'
 import { violationTarget } from '../model/violation-target'
 import styles from '../Planning.module.css'
-import { scheduleDayLabel, scheduleDayTypeLabel, stopRoleLabel } from '../model/day-labels'
+import { stopRoleLabel } from '../model/day-labels'
 
 type Props = {
   departurePorts?: { data: Source[]; loading: boolean; error: string; retry: () => void }
@@ -14,13 +16,13 @@ type Props = {
   editable: boolean
   busy: boolean
   violation?: Violation | null
+  violations?: Violation[]
   onType: (type: Day['dayType']) => void
   onTitle: (title: string) => void
   onStop: (stop?: Stop) => void
   onEntry: (kind: Entry['kind'], entry?: Entry, stopClientKey?: string) => void
   onRemoveStop: (stop: Stop) => void
   onRemoveEntry: (entry: Entry) => void
-  onOrder: (key: string, target: string) => void
 }
 
 export function DayPane({
@@ -32,28 +34,43 @@ export function DayPane({
   editable,
   busy,
   violation,
+  violations = [],
   onType,
   onTitle,
   onStop,
   onEntry,
   onRemoveStop,
   onRemoveEntry,
-  onOrder,
 }: Props) {
+  const heading = useId()
   const target = violation ? violationTarget(violation) : null
-  const fieldError = (id: string) => (target?.dayNumber === day.dayNumber && target?.fieldId === id ? violation?.message : undefined)
+  const fieldError = (id: string) => {
+    if (target?.dayNumber === day.dayNumber && target.fieldId === id) return violation?.message
+    const field = id === 'planning-disembarkation-arrival' ? 'plannedArrivalTime' : id === 'planning-disembarkation-time' ? 'plannedDepartureTime' : id === 'planning-ending-port-info' ? 'portId' : null
+    return violations.find(issue => {
+      const location = violationTarget(issue, content)
+      return location.dayNumber === day.dayNumber && location.fieldId === id
+        || field && disembarkationStop && location.key === disembarkationStop.clientKey && issue.field === field
+    })?.message
+  }
   const stops = content.stops.filter(s => s.arrivalDayNumber <= day.dayNumber && s.departureDayNumber >= day.dayNumber).sort((a, b) => a.stopOrder - b.stopOrder)
-  const ordered = [...content.stops].sort((a, b) => a.stopOrder - b.stopOrder)
+  const route = projectRoute(content)
+  const daySummary = describeRouteDays(content, route).find(summary => summary.day.key === day.key)
   const entries = content.entries.filter(entry => entry.startDayNumber <= day.dayNumber && entry.endDayNumber >= day.dayNumber)
-  const savedEntries = entries.filter(entry => entry.kind !== 'SHORE_EXCURSION' || !stops.some(stop => stop.clientKey === entry.stopClientKey))
+    .toSorted((a, b) => a.startDayNumber - b.startDayNumber || a.plannedStartTime.localeCompare(b.plannedStartTime))
 
   const isFirstDay = day.dayNumber === 1
   const isLastDay = day.dayNumber === content.days.length
   const disembarkationStop = content.stops.find(s => s.isDisembarkation)
+  const hasEndingTours = Boolean(disembarkationStop && content.entries.some(entry => entry.kind === 'SHORE_EXCURSION' && entry.stopClientKey === disembarkationStop.clientKey))
+  const legacyDeparture = isFirstDay ? stops.find(stop => stop.isEmbarkation) : undefined
+  const visits = stops.filter(stop => !stop.isEmbarkation && (!stop.isDisembarkation || !isLastDay))
   const canConfigurePort = day.dayType === 'PORT_DAY'
+  const editEndingInline = editable && !hasEndingTours && (!disembarkationStop || disembarkationStop.callType === 'NORMAL')
 
   function agendaRow(entry: Entry) {
     const continuation = entry.startDayNumber !== day.dayNumber
+    const port = entry.kind === 'SHORE_EXCURSION' ? content.stops.find(stop => stop.clientKey === entry.stopClientKey)?.portName : null
     return (
       <article id={`planning-${entry.clientKey}`} key={entry.clientKey} className={styles.agendaRow}>
         <div className={styles.agendaTime}>
@@ -63,6 +80,7 @@ export function DayPane({
         <div className={styles.agendaBody}>
           <span className={styles.agendaKind}>
             {kindLabels[entry.kind]}
+            {port && ' · ' + port}
             {entry.kind === 'SERVING_WINDOW' ? ' · Dữ liệu lịch sử · Chỉ xem' : ''}
           </span>
           <h3>{entry.title || kindLabels[entry.kind]}</h3>
@@ -84,9 +102,9 @@ export function DayPane({
         </div>
         <div className={styles.actions}>
           <Button tone="text" disabled={busy} onClick={() => onEntry(entry.kind, entry)}>
-            {editable && entry.kind !== 'SERVING_WINDOW' ? 'Chỉnh sửa' : 'Xem chi tiết'}
+            {editable && entry.kind === 'SHORE_EXCURSION' ? 'Chỉnh sửa' : 'Xem chi tiết'}
           </Button>
-          {editable && entry.kind !== 'SERVING_WINDOW' && !continuation && (
+          {editable && entry.kind === 'SHORE_EXCURSION' && !continuation && (
             <Button tone="text" disabled={busy} onClick={() => onRemoveEntry(entry)}>
               Xóa mục
             </Button>
@@ -96,49 +114,43 @@ export function DayPane({
     )
   }
 
+  function shoreTours(stop: Stop) {
+    const tours = entries.filter(entry => entry.kind === 'SHORE_EXCURSION' && entry.stopClientKey === stop.clientKey)
+    const hasDeadline = Boolean(stop.allAboardDayNumber && stop.allAboardTime)
+    const canAddTour = stop.allAboardDayNumber != null && Boolean(stop.allAboardTime && stop.plannedArrivalTime) &&
+      timeNumber(stop.allAboardDayNumber, stop.allAboardTime) > timeNumber(stop.arrivalDayNumber, stop.plannedArrivalTime)
+    return <>
+      {editable && (canAddTour
+        ? <Button tone="secondary" size="compact" disabled={busy} onClick={() => onEntry('SHORE_EXCURSION', undefined, stop.clientKey)}>Thêm tour bờ</Button>
+        : <p className={styles.muted}>{hasDeadline ? 'Cần đủ thời gian từ lúc tàu đến đến hạn trở lại để thêm tour bờ.' : 'Đặt hạn trở lại tàu để thêm tour bờ.'}</p>)}
+      {tours.map(agendaRow)}
+    </>
+  }
+
+  const archivedEntries = entries.filter(entry => entry.kind !== 'SHORE_EXCURSION' || !stops.some(stop => stop.clientKey === entry.stopClientKey))
+
   return (
-    <div className={styles.dayPane}>
-      {editable ? (
-        <Panel title={scheduleDayLabel(day.dayNumber, content.days.length)}>
-          <div className={styles.grid}>
-            {(!isLastDay || !day.dayType || fieldError('planning-day-type')) && (
-              <Field htmlFor="planning-day-type" label="Loại ngày" error={fieldError('planning-day-type')}>
-                {isLastDay ? (
-                  <input id="planning-day-type" readOnly aria-invalid="true" value="Ghé cảng trả khách" />
-                ) : (
-                  <select
-                    id="planning-day-type"
-                    aria-invalid={Boolean(fieldError('planning-day-type'))}
-                    value={day.dayType ?? ''}
-                    disabled={busy}
-                    onChange={e => onType(e.target.value as Day['dayType'])}
-                  >
-                    <option value="">Chọn loại ngày</option>
-                    <option value="SEA_DAY">Trên biển</option>
-                    <option value="PORT_DAY">Ghé cảng</option>
-                  </select>
-                )}
-              </Field>
-            )}
-
-            <Field htmlFor="planning-day-title" label="Tên ngày (tùy chọn)" error={fieldError('planning-day-title')}>
-              <input
-                id="planning-day-title"
-                aria-invalid={Boolean(fieldError('planning-day-title'))}
-                value={day.title ?? ''}
-                disabled={busy}
-                maxLength={200}
-                onChange={e => onTitle(e.target.value)}
-              />
-            </Field>
-          </div>
-
+    <section className={`${styles.dayPane} ${styles.dayWorkspace}`} aria-labelledby={heading}>
+      <header className={styles.dayHeader}>
+        <p>Ngày {day.dayNumber}</p>
+        <h2 id={heading}>{day.title?.trim() && day.title.trim() !== `Ngày ${day.dayNumber}` ? day.title :
+          isFirstDay && isLastDay ? 'Khởi hành và kết thúc' :
+          isFirstDay ? legacyDeparture?.portName || day.departurePortName || 'Khởi hành' :
+          isLastDay ? disembarkationStop?.portName || 'Cảng cuối' : daySummary?.place || `Lịch ngày ${day.dayNumber}`}</h2>
+      </header>
+      <div className={styles.dayContent}>
           {isFirstDay && (
             <section className={styles.boundaryFields}>
-              <h3>Khởi hành</h3>
-              <div className={styles.grid}>
+              <h3>Giờ và cảng khởi hành</h3>
+              {(!editable || legacyDeparture) && <div className={styles.portSummary}>
+                <strong>{legacyDeparture?.portName || day.departurePortName || 'Chưa chọn cảng'}</strong>
+                <div><small>Khởi hành · giờ Việt Nam</small><b>{shortTime(legacyDeparture?.plannedDepartureTime || day.plannedDepartureTime)}</b></div>
+              </div>}
+              {legacyDeparture ? <Button tone="secondary" size="compact" disabled={busy} onClick={() => onStop(legacyDeparture)}>{editable ? 'Chỉnh cảng và giờ khởi hành' : 'Xem chi tiết cảng khởi hành'}</Button> : editable && (
+                <div className={styles.boundaryEditor}>
                 <SourcePicker
                   id="planning-departure-port"
+                  portLayout
                   label="Cảng khởi hành *"
                   placeholder="Chọn cảng khởi hành"
                   emptyMessage="Chưa có cảng phù hợp phạm vi chuyến."
@@ -154,10 +166,11 @@ export function DayPane({
                   onChange={id =>
                     onDeparture?.({
                       departurePortId: id || null,
-                      departurePortName: departurePorts?.data.find(port => port.id === id)?.label ?? null,
+                      departurePortName: departurePorts?.data.find(port => port.id === id)?.name ?? null,
                     })
                   }
                 />
+              <div className={styles.timeGrid}>
                 <Field
                   htmlFor="planning-departure-time"
                   label="Giờ khởi hành (giờ Việt Nam) *"
@@ -174,30 +187,24 @@ export function DayPane({
                   />
                 </Field>
               </div>
+                </div>)}
             </section>
           )}
 
           {isLastDay && (
             <section className={styles.boundaryFields}>
-              <div className={styles.boundaryHeading}>
-                <h3>Trả khách</h3>
-                {content.days[0]?.departurePortId && (
-                  <Button
-                    type="button"
-                    tone="secondary"
-                    size="compact"
-                    disabled={busy}
-                    onClick={() => onDisembarkation?.(content.days[0].departurePortId ?? null)}
-                  >
-                    Dùng lại cảng khởi hành ({content.days[0].departurePortName})
-                  </Button>
-                )}
-              </div>
-              <div className={styles.grid}>
+              <h3>Cảng cuối và giờ tàu đến</h3>
+              {!editEndingInline && <div className={styles.portSummary}>
+                <strong>{disembarkationStop?.portName || 'Chưa chọn cảng'}</strong>
+                <div><small>Tàu cập cảng</small><b>{shortTime(disembarkationStop?.plannedArrivalTime)}</b></div>
+                <div><small>Kết thúc hành trình</small><b>{shortTime(disembarkationStop?.plannedDepartureTime)}</b></div>
+              </div>}
+              {editEndingInline && <div className={styles.boundaryEditor}>
                 <SourcePicker
+                  portLayout
                   id="planning-disembarkation-port"
-                  label="Cảng trả khách *"
-                  placeholder="Chọn cảng trả khách"
+                  label="Cảng cuối *"
+                  placeholder="Chọn cảng cuối"
                   emptyMessage="Chưa có cảng phù hợp phạm vi chuyến."
                   value={disembarkationStop?.portId ?? ''}
                   selectedLabel={disembarkationStop?.portName ?? undefined}
@@ -210,7 +217,8 @@ export function DayPane({
                   error={fieldError('planning-ending-port-info')}
                   onChange={id => onDisembarkation?.(id || null)}
                 />
-                <Field htmlFor="planning-disembarkation-arrival" label="Giờ tàu đến (giờ địa phương của cảng) *">
+              <div className={styles.timeGrid}>
+                <Field htmlFor="planning-disembarkation-arrival" label="Giờ tàu dự kiến cập cảng *" error={fieldError('planning-disembarkation-arrival')}>
                   <input
                     id="planning-disembarkation-arrival"
                     type="time"
@@ -225,7 +233,7 @@ export function DayPane({
                 </Field>
                 <Field
                   htmlFor="planning-disembarkation-time"
-                  label="Giờ hoàn tất trả khách (giờ địa phương của cảng) *"
+                  label="Giờ kết thúc hành trình *"
                   error={fieldError('planning-disembarkation-time')}
                 >
                   <input
@@ -241,93 +249,73 @@ export function DayPane({
                   />
                 </Field>
               </div>
+              </div>}
+              {disembarkationStop && <Button tone="secondary" size="compact" disabled={busy} onClick={() => onStop(disembarkationStop)}>{editEndingInline ? 'Chỉnh hạn trở lại tàu' : editable ? 'Chỉnh cảng và giờ kết thúc' : 'Xem chi tiết cảng kết thúc'}</Button>}
+              {disembarkationStop && shoreTours(disembarkationStop)}
             </section>
           )}
-        </Panel>
-      ) : (
-        <dl className={styles.daySummary}>
-          <div>
-            <dt>{scheduleDayLabel(day.dayNumber, content.days.length)}</dt>
-            <dd id="planning-day-type" tabIndex={-1}>
-              {scheduleDayTypeLabel(day.dayNumber, content.days.length, day.dayType)}
-            </dd>
-            {isFirstDay && (
-              <p>
-                Cảng khởi hành: <strong>{day.departurePortName || 'Chưa chọn'}</strong> · Giờ khởi hành: {shortTime(day.plannedDepartureTime)}
-              </p>
+          {editable && <section className={styles.boundaryFields} aria-label="Thông tin trong ngày">
+          <h3>Nội dung trong ngày</h3>
+          <div className={styles.grid}>
+            {(!isLastDay || !day.dayType || fieldError('planning-day-type')) && (
+              <Field htmlFor="planning-day-type" label="Tàu ghé cảng hay đi trên biển?" error={fieldError('planning-day-type')}>
+                {isLastDay ? (
+                  <input id="planning-day-type" readOnly aria-invalid={Boolean(fieldError('planning-day-type'))} value="Có cảng kết thúc" />
+                ) : (
+                  <select
+                    id="planning-day-type"
+                    aria-invalid={Boolean(fieldError('planning-day-type'))}
+                    value={day.dayType ?? ''}
+                    disabled={busy}
+                    onChange={e => onType(e.target.value as Day['dayType'])}
+                  >
+                    <option value="">Chọn trên biển hoặc ghé cảng</option>
+                    <option value="SEA_DAY">Trên biển</option>
+                    <option value="PORT_DAY">Có ghé cảng</option>
+                  </select>
+                )}
+              </Field>
             )}
-            {isLastDay && (
-              <p>
-                Cảng kết thúc: <strong>{disembarkationStop?.portName || 'Chưa chọn'}</strong>
-                {disembarkationStop?.plannedDepartureTime
-                  ? ` · Hoàn tất trả khách: ${shortTime(disembarkationStop.plannedDepartureTime)}`
-                  : disembarkationStop?.plannedArrivalTime
-                  ? ` · Giờ đến: ${shortTime(disembarkationStop.plannedArrivalTime)}`
-                  : ''}
-              </p>
-            )}
-            {fieldError('planning-day-type') && <p className={styles.error}>{fieldError('planning-day-type')}</p>}
-          </div>
-        </dl>
-      )}
 
-      {(!editable || day.dayType) && (
+            <Field htmlFor="planning-day-title" label="Tên ngày (tùy chọn)" error={fieldError('planning-day-title')}>
+              <input
+                id="planning-day-title"
+                aria-invalid={Boolean(fieldError('planning-day-title'))}
+                value={day.title ?? ''}
+                disabled={busy}
+                maxLength={200}
+                onChange={e => onTitle(e.target.value)}
+              />
+            </Field>
+          </div>
+          </section>}
+
+      {((canConfigurePort && (!isLastDay || editable)) || visits.length > 0) && (
           <Panel title={day.dayType === 'SEA_DAY' ? 'Di chuyển trên biển' : 'Các điểm ghé cảng trong ngày'}>
             <div className={styles.sectionTitle}>
               <span className={styles.muted}>{canConfigurePort ? 'Giờ địa phương của từng cảng ghé' : 'Không xuống bờ trong ngày này'}</span>
-              {editable && canConfigurePort && stops.length > 0 && (
-                <Button disabled={busy} onClick={() => onStop()}>
-                  Thêm điểm ghé cảng
+              {editable && canConfigurePort && (
+                <Button tone="secondary" size="compact" disabled={busy} onClick={() => onStop()}>
+                  Thêm cảng ghé
                 </Button>
               )}
             </div>
-            {!stops.length ? (
-              <div className={styles.empty}>
-                <strong>
-                  {!canConfigurePort && day.dayType === 'SEA_DAY'
-                    ? 'Ngày di chuyển trên biển (không ghé cảng)'
-                    : canConfigurePort
-                    ? 'Chưa có điểm ghé cảng nào trong ngày này'
-                    : 'Chưa chọn loại ngày'}
-                </strong>
-                {editable && canConfigurePort && (
-                  <div style={{ marginTop: '12px' }}>
-                    <Button disabled={busy} onClick={() => onStop()}>
-                      Thêm điểm ghé cảng
-                    </Button>
-                  </div>
-                )}
-                {editable && !day.dayType && (
-                  <Button tone="secondary" disabled={busy} onClick={() => document.getElementById('planning-day-type')?.focus()}>
-                    Chọn loại ngày
-                  </Button>
-                )}
-              </div>
+            {!visits.length ? (
+              <p className={styles.muted}>Thêm cảng ghé để đặt giờ tàu đến và giờ rời cảng.</p>
             ) : (
               <div className={styles.cards}>
-                {stops.map(stop => {
-                  const index = ordered.findIndex(s => s.clientKey === stop.clientKey)
+                {visits.map(stop => {
+                  const position = route.rows.find(row => row.key === stop.clientKey)?.position
                   return (
                     <article
                       id={`planning-${stop.clientKey}`}
                       key={stop.clientKey}
                       className={styles.item}
-                      draggable={editable && !busy}
-                      onDragStart={e => e.dataTransfer.setData('text/plain', stop.clientKey)}
-                      onDragOver={e => {
-                        if (editable && !busy) e.preventDefault()
-                      }}
-                      onDrop={e => {
-                        if (editable && !busy) {
-                          e.preventDefault()
-                          onOrder(e.dataTransfer.getData('text/plain'), stop.clientKey)
-                        }
-                      }}
                     >
                       <div className={styles.cardHead}>
                         <div>
                           <h3>
-                            {stop.stopOrder}. {stop.portName ?? 'Cảng'}
+                            {position}. {stop.portName ?? 'Cảng'}
                           </h3>
                           {(stop.isEmbarkation || stop.isDisembarkation) && (
                             <p>
@@ -352,26 +340,6 @@ export function DayPane({
                           </Button>
                           {editable && (
                             <>
-                              {ordered.length > 1 && (
-                                <>
-                                  <Button
-                                    tone="text"
-                                    aria-label={'Đưa lần ghé ' + stop.stopOrder + ' · ' + (stop.portName ?? 'Cảng') + ' lên trước'}
-                                    disabled={busy || index <= 0}
-                                    onClick={() => onOrder(stop.clientKey, ordered[index - 1].clientKey)}
-                                  >
-                                    Đưa lên trước
-                                  </Button>
-                                  <Button
-                                    tone="text"
-                                    aria-label={'Đưa lần ghé ' + stop.stopOrder + ' · ' + (stop.portName ?? 'Cảng') + ' xuống sau'}
-                                    disabled={busy || index < 0 || index === ordered.length - 1}
-                                    onClick={() => onOrder(stop.clientKey, ordered[index + 1].clientKey)}
-                                  >
-                                    Đưa xuống sau
-                                  </Button>
-                                </>
-                              )}
                               <Button tone="text" disabled={busy} onClick={() => onRemoveStop(stop)}>
                                 Xóa lần ghé
                               </Button>
@@ -379,12 +347,7 @@ export function DayPane({
                           )}
                         </div>
                       </div>
-                      {editable && (
-                        <Button tone="secondary" disabled={busy} onClick={() => onEntry('SHORE_EXCURSION', undefined, stop.clientKey)}>
-                          Thêm tour tham quan trên bờ
-                        </Button>
-                      )}
-                      {entries.filter(entry => entry.kind === 'SHORE_EXCURSION' && entry.stopClientKey === stop.clientKey).map(agendaRow)}
+                      {shoreTours(stop)}
                     </article>
                   )
                 })}
@@ -392,11 +355,10 @@ export function DayPane({
             )}
           </Panel>
       )}
-      {savedEntries.length > 0 && (
-        <Panel title="Nội dung đã lưu">
-          {savedEntries.map(agendaRow)}
-        </Panel>
-      )}
-    </div>
+      {day.dayType === 'SEA_DAY' && !visits.length && <p className={styles.muted}>Ngày này tàu di chuyển trên biển, không ghé cảng.</p>}
+      {legacyDeparture && shoreTours(legacyDeparture)}
+      {archivedEntries.length > 0 && <details className={styles.dayEdit}><summary>Nội dung từ lịch trình cũ</summary>{archivedEntries.map(agendaRow)}</details>}
+      </div>
+    </section>
   )
 }

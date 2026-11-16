@@ -69,13 +69,27 @@ export function portScopeViolations(content: Pick<Content, 'stops'>, info: Scope
 export function linkedTourViolations(stop: Stop, content: Content): Violation[] {
   if (!interval(stop)) return []
   const start = timeNumber(stop.arrivalDayNumber, stop.plannedArrivalTime)
-  const limit = timeNumber(stop.allAboardDayNumber ?? stop.departureDayNumber, stop.allAboardTime ?? stop.plannedDepartureTime)
+  const departure = timeNumber(stop.departureDayNumber, stop.plannedDepartureTime)
+  const limit = stop.allAboardDayNumber != null && stop.allAboardTime
+    ? Math.min(departure, timeNumber(stop.allAboardDayNumber, stop.allAboardTime))
+    : departure
   return content.entries.filter(entry => entry.kind === 'SHORE_EXCURSION' && entry.stopClientKey === stop.clientKey &&
     (timeNumber(entry.startDayNumber, entry.plannedStartTime) < start || timeNumber(entry.endDayNumber, entry.plannedEndTime) > limit))
     .map(entry => ({ code: 'CLIENT_TOUR_WINDOW', severity: 'ERROR', entityType: 'ENTRY', clientKey: entry.clientKey,
       dayNumber: entry.startDayNumber, field: timeNumber(entry.startDayNumber, entry.plannedStartTime) < start ? 'plannedStartTime' : 'plannedEndTime',
       fieldPath: 'entries[clientKey=' + entry.clientKey + '].' + (timeNumber(entry.startDayNumber, entry.plannedStartTime) < start ? 'plannedStartTime' : 'plannedEndTime'),
       message: 'Tour tham quan trên bờ “' + entry.title + '” vượt giờ dự kiến đến hoặc hạn trở lại của lần ghé ' + stop.stopOrder + '.' }))
+}
+
+export function callsAfterTerminal(stops: readonly Stop[]): Violation[] {
+  const terminal = stops.find(stop => stop.isDisembarkation)
+  if (!terminal?.plannedArrivalTime) return []
+  const arrival = timeNumber(terminal.arrivalDayNumber, terminal.plannedArrivalTime)
+  return stops.filter(stop => !stop.isDisembarkation && stop.plannedDepartureTime &&
+    samePortClock(stop.timeZoneId, terminal.timeZoneId) &&
+    timeNumber(stop.departureDayNumber, stop.plannedDepartureTime) > arrival)
+    .map(stop => ({ code:'CLIENT_CALL_AFTER_TERMINAL', severity:'ERROR', entityType:'STOP', clientKey:stop.clientKey,
+      dayNumber:stop.departureDayNumber, field:'plannedDepartureTime', message:'Lần ghé phải kết thúc trước khi tàu đến cảng cuối.' }))
 }
 
 export function routeOrderViolations(content: Pick<Content, 'stops'>): Violation[] {

@@ -80,6 +80,7 @@ export type BookingDraft = {
     passengers: BookingPersonDraft[];
 };
 export type BookingCruiseOption = {
+    saleCurrency?: 'VND' | 'USD';
     sellable?: boolean;
     cruiseId: string;
     cruiseCode: string;

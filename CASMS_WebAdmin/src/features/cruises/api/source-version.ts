@@ -8,10 +8,16 @@ type SourceVersionDto={versionId:string;versionNumber:number;revision?:number|nu
 type SourceTripDto={tripId:string;tripCode:string;name:string;status:string;description?:string|null;durationGroup?:string|null;durationDays?:number|null;durationNights?:number|null}
 
 export async function readPublishedSource(versionId: string, signal?: AbortSignal, readOnlyHistory=false) {
-  const version = await apiRequest<SourceVersionDto>('/trip-schedule-versions/' + encodeURIComponent(versionId), {signal})
+  const source = await apiRequest<{version:SourceVersionDto;trip:SourceTripDto}>(
+    '/trip-schedule-versions/eligible-sources/' + encodeURIComponent(versionId), {signal},
+  ).catch(error => {
+    if (!readOnlyHistory || !(error instanceof ApiError) || error.status !== 404) throw error
+    return null
+  })
+  const version = source?.version ?? await apiRequest<SourceVersionDto>('/trip-schedule-versions/' + encodeURIComponent(versionId), {signal})
   if (version?.versionId !== versionId || !version.tripId || !Number.isSafeInteger(version.versionNumber)) throw new ApiError('Chưa đọc được đúng phiên bản nguồn đã chọn.',502)
   if (version.status !== 'PUBLISHED') throw new ApiError('Chỉ phiên bản lịch trình đã phát hành mới được dùng làm nguồn.',400,'VERSION_NOT_PUBLISHED')
-  const trip = await apiRequest<SourceTripDto>('/trips/' + encodeURIComponent(version.tripId),{signal})
+  const trip = source?.trip ?? await apiRequest<SourceTripDto>('/trips/' + encodeURIComponent(version.tripId),{signal})
   if (trip?.tripId !== version.tripId || !trip.tripCode || !trip.name) throw new ApiError('Chưa đọc được chuyến đi của phiên bản nguồn.',502)
   if(trip.status==='ARCHIVED'&&!readOnlyHistory)throw new ApiError('Chuyến đi nguồn đã lưu trữ. Chọn phiên bản của chuyến còn sử dụng.',422,'TRIP_ARCHIVED')
   if(!Array.isArray(version.days)||!version.days.length||version.days.some(d=>!d||typeof d!=='object'||!Number.isSafeInteger(d.dayNumber))||!Array.isArray(version.stops)||version.stops.some(v=>!v||typeof v!=='object'||!v.clientKey||!Number.isSafeInteger(v.arrivalDayNumber)||!Number.isSafeInteger(v.departureDayNumber))||!Array.isArray(version.entries)||version.entries.some(v=>!v||typeof v!=='object'||!v.clientKey||typeof v.title!=='string'||!['ONBOARD_ACTIVITY','SHORE_EXCURSION','SERVING_WINDOW'].includes(v.kind)))throw new ApiError('Nội dung phiên bản nguồn chưa đầy đủ. Chưa thể tạo chuyến khởi hành từ bản này.',502)

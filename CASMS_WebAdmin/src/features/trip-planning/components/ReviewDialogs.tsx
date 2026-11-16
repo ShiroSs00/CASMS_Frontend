@@ -2,9 +2,9 @@ import { violationTarget } from '../model/violation-target'
 import { businessCopy } from '@/shared/i18n/business-copy'
 import { useCallback, useState } from 'react'
 import { useReadQuery } from '@/shared/api'
-import { Button, Empty, Loading, Modal, Notice, Panel, TechnicalDetails } from '@/shared/ui'
+import { Button, Empty, Loading, Modal, Notice, Panel } from '@/shared/ui'
 import { usePlanning } from '../hooks'
-import { countryLabel, domesticRegionLabel, versionLabels, type Content, type Report, type Trip, type TripInfo, type Version, type Violation } from '../model/plan'
+import { countryLabel, domesticRegionLabel, shortTime, versionLabels, type Content, type Report, type Trip, type TripInfo, type Version, type Violation } from '../model/plan'
 import styles from '../Planning.module.css'
 import { scheduleDayTypeLabel } from '../model/day-labels'
 const deferredLabels:Record<string,string>={FLEET_COMPATIBILITY_DEFERRED:'Chưa kiểm tra sự phù hợp với tàu được phân công.',NEEDS_SAILING_DATE:'Cần ngày khởi hành thực tế để kiểm tra thời gian tuyệt đối.'}
@@ -28,7 +28,7 @@ export function ValidationPanel({report,violations,onLocate,serverErrors=false}:
   }
   const orderedGroups = [...groups].sort(([a], [b]) => (a ?? 0) - (b ?? 0))
 
-  return <Panel title={ready ? 'Có thể chốt mẫu' : blockers.length || serverErrors || report ? 'Cần bổ sung trước khi chốt' : 'Kết quả kiểm tra lịch trình'}>
+  return <Panel title={ready ? 'Có thể tạo mẫu' : blockers.length || serverErrors || report ? 'Cần bổ sung trước khi tạo mẫu' : 'Kết quả kiểm tra lịch trình'}>
     {orderedGroups.length > 0 && <div className={styles.validationGroups}>
       {orderedGroups.map(([day, items]) => <section key={day ?? 'general'} className={styles.validationGroup}>
         <h3>{day == null ? 'Toàn lịch trình' : 'Ngày ' + day}</h3>
@@ -47,15 +47,15 @@ export function ValidationPanel({report,violations,onLocate,serverErrors=false}:
         </ul>
       </section>)}
     </div>}
-    {blockers.length === 0 && <p>{ready ? 'Phiên bản hiện tại đã qua kiểm tra để chốt lịch trình mẫu.'
-      : report ? 'Phiên bản này chưa đủ điều kiện chốt. Hãy kiểm tra lại lịch trình.'
+    {blockers.length === 0 && <p>{ready ? 'Lịch trình hợp lệ. Bạn có thể tạo mẫu.'
+      : report ? 'Lịch trình chưa đủ điều kiện tạo mẫu.'
       : 'Chưa có kết quả xác nhận điều kiện chốt.'}</p>}
     {warnings.length > 0 && <details className={styles.validationNotes}>
       <summary>Lưu ý khi lập lịch</summary>
       <ul>{warnings.map((row, index) => <li key={row.code + ':' + index}>{row.dayNumber ? 'Ngày ' + row.dayNumber + ' · ' : ''}{row.message}</li>)}</ul>
     </details>}
     {Boolean(report?.deferredChecks.length) && <details className={styles.validationNotes}>
-      <summary>Kiểm tra khi tạo chuyến khởi hành</summary>
+      <summary>Kiểm tra khi tạo tour</summary>
       <p>Các mục này cần ngày khởi hành hoặc tàu thực tế và không chặn chốt mẫu.</p>
       <ul>{report!.deferredChecks.map(value => <li key={value}>{deferredLabels[value] ?? 'Chưa đánh giá kiểm tra: ' + value}</li>)}</ul>
     </details>}
@@ -77,16 +77,32 @@ export function HistoryDialog({versionId,tripId,onClose}:{versionId:string;tripI
   </Modal>
 }
 function ContentSummary({content}:{content:Content}) {
-  return <div className={styles.cards}>{content.days.map(day=><section className={styles.item} key={day.key}><strong>Ngày {day.dayNumber} · {day.title}</strong><p>{scheduleDayTypeLabel(day.dayNumber,content.days.length,day.dayType)}</p>{content.stops.filter(s=>s.arrivalDayNumber<=day.dayNumber&&s.departureDayNumber>=day.dayNumber).map(s=><p key={s.clientKey}>{s.stopOrder}. {s.portName??'Cảng'} · Ngày {s.arrivalDayNumber} → {s.departureDayNumber}</p>)}{content.entries.filter(e=>e.startDayNumber===day.dayNumber).map(e=><p key={e.clientKey}>{e.title} · {e.plannedStartTime} → Ngày {e.endDayNumber} {e.plannedEndTime}</p>)}</section>)}</div>
+  return <div className={styles.compareDays}>{content.days.map(day => {
+    const stops = content.stops.filter(stop => stop.arrivalDayNumber === day.dayNumber)
+    const events = content.entries.filter(entry => entry.startDayNumber === day.dayNumber)
+    return <section key={day.key}>
+      <h4>Ngày {day.dayNumber}{day.title ? ' · ' + day.title : ''}</h4>
+      <p>{scheduleDayTypeLabel(day.dayNumber, content.days.length, day.dayType)}</p>
+      {day.departurePortName && <p>Cảng khởi hành: {day.departurePortName} · {shortTime(day.plannedDepartureTime)}</p>}
+      {stops.length > 0 && <ul>{stops.map(stop => <li key={stop.clientKey}><strong>{stop.portName || 'Cảng chưa có tên'}</strong>
+        <div>Đến ngày {stop.arrivalDayNumber}, {shortTime(stop.plannedArrivalTime)} · {stop.isDisembarkation ? 'Kết thúc theo lịch' : 'Rời cảng'} ngày {stop.departureDayNumber}, {shortTime(stop.plannedDepartureTime)}</div>
+      </li>)}</ul>}
+      {events.length > 0 && <ul>{events.map(entry => <li key={entry.clientKey}>{entry.title} · {shortTime(entry.plannedStartTime)} đến ngày {entry.endDayNumber}, {shortTime(entry.plannedEndTime)}</li>)}</ul>}
+      {!day.departurePortName && !stops.length && !events.length && <p>Chưa có cảng hoặc hoạt động.</p>}
+    </section>
+  })}</div>
 }
-export function ConflictDialog({trip,version,local,onClose,onReplace}:{trip:Trip;version:Version;local:Content;onClose:()=>void;onReplace:(trip:Trip,version:Version)=>void}) {
-  const {gateway}=usePlanning(),[confirm,setConfirm]=useState(false)
+export function ConflictDialog({trip,version,local,onClose,onReplace,onReconcile}:{trip:Trip;version:Version;local:Content;onClose:()=>void;onReconcile?:(trip:Trip,version:Version)=>void;onReplace:(trip:Trip,version:Version)=>void}) {
+  const {gateway}=usePlanning(),[confirm,setConfirm]=useState(false),[confirmLocal,setConfirmLocal]=useState(false)
   const query=useReadQuery('planning-compare:'+version.versionId,useCallback(async signal=>{
     const [serverTrip,serverVersion]=await Promise.all([gateway.getTrip(trip.tripId,signal),gateway.version(version.versionId,signal)])
     return {trip:serverTrip,version:serverVersion}
   },[gateway,trip.tripId,version.versionId]))
-  return <Modal wide title={confirm?'Thay bản nháp bằng bản đã lưu?':'Đối chiếu bản nháp và bản đã lưu'} onClose={onClose} footer={<><Button tone="secondary" onClick={onClose}>Giữ bản nháp của tôi</Button>{query.data&&<Button tone={confirm?'danger':'primary'} onClick={()=>{if(!confirm)setConfirm(true);else onReplace(query.data!.trip,query.data!.version)}}>{confirm?'Xác nhận thay bản nháp':'Dùng bản đã lưu'}</Button>}</>}>
-    <Notice title="Không tự ghi đè" tone="warning">Nội dung đang nhập vẫn được giữ. Chọn dùng bản đã lưu sẽ thay toàn bộ nội dung này; hãy đối chiếu trước khi xác nhận.</Notice>
-    {query.loading?<Loading/>:query.error?<Notice title="Chưa đọc được bản đã lưu" tone="error">{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>:query.data&&<div className={styles.diff}><section><h3>Bản của bạn</h3><TechnicalDetails entries={[["Revision chuyến",trip.revision],["Revision lịch trình",version.revision]]}/><ContentSummary content={local}/><details><summary>Tất cả dữ liệu để đối chiếu</summary><pre>{JSON.stringify({trip:trip.info,...local},null,2)}</pre></details></section><section><h3>Bản đã lưu · {versionLabels[query.data.version.status]}</h3><TechnicalDetails entries={[["Revision chuyến",query.data.trip.revision],["Revision lịch trình",query.data.version.revision]]}/><ContentSummary content={query.data.version}/><details><summary>Tất cả dữ liệu để đối chiếu</summary><pre>{JSON.stringify({trip:query.data.trip.info,days:query.data.version.days,stops:query.data.version.stops,entries:query.data.version.entries},null,2)}</pre></details></section></div>}
+  return <Modal wide title={confirm?'Thay bản nháp bằng bản đã lưu?':'Đối chiếu bản nháp và bản đã lưu'} onClose={onClose} footer={<><Button tone="secondary" onClick={onClose}>Giữ bản nháp của tôi</Button>{onReconcile&&query.data?.version.status==='DRAFT'&&!confirm&&<Button tone={confirmLocal?'danger':'secondary'} onClick={()=>{if(!confirmLocal)setConfirmLocal(true);else onReconcile(query.data!.trip,query.data!.version)}}>{confirmLocal?'Xác nhận giữ bản nhập để chỉnh tiếp':'Đối chiếu và giữ bản nhập'}</Button>}{query.data&&<Button tone={confirm?'danger':'primary'} onClick={()=>{if(!confirm)setConfirm(true);else onReplace(query.data!.trip,query.data!.version)}}>{confirm?'Xác nhận thay bản nháp':'Dùng bản đã lưu'}</Button>}</>}>
+    <Notice title="Không tự ghi đè" tone="warning">So sánh hai bản trước khi chọn. Dùng bản đã lưu sẽ thay nội dung đang nhập. Nếu giữ bản nhập để chỉnh tiếp, hãy bổ sung thay đổi cần giữ từ bản đã lưu trước khi bấm Lưu nháp.</Notice>
+    {query.loading ? <Loading label="Đang đọc bản đã lưu…"/> : query.error ? <Notice title="Chưa đọc được bản đã lưu" tone="error">{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice> : query.data && <div className={styles.diff}>
+      <section><h3>Bản đang nhập</h3><ContentSummary content={local}/></section>
+      <section><h3>Bản đã lưu · {versionLabels[query.data.version.status]}</h3><ContentSummary content={query.data.version}/></section>
+    </div>}
   </Modal>
 }

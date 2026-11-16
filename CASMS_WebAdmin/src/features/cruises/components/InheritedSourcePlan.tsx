@@ -1,6 +1,6 @@
 import {useCallback} from 'react'
 import {useReadQuery} from '@/shared/api'
-import {Button,FormSection,Loading,Modal,Notice,RecordFacts} from '@/shared/ui'
+import {Button,FormSection,Loading,Modal,Notice} from '@/shared/ui'
 import {TemplateSchedule} from '@/domain/itinerary-day'
 import {readPublishedSource,type PublishedSource} from '../api/source-version'
 import styles from './Cruises.module.css'
@@ -28,26 +28,22 @@ export function InheritedSourcePlan({
  const sortedStops=[...source.stops].sort((a,b)=>a.stopOrder-b.stopOrder)
  const firstStop=sortedStops[0]
  const lastStop=sortedStops.find(s=>s.isDisembarkation)??sortedStops[sortedStops.length-1]
- const departurePortLabel=day1?.departurePortName??(day1?.dayType==='SEA_DAY'?'Xuất phát trên biển (chọn cảng khi tạo)':firstStop?.portName)??'Chưa xác định'
+ const departurePortLabel=day1?.departurePortName??(day1?.dayType==='SEA_DAY'?'Chọn cảng khi tạo tour':firstStop?.portName)??'Chưa xác định'
  const returnPortLabel=lastStop?.portName??'Chưa xác định'
 
- return <FormSection title="Lịch trình mẫu">
+ return <FormSection title="Tuyến của tour">
   <div className={styles.departureSourceRow}>
    <div>
     <strong>{source.tripName}</strong>
-    <p>{source.tripCode} · Phiên bản {source.versionNumber} · {source.durationDays} ngày{source.durationNights ? ` · ${source.durationNights} đêm` : ''}</p>
+    <p>{source.durationDays} ngày{source.durationNights ? ` ${source.durationNights} đêm` : ''}</p>
    </div>
    <div className={styles.departureSourceActions}>
-    {onChangeSource&&<Button tone="secondary" disabled={disabled} onClick={onChangeSource}>Đổi mẫu</Button>}
+    {onChangeSource&&<Button tone="text" disabled={disabled} onClick={onChangeSource}>Đổi lịch trình mẫu</Button>}
    </div>
   </div>
-  <div className={styles.departureScheduleFull}>
-   <RecordFacts entries={[
-    ['Mã lịch trình', `${source.tripCode} · Phiên bản ${source.versionNumber}`],
-    ['Thời lượng', `${source.durationDays} ngày${source.durationNights != null ? ` · ${source.durationNights} đêm` : ''}`],
-    ['Cảng khởi hành mẫu', departurePortLabel],
-    ['Cảng trả khách mẫu', returnPortLabel],
-   ]} />
-  </div>
+  <dl className={styles.departureSourceRoute}>
+    <div><dt>Cảng đi</dt><dd>{departurePortLabel}</dd></div>
+    <div><dt>Cảng cuối</dt><dd>{returnPortLabel}</dd></div>
+  </dl>
  </FormSection>
 }

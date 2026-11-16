@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {useSessionAccess} from '@/shared/auth'
+import {ApiError} from '@/shared/api'
 
 import { cruiseApi } from '../api/cruise-api'
 import type { CruiseDetailView } from '../model/cruise-view'
@@ -8,7 +9,7 @@ import {useReadinessClock} from './useReadinessClock'
 type DetailState = (
   | { status: 'loading'; data: CruiseDetailView | null; error: null }
   | { status: 'ready'; data: CruiseDetailView; error: null }
-  | { status: 'error'; data: CruiseDetailView | null; error: string }
+  | { status: 'error'; data: CruiseDetailView | null; error: string; forbidden: boolean }
 ) & {contextKey?:string}
 
 export function useCruiseDetail(cruiseId: string | undefined) {
@@ -27,7 +28,9 @@ export function useCruiseDetail(cruiseId: string | undefined) {
     }).then((data) => {
       if (!signal?.aborted && sequence.current === attempt) setState({ status: 'ready', data, error: null,contextKey })
     }).catch((error: unknown) => {
-      if (!signal?.aborted && sequence.current === attempt) setState({ status: 'error', data: null, error: error instanceof Error ? error.message : 'Không tải được chuyến khởi hành.',contextKey })
+      if (!signal?.aborted && sequence.current === attempt) setState({ status: 'error', data: null,
+        error: error instanceof Error ? error.message : 'Không tải được chuyến khởi hành.',
+        forbidden:error instanceof ApiError && error.status===403,contextKey })
     })
   }, [cruiseId,contextKey])
 

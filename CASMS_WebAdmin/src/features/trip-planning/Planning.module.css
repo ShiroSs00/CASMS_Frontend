@@ -144,3 +144,108 @@
 .boundaryFields { display:grid; gap:12px; margin-top:16px; padding-top:16px; border-top:1px solid var(--ui-border); }
 .boundaryFields h3 { margin:0; font-size:16px; }
 .boundaryHeading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+
+.portPicker { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); align-items: start; }
+.portPicker > div:last-child { grid-column: 1 / -1; }
+.portPicker > div:last-child:empty { display: none; }
+.timeGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.finalizeHint { text-align: start; }
+@container planning (max-width: 640px) {
+  .portPicker { grid-template-columns: minmax(0, 1fr); }
+  .timeGrid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .portPicker { grid-template-columns: minmax(0, 1fr); }
+}
+
+.infoSection { display:grid; gap:var(--space-3); min-width:0; }
+.infoSection + .infoSection { padding-top:var(--space-4); border-top:1px solid var(--ui-border); }
+.infoSection > h3, .infoSection > p, .compareDays h4 { margin:0; }
+.infoSection > h3 { font-size:var(--text-lg); }
+.infoSection > p { color:var(--ui-muted); }
+.compareDays { display:grid; gap:var(--space-3); overflow-wrap:anywhere; }
+.compareDays > section { border-top:1px solid var(--ui-border); padding-top:var(--space-3); }
+.compareDays ul { padding-inline-start:var(--space-5); }
+.scheduleHistoryMeta { color:var(--ui-muted); font-size:var(--text-sm); }
+.scheduleHistoryMeta summary { cursor:pointer; }
+.scheduleHistoryMeta p { margin-block:var(--space-2) 0; }
+.scheduleHistoryMeta .editorVersionTools { max-width:none; justify-content:flex-start; margin-block-start:var(--space-2); }
+.scheduleHistoryMeta summary:focus-visible { outline:2px solid var(--fg-2); outline-offset:3px; }
+.routeOverview { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%, 10rem),1fr)); list-style:none; padding:0; margin:0; gap:var(--space-3); }
+.routeOverview li { display:flex; align-items:flex-start; min-width:0; gap:var(--space-2); padding:var(--space-3); border-block-start:1px solid var(--ui-border); }
+.routeOverview strong { display:block; overflow-wrap:anywhere; }
+.routeOverview small { display:block; color:var(--ui-muted); }
+.routeNumber { flex:none; display:grid; place-items:center; min-width:1.5rem; min-height:1.5rem; border-radius:var(--radius-pill); background:var(--ui-subtle); color:var(--ui-ink); font-size:var(--text-xs); }
+.workflow { grid-template-columns:repeat(2,minmax(0,1fr)); }
+@container planning (max-width:740px) {
+  .workflow, .workflow.workflowCompact { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+.dayNavigator h2 { margin:0; font-size:var(--text-base); color:var(--ui-ink); }
+.dayNavigator .dayButton { gap:var(--space-1); }
+.dayNavigator .dayButton small { font-size:var(--text-xs); }
+.dayPane .boundaryFields:first-child { margin-block-start:0; border-block-start:0; padding-block-start:0; }
+.dayDetails { padding-block-start:var(--space-4); }
+.visitOptions { border-block-start:1px solid var(--ui-border); padding-block-start:var(--space-3); }
+.visitOptions summary { cursor:pointer; }
+.visitOptions[open] summary { margin-block-end:var(--space-3); }
+.programActions { display:flex; flex-wrap:wrap; gap:var(--space-2); }
+@container planning (max-width:740px) {
+  .dayNavigator { flex-wrap:wrap; overflow:visible; }
+  .dayNavigator h2 { flex-basis:100%; }
+  .dayNavigator .dayButton small { display:block; }
+}
+
+/* Keep the route and the selected day's schedule visible together. */
+.layout:has(.dayNavigator) { grid-template-columns:minmax(13rem, 16.5rem) minmax(0, 1fr); gap:var(--space-6); }
+.editorTitle h1 { font-size:var(--text-3xl); }
+.dayNavigator { padding:var(--space-4); }
+.dayNavigator h2 { font-size:var(--text-xl); margin-block-end:var(--space-2); }
+.routeDays { display:grid; gap:var(--space-1); list-style:none; padding:0; margin:0; width:100%; }
+.routeDays li { position:relative; min-width:0; }
+.routeDays li:not(:last-child)::after { content:""; position:absolute; inset-inline-start:calc(var(--space-3) + .875rem); top:2.25rem; bottom:-.875rem; border-inline-start:1px solid var(--ui-border); pointer-events:none; }
+.routeDays .dayButton { width:100%; grid-template-columns:1.75rem minmax(0, 1fr); align-items:start; gap:var(--space-2); border-color:transparent; background:transparent; padding:var(--space-3); }
+.routeDays .dayButton[aria-current=true], .routeDays .dayButton[aria-current=true]:hover { color:var(--ui-ink); background:color-mix(in srgb, var(--fg-2) 10%, var(--surface)); border-color:color-mix(in srgb, var(--fg-2) 31%, var(--surface)); }
+.routeDays .routeNumber { width:1.75rem; height:1.75rem; position:relative; z-index:1; }
+.routeDays [aria-current=true] .routeNumber { color:var(--accent-on); background:var(--fg-2); }
+.routeDayInfo { display:grid; gap:var(--space-2); min-width:0; line-height:1.45; overflow-wrap:anywhere; }
+.routeDayInfo small { font-weight:500; color:var(--ui-muted); }
+.routePoint { display:grid; gap:2px; min-width:0; }
+.routePoint + .routePoint { border-block-start:1px solid var(--ui-border); padding-block-start:var(--space-2); }
+.routeDayInfo .routePointTime { display:flex; flex-wrap:wrap; align-items:baseline; gap:2px var(--space-1); }
+.routeClock { color:var(--ui-ink); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.manageDays { width:100%; margin-top:var(--space-2); padding-top:var(--space-2); border-top:1px solid var(--ui-border); color:var(--ui-muted); font-size:var(--text-sm); }
+.manageDays summary, .dayEdit summary { cursor:pointer; color:var(--fg-2); }
+.manageDays button, .manageDays small { display:block; margin-top:var(--space-2); }
+.dayWorkspace { gap:0; border:1px solid var(--ui-border); border-radius:var(--radius-lg); background:var(--surface); }
+.dayHeader { padding:var(--space-5) var(--space-6); border-radius:var(--radius-lg) var(--radius-lg) 0 0; background:color-mix(in srgb, var(--fg-2) 9%, var(--surface)); border-bottom:1px solid var(--ui-border); }
+.dayHeader p { margin:0 0 var(--space-1); font-size:var(--text-sm); color:var(--fg-2); font-weight:650; }
+.dayHeader h2 { margin:0; line-height:1.3; font-size:var(--text-2xl); overflow-wrap:anywhere; }
+.dayContent { display:grid; gap:var(--space-5); padding:var(--space-5) var(--space-6); min-width:0; }
+.dayContent > section { border:0; border-radius:0; margin:0; padding:0; box-shadow:none; background:transparent; min-width:0; }
+.dayContent > section + section { border-top:1px solid var(--ui-border); padding-top:var(--space-4); }
+.dayContent > section > h2 { font-size:var(--text-lg); margin:0 0 var(--space-2); }
+.portSummary { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-2) var(--space-4); border-block:1px solid var(--ui-border); padding-block:var(--space-3); }
+.portSummary strong { flex:1 1 9rem; overflow-wrap:anywhere; }
+.portSummary small { display:block; font-size:var(--text-xs); color:var(--ui-muted); }
+.portSummary b { display:block; font-size:var(--text-xl); font-variant-numeric:tabular-nums; }
+.dayEdit summary { font-size:var(--text-sm); font-weight:650; padding-block:var(--space-1); }
+.boundaryEditor { display:grid; gap:var(--space-4); min-width:0; }
+.boundaryEditor button { justify-self:start; }
+.editorTop .versionContext:not(:has(span:not(:empty), a, button)) { display:none; }
+.portFilter { color:var(--fg-2); font-size:var(--text-sm); }
+.portFilter summary { cursor:pointer; width:fit-content; }
+.portFilter[open] summary { margin-block-end:var(--space-2); }
+.dayContent .item { border:1px solid var(--ui-border); }
+.dayContent .agendaRow { border-top:1px solid var(--ui-border); border-bottom:0; }
+.dayContent .programActions { padding-bottom:var(--space-3); }
+.validation > div > section { margin:0; border:0; box-shadow:none; }
+@container planning (max-width:740px) {
+  .layout:has(.dayNavigator) { grid-template-columns:1fr; gap:var(--space-4); }
+  .routeDays { grid-template-columns:repeat(auto-fit, minmax(min(100%, 7rem), 1fr)); }
+  .routeDays li::after { display:none; }
+  .routeDays .dayButton { display:block; height:100%; padding:var(--space-2); }
+  .routeDays .routeNumber { display:none; }
+  .dayHeader,.dayContent { padding:var(--space-4); }
+  .editorTitle h1 { font-size:var(--text-2xl); }
+}

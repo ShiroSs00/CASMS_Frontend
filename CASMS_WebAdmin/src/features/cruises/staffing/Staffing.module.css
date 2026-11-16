@@ -1,0 +1,35 @@
+.workspace { width:min(100%, 80rem); margin-inline:auto; min-width:0; }
+.layout { display:grid; grid-template-columns:minmax(15rem, 24rem) minmax(0,1fr); align-items:start; gap:var(--space-6); }
+.queue,.rows { padding:0; margin:0; list-style:none; }
+.queue button { display:grid; width:100%; text-align:left; gap:var(--space-1); padding:var(--space-3); color:var(--ui-ink); background:var(--ui-surface); border:1px solid transparent; border-radius:var(--radius-md); font:inherit; cursor:pointer; }
+.queue button:hover,.queue button[aria-current=true] { background:var(--ui-subtle); border-color:var(--ui-border); }
+.queue button:focus-visible { outline:2px solid var(--fg-2); outline-offset:2px; }
+.queue small,.subtle { color:var(--ui-muted); }
+.section { display:grid; gap:var(--space-3); min-width:0; }
+.section h3,.section p { margin:0; }
+.row { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:var(--space-2); padding-block:var(--space-3); border-bottom:1px solid var(--ui-border); overflow-wrap:anywhere; }
+.form { display:grid; gap:var(--space-3); }
+.form button { justify-self:start; }
+.fields { display:grid; grid-template-columns:minmax(0,2fr) minmax(6rem,1fr); gap:var(--space-3); align-items:start; }
+.details { margin-block:var(--space-4); }
+.details summary { cursor:pointer; color:var(--fg-2); font-weight:650; }
+.actions { display:flex; flex-wrap:wrap; gap:var(--space-2); margin-top:var(--space-4); align-items:center; }
+@media(max-width:900px){ .layout { grid-template-columns:minmax(0,1fr); gap:var(--space-4); } }
+@media(max-width:480px){ .fields { grid-template-columns:minmax(0,1fr); } }
+
+.handoffList { display:grid; }
+.handoffBudget { display:flex;flex-wrap:wrap;align-items:baseline;gap:0 var(--space-2);margin:0 0 var(--space-4);padding:var(--space-3);background:var(--ui-subtle);border-radius:var(--radius-md); }
+.handoffItem { display:grid; gap:var(--space-3); padding-block:var(--space-4); min-width:0; }
+.handoffItem:first-child { padding-block-start:0; }
+.handoffItem:last-child { padding-block-end:0; }
+.handoffItem + .handoffItem { border-block-start:1px solid var(--ui-border); }
+.handoffHeading { display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:var(--space-2) var(--space-4); }
+.handoffHeading h3 { margin:0; font-size:var(--text-lg); }
+.handoffHeading p { margin:var(--space-1) 0 0; color:var(--ui-muted); }
+.handoffResponse { background:var(--ui-subtle); padding:var(--space-3) var(--space-4); border-radius:var(--radius-md); }
+.handoffResponse p,.handoffMessages dd { overflow-wrap:anywhere; white-space:pre-line; }
+.handoffMessages { display:grid; gap:var(--space-2); margin:0; }
+.handoffMessages dt { color:var(--ui-muted); font-size:var(--text-sm); }
+.handoffMessages dd { margin:0; }
+.handoffCompose > summary { cursor:pointer; color:var(--fg-2); font-weight:650; padding-block:var(--space-2); }
+.handoffCompose > form,.handoffCompose > dl { margin-block-start:var(--space-2); }

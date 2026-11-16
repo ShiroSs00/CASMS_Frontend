@@ -41,8 +41,13 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
  const data=query.data
  const makerReason=data?planMakerReason(data,access.userId):null
  const evidenceMissing=Boolean(data?.unifiedPackageReview&&data.planStatus==='SUBMITTED'&&!planEvidence(data.submittedSnapshot).valid)
- const manager=access.roles.includes('CRUISE_MANAGER')&&!access.roles.includes('OPERATIONS_MANAGER')
- const availableActions=data?planReviewActions(data,access).filter(action=>mode==='ready'?action==='ready':mode==='review'?['approve','reject','request-revision'].includes(action):true):[]
+ const manager=access.roles.includes('CRUISE_MANAGER')&&(embedded||mode==='submit'||!access.roles.includes('OPERATIONS_MANAGER'))
+ const availableActions=data?planReviewActions(data,access).filter(action=>{
+  if(mode==='ready')return action==='ready'
+  if(mode==='review')return ['approve','reject','request-revision'].includes(action)
+  if(mode==='submit')return ['submit','withdraw'].includes(action)
+  return true
+ }):[]
  const approvalNeedsReview=data?.planStatus==='APPROVED'&&(data.planBlockers.length>0||data.readyBlockers.includes('PLAN_APPROVAL_REQUIRED'))
  const readyToSubmit=Boolean(data&&availableActions.includes('submit')&&data.planBlockers.length===0)
  async function execute(){
@@ -88,7 +93,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
  </>
  }
  const supplement=Boolean(data&&['SUBMITTED','APPROVED'].includes(data.planStatus))
- const submitLabel=supplement?'Gửi bổ sung hồ sơ':'Gửi hồ sơ chuyến khởi hành'
+ const submitLabel=supplement?'Gửi bổ sung cho Vận hành':'Nộp hồ sơ tour cho Vận hành'
  const actionLabel=(value:MainflowAction)=>value==='ready'?'Xác nhận sẵn sàng mở bán':value==='approve'?'Phê duyệt hồ sơ':value==='reject'?'Từ chối hồ sơ':value==='request-revision'?'Yêu cầu chỉnh sửa':businessCopy(actionKeys[value])
  const actionDialog=action&&<Modal busy={busy} title={action==='submit'?submitLabel:actionLabel(action)} onClose={()=>{if(!busy)setAction(null)}} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setAction(null)}>Quay lại</Button><Button disabled={busy||uncertain||query.loading||Boolean(query.error)||(action==='approve'&&evidenceMissing)||(action==='submit'&&!dossierValid)||(['reject','request-revision'].includes(action)&&!reason.trim())} onClick={()=>void execute()}>{busy?'Đang gửi…':action==='submit'?submitLabel:actionLabel(action)}</Button></>}>
    {action==='submit'&&<>
@@ -207,7 +212,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
 
       <Notice title="Quy trình nghiệp vụ theo phân kỳ vận hành" tone="neutral">
        <p>Bước 2 kiểm tra kế hoạch, chính sách giá, cửa sổ nhận đặt chỗ và các điều kiện của chuyến như tàu, cabin, cảng và lịch tàu.</p>
-       <p>Việc phân công nhân sự trên tàu (Onboard Staff), hoàn thiện 4 nhóm hồ sơ kỹ thuật - dịch vụ và công bố buổi hướng dẫn an toàn sẽ được thực hiện tại <strong>Khâu chuẩn bị trước ngày xuất bến</strong> (khi tàu sắp chạy thực tế).</p>
+       <p>Việc phân công nhân sự trên tàu, hoàn thiện 4 nhóm hồ sơ kỹ thuật - dịch vụ và công bố buổi hướng dẫn an toàn sẽ được thực hiện tại <strong>Khâu chuẩn bị trước ngày xuất bến</strong> (khi tàu sắp chạy thực tế).</p>
       </Notice>
 
       {/* Các điều kiện khác nếu có */}

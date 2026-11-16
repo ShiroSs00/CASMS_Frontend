@@ -11,5 +11,7 @@ export function creationReturn(value: unknown, owner: string | null, source: str
     cruiseCode: draft.cruiseCode, cruiseName: draft.cruiseName, cruiseType: draft.cruiseType,
     itineraryMode: draft.itineraryMode ?? 'FIXED', departureDatetime: draft.departureDatetime, returnDatetime: draft.returnDatetime,
     departurePortId: draft.departurePortId, returnPortId: draft.returnPortId,
+    shipId: typeof draft.shipId === 'string' ? draft.shipId : null,
+    expectedPassengerCount: typeof draft.expectedPassengerCount === 'number' && Number.isSafeInteger(draft.expectedPassengerCount) && draft.expectedPassengerCount > 0 ? draft.expectedPassengerCount : null,
   } }
 }

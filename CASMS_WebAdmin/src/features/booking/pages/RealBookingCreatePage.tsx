@@ -44,8 +44,7 @@ function ExistingBookingFlow({ step: routeStep, renderShipModel }: {
     const [review, setReview] = useState(false), [copied, setCopied] = useState('');
     const [quoteIntent, setQuoteIntent] = useState<BookingQuoteIntent | null>(null), [quoteExpired, setQuoteExpired] = useState(false), [quoteUnknown, setQuoteUnknown] = useState(false);
     useEffect(() => {
-        if (!busy && !uncertain && !saved && draft.currency !== 'USD')
-            setDraft(current => ({ ...current, currency: 'USD' }));
+
     }, [busy, uncertain, saved, draft.currency, setDraft]);
     useEffect(() => {
         if (!quoteIntent?.quote.expiresAt)
@@ -83,6 +82,11 @@ function ExistingBookingFlow({ step: routeStep, renderShipModel }: {
     const packages = useReadQuery('booking-cruise-packages:' + draft.cruiseId, useCallback(signal => realBookingApi.packagesForCruise(draft.cruiseId, signal), [draft.cruiseId]));
     const fares = useReadQuery('booking-fares:' + draft.cruiseId, useCallback(signal => draft.cruiseId ? cruisePackageApi.available(draft.cruiseId, signal) : Promise.resolve(null), [draft.cruiseId]));
     const selected = cruises.data?.find(item => item.cruiseId === draft.cruiseId);
+    useEffect(() => {
+        const currency = selected?.saleCurrency === 'VND' ? 'VND' : 'USD';
+        if (selected && !busy && !uncertain && !saved && draft.currency !== currency)
+            setDraft(current => ({ ...current, currency }));
+    }, [selected, busy, uncertain, saved, draft.currency, setDraft]);
     const lastAvailableStep = Object.keys(bookingCruisePackageSelectionErrors(draft, fares.data)).length ? 1 : availableBookingStep(draft, selected, cabins.data ?? null, packages.data);
     const choicesLoading = cruises.loading || cabins.loading || packages.loading || fares.loading;
     function stepPath(next: number, cruiseId = draft.cruiseId) {

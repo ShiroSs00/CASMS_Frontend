@@ -1,0 +1,98 @@
+import { useRef, useState } from 'react'
+import { Button, Field } from '@/shared/ui'
+import { parseCruiseDate, validCruiseClock } from '../model/cruise-validation'
+import styles from './Cruises.module.css'
+
+function PickerButton({ type, value, text, label, onSelect }: {
+  type: 'date' | 'time'
+  value: string
+  text: string
+  label: string
+  onSelect: (value: string) => void
+}) {
+  const input = useRef<HTMLInputElement>(null)
+  const [expanded, setExpanded] = useState(false)
+
+  function openPicker() {
+    const control = input.current
+    if (!control) return
+    try {
+      control.showPicker()
+    } catch {
+      setExpanded(true)
+      requestAnimationFrame(() => input.current?.focus())
+    }
+  }
+
+  return <span className={expanded ? styles.pickerExpanded : styles.pickerSlot}>
+    {!expanded && <Button type="button" tone="secondary" autoWidth aria-label={label} onClick={openPicker}>{text}</Button>}
+    <input ref={input} type={type} value={value} aria-label={label} aria-hidden={!expanded}
+      className={expanded ? undefined : styles.pickerAnchor} tabIndex={expanded ? 0 : -1}
+      onChange={event => {
+        if (event.target.value) onSelect(event.target.value)
+      }} />
+  </span>
+}
+
+export function CruiseDateTimeFields({ id, label, value, error, suggestClock, onChange, onIncompleteChange }: {
+  id: string
+  label: string
+  value: string
+  error?: string
+  suggestClock?: (isoDate: string) => string | undefined
+  onChange: (value: string) => void
+  onIncompleteChange?: (incomplete: boolean) => void
+}) {
+  const [isoDate, initialClock] = value.split('T')
+  const [date, setDate] = useState(() => isoDate.split('-').reverse().join('/'))
+  const [clock, setClock] = useState(() => initialClock?.replace(/^(\d{2}:\d{2}):00$/, '$1') ?? '')
+  const [clockEdited, setClockEdited] = useState(Boolean(initialClock))
+  const [dateTouched, setDateTouched] = useState(false)
+  const [clockTouched, setClockTouched] = useState(false)
+  const dateError = dateTouched && !parseCruiseDate(date) ? 'Nhập ngày hợp lệ theo dạng 25/04/2028.' : undefined
+  const clockError = clockTouched && !validCruiseClock(clock) ? 'Nhập giờ theo dạng 24 tiếng, ví dụ 08:30 hoặc 16:00.' : undefined
+
+  function apply(nextDate: string, nextClock: string) {
+    const day = parseCruiseDate(nextDate)
+    const time = nextClock.trim()
+    const next = day && validCruiseClock(time) ? `${day}T${time}` : ''
+    onIncompleteChange?.(!next && Boolean(nextDate.trim() || time))
+    if (next !== value) onChange(next)
+  }
+
+  function changeDate(nextDate: string) {
+    const day = parseCruiseDate(nextDate)
+    const suggestion = !clockEdited && day ? suggestClock?.(day) : undefined
+    const nextClock = suggestion?.replace(/^(\d{2}:\d{2}):00$/, '$1') ?? clock
+    setDate(nextDate)
+    setClock(nextClock)
+    apply(nextDate, nextClock)
+  }
+
+  function changeClock(nextClock: string) {
+    setClockEdited(true)
+    setClock(nextClock)
+    apply(date, nextClock)
+  }
+
+  return <div className={styles.departureDateTime}>
+    <div className={styles.pickerField}>
+    <Field htmlFor={id} label={`Ngày ${label} *`} hint="Ngày/tháng/năm, ví dụ 25/04/2028" error={dateError ?? error}>
+      <input id={id} value={date} required autoComplete="off" maxLength={10}
+        onBlur={() => { if (date) setDateTouched(true) }} onChange={event => changeDate(event.target.value)} />
+      <PickerButton type="date" value={parseCruiseDate(date) ?? ''} text="Chọn ngày" label={`Chọn ngày ${label}`}
+        onSelect={selected => changeDate(selected.split('-').reverse().join('/'))} />
+    </Field>
+    </div>
+    <div className={styles.pickerField}>
+    <Field htmlFor={id + '-clock'} label={`Giờ ${label} (giờ Việt Nam) *`}
+      hint={suggestClock ? 'Dùng giờ theo mẫu nếu có. Bạn có thể chỉnh, ví dụ 16:00.' : 'Dạng 24 tiếng, ví dụ 16:00'}
+      error={clockError}>
+      <input id={id + '-clock'} value={clock} required autoComplete="off" maxLength={8}
+        onBlur={() => { if (clock) setClockTouched(true) }} onChange={event => changeClock(event.target.value)} />
+      <PickerButton type="time" value={validCruiseClock(clock) ? clock.trim() : ''} text="Chọn giờ" label={`Chọn giờ ${label}`}
+        onSelect={changeClock} />
+    </Field>
+    </div>
+  </div>
+}
