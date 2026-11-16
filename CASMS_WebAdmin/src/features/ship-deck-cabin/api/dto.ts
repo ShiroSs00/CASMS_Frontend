@@ -3,6 +3,7 @@ import type { ShipProfile } from '@/shared/lib/ship-profile'
 
 export type ShipDto = ShipProfile & {
   shipId: string; shipCode: string; shipName: string; status: ShipStatus
+  shipTypeId?: string | null; shipTypeName?: string | null; shipTypeCode?: string | null
   totalCapacity: number; totalDecks: number; commissionDate: string | null
   manifestModelId?: string | null; deckNumberLimit?: number; lengthMeters?: number | null; beamMeters?: number | null
   createdAt: string; updatedAt: string

@@ -3,7 +3,7 @@
  * Reference API reads deliberately remain independent of workspace membership.
  */
 export const ROLE_WORK_MODULES: Readonly<Record<string, readonly string[]>> = {
-  ADMIN: ['system', 'ship-import', 'ship-models'],
+  ADMIN: ['system', 'ship-types', 'ship-import', 'ship-models'],
   SHIP_MANAGER: ['fleet-dashboard', 'ships', 'decks', 'cabins', 'passenger-tracking', 'ship-regulations', 'staffing', 'service-locations', 'preparation-requests'],
   HR_MANAGER: ['staffing'],
   CRUISE_MANAGER: ['trips', 'cruises', 'itineraries', 'itinerary-history', 'cruise-regulations'],

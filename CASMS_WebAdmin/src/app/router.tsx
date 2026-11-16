@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router'
 import { AccessDeniedPage, AdminGuard, LoginPage, SessionBoundary } from '@/features/auth'
 import { loadModelViewerPage, loadShipImportPage } from '@/features/ship-model-viewer'
+import { shipPageWithViewer } from './ship-workflow-routes'
 import { AdminAccountLayout } from './layouts/AdminAccountLayout'
 import { BookingSessionLayout } from './layouts/BookingSessionLayout'
 import { RouteLoading } from './RouteLoading'
@@ -14,6 +15,10 @@ const adminRoutes = [
   { path: '/admin/trips/*', lazy: featurePage(() => import('@/features/trip-planning'), 'TripPlanningPage') },
   { path: '/admin/passenger-tracking', lazy: featurePage(() => import('./pages/PassengerManifestPage'), 'PassengerManifestPage') },
   { path: '/admin/ship-models', lazy: featurePage(loadModelViewerPage, 'ModelViewerPage') },
+  { path: '/admin/ship-types', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'ShipTypeCatalogPage') },
+  { path: '/admin/ship-types/new', lazy: shipPageWithViewer('ShipTypeDesignPage') },
+  { path: '/admin/ship-types/:typeId', lazy: shipPageWithViewer('ShipTypeDetailPage') },
+  { path: '/admin/ship-types/:typeId/edit', lazy: shipPageWithViewer('ShipTypeDesignPage') },
   { path: '/admin/fleet-dashboard', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'FleetDashboardPage') },
   { path: '/admin/ship-import', lazy: featurePage(loadShipImportPage, 'ShipImportPage') },
   { path: '/admin/system', lazy: featurePage(() => import('./pages/AdminSystemPage'), 'AdminSystemPage') },
@@ -64,8 +69,8 @@ const adminRoutes = [
   { path: '/admin/suppliers/:supplierId', lazy: featurePage(() => import('@/features/suppliers'), 'SupplierDetailPage') },
   { path: '/admin/suppliers/:supplierId/edit', lazy: featurePage(() => import('@/features/suppliers'), 'SupplierFormPage') },
   { path: '/admin/ships', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'ShipListPage') },
-  { path: '/admin/ships/new', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'ShipFormPage') },
-  { path: '/admin/ships/:id', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'ShipDetailPage') },
+  { path: '/admin/ships/new', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'ShipProvisionPage') },
+  { path: '/admin/ships/:id', lazy: shipPageWithViewer('ShipDetailPage') },
   { path: '/admin/ships/:id/edit', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'ShipFormPage') },
   { path: '/admin/decks', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'DeckListPage') },
   { path: '/admin/decks/new', lazy: featurePage(() => import('@/features/ship-deck-cabin'), 'DeckFormPage') },

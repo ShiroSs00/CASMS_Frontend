@@ -4,3 +4,8 @@ export { ShipFormPage, DeckFormPage, CabinFormPage } from './pages/FormPage'
 export { DeckDetailPage, CabinDetailPage } from './pages/DetailPage'
 export { ShipManagementPage as ShipDetailPage } from './pages/ShipManagementPage'
 export { FleetDashboardPage } from './pages/FleetDashboardPage'
+
+export { ShipTypeCatalogPage, ShipTypeDetailPage } from './ship-types/Catalog'
+export { ShipTypeDesignPage } from './ship-types/DesignForm'
+export { ShipProvisionPage } from './ship-types/ProvisionPage'
+export { ShipViewerContext } from './ship-types/viewer-context'

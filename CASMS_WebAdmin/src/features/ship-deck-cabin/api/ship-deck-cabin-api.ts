@@ -13,11 +13,13 @@ const paths: Record<EntityKind, string> = { ships: '/ships', decks: '/decks', ca
 const idPath = (kind: EntityKind, id: string) => `${paths[kind]}/${encodeURIComponent(id)}`
 const ship = (dto: ShipDto): Ship => ({
   id: dto.shipId, code: dto.shipCode, name: dto.shipName, status: dto.status,
+  shipTypeId: dto.shipTypeId, shipTypeName: dto.shipTypeName, shipTypeCode: dto.shipTypeCode,
   capacity: dto.totalCapacity, totalDecks: dto.totalDecks, commissionDate: dto.commissionDate ?? '',
   manufacturerName: dto.manufacturerName, origin: dto.origin, productionYear: dto.productionYear, engineType: dto.engineType,
   createdAt: dto.createdAt, updatedAt: dto.updatedAt,
   manifestModelId: dto.manifestModelId, deckNumberLimit: dto.deckNumberLimit, lengthMeters: dto.lengthMeters, beamMeters: dto.beamMeters,
 })
+export { ship as toShip }
 const deck = (dto: DeckDto): Deck => ({ id: dto.deckId, shipId: dto.shipId, number: dto.deckNumber,
   name: dto.deckName ?? '', priceMultiplier: dto.priceMultiplier ?? 1.0, createdAt: dto.createdAt, updatedAt: dto.updatedAt })
 const cabin = (dto: CabinDto): Cabin => ({ id: dto.cabinId, shipId: dto.shipId, deckId: dto.deckId,
@@ -73,6 +75,10 @@ export const shipDeckCabinApi = {
     const result = deck(await apiRequest<DeckDto>(idPath('decks', id), { method: 'PATCH', body: { deckName: name.trim(), priceMultiplier } }))
     notify(); return result
   },
+  async listShipPage(page: number, signal: AbortSignal) {
+    const result = await apiRequest<PageDto<ShipDto>>(paths.ships, { query: { page, size: 20, sort: 'shipCode,asc' }, signal })
+    return { ...result, size: 20, content: result.content.map(ship) }
+  },
   async listShips(signal: AbortSignal): Promise<Ship[]> {
     return (await allPages<ShipDto>(paths.ships, signal)).map(ship)
   },
@@ -120,17 +126,17 @@ export const shipDeckCabinApi = {
     return cabin(await apiRequest<CabinDto>(idPath(kind, id), { signal }))
   },
   async saveShip(draft: ShipDraft, current?: Ship) {
-    const id = current?.id
+    if (!current) throw new Error('Hãy tạo tàu từ một loại tàu đang sử dụng.')
+    const id = current.id
     const body = {
       shipName: draft.name.trim(), totalCapacity: draft.capacity,
       ...(draft.totalDecks !== current?.totalDecks ? { totalDecks: draft.totalDecks } : {}),
-      ...shipProfilePayload(draft, Boolean(id)),
+      ...shipProfilePayload(draft, true),
       ...(draft.commissionDate ? { commissionDate: draft.commissionDate } : {}),
       ...(draft.lengthMeters != null ? { lengthMeters: draft.lengthMeters } : {}),
       ...(draft.beamMeters != null ? { beamMeters: draft.beamMeters } : {}),
-      ...(!id ? { shipCode: draft.code.trim(), status: draft.status } : {}),
     }
-    const saved = ship(await apiRequest<ShipDto>(id ? idPath('ships', id) : paths.ships, { method: id ? 'PATCH' : 'POST', body }))
+    const saved = ship(await apiRequest<ShipDto>(idPath('ships', id), { method: 'PATCH', body }))
     notify(); return saved
   },
   async saveDeck(draft: DeckDraft, id?: string) {

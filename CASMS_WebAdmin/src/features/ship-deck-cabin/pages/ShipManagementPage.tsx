@@ -1,12 +1,12 @@
 import {ShipAreas} from '../components/ShipAreas'
 import {ShipOverview} from '../components/ShipOverview'
 import { CruisePackageCabinMapping } from '@/domain/cruise-package'
-import { useCallback, useState } from 'react'
+import { Suspense, useCallback, useContext, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
 import { ApiError } from '@/shared/api'
-import { Button, Empty, Loading, Notice } from '@/shared/ui'
+import { Button, Empty, Loading, Notice, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { useFleetQuery } from '../hooks/useFleetQuery'
@@ -14,13 +14,18 @@ import { FleetDialogs, type FleetDialog } from '../components/FleetDialogs'
 import { ShipInventory } from '../components/ShipInventory'
 import { StatusBadge } from '../components/Common'
 import { type Ship } from '../model/types'
+import { ShipSchedule } from '../components/ShipSchedule'
+import { ShipProfilePanel, ShipRenameDialog } from '../ship-types/ShipProfilePanel'
+import { ShipViewerContext } from '../ship-types/viewer-context'
 import styles from '../components/ShipManagement.module.css'
 
 function ShipManagementContent({ id }: { id: string }) {
   const access = useSessionAccess()
+  const ShipRecordViewer = useContext(ShipViewerContext)?.RecordViewer
   const [params] = useSearchParams()
   const [dialog, setDialog] = useState<FleetDialog | null>(null)
   const [saved, setSaved] = useState('')
+  const [renaming, setRenaming] = useState(false)
   const load = useCallback(async (signal: AbortSignal): Promise<Ship | null> => {
     try {
       const value = await shipDeckCabinApi.get('ships', id, signal)
@@ -32,13 +37,22 @@ function ShipManagementContent({ id }: { id: string }) {
   const ship = query.data
   if (!ship) return <>{query.loading ? <Loading label="Đang tải thông tin tàu…" /> : query.error ? <Notice title="Không tải được tàu" tone="error">{query.error}</Notice> : <Empty title="Không tìm thấy tàu"><Link to="/admin/ships">Về danh sách tàu</Link></Empty>}</>
   const requested = params.get('tab')
-  const tab = requested==='areas'&&access.canDo('SHIP_CONFIGURATION_READ')?'areas':requested==='decks'&&access.canDo('DECK_READ')?'decks':requested==='cabins'&&access.canDo('CABIN_READ')?'cabins':'overview'
+  const canViewModel = Boolean(ShipRecordViewer) && access.canDo('SHIP_MODEL_READ')
+  const canViewSchedule = ['SHIP_CURRENT_CRUISE', 'SHIP_SCHEDULE_CHECK', 'SHIP_AFFECTED_CRUISES'].some(access.canDo)
+  const manager = access.roles.includes('SHIP_MANAGER')
+  const admin = access.roles.includes('ADMIN')
+  const availableTabs: Record<string, boolean> = {
+    areas: access.canDo('SHIP_CONFIGURATION_READ'), decks: access.canDo('DECK_READ'),
+    cabins: access.canDo('CABIN_READ'), model: canViewModel, schedule: canViewSchedule,
+  }
+  const tab = requested && availableTabs[requested] ? requested : 'overview'
   return <div className={styles.stack}>
     <header className={styles.shipDetailHeading}>
       <div className={styles.detailToolbar}>
-        <Link className={styles.backToFleet} to="/admin/ships"><span aria-hidden="true">←</span> Danh sách tàu</Link>
+        <Link className={styles.backToFleet} to={admin ? (ship.shipTypeId ? '/admin/ship-types/' + ship.shipTypeId : '/admin/ship-models') : '/admin/ships'}><span aria-hidden="true">←</span> {admin && ship.shipTypeId ? 'Chi tiết loại tàu' : admin ? 'Sơ đồ tàu 3D' : 'Danh sách tàu'}</Link>
         <div className={styles.shipActions}>
           {access.canDo('SHIP_STATUS_CHANGE')&&<Button tone="secondary" autoWidth disabled={query.loading} onClick={()=>setDialog({type:'operation',kind:'ships',item:ship,operation:'status'})}>Cập nhật trạng thái</Button>}
+          {manager && ship.shipTypeId && !access.canDo('SHIP_UPDATE') && <Button autoWidth onClick={() => setRenaming(true)}>Đổi tên tàu</Button>}
           {access.canDo('SHIP_UPDATE')&&<Button autoWidth disabled={query.loading} onClick={()=>{setSaved('');setDialog({type:'edit',target:{kind:'ships',item:ship}})}}>Chỉnh sửa thông tin</Button>}
         </div>
       </div>
@@ -47,13 +61,26 @@ function ShipManagementContent({ id }: { id: string }) {
     {query.error && <Notice title="Chưa cập nhật được dữ liệu tàu" tone="error">{query.error}</Notice>}
     {saved && <Notice title="Đã lưu thay đổi" tone="success">{saved}</Notice>}
     <nav className={styles.tabs} aria-label="Thông tin trong tàu">
-      <Link to={`/admin/ships/${id}`} aria-current={tab === 'overview' ? 'page' : undefined}>Tổng quan</Link>
+      <Link to={`/admin/ships/${id}`} aria-current={tab === 'overview' ? 'page' : undefined}>Thông tin chung</Link>
       {access.canDo('DECK_READ')&&<Link to={`/admin/ships/${id}?tab=decks`} aria-current={tab==='decks'?'page':undefined}>Boong</Link>}
       {access.canDo('SHIP_CONFIGURATION_READ')&&<Link to={`/admin/ships/${id}?tab=areas`} aria-current={tab==='areas'?'page':undefined}>Khu vực dịch vụ</Link>}
-      {access.canDo('CABIN_READ')&&<Link to={`/admin/ships/${id}?tab=cabins`} aria-current={tab==='cabins'?'page':undefined}>Phòng</Link>}
+      {access.canDo('CABIN_READ')&&<Link to={`/admin/ships/${id}?tab=cabins`} aria-current={tab==='cabins'?'page':undefined}>Cabin</Link>}
+      {canViewModel && <Link to={`/admin/ships/${id}?tab=model`} aria-current={tab === 'model' ? 'page' : undefined}>Mô hình 2D/3D</Link>}
+      {canViewSchedule && <Link to={`/admin/ships/${id}?tab=schedule`} aria-current={tab === 'schedule' ? 'page' : undefined}>Lịch khai thác</Link>}
     </nav>
-    {tab==='overview'?<ShipOverview ship={ship}/>:tab==='areas'?<ShipAreas key={id} shipId={id} initialDeck={params.get('deck')??''}/>:<ShipInventory key={`${id}:${tab}:${params.get('deck')??''}`} ship={ship} view={tab} initialDeck={params.get('deck')??''} onDialog={setDialog}/>}
+    {tab === 'overview' && <>
+      <Panel title="Loại tàu">
+        {ship.shipTypeId ? <Link to={'/admin/ship-types/' + ship.shipTypeId}>{ship.shipTypeName || ship.shipTypeCode || 'Xem loại tàu'}</Link> : 'Chưa phân loại'}
+      </Panel>
+      <ShipOverview ship={ship}/>
+      {manager && ship.shipTypeId && <ShipProfilePanel id={id} />}
+    </>}
+    {tab === 'model' && ShipRecordViewer && <Suspense fallback={<Loading label="Đang mở khung xem mô hình…" />}><ShipRecordViewer key={id} ship={id} /></Suspense>}
+    {tab === 'schedule' && <ShipSchedule key={id} ship={ship} onDialog={setDialog} />}
+    {tab === 'areas' && <ShipAreas key={id} shipId={id} initialDeck={params.get('deck') ?? ''} />}
+    {(tab === 'decks' || tab === 'cabins') && <ShipInventory key={`${id}:${tab}:${params.get('deck')??''}`} ship={ship} view={tab} initialDeck={params.get('deck')??''} onDialog={setDialog}/>}
     {tab==='cabins'&&<CruisePackageCabinMapping shipId={id}/>}
+    {renaming && <ShipRenameDialog id={id} initial={ship.name} onClose={() => setRenaming(false)} />}
     <FleetDialogs dialog={dialog} ship={ship} onChange={setDialog} onSaved={setSaved} />
   </div>
 }
