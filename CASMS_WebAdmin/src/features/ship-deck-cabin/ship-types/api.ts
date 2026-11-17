@@ -17,12 +17,14 @@ export type ShipType = StoredDesign & {
   shipCount: number
 }
 export type Page<T> = { content: T[]; number: number; size: number; totalElements: number; totalPages: number }
-export type OperationalProfile = {
+export type ManufacturingProfile = {
   manufacturerShipCode?: string
-  imoNumber?: string
   shipyard?: string
   buildCountry?: string
   buildYear?: number
+}
+export type EditableProfile = {
+  imoNumber?: string
   deliveryDate?: string
   registrationCountry?: string
   registrationNumber?: string
@@ -32,11 +34,14 @@ export type OperationalProfile = {
   warrantyReferences?: string[]
   maintenanceReferences?: string[]
 }
-export type ProvisionPayload = { shipName: string; profile: OperationalProfile | null }
+export type OperationalProfile = EditableProfile & ManufacturingProfile & { designMetadataImported?: boolean }
+export type ProvisionPayload = { shipName: string; profile: EditableProfile | null }
 export type PendingProvision = { typeId: string; key: string; payload: ProvisionPayload }
 export type DesignManifest = {
   modelId: string; name?: string; shipManufacturerName?: string; engineType?: string
   passengerCapacity?: number; deckCount?: number; length?: number; beam?: number
+  manufacturerShipCode?: unknown; shipyard?: unknown; buildCountry?: unknown; buildYear?: unknown
+  shipTypeManufacturingIssues?: string[]
   assets: { full?: string; exterior?: string }; decks: unknown[]; cabins: unknown[]
 }
 
@@ -91,7 +96,7 @@ export const shipTypesApi = {
   result: (attempt: PendingProvision) =>
     apiRequest<ShipDto>(typePath(attempt.typeId) + '/ships/provisioning/' + part(attempt.key)),
   profile: (id: string, signal?: AbortSignal) => apiRequest<OperationalProfile | null>(profilePath(id), { signal }),
-  saveProfile: (id: string, profile: OperationalProfile) =>
+  saveProfile: (id: string, profile: EditableProfile) =>
     apiRequest<OperationalProfile>(profilePath(id), { method: 'PUT', body: profile }),
   rename: (id: string, shipName: string) =>
     apiRequest<ShipDto>('/ships/' + part(id) + '/name', { method: 'PATCH', body: { shipName } }),
@@ -119,6 +124,7 @@ export function shipError(error: unknown): string {
     case 'SHIP_TYPE_CODE_CONFLICT': return 'Mã loại này đã có phiên bản khác. Mở chi tiết loại tàu để cập nhật phiên bản.'
     case 'SHIP_TYPE_DESIGN_MISMATCH': return 'Gói thay thế phải có cùng mã thiết kế.'
     case 'SHIP_TYPE_IN_USE': return 'Loại tàu đang được sử dụng. Có thể ngừng sử dụng loại trong trang chi tiết.'
+    case 'SHIP_HULL_CODE_IN_USE': return 'Mã thân tàu đã được dùng tại cùng xưởng đóng tàu. Quản trị viên cần nhập phiên bản ZIP có mã thân tàu riêng cho tàu này.'
     case 'IDEMPOTENCY_CONFLICT': return 'Mã xác nhận đã được dùng cho dữ liệu khác. Kiểm tra tàu đã tạo trước khi bắt đầu thao tác mới.'
     case 'DUPLICATE_RESOURCE': return 'Số IMO hoặc số đăng ký đã được sử dụng. Kiểm tra thông tin hồ sơ.'
     case 'SHIP_MODEL_IMPORT_REJECTED': return 'Không dựng được cấu trúc tàu từ phiên bản này. Kiểm tra các lỗi mô hình bên dưới.'

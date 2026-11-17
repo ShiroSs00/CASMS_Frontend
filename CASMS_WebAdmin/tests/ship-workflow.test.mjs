@@ -16,6 +16,7 @@ const design = { modelKey: 'test-vessel', assetVersion: 'zip-pinned' }
 const manifest = {
   modelId: design.modelKey, name: 'Test Vessel', shipManufacturerName: 'QA Shipyard',
   engineType: 'QA Engine', passengerCapacity: 12, deckCount: 8, length: 100, beam: 20,
+  manufacturerShipCode: 'QA-HULL', shipyard: 'QA Yard', buildCountry: 'NL', buildYear: 2000,
   assets: { full: 'ship.glb' }, decks: [], cabins: [],
 }
 
@@ -95,11 +96,14 @@ test('validates draft profiles, manifest metadata and error recovery decisions',
   assert.deepEqual(validateProfile({}), {})
   assert.ok(validateProfile({ imoNumber: '123' }).imoNumber)
   assert.ok(validateProfile({ registrationCountry: 'VN' }).registrationNumber)
-  assert.deepEqual(profilePayload({ imoNumber: 'IMO 1234567', registrationCountry: 'vn', registrationNumber: 'r1', buildYear: '2020' }),
-    { imoNumber: '1234567', registrationCountry: 'VN', registrationNumber: 'R1', buildYear: 2020 })
+  assert.deepEqual(profilePayload({ imoNumber: 'IMO 1234567', registrationCountry: 'vn', registrationNumber: 'r1',
+    manufacturerShipCode: 'CLIENT', shipyard: 'Client yard', buildCountry: 'US', buildYear: '2020' }),
+  { imoNumber: '1234567', registrationCountry: 'VN', registrationNumber: 'R1' })
   assert.deepEqual(metadataIssues(manifest), [])
   assert.match(metadataIssues({ ...manifest, shipManufacturerName: '' }).join(' '), /shipManufacturerName/)
   assert.match(metadataIssues({ ...manifest, engineType: '' }).join(' '), /engineType/)
+  assert.match(metadataIssues({ ...manifest, shipTypeManufacturingIssues: ['buildCountry'] }).join(' '), /buildCountry/)
+  assert.match(metadataIssues({ ...manifest, manufacturerShipCode: 25, buildYear: '2000' }).join(' '), /manufacturerShipCode.*buildYear/)
   assert.throws(() => storedAssetPath(design, '../wrong.glb'))
   assert.deepEqual(missingProfileLabels({ missingGroups: ['certification', 'warranty'] }),
     ['Đăng kiểm và hồ sơ chứng nhận', 'Hồ sơ bảo hành'])
