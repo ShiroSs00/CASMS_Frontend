@@ -181,6 +181,8 @@ const messages:Readonly<Record<string,string>>={
   PLAN_FROZEN:'Kế hoạch đã gửi xét duyệt. Cần thu hồi hoặc yêu cầu chỉnh sửa trước khi lưu thay đổi.',
   STALE_PREVIEW:'Phiên bản nguồn đã đổi sau khi xem trước. Giữ bản nhập, tải lại nguồn và tạo bản xem trước mới trước khi gửi lại.',
   TRIP_ARCHIVED:'Chuyến đi nguồn đã được lưu trữ. Chọn phiên bản của chuyến đi còn sử dụng.',
+  SHIP_TYPE_DESIGN_LOCKED:'Thông tin thiết kế lấy từ phiên bản ZIP đã ghim. Hãy chỉ cập nhật tên tàu hoặc ngày khai thác.',
+  SHIP_ARCHIVED:'Tàu đã được lưu trữ và chỉ có thể tra cứu.',
   STALE_REVISION:'Dữ liệu đã được cập nhật bởi thao tác khác. Nội dung đang nhập vẫn được giữ; hãy đối chiếu bản mới trước khi gửi lại.',
   SALE_SUSPENDED:'Chuyến khởi hành đang tạm dừng nhận đặt chỗ mới. Lựa chọn của bạn vẫn được giữ để đối chiếu.',
   PACKAGE_NOT_AVAILABLE_FOR_CRUISE:'Gói đã chọn không còn được áp dụng cho chuyến khởi hành này. Hãy kiểm tra lại lựa chọn gói.',

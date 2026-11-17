@@ -1,4 +1,20 @@
 [
+  {
+    "method": "GET",
+    "path": "/ships/{shipId}/archive-eligibility",
+    "mode": "ALL",
+    "permissions": ["SHIP_ARCHIVE"],
+    "roles": ["SHIP_MANAGER"],
+    "source": "com/casms/ship/controller/ShipController.java"
+  },
+  {
+    "method": "POST",
+    "path": "/ships/{shipId}/archive",
+    "mode": "ALL",
+    "permissions": ["SHIP_ARCHIVE"],
+    "roles": ["SHIP_MANAGER"],
+    "source": "com/casms/ship/controller/ShipController.java"
+  },
   {"method": "POST", "path": "/ship-types/from-stored", "mode": "ALL", "permissions": [], "source": "com/casms/ship/controller/ShipTypeController.java", "roles": ["ADMIN"]},
   {"method": "GET", "path": "/ship-types", "mode": "ALL", "permissions": [], "source": "com/casms/ship/controller/ShipTypeController.java", "roles": ["ADMIN", "SHIP_MANAGER"]},
   {"method": "GET", "path": "/ship-types/{typeId}", "mode": "ALL", "permissions": [], "source": "com/casms/ship/controller/ShipTypeController.java", "roles": ["ADMIN", "SHIP_MANAGER"]},

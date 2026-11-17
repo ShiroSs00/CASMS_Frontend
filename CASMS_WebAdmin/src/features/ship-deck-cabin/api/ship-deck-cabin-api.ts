@@ -16,6 +16,7 @@ const ship = (dto: ShipDto): Ship => ({
   id: dto.shipId, code: dto.shipCode, name: dto.shipName, status: dto.status,
   shipTypeId: dto.shipTypeId, shipTypeName: dto.shipTypeName, shipTypeCode: dto.shipTypeCode,
   designReference: dto.designReference,
+  archivedAt: dto.archivedAt,
   capacity: dto.totalCapacity, totalDecks: dto.totalDecks, commissionDate: dto.commissionDate ?? '',
   manufacturerName: dto.manufacturerName, origin: dto.origin, productionYear: dto.productionYear, engineType: dto.engineType,
   createdAt: dto.createdAt, updatedAt: dto.updatedAt,
@@ -145,6 +146,13 @@ export const shipDeckCabinApi = {
     }
     const saved = ship(await apiRequest<ShipDto>(idPath('ships', id), { method: 'PATCH', body }))
     notify(); return saved
+  },
+  archiveEligibility: (id: string) =>
+    apiRequest<{ eligible: boolean; blockers: string[] }>(idPath('ships', id) + '/archive-eligibility'),
+  async archiveShip(id: string) {
+    const archived = await apiRequest<ShipDto>(idPath('ships', id) + '/archive', { method: 'POST' })
+    notify()
+    return ship(archived)
   },
   async saveDeck(draft: DeckDraft, id?: string) {
     const body = { deckNumber: !id && draft.number === '' ? undefined : draft.number, deckName: draft.name.trim(), priceMultiplier: draft.priceMultiplier ?? 1.0, ...(!id ? { shipId: draft.shipId } : {}) }

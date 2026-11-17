@@ -3,10 +3,13 @@ import assert from 'node:assert/strict'
 import { ApiError, setApiAccessToken } from '../src/shared/api/client.ts'
 import { apiPermissionRequirement, hasPermissions } from '../src/shared/auth/permission-policy.ts'
 import { setSessionAccess } from '../src/shared/auth/session-access.ts'
+import { actionInWorkScope } from '../src/shared/auth/work-policy.ts'
 import { canRoleOpenAdminPath } from '../src/shared/ui/admin-v3/admin-navigation.ts'
 import { shipTypesApi, shipError, storedAssetPath, unknownOutcome } from '../src/features/ship-deck-cabin/ship-types/api.ts'
 import { metadataIssues } from '../src/features/ship-deck-cabin/ship-types/design-metadata.ts'
 import { missingProfileLabels, profilePayload, validateProfile } from '../src/features/ship-deck-cabin/ship-types/profile.ts'
+import { shipDeckCabinApi } from '../src/features/ship-deck-cabin/api/ship-deck-cabin-api.ts'
+import { readShipListFilters, shipListParams } from '../src/features/ship-deck-cabin/model/ship-list-filters.ts'
 
 const access = (role, permissions) => ({ status: 'ready', userId: role, roles: [role], permissions, error: '' })
 const admin = access('ADMIN', ['SHIP_READ', 'SHIP_CREATE', 'SHIP_MODEL_CREATE', 'SHIP_MODEL_READ'])
@@ -25,6 +28,36 @@ function authorized(state, method, path) {
   assert.ok(rule, method + ' ' + path + ' must have a rule')
   return hasPermissions(state, rule)
 }
+
+test('archive endpoints require the Ship Manager role and ship archive permission', () => {
+  assert.equal(actionInWorkScope(['SHIP_MANAGER'], 'SHIP_ARCHIVE'), true)
+  assert.equal(actionInWorkScope(['ADMIN'], 'SHIP_ARCHIVE'), false)
+  assert.equal(actionInWorkScope(['CRUISE_MANAGER'], 'SHIP_ARCHIVE'), false)
+  for (const [method, endpoint] of [['GET', 'archive-eligibility'], ['POST', 'archive']]) {
+    const path = '/ships/ship-id/' + endpoint
+    assert.equal(authorized(manager, method, path), false)
+    assert.equal(authorized(access('ADMIN', ['SHIP_ARCHIVE']), method, path), false)
+    assert.equal(authorized(access('SHIP_MANAGER', ['SHIP_ARCHIVE']), method, path), true)
+  }
+  const filters = readShipListFilters(new URLSearchParams('archived=true&q=Zaandam'))
+  assert.equal(filters.archived, true)
+  assert.equal(shipListParams(filters, 2).toString(), 'q=Zaandam&archived=true&page=2')
+  assert.equal(shipListParams(readShipListFilters(new URLSearchParams()), 0).has('archived'), false)
+})
+
+test('typed ship PATCH omits legacy origin and production year', async t => {
+  const calls = []
+  t.mock.method(globalThis, 'fetch', async (url, request) => {
+    calls.push([url, request])
+    return Response.json({ success: true, data: { shipId: 'ship-id', shipTypeId: 'type-id', shipName: 'New name' } })
+  })
+  setSessionAccess(access('ADMIN', ['SHIP_READ', 'SHIP_UPDATE']))
+  setApiAccessToken('qa-test-token')
+  const current = { id: 'ship-id', shipTypeId: 'type-id', name: 'Old name' }
+  await shipDeckCabinApi.saveShip({ name: 'New name', commissionDate: '2000-01-01', origin: 'CA', productionYear: 1999 }, current)
+  assert.equal(calls[0][0], '/api/ships/ship-id')
+  assert.deepEqual(JSON.parse(calls[0][1].body), { shipName: 'New name', commissionDate: '2000-01-01' })
+})
 
 test('ShipType and physical ship routes follow the real role split', () => {
   const canOpen = (actor, path) => canRoleOpenAdminPath(actor.roles, path, '', actor)

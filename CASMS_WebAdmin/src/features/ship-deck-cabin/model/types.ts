@@ -19,6 +19,7 @@ export type ShipDesignReference = {
 export type Ship = RecordBase & ShipProfile & {
   shipTypeId?: string | null; shipTypeName?: string | null; shipTypeCode?: string | null
   designReference?: ShipDesignReference | null
+  archivedAt?: string | null
   code: string; name: string; status: ShipStatus
   capacity: number; totalDecks: number; commissionDate: string
   manifestModelId?: string | null; deckNumberLimit?: number; lengthMeters?: number | null; beamMeters?: number | null

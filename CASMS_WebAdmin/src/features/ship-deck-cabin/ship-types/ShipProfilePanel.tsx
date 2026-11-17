@@ -50,7 +50,7 @@ function ProfileEditor({ id, initial, onClose, onSave }: {
   </Modal>
 }
 
-export function ShipProfilePanel({ id }: { id: string }) {
+export function ShipProfilePanel({ id, readOnly = false }: { id: string; readOnly?: boolean }) {
   const [editing, setEditing] = useState(false)
   const [saved, setSaved] = useState(false)
   const load = useCallback((signal: AbortSignal) => shipTypesApi.profile(id, signal), [id])
@@ -62,9 +62,9 @@ export function ShipProfilePanel({ id }: { id: string }) {
     {!result.loading && !result.error && <>
       {result.data && Object.keys(result.data).length ? <ProfileFacts profile={result.data} /> :
         <Empty title="Chưa bổ sung hồ sơ vận hành">Bổ sung thông tin đăng kiểm, chứng nhận, bảo hành và bảo trì trước khi đổi trạng thái tàu.</Empty>}
-      <div className={styles.actions}><Button tone="secondary" onClick={() => setEditing(true)}>Chỉnh sửa hồ sơ vận hành</Button></div>
+      {!readOnly && <div className={styles.actions}><Button tone="secondary" onClick={() => setEditing(true)}>Chỉnh sửa hồ sơ vận hành</Button></div>}
     </>}
-    {editing && <ProfileEditor id={id} initial={result.data} onClose={() => setEditing(false)}
+    {editing && !readOnly && <ProfileEditor id={id} initial={result.data} onClose={() => setEditing(false)}
       onSave={() => { setEditing(false); setSaved(true); result.retry() }} />}
   </Panel>
 }
