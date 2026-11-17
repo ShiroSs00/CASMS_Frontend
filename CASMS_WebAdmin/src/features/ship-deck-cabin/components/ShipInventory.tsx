@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { useLocation } from 'react-router'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
 import { Button, Empty, Field, Loading, Notice, Panel, ListFooter } from '@/shared/ui'
@@ -17,6 +18,7 @@ const ROOMS_PER_PAGE = 6
 
 export function ShipInventory({ ship, view, initialDeck = '', onDialog }: { ship: Ship; view: 'decks' | 'cabins'; initialDeck?: string; onDialog: (value: FleetDialog) => void }) {
   const access = useSessionAccess()
+  const { state } = useLocation()
   const [filters, setFilters] = useState({ ...emptyRoomFilters, deck: initialDeck })
   const [page, setPage] = useState(1)
   const loadDecks = useCallback((signal: AbortSignal) => shipDeckCabinApi.listShipDecks(ship.id, signal), [ship.id])
@@ -45,7 +47,7 @@ export function ShipInventory({ ship, view, initialDeck = '', onDialog }: { ship
       {rooms.error && view === 'decks' && <Notice title="Chưa tải được số phòng theo boong" tone="warning">{rooms.error}</Notice>}
       {view === 'decks' && !access.canDo('DECK_READ') && <Notice title="Chưa có quyền xem boong" tone="warning">Tài khoản cần được cấp quyền đọc boong.</Notice>}
       {view === 'cabins' && !access.canDo('CABIN_READ') && <Notice title="Chưa có quyền xem phòng" tone="warning">Tài khoản cần được cấp quyền đọc phòng.</Notice>}
-      {view === 'decks' && decks.data && (decks.data.length ? <><ul className={styles.inventoryCards}>{deckPagination.items.map(deck=><li key={deck.id}><div className={styles.inventoryHeading}><h3>Boong {deck.number} · {deck.name||'Chưa đặt tên'}</h3></div><dl className={styles.inventoryFacts}><div><dt>Số phòng</dt><dd>{counts?.get(deck.id)?.total??'—'}</dd></div><div><dt>Phòng sẵn sàng</dt><dd>{counts?.get(deck.id)?.available??'—'}</dd></div><div><dt>Hệ số điều chỉnh giá cơ sở theo boong</dt><dd>{(deck.priceMultiplier??1).toLocaleString('vi-VN')}×</dd></div></dl><div className={styles.rowActions}>{access.canDo('CABIN_READ') && <Link className={styles.textLink} to={`/admin/ships/${ship.id}?${new URLSearchParams({tab:'cabins',deck:deck.id})}`}>Xem phòng</Link>}{access.canDo('SHIP_CONFIGURATION_READ')&&<Link className={styles.textLink} to={`/admin/ships/${ship.id}?${new URLSearchParams({tab:'areas',deck:deck.id})}`}>Khu vực dịch vụ</Link>}{access.canDo('DECK_UPDATE') && <Button tone="text" size="compact" disabled={decks.loading} onClick={() => onDialog({ type: 'edit', target: { kind: 'decks', item: deck } })}>Chỉnh sửa</Button>}</div></li>)}</ul><FleetPagination pagination={deckPagination} onChange={setPage}/></> : <Empty title="Tàu chưa có boong"></Empty>)}
+      {view === 'decks' && decks.data && (decks.data.length ? <><ul className={styles.inventoryCards}>{deckPagination.items.map(deck=><li key={deck.id}><div className={styles.inventoryHeading}><h3>Boong {deck.number} · {deck.name||'Chưa đặt tên'}</h3></div><dl className={styles.inventoryFacts}><div><dt>Số phòng</dt><dd>{counts?.get(deck.id)?.total??'—'}</dd></div><div><dt>Phòng sẵn sàng</dt><dd>{counts?.get(deck.id)?.available??'—'}</dd></div><div><dt>Hệ số điều chỉnh giá cơ sở theo boong</dt><dd>{(deck.priceMultiplier??1).toLocaleString('vi-VN')}×</dd></div></dl><div className={styles.rowActions}>{access.canDo('CABIN_READ') && <Link state={state} className={styles.textLink} to={`/admin/ships/${ship.id}?${new URLSearchParams({tab:'cabins',deck:deck.id})}`}>Xem phòng</Link>}{access.canDo('SHIP_CONFIGURATION_READ')&&<Link state={state} className={styles.textLink} to={`/admin/ships/${ship.id}?${new URLSearchParams({tab:'areas',deck:deck.id})}`}>Khu vực dịch vụ</Link>}{access.canDo('DECK_UPDATE') && <Button tone="text" size="compact" disabled={decks.loading} onClick={() => onDialog({ type: 'edit', target: { kind: 'decks', item: deck } })}>Chỉnh sửa</Button>}</div></li>)}</ul><FleetPagination pagination={deckPagination} onChange={setPage}/></> : <Empty title="Tàu chưa có boong"></Empty>)}
       {view === 'cabins' && selectedDeck && rooms.data && <>
         <div className={styles.roomFilters}>
           <Field htmlFor="fleet-room-search" label="Tìm phòng"><input id="fleet-room-search" value={filters.search} placeholder="Nhập số phòng…" onChange={event => changeFilters({ ...filters, search: event.target.value })} /></Field>

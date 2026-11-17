@@ -11,7 +11,8 @@ export function saveAttempt<T>(key: string, attempt: T | null) {
   try {
     if (attempt) window.sessionStorage.setItem(key, JSON.stringify(attempt))
     else window.sessionStorage.removeItem(key)
+    return true
   } catch {
-    // The live form can still recover using the attempt held in memory.
+    return false
   }
 }

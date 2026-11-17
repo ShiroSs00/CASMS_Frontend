@@ -11,14 +11,14 @@ import type { ImportJob } from './import/model'
 import { refreshShipStructure } from '@/shared/lib/ship-structure-revision'
 import { viewerApi } from './api'
 import { ModelCanvas } from './ModelCanvas'
-import { serviceName, serviceType, cabinTypes, selectedAreas, selectedCabins, type Area, type AssetInfo, type Cabin, type Manifest, type ShipChoice } from './model'
+import { cabinDeckLabel, serviceName, serviceType, cabinTypes, selectedAreas, selectedCabins, type Area, type AssetInfo, type Cabin, type Manifest, type ShipChoice } from './model'
 import styles from './Viewer.module.css'
 import {BleSetup} from './BleSetup'
 
 function Failure({error,retry}:{error:Error;retry:()=>void}) { return <Notice title="Chưa tải được dữ liệu" tone="error">{error.message}<Button tone="text" onClick={retry}>Thử lại</Button></Notice> }
 function Facts({rows}:{rows:Array<[string, string | number | undefined]>}) {return <dl className={styles.facts}>{rows.map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value??'Chưa cung cấp'}</dd></div>)}</dl>}
 function CabinDetails({cabin,manifest}:{cabin:Cabin;manifest:Manifest}) {return <><div className={styles.detailTitle}><span>PHÒNG</span><h2>{cabin.cabinNumber}</h2><Badge label={cabinTypes[cabin.cabinType]??cabin.cabinType}/></div><Facts rows={[
-  ['Boong',`${cabin.deckNumber} · ${manifest.decks.find(d=>d.id===cabin.deckId)?.name??''}`],['Sức chứa',cabin.capacity!=null?`${cabin.capacity} khách`:undefined],['Hạng phòng',cabin.gradeName],['Phòng hỗ trợ người khuyết tật',cabin.isAccessible==null?undefined:cabin.isAccessible?'Có':'Không'],['Diện tích',cabin.areaSquareMetres!=null?`${cabin.areaSquareMetres} m²`:undefined]
+  ['Boong',cabinDeckLabel(manifest,cabin.deckId)],['Sức chứa',cabin.capacity!=null?`${cabin.capacity} khách`:undefined],['Hạng phòng',cabin.gradeName],['Phòng hỗ trợ người khuyết tật',cabin.isAccessible==null?undefined:cabin.isAccessible?'Có':'Không'],['Diện tích',cabin.areaSquareMetres!=null?`${cabin.areaSquareMetres} m²`:undefined]
   ]}/></>}
 type AreaUsage = {
   id: string
@@ -121,7 +121,7 @@ export function ShipRecordViewer({ ship }: { ship: string }) {
     try {
       active = await apiRequest<AssetInfo>(shipPath + '/model', { signal })
     } catch (failure) {
-      if (failure instanceof ApiError && failure.status === 404) return null
+      if (failure instanceof ApiError && failure.status === 404 && failure.serverMessage === 'No active model on this ship') return null
       throw failure
     }
     if (!active?.id) return null

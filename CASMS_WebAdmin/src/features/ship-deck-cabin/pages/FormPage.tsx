@@ -6,7 +6,7 @@ import { ShipProfileFields } from '@/shared/ui/ShipProfileFields'
 import { useSessionAccess } from '@/shared/auth'
 import { entityPermission } from '../model/permissions'
 import { useRef, useState, type FormEvent } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router'
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router'
 import {readinessContextReturn} from '@/shared/lib/cruise-context'
 import { Button, Notice, PageHeader, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
@@ -106,6 +106,7 @@ function FormPage({ kind }: { kind: EntityKind }) {
   if (entity.loading || entity.error) return <DataState loading={entity.loading} error={entity.error} retry={entity.retry} />
   if (id && !entity.data) return <NotFound back={`/admin/${kind}`} />
   const item = entity.data
+  if (item && 'code' in item && item.shipTypeId) return <Navigate replace to={`/admin/ships/${item.id}`} />
   return <FormContent key={`${kind}:${id ?? 'new'}`} kind={kind} data={data} hostId={params.get('ship') ?? (kind === 'cabins' ? data.decks.find(row => row.id === params.get('deck'))?.shipId ?? '' : '')} deckId={params.get('deck') ?? ''}
     ship={item && 'code' in item ? item : undefined}
     deck={item && !('code' in item) && !('deckId' in item) ? item : undefined}

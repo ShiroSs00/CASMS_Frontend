@@ -101,6 +101,16 @@ export function unknownOutcome(error: unknown) {
   return !(error instanceof ApiError) || error.status === 0 || error.status === 408 || error.status >= 500
 }
 
+export function missingProvisionResult(error: unknown, key: string) {
+  return error instanceof ApiError && error.status === 404 && error.code === 'RESOURCE_NOT_FOUND'
+    && error.serverMessage === 'Ship provisioning result not found with id: ' + key
+}
+
+export function provisionedShipId(ship: ShipDto) {
+  if (!ship?.shipId || !ship.shipCode) throw new Error('Phản hồi chưa có mã và ID tàu. Kiểm tra lại kết quả tạo tàu.')
+  return ship.shipId
+}
+
 export function shipError(error: unknown): string {
   if (!(error instanceof ApiError)) return error instanceof Error ? error.message : 'Không thực hiện được yêu cầu.'
   const fallback = error.serverMessage || error.message

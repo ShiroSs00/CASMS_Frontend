@@ -121,7 +121,8 @@ function TypeDetail({ id }: { id: string }) {
   return <div className={styles.stack}>
     <PageHeader title={type?.name ?? 'Chi tiết loại tàu'} breadcrumb="Cấu hình tàu / Loại tàu / Chi tiết"
       actions={type && (admin ? <ButtonLink to={'/admin/ship-types/' + id + '/edit'}>Thay phiên bản mô hình</ButtonLink>
-        : <ButtonLink to={'/admin/ships/new?type=' + id}>Thêm tàu từ loại này</ButtonLink>)} />
+        : type.status === 'ACTIVE' && access.canDo('SHIP_READ') &&
+          <ButtonLink to={'/admin/ships/new?type=' + id}>Thêm tàu từ loại này</ButtonLink>)} />
     {admin && <PermissionLink to="/admin/ship-types">Danh sách loại tàu</PermissionLink>}
     {result.loading && <Loading />}
     {result.error && <Notice title="Chưa tải được loại tàu" tone="error">{shipError(result.error)} <Button tone="text" onClick={result.retry}>Thử lại</Button></Notice>}

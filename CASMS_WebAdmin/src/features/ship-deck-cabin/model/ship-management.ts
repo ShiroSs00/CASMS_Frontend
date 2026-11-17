@@ -33,12 +33,13 @@ export function validateShipEdit(draft: ShipDraft, current: Ship) {
 }
 export function fleetError(message: string) {
   const translations: Array<[RegExp, string]> = [
+    [/Inherited ship design fields/, 'Thông số thiết kế được giữ theo phiên bản dùng khi tạo tàu.'],
     [/Total ship capacity cannot be lower/, 'Sức chứa tàu không được nhỏ hơn tổng sức chứa các phòng hiện có.'],
     [/Total decks cannot be lower/, 'Số boong cấu hình không được nhỏ hơn số boong đã nhập.'],
     [/Cabin type, position, rotation and dimensions/, 'Loại phòng và thông tin 3D được quản lý bằng dữ liệu mô hình.'],
     [/Cannot change status while an active passenger assignment/, 'Phòng đang có khách được gán. Hoàn tất quy trình gán phòng trước khi đổi trạng thái.'],
     [/A cabin can only become OCCUPIED/, 'Trạng thái đang có khách được cập nhật qua quy trình gán phòng.'],
-    [/in.progress|ongoing cruise/i, 'Tàu đang có chuyến vận hành. Chưa thể chuyển sang trạng thái đã chọn.'],
+    [/in.progress|ongoing cruise|active cruise/i, 'Tàu đang có chuyến vận hành. Chưa thể chuyển sang trạng thái đã chọn.'],
   ]
   return translations.find(([pattern]) => pattern.test(message))?.[1] ?? message
 }

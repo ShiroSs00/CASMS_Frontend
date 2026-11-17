@@ -50,13 +50,13 @@ export function FleetEditDialog({ target, onClose, onSaved }: { target: FleetEdi
     <form ref={form} id={formId} onSubmit={event => void submit(event)} noValidate className={styles.form}>
       {target.kind === 'ships' ? <>
         <Field htmlFor={`${formId}-name`} label="Tên tàu *" error={errors.name}><input id={`${formId}-name`} value={draft.name} maxLength={100} required disabled={mutation.busy} onChange={event => change('name', event.target.value)} /></Field>
-        <div className={styles.formGrid}>
+        {target.item.shipTypeId ? <p className={styles.muted}>Thông số thiết kế được giữ theo phiên bản dùng khi tạo tàu.</p> : <div className={styles.formGrid}>
           <Field htmlFor={`${formId}-capacity`} label="Sức chứa hành khách *" error={errors.capacity}><input id={`${formId}-capacity`} type="number" min={1} step={1} value={draft.capacity || ''} required disabled={mutation.busy} onChange={event => change('capacity', Number(event.target.value))} /></Field>
           <Field htmlFor={`${formId}-decks`} label="Số boong hành khách *" hint={passengerDeckCountHint} error={errors.totalDecks}><input id={`${formId}-decks`} type="number" min={MIN_PASSENGER_DECKS} max={MAX_PASSENGER_DECKS} step={1} value={draft.totalDecks || ''} required disabled={mutation.busy} onChange={event => change('totalDecks', Number(event.target.value))} /></Field>
           <Field htmlFor={`${formId}-length`} label="Chiều dài (m)" error={errors.dimensions}><input id={`${formId}-length`} type="number" min={.01} step="any" value={draft.lengthMeters ?? ''} disabled={mutation.busy} onChange={event => change('lengthMeters', event.target.value === '' ? null : Number(event.target.value))} /></Field>
           <Field htmlFor={`${formId}-beam`} label="Chiều rộng (m)"><input id={`${formId}-beam`} type="number" min={.01} step="any" value={draft.beamMeters ?? ''} disabled={mutation.busy} onChange={event => change('beamMeters', event.target.value === '' ? null : Number(event.target.value))} /></Field>
           <ShipProfileFields profile={draft} errors={errors} disabled={mutation.busy} onChange={change} />
-        </div>
+        </div>}
         <Field htmlFor={`${formId}-date`} label="Ngày đưa vào hoạt động" error={errors.commissionDate}><input id={`${formId}-date`} type="date" value={draft.commissionDate} disabled={mutation.busy} onChange={event => change('commissionDate', event.target.value)} /></Field>
       </> : target.kind === 'decks' ? <>
         <p className={styles.muted}>Boong {target.item.number}. Số boong và vị trí trong mô hình được giữ nguyên khi cập nhật thông tin vận hành.</p>
