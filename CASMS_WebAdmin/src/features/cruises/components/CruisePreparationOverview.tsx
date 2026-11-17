@@ -28,7 +28,7 @@ export function CruisePreparationOverview({
     .join(' · ')
 
   return (
-    <Panel title="Tổng quan chuẩn bị chuyến">
+    <Panel title="Tình trạng hồ sơ">
       {loading && <Loading label="Đang tải tiến độ hồ sơ…" />}
       {error != null && (
         <Notice title="Chưa đọc được hồ sơ" tone="error">
@@ -45,7 +45,7 @@ export function CruisePreparationOverview({
           <p>{state.description}</p>
           {plan.planStatus === 'REVISION_REQUESTED' && plan.reason && (
             <p className={styles.overviewRevisionAlert}>
-              Yêu cầu chỉnh sửa từ Quản lý vận hành: {plan.reason}
+              Quản lý vận hành yêu cầu bổ sung: {plan.reason}
             </p>
           )}
         </div>

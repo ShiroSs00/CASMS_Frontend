@@ -177,3 +177,12 @@
   margin-top: 6px;
   align-items: center;
 }
+.offerSourceFields {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.offerSourceFields h4,
+.offerSourceFields > p { margin: 0; }
+.offerSourceFields > p { color: var(--ui-muted); }

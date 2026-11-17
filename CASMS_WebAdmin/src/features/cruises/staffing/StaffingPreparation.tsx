@@ -29,16 +29,13 @@ export function StaffingPreparation({ cruiseId, refreshKey }: { cruiseId: string
   }
   const current = data.request
   if (current && current.status !== 'RETURNED') {
-    const tone =
-      current.status === 'PLANNER_CONFIRMED' || current.status === 'SHIP_CONFIRMED'
-        ? 'success'
-        : 'warning'
+    const tone = current.status === 'OPS_APPROVED' ? 'success' : 'warning'
     return (
       <section className={workspaceStyles.deptUnitBox} aria-label="Nhân sự của tour">
         <header className={workspaceStyles.deptUnitHeader}>
           <div>
-            <h4>Bộ phận Nhân sự (HR)</h4>
-            <p className={workspaceStyles.sectionMeta}>Phân công nhân sự phục vụ theo dịch vụ trên chuyến</p>
+            <h4>Nhân sự</h4>
+            <p className={workspaceStyles.sectionMeta}>Phương án nhân sự theo dịch vụ</p>
           </div>
           <Badge label={staffingStatus[current.status] ?? 'Trạng thái chưa xác định'} tone={tone} />
         </header>
@@ -80,11 +77,11 @@ export function StaffingPreparation({ cruiseId, refreshKey }: { cruiseId: string
                 }
               }}
             >
-              Gửi phương án nhân sự cho Vận hành
+              Gửi phương án nhân sự xét duyệt
             </Button>
           )}
-          <Button tone="secondary" size="compact" autoWidth disabled={busy} onClick={query.retry}>
-            Làm mới tiến độ
+          <Button tone="text" size="compact" autoWidth disabled={busy} onClick={query.retry}>
+            Cập nhật tiến độ
           </Button>
         </div>
       </section>
@@ -105,8 +102,8 @@ export function StaffingPreparation({ cruiseId, refreshKey }: { cruiseId: string
     <section className={workspaceStyles.deptUnitBox} aria-label="Nhân sự của tour">
       <header className={workspaceStyles.deptUnitHeader}>
         <div>
-          <h4>Bộ phận Nhân sự (HR)</h4>
-          <p className={workspaceStyles.sectionMeta}>Định biên nhân sự phục vụ theo dịch vụ của chuyến</p>
+          <h4>Nhân sự</h4>
+          <p className={workspaceStyles.sectionMeta}>Nhu cầu nhân sự theo dịch vụ</p>
         </div>
         <Badge label={current?.status === 'RETURNED' ? 'Cần bổ sung' : 'Chưa gửi'} tone={current?.status === 'RETURNED' ? 'warning' : 'neutral'} />
       </header>
@@ -141,7 +138,7 @@ export function StaffingPreparation({ cruiseId, refreshKey }: { cruiseId: string
           }}
         >
           <p className={styles.subtle}>Nhập số lượng nhân sự cần bộ phận HR bố trí cho từng dịch vụ.</p>
-          {!data.hasOperatingBudget && <p>Lưu ngân sách vận hành dự kiến ở Bước 1 để gửi yêu cầu nhân sự.</p>}
+          {!data.hasOperatingBudget && <p>Lưu ngân sách vận hành để gửi yêu cầu nhân sự.</p>}
           {data.services.map(service => (
             <Field key={service.id} htmlFor={`need-${service.id}`} label={service.name}>
               <input
@@ -166,7 +163,7 @@ export function StaffingPreparation({ cruiseId, refreshKey }: { cruiseId: string
             </Notice>
           )}
           <Button autoWidth type="submit" busy={busy} disabled={!ready}>
-            Gửi nhu cầu nhân sự
+            Gửi yêu cầu nhân sự
           </Button>
         </form>
       )}

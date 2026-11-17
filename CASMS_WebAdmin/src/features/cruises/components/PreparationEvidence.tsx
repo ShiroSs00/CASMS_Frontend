@@ -6,6 +6,7 @@ import { businessCopy } from '@/shared/i18n/business-copy'
 import { Badge, Button, Field, Loading, Modal, Notice, Panel } from '@/shared/ui'
 import {
   preparationApi,
+  preparationStatusLabels,
   type PreparationSection as Section,
   type PreparationAction,
   formatOperatingBudget,
@@ -15,7 +16,7 @@ import { allowedDepartureSections, type DepartureSection } from '../model/prepar
 import styles from './ManagerWorkspace.module.css'
 
 const actions = {
-  submit: 'Gửi nhóm hồ sơ này cho Vận hành',
+  submit: 'Gửi nhóm hồ sơ xét duyệt',
   confirm: 'Xác nhận nhóm hồ sơ',
   return: 'Yêu cầu bổ sung hồ sơ',
 } as const
@@ -170,7 +171,7 @@ export function PreparationEvidence({
   return (
     <Panel
       title={businessCopy('preparation.dashboard.title')}
-      subtitle="Tổng hợp 4 nhóm hồ sơ kỹ thuật, dịch vụ và an toàn gửi sang bộ phận Vận hành."
+      subtitle="Gửi từng nhóm đã chuẩn bị xong cho Quản lý vận hành xét duyệt."
     >
       {query.data && (
         <div className={styles.prepSummaryStrip}>
@@ -220,7 +221,7 @@ export function PreparationEvidence({
       )}
 
       <div className={styles.prepCardGrid2x2}>
-        {sortedSections.map((section, idx) => {
+        {sortedSections.map(section => {
           const meta = sectionMeta[section.sectionCode] ?? { title: section.sectionName || 'Hồ sơ' }
           const missing = section.checkItems.filter(item => item.required && !item.ready)
           const passed = section.checkItems.filter(item => item.ready)
@@ -231,28 +232,20 @@ export function PreparationEvidence({
             isOps && access.has('CRUISE_PREPARATION_CONFIRM') && ['SUBMITTED', 'CONFIRMED'].includes(section.status)
           const canSubmit = can(section, 'submit')
 
-          const statusLabel =
-            section.status === 'CONFIRMED'
-              ? 'Đã xác nhận'
-              : section.status === 'RETURNED'
-                ? 'Cần bổ sung'
-                : section.status === 'SUBMITTED'
-                  ? 'Đã gửi · Chờ Vận hành'
-                  : 'Chưa gửi'
-          const statusTone =
-            section.status === 'CONFIRMED'
-              ? 'success'
-              : section.status === 'RETURNED'
-                ? 'error'
-                : section.status === 'SUBMITTED'
-                  ? 'warning'
-                  : 'neutral'
+          const statusLabel = preparationStatusLabels[section.status]
+          const statusTone = section.status === 'CONFIRMED' ? 'success'
+            : section.status === 'REJECTED' ? 'error'
+              : ['RETURNED', 'SUBMITTED', 'STALE'].includes(section.status) ? 'warning' : 'neutral'
+          const next = section.status === 'RETURNED' || section.status === 'REJECTED'
+            ? 'Quản lý lịch trình rà soát phản hồi rồi bổ sung hồ sơ.'
+            : section.status === 'STALE'
+              ? 'Quản lý lịch trình đối chiếu thay đổi của chuyến trước khi gửi lại.'
+              : null
 
           return (
             <section key={section.sectionCode} className={styles.prepCard}>
               <header className={styles.prepCardHeader}>
                 <div className={styles.prepCardTitleRow}>
-                  <span className={styles.prepCardNum}>{idx + 1}</span>
                   <div>
                     <h3 className={styles.prepCardTitle}>{meta.title}</h3>
                     {meta.specialist && <p className={styles.prepCardMeta}>{meta.specialist}</p>}
@@ -264,6 +257,7 @@ export function PreparationEvidence({
               </header>
 
               <div className={styles.prepCardBody}>
+                {next && <p className={styles.prepCardMeta}>{next}</p>}
                 {missing.length > 0 && (
                   <ul className={styles.prepCheckList} aria-label="Điều kiện còn thiếu">
                     {missing.map(item => (
@@ -295,7 +289,7 @@ export function PreparationEvidence({
                 )}
 
                 {section.returnReason && (
-                  <Notice title="Yêu cầu bổ sung từ Quản lý vận hành" tone="error">
+                  <Notice title="Phản hồi của Quản lý vận hành" tone="error">
                     {section.returnReason}
                   </Notice>
                 )}
@@ -323,7 +317,7 @@ export function PreparationEvidence({
                             setError('')
                           }}
                         >
-                          Gửi nhóm hồ sơ này cho Vận hành
+                          {actions.submit}
                         </Button>
                       )}
                       {canReview && (

@@ -23,6 +23,7 @@ import { ItineraryDayBrowser, TemplateSchedule } from '@/domain/itinerary-day'
 import { ScheduleContents } from '../components/DepartureData'
 import { CruiseSourceDetails } from '../components/CruiseSourceDetails'
 import { CruiseDateTimeFields } from '../components/CruiseDateTimeFields'
+import { ShipPackageSuggestions } from '../components/ShipPackageSuggestions'
 import styles from '../components/Cruises.module.css'
 import type { CruiseDraft, CruiseRecord, CruiseStatus, CruiseType, PortRecord } from '../model/cruise-record'
 import { validateCruiseDraft, localCruiseInput, type CruiseFormErrors } from '../model/cruise-validation'
@@ -496,6 +497,7 @@ export function CruiseFormPage() {
                     ]} />
                   </div>
                 )}
+                {selectedShip && access.canDo('CRUISE_CREATE') && !eligible.loading && !eligible.error && <ShipPackageSuggestions key={selectedShip.shipId} shipId={selectedShip.shipId} />}
                 {eligibilityKey && eligible.loading && <Loading label="Đang tìm tàu phù hợp…" />}
                 {eligibilityKey && eligible.error && <div role="alert"><p>{eligible.error.message}</p><Button tone="secondary" onClick={eligible.retry}>Tải lại danh sách tàu</Button></div>}
             </FormSection>}

@@ -23,6 +23,7 @@ const adminRoutes = [
   { path: '/admin/ship-import', lazy: featurePage(loadShipImportPage, 'ShipImportPage') },
   { path: '/admin/system', lazy: featurePage(() => import('./pages/AdminSystemPage'), 'AdminSystemPage') },
   { path: '/admin/staffing', lazy: featurePage(() => import('@/features/cruises'), 'StaffingInboxPage') },
+  { path: '/admin/staffing-reviews', lazy: featurePage(() => import('@/features/cruises'), 'StaffingReviewInboxPage') },
   { path: '/admin/service-locations', lazy: featurePage(() => import('@/features/cruises'), 'ServiceLocationInboxPage') },
   { path: '/admin/preparation-requests', lazy: featurePage(() => import('@/features/cruises'), 'CruiseWorkInboxPage') },
   { path: '/admin/staff/:area', lazy: featurePage(() => import('./pages/AdminStaffFunctionPage'), 'AdminStaffFunctionPage') },

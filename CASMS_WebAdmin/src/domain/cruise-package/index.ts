@@ -11,3 +11,4 @@ export {OperationalCruisePackageEntitlement} from './OperationalEntitlement'
 export {CruisePackageEntitlements} from './Entitlements'
 
 export {CruisePackageCabinMapping} from './cabin-mapping'
+export { useShipPackageTemplates } from './ship-template-options'

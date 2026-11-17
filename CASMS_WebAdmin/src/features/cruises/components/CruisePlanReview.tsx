@@ -20,7 +20,7 @@ import {preparationWallTime,preparationInstant} from '../model/preparation-time'
 import {journeyTime,SHIP_TIME_ZONE,validTimeZone} from '@/shared/lib/journey-time'
 import styles from './ManagerWorkspace.module.css'
 import {planReviewActions,planReviewStates} from '../model/plan-review'
-import {preparationApi} from '../api/preparation-api'
+import {preparationApi,preparationStatusLabels} from '../api/preparation-api'
 const actionKeys={submit:'cruise.plan.SUBMIT_ACTION',withdraw:'cruise.plan.WITHDRAW_ACTION',approve:'cruise.plan.APPROVE_ACTION',reject:'cruise.plan.REJECT_ACTION','request-revision':'cruise.plan.REQUEST_REVISION_ACTION',ready:'cruise.ready.SET_READY_ACTION'} as const
 const safeError=(error:unknown)=>error instanceof ApiError&&error.code==='SELF_APPROVAL_FORBIDDEN'?'Bạn đã tham gia chuẩn bị hồ sơ hoặc điều khoản. Cần người xét duyệt khác.':businessErrorMessage(error instanceof ApiError?error.code:undefined,'')
 export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onReview,onNextStep,itineraryMode,mode='all',embedded=false}:{cruiseId:string;refreshKey?:number|string;onChanged?:()=>void;onSection?:(section:DepartureSection)=>void;onReview?:()=>void;onNextStep?:()=>void;itineraryMode?:'FIXED'|'CUSTOM';embedded?:boolean;mode?:'all'|'prepare'|'submit'|'review'|'ready'|'summary'}){
@@ -100,7 +100,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
     {dossier.loading&&<Loading label="Đang đối chiếu hồ sơ chuẩn bị…"/>}
     {dossier.error&&<Notice title="Chưa đọc được hồ sơ chuẩn bị" tone="error"><Button tone="secondary" onClick={dossier.retry}>Tải lại hồ sơ</Button></Notice>}
     {dossier.data&&!dossier.loading&&!dossier.error&&<>
-     <ul>{dossier.data.sections.map(section=><li key={section.sectionCode}>{section.sectionName} · {section.status==='CONFIRMED'?'Đã xác nhận':section.status==='SUBMITTED'?'Đã gửi':section.status==='RETURNED'?'Cần bổ sung':'Gửi cùng hồ sơ'}{section.returnReason&&<p>{section.returnReason}</p>}</li>)}</ul>
+     <ul>{dossier.data.sections.map(section=><li key={section.sectionCode}>{section.sectionName} · {preparationStatusLabels[section.status]}{section.returnReason&&<p>{section.returnReason}</p>}</li>)}</ul>
      {!dossierAllowed&&<Notice title="Chưa thể gửi hồ sơ">Chỉ Quản lý lịch trình được phân công phụ trách hồ sơ và có quyền gửi mới thực hiện được thao tác này.</Notice>}
      {pendingSections.length>0&&<Field htmlFor="departure-dossier-evidence" label={supplement?'Nội dung bổ sung hồ sơ':'Nội dung và bằng chứng chuẩn bị'}><textarea id="departure-dossier-evidence" rows={5} value={evidence} onChange={event=>setEvidence(event.target.value)} required disabled={busy||uncertain}/></Field>}
     </>}

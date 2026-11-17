@@ -459,3 +459,18 @@
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
+.shipPackageSuggestions {
+  display: grid;
+  gap: var(--space-2);
+  grid-column: 1 / -1;
+  min-width: 0;
+  border-block-start: 1px solid var(--ui-border);
+  padding-block-start: var(--space-3);
+  overflow-wrap: anywhere;
+}
+.shipPackageSuggestions h3 { font-size: var(--text-base); margin: 0; }
+.shipPackageSuggestions p { color: var(--ui-muted); margin: 0; }
+.shipPackageSuggestions ul { list-style: none; display: grid; gap: var(--space-2); padding: 0; margin: 0; }
+.shipPackageSuggestions li { display: grid; gap: var(--space-1); }
+.shipPackageSuggestions li span { color: var(--ui-muted); font-size: var(--text-sm); }
+.shipPackageSuggestions button { justify-self: start; }

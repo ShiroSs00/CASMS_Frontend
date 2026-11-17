@@ -168,7 +168,9 @@ function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) 
         if (serviceWorkspace) return <>
           <PageHeader breadcrumb="Gói và dịch vụ theo chuyến" title={cruise.cruiseName}
             description={`${cruise.cruiseCode} · ${detail.ship?.shipName ?? 'Tàu chưa xác định'} · ${formatDateTime(cruise.departureDatetime)}`}
-            actions={<ButtonLink to={cruiseListReturn(params.get('returnTo'))} tone="secondary">Chọn chuyến khác</ButtonLink>} />
+            actions={params.get('work') === 'program'
+              ? <ButtonLink to="/admin/preparation-requests" tone="secondary">Về yêu cầu chuẩn bị tour</ButtonLink>
+              : <ButtonLink to={cruiseListReturn(params.get('returnTo'))} tone="secondary">Chọn chuyến khác</ButtonLink>} />
           <ServiceLocationRequests key={cruise.cruiseId} cruiseId={cruise.cruiseId} />
           {params.get('work')==='program'&&<CruisePrograms cruiseId={cruise.cruiseId}
             departure={cruise.departureDatetime} arrival={cruise.returnDatetime}

@@ -11,7 +11,7 @@ import { scheduleDayLabel, stopRoleLabel } from '../model/day-labels'
 import { selectEntrySource } from '../model/source-selection'
 import { violationTarget, violationFieldId } from '../model/violation-target'
 import { EntryDetails, StopDetails } from './PlanDetails'
-import { linkedTourViolations, overlappingStops, portMatchesScope, routeOrderViolations } from '../model/port-rules'
+import { callsAfterTerminal, consecutiveSamePortViolations, linkedTourViolations, overlappingStops, portMatchesScope, routeOrderViolations } from '../model/port-rules'
 
 function useViolationField(violation:Violation|undefined,formId:string,readOnly:boolean,allowLocationInstead=false){
   const [dismissed,setDismissed]=useState<Violation|null>(null),target=violation?violationTarget({...violation,entityType:violation.entityType??(formId==='stop-draft'?'STOP':'ENTRY')}):null
@@ -42,16 +42,21 @@ function StopForm({content,tripId,tripRevision,tripInfo,dayNumber,readOnly,stop,
   const linked=content.entries.filter(e=>e.kind==='SHORE_EXCURSION'&&e.stopClientKey===draft.clientKey)
   const eligiblePorts=ports.data.filter(item=>portMatchesScope(item,tripInfo))
   const conflicts=overlappingStops({...draft,timeZoneId:zone},content.stops)
+  const projected=projectRoute({days:content.days,stops:[...content.stops.filter(item=>item.clientKey!==draft.clientKey),{...draft,timeZoneId:zone}]})
+  const samePortIssue=consecutiveSamePortViolations(projected).find(issue=>issue.clientKey===draft.clientKey)
   if(!port&&!ports.loading&&!ports.error)errors.portId=draft.portId?'Cảng đã chọn không còn trong danh mục hiện tại. Hãy chọn lại.':'Chọn cảng phù hợp với chuyến đi.'
   else if(port&&!portMatchesScope(port,tripInfo))errors.portId='Cảng không thuộc quốc gia hoặc miền đã chọn cho chuyến đi.'
-  const routeIssue=routeOrderViolations(projectRoute({days:content.days,stops:[...content.stops.filter(item=>item.clientKey!==draft.clientKey),{...draft,timeZoneId:zone}]})).find(issue=>issue.clientKey===draft.clientKey)
+  else if(samePortIssue)errors.portId=samePortIssue.message
+  const routeIssue=routeOrderViolations({days:content.days,stops:projected.stops}).find(issue=>issue.clientKey===draft.clientKey)
+  const terminalIssue=callsAfterTerminal(projected.stops).find(issue=>issue.clientKey===draft.clientKey)
   if(routeIssue)errors.plannedArrivalTime=routeIssue.message
+  if(terminalIssue)errors.plannedDepartureTime=terminalIssue.message
   if(conflicts.length)errors.plannedArrivalTime='Thời gian ghé chồng với '+conflicts.map(item=>'lần ghé '+item.stopOrder+' · '+(item.portName??'Cảng')).join(', ')+'. Điều chỉnh giờ dự kiến đến/rời.'
   if(port&&!validTimeZone(zone))errors.portId='Cảng chưa có múi giờ IANA hợp lệ.'
   if(!draft.plannedArrivalTime)errors.plannedArrivalTime='Nhập giờ đến.'
   if(!draft.plannedDepartureTime)errors.plannedDepartureTime='Nhập giờ rời.'
   if(draft.isDisembarkation&&draft.callType!=='NORMAL')errors.callType='Chọn kiểu ghé Thông thường cho cảng kết thúc.'
-  if(timeNumber(draft.departureDayNumber,draft.plannedDepartureTime)<=timeNumber(draft.arrivalDayNumber,draft.plannedArrivalTime))errors.plannedDepartureTime='Ngày/giờ rời phải sau ngày/giờ đến.'
+  if(draft.plannedArrivalTime&&draft.plannedDepartureTime&&timeNumber(draft.departureDayNumber,draft.plannedDepartureTime)<=timeNumber(draft.arrivalDayNumber,draft.plannedArrivalTime))errors.plannedDepartureTime='Ngày/giờ rời phải sau ngày/giờ đến.'
   if(content.days.some(day=>day.dayType==='SEA_DAY'&&day.dayNumber>=draft.arrivalDayNumber&&day.dayNumber<=draft.departureDayNumber))errors.plannedArrivalTime='Khoảng ghé cảng đi qua ngày trên biển. Hãy chọn ngày xuống bờ trước khi thêm cảng.'
   if(draft.isEmbarkation&&draft.arrivalDayNumber!==1)errors.embarkation='Cảng hành khách lên tàu phải ở Ngày 1. Hãy sửa ngày hoặc bỏ lựa chọn này.'
   if(draft.isDisembarkation&&draft.departureDayNumber!==content.days.length)errors.disembarkation='Cảng hành khách kết thúc chuyến phải ở ngày cuối. Hãy sửa ngày hoặc bỏ lựa chọn này.'
@@ -65,14 +70,15 @@ function StopForm({content,tripId,tripRevision,tripInfo,dayNumber,readOnly,stop,
       :timeNumber(draft.departureDayNumber,draft.plannedDepartureTime)<timeNumber(draft.allAboardDayNumber??draft.departureDayNumber,draft.allAboardTime??draft.plannedDepartureTime)?'plannedDepartureTime':'allAboardTime'
     errors[field]='Tour bờ đang gắn với lần ghé nằm ngoài khung giờ mới. Chỉnh giờ tour trước.'
   }
-  const shown=(field:string)=>server.errorFor(field)??(attempted||touched[field]||field==='plannedArrivalTime'&&(conflicts.length>0||Boolean(routeIssue))?errors[field]:undefined)
+  const hasTimingConflict=conflicts.length>0||Boolean(routeIssue)||Boolean(terminalIssue)
+  const shown=(field:string)=>server.errorFor(field)??(attempted||touched[field]||(field==='plannedArrivalTime'&&(conflicts.length>0||Boolean(routeIssue)))||(field==='plannedDepartureTime'&&Boolean(terminalIssue))||(field==='portId'&&Boolean(samePortIssue))?errors[field]:undefined)
   const touch=(field:string)=>()=>setTouched(old=>({...old,[field]:true}))
   const days=(value:number,onChange:(n:number)=>void,id:string)=> <select id={id} value={value} disabled={readOnly} onChange={e=>onChange(Number(e.target.value))}>{content.days.map(d=><option key={d.key} value={d.dayNumber}>{scheduleDayLabel(d.dayNumber,content.days.length)}</option>)}</select>
   function apply(event:React.SubmitEvent<HTMLFormElement>) {event.preventDefault();setAttempted(true);if(readOnly)return;if(Object.keys(errors).length||ports.loading||ports.error){focusError('stop-draft');return}onApply({...draft,portName:port!.name??port!.label,timeZoneId:zone,countryCode:port?.countryCode??draft.countryCode,domesticRegion:port?.domesticRegion??null});onClose()}
   return <Modal variant="drawer" wide title={!draft.isEmbarkation&&!draft.isDisembarkation?(stop?'Sửa lần ghé':'Thêm lần ghé'):(stop?'Sửa ':'Chọn ')+stopRoleLabel(draft.isEmbarkation,draft.isDisembarkation).toLocaleLowerCase('vi')} onClose={onClose} protectChanges={!readOnly} footer={<><Button tone="secondary" data-overlay-dismiss onClick={onClose}>{readOnly?'Đóng':'Hủy'}</Button>{!readOnly&&<Button type="submit" form="stop-draft" disabled={ports.loading||Boolean(ports.error)||!eligiblePorts.length}>{stop?'Lưu thay đổi':'Thêm lần ghé'}</Button>}</>}>
-    {(conflicts.length>0||routeIssue)&&<Notice title="Thời gian ghé cảng bị xung đột" tone="error">{errors.plannedArrivalTime}</Notice>}
+    {hasTimingConflict&&<Notice title="Thời gian ghé cảng bị xung đột" tone="error">{errors.plannedArrivalTime??errors.plannedDepartureTime}</Notice>}
     <form tabIndex={-1} onChangeCapture={server.dismiss} id="stop-draft" className={`${styles.single} ${styles.stopForm}`} onSubmit={e=>apply(e)} noValidate>
-      {server.notice}<SourcePicker id="stop-port" label={stopRoleLabel(draft.isEmbarkation,draft.isDisembarkation)+' *'} placeholder={'Chọn '+stopRoleLabel(draft.isEmbarkation,draft.isDisembarkation).toLocaleLowerCase('vi')} emptyMessage="Không có cảng phù hợp với phạm vi, quốc gia và miền đã chọn. Kiểm tra thông tin chuyến hoặc danh mục cảng." value={draft.portId} selectedLabel={draft.portName} options={eligiblePorts} loading={ports.loading} loadError={ports.error} error={shown('portId')} readOnly={readOnly} retry={ports.retry} onBlur={touch('portId')} onChange={id=>{const selected=ports.data.find(p=>p.id===id);setDraft(old=>({...old,portId:id,portName:selected?.name??selected?.label,timeZoneId:selected?.timeZoneId,countryCode:selected?.countryCode,domesticRegion:selected?.domesticRegion??null}))}}/>
+      {server.notice}<SourcePicker portLayout id="stop-port" label={stopRoleLabel(draft.isEmbarkation,draft.isDisembarkation)+' *'} placeholder={'Chọn '+stopRoleLabel(draft.isEmbarkation,draft.isDisembarkation).toLocaleLowerCase('vi')} emptyMessage="Không có cảng phù hợp với phạm vi, quốc gia và miền đã chọn. Kiểm tra thông tin chuyến hoặc danh mục cảng." value={draft.portId} selectedLabel={draft.portName} options={eligiblePorts} loading={ports.loading} loadError={ports.error} error={shown('portId')} readOnly={readOnly} retry={ports.retry} onBlur={touch('portId')} onChange={id=>{const selected=ports.data.find(p=>p.id===id);setDraft(old=>({...old,portId:id,portName:selected?.name??selected?.label,timeZoneId:selected?.timeZoneId,countryCode:selected?.countryCode,domesticRegion:selected?.domesticRegion??null}))}}/>
       {port&&<p className={styles.portSelectionMeta}>{countryLabel(port.countryCode??draft.countryCode)}
         {(port.countryCode??draft.countryCode)==='VN'&&draft.domesticRegion&&<> · {domesticRegionLabel(draft.domesticRegion)}</>}
         {' · '}{zone?`Giờ địa phương: ${zone}`:'Chưa xác định múi giờ'}</p>}

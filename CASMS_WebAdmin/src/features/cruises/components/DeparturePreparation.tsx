@@ -13,8 +13,8 @@ import {
   type DepartureSection,
 } from '../model/preparation'
 import styles from './DeparturePreparation.module.css'
-import { preparationApi } from '../api/preparation-api'
-import { businessCopy, domainStatus } from '@/shared/i18n/business-copy'
+import { preparationApi, preparationStatusLabels } from '../api/preparation-api'
+import { businessCopy } from '@/shared/i18n/business-copy'
 
 const preparationGroups: readonly { code: string; title: string; destination: DepartureSection }[] = [
   { code: 'TECHNICAL_NAUTICAL', title: 'Kỹ thuật tàu và hàng hải', destination: 'resources' },
@@ -212,28 +212,21 @@ export function PreparationOverview({
           </Notice>
         )}
         <div className={styles.preparationGroups} aria-label="Các nhóm chuẩn bị">
-          {preparationGroups.map(group => (
-            <section key={group.code} className={styles.preparationGroup}>
-              <div>
-                <h3>{group.title}</h3>
-                <p>
-                  {preparation.data
-                    ? domainStatus(
-                        'preparation.section',
-                        preparation.data.sections.find(s => s.sectionCode === group.code)?.status ?? 'UNKNOWN',
-                      )
-                    : 'Chưa xác định'}
-                </p>
-              </div>
-              {sections.some(([key]) => key === group.destination) ? (
-                <Button tone="secondary" onClick={() => onSection(group.destination)}>
-                  Xem công việc liên quan
-                </Button>
-              ) : (
-                <span>Chưa có quyền xem phần liên quan</span>
-              )}
-            </section>
-          ))}
+          {preparationGroups.map(group => {
+            const progress = preparation.data?.sections.find(section => section.sectionCode === group.code)
+            return (
+              <section key={group.code} className={styles.preparationGroup}>
+                <div>
+                  <h3>{group.title}</h3>
+                  <p>{progress ? preparationStatusLabels[progress.status] : preparation.loading ? 'Đang tải…' : 'Chưa có thông tin'}</p>
+                  {progress?.returnReason && <p>Phản hồi của Vận hành: {progress.returnReason}</p>}
+                </div>
+                {sections.some(([key]) => key === group.destination) && (
+                  <Button tone="secondary" onClick={() => onSection(group.destination)}>Mở công việc</Button>
+                )}
+              </section>
+            )
+          })}
         </div>
         <div className={styles.workLinks}>
           {sections

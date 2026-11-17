@@ -4,10 +4,10 @@
  */
 export const ROLE_WORK_MODULES: Readonly<Record<string, readonly string[]>> = {
   ADMIN: ['system', 'ship-types', 'ship-import', 'ship-models'],
-  SHIP_MANAGER: ['fleet-dashboard', 'ships', 'decks', 'cabins', 'passenger-tracking', 'ship-regulations', 'service-locations', 'preparation-requests'],
+  SHIP_MANAGER: ['fleet-dashboard', 'ships', 'decks', 'cabins', 'passenger-tracking', 'ship-regulations', 'service-locations', 'preparation-requests', 'staffing-reviews'],
   HR_MANAGER: ['staffing'],
   CRUISE_MANAGER: ['trips', 'cruises', 'itineraries', 'itinerary-history', 'cruise-regulations'],
-  OPERATIONS_MANAGER: ['cruise-plan-reviews', 'issues', 'regulations', 'destinations', 'ports', 'ship-regulations', 'cruise-regulations'],
+  OPERATIONS_MANAGER: ['cruise-plan-reviews', 'staffing-reviews', 'issues', 'regulations', 'destinations', 'ports', 'ship-regulations', 'cruise-regulations'],
   ACTIVITY_SERVICE_MANAGER: ['preparation-requests','activities', 'shore-excursions', 'tour-groups', 'suppliers', 'services', 'products', 'service-packages', 'cruise-package-templates', 'fare-package-templates', 'service-requests', 'activity-registrations', 'cruises'],
   BOOKING_AGENT: ['bookings', 'staff/checkin'],
   CHECKIN_STAFF: ['staff/checkin'],
