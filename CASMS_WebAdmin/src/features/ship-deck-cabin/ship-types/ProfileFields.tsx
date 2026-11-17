@@ -1,17 +1,16 @@
 import { useId } from 'react'
 import { Field } from '@/shared/ui'
-import { manufacturingFields, profileGroups, type ProfileDraft, type ProfileErrors, type ProfileKey } from './profile'
+import { profileGroups, type ProfileDraft, type ProfileErrors, type ProfileKey } from './profile'
 import type { OperationalProfile } from './api'
 import styles from './ShipWork.module.css'
 
-export function ProfileFields({ draft, errors, disabled, importedProfile, onChange, onBlur }: {
-  draft: ProfileDraft; errors: ProfileErrors; disabled?: boolean; importedProfile?: OperationalProfile | null
+export function ProfileFields({ draft, errors, disabled, onChange, onBlur }: {
+  draft: ProfileDraft; errors: ProfileErrors; disabled?: boolean
   onChange: (key: ProfileKey, value: string) => void
   onBlur: (key: ProfileKey) => void
 }) {
   const prefix = useId()
-  return <>{importedProfile !== undefined && <ManufacturingFacts profile={importedProfile} />}
-    {profileGroups.map(group => <section className={styles.formSection} key={group.title}>
+  return <>{profileGroups.map(group => <section className={styles.formSection} key={group.title}>
     <h3>{group.title}</h3><div className={styles.grid}>
       {group.fields.map(field => {
         const id = prefix + '-' + field.key
@@ -29,19 +28,6 @@ export function ProfileFields({ draft, errors, disabled, importedProfile, onChan
       })}
     </div>
   </section>)}</>
-}
-
-export function ManufacturingFacts({ profile }: { profile: OperationalProfile | null }) {
-  const historical = profile?.designMetadataImported !== true && manufacturingFields.some(({ key }) => profile?.[key] != null)
-  return <section className={styles.formSection}>
-    <h3>Thông tin đóng tàu</h3>
-    <p>{historical ? 'Giá trị lưu từ hồ sơ cũ' : 'Lấy từ thiết kế ZIP'}</p>
-    <dl className={styles.facts}>
-      {manufacturingFields.map(({ key, label }) => <div key={key}>
-        <dt>{label}</dt><dd>{profile?.[key] ?? 'Chưa cung cấp'}</dd>
-      </div>)}
-    </dl>
-  </section>
 }
 
 export function ProfileFacts({ profile }: { profile: OperationalProfile }) {

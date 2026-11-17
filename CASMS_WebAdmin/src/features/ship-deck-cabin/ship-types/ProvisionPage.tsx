@@ -159,7 +159,7 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
           <Field htmlFor="vessel-name" label="Tên tàu *" error={errors.shipName}>
             <input id="vessel-name" required maxLength={100} value={name} onChange={event => { setName(event.target.value); setErrors(current => ({ ...current, shipName: undefined })) }} />
           </Field>
-          <p>Thông tin đóng tàu lấy từ thiết kế ZIP. Có thể bổ sung hồ sơ vận hành sau khi tạo bản nháp.</p>
+          <p>Có thể bổ sung hồ sơ vận hành sau khi tạo bản nháp.</p>
           <ProfileFields draft={profile} errors={errors}
             onChange={(key, value) => { setProfile(current => ({ ...current, [key]: value })); setErrors(current => ({ ...current, [key]: undefined })) }}
             onBlur={key => setErrors(current => ({ ...current, [key]: validateProfile(profile)[key] }))} />
@@ -174,7 +174,7 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
           <div><dt>Trạng thái khi tạo</dt><dd>Bản nháp</dd></div>
         </dl>
         <h3>Thiết kế kế thừa</h3><DesignFacts type={selected} />
-        <p>Thông tin đóng tàu lấy từ thiết kế ZIP và hiển thị trong hồ sơ sau khi tạo.</p>
+        <p>Thông tin thiết kế ZIP hiển thị trong mục Thông tin loại tàu sau khi tạo.</p>
         <h3>Hồ sơ riêng</h3>
         {Object.keys(payload).length ? <ProfileFacts profile={payload} /> : <p>Hồ sơ sẽ được bổ sung sau.</p>}
         <div className={styles.actions}>

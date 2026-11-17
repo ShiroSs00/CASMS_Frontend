@@ -3,7 +3,7 @@ import { useReadQuery } from '@/shared/api'
 import { Button, Empty, Field, FormErrorSummary, Loading, Modal, Notice, Panel } from '@/shared/ui'
 import { refreshShipStructure } from '@/shared/lib/ship-structure-revision'
 import { shipTypesApi, shipError, type OperationalProfile } from './api'
-import { ManufacturingFacts, ProfileFacts, ProfileFields } from './ProfileFields'
+import { ProfileFacts, ProfileFields } from './ProfileFields'
 import { profilePayload, toProfileDraft, validateProfile, type ProfileErrors } from './profile'
 import styles from './ShipWork.module.css'
 
@@ -42,7 +42,7 @@ function ProfileEditor({ id, initial, onClose, onSave }: {
     <form ref={form} noValidate onSubmit={event => { event.preventDefault(); void save() }}>
       {error && <Notice title="Chưa lưu được hồ sơ" tone="error">{error}</Notice>}
       <FormErrorSummary errors={errors} />
-      <ProfileFields draft={draft} errors={errors} disabled={busy} importedProfile={initial}
+      <ProfileFields draft={draft} errors={errors} disabled={busy}
         onChange={(key, value) => { setDraft(current => ({ ...current, [key]: value })); setErrors(current => ({ ...current, [key]: undefined })) }}
         onBlur={key => setErrors(current => ({ ...current, [key]: validateProfile(draft)[key] }))} />
       <div className={styles.actions}><Button tone="secondary" disabled={busy} onClick={onClose}>Hủy</Button><Button type="submit" busy={busy}>Lưu hồ sơ</Button></div>
@@ -60,7 +60,6 @@ export function ShipProfilePanel({ id }: { id: string }) {
     {result.error && <Notice title="Chưa tải được hồ sơ" tone="error">{shipError(result.error)} <Button tone="text" onClick={result.retry}>Thử lại</Button></Notice>}
     {saved && <Notice title="Đã lưu hồ sơ" tone="success">Hồ sơ vận hành đã cập nhật.</Notice>}
     {!result.loading && !result.error && <>
-      <ManufacturingFacts profile={result.data} />
       {result.data && Object.keys(result.data).length ? <ProfileFacts profile={result.data} /> :
         <Empty title="Chưa bổ sung hồ sơ vận hành">Bổ sung thông tin đăng kiểm, chứng nhận, bảo hành và bảo trì trước khi đổi trạng thái tàu.</Empty>}
       <div className={styles.actions}><Button tone="secondary" onClick={() => setEditing(true)}>Chỉnh sửa hồ sơ vận hành</Button></div>

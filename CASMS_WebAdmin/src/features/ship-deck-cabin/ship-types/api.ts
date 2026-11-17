@@ -1,5 +1,6 @@
 import { apiRequest, ApiError } from '@/shared/api'
 import type { ShipDto } from '../api/dto'
+import type { ShipDesignMetadata } from '../model/types'
 
 export type TypeStatus = 'ACTIVE' | 'INACTIVE'
 export type StoredDesign = { modelKey: string; assetVersion: string }
@@ -15,14 +16,9 @@ export type ShipType = StoredDesign & {
   lengthMeters: number
   beamMeters: number
   shipCount: number
+  manufacturingMetadata?: ShipDesignMetadata | null
 }
 export type Page<T> = { content: T[]; number: number; size: number; totalElements: number; totalPages: number }
-export type ManufacturingProfile = {
-  manufacturerShipCode?: string
-  shipyard?: string
-  buildCountry?: string
-  buildYear?: number
-}
 export type EditableProfile = {
   imoNumber?: string
   deliveryDate?: string
@@ -34,7 +30,7 @@ export type EditableProfile = {
   warrantyReferences?: string[]
   maintenanceReferences?: string[]
 }
-export type OperationalProfile = EditableProfile & ManufacturingProfile & { designMetadataImported?: boolean }
+export type OperationalProfile = EditableProfile & ShipDesignMetadata
 export type ProvisionPayload = { shipName: string; profile: EditableProfile | null }
 export type PendingProvision = { typeId: string; key: string; payload: ProvisionPayload }
 export type DesignManifest = {
@@ -124,7 +120,6 @@ export function shipError(error: unknown): string {
     case 'SHIP_TYPE_CODE_CONFLICT': return 'Mã loại này đã có phiên bản khác. Mở chi tiết loại tàu để cập nhật phiên bản.'
     case 'SHIP_TYPE_DESIGN_MISMATCH': return 'Gói thay thế phải có cùng mã thiết kế.'
     case 'SHIP_TYPE_IN_USE': return 'Loại tàu đang được sử dụng. Có thể ngừng sử dụng loại trong trang chi tiết.'
-    case 'SHIP_HULL_CODE_IN_USE': return 'Mã thân tàu đã được dùng tại cùng xưởng đóng tàu. Quản trị viên cần nhập phiên bản ZIP có mã thân tàu riêng cho tàu này.'
     case 'IDEMPOTENCY_CONFLICT': return 'Mã xác nhận đã được dùng cho dữ liệu khác. Kiểm tra tàu đã tạo trước khi bắt đầu thao tác mới.'
     case 'DUPLICATE_RESOURCE': return 'Số IMO hoặc số đăng ký đã được sử dụng. Kiểm tra thông tin hồ sơ.'
     case 'SHIP_MODEL_IMPORT_REJECTED': return 'Không dựng được cấu trúc tàu từ phiên bản này. Kiểm tra các lỗi mô hình bên dưới.'

@@ -6,6 +6,7 @@ import { Badge, Button, ButtonLink, DataTable, Empty, Field, ListFooter, Loading
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { shipTypesApi, shipError, type Page, type ShipType, type TypeStatus } from './api'
 import { DesignPreview } from './DesignPreview'
+import { DesignVersionFacts } from './DesignVersionFacts'
 import { StatusBadge } from '../components/Common'
 import styles from './ShipWork.module.css'
 
@@ -137,7 +138,7 @@ function TypeDetail({ id }: { id: string }) {
         </div>
       </Panel>
       <Panel title="Phiên bản mô hình">
-        <dl className={styles.facts}><div><dt>Mã thiết kế</dt><dd>{type.modelKey}</dd></div><div><dt>Phiên bản</dt><dd>{type.assetVersion}</dd></div></dl>
+        <DesignVersionFacts design={type} />
         {canPreview && <div className={styles.actions}><Button tone="secondary" aria-expanded={previewOpen} onClick={() => setPreviewOpen(value => !value)}>
           {previewOpen ? 'Đóng xem trước' : 'Xem trước mô hình 3D'}
         </Button></div>}

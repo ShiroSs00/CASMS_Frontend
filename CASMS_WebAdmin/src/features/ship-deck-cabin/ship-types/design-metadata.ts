@@ -1,5 +1,12 @@
 import type { DesignManifest } from './api'
-import { manufacturingFields } from './profile'
+import type { ShipDesignMetadata } from '../model/types'
+
+export const manufacturingFields = [
+  { key: 'manufacturerShipCode', label: 'Mã thiết kế của nhà sản xuất', error: 'Nhập mã thiết kế dạng văn bản, tối đa 80 ký tự.' },
+  { key: 'shipyard', label: 'Xưởng đóng tàu', error: 'Nhập tên xưởng dạng văn bản, tối đa 150 ký tự.' },
+  { key: 'buildCountry', label: 'Quốc gia đóng tàu', error: 'Nhập mã quốc gia ISO gồm hai chữ cái in hoa, ví dụ NL.' },
+  { key: 'buildYear', label: 'Năm đóng tàu', error: 'Nhập số nguyên từ 1 đến năm hiện tại.' },
+] as const satisfies readonly { key: keyof ShipDesignMetadata; label: string; error: string }[]
 
 const requiredText = [
   ['name', 'Tên loại tàu'],

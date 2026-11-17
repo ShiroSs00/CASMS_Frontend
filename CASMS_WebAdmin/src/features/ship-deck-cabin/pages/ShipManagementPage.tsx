@@ -16,6 +16,7 @@ import { StatusBadge } from '../components/Common'
 import { type Ship } from '../model/types'
 import { ShipSchedule } from '../components/ShipSchedule'
 import { ShipProfilePanel, ShipRenameDialog } from '../ship-types/ShipProfilePanel'
+import { DesignVersionFacts } from '../ship-types/DesignVersionFacts'
 import { ShipViewerContext } from '../ship-types/viewer-context'
 import styles from '../components/ShipManagement.module.css'
 
@@ -76,8 +77,9 @@ function ShipManagementContent({ id }: { id: string }) {
       {canViewSchedule && <Link to={`/admin/ships/${id}?tab=schedule`} state={state} aria-current={tab === 'schedule' ? 'page' : undefined}>Lịch khai thác</Link>}
     </nav>
     {tab === 'overview' && <>
-      <Panel title="Loại tàu">
+      <Panel title="Thông tin loại tàu">
         {ship.shipTypeId ? <Link to={'/admin/ship-types/' + ship.shipTypeId}>{ship.shipTypeName || ship.shipTypeCode || 'Xem loại tàu'}</Link> : 'Chưa phân loại'}
+        {ship.designReference && <DesignVersionFacts design={ship.designReference} />}
       </Panel>
       <ShipOverview ship={ship}/>
       {ship.status === 'DRAFT' && ship.shipTypeId && <Notice title="Giữ tàu ở bản nháp nếu tạo nhầm">

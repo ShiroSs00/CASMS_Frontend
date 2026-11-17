@@ -37,12 +37,15 @@ export function shipProfilePayload(profile: ShipProfile, editing = false) {
   }
 }
 
-export function shipProfileFacts(profile: ShipProfile, emptyLabel = 'Chưa cập nhật'): Array<[string, string | number]> {
+export function shipProfileFacts(profile: ShipProfile, emptyLabel = 'Chưa cập nhật', includeBuildDetails = true): Array<[string, string | number]> {
   const [manufacturer, origin, engine] = shipProfileTextFields
-  return [
-    [manufacturer.label, profile.manufacturerName?.trim() || emptyLabel],
+  const buildDetails: Array<[string, string | number]> = [
     [origin.label, profile.origin?.trim() || emptyLabel],
     [productionYearLabel, profile.productionYear ?? emptyLabel],
+  ]
+  return [
+    [manufacturer.label, profile.manufacturerName?.trim() || emptyLabel],
+    ...(includeBuildDetails ? buildDetails : []),
     [engine.label, profile.engineType?.trim() || emptyLabel],
   ]
 }

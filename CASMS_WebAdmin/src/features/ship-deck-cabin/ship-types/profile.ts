@@ -1,14 +1,7 @@
-import type { EditableProfile, ManufacturingProfile, OperationalProfile } from './api'
-
-export const manufacturingFields = [
-  { key: 'manufacturerShipCode', label: 'Mã thân tàu', error: 'Nhập mã thân tàu dạng văn bản, tối đa 80 ký tự.' },
-  { key: 'shipyard', label: 'Xưởng đóng tàu', error: 'Nhập tên xưởng dạng văn bản, tối đa 150 ký tự.' },
-  { key: 'buildCountry', label: 'Quốc gia đóng tàu', error: 'Nhập mã quốc gia ISO gồm hai chữ cái in hoa, ví dụ NL.' },
-  { key: 'buildYear', label: 'Năm đóng tàu', error: 'Nhập số nguyên từ 1 đến năm hiện tại.' },
-] as const satisfies readonly { key: keyof ManufacturingProfile; label: string; error: string }[]
+import type { EditableProfile, OperationalProfile } from './api'
 
 export const profileGroups = [
-  { title: 'Đóng tàu và bàn giao', fields: [
+  { title: 'Bàn giao', fields: [
     { key: 'deliveryDate', label: 'Ngày bàn giao', kind: 'date' },
   ] },
   { title: 'Đăng ký và đăng kiểm', fields: [
