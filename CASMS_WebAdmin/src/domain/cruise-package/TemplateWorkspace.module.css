@@ -140,9 +140,23 @@
   gap: 16px;
 }
 
+.catalogFiltersGroup {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+  flex: 1 1 520px;
+  min-width: 0;
+}
+
 .catalogSearch {
-  flex: 1 1 320px;
-  max-inline-size: 30rem;
+  flex: 1 1 300px;
+  max-inline-size: 28rem;
+}
+
+.catalogFilterSelect {
+  flex: 0 1 240px;
+  min-inline-size: 200px;
 }
 
 .catalogNameCell {
@@ -153,6 +167,11 @@
 .catalogNameCell strong {
   font-size: 15px;
   color: var(--color-navy, #0b2a4a);
+}
+
+.catalogStructureCell {
+  display: grid;
+  gap: 6px;
 }
 
 .codePill {
@@ -269,114 +288,200 @@
   min-width: 0;
 }
 
-.selectedCabinsBox {
+.shipSelectorBox {
   display: grid;
-  gap: 12px;
-  padding: 16px;
+  gap: 16px;
+  min-width: 0;
+}
+
+.shipInventorySummary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px 20px;
+  padding: 14px 18px;
   background: var(--surface-subtle, #f8fafc);
   border: 1px solid var(--border-subtle, #dce4ec);
   border-radius: var(--radius-md, 8px);
 }
 
-.selectedCabinsHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.selectedCabinsHeader strong {
-  font-size: 14px;
-  color: var(--color-navy, #0b2a4a);
-}
-
-.selectedCabinList {
+.shipInventoryFact {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 10px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.selectedCabinTag {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-  background: var(--surface-default, #ffffff);
-  border: 1px solid var(--border-control, #cbd5e1);
-  border-radius: 6px;
+  gap: 2px;
   min-width: 0;
 }
 
-.selectedCabinInfo {
+.shipInventoryFact span {
+  font-size: 12px;
+  color: var(--text-secondary, #506777);
+}
+
+.shipInventoryFact strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-navy, #0b2a4a);
+  font-variant-numeric: tabular-nums;
+}
+
+.shipCabinTypes {
+  display: grid;
+  gap: var(--space-3, 12px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
+}
+
+.shipCabinHeaderBar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+
+.shipCabinTypes legend {
+  padding: 0;
+  margin-block-end: 4px;
+  color: var(--text-primary, #0b2a4a);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.shipCabinBulkActions {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.shipCabinRows {
+  display: grid;
+  gap: 10px;
+}
+
+.shipCabinCard {
+  display: grid;
+  border: 1px solid var(--border-subtle, #dce4ec);
+  border-radius: var(--radius-md, 8px);
+  background: var(--surface-default, #ffffff);
+  overflow: hidden;
+  transition: border-color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    background-color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+.shipCabinCardChecked {
+  border-color: var(--fg-2, #0e6b7a);
+  background: #f4fbfb;
+}
+
+.shipCabinRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  min-block-size: 56px;
+  gap: var(--space-3, 12px);
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+.shipCabinRow input[type='checkbox'] {
+  inline-size: 18px;
+  block-size: 18px;
+  margin: 0;
+  accent-color: var(--fg-2, #0e6b7a);
+}
+
+.shipCabinMainInfo {
+  display: grid;
+  gap: 4px;
   min-width: 0;
 }
 
-.selectedCabinInfo strong {
-  font-size: 14px;
+.shipCabinTitleLine {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shipCabinTitle {
   font-weight: 600;
+  font-size: 15px;
   color: var(--color-navy, #0b2a4a);
 }
 
-.tagRemoveBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 4px;
-  border: 1px solid var(--border-subtle, #e2e8f0);
-  background: transparent;
+.shipCabinPreviewText {
+  font-size: 12.5px;
+  color: var(--text-secondary, #506777);
+  line-height: 1.45;
+}
+
+.shipCabinMetrics {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+
+.shipCabinTypes:disabled .shipCabinRow {
+  cursor: default;
+}
+
+.shipCabinCount {
+  color: var(--color-navy, #0b2a4a);
+  font-weight: 600;
+  font-size: 14px;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.shipCabinCapacity {
   color: var(--text-secondary, #506777);
   font-size: 12px;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.shipCabinDetailDrawer {
+  border-top: 1px solid var(--border-subtle, #e2e8f0);
+  padding: 8px 16px 12px;
+  background: var(--surface-subtle, #f8fafc);
+}
+
+.shipCabinDetailDrawer summary {
+  font-size: 12.5px;
   font-weight: 500;
+  color: var(--fg-2, #0e6b7a);
   cursor: pointer;
-  flex-shrink: 0;
+  padding: 2px 0;
 }
 
-.tagRemoveBtn:hover:not(:disabled) {
-  background: #fef2f2;
-  color: var(--color-danger, #b91c1c);
-  border-color: #fecaca;
-}
-
-.cabinColumnsGrid {
+.shipCabinChipGrid {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
-  align-items: start;
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+  gap: 8px;
 }
 
-.cabinSubPanel {
+.shipCabinChip {
   display: grid;
-  gap: 14px;
-  padding: 16px;
+  gap: 2px;
+  padding: 8px 10px;
   background: var(--surface-default, #ffffff);
-  border: 1px solid var(--border-subtle, #e2e8f0);
-  border-radius: var(--radius-md, 8px);
-  min-width: 0;
+  border: 1px solid var(--border-subtle, #dce4ec);
+  border-radius: 6px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
-.cabinSubPanelHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+.shipCabinChip strong {
+  color: var(--color-navy, #0b2a4a);
+  font-size: 12.5px;
 }
 
-.addRoomInputRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: end;
+.shipCabinChip span {
+  color: var(--text-secondary, #506777);
 }
 
 .quickChipGroup {
@@ -415,68 +520,6 @@
 .quickChip:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-
-.categoryOptionsGrid {
-  display: grid;
-  gap: 10px;
-  max-height: 260px;
-  overflow-y: auto;
-  margin: 0;
-  padding: 2px;
-  border: 0;
-  min-width: 0;
-}
-
-.categoryOptionCard {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--border-subtle, #e2e8f0);
-  border-radius: 6px;
-  background: var(--surface-subtle, #f8fafc);
-  cursor: pointer;
-}
-
-.categoryOptionCard:hover {
-  border-color: var(--color-teal, #007788);
-}
-
-.categoryOptionCardActive {
-  background: #eff8fa;
-  border-color: var(--color-teal, #007788);
-}
-
-.categoryOptionCard input[type='checkbox'] {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  margin: 2px 0 0;
-}
-
-.categoryOptionContent {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.categoryOptionContent strong {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-navy, #0b2a4a);
-}
-
-.categoryOptionContent small {
-  font-size: 12px;
-  color: var(--text-secondary, #506777);
-  overflow-wrap: anywhere;
-}
-
-.emptyCopy {
-  color: var(--text-secondary, #506777);
-  font-size: 13px;
-  padding: 8px 0;
 }
 
 /* Step 3: Benefits list & BenefitEditor */
@@ -866,8 +909,7 @@
   .workspace {
     padding: 20px;
   }
-  .workflowIntroBanner,
-  .cabinColumnsGrid {
+  .workflowIntroBanner {
     grid-template-columns: minmax(0, 1fr);
   }
   .version > summary {

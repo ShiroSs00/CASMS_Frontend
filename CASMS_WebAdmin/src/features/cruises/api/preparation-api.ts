@@ -1,7 +1,13 @@
 import {ApiError,apiRequest} from '@/shared/api'
 export const preparationCodes=['TECHNICAL_NAUTICAL','HOTEL_CABIN','ENTERTAINMENT_SHORE','SAFETY_CREW'] as const
 export type PreparationAction='submit'|'confirm'|'return'
-export type PreparationSection={sectionCode:string;sectionName:string;ownerRole:string;submitterRole:string;allowedActions:string[];status:'NOT_STARTED'|'IN_PROGRESS'|'SUBMITTED'|'CONFIRMED'|'RETURNED';revision:number;submittedByUserId:string|null;submittedAt:string|null;confirmedByUserId:string|null;confirmedAt:string|null;confirmedByUsername:string|null;returnedByUserId:string|null;returnedAt:string|null;evidence:string|null;returnReason:string|null;checkItems:{itemCode:string;ready:boolean;required:boolean;evidence?:string|null;details?:string|null}[]}
+export const preparationStatuses=['NOT_STARTED','IN_PROGRESS','SUBMITTED','CONFIRMED','RETURNED','REJECTED','STALE'] as const
+export type PreparationStatus=typeof preparationStatuses[number]
+export const preparationStatusLabels: Record<PreparationStatus,string> = {
+ NOT_STARTED:'Chưa gửi xét duyệt', IN_PROGRESS:'Đang chuẩn bị', SUBMITTED:'Chờ Vận hành xét duyệt',
+ CONFIRMED:'Đã xác nhận', RETURNED:'Cần bổ sung', REJECTED:'Đã từ chối', STALE:'Cần đối chiếu lại',
+}
+export type PreparationSection={sectionCode:string;sectionName:string;ownerRole:string;submitterRole:string;allowedActions:string[];status:PreparationStatus;revision:number;submittedByUserId:string|null;submittedAt:string|null;confirmedByUserId:string|null;confirmedAt:string|null;confirmedByUsername:string|null;returnedByUserId:string|null;returnedAt:string|null;evidence:string|null;returnReason:string|null;checkItems:{itemCode:string;ready:boolean;required:boolean;evidence?:string|null;details?:string|null}[]}
 export type PreparationDashboard={cruiseId:string;coordinatorUserId:string|null;coordinatorUsername:string|null;cruiseRevision:number;canAssignCoordinator:boolean;operatingBudgetVnd?:string|null;sections:PreparationSection[]}
 export type OperatingBudget={revision:number;amountVnd:string|null;canEdit:boolean}
 export function formatOperatingBudget(amount:string) {
@@ -9,7 +15,7 @@ export function formatOperatingBudget(amount:string) {
 }
 const root=(id:string)=>`/cruise/${encodeURIComponent(id)}/preparation`
 export function decodePreparation(value:PreparationDashboard,id:string){
- if(!value||value.cruiseId!==id||!Number.isSafeInteger(value.cruiseRevision)||typeof value.canAssignCoordinator!=='boolean'||!Array.isArray(value.sections)||value.sections.length!==preparationCodes.length||new Set(value.sections.map(s=>s.sectionCode)).size!==preparationCodes.length||value.sections.some(s=>!preparationCodes.includes(s.sectionCode as typeof preparationCodes[number])||s.submitterRole!=='CRUISE_MANAGER'||!Number.isSafeInteger(s.revision)||!['NOT_STARTED','IN_PROGRESS','SUBMITTED','CONFIRMED','RETURNED'].includes(s.status)||!Array.isArray(s.allowedActions)||s.allowedActions.some(a=>!['SUBMIT','CONFIRM','RETURN'].includes(a))||!Array.isArray(s.checkItems)||s.checkItems.some(i=>typeof i.ready!=='boolean'||typeof i.required!=='boolean')))throw new ApiError('Phản hồi hồ sơ chuẩn bị thiếu hoặc sai dữ liệu bắt buộc. Không thể xác nhận trạng thái hồ sơ.',502,'PREPARATION_RESPONSE_INVALID')
+ if(!value||value.cruiseId!==id||!Number.isSafeInteger(value.cruiseRevision)||typeof value.canAssignCoordinator!=='boolean'||!Array.isArray(value.sections)||value.sections.length!==preparationCodes.length||new Set(value.sections.map(s=>s.sectionCode)).size!==preparationCodes.length||value.sections.some(s=>!preparationCodes.includes(s.sectionCode as typeof preparationCodes[number])||s.submitterRole!=='CRUISE_MANAGER'||!Number.isSafeInteger(s.revision)||!preparationStatuses.includes(s.status)||!Array.isArray(s.allowedActions)||s.allowedActions.some(a=>!['SUBMIT','CONFIRM','RETURN','REJECT'].includes(a))||!Array.isArray(s.checkItems)||s.checkItems.some(i=>typeof i.ready!=='boolean'||typeof i.required!=='boolean')))throw new ApiError('Phản hồi hồ sơ chuẩn bị thiếu hoặc sai dữ liệu bắt buộc. Không thể xác nhận trạng thái hồ sơ.',502,'PREPARATION_RESPONSE_INVALID')
  return value
 }
 export const preparationApi={

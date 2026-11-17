@@ -16,15 +16,28 @@ function date(value: string) {
 }
 
 export function StaffingInboxPage() {
+  return <StaffingInbox review={false} />
+}
+
+export function StaffingReviewInboxPage() {
+  return <StaffingInbox review />
+}
+
+function StaffingInbox({ review }: { review: boolean }) {
   const access = useSessionAccess()
-  const hr = access.roles.includes('HR_MANAGER') && access.canDo('CRUISE_STAFF_ASSIGN')
+  const ship = access.roles.includes('SHIP_MANAGER') && access.has('CRUISE_PREPARATION_READ')
+  const operations = access.roles.includes('OPERATIONS_MANAGER') && access.has('CRUISE_VALIDATE')
+  const hr = !review
+  const title = hr ? 'Phân công nhân sự' : 'Xét phương án nhân sự'
   const inbox = useReadQuery(`staffing-inbox:${access.userId}`, staffingApi.inbox)
   const [searchParams, setSearchParams] = useSearchParams()
   const [cruiseSearch, setCruiseSearch] = useState('')
   const [progressFilter, setProgressFilter] = useState<'ALL' | 'MISSING' | 'COVERED'>('ALL')
   const [statusFilter, setStatusFilter] = useState('')
+  const [lastReviewedId, setLastReviewedId] = useState('')
   const selectedId = searchParams.get('requestId') ?? ''
-  const items = inbox.data ?? []
+  const items = (inbox.data ?? []).filter(request => hr ? request.status === 'SENT_TO_HR'
+    : (ship && request.status === 'HR_SUBMITTED') || (operations && request.status === 'PLANNER_CONFIRMED'))
 
   function openRequest(id: string) {
     const next = new URLSearchParams(searchParams)
@@ -34,23 +47,38 @@ export function StaffingInboxPage() {
   }
 
   if (selectedId) {
+    const canOpen = !review || lastReviewedId === selectedId || items.some(item => item.id === selectedId)
     return (
       <CruiseFrame>
         <div className={styles.workspace}>
           <PageHeader
-            breadcrumb="Quản lý nhân sự / Phân công nhân sự"
-            title="Phân công nhân sự theo chuyến"
+            breadcrumb=""
+            title={title}
             actions={
               <Button tone="secondary" size="compact" onClick={() => openRequest('')}>
                 Quay lại danh sách
               </Button>
             }
           />
-          <StaffingDetail
-            key={selectedId}
-            requestId={selectedId}
-            onChanged={() => inbox.retry()}
-          />
+          {canOpen ? (
+            <StaffingDetail
+              key={selectedId}
+              requestId={selectedId}
+              review={review}
+              onChanged={() => {
+                if (review) setLastReviewedId(selectedId)
+                inbox.retry()
+              }}
+            />
+          ) : inbox.loading ? (
+            <Loading label="Đang kiểm tra yêu cầu nhân sự…" />
+          ) : inbox.error ? (
+            <Notice tone="error" title="Chưa tải được danh sách">
+              <Button tone="secondary" onClick={inbox.retry}>Thử lại</Button>
+            </Notice>
+          ) : (
+            <Empty title="Yêu cầu này không còn chờ bạn xử lý" />
+          )}
         </div>
       </CruiseFrame>
     )
@@ -78,11 +106,11 @@ export function StaffingInboxPage() {
     <CruiseFrame>
       <div className={styles.workspace}>
         <PageHeader
-          breadcrumb="Quản lý nhân sự"
-          title="Phân công nhân sự"
+          breadcrumb=""
+          title={title}
           actions={<Button tone="secondary" size="compact" onClick={inbox.retry}>Cập nhật</Button>}
         />
-        <Panel title={hr ? 'Danh sách chuyến chờ phân công' : 'Danh sách phương án chờ xác nhận'}>
+        <Panel title={hr ? 'Tour chờ phân công' : 'Phương án chờ xử lý'}>
           <section className={styles.filterBar} aria-label="Bộ lọc yêu cầu nhân sự">
             <Field htmlFor="staffing-cruise-search" label="Tìm kiếm chuyến tour">
               <input
@@ -111,9 +139,9 @@ export function StaffingInboxPage() {
                 onChange={event => setStatusFilter(event.target.value)}
               >
                 <option value="">Tất cả</option>
-                {(availableStatuses.length ? availableStatuses : ['SENT_TO_HR', 'HR_SUBMITTED', 'SHIP_CONFIRMED', 'PLANNER_CONFIRMED']).map(status => (
+                {availableStatuses.map(status => (
                   <option key={status} value={status}>
-                    {staffingStatus[status] ?? status}
+                    {staffingStatus[status] ?? 'Chưa xác định'}
                   </option>
                 ))}
               </select>
@@ -195,7 +223,7 @@ export function StaffingInboxPage() {
   )
 }
 
-function StaffingDetail({ requestId, onChanged }: { requestId: string; onChanged: () => void }) {
+function StaffingDetail({ requestId, onChanged, review }: { requestId: string; onChanged: () => void; review: boolean }) {
   const request = useReadQuery(
     'staffing-request:' + requestId,
     useCallback(signal => staffingApi.detail(requestId, signal), [requestId]),
@@ -208,7 +236,7 @@ function StaffingDetail({ requestId, onChanged }: { requestId: string; onChanged
       </Notice>
     )
   }
-  return <RequestView request={request.data} refresh={() => { request.retry(); onChanged() }} />
+  return <RequestView request={request.data} review={review} refresh={() => { request.retry(); onChanged() }} />
 }
 
 function RequestHeader({ request, tone }: { request: StaffingRequest; tone?: 'neutral' | 'success' | 'warning' | 'info' | 'error' }) {
@@ -235,15 +263,13 @@ function RequestHeader({ request, tone }: { request: StaffingRequest; tone?: 'ne
   )
 }
 
-function RequestView({ request, refresh }: { request: StaffingRequest; refresh: () => void }) {
+function RequestView({ request, refresh, review }: { request: StaffingRequest; refresh: () => void; review: boolean }) {
   const access = useSessionAccess()
-  if (
-    access.roles.includes('HR_MANAGER') &&
-    access.canDo('CRUISE_STAFF_ASSIGN') &&
-    (request.status === 'SENT_TO_HR' || (request.status === 'HR_SUBMITTED' && !access.roles.includes('SHIP_MANAGER')))
-  ) {
+  if (!review && access.roles.includes('HR_MANAGER') && access.canDo('CRUISE_STAFF_ASSIGN') &&
+      ['SENT_TO_HR', 'HR_SUBMITTED'].includes(request.status)) {
     return <Assignments request={request} refresh={refresh} />
   }
+  if (!review) return <RequestHeader request={request} />
   return <StaffingReview request={request} refresh={refresh} />
 }
 

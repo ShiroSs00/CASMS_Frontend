@@ -63,7 +63,7 @@ export function staffingError(error: unknown) {
 }
 
 export const staffingStatus: Record<string,string> = {
-  SENT_TO_HR:'Chờ HR phân công', HR_SUBMITTED:'Chờ Quản lý tàu xác nhận',
-  SHIP_CONFIRMED:'Chờ CRM xác nhận', PLANNER_CONFIRMED:'Chờ OPS duyệt',
+  SENT_TO_HR:'Chờ Nhân sự phân công', HR_SUBMITTED:'Chờ Quản lý tàu xác nhận',
+  SHIP_CONFIRMED:'Chờ Quản lý lịch trình xác nhận', PLANNER_CONFIRMED:'Chờ Vận hành duyệt',
   OPS_APPROVED:'Đã duyệt', RETURNED:'Đã trả lại', CANCELLED:'Đã hủy',
 }

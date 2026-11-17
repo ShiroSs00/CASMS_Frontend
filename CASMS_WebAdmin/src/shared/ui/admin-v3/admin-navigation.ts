@@ -18,6 +18,7 @@ const tools: readonly AdminNavigationItem[] = [
   { label:'Quản lý loại tàu', to:'/admin/ship-types', permissionMode:'ALL', permissions:[], roles:['ADMIN'] },
   { label:'Tài khoản nhân sự', to:'/admin/system', permissionMode:'ANY', permissions:['USER_READ'] },
   { label:'Phân công nhân sự', to:'/admin/staffing', permissionMode:'ANY', permissions:['CRUISE_STAFF_ASSIGN'] },
+  { label:'Xét phương án nhân sự', to:'/admin/staffing-reviews', permissionMode:'ANY', permissions:['CRUISE_PREPARATION_READ','CRUISE_VALIDATE'] },
   { label:'Bố trí dịch vụ', to:'/admin/service-locations', permissionMode:'ALL', permissions:['CRUISE_PREPARATION_READ'] },
   { label:'Yêu cầu chuẩn bị tour', to:'/admin/preparation-requests', permissionMode:'ANY', permissions:['CRUISE_PREPARATION_READ','TOUR_PACKAGE_MANAGE'] },
   { label:'Đặt chỗ', to:'/admin/bookings', permissionMode:'ANY', permissions:['BOOKING_READ'] },
@@ -190,6 +191,9 @@ export function canRoleOpenAdminPath(roles: readonly string[], pathname: string,
     && access.permissions.includes('BOOKING_READ')
   if (!module || (!hasWorkScope(currentRoles, module) && !opsReview && !financeRead)) return false
   if (module==='staffing') return currentRoles.includes('HR_MANAGER') && access.permissions.includes('CRUISE_STAFF_ASSIGN')
+  if (module==='staffing-reviews') return [
+    ['SHIP_MANAGER','CRUISE_PREPARATION_READ'],['OPERATIONS_MANAGER','CRUISE_VALIDATE'],
+  ].some(([role,permission])=>currentRoles.includes(role)&&access.permissions.includes(permission))
   if (module==='preparation-requests') return [
     ['ACTIVITY_SERVICE_MANAGER','TOUR_PACKAGE_MANAGE'],['SHIP_MANAGER','CRUISE_PREPARATION_READ'],
   ].some(([role,permission])=>currentRoles.includes(role)&&access.permissions.includes(permission))

@@ -2,6 +2,7 @@ import { SourceDefinitionEditor } from './SourceDefinitionEditor'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
+import { cabinTypeLabel } from '@/shared/i18n/business-copy'
 import {
   Badge,
   Button,
@@ -24,20 +25,13 @@ import {
   type CruisePackageTemplate,
   type CruisePackageVersion,
   type Inclusion,
-  type LogicalCategoryReference,
+  type CabinType,
   type ResourceType,
 } from './api'
 import styles from './TemplateWorkspace.module.css'
 import { benefitQuantity } from './benefit-copy'
 import { lifecycle, resourceLabels, inclusionLabels } from './labels'
 import { useCruisePackageMutation } from './useCruisePackageMutation'
-
-const CABIN_SUGGESTIONS = [
-  'Cabin Tiêu Chuẩn',
-  'Phòng Hướng Biển (Ocean View)',
-  'Phòng Ban Công (Balcony)',
-  'Phòng Suite Hoàng Gia',
-]
 
 const ELIGIBILITY_SUGGESTIONS = [
   'Áp dụng cho tất cả hành khách thuộc gói.',
@@ -599,11 +593,12 @@ function BenefitEditor({
   )
 }
 
-function versionContent(name: string, description: string, categories: string[], benefits: BenefitInput[]) {
+function versionContent(name: string, description: string, shipId: string, cabinTypes: CabinType[], benefits: BenefitInput[]) {
   return JSON.stringify({
     name,
     description,
-    categories: [...categories].sort(),
+    shipId,
+    cabinTypes: [...cabinTypes].sort(),
     benefits: benefits
       .map(b => ({
         resourceType: b.resourceType,
@@ -626,7 +621,8 @@ function savedVersionContent(item: CruisePackageVersion) {
   return versionContent(
     item.version.name,
     item.version.description ?? '',
-    item.version.logicalCategories,
+    item.version.sourceShipId ?? '',
+    item.logicalCategoryReferences.flatMap(category => category.cabinType ? [category.cabinType] : []),
     item.benefits.map(b => ({
       resourceType: b.onboardActivityId ? 'ACTIVITY' : b.shoreExcursionId ? 'EXCURSION' : 'SERVICE',
       resourceId: b.onboardActivityId ?? b.shoreExcursionId ?? b.serviceId ?? '',
@@ -643,226 +639,285 @@ function savedVersionContent(item: CruisePackageVersion) {
   )
 }
 
-function CabinCategoryBuilder({
-  knownCategories,
-  reusedCategories,
-  setReusedCategories,
-  addedRooms,
-  setAddedRooms,
-  roomDraft,
-  setRoomDraft,
-  disabled,
-  hasDuplicateRooms,
-}: {
-  knownCategories: LogicalCategoryReference[]
-  reusedCategories: string[]
-  setReusedCategories: React.Dispatch<React.SetStateAction<string[]>>
-  addedRooms: string[]
-  setAddedRooms: React.Dispatch<React.SetStateAction<string[]>>
-  roomDraft: string
-  setRoomDraft: React.Dispatch<React.SetStateAction<string>>
-  disabled: boolean
-  hasDuplicateRooms: boolean
-}) {
-  const reusedRooms = knownCategories.filter(category => reusedCategories.includes(category.id))
-  const pendingDraftRooms = roomDraft
-    .split('\n')
-    .map(v => v.trim())
-    .filter(Boolean)
+function useShipCabinSelection(active: boolean) {
+  const { userId } = useSessionAccess()
+  const [shipId, setShipId] = useState('')
+  const [types, setTypes] = useState<CabinType[]>([])
+  const ships = useReadQuery(
+    `fare-template-ships:${userId}:${active}`,
+    useCallback(signal => active ? cruisePackageApi.shipOptions(signal) : Promise.resolve([]), [active]),
+  )
+  const ship = ships.data?.find(option => option.id === shipId)
+  const cabins = useReadQuery(
+    `fare-template-cabins:${userId}:${ship?.id ?? ''}`,
+    useCallback(signal => ship ? cruisePackageApi.shipCabinTypes(ship.id, signal) : Promise.resolve([]), [ship]),
+  )
+  const staleTypes = cabins.data ? types.filter(type => !cabins.data?.some(option => option.type === type)) : []
+  const valid = Boolean(ship && !cabins.loading && !cabins.error && types.length && !staleTypes.length)
 
-  const addRoomByName = (rawName: string) => {
-    const entries = rawName
-      .split('\n')
-      .map(v => v.trim())
-      .filter(Boolean)
-    if (!entries.length) return
-    setAddedRooms(prev => {
-      const next = [...prev]
-      for (const entry of entries) {
-        const existsInReused = reusedRooms.some(r => r.name.toLocaleLowerCase('vi') === entry.toLocaleLowerCase('vi'))
-        const existsInAdded = next.some(r => r.toLocaleLowerCase('vi') === entry.toLocaleLowerCase('vi'))
-        if (!existsInReused && !existsInAdded) {
-          next.push(entry)
-        }
-      }
-      return next
-    })
-    setRoomDraft('')
+  function setSource(id: string, cabinTypes: CabinType[] = []) {
+    setShipId(id)
+    setTypes(cabinTypes)
+  }
+  function toggle(type: CabinType, checked: boolean) {
+    setTypes(values => checked ? (values.includes(type) ? values : [...values, type]) : values.filter(value => value !== type))
+  }
+  function selectAllAvailable() {
+    if (!cabins.data) return
+    setTypes(cabins.data.map(option => option.type))
+  }
+  function clearAll() {
+    setTypes([])
+  }
+  function clearUnavailable() {
+    setTypes(values => values.filter(value => !staleTypes.includes(value)))
   }
 
-  const totalSelectedCount = reusedRooms.length + addedRooms.length + pendingDraftRooms.length
+  function reload() {
+    ships.retry()
+    cabins.retry()
+  }
+
+  return {
+    ship,
+    shipId,
+    types,
+    valid,
+    staleTypes,
+    ships,
+    cabins,
+    setSource,
+    toggle,
+    selectAllAvailable,
+    clearAll,
+    clearUnavailable,
+    reload,
+  }
+}
+
+function ShipCabinSelection({
+  selection,
+  disabled,
+}: {
+  selection: ReturnType<typeof useShipCabinSelection>
+  disabled: boolean
+}) {
+  const {
+    ship,
+    shipId,
+    types,
+    staleTypes,
+    ships,
+    cabins,
+    setSource,
+    toggle,
+    selectAllAvailable,
+    clearAll,
+    clearUnavailable,
+  } = selection
+
+  const cabinOptions = cabins.data ?? []
+  const totalShipCabins = cabinOptions.reduce((sum, item) => sum + item.count, 0)
+  const totalShipCapacity = cabinOptions.reduce((sum, item) => sum + item.totalCapacity, 0)
+  const validSelectedTypes = types.filter(type => !staleTypes.includes(type))
+  const selectedCabinCount = cabinOptions
+    .filter(item => validSelectedTypes.includes(item.type))
+    .reduce((sum, item) => sum + item.count, 0)
+  const allSelected = cabinOptions.length > 0 && validSelectedTypes.length === cabinOptions.length
 
   return (
     <div className={styles.cabinBuilderLayout}>
-      {/* Danh sách các hạng phòng đã chọn / đã thêm */}
-      <div className={styles.selectedCabinsBox}>
-        <div className={styles.selectedCabinsHeader}>
-          <strong>Hạng phòng sẽ áp dụng trong phiên bản này ({totalSelectedCount})</strong>
-          {totalSelectedCount === 0 && (
-            <Badge label="Cần ít nhất 1 hạng phòng" tone="warning" />
-          )}
-          {totalSelectedCount > 0 && !hasDuplicateRooms && (
-            <Badge label={`Đã cấu hình ${totalSelectedCount} hạng phòng`} tone="success" />
-          )}
-        </div>
+      <div className={styles.shipSelectorBox}>
+        <Field
+          htmlFor="fare-source-ship"
+          label="Tàu áp dụng từ đội tàu hiện có *"
+          hint="Chọn chiếc tàu cụ thể trong đội tàu để tải đúng danh mục hạng phòng và các cabin thực tế trên tàu đó."
+          error={shipId && ships.data && !ship ? 'Tàu đã lưu không còn trong danh sách. Chọn tàu khác.' : undefined}
+        >
+          <select
+            id="fare-source-ship"
+            required
+            value={ship?.id ?? ''}
+            aria-invalid={Boolean(shipId && ships.data && !ship)}
+            disabled={disabled || ships.loading || Boolean(ships.error) || !ships.data?.length}
+            onChange={event => setSource(event.target.value)}
+          >
+            <option value="">Chọn tàu trong đội tàu…</option>
+            {ships.data?.map(option => (
+              <option key={option.id} value={option.id}>
+                {option.name}
+                {option.code ? ` · ${option.code}` : ''}
+                {option.totalCapacity != null ? ` (${option.totalCapacity.toLocaleString('vi-VN')} khách)` : ''}
+              </option>
+            ))}
+          </select>
+        </Field>
 
-        {totalSelectedCount === 0 ? (
-          <p className={styles.helper}>
-            Chưa có hạng phòng nào được chọn. Hãy tích chọn từ danh mục có sẵn bên dưới hoặc nhập tên hạng phòng mới.
-          </p>
-        ) : (
-          <ul className={styles.selectedCabinList} aria-label="Hạng phòng đã chọn">
-            {reusedRooms.map(room => (
-              <li key={`reused-${room.id}`} className={styles.selectedCabinTag}>
-                <div className={styles.selectedCabinInfo}>
-                  <StepIcon kind="cabin" />
-                  <strong>{room.name}</strong>
-                  <Badge label={`Kế thừa · ${room.packageName}`} tone="neutral" />
-                </div>
-                <button
-                  type="button"
-                  disabled={disabled}
-                  className={styles.tagRemoveBtn}
-                  aria-label={`Bỏ chọn hạng phòng ${room.name}`}
-                  onClick={() => setReusedCategories(ids => ids.filter(id => id !== room.id))}
-                >
-                  <StepIcon kind="trash" />
-                  <span>Gỡ</span>
-                </button>
-              </li>
-            ))}
-            {addedRooms.map(roomName => (
-              <li key={`added-${roomName}`} className={styles.selectedCabinTag}>
-                <div className={styles.selectedCabinInfo}>
-                  <StepIcon kind="cabin" />
-                  <strong>{roomName}</strong>
-                  <Badge label="Hạng phòng mới" tone="info" />
-                </div>
-                <button
-                  type="button"
-                  disabled={disabled}
-                  className={styles.tagRemoveBtn}
-                  aria-label={`Xóa hạng phòng ${roomName}`}
-                  onClick={() => setAddedRooms(prev => prev.filter(item => item !== roomName))}
-                >
-                  <StepIcon kind="trash" />
-                  <span>Xóa</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+        {ship && !cabins.loading && !cabins.error && cabinOptions.length > 0 && (
+          <div className={styles.shipInventorySummary} aria-label="Thông số cấu trúc phòng của tàu đã chọn">
+            <div className={styles.shipInventoryFact}>
+              <span>Tàu nguồn đã chọn</span>
+              <strong>{ship.name}{ship.code ? ` (${ship.code})` : ''}</strong>
+            </div>
+            <div className={styles.shipInventoryFact}>
+              <span>Hạng phòng hiện có</span>
+              <strong>{cabinOptions.length} hạng phòng</strong>
+            </div>
+            <div className={styles.shipInventoryFact}>
+              <span>Tổng cabin hành khách</span>
+              <strong>{totalShipCabins.toLocaleString('vi-VN')} phòng</strong>
+            </div>
+            {(totalShipCapacity > 0 || ship.totalCapacity != null) && (
+              <div className={styles.shipInventoryFact}>
+                <span>Sức chứa cấu trúc</span>
+                <strong>{(totalShipCapacity || ship.totalCapacity || 0).toLocaleString('vi-VN')} khách</strong>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
-      <div className={styles.cabinColumnsGrid}>
-        {/* Cột 1: Thêm hạng phòng mới */}
-        <div className={styles.cabinSubPanel}>
-          <h4>Thêm hạng phòng thương mại mới</h4>
-          <p className={styles.helper}>
-            Nhập tên hạng phòng hiển thị cho khách hàng và nhấn <strong>Thêm hạng phòng</strong> (hoặc nhấn phím Enter).
-          </p>
-          <div className={styles.addRoomInputRow}>
-            <Field
-              htmlFor="fare-logical-categories"
-              label="Tên hạng phòng mới"
-              error={hasDuplicateRooms ? 'Tên hạng phòng bị trùng với hạng đã chọn hoặc đã nhập.' : undefined}
-            >
-              <input
-                type="text"
-                id="fare-logical-categories"
-                value={roomDraft}
-                disabled={disabled}
-                placeholder="Ví dụ: Phòng Suite Ban Công..."
-                onChange={event => setRoomDraft(event.target.value)}
-                onKeyDown={event => {
-                  if (event.key === 'Enter' && roomDraft.trim()) {
-                    event.preventDefault()
-                    addRoomByName(roomDraft)
-                  }
-                }}
-              />
-            </Field>
-            <Button
-              type="button"
-              tone="secondary"
-              autoWidth
-              disabled={disabled || !roomDraft.trim()}
-              onClick={() => addRoomByName(roomDraft)}
-            >
-              <StepIcon kind="plus" />
-              <span>Thêm hạng phòng</span>
-            </Button>
-          </div>
+      {ships.loading && <Loading label="Đang tải danh sách tàu trong đội tàu…" />}
+      {ships.error && (
+        <Notice title="Chưa tải được danh sách tàu" tone="error">
+          <Button type="button" tone="secondary" onClick={ships.retry} disabled={disabled}>
+            Tải lại danh sách tàu
+          </Button>
+        </Notice>
+      )}
+      {ships.data?.length === 0 && (
+        <p role="status" className={styles.helper}>
+          Chưa có tàu nào trong đội tàu để áp dụng mẫu gói.
+        </p>
+      )}
 
-          <div className={styles.quickChipGroup}>
-            <span className={styles.quickChipLabel}>Gợi ý mẫu:</span>
-            {CABIN_SUGGESTIONS.map(sample => {
-              const alreadyAdded =
-                reusedRooms.some(r => r.name.toLocaleLowerCase('vi') === sample.toLocaleLowerCase('vi')) ||
-                addedRooms.some(r => r.toLocaleLowerCase('vi') === sample.toLocaleLowerCase('vi'))
-              return (
-                <button
-                  key={sample}
-                  type="button"
-                  disabled={disabled || alreadyAdded}
-                  className={styles.quickChip}
-                  onClick={() => addRoomByName(sample)}
-                >
-                  + {sample}
-                </button>
-              )
-            })}
-          </div>
+      {!ship && !ships.loading && Boolean(ships.data?.length) && (
+        <div className={styles.emptyBenefitNotice}>
+          <p>
+            <strong>Chưa chọn tàu áp dụng.</strong> Hãy chọn một chiếc tàu ở trên để hệ thống hiển thị các hạng phòng và danh sách cabin thực tế đang có trên tàu đó.
+          </p>
         </div>
+      )}
 
-        {/* Cột 2: Chọn từ hạng phòng đã có trong hệ thống */}
-        <div className={styles.cabinSubPanel}>
-          <div className={styles.cabinSubPanelHeader}>
-            <h4>Chọn từ hạng phòng đã có</h4>
-            <Badge label={`${reusedRooms.length}/${knownCategories.length} đã chọn`} tone="neutral" />
-          </div>
-          <p className={styles.helper}>
-            Tái sử dụng hạng phòng từ các mẫu gói trước để đồng bộ dữ liệu thương mại giữa các phiên bản.
+      {ship && cabins.loading && <Loading label="Đang tải danh mục hạng phòng và cabin thực tế trên tàu…" />}
+      {ship && cabins.error && (
+        <Notice title="Chưa tải được hạng phòng trên tàu" tone="error">
+          <Button type="button" tone="secondary" onClick={cabins.retry} disabled={disabled}>
+            Tải lại hạng phòng
+          </Button>
+        </Notice>
+      )}
+      {ship && cabins.data?.length === 0 && (
+        <Notice title="Tàu chưa khai báo cabin hành khách" tone="warning">
+          <p role="status">
+            Tàu <strong>{ship.name}</strong> hiện chưa có phòng hành khách trong sơ đồ boong. Hãy chọn tàu khác hoặc liên hệ Quản lý tàu để cập nhật danh mục cabin của tàu.
           </p>
-          {knownCategories.length === 0 ? (
-            <p className={styles.emptyCopy}>
-              Hệ thống chưa có hạng phòng thương mại nào từ các mẫu trước. Hãy thêm hạng phòng mới ở khung bên trái.
-            </p>
-          ) : (
-            <fieldset className={styles.categoryOptionsGrid} disabled={disabled}>
-              <legend className={styles.srOnly}>Hạng phòng dùng chung</legend>
-              {knownCategories.map(category => {
-                const checked = reusedCategories.includes(category.id)
-                const duplicateName =
-                  !checked &&
-                  (reusedRooms.some(room => room.name === category.name) ||
-                    addedRooms.some(room => room === category.name))
-                return (
-                  <label
-                    key={category.id}
-                    className={`${styles.categoryOptionCard} ${checked ? styles.categoryOptionCardActive : ''}`}
-                  >
+        </Notice>
+      )}
+
+      {ship && cabinOptions.length > 0 && (
+        <fieldset className={styles.shipCabinTypes} disabled={disabled}>
+          <div className={styles.shipCabinHeaderBar}>
+            <div>
+              <legend>Hạng phòng áp dụng từ tàu {ship.name} *</legend>
+              <p className={styles.helper} id="fare-source-cabin-count">
+                Lấy trực tiếp từ danh mục cabin thực tế của tàu <strong>{ship.name}</strong> (không tự tạo phòng rời). Tồn chỗ trống sẽ được đối chiếu theo từng chuyến khởi hành.
+              </p>
+            </div>
+            <div className={styles.shipCabinBulkActions}>
+              <Badge
+                label={`Đã chọn ${validSelectedTypes.length}/${cabinOptions.length} hạng (${selectedCabinCount} phòng)`}
+                tone={validSelectedTypes.length > 0 ? 'info' : 'neutral'}
+              />
+              {!allSelected && (
+                <Button type="button" tone="secondary" size="compact" autoWidth disabled={disabled} onClick={selectAllAvailable}>
+                  Chọn tất cả hạng của tàu
+                </Button>
+              )}
+              {validSelectedTypes.length > 0 && (
+                <Button type="button" tone="text" size="compact" autoWidth disabled={disabled} onClick={clearAll}>
+                  Bỏ chọn
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.shipCabinRows}>
+            {cabinOptions.map(option => {
+              const checked = types.includes(option.type)
+              const previewCabins = option.cabins.slice(0, 6)
+              return (
+                <div
+                  key={option.type}
+                  className={`${styles.shipCabinCard} ${checked ? styles.shipCabinCardChecked : ''}`}
+                >
+                  <label className={styles.shipCabinRow}>
                     <input
                       type="checkbox"
                       checked={checked}
-                      disabled={duplicateName}
-                      onChange={event =>
-                        setReusedCategories(ids =>
-                          event.target.checked ? [...ids, category.id] : ids.filter(id => id !== category.id),
-                        )
-                      }
+                      aria-describedby="fare-source-cabin-count"
+                      onChange={event => toggle(option.type, event.target.checked)}
                     />
-                    <span className={styles.categoryOptionContent}>
-                      <strong>{category.name}</strong>
-                      <small>Mẫu gốc: {category.packageName}</small>
-                    </span>
+                    <div className={styles.shipCabinMainInfo}>
+                      <div className={styles.shipCabinTitleLine}>
+                        <span className={styles.shipCabinTitle}>{cabinTypeLabel(option.type)}</span>
+                        <span className={styles.codePill}>{option.type}</span>
+                      </div>
+                      {previewCabins.length > 0 && (
+                        <span className={styles.shipCabinPreviewText}>
+                          Cabin trên tàu:{' '}
+                          {previewCabins
+                            .map(c => `P.${c.cabinNumber} (${c.deckName} · ${c.capacity} khách)`)
+                            .join(', ')}
+                          {option.cabins.length > previewCabins.length
+                            ? ` và ${option.cabins.length - previewCabins.length} phòng khác`
+                            : ''}
+                        </span>
+                      )}
+                    </div>
+                    <div className={styles.shipCabinMetrics}>
+                      <span className={styles.shipCabinCount}>{option.count.toLocaleString('vi-VN')} phòng</span>
+                      {option.totalCapacity > 0 && (
+                        <span className={styles.shipCabinCapacity}>
+                          Tối đa {option.totalCapacity.toLocaleString('vi-VN')} khách
+                        </span>
+                      )}
+                    </div>
                   </label>
-                )
-              })}
-            </fieldset>
-          )}
-        </div>
-      </div>
+
+                  {option.cabins.length > 0 && (
+                    <details className={styles.shipCabinDetailDrawer}>
+                      <summary>
+                        Xem danh sách {option.cabins.length} cabin thực tế thuộc hạng {cabinTypeLabel(option.type)} trên tàu {ship.name}
+                      </summary>
+                      <ul className={styles.shipCabinChipGrid} aria-label={`Danh sách cabin ${cabinTypeLabel(option.type)}`}>
+                        {option.cabins.map(cabin => (
+                          <li key={`${option.type}-${cabin.deckName}-${cabin.cabinNumber}`} className={styles.shipCabinChip}>
+                            <strong>Phòng {cabin.cabinNumber}</strong>
+                            <span>{cabin.deckName} · {cabin.capacity} khách</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          <p className={styles.helper} role="status">
+            Đã chọn {validSelectedTypes.length} hạng phòng ({selectedCabinCount} cabin thực tế trên tàu {ship.name}).
+          </p>
+        </fieldset>
+      )}
+
+      {ship && staleTypes.length > 0 && (
+        <Notice title="Danh mục phòng trên tàu đã thay đổi" tone="warning">
+          <p>{staleTypes.map(cabinTypeLabel).join(', ')} hiện không còn trong sơ đồ cabin của tàu.</p>
+          <Button type="button" tone="secondary" onClick={clearUnavailable} disabled={disabled}>
+            Bỏ hạng phòng không còn trên tàu
+          </Button>
+        </Notice>
+      )}
     </div>
   )
 }
@@ -871,24 +926,19 @@ function TemplateVersions({
   template,
   onChanged,
   readOnly,
-  startNew = false,
 }: {
   template: CruisePackageTemplate
   onChanged: () => void
   readOnly: boolean
-  startNew?: boolean
 }) {
   const access = useSessionAccess()
-  const canWrite = access.roles.includes('ACTIVITY_SERVICE_MANAGER') && access.canDo('TOUR_PACKAGE_MANAGE')
+  const canWrite = access.roles.includes('ACTIVITY_SERVICE_MANAGER') && access.canDo('TOUR_PACKAGE_MANAGE') && access.has('SHIP_READ')
   const [epoch, setEpoch] = useState(0)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [addedRooms, setAddedRooms] = useState<string[]>([])
-  const [roomDraft, setRoomDraft] = useState('')
   const [benefits, setBenefits] = useState<(BenefitInput & { resourceName: string })[]>([])
   const [localError, setLocalError] = useState('')
-  const [reusedCategories, setReusedCategories] = useState<string[]>([])
-  const [creating, setCreating] = useState(startNew)
+  const [creating, setCreating] = useState(false)
   const [dismissedEmptyComposer, setDismissedEmptyComposer] = useState(false)
   const [benefitPending, setBenefitPending] = useState(false)
   const [publishId, setPublishId] = useState<string | null>(null)
@@ -898,20 +948,14 @@ function TemplateVersions({
   const clearDraft = () => {
     setName('')
     setDescription('')
-    setAddedRooms([])
-    setRoomDraft('')
+    cabinSelection.setSource('')
     setBenefits([])
-    setReusedCategories([])
     setBenefitPending(false)
     setCreating(false)
     setDismissedEmptyComposer(true)
     setLocalError('')
   }
 
-  const categoryCatalog = useReadQuery(
-    `cruise-package-category-catalog:${access.userId}:${template.id}:${epoch}`,
-    cruisePackageApi.logicalCategories,
-  )
   const query = useReadQuery(
     `fare-versions:${access.userId}:${template.id}:${epoch}`,
     useCallback(signal => cruisePackageApi.versions(template.id, signal), [template.id]),
@@ -919,6 +963,7 @@ function TemplateVersions({
 
   const isComposing =
     creating || (canWrite && Boolean(query.data && query.data.length === 0) && !dismissedEmptyComposer)
+  const cabinSelection = useShipCabinSelection(isComposing && canWrite)
 
   useEffect(() => {
     if (isComposing) editorHeading.current?.focus()
@@ -933,7 +978,9 @@ function TemplateVersions({
     { kind: 'create'; ids: string[]; content: string } | { kind: 'publish'; id: string } | null
   >(null)
 
-  const mutation = useCruisePackageMutation(refresh, undefined, async () => {
+  const mutation = useCruisePackageMutation(isComposing ? cabinSelection.reload : refresh, () => {
+    if (isComposing) refresh()
+  }, async () => {
     const operation = pendingVersion.current
     if (!operation) return false
     const versions = await cruisePackageApi.versions(template.id)
@@ -952,26 +999,9 @@ function TemplateVersions({
     readOnly || mutation.busy || mutation.needsReview || query.loading || Boolean(query.error) || !query.data
 
   useFormChanges(
-    Boolean(name || description || addedRooms.length || roomDraft.trim() || benefits.length || reusedCategories.length),
+    Boolean(name || description || cabinSelection.shipId || benefits.length),
     mutation.busy,
   )
-
-  const knownCategories = Array.from(
-    new Map(
-      [...(categoryCatalog.data ?? []), ...(query.data ?? []).flatMap(v => v.logicalCategoryReferences)].map(c => [
-        c.id,
-        c,
-      ]),
-    ).values(),
-  )
-  const reusedRooms = knownCategories.filter(category => reusedCategories.includes(category.id))
-  const draftPendingNames = roomDraft
-    .split('\n')
-    .map(value => value.trim())
-    .filter(Boolean)
-  const newRoomNames = [...addedRooms, ...draftPendingNames]
-  const logicalCategories = [...reusedRooms.map(category => category.name), ...newRoomNames]
-  const hasDuplicateRooms = new Set(logicalCategories).size !== logicalCategories.length
 
   const versions = query.data ?? []
   const current = versions.find(item => item.version.status === 'PUBLISHED')
@@ -985,14 +1015,16 @@ function TemplateVersions({
   const latestVersion = drafts[0] ?? current ?? history[0]
   const candidate = drafts.find(item => item.version.id === publishId)?.version
   const canPublish =
-    canWrite && !disabled && Boolean(candidate && (!current || candidate.versionNumber > current.version.versionNumber))
+    canWrite && !disabled && Boolean(candidate?.sourceShipId && (!current || candidate.versionNumber > current.version.versionNumber))
 
   const prefillFromLatest = () => {
     if (!latestVersion) return
     setName(latestVersion.version.name)
     setDescription(latestVersion.version.description ?? '')
-    const refIds = latestVersion.logicalCategoryReferences.map(ref => ref.id)
-    setReusedCategories(refIds)
+    cabinSelection.setSource(
+      latestVersion.version.sourceShipId ?? '',
+      latestVersion.logicalCategoryReferences.flatMap(category => category.cabinType ? [category.cabinType] : []),
+    )
   }
 
   const publishVersion = () => {
@@ -1048,13 +1080,6 @@ function TemplateVersions({
               <p>Hãy soạn phiên bản đầu tiên để khai báo tên gói, hạng phòng và quyền lợi đi kèm.</p>
             </Empty>
           )}
-          {categoryCatalog.error && (
-            <Notice title="Chưa tải được hạng thương mại dùng chung" tone="warning">
-              Không tự nối các hạng trùng tên.
-              <Button onClick={categoryCatalog.retry}>Tải lại danh mục hạng</Button>
-            </Notice>
-          )}
-
           {current && (
             <section className={styles.versionSection} aria-label="Phiên bản hiện hành">
               <div className={styles.versionSectionHeader}>
@@ -1076,7 +1101,7 @@ function TemplateVersions({
                   key={item.version.id}
                   item={item}
                   onPublish={
-                    canWrite && (!current || item.version.versionNumber > current.version.versionNumber)
+                    canWrite && item.version.sourceShipId && (!current || item.version.versionNumber > current.version.versionNumber)
                       ? () => setPublishId(item.version.id)
                       : undefined
                   }
@@ -1151,15 +1176,11 @@ function TemplateVersions({
               e.preventDefault()
               if (disabled || benefitPending) return
               setLocalError('')
-              if (!logicalCategories.length || hasDuplicateRooms) {
-                setLocalError('Vui lòng chọn hoặc thêm ít nhất một hạng phòng và đảm bảo không trùng tên.')
-                document.getElementById('fare-logical-categories')?.focus()
-                return
-              }
+              if (!cabinSelection.valid) return
               pendingVersion.current = {
                 kind: 'create',
                 ids: query.data?.map(v => v.version.id) ?? [],
-                content: versionContent(name.trim(), description, logicalCategories, benefits),
+                content: versionContent(name.trim(), description, cabinSelection.shipId, cabinSelection.types, benefits),
               }
               const ok = await mutation.run(
                 () =>
@@ -1167,8 +1188,8 @@ function TemplateVersions({
                     expectedTemplateRevision: template.revision,
                     name: name.trim(),
                     description,
-                    logicalCategories,
-                    reusedLogicalCategoryIds: reusedRooms.map(category => category.id),
+                    sourceShipId: cabinSelection.shipId,
+                    cabinTypes: cabinSelection.types,
                     benefits: benefits.map(b => ({
                       resourceType: b.resourceType,
                       resourceId: b.resourceId,
@@ -1258,26 +1279,16 @@ function TemplateVersions({
                   <span className={styles.stepNumberBadge}>2</span>
                   <StepIcon kind="cabin" />
                   <div>
-                    <h3 id="step-2-cabin-categories">Hạng phòng thương mại trong gói</h3>
+                    <h3 id="step-2-cabin-categories">Chọn tàu & Hạng phòng từ tàu hiện có</h3>
                     <p className={styles.helper}>
-                      Khai báo các hạng phòng thuộc gói này. Khi gán gói vào chuyến tàu, từng hạng phòng sẽ được ánh xạ với loại cabin thực tế.
+                      Chọn chiếc tàu cụ thể trong đội tàu, sau đó đánh dấu các hạng phòng và cabin thực tế có trên tàu đó.
                     </p>
                   </div>
                 </div>
               </div>
 
               <div className={styles.stepSectionBody}>
-                <CabinCategoryBuilder
-                  knownCategories={knownCategories}
-                  reusedCategories={reusedCategories}
-                  setReusedCategories={setReusedCategories}
-                  addedRooms={addedRooms}
-                  setAddedRooms={setAddedRooms}
-                  roomDraft={roomDraft}
-                  setRoomDraft={setRoomDraft}
-                  disabled={disabled}
-                  hasDuplicateRooms={hasDuplicateRooms}
-                />
+                <ShipCabinSelection selection={cabinSelection} disabled={disabled} />
               </div>
             </section>
 
@@ -1383,7 +1394,7 @@ function TemplateVersions({
                   autoWidth
                   type="submit"
                   disabled={
-                    disabled || !name.trim() || !logicalCategories.length || hasDuplicateRooms || benefitPending
+                    disabled || !name.trim() || !cabinSelection.valid || benefitPending
                   }
                 >
                   {mutation.busy ? 'Đang lưu phiên bản nháp…' : 'Lưu phiên bản nháp'}
@@ -1405,45 +1416,26 @@ function UnifiedNewTemplateWizard({
 }: {
   disabled: boolean
   existingTemplateIds: string[]
-  onCreated: (templateId: string, createdWithVersion: boolean) => void
+  onCreated: (templateId: string) => void
   onCancel: () => void
 }) {
-  const access = useSessionAccess()
   const [code, setCode] = useState('')
   const [codeManuallyEdited, setCodeManuallyEdited] = useState(false)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [addedRooms, setAddedRooms] = useState<string[]>([])
-  const [roomDraft, setRoomDraft] = useState('')
-  const [reusedCategories, setReusedCategories] = useState<string[]>([])
   const [benefits, setBenefits] = useState<(BenefitInput & { resourceName: string })[]>([])
   const [benefitPending, setBenefitPending] = useState(false)
   const [localError, setLocalError] = useState('')
-  const [createdTemplateLocked, setCreatedTemplateLocked] = useState(false)
-  const createdTemplateRef = useRef<CruisePackageTemplate | null>(null)
+  const cabinSelection = useShipCabinSelection(true)
   const nameInput = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     nameInput.current?.focus()
   }, [])
 
-  const categoryCatalog = useReadQuery(
-    `cruise-package-category-catalog:${access.userId}:new-template`,
-    cruisePackageApi.logicalCategories,
-  )
-
-  const knownCategories = categoryCatalog.data ?? []
-  const reusedRooms = knownCategories.filter(category => reusedCategories.includes(category.id))
-  const draftPendingNames = roomDraft
-    .split('\n')
-    .map(value => value.trim())
-    .filter(Boolean)
-  const logicalCategories = [...reusedRooms.map(category => category.name), ...addedRooms, ...draftPendingNames]
-  const hasDuplicateRooms = new Set(logicalCategories).size !== logicalCategories.length
-
-  const pendingAttempt = useRef<{ code: string; ids: string[] } | null>(null)
+  const pendingAttempt = useRef<{ code: string; ids: string[]; content: string } | null>(null)
   const mutation = useCruisePackageMutation(
-    () => {},
+    cabinSelection.reload,
     undefined,
     async () => {
       const pending = pendingAttempt.current
@@ -1451,43 +1443,21 @@ function UnifiedNewTemplateWizard({
       const rows = await cruisePackageApi.templates()
       const matches = rows.filter(row => row.code === pending.code && !pending.ids.includes(row.id))
       if (matches.length !== 1) return false
-      onCreated(matches[0].id, false)
+      const versions = await cruisePackageApi.versions(matches[0].id)
+      if (!versions.some(version => savedVersionContent(version) === pending.content)) return false
+      onCreated(matches[0].id)
       return true
     },
   )
 
   const disabled = parentDisabled || mutation.busy || mutation.needsReview
   useFormChanges(
-    Boolean(code || name || description || addedRooms.length || roomDraft.trim() || benefits.length || reusedCategories.length),
+    Boolean(code || name || description || cabinSelection.shipId || benefits.length),
     mutation.busy,
   )
 
   return (
-    <Panel className={styles.panel} title="Thiết lập mẫu gói du thuyền mới">
-      <div className={styles.workflowIntroBanner}>
-        <div className={styles.workflowStepPill}>
-          <span className={styles.stepNumberBadge}>1</span>
-          <div>
-            <strong> Bước 1: Định danh & Thông tin gói</strong>
-            <span>Nhập tên thương mại và mã quản lý</span>
-          </div>
-        </div>
-        <div className={styles.workflowStepPill}>
-          <span className={styles.stepNumberBadge}>2</span>
-          <div>
-            <strong>Bước 2: Hạng phòng áp dụng</strong>
-            <span>Chọn hoặc thêm các hạng phòng</span>
-          </div>
-        </div>
-        <div className={styles.workflowStepPill}>
-          <span className={styles.stepNumberBadge}>3</span>
-          <div>
-            <strong>Bước 3: Quyền lợi đi kèm</strong>
-            <span>Hoạt động, tour bờ và dịch vụ</span>
-          </div>
-        </div>
-      </div>
-
+    <Panel className={styles.panel} title="Tạo mẫu gói du thuyền">
       {mutation.feedback}
       {localError && (
         <Notice title="Kiểm tra lại thông tin mẫu gói" tone="error">
@@ -1514,32 +1484,21 @@ function UnifiedNewTemplateWizard({
             document.getElementById('fare-version-name')?.focus()
             return
           }
-          if (!logicalCategories.length || hasDuplicateRooms) {
-            setLocalError('Vui lòng chọn hoặc thêm ít nhất một hạng phòng cho gói và không để trùng tên.')
-            document.getElementById('fare-logical-categories')?.focus()
-            return
-          }
+          if (!cabinSelection.valid) return
           setLocalError('')
-          pendingAttempt.current = { code: trimmedCode, ids: existingTemplateIds }
+          pendingAttempt.current = {
+            code: trimmedCode,
+            ids: existingTemplateIds,
+            content: versionContent(trimmedName, description, cabinSelection.shipId, cabinSelection.types, benefits),
+          }
 
           await mutation.run(async () => {
-            let tpl = createdTemplateRef.current
-            if (!tpl || tpl.code !== trimmedCode) {
-              const created = await cruisePackageApi.createTemplate(trimmedCode)
-              if (created.code !== trimmedCode) {
-                throw new Error('Chưa xác nhận đúng mẫu vừa tạo.')
-              }
-              tpl = created
-              createdTemplateRef.current = created
-              setCreatedTemplateLocked(true)
-            }
-
-            await cruisePackageApi.createVersion(tpl.id, {
-              expectedTemplateRevision: tpl.revision,
+            const created = await cruisePackageApi.createTemplateWithVersion(trimmedCode, {
+              expectedTemplateRevision: 0,
               name: trimmedName,
               description,
-              logicalCategories,
-              reusedLogicalCategoryIds: reusedRooms.map(category => category.id),
+              sourceShipId: cabinSelection.shipId,
+              cabinTypes: cabinSelection.types,
               benefits: benefits.map(b => ({
                 resourceType: b.resourceType,
                 resourceId: b.resourceId,
@@ -1555,7 +1514,7 @@ function UnifiedNewTemplateWizard({
               })),
             })
 
-            onCreated(tpl.id, true)
+            onCreated(created.version.templateId)
           }, 'Đã khởi tạo mẫu gói và lưu phiên bản nháp đầu tiên.')
         }}
       >
@@ -1610,7 +1569,7 @@ function UnifiedNewTemplateWizard({
                   maxLength={50}
                   placeholder="Ví dụ: ROYAL-LUX"
                   value={code}
-                  disabled={disabled || createdTemplateLocked}
+                  disabled={disabled}
                   onChange={e => {
                     setCodeManuallyEdited(true)
                     setCode(e.target.value.toUpperCase())
@@ -1644,26 +1603,16 @@ function UnifiedNewTemplateWizard({
               <span className={styles.stepNumberBadge}>2</span>
               <StepIcon kind="cabin" />
               <div>
-                <h3 id="new-tpl-step-2">Hạng phòng thương mại trong gói</h3>
+                <h3 id="new-tpl-step-2">Chọn tàu & Hạng phòng từ tàu hiện có</h3>
                 <p className={styles.helper}>
-                  Thêm ít nhất 1 hạng phòng thương mại (bằng cách nhập mới hoặc chọn lại từ các hạng phòng sẵn có).
+                  Chọn chiếc tàu cụ thể trong đội tàu, sau đó đánh dấu các hạng phòng và cabin thực tế có trên tàu đó.
                 </p>
               </div>
             </div>
           </div>
 
           <div className={styles.stepSectionBody}>
-            <CabinCategoryBuilder
-              knownCategories={knownCategories}
-              reusedCategories={reusedCategories}
-              setReusedCategories={setReusedCategories}
-              addedRooms={addedRooms}
-              setAddedRooms={setAddedRooms}
-              roomDraft={roomDraft}
-              setRoomDraft={setRoomDraft}
-              disabled={disabled}
-              hasDuplicateRooms={hasDuplicateRooms}
-            />
+            <ShipCabinSelection selection={cabinSelection} disabled={disabled} />
           </div>
         </section>
 
@@ -1770,12 +1719,11 @@ function UnifiedNewTemplateWizard({
                 disabled ||
                 !code.trim() ||
                 !name.trim() ||
-                !logicalCategories.length ||
-                hasDuplicateRooms ||
+                !cabinSelection.valid ||
                 benefitPending
               }
             >
-              {mutation.busy ? 'Đang khởi tạo mẫu gói…' : 'Tạo mẫu & lưu phiên bản nháp'}
+              {mutation.busy ? 'Đang khởi tạo mẫu gói…' : 'Tạo mẫu gói'}
             </Button>
           </div>
         </footer>
@@ -1802,7 +1750,7 @@ function VersionCard({
         <span className={styles.versionIdentity}>
           <strong>{version.name}</strong>
           <span>
-            Phiên bản {version.versionNumber} · {version.logicalCategories.length} hạng phòng · {item.benefits.length} quyền lợi đi kèm
+            Phiên bản {version.versionNumber}, {version.logicalCategories.length} hạng phòng, {item.benefits.length} quyền lợi
           </span>
         </span>
         <Badge
@@ -1815,8 +1763,9 @@ function VersionCard({
       </summary>
       <div className={styles.versionBody}>
         <div className={styles.versionFacts}>
+          {item.sourceShipName && <div><h4>Tàu áp dụng</h4><p>{item.sourceShipName}</p></div>}
           <div>
-            <h4>Hạng phòng thương mại ({version.logicalCategories.length})</h4>
+            <h4>Hạng phòng ({version.logicalCategories.length})</h4>
             {version.logicalCategories.length > 0 ? (
               <div className={styles.cabinBadgeRow}>
                 {version.logicalCategories.map(cat => (
@@ -1889,7 +1838,7 @@ function VersionCard({
                           <dt>Khoảng sử dụng</dt>
                           <dd>
                             {b.usageStartsAt ? new Date(b.usageStartsAt).toLocaleString('vi-VN') : 'Chưa có mốc bắt đầu'}{' '}
-                            — {b.usageEndsAt ? new Date(b.usageEndsAt).toLocaleString('vi-VN') : 'Chưa có mốc kết thúc'}
+                            đến {b.usageEndsAt ? new Date(b.usageEndsAt).toLocaleString('vi-VN') : 'Chưa có mốc kết thúc'}
                           </dd>
                         </div>
                       )}
@@ -1920,6 +1869,9 @@ function VersionCard({
             </Button>
           </div>
         )}
+        {version.status === 'DRAFT' && !version.sourceShipId && (
+          <p className={styles.helper}>Bản nháp này chưa có tàu nguồn. Soạn phiên bản mới để chọn tàu và hạng phòng trước khi phát hành.</p>
+        )}
         {supersededDraft && <p className={styles.helper}>Bản nháp này cũ hơn phiên bản đang phát hành.</p>}
       </div>
     </details>
@@ -1936,12 +1888,12 @@ export function CruisePackageTemplatePage() {
 
 function TemplateWorkspace() {
   const access = useSessionAccess()
-  const canWrite = access.roles.includes('ACTIVITY_SERVICE_MANAGER') && access.canDo('TOUR_PACKAGE_MANAGE')
+  const canWrite = access.roles.includes('ACTIVITY_SERVICE_MANAGER') && access.canDo('TOUR_PACKAGE_MANAGE') && access.has('SHIP_READ')
   const [epoch, setEpoch] = useState(0)
   const [selected, setSelected] = useState('')
   const [creatingTemplate, setCreatingTemplate] = useState(false)
-  const [newTemplateId, setNewTemplateId] = useState('')
   const [search, setSearch] = useState('')
+  const [shipFilter, setShipFilter] = useState('')
   const pageHeading = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -1983,18 +1935,46 @@ function TemplateWorkspace() {
     ),
   )
 
+  const shipChoices = Array.from(
+    new Map(
+      (catalog.data ?? []).flatMap(({ versions }) =>
+        (versions ?? []).flatMap(entry =>
+          entry.version.sourceShipId && entry.sourceShipName
+            ? [[entry.version.sourceShipId, entry.sourceShipName] as const]
+            : [],
+        ),
+      ),
+    ).entries(),
+  )
+
   const term = search.trim().toLocaleLowerCase('vi')
   const rows =
-    catalog.data?.filter(
-      ({ item, versions }) =>
+    catalog.data?.filter(({ item, versions }) => {
+      if (shipFilter) {
+        const published = versions?.find(entry => entry.version.status === 'PUBLISHED')
+        const drafts = versions?.filter(entry => entry.version.status === 'DRAFT') ?? []
+        const primaryVersion = published ?? drafts[0]
+        if (shipFilter === '__LEGACY__') {
+          if (primaryVersion?.version.sourceShipId) return false
+        } else if (primaryVersion?.version.sourceShipId !== shipFilter) {
+          return false
+        }
+      }
+      if (!term) return true
+      return (
         item.code.toLocaleLowerCase('vi').includes(term) ||
-        versions?.some(({ version }) => version.name.toLocaleLowerCase('vi').includes(term)),
-    ) ?? []
+        versions?.some(
+          ({ version, sourceShipName }) =>
+            version.name.toLocaleLowerCase('vi').includes(term) ||
+            (sourceShipName ?? '').toLocaleLowerCase('vi').includes(term),
+        )
+      )
+    }) ?? []
 
   const pageTitle = creatingTemplate
     ? 'Tạo mẫu gói du thuyền mới'
     : template
-      ? `Mẫu gói du thuyền · ${template.code}`
+      ? `Mẫu gói du thuyền (${template.code})`
       : 'Mẫu gói du thuyền'
 
   return (
@@ -2047,7 +2027,7 @@ function TemplateWorkspace() {
                 <span className={styles.stepNumberBadge}>1</span>
                 <div>
                   <strong>Soạn mẫu & phiên bản gói</strong>
-                  <span>Khai báo tên gói, hạng phòng và quyền lợi đi kèm</span>
+                  <span>Chọn tàu, hạng phòng và quyền lợi đi kèm</span>
                 </div>
               </div>
               <div className={styles.workflowStepPill}>
@@ -2061,22 +2041,43 @@ function TemplateWorkspace() {
                 <span className={styles.stepNumberBadge}>3</span>
                 <div>
                   <strong>Gán vào chuyến khởi hành</strong>
-                  <span>Ghép cabin thực tế trên tàu và trình duyệt giá bán</span>
+                  <span>Chọn gói theo tàu và gửi giá xét duyệt</span>
                 </div>
               </div>
             </div>
 
             <div className={styles.catalogToolbar}>
-              <div className={styles.catalogSearch}>
-                <Field htmlFor="fare-template-search" label="Tìm kiếm mẫu gói du thuyền">
-                  <input
-                    type="search"
-                    id="fare-template-search"
-                    value={search}
-                    onChange={event => setSearch(event.target.value)}
-                    placeholder="Nhập tên gói hoặc mã mẫu..."
-                  />
-                </Field>
+              <div className={styles.catalogFiltersGroup}>
+                <div className={styles.catalogSearch}>
+                  <Field htmlFor="fare-template-search" label="Tìm kiếm mẫu gói du thuyền">
+                    <input
+                      type="search"
+                      id="fare-template-search"
+                      value={search}
+                      onChange={event => setSearch(event.target.value)}
+                      placeholder="Nhập tên gói, mã mẫu hoặc tên tàu..."
+                    />
+                  </Field>
+                </div>
+                {shipChoices.length > 0 && (
+                  <div className={styles.catalogFilterSelect}>
+                    <Field htmlFor="fare-template-ship-filter" label="Lọc theo tàu áp dụng">
+                      <select
+                        id="fare-template-ship-filter"
+                        value={shipFilter}
+                        onChange={event => setShipFilter(event.target.value)}
+                      >
+                        <option value="">Tất cả tàu ({catalog.data?.length ?? 0})</option>
+                        {shipChoices.map(([id, shipName]) => (
+                          <option key={id} value={id}>
+                            {shipName}
+                          </option>
+                        ))}
+                        <option value="__LEGACY__">Mẫu lịch sử (chưa gắn tàu)</option>
+                      </select>
+                    </Field>
+                  </div>
+                )}
               </div>
               {catalog.data && (
                 <span className={styles.helper}>
@@ -2094,26 +2095,27 @@ function TemplateWorkspace() {
               </Notice>
             )}
             {catalog.data && !rows.length && (
-              <Empty title={term ? 'Không tìm thấy mẫu phù hợp' : 'Chưa có mẫu gói du thuyền'}>
+              <Empty title={term || shipFilter ? 'Không tìm thấy mẫu phù hợp' : 'Chưa có mẫu gói du thuyền'}>
                 <p>
-                  {term
-                    ? 'Thử tìm bằng tên gói hoặc mã mẫu khác.'
-                    : 'Nhấn "Tạo mẫu gói mới" để thiết lập tên gói, hạng phòng và quyền lợi đi kèm.'}
+                  {term || shipFilter
+                    ? 'Thử tìm bằng tên gói, mã mẫu khác hoặc chọn lại bộ lọc tàu.'
+                    : 'Nhấn "Tạo mẫu gói mới" để chọn tàu, hạng phòng và quyền lợi đi kèm.'}
                 </p>
               </Empty>
             )}
             {rows.length > 0 && (
               <DataTable
                 label="Danh mục mẫu gói du thuyền"
-                headers={['Mẫu gói du thuyền', 'Cấu trúc gói', 'Trạng thái phát hành', 'Bản nháp', 'Thao tác']}
+                headers={['Mẫu gói du thuyền', 'Tàu áp dụng', 'Hạng phòng từ tàu & Quyền lợi', 'Trạng thái phát hành', 'Bản nháp', 'Thao tác']}
               >
                 {rows.map(({ item, versions }) => {
                   const published = versions?.find(entry => entry.version.status === 'PUBLISHED')
                   const drafts = versions?.filter(entry => entry.version.status === 'DRAFT') ?? []
                   const primaryVersion = published ?? drafts[0]
                   const name = primaryVersion?.version.name
-                  const roomCount = primaryVersion?.version.logicalCategories.length ?? 0
+                  const categories = primaryVersion?.version.logicalCategories ?? []
                   const benefitCount = primaryVersion?.benefits.length ?? 0
+                  const shipName = primaryVersion?.sourceShipName
 
                   return (
                     <tr key={item.id}>
@@ -2124,10 +2126,28 @@ function TemplateWorkspace() {
                         </div>
                       </td>
                       <td>
+                        {shipName ? (
+                          <strong>{shipName}</strong>
+                        ) : primaryVersion ? (
+                          <span className={styles.helper}>Mẫu lịch sử (chưa gắn tàu)</span>
+                        ) : (
+                          <span className={styles.helper}>—</span>
+                        )}
+                      </td>
+                      <td>
                         {primaryVersion ? (
-                          <span className={styles.helper}>
-                            {roomCount} hạng phòng · {benefitCount} quyền lợi
-                          </span>
+                          <div className={styles.catalogStructureCell}>
+                            {categories.length > 0 && (
+                              <div className={styles.cabinBadgeRow}>
+                                {categories.map(cat => (
+                                  <Badge key={cat} label={cat} tone="neutral" />
+                                ))}
+                              </div>
+                            )}
+                            <span className={styles.helper}>
+                              {categories.length} hạng phòng · {benefitCount} quyền lợi đi kèm
+                            </span>
+                          </div>
                         ) : (
                           <span className={styles.helper}>Chưa cấu hình nội dung</span>
                         )}
@@ -2170,10 +2190,9 @@ function TemplateWorkspace() {
           <UnifiedNewTemplateWizard
             disabled={disabled}
             existingTemplateIds={query.data?.map(row => row.id) ?? []}
-            onCreated={(createdId, createdWithVersion) => {
+            onCreated={createdId => {
               refresh()
               setSelected(createdId)
-              setNewTemplateId(createdWithVersion ? '' : createdId)
               setCreatingTemplate(false)
             }}
             onCancel={() => switchWorkspace(() => setCreatingTemplate(false))}
@@ -2184,7 +2203,6 @@ function TemplateWorkspace() {
           <TemplateVersions
             key={template.id}
             template={template}
-            startNew={template.id === newTemplateId}
             readOnly={disabled}
             onChanged={refresh}
           />

@@ -7,15 +7,15 @@ import {fareObject,fareText,fareUuid} from './purchase-contract'
 import {QueryState} from './Workspace'
 
 type Assignment={logicalCategoryId:string;cabinIds:string[]}
-type MappingView={shipId:string;structureFingerprint:string;confirmation:{id:string;revision:number;confirmedBy:string;confirmedAt:string;status:'CURRENT'|'STALE'}|null;categories:{id:string;templateVersionId:string;name:string;packageName:string}[];cabins:{id:string;name:string;deck:string;capacity:number;status:string}[];assignments:Assignment[]}
+type MappingView={shipId:string;structureFingerprint:string;confirmation:{id:string;revision:number;confirmedBy:string;confirmedAt:string;status:'CURRENT'|'STALE'}|null;categories:{id:string;templateVersionId:string;name:string;packageName:string;cabinType:string|null}[];cabins:{id:string;name:string;deck:string;capacity:number;status:string;type:string|null}[];assignments:Assignment[]}
 const path=(shipId:string)=>`/ships/${encodeURIComponent(shipId)}/cruise-package-cabin-mapping`
 function decode(value:unknown,shipId:string):MappingView {
   const envelope=fareObject(value);if(envelope.success!==true)throw new Error('Máy chủ chưa xác nhận kết quả mapping.')
   const v=fareObject(envelope.data)
   if(v.shipId!==shipId||!Array.isArray(v.categories)||!Array.isArray(v.cabins)||!Array.isArray(v.assignments))throw new Error('Mapping không khớp tàu hoặc thiếu dữ liệu cấu trúc.')
-  const categoryRows=v.categories.map(value=>{const c=fareObject(value);return{id:fareUuid(c.id),templateVersionId:fareUuid(c.templateVersionId),name:fareText(c.name),packageName:fareText(c.packageName)}})
+  const categoryRows=v.categories.map(value=>{const c=fareObject(value);return{id:fareUuid(c.id),templateVersionId:fareUuid(c.templateVersionId),name:fareText(c.name),packageName:fareText(c.packageName),cabinType:c.cabinType==null?null:fareText(c.cabinType)}})
   const categories=Array.from(new Map(categoryRows.map(c=>[c.id,c])).values())
-  const cabins=v.cabins.map(value=>{const c=fareObject(value);if(typeof c.capacity!=='number'||!Number.isSafeInteger(c.capacity)||c.capacity<1)throw new Error('Sức chứa cabin nguồn chưa hợp lệ.');return{id:fareUuid(c.cabin_id),name:fareText(c.cabin_number),deck:fareText(c.deck_name),capacity:c.capacity,status:fareText(c.status)}})
+  const cabins=v.cabins.map(value=>{const c=fareObject(value);if(typeof c.capacity!=='number'||!Number.isSafeInteger(c.capacity)||c.capacity<1)throw new Error('Sức chứa cabin của tàu chưa hợp lệ.');return{id:fareUuid(c.cabin_id),name:fareText(c.cabin_number),deck:c.deck_name==null?'Boong chưa đặt tên':fareText(c.deck_name),capacity:c.capacity,status:fareText(c.status),type:c.cabin_type==null?null:fareText(c.cabin_type)}})
   const assignments:Assignment[]=[]
   for(const value of v.assignments){const a=fareObject(value),id=fareUuid(a.logical_category_id);const existing=assignments.find(x=>x.logicalCategoryId===id);const cabinId=fareUuid(a.cabin_id_snapshot);if(existing)existing.cabinIds.push(cabinId);else assignments.push({logicalCategoryId:id,cabinIds:[cabinId]})}
   let confirmation:MappingView['confirmation']=null
@@ -31,6 +31,11 @@ function ShipCabinMappingWorkspace({shipId}:{shipId:string}) {
   useFormChanges(draft!==null||Boolean(category||selected.length),busy)
   if(!canRead)return null
   const rows=draft??data?.assignments??[]
+  const compatibleCabins = (categoryId: string) => {
+    const type = data?.categories.find(item => item.id === categoryId)?.cabinType
+    return data?.cabins.filter(cabin => type == null || cabin.type === type) ?? []
+  }
+  const choices = compatibleCabins(category)
   async function confirm(){
     if(!data||!canConfirm||lock.current||uncertain||query.loading||query.error||!rows.length)return
     lock.current=true;setBusy(true);setError('');setSuccess('')
@@ -38,19 +43,55 @@ function ShipCabinMappingWorkspace({shipId}:{shipId:string}) {
       const saved=await apiRequestRaw(path(shipId)+'/confirm',v=>decode(v,shipId),{method:'POST',body:{expectedMappingId:data.confirmation?.id??null,expectedStructureFingerprint:data.structureFingerprint,assignments:rows}})
       const actual=await apiRequestRaw(path(shipId),v=>decode(v,shipId))
       if(!saved.confirmation||saved.confirmation.status!=='CURRENT'||actual.confirmation?.id!==saved.confirmation.id||actual.structureFingerprint!==saved.structureFingerprint)throw new Error('Chưa đối chiếu được revision mapping đã xác nhận.')
-      setDraft(null);setSelected([]);setCategory('');setSuccess('Đã xác nhận mapping cabin của tàu. Điều kiện mở bán được đánh giá lại riêng.');query.retry()
-    }catch(reason){setError(reason instanceof Error?reason.message:'Chưa xác nhận được mapping.');setUncertain(true)}finally{lock.current=false;setBusy(false)}
+      setDraft(null);setSelected([]);setCategory('');setSuccess('Đã xác nhận cabin cho các hạng đã chọn.');query.retry()
+    }catch(reason){setError(reason instanceof Error?reason.message:'Chưa xác nhận được cabin.');setUncertain(true)}finally{lock.current=false;setBusy(false)}
   }
-  return <Panel title="Ánh xạ hạng cabin thương mại"><QueryState loading={query.loading} error={query.error}/>{query.error&&<Button onClick={query.retry}>Tải lại mapping</Button>}
-    {data&&<><p>Tàu: {shipId}. {data.confirmation?`Revision ${data.confirmation.revision} · ${data.confirmation.status==='CURRENT'?'Xác nhận còn hiện hành':'Cần xác nhận lại do cấu trúc thay đổi'} · ${new Date(data.confirmation.confirmedAt).toLocaleString('vi-VN')} · Tài khoản xác nhận: ${data.confirmation.confirmedBy}`:'Chưa có mapping được xác nhận.'}</p>
-      <ul>{rows.map(row=><li key={row.logicalCategoryId}>{data.categories.find(c=>c.id===row.logicalCategoryId)?.name??'Hạng thương mại cần đối chiếu'} · ID {row.logicalCategoryId}: {row.cabinIds.map(id=>data.cabins.find(c=>c.id===id)?.name??`Cabin không còn trong cấu trúc hiện tại (${id})`).join(', ')} {canConfirm&&<Button tone="text" disabled={busy||uncertain} onClick={()=>setDraft(rows.filter(r=>r.logicalCategoryId!==row.logicalCategoryId))}>Bỏ khỏi bản mapping tiếp theo</Button>}</li>)}</ul>
-      {!rows.length&&<Empty title="Chưa có hạng thương mại được ánh xạ"/>}
-      {canConfirm&&<><Field htmlFor="mapping-category" label="Hạng cabin thương mại"><select id="mapping-category" value={category} disabled={busy||uncertain} onChange={e=>{setCategory(e.target.value);setSelected(rows.find(r=>r.logicalCategoryId===e.target.value)?.cabinIds??[])}}><option value="">Chọn hạng từ phiên bản mẫu</option>{data.categories.map(c=><option key={c.id} value={c.id}>{c.packageName} · {c.name} · {c.id}</option>)}</select></Field>
-        <fieldset className={styles.mappingCabins} disabled={!category||busy||uncertain||query.loading}><legend>Cabin vật lý trên tàu</legend>{data.cabins.map(c=>{const used=rows.some(r=>r.logicalCategoryId!==category&&r.cabinIds.includes(c.id));return <label key={c.id}><input type="checkbox" checked={selected.includes(c.id)} disabled={used} onChange={e=>setSelected(old=>e.target.checked?[...old,c.id]:old.filter(id=>id!==c.id))}/>{c.name} · {c.deck} · Sức chứa {c.capacity} · {c.status==='AVAILABLE'?'Khả dụng':'Trạng thái cần đối chiếu'} · {c.id}</label>})}</fieldset>
-        <Button tone="secondary" disabled={!category||!selected.length||busy||uncertain} onClick={()=>{setDraft([...rows.filter(r=>r.logicalCategoryId!==category),{logicalCategoryId:category,cabinIds:[...selected]}]);setCategory('');setSelected([])}}>Lưu vào bản mapping tiếp theo</Button>
-        <Button disabled={busy||uncertain||!rows.length} onClick={()=>void confirm()}>Xác nhận mapping của tàu</Button></>}
-      <p>Mapping xác nhận tương thích; tồn cabin được Backend kiểm tra riêng khi mở bán. Không suy luận từ tên hoặc hạng cabin cũ.</p></>}
-    {error&&<Notice title="Chưa xác nhận được mapping" tone="error">{error}</Notice>}{uncertain&&<Notice title="Cần đối chiếu dữ liệu trước khi gửi lại"><Button disabled={busy} onClick={()=>{query.retry();setUncertain(false)}}>Tải lại mapping để đối chiếu</Button></Notice>}{success&&<Notice title="Đã lưu xác nhận" tone="success">{success}</Notice>}
+  return <Panel title="Xác nhận cabin cho gói du thuyền">
+    <QueryState loading={query.loading} error={query.error}/>
+    {query.error&&<Button onClick={query.retry}>Tải lại danh sách cabin</Button>}
+    {data&&<>
+      {data.confirmation&&<p>{data.confirmation.status==='CURRENT'?'Xác nhận lúc':'Cấu trúc tàu đã đổi. Lần xác nhận trước'} {new Date(data.confirmation.confirmedAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'})}</p>}
+      {rows.length>0&&<ul>{rows.map(row=><li key={row.logicalCategoryId}>
+        <strong>{data.categories.find(item=>item.id===row.logicalCategoryId)?.name??'Hạng cabin cần kiểm tra'}</strong>
+        {' – '}{row.cabinIds.map(id=>data.cabins.find(cabin=>cabin.id===id)?.name??'Cabin đã thay đổi').join(', ')}
+        {canConfirm&&<Button tone="text" disabled={busy||uncertain} onClick={()=>setDraft(rows.filter(item=>item.logicalCategoryId!==row.logicalCategoryId))}>Bỏ nhóm cabin</Button>}
+      </li>)}</ul>}
+      {!rows.length&&<Empty title="Chưa có cabin được chọn cho gói"/>}
+      {canConfirm&&<>
+        <Field htmlFor="mapping-category" label="Hạng cabin trong mẫu gói">
+          <select id="mapping-category" value={category} disabled={busy||uncertain} onChange={event=>{
+            const next = event.target.value
+            const allowed = new Set(compatibleCabins(next).map(cabin=>cabin.id))
+            setCategory(next)
+            setSelected(rows.find(row=>row.logicalCategoryId===next)?.cabinIds.filter(id=>allowed.has(id))??[])
+          }}>
+            <option value="">Chọn hạng cabin</option>
+            {data.categories.map(item=><option key={item.id} value={item.id}>{item.cabinType?item.name:`${item.name} (${item.packageName})`}</option>)}
+          </select>
+        </Field>
+        {category&&<fieldset className={styles.mappingCabins} disabled={busy||uncertain||query.loading}>
+          <legend>Cabin trên tàu</legend>
+          {choices.length===0&&<p>Không còn cabin thuộc hạng này trên tàu.</p>}
+          {choices.map(cabin=>{
+            const used=rows.some(row=>row.logicalCategoryId!==category&&row.cabinIds.includes(cabin.id))
+            return <label key={cabin.id}>
+              <input type="checkbox" checked={selected.includes(cabin.id)} disabled={used} onChange={event=>setSelected(previous=>event.target.checked?[...previous,cabin.id]:previous.filter(id=>id!==cabin.id))}/>
+              {cabin.name}, {cabin.deck}, {cabin.capacity} khách{used?' (đã chọn cho hạng khác)':cabin.status==='AVAILABLE'?'':' (cần kiểm tra tình trạng)'}
+            </label>
+          })}
+        </fieldset>}
+        {category&&<Button tone="secondary" disabled={!selected.length||busy||uncertain} onClick={()=>{
+          setDraft([...rows.filter(row=>row.logicalCategoryId!==category),{logicalCategoryId:category,cabinIds:[...selected]}])
+          setCategory('');setSelected([])
+        }}>Lưu lựa chọn hạng này</Button>}
+        <Button disabled={busy||uncertain||Boolean(category)||query.loading||Boolean(query.error)||(!draft&&data.confirmation?.status!=='STALE')||!rows.length} onClick={()=>void confirm()}>Xác nhận cabin</Button>
+      </>}
+    </>}
+    {error&&<Notice title="Chưa xác nhận được cabin" tone="error">{error}</Notice>}
+    {uncertain&&<Notice title="Kiểm tra lại danh sách cabin"><Button disabled={busy} onClick={()=>{
+      setDraft(null);setCategory('');setSelected([]);setError('');setUncertain(false);query.retry()
+    }}>Tải lại danh sách</Button></Notice>}
+    {success&&<Notice title="Đã lưu xác nhận" tone="success">{success}</Notice>}
   </Panel>
 }
 

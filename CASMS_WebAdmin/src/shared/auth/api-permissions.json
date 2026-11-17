@@ -413,6 +413,73 @@
   },
   {
     "method": "GET",
+    "path": "/cruise-package-templates/ship-options",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "SHIP_READ"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "CruisePackageController.shipOptions"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise-package-templates/ship-options/{shipId}/cabin-types",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "SHIP_READ"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "CruisePackageController.shipCabinTypes"
+  },
+  {
+    "method": "GET",
+    "path": "/cruise-package-templates/ship-options/{shipId}/published-templates",
+    "mode": "ALL",
+    "permissions": [],
+    "anyOf": [
+      {
+        "mode": "ALL",
+        "permissions": [
+          "TOUR_PACKAGE_MANAGE",
+          "SHIP_READ"
+        ],
+        "roles": [
+          "ACTIVITY_SERVICE_MANAGER"
+        ]
+      },
+      {
+        "mode": "ALL",
+        "permissions": [
+          "CRUISE_CREATE"
+        ],
+        "roles": [
+          "CRUISE_MANAGER"
+        ]
+      }
+    ],
+    "source": "CruisePackageController.publishedShipTemplates"
+  },
+  {
+    "method": "POST",
+    "path": "/cruise-package-templates/with-version",
+    "mode": "ALL",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "SHIP_READ"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "CruisePackageController.createWithVersion"
+  },
+  {
+    "method": "GET",
     "path": "/cruise-package-templates",
     "mode": "ANY",
     "permissions": [
@@ -482,7 +549,8 @@
     "path": "/cruise-package-templates/{id}/versions",
     "mode": "ALL",
     "permissions": [
-      "TOUR_PACKAGE_MANAGE"
+      "TOUR_PACKAGE_MANAGE",
+      "SHIP_READ"
     ],
     "roles": [
       "ACTIVITY_SERVICE_MANAGER"
@@ -494,7 +562,8 @@
     "path": "/cruise-package-templates/versions/{id}/publish",
     "mode": "ALL",
     "permissions": [
-      "TOUR_PACKAGE_MANAGE"
+      "TOUR_PACKAGE_MANAGE",
+      "SHIP_READ"
     ],
     "roles": [
       "ACTIVITY_SERVICE_MANAGER"

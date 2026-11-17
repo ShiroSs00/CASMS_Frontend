@@ -10,13 +10,46 @@ export type ResourceOption = { id: string; name: string;unitCode:string|null }
 export type CruisePackageTemplate = { id: string; code: string; revision: number }
 export type BenefitUsage={usagePolicy:'UNLIMITED'|'LIMITED'|null;usageUnit:'PARTICIPATION'|'SERVICE_UNIT'|null;serviceUnitCode:string|null;requiresReservation:boolean|null;usageStartsAt:string|null;usageEndsAt:string|null}
 export type Benefit = BenefitUsage & { id: string; inclusion: Inclusion; onboardActivityId?: string | null; shoreExcursionId?: string | null; serviceId?: string | null; quantityLimit?: number | null; eligibility: string }
-export type LogicalCategoryReference={id:string;templateVersionId:string;name:string;packageName:string}
+const cabinTypes = ['INTERIOR', 'OCEAN_VIEW', 'BALCONY', 'SUITE'] as const
+export type CabinType = typeof cabinTypes[number]
+export type LogicalCategoryReference = {
+  id: string
+  templateVersionId: string
+  name: string
+  packageName: string
+  cabinType: CabinType | null
+}
+export type ShipOption = {
+  id: string
+  name: string
+  code: string | null
+  totalCapacity: number | null
+}
+export type ShipCabinItem = {
+  cabinNumber: string
+  deckName: string
+  capacity: number
+}
+export type ShipCabinOption = {
+  type: CabinType
+  count: number
+  totalCapacity: number
+  cabins: ShipCabinItem[]
+}
 export type CabinMappingEvidence={mappingId:string|null;cabinIds:string[];revision:number|null;confirmedBy:string|null;confirmedAt:string|null;blockers:{code:string;message:string}[]}
-export type CruisePackageVersion = { logicalCategoryReferences:LogicalCategoryReference[]; version: { id: string; templateId: string; revision: number; versionNumber: number; name: string; description?: string | null; logicalCategories: string[]; status: 'DRAFT' | 'PUBLISHED' | 'SUPERSEDED' }; benefits: Benefit[]; resourceNames: Record<string,string> }
+export type CruisePackageVersion = { logicalCategoryReferences:LogicalCategoryReference[]; version: { id: string; templateId: string; sourceShipId: string | null; revision: number; versionNumber: number; name: string; description?: string | null; logicalCategories: string[]; status: 'DRAFT' | 'PUBLISHED' | 'SUPERSEDED' }; sourceShipName: string | null; benefits: Benefit[]; resourceNames: Record<string,string> }
 export type CruisePackagePrice = { id: string; offerId: string; templateVersionId: string; offerCommercialRevision: number; revision: number; revisionNumber: number; amount: string; createdBy:string; submittedBy:string|null; currencyCode: 'USD' | 'VND'; priceUnit: 'PERSON'; status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'RETURNED'; reviewReason?: string | null }
 export type CruisePackageContext = { currency:'VND'|'USD'; cruiseId:string; shipId:string|null; planStatus:string; canConfigure:boolean; canCreatePrice:boolean; canReviewPrice:boolean; unifiedPackageReview:boolean; departureDatetime?:string|null; returnDatetime?:string|null; bookingOpensAt?:string|null; bookingClosesAt?:string|null }
 export type CruisePackageOffer = { template:CruisePackageVersion; bindingNames:Record<string,string>; cabinMapping:CabinMappingEvidence;offer: { logicalCategoryId:string|null;id: string; cruiseId: string; templateVersionId: string; revision: number; commercialRevision: number; shipId: string; logicalCategory: string; proposedCabinType: string; salesStart: string; salesEnd: string; status: 'DRAFT' | 'PUBLISHED'; saleEnabled:boolean }; bindings: { id: string; benefitId: string; onboardActivityId?: string | null; shoreExcursionId?: string | null; serviceId?: string | null }[]; prices: CruisePackagePrice[]; currentApprovedPriceRevisionId?: string | null; publicationEligible?: boolean; eligibility: { eligible: boolean; blockers: { code: string; message: string; dependencyId: string | null }[] } }
 export type BenefitInput = BenefitUsage & { resourceType: ResourceType; resourceId: string; inclusion: Inclusion; quantityLimit: number | null; eligibility: string }
+export type ShipBackedVersionInput = {
+  expectedTemplateRevision: number
+  name: string
+  description: string
+  sourceShipId: string
+  cabinTypes: CabinType[]
+  benefits: BenefitInput[]
+}
 export type OfferInput = { logicalCategoryId:string;templateVersionId: string; logicalCategory: string; proposedCabinType: string; salesStart: string; salesEnd: string }
 
 type Row = Record<string, unknown>
@@ -34,7 +67,47 @@ function instant(value: unknown) { const result=string(value); if (!Number.isFin
 function reference(value: Row) { const result={ onboardActivityId:optionalId(value.onboardActivityId), shoreExcursionId:optionalId(value.shoreExcursionId), serviceId:optionalId(value.serviceId) }; if (Object.values(result).filter(Boolean).length!==1) throw new Error('Tham chiếu quyền lợi không hợp lệ.'); return result }
 const template = (value: unknown): CruisePackageTemplate => { const r=row(value); return { id:uuid(r.id), code:string(r.code), revision:revision(r.revision) } }
 const benefit = (value: unknown): Benefit => { const r=row(value); return { id:uuid(r.id), usagePolicy:r.usagePolicy==null?null:status(r.usagePolicy,['UNLIMITED','LIMITED'] as const),usageUnit:r.usageUnit==null?null:status(r.usageUnit,['PARTICIPATION','SERVICE_UNIT'] as const),serviceUnitCode:optionalText(r.serviceUnitCode),requiresReservation:r.requiresReservation==null?null:typeof r.requiresReservation==='boolean'?r.requiresReservation:(()=>{throw new Error('Cấu hình đăng ký quyền lợi không hợp lệ.')})(),usageStartsAt:r.usageStartsAt==null?null:instant(r.usageStartsAt),usageEndsAt:r.usageEndsAt==null?null:instant(r.usageEndsAt), ...reference(r), inclusion:status(r.inclusion,['INCLUDED','LIMITED_INCLUDED','OPTIONAL','NOT_INCLUDED']), quantityLimit:r.quantityLimit==null?null:revision(r.quantityLimit), eligibility:string(r.eligibility) } }
-const version = (value: unknown): CruisePackageVersion => { const r=row(value), v=row(r.version); return { logicalCategoryReferences:array(r.logicalCategoryReferences,item=>{const c=row(item);return{id:uuid(c.id),templateVersionId:uuid(c.templateVersionId),name:string(c.name),packageName:string(c.packageName)}}),version:{ id:uuid(v.id), templateId:uuid(v.templateId), revision:revision(v.revision), versionNumber:revision(v.versionNumber), name:string(v.name), description:optionalText(v.description), logicalCategories:array(v.logicalCategories,string), status:status(v.status,['DRAFT','PUBLISHED','SUPERSEDED']) }, benefits:array(r.benefits,benefit), resourceNames:Object.fromEntries(Object.entries(row(r.resourceNames)).map(([id,name])=>[uuid(id),string(name)])) } }
+function categoryReference(value: unknown): LogicalCategoryReference {
+  const c = row(value)
+  return {
+    id: uuid(c.id),
+    templateVersionId: uuid(c.templateVersionId),
+    name: string(c.name),
+    packageName: string(c.packageName),
+    cabinType: c.cabinType == null ? null : status(c.cabinType, cabinTypes),
+  }
+}
+function version(value: unknown): CruisePackageVersion {
+  const r = row(value)
+  const v = row(r.version)
+  return {
+    logicalCategoryReferences: array(r.logicalCategoryReferences, categoryReference),
+    version: {
+      id: uuid(v.id),
+      templateId: uuid(v.templateId),
+      sourceShipId: optionalId(v.sourceShipId),
+      revision: revision(v.revision),
+      versionNumber: revision(v.versionNumber),
+      name: string(v.name),
+      description: optionalText(v.description),
+      logicalCategories: array(v.logicalCategories, string),
+      status: status(v.status, ['DRAFT', 'PUBLISHED', 'SUPERSEDED']),
+    },
+    sourceShipName: optionalText(r.sourceShipName),
+    benefits: array(r.benefits, benefit),
+    resourceNames: Object.fromEntries(Object.entries(row(r.resourceNames)).map(([id, name]) => [uuid(id), string(name)])),
+  }
+}
+function savedDraft(value: unknown, input: ShipBackedVersionInput, templateId?: string): CruisePackageVersion {
+  const result = version(value)
+  const savedTypes = result.logicalCategoryReferences.map(category => category.cabinType)
+  if ((templateId && result.version.templateId !== templateId) || result.version.status !== 'DRAFT'
+    || result.version.sourceShipId !== input.sourceShipId || savedTypes.length !== input.cabinTypes.length
+    || input.cabinTypes.some(type => !savedTypes.includes(type))) {
+    throw new Error('Chưa xác nhận đúng tàu và hạng phòng vừa lưu.')
+  }
+  return result
+}
 const price = (value: unknown): CruisePackagePrice => { const r=row(value); return { id:uuid(r.id), offerId:uuid(r.offerId), templateVersionId:uuid(r.templateVersionId), offerCommercialRevision:revision(r.offerCommercialRevision), revision:revision(r.revision), revisionNumber:revision(r.revisionNumber), amount:decimal(r.amount), createdBy:uuid(r.createdBy), submittedBy:optionalId(r.submittedBy), currencyCode:status(r.currencyCode,['USD','VND']), priceUnit:status(r.priceUnit,['PERSON']), status:status(r.status,['DRAFT','SUBMITTED','APPROVED','RETURNED']), reviewReason:optionalText(r.reviewReason) } }
 export const decodeCruisePackageOffer = (value: unknown): CruisePackageOffer => {
   const r=row(value), o=row(r.offer), e=row(r.eligibility)
@@ -67,14 +140,51 @@ export const cruisePackageApi = {
       return {resourceType:status(c.resourceType,['ACTIVITY','EXCURSION','SERVICE'] as const),resourceId:uuid(c.resourceId),name:string(c.name),unitCode:optionalText(c.unitCode),cutoffLimit:c.cutoffLimit==null?null:instant(c.cutoffLimit),eligible:c.eligible,blocker:optionalText(c.blocker),allowedStages:array(c.allowedStages,s=>status(s,['BOOKING','PRE_DEPARTURE','ONBOARD'] as const))}
     })} satisfies AddonConfiguration
   },{signal}),
-  logicalCategories:(signal?:AbortSignal)=>request(`${root}/logical-categories`,v=>array(v,value=>{const c=row(value);return{id:uuid(c.id),templateVersionId:uuid(c.templateVersionId),name:string(c.name),packageName:string(c.packageName)}}),{signal}),
+  shipOptions: (signal?: AbortSignal) => request(`${root}/ship-options`, value => array<ShipOption>(value, item => {
+    const ship = row(item)
+    return {
+      id: uuid(ship.id),
+      name: string(ship.name),
+      code: optionalText(ship.code),
+      totalCapacity:
+        typeof ship.totalCapacity === 'number' && Number.isSafeInteger(ship.totalCapacity) && ship.totalCapacity >= 0
+          ? ship.totalCapacity
+          : null,
+    }
+  }), { signal }),
+  shipCabinTypes: (shipId: string, signal?: AbortSignal) => request(
+    `${root}/ship-options/${encodeURIComponent(shipId)}/cabin-types`, value => array<ShipCabinOption>(value, item => {
+      const cabin = row(item)
+      const count = revision(cabin.count)
+      if (!count) throw new Error('Số phòng trong danh mục tàu không hợp lệ.')
+      const cabins = Array.isArray(cabin.cabins)
+        ? cabin.cabins.map(entry => {
+            const c = row(entry)
+            return {
+              cabinNumber: string(c.cabinNumber),
+              deckName: string(c.deckName),
+              capacity: revision(c.capacity),
+            }
+          })
+        : []
+      const totalCapacity =
+        typeof cabin.totalCapacity === 'number' && Number.isSafeInteger(cabin.totalCapacity) && cabin.totalCapacity >= 0
+          ? cabin.totalCapacity
+          : cabins.reduce((sum, entry) => sum + entry.capacity, 0)
+      return { type: status(cabin.type, cabinTypes), count, totalCapacity, cabins }
+    }), { signal },
+  ),
   entitlements:(bookingId:string,signal?:AbortSignal)=>request(`/booking/${encodeURIComponent(bookingId)}/cruise-package-entitlements`,v=>array(v,decodeEntitlement),{signal}),
   usageOptions:(signal?:AbortSignal)=>request(`${root}/benefit-usage-options`,v=>{const r=row(v);return {usagePolicies:array(r.usagePolicies,i=>status(i,['UNLIMITED','LIMITED'])),usageUnits:array(r.usageUnits,i=>status(i,['PARTICIPATION','SERVICE_UNIT']))}},{signal}),
   available:(cruiseId:string,signal?:AbortSignal)=>request(`${departure(cruiseId)}/available`,v=>decodeCruisePackageCatalog(v,cruiseId),{signal}),
   templates:(signal?:AbortSignal)=>request(root,v=>array(v,template),{signal}),
   versions:(id:string,signal?:AbortSignal)=>request(`${root}/${id}/versions`,v=>{ const result=array(v,version); if(result.some(r=>r.version.templateId!==id))throw new Error('Phiên bản không khớp mẫu.'); return result },{signal}),
-  createTemplate:(code:string)=>request(root,template,{method:'POST',body:{code}}),
-  createVersion:(id:string,body:{expectedTemplateRevision:number;name:string;description:string;logicalCategories:string[];benefits:BenefitInput[];reusedLogicalCategoryIds?:string[]})=>request(`${root}/${id}/versions`,v=>{ const result=version(v); if(result.version.templateId!==id)throw new Error('Phiên bản không khớp mẫu.'); return result },{method:'POST',body}),
+  createTemplateWithVersion: (code: string, body: ShipBackedVersionInput) => request(
+    `${root}/with-version`, value => savedDraft(value, body), { method: 'POST', body: { code, version: body } },
+  ),
+  createVersion: (id: string, body: ShipBackedVersionInput) => request(
+    `${root}/${encodeURIComponent(id)}/versions`, value => savedDraft(value, body, id), { method: 'POST', body },
+  ),
   publishVersion:(id:string,expectedRevision:number)=>request(`${root}/versions/${id}/publish`,v=>{const result=version(v);if(result.version.id!==id||result.version.status!=='PUBLISHED')throw new Error('Chưa xác nhận phát hành đúng phiên bản.');return result},{method:'POST',body:{expectedRevision}}),
   resources:(type:ResourceType,cruiseId?:string,signal?:AbortSignal)=>request(`${root}/benefit-resources?${new URLSearchParams({type,...(cruiseId?{cruiseId}:{})})}`,v=>array(v,item=>{const r=row(item);return{id:uuid(r.id),name:string(r.name),unitCode:optionalText(r.unitCode)}}),{signal}),
   context:(cruiseId:string,signal?:AbortSignal)=>request(`${departure(cruiseId)}/context`,v=>{const r=row(v);if(r.cruiseId!==cruiseId||typeof r.canConfigure!=='boolean'||typeof r.canCreatePrice!=='boolean'||typeof r.canReviewPrice!=='boolean')throw new Error('Không đọc được quyền cấu hình gói du thuyền.');return {cruiseId,currency:status(r.currency??'USD',['VND','USD']),shipId:optionalId(r.shipId),planStatus:string(r.planStatus),canConfigure:r.canConfigure,canCreatePrice:r.canCreatePrice,canReviewPrice:r.canReviewPrice,unifiedPackageReview:r.unifiedPackageReview===true,departureDatetime:r.departureDatetime==null?null:instant(r.departureDatetime),returnDatetime:r.returnDatetime==null?null:instant(r.returnDatetime),bookingOpensAt:r.bookingOpensAt==null?null:instant(r.bookingOpensAt),bookingClosesAt:r.bookingClosesAt==null?null:instant(r.bookingClosesAt)} satisfies CruisePackageContext},{signal}),

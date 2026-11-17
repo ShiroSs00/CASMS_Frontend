@@ -265,6 +265,7 @@ export function DayPane({
                   <select
                     id="planning-day-type"
                     aria-invalid={Boolean(fieldError('planning-day-type'))}
+                    aria-describedby={isFirstDay ? 'planning-day-type-help' : undefined}
                     value={day.dayType ?? ''}
                     disabled={busy}
                     onChange={e => onType(e.target.value as Day['dayType'])}
@@ -273,6 +274,11 @@ export function DayPane({
                     <option value="SEA_DAY">Trên biển</option>
                     <option value="PORT_DAY">Có ghé cảng</option>
                   </select>
+                )}
+                {!isLastDay && isFirstDay && (
+                  <small id="planning-day-type-help" className={styles.muted}>
+                    Sau khi rời cảng khởi hành, chọn &ldquo;Trên biển&rdquo; nếu tàu đi thẳng sang ngày sau hoặc &ldquo;Có ghé cảng&rdquo; nếu có ghé thêm cảng trung gian trong Ngày 1.
+                  </small>
                 )}
               </Field>
             )}
@@ -290,22 +296,27 @@ export function DayPane({
           </div>
           </section>}
 
-      {((canConfigurePort && (!isLastDay || editable)) || visits.length > 0) && (
+      {((canConfigurePort && !isLastDay) || visits.length > 0) && (
           <Panel title={day.dayType === 'SEA_DAY' ? 'Di chuyển trên biển' : 'Các điểm ghé cảng trong ngày'}>
             <div className={styles.sectionTitle}>
               <span className={styles.muted}>{canConfigurePort ? 'Giờ địa phương của từng cảng ghé' : 'Không xuống bờ trong ngày này'}</span>
-              {editable && canConfigurePort && (
+              {editable && canConfigurePort && !isLastDay && (
                 <Button tone="secondary" size="compact" disabled={busy} onClick={() => onStop()}>
-                  Thêm cảng ghé
+                  {isFirstDay ? 'Thêm cảng ghé trung gian' : 'Thêm cảng ghé'}
                 </Button>
               )}
             </div>
             {!visits.length ? (
-              <p className={styles.muted}>Thêm cảng ghé để đặt giờ tàu đến và giờ rời cảng.</p>
+              <p className={styles.muted}>
+                {isFirstDay
+                  ? 'Chỉ thêm nếu sau khi rời cảng khởi hành, tàu có ghé thêm một cảng trung gian ngay trong Ngày 1.'
+                  : 'Thêm cảng ghé để đặt giờ tàu đến và giờ rời cảng.'}
+              </p>
             ) : (
               <div className={styles.cards}>
                 {visits.map(stop => {
                   const position = route.rows.find(row => row.key === stop.clientKey)?.position
+                  const stopErrors = violations.filter(issue => issue.clientKey === stop.clientKey)
                   return (
                     <article
                       id={`planning-${stop.clientKey}`}
@@ -333,6 +344,9 @@ export function DayPane({
                           {stop.countryCode === 'VN' && <p className={styles.muted}>{domesticRegionLabel(stop.domesticRegion)}</p>}
                           {stop.allAboardTime && <p>Hạn hành khách trở lại tàu: Ngày {stop.allAboardDayNumber} {shortTime(stop.allAboardTime)}</p>}
                           {stop.arrivalDayNumber < day.dayNumber && <p className={styles.muted}>Tiếp diễn cùng lần ghé từ Ngày {stop.arrivalDayNumber}.</p>}
+                          {stopErrors.map((issue, idx) => (
+                            <p key={`${stop.clientKey}:${issue.code}:${idx}`} className={styles.error} role="alert">{issue.message}</p>
+                          ))}
                         </div>
                         <div className={styles.actions}>
                           <Button tone="text" disabled={busy} onClick={() => onStop(stop)}>

@@ -1,4 +1,4 @@
-import { timeNumber, type Content, type Source, type Stop, type TripInfo, type Violation } from './plan'
+import { SHIP_ZONE, shortTime, timeNumber, type Content, type Day, type Source, type Stop, type TripInfo, type Violation } from './plan'
 
 type Scope=Pick<TripInfo,'scope'|'regionIds'|'countryCodes'>
 type Geography = Pick<Source, 'countryCode' | 'domesticRegion'>
@@ -92,9 +92,93 @@ export function callsAfterTerminal(stops: readonly Stop[]): Violation[] {
       dayNumber:stop.departureDayNumber, field:'plannedDepartureTime', message:'Lần ghé phải kết thúc trước khi tàu đến cảng cuối.' }))
 }
 
-export function routeOrderViolations(content: Pick<Content, 'stops'>): Violation[] {
+export function consecutiveSamePortViolations(content: Pick<Content, 'stops'>): Violation[] {
+  const ordered = [...content.stops].sort((first, second) => first.stopOrder - second.stopOrder)
+  return ordered.flatMap((stop, index) => {
+    const previous = ordered[index - 1]
+    if (!previous || !stop.portId || previous.portId !== stop.portId) return []
+    return [{
+      code: 'CONSECUTIVE_SAME_PORT',
+      severity: 'ERROR' as const,
+      entityType: 'STOP',
+      clientKey: stop.clientKey,
+      dayNumber: stop.arrivalDayNumber,
+      field: 'portId',
+      fieldPath: 'stops[clientKey=' + stop.clientKey + '].portId',
+      message: 'Hai lượt ghé liên tiếp không được trùng cảng (' + (stop.portName || 'cảng đã chọn') + '). Hãy chọn cảng khác ở giữa.',
+    }]
+  })
+}
+
+export function departureTimingViolations(content: Pick<Content, 'days' | 'stops'>): Violation[] {
+  const firstDay = content.days.find(day => day.dayNumber === 1)
+  if (!firstDay?.departurePortId || !firstDay.plannedDepartureTime) return []
+  if (content.stops.some(stop => stop.isEmbarkation)) return []
+  const day1Zone = firstDay.shipTimeZoneId ?? SHIP_ZONE
+  const dep1 = timeNumber(1, firstDay.plannedDepartureTime)
+  const ordered = [...content.stops].sort((first, second) => first.stopOrder - second.stopOrder)
+  const conflict = ordered.find(stop =>
+    stop.plannedArrivalTime &&
+    samePortClock(day1Zone, stop.timeZoneId) &&
+    timeNumber(stop.arrivalDayNumber, stop.plannedArrivalTime) <= dep1,
+  )
+  if (!conflict || !conflict.plannedArrivalTime) return []
+  const arr = timeNumber(conflict.arrivalDayNumber, conflict.plannedArrivalTime)
+  return [{
+    code: arr < dep1 ? 'INVALID_DEPARTURE_STOP_SEQUENCE' : 'NON_POSITIVE_TRANSIT_TIME',
+    severity: 'ERROR',
+    entityType: 'DAY',
+    dayNumber: 1,
+    field: 'plannedDepartureTime',
+    fieldPath: 'days[1].plannedDepartureTime',
+    message: arr < dep1
+      ? 'Giờ khởi hành Ngày 1 (' + shortTime(firstDay.plannedDepartureTime) + ') đang muộn hơn giờ đến ' + (conflict.portName || 'cảng kế tiếp') + ' (Ngày ' + conflict.arrivalDayNumber + ' ' + shortTime(conflict.plannedArrivalTime) + ').'
+      : 'Giờ khởi hành Ngày 1 (' + shortTime(firstDay.plannedDepartureTime) + ') phải sớm hơn giờ đến ' + (conflict.portName || 'cảng kế tiếp') + ' để có thời gian di chuyển.',
+  }]
+}
+
+export function routeOrderViolations(
+  content: Pick<Content, 'stops'> & {
+    days?: readonly Pick<Day, 'dayNumber' | 'departurePortId' | 'departurePortName' | 'plannedDepartureTime' | 'shipTimeZoneId'>[]
+  },
+): Violation[] {
   const ordered=[...content.stops].sort((first,second)=>first.stopOrder-second.stopOrder)
-  return ordered.flatMap((stop,index)=>{
+  const violations: Violation[] = []
+  const firstDay = content.days?.find(day => day.dayNumber === 1)
+  if (firstDay?.departurePortId && firstDay.plannedDepartureTime && !ordered.some(stop => stop.isEmbarkation)) {
+    const day1Zone = firstDay.shipTimeZoneId ?? SHIP_ZONE
+    const dep1 = timeNumber(1, firstDay.plannedDepartureTime)
+    for (const stop of ordered) {
+      if (!stop.plannedArrivalTime || !samePortClock(day1Zone, stop.timeZoneId)) continue
+      const arr = timeNumber(stop.arrivalDayNumber, stop.plannedArrivalTime)
+      if (arr < dep1) {
+        violations.push({
+          code: 'CLIENT_STOP_ORDER_TIME',
+          severity: 'ERROR',
+          entityType: 'STOP',
+          clientKey: stop.clientKey,
+          dayNumber: stop.arrivalDayNumber,
+          field: 'plannedArrivalTime',
+          fieldPath: 'stops[clientKey=' + stop.clientKey + '].plannedArrivalTime',
+          message: 'Lần ghé ' + stop.stopOrder + ' tại ' + (stop.portName || 'cảng đã chọn') + ' (Ngày ' + stop.arrivalDayNumber + ' ' + shortTime(stop.plannedArrivalTime) + ') phải đến sau giờ khởi hành Ngày 1 (' + shortTime(firstDay.plannedDepartureTime) + ').',
+        })
+      } else if (arr === dep1) {
+        violations.push({
+          code: 'CLIENT_STOP_ORDER_TIME',
+          severity: 'ERROR',
+          entityType: 'STOP',
+          clientKey: stop.clientKey,
+          dayNumber: stop.arrivalDayNumber,
+          field: 'plannedArrivalTime',
+          fieldPath: 'stops[clientKey=' + stop.clientKey + '].plannedArrivalTime',
+          message: 'Lần ghé ' + stop.stopOrder + ' tại ' + (stop.portName || 'cảng đã chọn') + ' cần chừa thời gian di chuyển sau giờ khởi hành Ngày 1 (' + shortTime(firstDay.plannedDepartureTime) + ').',
+        })
+      }
+    }
+  }
+  return [
+    ...violations,
+    ...ordered.flatMap((stop,index)=>{
     const previous=ordered[index-1],current=interval(stop)
     if(!previous||!current||!samePortClock(previous.timeZoneId,stop.timeZoneId))return []
     const before=interval(previous)
@@ -106,5 +190,6 @@ export function routeOrderViolations(content: Pick<Content, 'stops'>): Violation
     return [{code:'CLIENT_STOP_ORDER_TIME',severity:'ERROR' as const,entityType:'STOP',clientKey:stop.clientKey,
       dayNumber:stop.arrivalDayNumber,field:'plannedArrivalTime',fieldPath:'stops[clientKey='+stop.clientKey+'].plannedArrivalTime',
       message:'Lần ghé '+stop.stopOrder+' có giờ dự kiến đến trước khi lần ghé '+previous.stopOrder+' kết thúc. Kiểm tra lại thứ tự tuyến và giờ dự kiến.'}]
-  })
+    }),
+  ]
 }

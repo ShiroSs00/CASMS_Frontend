@@ -1,7 +1,11 @@
 import { useCallback, useId, useRef, useState } from 'react'
+import { useShipPackageTemplates } from '@/domain/cruise-package'
 import { ApiError, apiRequest, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Badge, Button, ButtonLink, Empty, Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
+import { cabinTypeLabel } from '@/shared/i18n/business-copy'
+import { journeyTime } from '@/shared/lib/journey-time'
+import { canRoleOpenAdminPath } from '@/shared/ui/admin-v3'
+import { Badge, Button, ButtonLink, Empty, Field, Loading, Notice, PageHeader, Panel, RecordFacts } from '@/shared/ui'
 import { formatOperatingBudget } from '../api/preparation-api'
 import { CruiseFrame } from './CruiseUI'
 import styles from '../staffing/Staffing.module.css'
@@ -22,14 +26,23 @@ type Task = {
   revision: number
   canAccept: boolean
   canRespond: boolean
+  shipId?: string | null
+  shipName?: string | null
+  shipCapacity?: number | null
+  departureAt?: string | null
+  returnAt?: string | null
+  expectedPassengerCount?: number | null
+  sourceTripCode?: string | null
+  sourceTripName?: string | null
+  sourceVersionNumber?: number | null
 }
 type Work = { canDispatch: boolean; shipAssigned: boolean; tasks: Task[] }
 const labels = { ASM: 'Hoạt động, dịch vụ và tour bờ', SHIP: 'Cabin, khu vực và khả năng phục vụ' }
-const teams = { ASM: 'Quản lý dịch vụ (ASM)', SHIP: 'Quản lý tàu (Ship Manager)' }
+const teams = { ASM: 'Quản lý dịch vụ', SHIP: 'Quản lý tàu' }
 const statuses = {
-  PENDING: 'Đã gửi yêu cầu',
+  PENDING: 'Chờ xử lý',
   IN_PROGRESS: 'Đang xử lý',
-  COMPLETED: 'Đã hoàn tất',
+  COMPLETED: 'Đã phản hồi',
   RETURNED: 'Cần bổ sung',
 }
 const statusTones = {
@@ -77,7 +90,7 @@ export function CruiseWorkHandoff({
                 'Kiểm tra lại ngân sách trước khi giao việc.'
               ) : (
                 <>
-                  <a href="#operating-budget">Nhập ngân sách ở Bước 1</a> để gửi yêu cầu cho các bộ phận.
+                  <a href="#operating-budget">Lưu ngân sách vận hành</a> để gửi yêu cầu cho các bộ phận.
                 </>
               )}
             </p>
@@ -97,25 +110,19 @@ export function CruiseWorkHandoff({
                     label={task ? statuses[task.status] : 'Chưa gửi'}
                   />
                 </header>
-                {task ? (
-                  <TaskStatus task={task} compact />
-                ) : (
-                  <p className={workspaceStyles.deptEmptyNote}>
-                    {group === 'ASM'
-                      ? 'Chưa gửi yêu cầu chuẩn bị hoạt động và tour bờ cho bộ phận dịch vụ.'
-                      : 'Chưa gửi yêu cầu đối chiếu kỹ thuật và khả năng phục vụ cho Quản lý tàu.'}
-                  </p>
+                {task ? <TaskStatus task={task} compact /> : (
+                  <p className={workspaceStyles.sectionMeta}>Chờ Quản lý lịch trình gửi yêu cầu.</p>
                 )}
                 {canSend && budgetAmount && (group === 'ASM' || read.data?.shipAssigned) ? (
-                  <details className={styles.handoffCompose} key={task?.revision ?? 0} open={!task}>
+                  <details className={styles.handoffCompose} key={task?.revision ?? 0}>
                     <summary>
                       {task?.status === 'RETURNED'
                         ? 'Bổ sung và gửi lại yêu cầu'
                         : group === 'ASM'
-                          ? 'Ghi yêu cầu về hoạt động và tour bờ'
-                          : 'Ghi yêu cầu xác nhận cho Quản lý tàu'}
+                          ? 'Soạn yêu cầu cho Quản lý dịch vụ'
+                          : 'Soạn yêu cầu cho Quản lý tàu'}
                     </summary>
-                    <SendRequest path={`${path}/${group}`} group={group} onChanged={read.retry} />
+                    <SendRequest path={`${path}/${group}`} group={group} initialMessage={task?.request ?? ''} onChanged={read.retry} />
                   </details>
                 ) : (
                   canSend &&
@@ -131,18 +138,19 @@ export function CruiseWorkHandoff({
 }
 
 function TaskStatus({ task, compact = false }: { task: Task; compact?: boolean }) {
+  const progress =
+    task.status === 'RETURNED'
+      ? 'Quản lý lịch trình cần bổ sung và gửi lại yêu cầu.'
+      : task.status === 'COMPLETED'
+        ? `Đã nhận kết quả từ ${task.assignee ?? teams[task.group]}.`
+        : `${task.status === 'PENDING' ? 'Chờ' : 'Đang xử lý bởi'} ${task.assignee ?? teams[task.group]}.`
   const details = (
     <dl className={styles.handoffMessages}>
       <div>
         <dt>Yêu cầu đã gửi</dt>
         <dd>{task.request}</dd>
       </div>
-      {task.assignee && (
-        <div>
-          <dt>Người xử lý</dt>
-          <dd>{task.assignee}</dd>
-        </div>
-      )}
+
       {!compact && task.operatingBudgetVnd && (
         <div>
           <dt>Ngân sách vận hành</dt>
@@ -158,9 +166,10 @@ function TaskStatus({ task, compact = false }: { task: Task; compact?: boolean }
           <Badge tone={statusTones[task.status]} label={statuses[task.status]} />
         </div>
       )}
+      <p className={workspaceStyles.sectionMeta}>{progress}</p>
       {task.response && (
         <div className={workspaceStyles.deptResponseBox}>
-          <strong>Phản hồi từ bộ phận</strong>
+          <strong>{task.status === 'RETURNED' ? 'Lý do cần bổ sung' : 'Kết quả'}</strong>
           <p>{task.response}</p>
         </div>
       )}
@@ -176,8 +185,13 @@ function TaskStatus({ task, compact = false }: { task: Task; compact?: boolean }
   )
 }
 
-function SendRequest({ path, group, onChanged }: { path: string; group: Group; onChanged: () => void }) {
-  const [message, setMessage] = useState('')
+function SendRequest({ path, group, initialMessage, onChanged }: {
+  path: string
+  group: Group
+  initialMessage: string
+  onChanged: () => void
+}) {
+  const [message, setMessage] = useState(initialMessage)
   const id = useId()
   const send = useWorkMutation(path, onChanged)
   return (
@@ -208,7 +222,7 @@ function SendRequest({ path, group, onChanged }: { path: string; group: Group; o
         />
       </Field>
       <Button type="submit" autoWidth busy={send.busy} disabled={!message.trim()}>
-        Gửi cho {teams[group]}
+        Gửi yêu cầu chuẩn bị
       </Button>
       {send.error && (
         <Notice title="Chưa gửi được yêu cầu" tone="error">
@@ -281,12 +295,54 @@ export function CruiseWorkInboxPage() {
 }
 
 function WorkItem({ task, onChanged }: { task: Task; onChanged: () => void }) {
+  const access = useSessionAccess()
+  const cruisePath = `/admin/cruises/${encodeURIComponent(task.cruiseId)}`
+  const programContext = '?work=program'
+  const canOpenProgram = task.group === 'ASM' && canRoleOpenAdminPath(access.roles, cruisePath, programContext, access)
+  const canOpenLocations = task.group === 'SHIP' && canRoleOpenAdminPath(access.roles, '/admin/service-locations', '', access)
+  const canOpenStaffingReview = task.group === 'SHIP' && canRoleOpenAdminPath(access.roles, '/admin/staffing-reviews', '', access)
+  const shipTemplates = useShipPackageTemplates(task.group === 'ASM' ? task.shipId : null)
   const [response, setResponse] = useState('')
   const field = useId()
   const action = useWorkMutation(`${root}/${task.cruiseId}/${task.group}`, onChanged)
   const respond = (type: Action) => void action.run('PUT', { action: type, revision: task.revision, response: response.trim() })
+
+  const sourcePlanLabel = task.sourceTripCode
+    ? `${task.sourceTripCode}${task.sourceTripName ? ` · ${task.sourceTripName}` : ''}${task.sourceVersionNumber != null ? ` (Phiên bản ${task.sourceVersionNumber})` : ''}`
+    : 'Chưa có'
+  const shipLabel = task.shipName
+    ? `${task.shipName}${task.shipCapacity != null ? ` (${task.shipCapacity} chỗ)` : ''}`
+    : 'Chưa có'
+
   return (
     <Panel title={task.cruiseName} subtitle={`${task.cruiseCode} · ${labels[task.group]}`}>
+      <RecordFacts
+        entries={[
+          ['Tàu phân công', shipLabel],
+          ['Khởi hành (giờ Việt Nam)', task.departureAt ? journeyTime(task.departureAt) : 'Chưa có'],
+          ['Kết thúc (giờ Việt Nam)', task.returnAt ? journeyTime(task.returnAt) : 'Chưa có'],
+          ['Số khách dự kiến', task.expectedPassengerCount != null ? `${task.expectedPassengerCount} khách` : 'Chưa có'],
+          ['Lịch trình nguồn', sourcePlanLabel],
+          ...(task.group === 'ASM'
+            ? [
+                [
+                  'Mẫu gói tham khảo theo tàu',
+                  !task.shipId
+                    ? 'Chưa phân công tàu'
+                    : shipTemplates.loading
+                      ? 'Đang tải mẫu gói…'
+                      : shipTemplates.error
+                        ? 'Chưa tải được mẫu gói'
+                        : shipTemplates.data?.length
+                          ? shipTemplates.data
+                              .map(tpl => `${tpl.name} (${tpl.cabinTypes.map(cabinTypeLabel).join(', ')})`)
+                              .join(' · ')
+                          : 'Chưa có mẫu gói phát hành cho tàu này',
+                ] as const,
+              ]
+            : []),
+        ]}
+      />
       <TaskStatus task={task} />
       {task.canAccept && (
         <Button busy={action.busy} onClick={() => respond('ACCEPT')}>
@@ -295,11 +351,23 @@ function WorkItem({ task, onChanged }: { task: Task; onChanged: () => void }) {
       )}
       {task.canRespond && (
         <div className={styles.section}>
-          {task.group === 'ASM' && (
-            <ButtonLink to={`/admin/cruises/${task.cruiseId}?work=program`} tone="secondary">
-              Mở chương trình của tour
-            </ButtonLink>
-          )}
+          <div className={styles.actions}>
+            {canOpenProgram && (
+              <ButtonLink to={cruisePath + programContext} tone="secondary">
+                Mở chương trình của tour
+              </ButtonLink>
+            )}
+            {canOpenLocations && (
+              <ButtonLink to={`/admin/service-locations?cruiseId=${encodeURIComponent(task.cruiseId)}`} tone="secondary">
+                Xem đề nghị bố trí dịch vụ
+              </ButtonLink>
+            )}
+            {canOpenStaffingReview && (
+              <ButtonLink to="/admin/staffing-reviews" tone="secondary">
+                Xét phương án nhân sự
+              </ButtonLink>
+            )}
+          </div>
           <Field
             htmlFor={field}
             label={task.group === 'ASM' ? 'Kết quả hoặc nội dung cần bổ sung' : 'Ghi chú xác nhận hoặc lý do trả lại'}

@@ -7,6 +7,7 @@ import { cabinTypeLabel } from '@/shared/i18n/business-copy'
 import { Badge, Button, ButtonLink, Empty, Field, Modal, Notice, Panel, UnsavedForms, useFormChanges } from '@/shared/ui'
 import { cruisePackageApi, type Benefit, type CruisePackageContext, type CruisePackageOffer, type OfferInput } from './api'
 import {QueryState} from './Workspace'
+import {useShipPackageTemplates} from './ship-template-options'
 import {inclusionLabels,lifecycle} from './labels'
 import {useCruisePackageMutation} from './useCruisePackageMutation'
 import styles from './Workspace.module.css'
@@ -40,6 +41,13 @@ function toInputDateTime(iso?: string | null): string {
   }
 }
 
+function useOfferTemplateVersions(shipId: string | null | undefined, templateId: string | undefined, versionId: string) {
+  return useReadQuery(
+    `fare-offer-versions:${shipId ?? ''}:${templateId ?? ''}:${versionId}`,
+    useCallback(signal => templateId ? cruisePackageApi.versions(templateId, signal) : Promise.resolve([]), [templateId]),
+  )
+}
+
 function OfferForm({
   cruiseId,
   disabled,
@@ -49,7 +57,8 @@ function OfferForm({
   busy,
   feedback,
   context,
-  shipName
+  shipName,
+  templates
 }: {
   cruiseId: string
   disabled: boolean
@@ -60,28 +69,30 @@ function OfferForm({
   feedback?: ReactNode
   context?: CruisePackageContext | null
   shipName?: string | null
+  templates: ReturnType<typeof useShipPackageTemplates>
 }) {
-  const [templateId, setTemplateId] = useState(existing?.template.version.templateId ?? '')
   const [versionId, setVersionId] = useState('')
   const [logical, setLogical] = useState('')
-  const [actual, setActual] = useState('')
   const [editedStart, setStart] = useState<string | null>(null)
   const [editedEnd, setEnd] = useState<string | null>(null)
   const [validation, setValidation] = useState('')
 
-  const templates = useReadQuery(`fare-offer-templates:${cruiseId}`, cruisePackageApi.templates)
-  const versions = useReadQuery(`fare-offer-versions:${templateId}`, useCallback(signal => templateId ? cruisePackageApi.versions(templateId, signal) : Promise.resolve([]), [templateId]))
-  const cabins = useReadQuery(`fare-cabins:${cruiseId}`, useCallback(signal => cruisePackageApi.cabinOptions(cruiseId, signal), [cruiseId]))
-
-  const choices = versions.data?.filter(v => v.version.status === 'PUBLISHED' && v.version.id !== existing?.offer.templateVersionId) ?? []
-  const selected = choices.find(v => v.version.id === versionId)
+  const choices = templates.data?.filter(template => !existing ||
+    template.templateId === existing.template.version.templateId && template.templateVersionId !== existing.offer.templateVersionId) ?? []
+  const source = choices.find(choice => choice.templateVersionId === versionId)
+  const versions = useOfferTemplateVersions(context?.shipId, source?.templateId, versionId)
+  const selected = versions.data?.find(version => version.version.id === source?.templateVersionId &&
+    version.version.status === 'PUBLISHED' && version.version.sourceShipId === context?.shipId)
+  const references = selected?.logicalCategoryReferences.filter(reference =>
+    reference.cabinType && source?.cabinTypes.includes(reference.cabinType)) ?? []
+  const category = references.find(reference => reference.id === logical)
   const prefix = existing?.offer.id ?? 'new'
 
   const minSalesStart = toInputDateTime(context?.bookingOpensAt)
   const maxSalesEnd = toInputDateTime(context?.bookingClosesAt ?? context?.departureDatetime)
   const start = editedStart ?? (existing ? toInputDateTime(existing.offer.salesStart) : minSalesStart)
   const end = editedEnd ?? (existing ? toInputDateTime(existing.offer.salesEnd) : maxSalesEnd)
-  useFormChanges(Boolean(versionId || logical || actual || (!existing && templateId)) || editedStart !== null || editedEnd !== null)
+  useFormChanges(Boolean(versionId || logical) || editedStart !== null || editedEnd !== null)
 
   const applyCruiseBookingWindow = () => {
     if (minSalesStart) setStart(minSalesStart)
@@ -90,13 +101,13 @@ function OfferForm({
   }
 
 
-  const unavailable = disabled || templates.loading || versions.loading || cabins.loading || Boolean(templates.error || versions.error || cabins.error)
+  const unavailable = disabled || templates.loading || versions.loading || Boolean(templates.error || versions.error)
   const formId = 'departure-offer-' + prefix
   const submit = (
     <Button
       type="submit"
       form={formId}
-      disabled={unavailable || !selected || !logical || !actual || !start || !end}
+      disabled={unavailable || !selected || !category?.cabinType || !start || !end}
     >
       {existing ? 'Lưu cấu hình nâng phiên bản' : 'Lưu gói nháp'}
     </Button>
@@ -108,7 +119,7 @@ function OfferForm({
       className={styles.form}
       onSubmit={async e => {
         e.preventDefault()
-        if (unavailable || !selected) return
+        if (unavailable || !selected || !category?.cabinType) return
         setValidation('')
         let salesStart: string, salesEnd: string
         try {
@@ -120,7 +131,7 @@ function OfferForm({
         }
         const parsedStart = Date.parse(salesStart)
         const parsedEnd = Date.parse(salesEnd)
-        if (!selected.logicalCategoryReferences.some(c => c.id === logical) || !actual || !start || !end || isNaN(parsedStart) || isNaN(parsedEnd) || parsedStart >= parsedEnd) {
+        if (!start || !end || isNaN(parsedStart) || isNaN(parsedEnd) || parsedStart >= parsedEnd) {
           setValidation('Chọn hạng phòng và thời gian bán hợp lệ; thời điểm bắt đầu phải trước kết thúc.')
           return
         }
@@ -133,10 +144,10 @@ function OfferForm({
           return
         }
         const input: OfferInput = {
-          templateVersionId: versionId,
-          logicalCategory: selected.logicalCategoryReferences.find(c => c.id === logical)!.name,
-          logicalCategoryId: logical,
-          proposedCabinType: actual,
+          templateVersionId: selected.version.id,
+          logicalCategory: category.name,
+          logicalCategoryId: category.id,
+          proposedCabinType: category.cabinType,
           salesStart,
           salesEnd
         }
@@ -146,10 +157,8 @@ function OfferForm({
         )
         if (ok) {
           onClose?.()
-          if (!existing) setTemplateId('')
           setVersionId('')
           setLogical('')
-          setActual('')
           setStart(null)
           setEnd(null)
         }
@@ -158,169 +167,73 @@ function OfferForm({
       {existing && <Notice tone="warning" title="Gói sẽ trở về bản nháp">
         Kiểm tra lại quyền lợi và tạo giá cho phiên bản mới.
       </Notice>}
-      <QueryState loading={templates.loading || versions.loading || cabins.loading} error={templates.error ?? versions.error ?? cabins.error} />
-      {(templates.error || versions.error || cabins.error) && (
-        <Button type="button" tone="secondary" onClick={() => { templates.retry(); versions.retry(); cabins.retry() }}>
+      <QueryState loading={templates.loading || versions.loading} error={templates.error ?? versions.error} />
+      {(templates.error || versions.error) && (
+        <Button tone="secondary" onClick={() => { templates.retry(); versions.retry() }}>
           Tải lại lựa chọn
         </Button>
       )}
 
-      {!existing && (
-        <div className={styles.guidanceBanner}>
-          <div>
-            <strong>Hướng dẫn thiết lập gói du thuyền</strong>
-            <p style={{ margin: '4px 0 0', fontSize: '13px' }}>
-              Mỗi gói du thuyền trên chuyến được khởi tạo từ một <strong>Mẫu gói đã phát hành</strong> (chứa các quyền lợi như hoạt động trên tàu, tour bờ, dịch vụ) và ánh xạ với hạng phòng trên tàu {shipName ? `(${shipName})` : ''}.
-            </p>
-          </div>
-          <ButtonLink tone="secondary" to="/admin/cruise-package-templates">
-            Quản lý mẫu gói du thuyền
-          </ButtonLink>
-        </div>
-      )}
-
       {!existing && templates.data?.length === 0 && (
-        <Notice title="Chưa có mẫu gói du thuyền" tone="warning">
-          <p>Cần tạo ít nhất một mẫu gói và phát hành phiên bản trước khi gán gói vào chuyến khởi hành.</p>
-          <ButtonLink tone="secondary" to="/admin/cruise-package-templates">Mở Quản lý mẫu gói du thuyền</ButtonLink>
+        <Notice title="Tàu chưa có mẫu gói đã phát hành" tone="warning">
+          <p>Chọn tàu này khi tạo mẫu rồi phát hành để dùng cho chuyến.</p>
+          <ButtonLink tone="secondary" to="/admin/cruise-package-templates">Mở danh sách mẫu gói</ButtonLink>
         </Notice>
       )}
 
-      {cabins.data?.length === 0 && (
-        <Notice title="Tàu chưa có hạng phòng để chọn" tone="warning">
-          Cần cấu hình phòng của tàu trước khi tạo gói.
-        </Notice>
-      )}
+      {validation && <Notice tone="error" title="Cần kiểm tra thông tin gói">{validation}</Notice>}
 
-      {validation && <Notice tone="error" title="Dữ liệu chưa hợp lệ">{validation}</Notice>}
-
-      {/* Bước 1: Mẫu gói & Phiên bản */}
-      <div className={styles.stepGroup}>
-        <div className={styles.stepHeader}>
-          <h4 className={styles.stepTitle}>
-            <span className={styles.stepBadge}>1</span>
-            Mẫu gói du thuyền & Phiên bản
-          </h4>
-          {selected && (
-            <Badge label={`${selected.version.name} · v${selected.version.versionNumber}`} tone="success" />
-          )}
-        </div>
-        <p className={styles.stepDesc}>
-          Chọn mẫu gói du thuyền và phiên bản đã được phát hành (PUBLISHED). Các quyền lợi trong phiên bản sẽ được dùng để liên kết trên chuyến.
-        </p>
-
-        <div className={styles.fieldGrid2}>
-          <Field htmlFor={`fare-template-${prefix}`} label="Mẫu gói du thuyền">
-            <select
-              id={`fare-template-${prefix}`}
-              required
-              value={templateId}
-              disabled={unavailable || Boolean(existing)}
-              onChange={e => {
-                setTemplateId(e.target.value)
-                setVersionId('')
-                setLogical('')
-              }}
-            >
-              <option value="">-- Chọn mẫu gói --</option>
-              {templates.data?.map(t => (
-                <option key={t.id} value={t.id}>{t.code}</option>
-              ))}
-            </select>
-          </Field>
-
-          <Field htmlFor={`fare-version-${prefix}`} label="Phiên bản đang phát hành">
-            <select
-              id={`fare-version-${prefix}`}
-              required
-              value={versionId}
-              disabled={unavailable || !templateId}
-              onChange={e => {
-                setVersionId(e.target.value)
-                setLogical('')
-              }}
-            >
-              <option value="">{templateId ? '-- Chọn phiên bản --' : 'Vui lòng chọn mẫu trước'}</option>
-              {choices.map(v => (
-                <option key={v.version.id} value={v.version.id}>
-                  {v.version.name} · Phiên bản {v.version.versionNumber}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
-
-        {!versions.loading && !versions.error && templateId && !choices.length && (
-          <Notice title="Chưa có phiên bản nguồn phù hợp" tone="warning">
-            <p>Mẫu gói này chưa có phiên bản nào ở trạng thái &quot;Đã phát hành&quot; (PUBLISHED). Phiên bản đang dùng không xuất hiện trong lựa chọn nâng phiên bản.</p>
-            <ButtonLink tone="secondary" to="/admin/cruise-package-templates">
-              Mở trang quản lý để phát hành phiên bản
-            </ButtonLink>
+      <section className={styles.offerSourceFields} aria-labelledby={`fare-source-${prefix}`}>
+        <h4 id={`fare-source-${prefix}`}>Mẫu gói và hạng cabin</h4>
+        {shipName && <p>Tàu áp dụng <strong>{shipName}</strong></p>}
+        <Field htmlFor={`fare-version-${prefix}`} label="Mẫu gói đã phát hành">
+          <select
+            id={`fare-version-${prefix}`}
+            required
+            value={source?.templateVersionId ?? ''}
+            disabled={disabled || templates.loading || Boolean(templates.error) || !choices.length}
+            onChange={event => {
+              setVersionId(event.target.value)
+              setLogical('')
+              setValidation('')
+            }}
+          >
+            <option value="">Chọn mẫu gói</option>
+            {choices.map(choice => (
+              <option key={choice.templateVersionId} value={choice.templateVersionId}>{choice.name}</option>
+            ))}
+          </select>
+        </Field>
+        {source && !versions.loading && !versions.error && !references.length && (
+          <Notice title="Mẫu gói chưa dùng được trên tàu này" tone="warning">
+            Kiểm tra hạng cabin trong mẫu hoặc chọn mẫu khác.
           </Notice>
         )}
-
-        {selected && (
-          <div className={styles.selectedSummary}>
-            <Badge label={`${selected.logicalCategoryReferences.length} hạng phòng trong mẫu`} tone="neutral" />
-            <Badge label={`${selected.benefits.length} quyền lợi dịch vụ`} tone="neutral" />
-          </div>
-        )}
-      </div>
-
-      {/* Bước 2: Ghép hạng phòng (Cabin Mapping) */}
-      <div className={styles.stepGroup}>
-        <div className={styles.stepHeader}>
-          <h4 className={styles.stepTitle}>
-            <span className={styles.stepBadge}>2</span>
-            Ghép hạng phòng (Cabin Mapping)
-          </h4>
-        </div>
-        <p className={styles.stepDesc}>
-          Ánh xạ hạng phòng thương mại trong mẫu sang loại cabin vật lý có sẵn trên tàu của chuyến này.
-        </p>
-
-        <div className={styles.fieldGrid2}>
-          <Field htmlFor={`fare-logical-${prefix}`} label="Hạng phòng trong mẫu">
+        {selected && references.length > 0 && (
+          <Field htmlFor={`fare-logical-${prefix}`} label="Hạng cabin trên tàu"
+            hint="Quản lý tàu xác nhận các cabin cụ thể trước khi mở bán.">
             <select
               id={`fare-logical-${prefix}`}
               required
-              value={logical}
-              disabled={unavailable || !selected}
-              onChange={e => setLogical(e.target.value)}
-            >
-              <option value="">{selected ? '-- Chọn hạng phòng thương mại --' : 'Chọn phiên bản ở Bước 1'}</option>
-              {selected?.logicalCategoryReferences.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </Field>
-
-          <Field htmlFor={`fare-actual-${prefix}`} label="Hạng phòng dự kiến trên tàu">
-            <select
-              id={`fare-actual-${prefix}`}
-              required
-              value={actual}
+              value={category?.id ?? ''}
               disabled={unavailable}
-              onChange={e => setActual(e.target.value)}
+              onChange={event => {
+                setLogical(event.target.value)
+                setValidation('')
+              }}
             >
-              <option value="">-- Chọn hạng phòng hiện có trên tàu --</option>
-              {cabins.data?.map(c => (
-                <option key={c} value={c}>{cabinTypeLabel(c)}</option>
+              <option value="">Chọn hạng cabin</option>
+              {references.map(reference => (
+                <option key={reference.id} value={reference.id}>{cabinTypeLabel(reference.cabinType ?? '')}</option>
               ))}
             </select>
           </Field>
-        </div>
+        )}
+      </section>
 
-        <p className={styles.templateHint}>
-          Lựa chọn này là đề xuất cấu hình của ASM. Hệ thống đối chiếu dữ liệu cabin thực tế của tàu trước khi Quản lý tàu xác nhận tương thích để mở bán.
-        </p>
-      </div>
-
-      {/* Bước 3: Thời gian mở bán (Booking Window) */}
       <div className={styles.stepGroup}>
         <div className={styles.stepHeader}>
           <h4 className={styles.stepTitle}>
-            <span className={styles.stepBadge}>3</span>
             Thời gian mở bán gói du thuyền
           </h4>
           {context && (context.bookingOpensAt || context.bookingClosesAt) && (
@@ -479,15 +392,13 @@ function BenefitBinding({item,benefit,cruiseId,disabled,run}:{item:CruisePackage
     </div>}
   </div>
 }
-function OfferCard({item,context,disabled,run,shipName,feedback}:{shipName?:string|null;item:CruisePackageOffer;context:CruisePackageContext;disabled:boolean;run:Run;feedback:ReactNode}) {
+function OfferCard({item,context,disabled,run,shipName,feedback,templates}:{shipName?:string|null;item:CruisePackageOffer;context:CruisePackageContext;disabled:boolean;run:Run;feedback:ReactNode;templates:ReturnType<typeof useShipPackageTemplates>}) {
   const access=useSessionAccess(),[amount,setAmount]=useState(''),[upgrade,setUpgrade]=useState(false),[addingPrice,setAddingPrice]=useState(false),[reasons,setReasons]=useState<Record<string,string>>({})
   useFormChanges(Boolean(amount||item.prices.some(price=>price.status==='SUBMITTED'&&reasons[price.id]?.trim())))
   const configure=context.canConfigure,checker=context.canReviewPrice,cruiseId=context.cruiseId,unified=context.unifiedPackageReview
   const templateId=item.template.version.templateId
-  const versions=useReadQuery(`offer-template-options:${templateId}:${configure}`,
-    useCallback(signal=>configure?cruisePackageApi.versions(templateId,signal):Promise.resolve([]),[templateId,configure]))
-  const canUpgrade=configure&&Boolean(versions.data?.some(version=>
-    version.version.status==='PUBLISHED'&&version.version.id!==item.offer.templateVersionId))
+  const canUpgrade=configure&&Boolean(templates.data?.some(template =>
+    template.templateId === templateId && template.templateVersionId !== item.offer.templateVersionId))
   const price=item.prices.filter(entry=>entry.templateVersionId===item.offer.templateVersionId
     &&entry.offerCommercialRevision===item.offer.commercialRevision)
     .reduce<typeof item.prices[number]|null>((latest,entry)=>!latest||entry.revisionNumber>latest.revisionNumber?entry:latest,null)
@@ -519,7 +430,6 @@ function OfferCard({item,context,disabled,run,shipName,feedback}:{shipName?:stri
           <p className={styles.offerMeta}>{cabinTypeLabel(item.offer.proposedCabinType)} · {journeyTime(item.offer.salesStart)} – {journeyTime(item.offer.salesEnd)} (giờ Việt Nam)</p>
           <CruisePackageMappingEvidence shipName={context.shipId===item.offer.shipId?shipName:null} mapping={item.cabinMapping}/>
           {canUpgrade&&<Button autoWidth tone="secondary" onClick={()=>setUpgrade(true)}>Áp dụng phiên bản mẫu khác</Button>}
-          {versions.error&&<Button autoWidth tone="secondary" onClick={versions.retry}>Kiểm tra phiên bản mẫu</Button>}
         </div>
       </details>
       <details className={styles.offerSection}>
@@ -571,7 +481,7 @@ function OfferCard({item,context,disabled,run,shipName,feedback}:{shipName?:stri
         </Field>
       </form>
     </Modal>}
-    {configure&&upgrade&&<OfferForm cruiseId={cruiseId} context={context} shipName={shipName} existing={item}
+    {configure&&upgrade&&<OfferForm key={context.shipId} cruiseId={cruiseId} context={context} shipName={shipName} existing={item} templates={templates}
       disabled={disabled} busy={disabled} run={run} feedback={feedback} onClose={()=>setUpgrade(false)}/>}
   </article>
 }
@@ -588,6 +498,7 @@ function DepartureOffersWorkspace({cruiseId,onChanged,shipName,renderAssignment}
   const disabled=mutation.busy||mutation.needsReview||query.loading||Boolean(query.error)||!query.data
   const data=query.data??(saved?.userId===access.userId?saved:null)
   const canManageTemplates=access.roles.includes('ACTIVITY_SERVICE_MANAGER')&&access.canDo('TOUR_PACKAGE_MANAGE')
+  const templates = useShipPackageTemplates(canManageTemplates && data?.context.canConfigure ? data.context.shipId : null, epoch)
   return <Panel title="Gói du thuyền của chuyến khởi hành">
     <QueryState loading={query.loading} error={query.error}/>{!creatingOffer&&mutation.feedback}
     {query.error&&<Button tone="secondary" onClick={query.retry}>Tải lại gói du thuyền</Button>}
@@ -595,12 +506,17 @@ function DepartureOffersWorkspace({cruiseId,onChanged,shipName,renderAssignment}
       {data?.context.canConfigure&&<Button disabled={disabled} onClick={()=>setCreatingOffer(true)}>Thêm gói du thuyền</Button>}
       <ButtonLink tone="secondary" to="/admin/cruise-package-templates">Mở mẫu gói du thuyền</ButtonLink>
     </div>}
+    {canManageTemplates && data?.context.canConfigure && !creatingOffer && templates.error && (
+      <Notice title="Chưa tải được mẫu gói của tàu" tone="warning">
+        <Button tone="secondary" size="compact" onClick={templates.retry}>Tải lại mẫu gói</Button>
+      </Notice>
+    )}
     {canManageTemplates&&data?.context.shipId&&!data.context.canConfigure&&<Notice title="Chưa thể thêm gói cho chuyến" tone="warning">Cấu hình gói chỉ khả dụng khi chuyến và hồ sơ đang cho phép chỉnh sửa.</Notice>}
     {data&&!data.context.shipId&&<Notice title="Chưa được phân công tàu" tone="warning"><p>Cần có tàu trước khi cấu hình gói du thuyền của chuyến.</p></Notice>}
     {access.canDo('TOUR_PACKAGE_ASSIGN')&&renderAssignment?.(()=>{refresh();onChanged()})}
     {!creatingOffer&&data?.offers.length===0&&!access.canDo('TOUR_PACKAGE_ASSIGN')&&<Empty title="Chưa có gói du thuyền được gán"><p>{canManageTemplates ? 'Chọn phiên bản mẫu đã phát hành để thêm gói cho chuyến này.' : 'Đang chờ Quản lý hoạt động và dịch vụ cấu hình gói và gửi phiên bản giá.'}</p></Empty>}
-    {data?.offers.map(item=><OfferCard key={item.offer.id} item={item} context={data.context} shipName={shipName} disabled={disabled} run={mutation.run} feedback={mutation.feedback}/>)}
-    {creatingOffer&&<OfferForm cruiseId={cruiseId} context={data?.context} shipName={shipName} disabled={disabled||!data?.context.canConfigure} run={mutation.run} busy={mutation.busy} feedback={mutation.feedback} onClose={()=>setCreatingOffer(false)}/>}
+    {data?.offers.map(item=><OfferCard key={item.offer.id} item={item} context={data.context} shipName={shipName} disabled={disabled} run={mutation.run} feedback={mutation.feedback} templates={templates}/>)}
+    {creatingOffer&&<OfferForm key={data?.context.shipId} templates={templates} cruiseId={cruiseId} context={data?.context} shipName={shipName} disabled={disabled||!data?.context.canConfigure} run={mutation.run} busy={mutation.busy} feedback={mutation.feedback} onClose={()=>setCreatingOffer(false)}/>}
     <CruisePackageAddons cruiseId={cruiseId} onChanged={onChanged}/>
   </Panel>
 }

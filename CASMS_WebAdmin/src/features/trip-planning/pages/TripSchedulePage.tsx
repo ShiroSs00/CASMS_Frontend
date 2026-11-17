@@ -23,7 +23,7 @@ import { violationTarget } from '../model/violation-target'
 import { normalizeBoundaryDays } from '../model/day-labels'
 import { versionContext, workingVersionLabel } from '../model/version-context'
 import { durationRules, supportedDuration } from '../model/duration'
-import { callsAfterTerminal, stopTimingViolations, portScopeViolations, linkedTourViolations, routeOrderViolations, portMatchesScope } from '../model/port-rules'
+import { callsAfterTerminal, consecutiveSamePortViolations, departureTimingViolations, stopTimingViolations, portScopeViolations, linkedTourViolations, routeOrderViolations, portMatchesScope } from '../model/port-rules'
 
 export function TripSchedulePage({id}:{id:string}) {
   const {gateway}=usePlanning()
@@ -113,9 +113,11 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
     if(!stop.plannedDepartureTime)issues.push(add('plannedDepartureTime','Nhập giờ kết thúc dự kiến.'))
     else if(stop.plannedArrivalTime && timeNumber(stop.departureDayNumber,stop.plannedDepartureTime)<=timeNumber(stop.arrivalDayNumber,stop.plannedArrivalTime))issues.push(add('plannedDepartureTime','Giờ kết thúc dự kiến phải sau giờ tàu đến.'))
     if(stop.callType!=='NORMAL')issues.push(add('callType','Chọn kiểu ghé Thông thường cho cảng kết thúc.'))
+    if(Boolean(stop.allAboardDayNumber)!==Boolean(stop.allAboardTime))issues.push(add('allAboardTime','Nhập cả ngày và giờ hạn trở lại tàu.'))
+    else if(stop.allAboardDayNumber!=null&&stop.allAboardTime&&stop.plannedArrivalTime&&stop.plannedDepartureTime&&(timeNumber(stop.allAboardDayNumber,stop.allAboardTime)<=timeNumber(stop.arrivalDayNumber,stop.plannedArrivalTime)||timeNumber(stop.allAboardDayNumber,stop.allAboardTime)>timeNumber(stop.departureDayNumber,stop.plannedDepartureTime)))issues.push(add('allAboardTime','Hạn trở lại phải nằm trong khoảng ghé cảng.'))
     return issues
   })
-  const timingIssues=[...departureIssues,...terminalIssues,...callsAfterTerminal(content.stops),...stopTimingViolations(content),...routeOrderViolations(content),...content.stops.flatMap(stop=>linkedTourViolations(stop,content)),...scopeIssues]
+  const timingIssues=[...departureIssues,...departureTimingViolations(content),...terminalIssues,...consecutiveSamePortViolations(content),...callsAfterTerminal(content.stops),...stopTimingViolations(content),...routeOrderViolations(content),...content.stops.flatMap(stop=>linkedTourViolations(stop,content)),...scopeIssues]
   const visibleTimingIssues=showMissingFields ? timingIssues : timingIssues.filter(issue => !['DEPARTURE_PORT_REQUIRED','DEPARTURE_TIME_REQUIRED'].includes(issue.code) && !(issue.code==='CLIENT_TERMINAL_FIELD'&&issue.message.startsWith('Nhập')))
   const violationRows=mergePlanningViolations(fault?.violations.length?fault.violations:report?.violations??[],visibleTimingIssues)
   const structureAllowed=editable&&!locked&&!trip.durationIssue&&Boolean(limits)

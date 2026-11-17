@@ -6,9 +6,11 @@ import { Badge, Button, DataTable, Empty, Field, Loading, Modal, Notice, Panel }
 import styles from './Cruises.module.css'
 
 const root = '/cruise-preparation-reviews'
-const statuses = { SUBMITTED: 'Chờ xác nhận', CONFIRMED: 'Đã xác nhận', RETURNED: 'Cần bổ sung' } as const
+const statuses = { SUBMITTED: 'Chờ xác nhận', CONFIRMED: 'Đã xác nhận', RETURNED: 'Cần bổ sung', REJECTED: 'Đã từ chối', STALE: 'Cần đối chiếu lại' } as const
 type GroupStatus = keyof typeof statuses
-const statusOrder: GroupStatus[] = ['SUBMITTED', 'CONFIRMED', 'RETURNED']
+type GroupTab = 'SUBMITTED' | 'CONFIRMED' | 'RETURNED'
+const statusOrder: GroupTab[] = ['SUBMITTED', 'CONFIRMED', 'RETURNED']
+const tabForStatus = (value: GroupStatus): GroupTab => value === 'REJECTED' || value === 'STALE' ? 'RETURNED' : value
 type GroupSortKey = 'oldest' | 'newest' | 'cruise'
 
 export type SubmittedGroupItem = {
@@ -35,6 +37,7 @@ const groupPath = (group: SubmittedGroupItem) =>
 
 function badgeTone(status: GroupStatus) {
   if (status === 'CONFIRMED') return 'success' as const
+  if (status === 'REJECTED') return 'error' as const
   return 'warning' as const
 }
 
@@ -63,7 +66,7 @@ function StatusTabIcon({ status }: { status: GroupStatus }) {
   )
 }
 
-function handleTabKeys(event: KeyboardEvent<HTMLButtonElement>, index: number, onPick: (key: GroupStatus) => void) {
+function handleTabKeys(event: KeyboardEvent<HTMLButtonElement>, index: number, onPick: (key: GroupTab) => void) {
   let nextIndex = -1
   if (event.key === 'ArrowRight') nextIndex = (index + 1) % statusOrder.length
   else if (event.key === 'ArrowLeft') nextIndex = (index - 1 + statusOrder.length) % statusOrder.length
@@ -103,7 +106,7 @@ export function SubmittedPreparationGroups({
   const allGroups = useMemo(() => externalGroups ?? internalQuery.data ?? [], [externalGroups, internalQuery.data])
 
   const [selected, setSelected] = useState<SubmittedGroupItem | null>(null)
-  const [status, setStatus] = useState<GroupStatus>('SUBMITTED')
+  const [status, setStatus] = useState<GroupTab>('SUBMITTED')
   const [search, setSearch] = useState('')
   const [sectionFilter, setSectionFilter] = useState('ALL')
   const [cruiseFilter, setCruiseFilter] = useState('ALL')
@@ -112,7 +115,7 @@ export function SubmittedPreparationGroups({
   const [page, setPage] = useState(1)
   const [feedback, setFeedback] = useState('')
 
-  const tabGroups = useMemo(() => allGroups.filter(group => group.status === status), [allGroups, status])
+  const tabGroups = useMemo(() => allGroups.filter(group => tabForStatus(group.status) === status), [allGroups, status])
 
   const sectionOptions = useMemo(() => {
     const map = new Map<string, string>()
@@ -174,7 +177,7 @@ export function SubmittedPreparationGroups({
       <div className={styles.queueStatusBar}>
         <div className={styles.queueTabs} role="tablist" aria-label="Lọc nhóm hồ sơ theo trạng thái">
           {statusOrder.map((key, index) => {
-            const count = allGroups.filter(group => group.status === key).length
+            const count = allGroups.filter(group => tabForStatus(group.status) === key).length
             const active = key === status
             return (
               <button
@@ -522,8 +525,8 @@ function GroupReview({
               </ul>
             </div>
           )}
-          {detail.summary.status === 'RETURNED' && detail.returnReason && (
-            <Notice title="Lý do cần bổ sung" tone="warning">
+          {tabForStatus(detail.summary.status) === 'RETURNED' && detail.returnReason && (
+            <Notice title="Phản hồi của Quản lý vận hành" tone="warning">
               {detail.returnReason}
             </Notice>
           )}

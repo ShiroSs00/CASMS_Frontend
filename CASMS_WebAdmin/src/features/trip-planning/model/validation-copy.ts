@@ -22,6 +22,8 @@ const copy: Record<string, string> = {
   INVALID_PORT_CALL_TIMES: 'Ngày và giờ tàu rời phải sau lúc tàu đến.',
   INVALID_STOP_DAY_INTERVAL: 'Kiểm tra ngày đến và ngày rời của lần ghé.',
   INVALID_STOP_SEQUENCE_TIME: 'Thứ tự ghé cảng chưa khớp với ngày và giờ.',
+  INVALID_DEPARTURE_STOP_SEQUENCE: 'Giờ tàu đến cảng đầu tiên phải sau giờ khởi hành Ngày 1.',
+  CONSECUTIVE_SAME_PORT: 'Hai lượt ghé liên tiếp không được trùng cảng. Hãy chọn cảng khác ở giữa.',
   NON_POSITIVE_TRANSIT_TIME: 'Chừa thời gian di chuyển giữa hai cảng.',
   PORT_CALL_OVERLAP: 'Thời gian hai lần ghé cảng bị chồng nhau.',
   PORT_OUTSIDE_COUNTRY_SCOPE: 'Chọn cảng thuộc quốc gia đã cấu hình cho chuyến.',
