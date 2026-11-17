@@ -174,6 +174,7 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
           <div><dt>Trạng thái khi tạo</dt><dd>Bản nháp</dd></div>
         </dl>
         <h3>Thiết kế kế thừa</h3><DesignFacts type={selected} />
+        <p>Thông tin thiết kế ZIP hiển thị trong mục Thông tin loại tàu sau khi tạo.</p>
         <h3>Hồ sơ riêng</h3>
         {Object.keys(payload).length ? <ProfileFacts profile={payload} /> : <p>Hồ sơ sẽ được bổ sung sau.</p>}
         <div className={styles.actions}>

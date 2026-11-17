@@ -15,6 +15,7 @@ const idPath = (kind: EntityKind, id: string) => `${paths[kind]}/${encodeURIComp
 const ship = (dto: ShipDto): Ship => ({
   id: dto.shipId, code: dto.shipCode, name: dto.shipName, status: dto.status,
   shipTypeId: dto.shipTypeId, shipTypeName: dto.shipTypeName, shipTypeCode: dto.shipTypeCode,
+  designReference: dto.designReference,
   capacity: dto.totalCapacity, totalDecks: dto.totalDecks, commissionDate: dto.commissionDate ?? '',
   manufacturerName: dto.manufacturerName, origin: dto.origin, productionYear: dto.productionYear, engineType: dto.engineType,
   createdAt: dto.createdAt, updatedAt: dto.updatedAt,

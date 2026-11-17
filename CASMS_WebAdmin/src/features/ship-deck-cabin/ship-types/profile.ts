@@ -1,11 +1,7 @@
-import type { OperationalProfile } from './api'
+import type { EditableProfile, OperationalProfile } from './api'
 
 export const profileGroups = [
-  { title: 'Đóng tàu và bàn giao', fields: [
-    { key: 'manufacturerShipCode', label: 'Mã tàu của nhà sản xuất', max: 80 },
-    { key: 'shipyard', label: 'Xưởng đóng tàu', max: 150 },
-    { key: 'buildCountry', label: 'Quốc gia đóng tàu', max: 2, hint: 'Mã quốc gia gồm hai chữ cái, ví dụ VN.' },
-    { key: 'buildYear', label: 'Năm đóng tàu', kind: 'number' },
+  { title: 'Bàn giao', fields: [
     { key: 'deliveryDate', label: 'Ngày bàn giao', kind: 'date' },
   ] },
   { title: 'Đăng ký và đăng kiểm', fields: [
@@ -23,14 +19,15 @@ export const profileGroups = [
 ] as const
 
 export type ProfileField = typeof profileGroups[number]['fields'][number]
-export type ProfileKey = keyof OperationalProfile
+export type ProfileKey = keyof EditableProfile
 export type ProfileDraft = Partial<Record<ProfileKey, string>>
 export type ProfileErrors = Partial<Record<ProfileKey, string>>
 
 export function toProfileDraft(profile?: OperationalProfile | null): ProfileDraft {
-  return Object.fromEntries(Object.entries(profile ?? {}).map(([key, value]) => [
-    key, Array.isArray(value) ? value.join('\n') : String(value ?? ''),
-  ]))
+  return Object.fromEntries(profileGroups.flatMap(group => group.fields.map(({ key }) => {
+    const value = profile?.[key]
+    return [key, Array.isArray(value) ? value.join('\n') : String(value ?? '')]
+  })))
 }
 const rows = (value: string) => value.split(/\r?\n/).map(item => item.trim()).filter(Boolean)
 const localDate = () => new Date().toLocaleDateString('sv-SE')
@@ -48,28 +45,24 @@ export function validateProfile(draft: ProfileDraft): ProfileErrors {
       }
     }
   }
-  for (const key of ['registrationCountry', 'buildCountry'] as const) {
-    const value = draft[key]?.trim()
-    if (value && !/^[a-z]{2}$/i.test(value)) errors[key] = 'Nhập mã quốc gia gồm hai chữ cái.'
-  }
+  const country = draft.registrationCountry?.trim()
+  if (country && !/^[a-z]{2}$/i.test(country)) errors.registrationCountry = 'Nhập mã quốc gia gồm hai chữ cái.'
   if (draft.registrationCountry?.trim() && !draft.registrationNumber?.trim()) errors.registrationNumber = 'Nhập số đăng ký cùng quốc gia đăng ký.'
   if (!draft.registrationCountry?.trim() && draft.registrationNumber?.trim()) errors.registrationCountry = 'Nhập quốc gia đăng ký cùng số đăng ký.'
   if (draft.imoNumber?.trim() && !/^(?:IMO )?[0-9]{7}$/i.test(draft.imoNumber.trim())) errors.imoNumber = 'Số IMO gồm 7 chữ số.'
-  if (draft.buildYear && (!/^\d{1,4}$/.test(draft.buildYear) || Number(draft.buildYear) < 1)) errors.buildYear = 'Nhập năm từ 1 đến 9999.'
   if (draft.deliveryDate && draft.deliveryDate > localDate()) errors.deliveryDate = 'Ngày bàn giao không thể ở tương lai.'
   return errors
 }
 
-export function profilePayload(draft: ProfileDraft): OperationalProfile {
-  const entries = Object.entries(draft).flatMap<[string, string | number | string[]]>(([key, raw]) => {
-    const value = raw?.trim()
+export function profilePayload(draft: ProfileDraft): EditableProfile {
+  const entries = profileGroups.flatMap(group => group.fields.flatMap<[ProfileKey, string | string[]]>(({ key }) => {
+    const value = draft[key]?.trim()
     if (!value) return []
     if (key.endsWith('References')) return [[key, rows(value)]]
-    if (key === 'buildYear') return [[key, Number(value)]]
     if (key.endsWith('Country') || key === 'registrationNumber') return [[key, value.toUpperCase()]]
     if (key === 'imoNumber') return [[key, value.replace(/^IMO /i, '')]]
     return [[key, value]]
-  })
+  }))
   return Object.fromEntries(entries)
 }
 

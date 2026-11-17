@@ -1,5 +1,6 @@
 import { apiRequest, ApiError } from '@/shared/api'
 import type { ShipDto } from '../api/dto'
+import type { ShipDesignMetadata } from '../model/types'
 
 export type TypeStatus = 'ACTIVE' | 'INACTIVE'
 export type StoredDesign = { modelKey: string; assetVersion: string }
@@ -15,14 +16,11 @@ export type ShipType = StoredDesign & {
   lengthMeters: number
   beamMeters: number
   shipCount: number
+  manufacturingMetadata?: ShipDesignMetadata | null
 }
 export type Page<T> = { content: T[]; number: number; size: number; totalElements: number; totalPages: number }
-export type OperationalProfile = {
-  manufacturerShipCode?: string
+export type EditableProfile = {
   imoNumber?: string
-  shipyard?: string
-  buildCountry?: string
-  buildYear?: number
   deliveryDate?: string
   registrationCountry?: string
   registrationNumber?: string
@@ -32,11 +30,14 @@ export type OperationalProfile = {
   warrantyReferences?: string[]
   maintenanceReferences?: string[]
 }
-export type ProvisionPayload = { shipName: string; profile: OperationalProfile | null }
+export type OperationalProfile = EditableProfile & ShipDesignMetadata
+export type ProvisionPayload = { shipName: string; profile: EditableProfile | null }
 export type PendingProvision = { typeId: string; key: string; payload: ProvisionPayload }
 export type DesignManifest = {
   modelId: string; name?: string; shipManufacturerName?: string; engineType?: string
   passengerCapacity?: number; deckCount?: number; length?: number; beam?: number
+  manufacturerShipCode?: unknown; shipyard?: unknown; buildCountry?: unknown; buildYear?: unknown
+  shipTypeManufacturingIssues?: string[]
   assets: { full?: string; exterior?: string }; decks: unknown[]; cabins: unknown[]
 }
 
@@ -91,7 +92,7 @@ export const shipTypesApi = {
   result: (attempt: PendingProvision) =>
     apiRequest<ShipDto>(typePath(attempt.typeId) + '/ships/provisioning/' + part(attempt.key)),
   profile: (id: string, signal?: AbortSignal) => apiRequest<OperationalProfile | null>(profilePath(id), { signal }),
-  saveProfile: (id: string, profile: OperationalProfile) =>
+  saveProfile: (id: string, profile: EditableProfile) =>
     apiRequest<OperationalProfile>(profilePath(id), { method: 'PUT', body: profile }),
   rename: (id: string, shipName: string) =>
     apiRequest<ShipDto>('/ships/' + part(id) + '/name', { method: 'PATCH', body: { shipName } }),

@@ -27,6 +27,7 @@
 .facts { margin: 0; }
 .facts dt { color: var(--text-secondary); }
 .facts dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.factError { color: var(--danger); }
 .version { overflow-wrap: anywhere; }
 .number { text-align: end; font-variant-numeric: tabular-nums; }
 .preview { min-width: 0; }

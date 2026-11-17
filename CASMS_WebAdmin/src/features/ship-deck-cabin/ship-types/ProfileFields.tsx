@@ -23,8 +23,7 @@ export function ProfileFields({ draft, errors, disabled, onChange, onBlur }: {
         return <Field key={field.key} htmlFor={id} label={field.label} error={errors[field.key]}
           hint={kind === 'references' ? 'Mỗi tham chiếu trên một dòng.' : 'hint' in field ? field.hint : undefined}>
           {kind === 'references' ? <textarea {...props} rows={3} />
-            : <input {...props} type={kind} min={kind === 'number' ? 1 : undefined}
-              max={kind === 'number' ? 9999 : undefined} maxLength={'max' in field ? field.max : undefined} />}
+            : <input {...props} type={kind} maxLength={'max' in field ? field.max : undefined} />}
         </Field>
       })}
     </div>

@@ -5,8 +5,20 @@ export type CabinStatus = 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE' | 'OUT_OF_SER
 export type CabinType = 'INTERIOR' | 'OCEAN_VIEW' | 'BALCONY' | 'SUITE'
 export type EntityKind = 'ships' | 'decks' | 'cabins'
 export type RecordBase = { id: string; createdAt?: string; updatedAt?: string }
+export type ShipDesignMetadata = {
+  manufacturerShipCode?: string | null
+  shipyard?: string | null
+  buildCountry?: string | null
+  buildYear?: number | null
+}
+export type ShipDesignReference = {
+  modelKey: string
+  assetVersion: string
+  manufacturingMetadata?: ShipDesignMetadata | null
+}
 export type Ship = RecordBase & ShipProfile & {
   shipTypeId?: string | null; shipTypeName?: string | null; shipTypeCode?: string | null
+  designReference?: ShipDesignReference | null
   code: string; name: string; status: ShipStatus
   capacity: number; totalDecks: number; commissionDate: string
   manifestModelId?: string | null; deckNumberLimit?: number; lengthMeters?: number | null; beamMeters?: number | null
