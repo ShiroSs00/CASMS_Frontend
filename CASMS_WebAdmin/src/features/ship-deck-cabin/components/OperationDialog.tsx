@@ -2,6 +2,7 @@ import { ApiError } from '@/shared/api'
 import { missingProfileLabels } from '../ship-types/profile'
 import { useSessionAccess } from '@/shared/auth'
 import { operationPermission } from '../model/permissions'
+import { fleetError } from '../model/ship-management'
 import { useState } from 'react'
 import { Button, Modal, Notice } from '@/shared/ui'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
@@ -90,7 +91,7 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
       {isCheck ? <>
         {(operation === 'schedule' || operation === 'affected') && <div className={styles.twoColumns}>
           <InputField label="Bắt đầu *" type="datetime-local" value={start} disabled={mutation.busy} onChange={(event) => { setStart(event.target.value); clear() }} />
-          <InputField label="Kết thúc *" type="datetime-local" value={end} disabled={mutation.busy} onChange={(event) => { setEnd(event.target.value); clear() }} />
+          <InputField label="Kết thúc *" type="datetime-local" value={end} error={validation || undefined} disabled={mutation.busy} onChange={(event) => { setEnd(event.target.value); clear() }} />
         </div>}
         {operation === 'ownership' && <>
           {shipChoicesState && <DataState loading={shipChoicesState.loading} error={shipChoicesState.error} retry={shipChoicesState.retry} />}
@@ -101,7 +102,7 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
           <label className={styles.check}><input type="checkbox" checked={accessible} disabled={mutation.busy} onChange={(event) => { setAccessible(event.target.checked); clear() }} />Yêu cầu hỗ trợ tiếp cận</label>
         </div>}
         {operation === 'availability' && <p className={styles.muted}>Khả dụng được kiểm tra theo trạng thái cabin hiện tại. Kiểm tra riêng sức chứa và hỗ trợ tiếp cận; kết quả không giữ chỗ hoặc gán khách.</p>}
-        {validation && <Notice title="Thông tin kiểm tra chưa hợp lệ" tone="error">{validation}</Notice>}
+        {validation && operation !== 'schedule' && operation !== 'affected' && <Notice title="Thông tin kiểm tra chưa hợp lệ" tone="error">{validation}</Notice>}
         {results.map((result) => <Notice key={result.title} title={result.title} tone={result.tone}>{result.message}</Notice>)}
         {cruises && <CruiseTable rows={cruises} />}
       </> : <>
@@ -111,7 +112,7 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
         {operation === 'block' && <><SelectField label="Trạng thái khóa" value={reasonStatus} disabled={mutation.busy} onChange={(value) => { setReasonStatus(value as typeof reasonStatus); mutation.clear() }}><option value="MAINTENANCE">Bảo trì</option><option value="OUT_OF_SERVICE">Ngừng phục vụ</option></SelectField><Notice title="Xác nhận khóa cabin" tone="warning">Khóa cabin sẵn sàng sang trạng thái đã chọn. Hệ thống sẽ kiểm tra điều kiện trước khi cập nhật.</Notice></>}
         {operation === 'release' && <Notice title="Xác nhận mở cabin" tone="warning">Cabin sẽ được chuyển về trạng thái Sẵn sàng nếu hệ thống cho phép.</Notice>}
       </>}
-      {mutation.error && <Notice title="Thao tác chưa hoàn tất" tone="error">{mutation.error}{missing.length > 0 && <ul>{missing.map(group => <li key={group}>{group}</li>)}</ul>}</Notice>}
+      {mutation.error && <Notice title="Thao tác chưa hoàn tất" tone="error">{fleetError(mutation.error)}{missing.length > 0 && <ul>{missing.map(group => <li key={group}>{group}</li>)}</ul>}</Notice>}
       <div className={styles.actions}>
         <Button disabled={!permitted || mutation.busy || shipChoicesUnavailable || (operation === 'status' && 'status' in item && status === item.status)} onClick={() => isCheck ? void check() : confirm()}>
           {mutation.busy ? 'Đang xử lý…' : isCheck ? results.length || cruises || mutation.error ? 'Kiểm tra lại' : 'Kiểm tra' : 'Xác nhận'}

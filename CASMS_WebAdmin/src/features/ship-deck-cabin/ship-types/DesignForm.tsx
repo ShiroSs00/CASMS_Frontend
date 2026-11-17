@@ -84,9 +84,14 @@ function DesignForm({ id, originalKey }: { id?: string; originalKey?: string }) 
     })
   }
 
-  function confirm(candidate: StoredDesign) {
+  function confirm(candidate: StoredDesign, reviewed?: NonNullable<typeof preview>) {
     void run(id ? 'Đang áp dụng phiên bản…' : 'Đang lưu loại tàu…', async () => {
-      saveAttempt(storageKey, candidate)
+      if (reviewed && await viewer?.fingerprint(reviewed.manifest) !== reviewed.fingerprint) {
+        throw new Error('Bản xem trước đã thay đổi. Vui lòng tải lại.')
+      }
+      if (!saveAttempt(storageKey, candidate)) {
+        throw new Error('Trình duyệt chưa lưu được phiên bản đang xác nhận. Bật lưu trữ cho trang này rồi thử lại.')
+      }
       setPending(candidate)
       setChecked(false)
       try {
@@ -152,10 +157,7 @@ function DesignForm({ id, originalKey }: { id?: string; originalKey?: string }) 
         {preview && <DesignPreviewContent design={design} manifest={preview.manifest} />}
         <div className={styles.actions}>
           {preview ? <Button busy={Boolean(busy)} disabled={!canUpload || metadataIssues(preview.manifest).length > 0}
-            onClick={() => void viewer?.fingerprint(preview.manifest).then(fingerprint => {
-              if (fingerprint === preview.fingerprint) confirm(design)
-              else setError('Bản xem trước đã thay đổi. Vui lòng tải lại.')
-            }).catch(() => setError('Chưa xác minh được bản xem trước. Vui lòng tải lại.'))}>{actionLabel}</Button>
+            onClick={() => confirm(design, preview)}>{actionLabel}</Button>
             : <Button busy={Boolean(busy)} onClick={() => void run('Đang đọc manifest…', () => loadPreview(design))}>Đọc lại manifest</Button>}
           <Button tone="secondary" disabled={Boolean(busy)} onClick={() => { setFile(null); setDesign(null); setPreview(null); setError('') }}>Chọn ZIP khác</Button>
         </div>

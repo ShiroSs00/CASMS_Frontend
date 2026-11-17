@@ -7,6 +7,7 @@ import type {
 } from '../model/types'
 import type { AssignmentDto, CabinDto, CruiseDto, DeckDto, PageDto, ShipDto } from './dto'
 import type { ShipListState, ShipSupplements, SupplementField } from '../model/ship-list-types'
+import { shipListParams, type ShipListFilters } from '../model/ship-list-filters'
 
 import { getShipStructureRevision, refreshShipStructure as notify, subscribeToShipStructure } from '@/shared/lib/ship-structure-revision'
 const paths: Record<EntityKind, string> = { ships: '/ships', decks: '/decks', cabins: '/cabins' }
@@ -75,8 +76,9 @@ export const shipDeckCabinApi = {
     const result = deck(await apiRequest<DeckDto>(idPath('decks', id), { method: 'PATCH', body: { deckName: name.trim(), priceMultiplier } }))
     notify(); return result
   },
-  async listShipPage(page: number, signal: AbortSignal) {
-    const result = await apiRequest<PageDto<ShipDto>>(paths.ships, { query: { page, size: 20, sort: 'shipCode,asc' }, signal })
+  async listShipPage(page: number, signal: AbortSignal, filters: ShipListFilters) {
+    const query = { ...Object.fromEntries(shipListParams(filters, page)), page, size: 20, sort: 'shipCode,asc' }
+    const result = await apiRequest<PageDto<ShipDto>>(paths.ships, { query, signal })
     return { ...result, size: 20, content: result.content.map(ship) }
   },
   async listShips(signal: AbortSignal): Promise<Ship[]> {
@@ -128,11 +130,15 @@ export const shipDeckCabinApi = {
   async saveShip(draft: ShipDraft, current?: Ship) {
     if (!current) throw new Error('Hãy tạo tàu từ một loại tàu đang sử dụng.')
     const id = current.id
-    const body = {
-      shipName: draft.name.trim(), totalCapacity: draft.capacity,
-      ...(draft.totalDecks !== current?.totalDecks ? { totalDecks: draft.totalDecks } : {}),
-      ...shipProfilePayload(draft, true),
+    const vessel = {
+      shipName: draft.name.trim(),
       ...(draft.commissionDate ? { commissionDate: draft.commissionDate } : {}),
+    }
+    const body = current.shipTypeId ? vessel : {
+      ...vessel,
+      totalCapacity: draft.capacity,
+      ...(draft.totalDecks !== current.totalDecks ? { totalDecks: draft.totalDecks } : {}),
+      ...shipProfilePayload(draft, true),
       ...(draft.lengthMeters != null ? { lengthMeters: draft.lengthMeters } : {}),
       ...(draft.beamMeters != null ? { beamMeters: draft.beamMeters } : {}),
     }

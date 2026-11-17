@@ -4,7 +4,7 @@ import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { Button, DataTable, Empty, Field, FormErrorSummary, Loading, Notice, PageHeader, Panel, PermissionLink } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
-import { shipTypesApi, shipError, importIssues, unknownOutcome, type PendingProvision, type ShipType } from './api'
+import { shipTypesApi, shipError, importIssues, missingProvisionResult, provisionedShipId, unknownOutcome, type PendingProvision, type ShipType } from './api'
 import { DesignFacts, PageControls } from './Catalog'
 import { ProfileFacts, ProfileFields } from './ProfileFields'
 import { profilePayload, validateProfile, type ProfileDraft } from './profile'
@@ -77,21 +77,29 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
     }
   }
 
-  function record(attempt: PendingProvision | null) {
-    saveAttempt(storageKey, attempt)
-    setPending(attempt)
+  function clearAttempt() {
+    saveAttempt(storageKey, null)
+    setPending(null)
     setChecked(false)
   }
 
   function confirm(attempt: PendingProvision) {
     void run('Đang tạo tàu…', async () => {
-      record(attempt)
+      if (!saveAttempt(storageKey, attempt)) {
+        throw new Error('Trình duyệt chưa lưu được mã yêu cầu. Bật lưu trữ cho trang này rồi thử lại.')
+      }
+      setPending(attempt)
+      setChecked(false)
       try {
-        const result = await shipTypesApi.provision(attempt)
-        record(null)
-        navigate('/admin/ships/' + result.shipId, { replace: true })
+        const id = provisionedShipId(await shipTypesApi.provision(attempt))
+        clearAttempt()
+        navigate('/admin/ships/' + id, { replace: true })
       } catch (error) {
-        if (!unknownOutcome(error)) record(null)
+        if (!unknownOutcome(error)) clearAttempt()
+        if (error instanceof ApiError && error.code === 'SHIP_TYPE_INACTIVE') {
+          setSelected(null)
+          move(0)
+        }
         throw error
       }
     })
@@ -100,11 +108,11 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
   function check(attempt: PendingProvision) {
     void run('Đang kiểm tra kết quả…', async () => {
       try {
-        const result = await shipTypesApi.result(attempt)
-        record(null)
-        navigate('/admin/ships/' + result.shipId, { replace: true })
+        const id = provisionedShipId(await shipTypesApi.result(attempt))
+        clearAttempt()
+        navigate('/admin/ships/' + id, { replace: true })
       } catch (error) {
-        if (!(error instanceof ApiError) || error.status !== 404) throw error
+        if (!missingProvisionResult(error, attempt.key)) throw error
         setChecked(true)
         setNotice('Chưa thấy tàu đã tạo. Bạn có thể kiểm tra lại hoặc gửi lại đúng yêu cầu này.')
       }
@@ -141,7 +149,8 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
         <p>Thiết kế áp dụng <strong>{selected?.name}</strong>. Mã tàu được cấp khi tạo.</p>
         <form ref={formRef} noValidate onSubmit={event => {
           event.preventDefault()
-          const validation = { ...validateProfile(profile), ...(!name.trim() ? { shipName: 'Nhập tên riêng của tàu.' } : {}) }
+          const validation = { ...validateProfile(profile), ...(!name.trim() || name.trim().length > 100
+            ? { shipName: 'Nhập tên riêng của tàu, tối đa 100 ký tự.' } : {}) }
           setErrors(validation)
           if (Object.keys(validation).length) requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus())
           else move(2)
