@@ -7,7 +7,17 @@ import { decodeProgramSync, decodeReadiness, decodeSchedule, decodeShipChange, d
 import type { CruiseQuery } from '../model/cruise-query'
 import { CRUISE_STATUSES, CRUISE_TYPES } from '../model/cruise-record'
 import type { CruiseDraft, CruiseRecord, PortRecord, ShipRecord } from '../model/cruise-record'
-import type { CruiseDetailView, CruiseListItem, CruiseListResult, ReadinessCheck, ItinerarySummary } from '../model/cruise-view'
+import type {
+  CruiseDetailView,
+  CruiseListItem,
+  CruiseListResult,
+  ItinerarySummary,
+  ReadinessCheck,
+  RegulationSource,
+  RegulationSummary,
+  RegulationType,
+  RegulationUnit,
+} from '../model/cruise-view'
 import type { ShipCandidate } from '../model/ship-assignment'
 import type { CapacityDto, CruiseDto, CruiseSaveRequestDto, PageDto, ReadinessDto } from './dto'
 
@@ -18,8 +28,66 @@ async function readReadiness(id:string,signal?:AbortSignal) {
 }
 
 type RegulationProjection = {
-  source: 'CRUISE' | 'SHIP' | 'GLOBAL'
-  regulation: { regulationId: string; regulationCode: string; name: string; status: 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'EXPIRED' }
+  source: RegulationSource
+  sourceHostId?: string | null
+  sourceLabel?: string
+  canRemove?: boolean
+  regulation: {
+    regulationId: string
+    regulationCode: string
+    name: string
+    description?: string | null
+    regulationType?: RegulationType
+    value?: string
+    unit?: RegulationUnit | null
+    effectiveFrom?: string
+    effectiveTo?: string | null
+    status: 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'EXPIRED'
+  }
+}
+
+type EffectiveRegulationSnapshotDto = {
+  checkedAt?: string | null
+  direct: RegulationProjection[]
+  inherited: RegulationProjection[]
+}
+
+function toRegulationSummary(item: RegulationProjection): RegulationSummary {
+  return {
+    regulationId: item.regulation.regulationId,
+    code: item.regulation.regulationCode,
+    name: item.regulation.name,
+    description: item.regulation.description ?? null,
+    regulationType: item.regulation.regulationType,
+    value: item.regulation.value,
+    unit: item.regulation.unit ?? null,
+    effectiveFrom: item.regulation.effectiveFrom,
+    effectiveTo: item.regulation.effectiveTo ?? null,
+    source: item.source,
+    sourceHostId: item.sourceHostId ?? null,
+    sourceLabel: item.sourceLabel,
+    canRemove: item.canRemove,
+    status: item.regulation.status,
+  }
+}
+
+async function readEffectiveRegulations(
+  cruiseId: string,
+  at?: string,
+  signal?: AbortSignal,
+): Promise<{ checkedAt: string | null; regulations: RegulationSummary[] }> {
+  const validAt = at && Number.isFinite(Date.parse(at)) ? new Date(at).toISOString() : undefined
+  const snapshot = await apiRequest<EffectiveRegulationSnapshotDto>(
+    `/cruises/${encodeURIComponent(cruiseId)}/regulations/effective`,
+    { query: validAt ? { at: validAt } : undefined, signal },
+  )
+  if (!snapshot || !Array.isArray(snapshot.direct) || !Array.isArray(snapshot.inherited)) {
+    throw new ApiError('Danh sách quy định hiệu lực trả về chưa đúng định dạng.', 502)
+  }
+  return {
+    checkedAt: snapshot.checkedAt ?? validAt ?? null,
+    regulations: [...snapshot.direct, ...snapshot.inherited].map(toRegulationSummary),
+  }
 }
 
 function cruiseBody(draft: CruiseDraft): CruiseSaveRequestDto {
@@ -194,7 +262,7 @@ export const cruiseApi = {
     const base: CruiseDetailView = {
       ...toItem(dto), supplementaryLoading: true, supplementaryErrors: {},
       capacity: { shipTotalCapacity: null, activePassengerCount: null, remainingPassengerHeadroom: null },
-      readiness: { state: 'UNKNOWN', checks: [] }, regulations: [], issues: [], bookingHasData: null,
+      readiness: { state: 'UNKNOWN', checks: [] }, regulations: [], regulationCheckedAt: null, issues: [], bookingHasData: null,
       assignmentCapabilities: { assign: { allowed: false, reason: 'Đang tải thông tin phân công.' }, change: { allowed: false, reason: 'Đang tải thông tin phân công.' }, unassign: { allowed: false, reason: 'Đang tải thông tin phân công.' } },
     }
     onCore?.(base)
@@ -207,7 +275,7 @@ export const cruiseApi = {
       optional('CRUISE_VALIDATE', () => readReadiness(id, signal)),
       cruise.shipId ? optional('CRUISE_VALIDATE', () => apiRequest<CapacityDto>(`${byId(id)}/validate-capacity`, { signal })) : Promise.resolve(null),
       optional('OPERATIONAL_ISSUE_READ', () => apiRequest<CruiseDetailView['issues']>('/operational-issues', { query: { cruiseId: id }, signal })),
-      optional('CRUISE_REGULATION_READ', () => apiRequest<{ direct: RegulationProjection[]; inherited: RegulationProjection[] }>(`/cruises/${encodeURIComponent(id)}/regulations/effective`, { signal })),
+      optional('CRUISE_REGULATION_READ', () => readEffectiveRegulations(id, cruise.departureDatetime, signal)),
       optional('ITINERARY_READ', () => linkedItinerary(id, signal)),
       access.roles.includes('CRUISE_MANAGER')&&hasPermissions(access,{mode:'ANY',permissions:['CRUISE_ASSIGN_SHIP','CRUISE_CHANGE_SHIP','CRUISE_UNASSIGN_SHIP']})
         ? cruiseApi.assignmentContext(id,signal).catch(()=>null) : Promise.resolve(null),
@@ -239,7 +307,8 @@ export const cruiseApi = {
       supplementaryLoading: false, supplementaryErrors,
       capacity: { shipTotalCapacity: capacity?.shipTotalCapacity ?? null, activePassengerCount: capacity?.bookedPassengersCount ?? null, remainingPassengerHeadroom: capacity?.availableCapacity ?? null },
       readiness: { ...assessment,details:readiness?.details, checks: assessment.state==='UNKNOWN'?checks.map(check=>({...check,state:'UNKNOWN' as const,reason:'Chưa có đánh giá hiện hành đủ tin cậy. Tải lại điều kiện để đối chiếu.'})):checks, issues: readiness?.issues },
-      regulations: regulationSnapshot ? [...regulationSnapshot.direct, ...regulationSnapshot.inherited].map((item) => ({ regulationId: item.regulation.regulationId, code: item.regulation.regulationCode, name: item.regulation.name, source: item.source, status: item.regulation.status })) : [],
+      regulations: regulationSnapshot ? regulationSnapshot.regulations : [],
+      regulationCheckedAt: regulationSnapshot?.checkedAt ?? null,
       issues: incidents.status === 'fulfilled' ? incidents.value ?? [] : [],
       bookingHasData: bookingSummary?.hasBookings??null,
       shipCompatibility: results[9].status==='fulfilled'?results[9].value:null,
@@ -323,6 +392,7 @@ export const cruiseApi = {
   },
   validateSchedule: (id: string) => apiRequest<boolean>(`${byId(id)}/validate-schedule`),
   validateCapacity: (id: string) => apiRequest<CapacityDto>(`${byId(id)}/validate-capacity`),
+  effectiveRegulations: readEffectiveRegulations,
   readiness: readReadiness,
   publish: (id: string) => apiRequest<CruiseDto>(`${byId(id)}/publish`, { method: 'POST' }),
   complete: (id: string) => apiRequest<CruiseDto>(`${byId(id)}/complete`, { method: 'POST' }),

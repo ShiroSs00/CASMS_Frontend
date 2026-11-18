@@ -1,1 +1,18 @@
-.stack { display: grid; gap: 20px; min-width: 0; }
+.stack { display: grid; gap: 16px; min-width: 0; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.caseList { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.caseCard { display: grid; gap: 12px; padding: 18px; border: 1px solid #d6e0df; border-radius: 8px; background: #fcfdfb; min-width: 0; }
+.caseHeader { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; }
+.caseHeaderMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 12px; color: var(--text-secondary); }
+.caseReason { margin: 0; font-size: 14px; line-height: 1.55; color: var(--brand-navy); overflow-wrap: anywhere; }
+.caseFacts { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 0; font-size: 13px; color: var(--text-secondary); }
+.caseFacts > div { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.caseFacts dt { margin: 0; color: var(--text-secondary); }
+.caseFacts dd { margin: 0; font-weight: 500; color: var(--brand-navy); overflow-wrap: anywhere; }
+.monoCode { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12.5px; }
+.actionForm { display: grid; gap: 12px; padding-top: 12px; border-top: 1px solid #e4ecea; }
+.actionFields { display: grid; grid-template-columns: minmax(200px, 260px) minmax(0, 1fr); gap: 12px; align-items: start; }
+.actionFooter { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.actionHint { margin: 0; font-size: 13px; color: var(--text-secondary); }
+.pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; border-top: 1px solid #d6e0df; }
+@media (max-width: 760px) { .actionFields { grid-template-columns: minmax(0, 1fr); } }

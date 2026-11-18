@@ -19,6 +19,11 @@
 .managerTabs button:focus-visible{outline:3px solid var(--ui-focus,var(--ui-brand));outline-offset:2px}
 .overviewGrid2Col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch}
 .overviewGrid2Col>*{min-width:0;margin:0;height:100%}
+.resourcesLayout{display:grid;grid-template-columns:minmax(310px,360px) minmax(0,1fr);gap:20px;align-items:start}
+.resourcesLayout>*{min-width:0;margin:0}
+.resourcesLayout>:first-child dl{grid-template-columns:minmax(0,1fr)}
+.resourcesLayout>:first-child dl>div{grid-template-columns:minmax(105px,auto) minmax(0,1fr);gap:12px 16px;padding:12px 0}
+@media(max-width:1024px){.resourcesLayout{grid-template-columns:minmax(0,1fr)}}
 .overviewStatusBanner{display:grid;gap:8px;padding:14px 16px;margin-bottom:16px;background:var(--ui-subtle,#f8fafc);border:1px solid var(--ui-border,#dce4e8);border-radius:8px}
 .overviewStatusHeader{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 12px}
 .overviewStatusMeta{font-size:13px;color:var(--ui-muted,#52697b)}
@@ -60,8 +65,10 @@
 .stepNavigation{min-width:0;scroll-margin-top:96px}
 @media(max-width:900px){.stepNavigation{scroll-margin-top:16px}}
 
-.reviewFooter{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:var(--space-3);padding-top:16px;border-top:1px solid var(--ui-border)}
-@media(max-width:600px){.reviewFooter button{width:100%}}
+.reviewFooter{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;padding:16px 20px;border:1px solid var(--ui-border);border-radius:8px;background:var(--ui-surface,#fff)}
+.reviewFooterNote{margin:0;flex:1 1 280px;font-size:13px;line-height:1.55;color:var(--ui-muted,#506777)}
+.reviewFooterActions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-left:auto}
+@media(max-width:600px){.reviewFooterActions{width:100%;margin-left:0}.reviewFooterActions button{width:100%}}
 
 .operationsStatus{display:flex;flex-wrap:wrap;gap:16px 32px;padding:12px 0;border-bottom:1px solid var(--ui-border);min-width:0}.operationsStatus>div{display:grid;gap:4px;min-width:0}.operationsStatus span{color:var(--ui-muted);font-size:13px}.operationsStatus strong{font-size:14px;line-height:1.6;overflow-wrap:anywhere}.secondaryBody .tabs{position:static;flex-wrap:wrap;overflow:visible}.secondaryBody .tabs button{white-space:normal;min-height:44px;text-align:left}.workspace :global(button:focus-visible),.workspace :global(a:focus-visible),.workspace summary:focus-visible{outline:2px solid var(--ui-focus,var(--ui-brand));outline-offset:3px}.workspace :global(fieldset){min-width:0}.workspace :global(legend){max-width:100%;white-space:normal}
 @media(max-width:600px){.operationsStatus{display:grid;grid-template-columns:1fr;gap:12px}.secondaryBody{padding-inline:16px}.workspace :global(#departure-content){overflow-wrap:anywhere}}

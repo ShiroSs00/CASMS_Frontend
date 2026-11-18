@@ -159,3 +159,69 @@
 .legacyPackages { margin-top: var(--space-6); border: 1px solid var(--ui-border); border-radius: var(--ui-panel-radius); background: var(--ui-surface); padding: var(--space-4); }
 .legacyPackages > summary { cursor: pointer; font-weight: 600; padding-block: var(--space-2); }
 .legacyPackages > summary:focus-visible { outline: 2px solid var(--ui-focus); }
+
+/* Finance & Payment Schedule Workbench */
+.financeWorkbench { display: grid; gap: 20px; min-width: 0; }
+.financeTabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; border: 1px solid #d6e0df; border-radius: 10px; background: #edf3f1; }
+.financeTab { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 16px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--text-secondary); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: none; }
+.financeTab:hover { color: var(--brand-navy); background: rgb(255 255 255 / 60%); }
+.financeTab[aria-selected='true'] { background: #fff; color: var(--brand-navy); font-weight: 600; border-color: #c8d6d5; border-bottom: 2px solid var(--brand-teal); box-shadow: 0 1px 2px rgb(9 35 51 / 6%); }
+.financeTab:focus-visible { outline: 3px solid var(--ui-focus, var(--brand-teal)); outline-offset: 2px; }
+.financeTabPanel { display: grid; gap: 20px; min-width: 0; }
+.financeTabPanel > :global(section), .financeDetailMain > :global(section), .financeDetailSide > :global(section) { margin-bottom: 0; }
+
+.financeQuickLookupForm { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: start; }
+.financeQuickLookupAction { padding-top: 28px; }
+@media(max-width: 680px) { .financeQuickLookupForm { grid-template-columns: minmax(0, 1fr); } .financeQuickLookupAction { padding-top: 0; } }
+
+.financeDetailShell { display: grid; gap: 20px; padding: 24px; border: 1px solid #b9cecc; border-top: 3px solid var(--brand-teal); border-radius: 10px; background: #f8fbfa; min-width: 0; }
+.financeDetailHeader { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid #d6e0df; }
+.financeDetailIdentity { display: grid; gap: 8px; min-width: 0; }
+.financeDetailTitleRow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.financeDetailHeading { margin: 0; font-family: var(--font-family-heading); font-size: 22px; line-height: 1.3; font-weight: 600; color: var(--brand-navy); }
+.financeDetailHeading:focus-visible { outline: 3px solid var(--ui-focus, var(--brand-teal)); outline-offset: 4px; border-radius: 4px; }
+.financeDetailMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0; font-size: 13px; color: var(--text-secondary); }
+.financeDetailGrid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(290px, 0.85fr); gap: 20px; align-items: start; min-width: 0; }
+.financeDetailMain, .financeDetailSide { display: grid; gap: 20px; min-width: 0; }
+.financeDetailMain table { min-width: 0; }
+.financeDetailMain table thead th { padding: 12px 10px; }
+.financeDetailMain table td { padding: 14px 10px; }
+.financeDetailSide .installments { grid-template-columns: 1fr; margin: 12px 0 4px; gap: 12px; }
+.financeDetailSide .installments li { padding: 16px; }
+.financeDetailSide .installments strong { font-size: 19px; }
+@media(max-width: 1120px) { .financeDetailGrid { grid-template-columns: minmax(0, 1fr); } }
+@media(max-width: 600px) { .financeDetailShell { padding: 18px 16px; } }
+
+.financeToolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.financeToolbarStats { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: 13px; color: var(--text-secondary); }
+.financeToolbarStats strong { color: var(--brand-navy); font-variant-numeric: tabular-nums; }
+
+.financeFormSection { display: grid; gap: 14px; padding-top: 18px; border-top: 1px solid #d6e0df; }
+.financeSubheading { margin: 0; font-size: 15px; font-weight: 600; color: var(--brand-navy); }
+.financePaymentForm { display: grid; gap: 14px; }
+.financePaymentFields { display: grid; grid-template-columns: repeat(2, minmax(170px, 1fr)); gap: 14px; align-items: start; }
+@media(max-width: 680px) { .financePaymentFields { grid-template-columns: minmax(0, 1fr); } }
+
+.financeRateBanner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border: 1px solid #d6e0df; border-radius: 8px; background: #f5f8f7; }
+.financeRateValue { margin: 0; font-size: 18px; font-weight: 600; color: var(--brand-navy); font-variant-numeric: tabular-nums; }
+.financeRateMeta { margin: 4px 0 0; font-size: 13px; color: var(--text-secondary); }
+.financeRateForm { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+@media(max-width: 900px) { .financeRateForm { grid-template-columns: minmax(0, 1fr); } }
+
+.financeReportForm { display: grid; grid-template-columns: repeat(2, minmax(180px, 240px)) auto; gap: 16px; align-items: end; }
+@media(max-width: 860px) { .financeReportForm { grid-template-columns: minmax(0, 1fr); align-items: stretch; } }
+
+.formActions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.financeCaseList { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.financeCaseCard { display: grid; gap: 10px; padding: 16px; border: 1px solid #d6e0df; border-radius: 8px; background: #fcfdfb; min-width: 0; }
+.financeCaseHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.financeCaseAmount { font-size: 16px; font-weight: 600; color: var(--brand-navy); font-variant-numeric: tabular-nums; }
+.financeCaseMeta { display: grid; gap: 4px; font-size: 13px; color: var(--text-secondary); }
+.financeCaseMeta p { margin: 0; overflow-wrap: anywhere; }
+.financeInlineForm { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; align-items: start; padding-top: 8px; border-top: 1px solid #e4ecea; }
+
+.numericCell { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.monoCode { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.selectedRow { background: #eaf4f3; }
+.installmentHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; }
+

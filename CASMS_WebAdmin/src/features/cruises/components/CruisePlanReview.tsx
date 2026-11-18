@@ -58,21 +58,31 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
   try{const actual=await mainflowApi.action(data,action,reason,action==='submit'&&dossier.data?{preparationEvidence:evidence.trim(),pendingPreparationCodes:pendingSections.map(section=>section.sectionCode),preparationRevisions:Object.fromEntries(dossier.data.sections.map(section=>[section.sectionCode,section.revision]))}:undefined);setAction(null);if(action==='submit')setEvidence('');if(action==='request-revision'&&mode==='review'){void navigate('/admin/cruise-plan-reviews');return}setSuccess(action==='submit'?'Đã gửi hồ sơ chuyến khởi hành':action==='ready'?domainStatus('cruise.ready',actual.readyStatus):domainStatus('cruise.plan',actual.planStatus));setEpoch(n=>n+1);query.retry();onChanged?.()}
   catch(e){setError(safeError(e));if(e instanceof ApiError&&e.status===409){setAction(null);query.retry()}if(!(e instanceof ApiError)||e.status===0||e.status>=500)setUncertain(true)}finally{lock.current=false;setBusy(false)}
  }
- const planConditions=data&&data.planBlockers.length>0&&<Notice title={businessCopy('cruise.plan.missingInputs')} tone="warning">
-  <ul className={styles.conditionList}>
-   {uniqueConditionCodes(data.planBlockers).map(code=>{
-    const target=manager?operationsConditionTarget(code):null
-    const destination=target&&target!=='review'&&target!=='overview'?allowedDepartureSections(access).find(([key])=>key===target):null
-    return <li key={code}>
-     {manager&&code==='FARE_PLAN_SELECTION_REQUIRED'?<span>Chọn một gói đủ điều kiện để đưa vào hồ sơ.</span>
-       :manager&&code==='SALE_TERMS_REQUIRED'?<span>Quản lý vận hành cần cấu hình thuế và phí cảng.</span>
-       :<ProgramBlocker code={code} data={data} fixed={itineraryMode==='FIXED'}/>}
-     {destination&&onSection&&<Button autoWidth tone="secondary" onClick={()=>onSection(destination[0])}>{destination[0]==='fare-packages'?'Xem cấu hình gói':`Mở ${destination[1].toLocaleLowerCase('vi-VN')}`}</Button>}
-     {crm&&manager&&code==='SALE_TERMS_REQUIRED'&&<SaleTermsSetupButton key={cruiseId} cruiseId={cruiseId}/>}
-    </li>
-   })}
-  </ul>
- </Notice>
+ const blockers = data ? uniqueConditionCodes(data.planBlockers) : []
+ const planConditions = data && blockers.length > 0 && (
+  <div className={styles.blockerChecklist} role="region" aria-label={businessCopy('cruise.plan.missingInputs')}>
+   <div className={styles.blockerChecklistHead}>
+    <strong>{businessCopy('cruise.plan.missingInputs')}</strong>
+    <Badge label={`Còn ${blockers.length} mục`} tone="warning" />
+   </div>
+   <ol className={styles.conditionList}>
+    {blockers.map((code, index) => {
+     const target = manager ? operationsConditionTarget(code) : null
+     const destination = target && target !== 'review' && target !== 'overview' ? allowedDepartureSections(access).find(([key]) => key === target) : null
+     return (
+      <li key={code}>
+       <span className={styles.conditionStepNumber} aria-hidden="true">{index + 1}</span>
+       {manager && code === 'FARE_PLAN_SELECTION_REQUIRED' ? <div className={styles.conditionBody}><p>Chọn một gói du thuyền đủ điều kiện để đưa vào hồ sơ trình duyệt.</p></div>
+        : manager && code === 'SALE_TERMS_REQUIRED' ? <div className={styles.conditionBody}><p>Quản lý vận hành cần cấu hình thuế và phí cảng trước khi gửi hồ sơ.</p></div>
+        : <ProgramBlocker code={code} data={data} fixed={itineraryMode === 'FIXED'} />}
+       {destination && onSection && <Button size="compact" autoWidth tone="secondary" onClick={() => onSection(destination[0])}>{destination[0] === 'fare-packages' ? 'Xem cấu hình gói' : `Mở ${destination[1].toLocaleLowerCase('vi-VN')}`}</Button>}
+       {crm && manager && code === 'SALE_TERMS_REQUIRED' && <SaleTermsSetupButton key={cruiseId} cruiseId={cruiseId} />}
+      </li>
+     )
+    })}
+   </ol>
+  </div>
+ )
  const editablePlan=Boolean(data&&crm&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.planStatus))
  const refreshPlan=()=>{setEpoch(n=>n+1);query.retry();onChanged?.()}
  if(!allowed)return null

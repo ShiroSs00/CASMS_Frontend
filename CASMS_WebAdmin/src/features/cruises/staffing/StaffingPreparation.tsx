@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { ApiError, useReadQuery } from '@/shared/api'
-import { Badge, Button, Empty, Field, Loading, Notice } from '@/shared/ui'
+import { Badge, Button, Field, Loading, Notice } from '@/shared/ui'
 import { staffingApi, staffingError, staffingStatus } from './staffing-api'
 import styles from './Staffing.module.css'
 import workspaceStyles from '../components/ManagerWorkspace.module.css'
@@ -114,9 +114,9 @@ export function StaffingPreparation({ cruiseId, refreshKey }: { cruiseId: string
         </Notice>
       )}
       {!data.services.length ? (
-        <Empty title="Chưa có dịch vụ để bố trí nhân sự">
-          <p>Phân công tàu và cấu hình dịch vụ trên tàu trước khi gửi yêu cầu.</p>
-        </Empty>
+        <p className={workspaceStyles.deptEmptyNote}>
+          Chưa có dịch vụ để bố trí nhân sự. Phân công tàu và cấu hình dịch vụ trên tàu trước khi gửi yêu cầu.
+        </p>
       ) : (
         <form
           className={styles.form}

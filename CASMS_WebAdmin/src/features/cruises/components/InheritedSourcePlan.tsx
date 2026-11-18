@@ -1,6 +1,6 @@
 import {useCallback} from 'react'
 import {useReadQuery} from '@/shared/api'
-import {Button,FormSection,Loading,Modal,Notice} from '@/shared/ui'
+import {Button,Loading,Modal,Notice} from '@/shared/ui'
 import {TemplateSchedule} from '@/domain/itinerary-day'
 import {readPublishedSource,type PublishedSource} from '../api/source-version'
 import styles from './Cruises.module.css'
@@ -31,19 +31,20 @@ export function InheritedSourcePlan({
  const departurePortLabel=day1?.departurePortName??(day1?.dayType==='SEA_DAY'?'Chọn cảng khi tạo tour':firstStop?.portName)??'Chưa xác định'
  const returnPortLabel=lastStop?.portName??'Chưa xác định'
 
- return <FormSection title="Tuyến của tour">
-  <div className={styles.departureSourceRow}>
+ return <div className={styles.sourceSummaryBlock}>
+  <div className={styles.departureSourceHeader}>
    <div>
-    <strong>{source.tripName}</strong>
-    <p>{source.durationDays} ngày{source.durationNights ? ` ${source.durationNights} đêm` : ''}</p>
+    <p className={styles.sourceEyebrow}>TUYẾN MẪU ĐÃ CHỌN</p>
+    <h2 className={styles.sourceSummaryTitle}>{source.tripName}</h2>
+    <p className={styles.sourceSummaryMeta}>
+     {source.tripCode} · {source.durationDays} ngày{source.durationNights ? ` ${source.durationNights} đêm` : ''}
+    </p>
    </div>
-   <div className={styles.departureSourceActions}>
-    {onChangeSource&&<Button type="button" tone="secondary" disabled={disabled} onClick={onChangeSource}>Đổi lịch trình mẫu</Button>}
-   </div>
+   {onChangeSource&&<Button type="button" tone="secondary" size="compact" autoWidth disabled={disabled} onClick={onChangeSource}>Đổi lịch trình mẫu</Button>}
   </div>
   <dl className={styles.departureSourceRoute}>
     <div><dt>Cảng đi</dt><dd>{departurePortLabel}</dd></div>
     <div><dt>Cảng cuối</dt><dd>{returnPortLabel}</dd></div>
   </dl>
- </FormSection>
+ </div>
 }

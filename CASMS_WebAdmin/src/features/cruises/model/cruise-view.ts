@@ -69,11 +69,24 @@ export type ReadinessCheck = {
   reason: string
 }
 
+export type RegulationSource = 'CRUISE' | 'SHIP' | 'GLOBAL'
+export type RegulationType = 'SAFETY' | 'CAPACITY' | 'SPEED' | 'WEATHER' | 'ENVIRONMENT' | 'HEALTH'
+export type RegulationUnit = 'KNOT' | 'KM' | 'METER' | 'PERCENT' | 'PERSON' | 'CELSIUS' | 'NONE'
+
 export type RegulationSummary = {
   regulationId: string
   code: string
   name: string
-  source: 'CRUISE' | 'SHIP' | 'GLOBAL'
+  description?: string | null
+  regulationType?: RegulationType
+  value?: string
+  unit?: RegulationUnit | null
+  effectiveFrom?: string
+  effectiveTo?: string | null
+  source: RegulationSource
+  sourceHostId?: string | null
+  sourceLabel?: string
+  canRemove?: boolean
   status: 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'EXPIRED'
 }
 
@@ -100,6 +113,7 @@ export type CruiseDetailView = CruiseListItem & {
     issues?: string[]
   }
   regulations: RegulationSummary[]
+  regulationCheckedAt?: string | null
   issues: IssueSummary[]
   bookingHasData: boolean | null
   assignmentCapabilities: AssignmentCapabilities

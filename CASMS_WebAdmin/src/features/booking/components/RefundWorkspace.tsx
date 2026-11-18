@@ -2,12 +2,19 @@ import { useCallback, useId, useRef, useState } from 'react'
 import { ApiError, apiRequest, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { downloadCsv } from '@/shared/lib/download-csv'
-import { Button, Field, Notice, Panel } from '@/shared/ui'
+import { Badge, Button, DataTable, Field, Loading, Notice, Panel } from '@/shared/ui'
 import styles from './LiveBooking.module.css'
 
 type RefundTotal = { currency: string; status: string; count: number; requestedAmount: number; approvedAmount: number }
 const refundStatus: Record<string, string> = {
   Requested: 'Đã yêu cầu', Approved: 'Đã duyệt', Completed: 'Đã ghi nhận hoàn', Failed: 'Cần đối soát', Rejected: 'Đã từ chối',
+}
+const refundTone: Record<string, 'warning' | 'info' | 'success' | 'error' | 'neutral'> = {
+  Requested: 'warning',
+  Approved: 'info',
+  Completed: 'success',
+  Failed: 'error',
+  Rejected: 'neutral',
 }
 export function RefundSummary() {
   const access = useSessionAccess()
@@ -30,8 +37,8 @@ export function RefundSummary() {
   }
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  return <Panel title="Tổng hợp hoàn tiền">
-    <form className={styles.stack} onSubmit={async e => {
+  return <Panel title="Tổng hợp hoàn tiền" subtitle="Chọn khoảng ngày (giờ Việt Nam) để thống kê số yêu cầu và xuất tệp CSV đối soát.">
+    <form className={styles.financeReportForm} onSubmit={async e => {
       e.preventDefault()
       if (busy || !from || !until) return
       setBusy(true); setError(''); setRows(null); setRange(null)
@@ -47,14 +54,21 @@ export function RefundSummary() {
     }}>
       <Field htmlFor={id + '-from'} label="Từ ngày (giờ Việt Nam)"><input id={id + '-from'} type="date" required value={from} onChange={e => setFrom(e.target.value)}/></Field>
       <Field htmlFor={id + '-until'} label="Đến hết ngày (giờ Việt Nam)"><input id={id + '-until'} type="date" required value={until} onChange={e => setUntil(e.target.value)}/></Field>
-      <Button type="submit" busy={busy}>Xem tổng hợp</Button>
+      <div className={styles.formActions}>
+        <Button type="submit" autoWidth busy={busy}>Xem tổng hợp</Button>
+        {range && access.has('REPORT_GENERATE') && <Button tone="secondary" autoWidth busy={busy} onClick={() => void download()}>Xuất CSV</Button>}
+      </div>
     </form>
     {error && <Notice title="Chưa tải được tổng hợp" tone="error">{error}</Notice>}
-    {range && access.has('REPORT_GENERATE') && <Button tone="secondary" busy={busy} onClick={() => void download()}>Xuất CSV</Button>}
-    {rows && (rows.length ? <ul>{rows.map(row => <li key={row.currency + row.status}>
-      {row.currency} · {refundStatus[row.status] ?? 'Chưa xác định'} · {row.count} yêu cầu
-      <p>Yêu cầu {row.requestedAmount.toLocaleString('vi-VN')} · Đã duyệt {row.approvedAmount.toLocaleString('vi-VN')}</p>
-    </li>)}</ul> : <p>Không có yêu cầu hoàn tiền trong khoảng ngày đã chọn.</p>)}
+    {rows && (rows.length ? <DataTable label="Tổng hợp hoàn tiền theo trạng thái" headers={['Tiền tệ', 'Trạng thái', 'Số yêu cầu', 'Tổng yêu cầu', 'Tổng đã duyệt']}>
+      {rows.map(row => <tr key={row.currency + row.status}>
+        <td>{row.currency}</td>
+        <td><Badge label={refundStatus[row.status] ?? 'Chưa xác định'} tone={refundTone[row.status] ?? 'neutral'} /></td>
+        <td className={styles.numericCell}>{row.count.toLocaleString('vi-VN')}</td>
+        <td className={styles.numericCell}>{row.requestedAmount.toLocaleString('vi-VN')}</td>
+        <td className={styles.numericCell}>{row.approvedAmount.toLocaleString('vi-VN')}</td>
+      </tr>)}
+    </DataTable> : <p className={styles.helper}>Không có yêu cầu hoàn tiền trong khoảng ngày đã chọn.</p>)}
   </Panel>
 }
 
@@ -109,20 +123,22 @@ function ManualRefundAction({ record, onChanged }: { record: RefundRecord; onCha
   const label = action === 'approve' ? `Số tiền duyệt (${record.currency})`
     : action === 'reject' ? 'Lý do từ chối' : 'Mã biên lai hoặc giao dịch'
   return <form className={styles.stack} onSubmit={event => { event.preventDefault(); void submit() }}>
-    <Field htmlFor={id} label="Thao tác hoàn tiền">
-      <select id={id} value={action} disabled={busy} onChange={event => {
-        setAction(event.target.value as RefundAction | ''); setValue(''); setError('')
-      }}>
-        <option value="">Chọn thao tác</option>
-        {options.map(option => <option key={option} value={option}>{refundActionLabels[option]}</option>)}
-      </select>
-    </Field>
-    {action && <Field htmlFor={id + '-value'} label={label} error={error || undefined}
-      hint={action === 'complete' ? 'Dùng mã trên chứng từ của giao dịch đã thực hiện.' : undefined}>
-      <input id={id + '-value'} required value={value} maxLength={action === 'reject' ? 1000 : 255}
-        inputMode={action === 'approve' ? 'decimal' : undefined} onChange={event => setValue(event.target.value)}/>
-    </Field>}
-    {action && <Button type="submit" busy={busy}>{refundActionLabels[action]}</Button>}
+    <div className={styles.financeInlineForm}>
+      <Field htmlFor={id} label="Thao tác hoàn tiền">
+        <select id={id} value={action} disabled={busy} onChange={event => {
+          setAction(event.target.value as RefundAction | ''); setValue(''); setError('')
+        }}>
+          <option value="">Chọn thao tác</option>
+          {options.map(option => <option key={option} value={option}>{refundActionLabels[option]}</option>)}
+        </select>
+      </Field>
+      {action && <Field htmlFor={id + '-value'} label={label} error={error || undefined}
+        hint={action === 'complete' ? 'Dùng mã trên chứng từ của giao dịch đã thực hiện.' : undefined}>
+        <input id={id + '-value'} required value={value} maxLength={action === 'reject' ? 1000 : 255}
+          inputMode={action === 'approve' ? 'decimal' : undefined} onChange={event => setValue(event.target.value)}/>
+      </Field>}
+    </div>
+    {action && <div className={styles.formActions}><Button type="submit" size="compact" autoWidth tone={action === 'reject' ? 'danger' : 'primary'} busy={busy}>{refundActionLabels[action]}</Button></div>}
   </form>
 }
 
@@ -133,16 +149,21 @@ export function RefundHistory({ bookingId }: { bookingId: string }) {
     signal => allowed ? apiRequest<RefundRecord[]>(`/refunds/booking/${encodeURIComponent(bookingId)}`, { signal }) : Promise.resolve(null),
     [allowed, bookingId]))
   if (!allowed) return null
-  return <Panel title="Hồ sơ hoàn tiền">
-    {query.loading && <p role="status">Đang tải hồ sơ hoàn tiền…</p>}
-    {query.error && <Notice title="Chưa tải được hồ sơ hoàn tiền" tone="error"><Button tone="secondary" onClick={query.retry}>Tải lại</Button></Notice>}
-    {query.data && (query.data.length ? <ul>{query.data.map(row => <li key={row.refundId}>
-      <strong>{refundStatus[row.status] ?? 'Chưa xác định'}</strong>
-      <p>{row.refundReason} · {(row.approvedAmount ?? row.requestedAmount).toLocaleString('vi-VN')} {row.currency}</p>
-      {row.rejectionReason && <p>Lý do từ chối: {row.rejectionReason}</p>}
-      {row.processorOrReceiptReference && <p>Chứng từ ghi nhận: {row.processorOrReceiptReference}</p>}
-      {row.adjustmentInvoiceId && <p>ID hóa đơn điều chỉnh: {row.adjustmentInvoiceId}</p>}
+  return <Panel title="Hồ sơ hoàn tiền" subtitle="Duyệt mức hoàn hoặc ghi nhận chứng từ chi hoàn tiền cho đặt chỗ này.">
+    {query.loading && <Loading label="Đang tải hồ sơ hoàn tiền…" />}
+    {query.error && <Notice title="Chưa tải được hồ sơ hoàn tiền" tone="error"><Button tone="secondary" size="compact" autoWidth onClick={query.retry}>Tải lại</Button></Notice>}
+    {query.data && (query.data.length ? <ul className={styles.financeCaseList}>{query.data.map(row => <li key={row.refundId} className={styles.financeCaseCard}>
+      <div className={styles.financeCaseHead}>
+        <Badge label={refundStatus[row.status] ?? 'Chưa xác định'} tone={refundTone[row.status] ?? 'neutral'} />
+        <span className={styles.financeCaseAmount}>{(row.approvedAmount ?? row.requestedAmount).toLocaleString('vi-VN')} {row.currency}</span>
+      </div>
+      <div className={styles.financeCaseMeta}>
+        <p>{row.refundReason}</p>
+        {row.rejectionReason && <p>Lý do từ chối: {row.rejectionReason}</p>}
+        {row.processorOrReceiptReference && <p>Chứng từ ghi nhận: <span className={styles.monoCode}>{row.processorOrReceiptReference}</span></p>}
+        {row.adjustmentInvoiceId && <p>ID hóa đơn điều chỉnh: <span className={styles.monoCode}>{row.adjustmentInvoiceId}</span></p>}
+      </div>
       <ManualRefundAction key={row.status} record={row} onChanged={query.retry}/>
-    </li>)}</ul> : <p>Chưa có hồ sơ hoàn tiền.</p>)}
+    </li>)}</ul> : <p className={styles.helper}>Chưa có hồ sơ hoàn tiền cho đặt chỗ này.</p>)}
   </Panel>
 }

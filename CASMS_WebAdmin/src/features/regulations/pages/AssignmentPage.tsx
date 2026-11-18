@@ -106,7 +106,7 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
   const prefix = type === 'ship' ? 'SHIP_REGULATION' : 'CRUISE_REGULATION'
   const [loadedSnapshot, setSnapshot] = useState<AssignmentSnapshot | null>(null)
   const snapshot = loadedSnapshot?.host.id === routeId ? loadedSnapshot : null
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!onAssigned)
   const [loadError, setLoadError] = useState('')
   const [assignOpen, setAssignOpen] = useState(false)
   const [candidates, setCandidates] = useState<CandidateRegulation[]>([])
@@ -121,40 +121,58 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
   const [submitting, setSubmitting] = useState(false)
   const [removeItem, setRemoveItem] = useState<AssignedRegulation | null>(null)
   const [actionError, setActionError] = useState('')
+  const [candidateError, setCandidateError] = useState('')
   const [success, setSuccess] = useState('')
+  const [referenceMode, setReferenceMode] = useState<'departure' | 'now'>('departure')
+  const [cruiseDeparture, setCruiseDeparture] = useState<string | null>(null)
   const requestSequence = useRef(0)
   const mutationLock = useRef(false)
   const [outcomeUnknown,setOutcomeUnknown]=useState(false)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (overrideMode?: 'departure' | 'now', overrideDeparture?: string | null) => {
+    if (onAssigned) {
+      setLoadError('')
+      setOutcomeUnknown(false)
+      return true
+    }
     setLoading(true);setLoadError('')
     try {
-      setSnapshot(await regulationsApi.getAssignments(type, routeId ?? ''));setOutcomeUnknown(false)
+      const mode = overrideMode ?? referenceMode
+      const departure = overrideDeparture !== undefined ? overrideDeparture : cruiseDeparture
+      const at = type === 'cruise' && mode === 'departure' && departure ? departure : undefined
+      setSnapshot(await regulationsApi.getAssignments(type, routeId ?? '', at));setOutcomeUnknown(false)
       return true
     } catch {
       setLoadError('Chưa tải được danh sách quy định. Không thể xác nhận kết quả thay đổi.');return false
     } finally {
       setLoading(false)
     }
-  }, [routeId, type])
+  }, [cruiseDeparture, onAssigned, referenceMode, routeId, type])
 
   useEffect(() => {
+    if (onAssigned) return
     let active = true
-    void regulationsApi
-      .getAssignments(type, routeId ?? '')
-      .then((data) => {
+    const init = async () => {
+      try {
+        const departure = type === 'cruise' && routeId
+          ? await regulationsApi.getCruiseDeparture(routeId)
+          : null
+        if (!active) return
+        setCruiseDeparture(departure)
+        const at = type === 'cruise' && referenceMode === 'departure' && departure ? departure : undefined
+        const data = await regulationsApi.getAssignments(type, routeId ?? '', at)
         if (active) setSnapshot(data)
-      })
-      .catch(() => {
+      } catch {
         if (active) setLoadError('Không tải được danh sách quy định đã gán.')
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoading(false)
-      })
+      }
+    }
+    void init()
     return () => {
       active = false
     }
-  }, [routeId, type])
+  }, [onAssigned, referenceMode, routeId, type])
 
   useEffect(() => {
     if (!success) return
@@ -163,7 +181,7 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
   }, [success])
 
   const openAssign = async () => {
-    if (!access.canDo(`${prefix}_ASSIGN`) || !snapshot || loadError || outcomeUnknown) return
+    if (!access.canDo(`${prefix}_ASSIGN`) || (!onAssigned && (!snapshot || loadError)) || outcomeUnknown) return
     requestSequence.current += 1
     setAssignOpen(true)
     setCandidates([])
@@ -172,6 +190,7 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
     setSelectedId('')
     setConflict(null)
     setActionError('')
+    setCandidateError('')
     setSearch('')
     setStatus('ALL')
     setRegulationType('ALL')
@@ -179,7 +198,7 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
     try {
       setCandidates(await regulationsApi.getCandidates(type, routeId ?? ''))
     } catch {
-      setActionError('Chưa tải được danh sách quy định có thể gán.')
+      setCandidateError('Chưa tải được danh sách quy định có thể gán.')
     } finally {
       setCandidateLoading(false)
     }
@@ -237,7 +256,7 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
   )
 
   const assign = async () => {
-    if (!selected || !selected.capabilities.canAssign.allowed || checking || !conflict?.canProceed || mutationLock.current || outcomeUnknown || !access.canDo(`${prefix}_ASSIGN`) || !snapshot) return
+    if (!selected || !selected.capabilities.canAssign.allowed || checking || !conflict?.canProceed || mutationLock.current || outcomeUnknown || !access.canDo(`${prefix}_ASSIGN`) || (!onAssigned && !snapshot)) return
     mutationLock.current = true
     setSubmitting(true)
     setActionError('')
@@ -285,10 +304,13 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
 
   const title = `${snapshot?.host.name ?? (type === 'ship' ? 'Tàu' : 'Chuyến khởi hành')} · Quy định`
 
-  const assignButton = access.canDo(`${prefix}_ASSIGN`) && <Button autoWidth
-    disabled={loading || Boolean(loadError) || outcomeUnknown || !snapshot} onClick={() => void openAssign()}>
+  const assignButton = access.canDo(`${prefix}_ASSIGN`) && <Button autoWidth size={onAssigned ? 'compact' : undefined}
+    disabled={outcomeUnknown || (!onAssigned && (loading || Boolean(loadError) || !snapshot))} onClick={() => void openAssign()}>
     Gán quy định
   </Button>
+
+  const globalInherited = snapshot?.inherited.filter((item) => item.source === 'GLOBAL') ?? []
+  const shipInherited = snapshot?.inherited.filter((item) => item.source === 'SHIP') ?? []
 
   const content = <>
       {onAssigned ? assignButton : <>
@@ -302,16 +324,35 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
       />
       <div className={styles.twoColumn}>
         <Field label="Hiệu lực được kiểm tra lúc">
-          <div className={styles.protectedValue}>{snapshot?.checkedAt ? formatDateTime(snapshot.checkedAt) : '—'}</div>
+          <div className={styles.protectedValue}>
+            {snapshot?.checkedAt ? formatDateTime(snapshot.checkedAt) : '—'}
+            {type === 'cruise' && cruiseDeparture && (
+              <span className={styles.muted}> · {referenceMode === 'departure' ? 'Mốc giờ khởi hành' : 'Mốc hiện tại'}</span>
+            )}
+          </div>
         </Field>
-        <Field label="Múi giờ">
-          <div className={styles.protectedValue}>Giờ Việt Nam (UTC+7)</div>
-        </Field>
+        {type === 'cruise' && cruiseDeparture ? (
+          <Field htmlFor="reg-reference-mode" label="Mốc đối chiếu hiệu lực">
+            <select
+              id="reg-reference-mode"
+              disabled={loading}
+              value={referenceMode}
+              onChange={(event) => setReferenceMode(event.target.value as 'departure' | 'now')}
+            >
+              <option value="departure">Giờ khởi hành đã lưu</option>
+              <option value="now">Hiện tại</option>
+            </select>
+          </Field>
+        ) : (
+          <Field label="Múi giờ">
+            <div className={styles.protectedValue}>Giờ Việt Nam (UTC+7)</div>
+          </Field>
+        )}
       </div>
 
       </>}
       {!onAssigned && loading && <LoadingPanel label="Đang tải quy định được gán…" />}
-      {!loading && loadError ? (
+      {!onAssigned && !loading && loadError ? (
         <Notice title="Không tải được dữ liệu" tone="error" role="alert">
           <p>{loadError}</p>
           <Button
@@ -327,22 +368,33 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
         </Notice>
       ) : null}
       {!onAssigned && !loading && !loadError && snapshot ? (
-        <>
-          <Panel title={`Gán trực tiếp cho ${type === 'ship' ? 'tàu' : 'chuyến khởi hành'} · ${snapshot.direct.length}`}>
-            <AssignmentTable checkedAt={snapshot.checkedAt} direct removePermission={`${prefix}_REMOVE`} onRemove={setRemoveItem} rows={snapshot.direct} />
-          </Panel>
-          <Panel
-            title={`Kế thừa từ ${type === 'ship' ? 'quy định toàn hệ thống' : 'tàu và quy định toàn hệ thống'} · ${snapshot.inherited.length}`}
-
-          >
-            <AssignmentTable checkedAt={snapshot.checkedAt} direct={false} removePermission={`${prefix}_REMOVE`} onRemove={setRemoveItem} rows={snapshot.inherited} />
-          </Panel>
-        </>
+        type === 'cruise' ? (
+          <>
+            <Panel title={`Quy định chung · ${globalInherited.length}`}>
+              <AssignmentTable checkedAt={snapshot.checkedAt} direct={false} removePermission={`${prefix}_REMOVE`} onRemove={setRemoveItem} rows={globalInherited} />
+            </Panel>
+            <Panel title={`Kế thừa từ tàu · ${shipInherited.length}`}>
+              <AssignmentTable checkedAt={snapshot.checkedAt} direct={false} removePermission={`${prefix}_REMOVE`} onRemove={setRemoveItem} rows={shipInherited} />
+            </Panel>
+            <Panel title={`Riêng cho chuyến (gán trực tiếp) · ${snapshot.direct.length}`}>
+              <AssignmentTable checkedAt={snapshot.checkedAt} direct removePermission={`${prefix}_REMOVE`} onRemove={setRemoveItem} rows={snapshot.direct} />
+            </Panel>
+          </>
+        ) : (
+          <>
+            <Panel title={`Gán trực tiếp cho tàu · ${snapshot.direct.length}`}>
+              <AssignmentTable checkedAt={snapshot.checkedAt} direct removePermission={`${prefix}_REMOVE`} onRemove={setRemoveItem} rows={snapshot.direct} />
+            </Panel>
+            <Panel title={`Quy định chung · ${snapshot.inherited.length}`}>
+              <AssignmentTable checkedAt={snapshot.checkedAt} direct={false} removePermission={`${prefix}_REMOVE`} onRemove={setRemoveItem} rows={snapshot.inherited} />
+            </Panel>
+          </>
+        )
       ) : null}
 
       {assignOpen && access.canDo(`${prefix}_ASSIGN`) ? (
         <Modal busy={submitting}
-          description={snapshot?.host.name ?? 'Chưa tải được tên đối tượng liên kết'}
+          description={snapshot?.host.name ?? (type === 'cruise' ? 'Chọn quy định áp dụng riêng cho chuyến khởi hành.' : 'Chọn quy định áp dụng cho tàu.')}
           onClose={() => {
             if (!submitting) {
               requestSequence.current += 1
@@ -408,15 +460,15 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
               </select>
             </Field>
           </div>
-          {!candidateLoading && !actionError && <div className={styles.candidateSummary}>
+          {!candidateLoading && !candidateError && <div className={styles.candidateSummary}>
             <span role="status">{filteredCandidates.length} quy định</span>
             {(search || status!=='ALL' || regulationType!=='ALL' || scope!=='ALL')&&<Button tone="text" onClick={() => {
               setSearch(''); setStatus('ALL'); setRegulationType('ALL'); setScope('ALL'); resetSelection()
             }}>Xóa bộ lọc</Button>}
           </div>}
           {candidateLoading ? <LoadingPanel label="Đang tải quy định có thể gán…" /> : null}
-          {!candidateLoading && actionError ? <Notice title="Không tải được dữ liệu" tone="error" role="alert">{actionError}</Notice> : null}
-          {!candidateLoading && !actionError && filteredCandidates.length === 0 ? (
+          {!candidateLoading && candidateError ? <Notice title="Không tải được danh sách quy định" tone="error" role="alert">{candidateError}</Notice> : null}
+          {!candidateLoading && !candidateError && filteredCandidates.length === 0 ? (
             <div className={styles.emptyState}>
               <strong>Không có kết quả phù hợp</strong>
               <p>Thử mã/tên khác hoặc xóa bộ lọc.</p>
@@ -435,7 +487,7 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
                   <span>
                     <strong>{candidate.regulation.code} · {candidate.regulation.name}</strong>
                     <span className={styles.candidateMeta}>
-                      {typeLabels[candidate.regulation.type]} · {scopeLabels[candidate.regulation.scope]} · {regulationValue(candidate.regulation)}
+                      {typeLabels[candidate.regulation.type]} · {scopeLabels[candidate.regulation.scope]} · {regulationValue(candidate.regulation)} · Hiệu lực: {formatDateTime(candidate.regulation.effectiveFrom)} → {formatDateTime(candidate.regulation.effectiveTo)}
                     </span>
                   </span>
                   <StatusBadge status={candidate.regulation.status} />
@@ -450,6 +502,7 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
           ) : null}
           {conflict?.severity==='unavailable' && <Button tone="secondary" disabled={checking || submitting || outcomeUnknown || !selected || !access.canDo(`${prefix}_READ`)} onClick={() => { if (selected) void checkCandidate(selected) }}>Kiểm tra lại trước khi gán</Button>}{checking ? <LoadingPanel label="Đang kiểm tra xung đột…" /> : null}
           {conflict ? <ConflictCard result={conflict} /> : null}
+          {actionError ? <Notice title="Không thể gán quy định" tone="error" role="alert">{actionError}</Notice> : null}
 
         </Modal>
       ) : null}
