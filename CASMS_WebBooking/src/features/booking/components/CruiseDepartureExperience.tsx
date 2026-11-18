@@ -7,7 +7,7 @@ import { liveCruiseCatalogApi } from '../api/booking-api'
 import type { LiveCruise } from '../api/live-cruise-contract'
 import { publicSaleLabels } from '../api/public-sale-contract'
 import { cruiseDurationLabel } from '../model/cruise-duration'
-import { photosForPorts } from '../model/cruise-port-photos'
+import { photosForPorts, primaryPhotoForCruise } from '../model/cruise-port-photos'
 import { cruiseDetailSections } from '../model/live-booking-navigation'
 import { publicContentFailure } from '../model/public-content-feedback'
 import { PublicCruiseItinerary, type PublicItineraryRead } from './PublicCruiseInformation'
@@ -23,7 +23,7 @@ const departureDate = new Intl.DateTimeFormat('vi-VN', {
 })
 
 const sections = [
-  [cruiseDetailSections.facts, 'Thông tin chuyến'],
+  [cruiseDetailSections.facts, 'Tổng quan'],
   [cruiseDetailSections.itinerary, 'Lịch trình'],
   ['cruise-ship', 'Trên tàu'],
   [cruiseDetailSections.packages, 'Hạng cabin & gói du thuyền'],
@@ -50,6 +50,19 @@ function startingPrice(offers: NonNullable<CruisePackageRead['data']>['offers'])
   return lowest && new Intl.NumberFormat('vi-VN', { style: 'currency', currency: lowest.currency }).format(Number(lowest.amount))
 }
 
+function routeStops(cruise: LiveCruise, ports: ReturnType<typeof journeyFacts>['ports']) {
+  const names = [
+    cruise.departurePort,
+    ...ports.map(p => p.portName),
+    cruise.returnPort,
+  ].filter((name): name is string => Boolean(name && name.trim()))
+  const stops: string[] = []
+  for (const name of names) {
+    if (stops[stops.length - 1] !== name) stops.push(name)
+  }
+  return stops
+}
+
 function DepartureGallery({ photos }: { photos: ReturnType<typeof photosForPorts> }) {
   const [active, setActive] = useState<string>()
   const [unavailable, setUnavailable] = useState<string[]>([])
@@ -58,43 +71,66 @@ function DepartureGallery({ photos }: { photos: ReturnType<typeof photosForPorts
   const current = available[index]
   if (!current) return null
   const location = current.caption.replace(/^Ảnh cảng biển · /, '')
+  const secondary = available.filter(photo => photo.image !== current.image).slice(0, 4)
 
   function changePhoto(step: number) {
     setActive(available[(index + step + available.length) % available.length].image)
   }
 
-  return <figure className={styles.gallery}>
+  return <figure className={`${styles.gallery} ${secondary.length > 0 ? styles.galleryMosaic : ''}`}>
     <div className={styles.photo}>
       <img key={current.image} src={current.image} alt={location} width="1600" height="1000"
         onError={() => setUnavailable(previous => [...previous, current.image])} />
+      <figcaption className={styles.galleryCaption}>
+        <span aria-live="polite">Ảnh minh họa · {location}</span>
+        {available.length > 1 && <div className={styles.galleryControls} role="group" aria-label="Ảnh điểm đến">
+          <Button tone="secondary" autoWidth aria-label="Ảnh trước" onClick={() => changePhoto(-1)}><span aria-hidden="true">‹</span></Button>
+          <span aria-hidden="true">{index + 1}/{available.length}</span>
+          <Button tone="secondary" autoWidth aria-label="Ảnh tiếp theo" onClick={() => changePhoto(1)}><span aria-hidden="true">›</span></Button>
+        </div>}
+      </figcaption>
     </div>
-    <figcaption className={styles.galleryCaption}>
-      <span aria-live="polite">Ảnh minh họa · {location}</span>
-      {available.length > 1 && <div className={styles.galleryControls} role="group" aria-label="Ảnh điểm đến">
-        <Button tone="secondary" autoWidth aria-label="Ảnh trước" onClick={() => changePhoto(-1)}><span aria-hidden="true">‹</span></Button>
-        <span aria-hidden="true">{index + 1}/{available.length}</span>
-        <Button tone="secondary" autoWidth aria-label="Ảnh tiếp theo" onClick={() => changePhoto(1)}><span aria-hidden="true">›</span></Button>
-      </div>}
-    </figcaption>
+    {secondary.length > 0 && <div className={styles.galleryThumbs} role="group" aria-label="Ảnh các cảng khác trong hành trình">
+      {secondary.map(photo => {
+        const thumbLocation = photo.caption.replace(/^Ảnh cảng biển · /, '')
+        return <button key={photo.image} type="button" className={styles.galleryThumb}
+          aria-label={`Xem ảnh ${thumbLocation}`} onClick={() => setActive(photo.image)}>
+          <img src={photo.image} alt={thumbLocation} width="800" height="500" loading="lazy"
+            onError={() => setUnavailable(previous => [...previous, photo.image])} />
+          <span>{thumbLocation}</span>
+        </button>
+      })}
+    </div>}
   </figure>
 }
 
+function VoyageRouteStrip({ stops }: { stops: string[] }) {
+  if (stops.length < 2) return null
+  return <div className={styles.routeStrip} aria-label="Tuyến cảng hành trình">
+    <p className={styles.routeStripLabel}>Tuyến cảng dự kiến</p>
+    <ol className={styles.routeStripList}>
+      {stops.map((stop, idx) => (
+        <li key={`${stop}-${idx}`} className={styles.routeStop}>
+          <span className={styles.routeNode} aria-hidden="true">{idx + 1}</span>
+          <span>{stop}</span>
+        </li>
+      ))}
+    </ol>
+  </div>
+}
+
 function DepartureFacts({ cruise }: { cruise: LiveCruise }) {
-  return <section id={cruiseDetailSections.facts} className={styles.facts} aria-labelledby="cruise-facts-heading">
-    <h2 id="cruise-facts-heading" tabIndex={-1}>Thông tin chuyến</h2>
-    <dl className={styles.factList}>
-      {cruise.code && <div className={styles.factCode}><dt>Mã chuyến</dt><dd><strong>{cruise.code}</strong></dd></div>}
-      <div><dt>Khởi hành</dt><dd><strong>{cruise.departurePort ?? 'Chưa có tên cảng'}</strong><time dateTime={cruise.departure}>{departureTime.format(new Date(cruise.departure))}</time></dd></div>
-      <div><dt>Trở về</dt><dd><strong>{cruise.returnPort ?? 'Chưa có tên cảng'}</strong><time dateTime={cruise.returnAt}>{departureTime.format(new Date(cruise.returnAt))}</time></dd></div>
-    </dl>
-    <p className={styles.timeNote}>Giờ Việt Nam</p>
-  </section>
+  return <dl className={styles.factList}>
+    {cruise.code && <div className={styles.factCode}><dt>Mã chuyến</dt><dd><strong>{cruise.code}</strong></dd></div>}
+    <div><dt>Khởi hành</dt><dd><strong>{cruise.departurePort ?? 'Chưa có tên cảng'}</strong><time dateTime={cruise.departure}>{departureTime.format(new Date(cruise.departure))}</time></dd></div>
+    <div><dt>Trở về</dt><dd><strong>{cruise.returnPort ?? 'Chưa có tên cảng'}</strong><time dateTime={cruise.returnAt}>{departureTime.format(new Date(cruise.returnAt))}</time></dd></div>
+  </dl>
 }
 
 function JourneyHighlights({ facts }: { facts: ReturnType<typeof journeyFacts> }) {
   if (!facts.duration && !facts.ports.length) return null
   return <section className={styles.highlights} aria-labelledby="cruise-highlights-heading">
-    <h2 id="cruise-highlights-heading">Điểm nổi bật của hành trình</h2>
+    <h3 id="cruise-highlights-heading" className={styles.highlightsTitle}>Điểm nổi bật của hành trình</h3>
     <dl className={styles.highlightList}>
       {facts.duration && <div><dt>Thời lượng</dt><dd>{facts.duration}</dd></div>}
       {facts.ports.length > 0 && <div><dt>Lượt ghé cảng trong lịch</dt><dd>{facts.ports.length}</dd></div>}
@@ -103,19 +139,73 @@ function JourneyHighlights({ facts }: { facts: ReturnType<typeof journeyFacts> }
   </section>
 }
 
-function ShipExperience({ cruise }: { cruise: LiveCruise }) {
+function ShipExperience({ cruise, facts, offers }: {
+  cruise: LiveCruise
+  facts: ReturnType<typeof journeyFacts>
+  offers: NonNullable<CruisePackageRead['data']>['offers']
+}) {
+  const [highlightTab, setHighlightTab] = useState<'services' | 'destinations'>('services')
+  const services = [...new Map(
+    offers.flatMap(o => o.selection.benefits).map(b => [b.resourceName, b]),
+  ).values()].slice(0, 6)
+  const hasDestinations = facts.destinations.length > 0
+  const hasServices = services.length > 0
+  const activeTab = highlightTab === 'services' && !hasServices && hasDestinations ? 'destinations' : highlightTab
+
   return <section id="cruise-ship" className={`${styles.section} ${styles.shipExperience}`} aria-labelledby="cruise-ship-heading">
-    <h2 id="cruise-ship-heading" tabIndex={-1}>Tàu của chuyến</h2>
-    <div className={styles.shipDetails}>
-      <p>{cruise.ship ?? 'Chưa có thông tin tàu'}</p>
-      {cruise.ship && cruise.shipId && <ButtonLink to="/ships" tone="secondary" autoWidth>Khám phá đội tàu</ButtonLink>}
+    <div className={styles.sectionHeading}>
+      <div>
+        <p className={styles.sectionEyebrow}>TRẢI NGHIỆM TRÊN TÀU</p>
+        <h2 id="cruise-ship-heading" tabIndex={-1}>Tàu của chuyến</h2>
+      </div>
+      {cruise.ship && cruise.shipId && <ButtonLink to="/ships" tone="secondary" size="compact" autoWidth>Khám phá đội tàu</ButtonLink>}
+    </div>
+    <div className={styles.shipCard}>
+      <div className={styles.shipDetails}>
+        <div>
+          <p className={styles.shipTitle}>{cruise.ship ?? 'Chưa có thông tin tàu'}</p>
+          <p className={styles.shipSubtitle}>
+            {cruise.ship
+              ? 'Không gian lưu trú và lịch phục vụ được phân bổ đồng bộ theo chuyến khởi hành này.'
+              : 'Thông tin tàu cho chuyến khởi hành này đang được cập nhật.'}
+          </p>
+        </div>
+      </div>
+      {(hasServices || hasDestinations) && <div className={styles.shipHighlights}>
+        <div className={styles.shipTabs} role="tablist" aria-label="Điểm nhấn trên tàu và điểm đến">
+          {hasServices && <button type="button" role="tab" aria-selected={activeTab === 'services'}
+            className={`${styles.shipTab} ${activeTab === 'services' ? styles.shipTabActive : ''}`}
+            onClick={() => setHighlightTab('services')}>Dịch vụ &amp; hoạt động ({services.length})</button>}
+          {hasDestinations && <button type="button" role="tab" aria-selected={activeTab === 'destinations'}
+            className={`${styles.shipTab} ${activeTab === 'destinations' ? styles.shipTabActive : ''}`}
+            onClick={() => setHighlightTab('destinations')}>Điểm tham quan ({facts.destinations.length})</button>}
+        </div>
+        {activeTab === 'services' && hasServices && <ul className={styles.shipHighlightGrid} aria-label="Dịch vụ và hoạt động theo gói">
+          {services.map(item => <li key={item.sourceBenefitId} className={styles.shipHighlightCard}>
+            <span className={styles.inclusionPill}>{item.inclusion === 'OPTIONAL' ? 'Tùy chọn' : item.inclusion === 'NOT_INCLUDED' ? 'Ngoài gói' : 'Trong gói'}</span>
+            <strong>{item.resourceName}</strong>
+            {item.eligibility && <p>{item.eligibility}</p>}
+          </li>)}
+        </ul>}
+        {activeTab === 'destinations' && hasDestinations && <ul className={styles.shipHighlightGrid} aria-label="Điểm tham quan trong hành trình">
+          {facts.destinations.map(dest => <li key={dest} className={styles.shipHighlightCard}>
+            <span className={styles.inclusionPill}>Điểm dừng bờ</span>
+            <strong>{dest}</strong>
+          </li>)}
+        </ul>}
+      </div>}
     </div>
   </section>
 }
 
 function TrustAssurance() {
   return <section id="cruise-trust" className={styles.section} aria-labelledby="cruise-trust-heading">
-    <h2 id="cruise-trust-heading" tabIndex={-1}>Thông tin đặt chỗ</h2>
+    <div className={styles.sectionHeading}>
+      <div>
+        <p className={styles.sectionEyebrow}>HỎI ĐÁP NHANH</p>
+        <h2 id="cruise-trust-heading" tabIndex={-1}>Thông tin đặt chỗ</h2>
+      </div>
+    </div>
     <div className={styles.faq}>
       <details><summary>Tôi có cần tài khoản để đặt chỗ?</summary><p>Bạn có thể gửi yêu cầu đặt chỗ mà không cần đăng nhập.</p></details>
       <details><summary>Khi nào tôi biết tổng tiền đặt chỗ?</summary><p>Tổng tiền được xác nhận trong báo giá sau khi bạn chọn gói, cabin và phương án thanh toán.</p></details>
@@ -154,9 +244,13 @@ export function CruiseDepartureExperience({ cruise, back }: { cruise: LiveCruise
     : undefined
   const bookingError = sale.error ?? booking?.error
   const displayError = display?.error
-  const price = startingPrice(catalog.data?.offers ?? [])
+  const offers = catalog.data?.offers ?? []
+  const price = startingPrice(offers)
   const facts = journeyFacts(itinerary.data)
   const photos = photosForPorts([cruise.departurePort, cruise.returnPort, ...facts.ports.map(port => port.portName)])
+  const heroPhoto = photos[0] ?? primaryPhotoForCruise(cruise)
+  const stops = routeStops(cruise, facts.ports)
+  const [copied, setCopied] = useState(false)
   const handledAnchor = useRef('')
   const content = useRef<HTMLDivElement>(null)
   const mobileBooking = useRef<HTMLDivElement>(null)
@@ -219,22 +313,73 @@ export function CruiseDepartureExperience({ cruise, back }: { cruise: LiveCruise
     heading.focus({ preventScroll: true })
   }, [hash, key, revoked])
 
+  async function shareCruise() {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2500)
+    } catch {
+      setCopied(false)
+    }
+  }
+
   if (revoked) return <UnavailableCruise back={back} />
 
   const sectionPath = (id: string) => pathname + search + '#' + id
   return <div className={styles.detail} ref={content} onFocusCapture={revealFocusedControl}>
-    <Link to={back} className={styles.back}>← Về danh mục</Link>
-    <div className={styles.hero}>
-      <DepartureGallery photos={photos} />
-      <div className={styles.heroCopy}>
-        {(cruise.ship || facts.duration) && <p className={styles.shipName}>{[cruise.ship, facts.duration].filter(Boolean).join(' · ')}</p>}
-        <h1>{cruise.title}</h1>
-        <DepartureFacts cruise={cruise} />
-        <div className={styles.heroActions}>
-          {display?.data && <Badge
-            label={publicSaleLabels[display.data.publicSaleState] ?? 'Chưa xác định trạng thái mở bán'}
-            tone={display.data.publicSaleState === 'OPEN_FOR_SALE' ? 'success' : 'neutral'}
-          />}
+    {/* UX: Editorial Hero Banner + Floating Quick-Bar inspired by modern cruise discovery */}
+    <header className={styles.heroShell}>
+      <div className={styles.heroBackdrop}>
+        <img src={heroPhoto.image} alt="" aria-hidden="true" width="1600" height="1000" fetchPriority="high" />
+        <div className={styles.heroScrim} aria-hidden="true" />
+        <div className={styles.heroInner}>
+          <div className={styles.heroTopRow}>
+            <Link to={back} className={styles.back}>← Về danh mục</Link>
+            <div className={styles.heroMetaRight}>
+              {display?.data && <Badge
+                label={publicSaleLabels[display.data.publicSaleState] ?? 'Chưa xác định trạng thái mở bán'}
+                tone={display.data.publicSaleState === 'OPEN_FOR_SALE' ? 'success' : 'neutral'}
+              />}
+              <button type="button" className={styles.shareButton} onClick={() => void shareCruise()}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" />
+                </svg>
+                <span>{copied ? 'Đã sao chép' : 'Chia sẻ'}</span>
+              </button>
+            </div>
+          </div>
+          <div className={styles.heroHeadline}>
+            {(cruise.ship || facts.duration || cruise.code) && (
+              <p className={styles.shipName}>
+                {[cruise.ship, facts.duration, cruise.code].filter(Boolean).join(' · ')}
+              </p>
+            )}
+            <h1>{cruise.title}</h1>
+            <p className={styles.heroRoute}>
+              {cruise.departurePort ?? 'Chưa có tên cảng'} → {cruise.returnPort ?? 'Chưa có tên cảng'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* UX: Hick's Law — Scannable quick-summary bar with 1 dominant primary CTA */}
+      <div className={styles.quickBar}>
+        <div className={styles.quickBarCell}>
+          <span>Khởi hành</span>
+          <strong>{departureDate.format(new Date(cruise.departure))}</strong>
+          <small>{cruise.departurePort ?? 'Chưa có tên cảng'}</small>
+        </div>
+        <div className={styles.quickBarCell}>
+          <span>Trở về</span>
+          <strong>{departureDate.format(new Date(cruise.returnAt))}</strong>
+          <small>{cruise.returnPort ?? 'Chưa có tên cảng'}</small>
+        </div>
+        <div className={styles.quickBarCell}>
+          <span>Tàu &amp; thời lượng</span>
+          <strong>{cruise.ship ?? 'Chưa có thông tin tàu'}</strong>
+          <small>{facts.duration ?? 'Giờ Việt Nam'}</small>
+        </div>
+        <div className={styles.quickBarAction}>
           <BookingPrice price={price} />
           <div className={styles.actions}>
             {bookingUrl && <ButtonLink to={bookingUrl} autoWidth>Bắt đầu đặt chỗ</ButtonLink>}
@@ -242,27 +387,50 @@ export function CruiseDepartureExperience({ cruise, back }: { cruise: LiveCruise
           </div>
         </div>
       </div>
-    </div>
-    <JourneyHighlights facts={facts} />
+    </header>
+
     <nav className={styles.sectionNav} aria-label="Nội dung hành trình">
       {sections.map(([id, label]) => <Link key={id} to={sectionPath(id)}>{label}</Link>)}
     </nav>
+
     <div className={styles.detailLayout}>
       <div className={styles.detailBody}>
+        <section id={cruiseDetailSections.facts} className={`${styles.section} ${styles.facts}`} aria-labelledby="cruise-facts-heading">
+          <div className={styles.sectionHeading}>
+            <div>
+              <p className={styles.sectionEyebrow}>TỔNG QUAN HẢI TRÌNH</p>
+              <h2 id="cruise-facts-heading" tabIndex={-1}>Thông tin chuyến</h2>
+            </div>
+            <span className={styles.timeNote}>Giờ Việt Nam</span>
+          </div>
+          <VoyageRouteStrip stops={stops} />
+          <DepartureFacts cruise={cruise} />
+          <JourneyHighlights facts={facts} />
+          <DepartureGallery photos={photos} />
+        </section>
+
         <PublicCruiseItinerary query={itinerary} />
-        <ShipExperience cruise={cruise} />
-        <PublicCruisePackages query={catalog} />
+        <ShipExperience cruise={cruise} facts={facts} offers={offers} />
+        <PublicCruisePackages query={catalog} bookingUrl={bookingUrl} />
         <IncludedBenefits query={catalog} />
         <TrustAssurance />
       </div>
+
       <aside className={styles.bookingSummary} aria-labelledby="booking-summary-heading">
-        <h2 id="booking-summary-heading">Tóm tắt đặt chỗ</h2>
-        <div className={styles.summaryFacts}>
-          <time dateTime={cruise.departure}>{departureDate.format(new Date(cruise.departure))}</time>
-          {cruise.ship && <p>{cruise.ship}</p>}
-          {display?.data && <p>{publicSaleLabels[display.data.publicSaleState] ?? 'Chưa xác định trạng thái mở bán'}</p>}
+        <div className={styles.summaryTop}>
+          <p className={styles.sectionEyebrow}>TÓM TẮT ĐẶT CHỖ</p>
+          <h2 id="booking-summary-heading">{cruise.title}</h2>
         </div>
-        <BookingPrice price={price} />
+        <dl className={styles.summaryFacts}>
+          <div><dt>Khởi hành</dt><dd><time dateTime={cruise.departure}>{departureDate.format(new Date(cruise.departure))}</time></dd></div>
+          {cruise.ship && <div><dt>Tàu</dt><dd>{cruise.ship}</dd></div>}
+          {facts.duration && <div><dt>Thời lượng</dt><dd>{facts.duration}</dd></div>}
+          {display?.data && <div><dt>Trạng thái</dt><dd>{publicSaleLabels[display.data.publicSaleState] ?? 'Chưa xác định trạng thái mở bán'}</dd></div>}
+        </dl>
+        <div className={styles.summaryPriceBox}>
+          <BookingPrice price={price} />
+          <p className={styles.summaryNote}>Giá tham khảo mỗi khách. Tổng tiền được xác nhận ở bước báo giá.</p>
+        </div>
         <div className={styles.bookingEntry} aria-live="polite" aria-busy={sale.loading}>
           {sale.loading && <p>Đang kiểm tra khả năng đặt chỗ…</p>}
           {(bookingError || displayError) && <Notice title={bookingError ? 'Chưa thể kiểm tra khả năng đặt chỗ' : 'Chưa xác định trạng thái mở bán'} tone="warning">
@@ -274,6 +442,7 @@ export function CruiseDepartureExperience({ cruise, back }: { cruise: LiveCruise
         </div>
       </aside>
     </div>
+
     {bookingUrl && <div className={styles.mobileBooking} ref={mobileBooking}>
       {price !== undefined ? <BookingPrice price={price} /> : <p>Đang mở bán</p>}
       <ButtonLink to={bookingUrl} autoWidth>Bắt đầu đặt chỗ</ButtonLink>

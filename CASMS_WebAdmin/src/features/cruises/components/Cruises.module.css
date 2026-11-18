@@ -89,9 +89,17 @@
 .departureCreateLayout { display:grid; grid-template-columns:minmax(16rem, 1fr) minmax(0, 2fr); grid-template-areas:"source form"; align-items:start; gap:var(--space-6); }
 .departureCreateMain { grid-area:form; min-width:0; }
 .departureCreateSource { grid-area:source; min-width:0; }
-.departureSourcePanel { display:grid; gap:var(--space-3); background:color-mix(in srgb, var(--fg-2) 8%, var(--surface)); }
+.departureSourcePanel { display:grid; gap:var(--space-3); background:color-mix(in srgb, var(--fg-2) 14%, var(--surface)); }
 .departureSourcePanel .departureSourceRow strong { font-size:var(--text-xl); line-height:var(--leading-tight); overflow-wrap:anywhere; }
 .departureSourcePanel > button { justify-self:start; }
+.departureSourcePanel button,
+.departureTiming > button { max-inline-size:100%; white-space:normal; overflow-wrap:anywhere; }
+@media (max-width:600px) {
+  .departureSourcePanel > button,
+  .departureSourceActions,
+  .departureSourceActions > button,
+  .departureTiming > button { width:100%; }
+}
 .departureSourceRoute { grid-column:1 / -1; margin:0; display:grid; gap:var(--space-2); min-width:0; }
 .departureSourceRoute > div { display:grid; grid-template-columns:5rem minmax(0,1fr); gap:var(--space-3); align-items:baseline; }
 .departureSourceRoute dt { color:var(--ui-muted); font-size:var(--text-sm); }

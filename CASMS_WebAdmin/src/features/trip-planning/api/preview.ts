@@ -1,4 +1,5 @@
 /** DEV-only illustrative gateway. No HTTP, tokens, database or production persistence. */
+import { departureWindowInstants } from '@/domain/trip-departure-window'
 import { PlanningFault, type PlanningGateway, type Scenario } from './gateway'
 import { contentOf, localViolations, newKey, SHIP_ZONE, type Trip, type Version, type Source, type SourceKind, type History } from '../model/plan'
 const copy = <T,>(value:T):T => structuredClone(value)
@@ -25,7 +26,7 @@ export function createPreviewGateway(scenario:Scenario):PlanningGateway {
     versions.set(version.versionId,copy(version));record(version,'CREATE_VERSION');refreshTrip(trip);return copy(version)
   }
   if(scenario!=='empty') {
-    const trip:Trip={tripId:'11111111-1111-4111-8111-111111111111',tripCode:'MINH-HOA-01',name:'Dữ liệu minh họa · Chuyến ba ngày',description:'Chỉ dùng thử giao diện.',durationDays:3,durationNights:2,tripType:null,createdByUserId:'preview-editor',plannedScope:'DOMESTIC',revision:1,status:'DRAFT',info:{name:'Dữ liệu minh họa · Chuyến ba ngày',description:'Chỉ dùng thử giao diện.',durationBand:'LONG',scope:'DOMESTIC',regionIds:['BAC_BO'],countryCodes:[]}}
+    const trip:Trip={tripId:'11111111-1111-4111-8111-111111111111',tripCode:'MINH-HOA-01',name:'Dữ liệu minh họa · Chuyến ba ngày',description:'Chỉ dùng thử giao diện.',durationDays:3,durationNights:2,tripType:null,createdByUserId:'preview-editor',plannedScope:'DOMESTIC',revision:1,status:'DRAFT',info:{earliestDeparture:'',latestDeparture:'',name:'Dữ liệu minh họa · Chuyến ba ngày',description:'Chỉ dùng thử giao diện.',durationBand:'LONG',scope:'DOMESTIC',regionIds:['BAC_BO'],countryCodes:[]}}
     trips.set(trip.tripId,trip);const v=newVersion(trip)
     if(scenario==='422') {v.status='IN_REVIEW';v.submitterId='preview-editor';versions.set(v.versionId,v);refreshTrip(trip)}
   }
@@ -47,9 +48,9 @@ export function createPreviewGateway(scenario:Scenario):PlanningGateway {
           while(v.days.length<count)v.days.push({key:newKey(),dayNumber:v.days.length+1,dayType:'SEA_DAY',shipTimeZoneId:SHIP_ZONE,title:'Ngày mới',description:''})
           v.days=v.days.slice(0,count);v.revision++;versions.set(v.versionId,v)
         }
-        return refreshTrip({...current,info:copy(info),name:info.name,description:info.description,durationDays:count,revision:current.revision+1})
+        return refreshTrip({...current,...departureWindowInstants(info),info:copy(info),name:info.name,description:info.description,durationDays:count,revision:current.revision+1})
       }
-      const count=info.durationBand==='SHORT'?1:3,trip:Trip={tripId:newKey(),tripCode:'MINH-HOA-'+(trips.size+1),name:info.name,description:info.description,info:copy(info),durationDays:count,durationNights:Math.max(0,count-1),tripType:null,createdByUserId:'preview-editor',revision:1,status:'DRAFT'}
+      const count=info.durationBand==='SHORT'?1:3,trip:Trip={...departureWindowInstants(info),tripId:newKey(),tripCode:'MINH-HOA-'+(trips.size+1),name:info.name,description:info.description,info:copy(info),durationDays:count,durationNights:Math.max(0,count-1),tripType:null,createdByUserId:'preview-editor',revision:1,status:'DRAFT'}
       trips.set(trip.tripId,trip);newVersion(trip);return refreshTrip(trip)
     },
     async clone(id,sourceId) {await delay();writable();const source=needTrip(id),version=sourceId?needVersion(sourceId):[...versions.values()].filter(v=>v.tripId===id).at(-1);if(version&&version.tripId!==id)throw new PlanningFault('Phiên bản nguồn không thuộc chuyến.',422);const trip={...copy(source),tripId:newKey(),tripCode:'MINH-HOA-'+(trips.size+1),name:source.name+' · bản sao',status:'DRAFT' as const,revision:1,structuralLockedAt:null,versions:[],latestVersionNumber:undefined};trip.info.name=trip.name;trips.set(trip.tripId,trip);newVersion(trip,version);return refreshTrip(trip)},

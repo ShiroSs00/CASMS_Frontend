@@ -38,7 +38,7 @@ export function InheritedSourcePlan({
     <p>{source.durationDays} ngày{source.durationNights ? ` ${source.durationNights} đêm` : ''}</p>
    </div>
    <div className={styles.departureSourceActions}>
-    {onChangeSource&&<Button tone="text" disabled={disabled} onClick={onChangeSource}>Đổi lịch trình mẫu</Button>}
+    {onChangeSource&&<Button type="button" tone="secondary" disabled={disabled} onClick={onChangeSource}>Đổi lịch trình mẫu</Button>}
    </div>
   </div>
   <dl className={styles.departureSourceRoute}>

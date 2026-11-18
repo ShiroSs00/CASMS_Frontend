@@ -22,6 +22,7 @@ import { groupPassengers } from '../model/booking-party'
 import { eligibleCabins } from '../model/booking-cabin-selection'
 import { bookingNow, quoteUsable, transactionState } from '../model/booking-transaction'
 import { bookingWhen } from '../model/real-booking-view'
+import { primaryPhotoForCruise } from '../model/cruise-port-photos'
 import styles from '../components/LiveBooking.module.css'
 import flow from '../components/BookingParty.module.css'
 import type { BookingModelRenderer } from '../components/BookingShipModel'
@@ -139,13 +140,43 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
     setDraft(initialLiveBooking()); setPersonIds([crypto.randomUUID()]); setPartyConfirmed(false); setSaved(null); setQuoteIntent(null); setErrors({}); setError(''); setUncertain(false); setQuoteUnknown(false); submissionLockRef.current = false; navigate('/cruises')
   }} /></RealBookingFrame>
   if (!locked && !choicesLoading && !readError && (!requestedCruise || requestedCruise === draft.cruiseId) && step > available) return <Navigate to={path(available)} replace />
+  const selectedPhoto = selected ? primaryPhotoForCruise({
+    title: selected.cruiseName,
+    departurePort: selected.departurePortName,
+    returnPort: selected.returnPortName,
+  }) : null
+  const selectedBenefits = [...new Map(
+    draft.passengers
+      .map(p => fares.data?.offers.find(o => o.selection.offerId === p.farePackageOfferId)?.selection)
+      .filter((s): s is NonNullable<typeof s> => Boolean(s))
+      .flatMap(s => s.benefits)
+      .filter(b => b.inclusion === 'INCLUDED' || b.inclusion === 'LIMITED_INCLUDED')
+      .map(b => [b.resourceName, b.resourceName]),
+  ).values()]
   return <RealBookingFrame><BookingFlowLayout stage={step} available={available} locked={locked} path={path} back={back} headingRef={heading} summary={<>
-    <h2>Hành trình của bạn</h2><strong>{selected?.cruiseName ?? 'Chưa chọn chuyến'}</strong><dl>
-      <div><dt>Khởi hành · Giờ Việt Nam</dt><dd>{bookingWhen(selected?.departureDatetime)}</dd></div>
-      <div><dt>Trở về · Giờ Việt Nam</dt><dd>{bookingWhen(selected?.returnDatetime)}</dd></div>
-      <div><dt>Người đi & phòng</dt><dd>{draft.passengers.length} khách · {groupPassengers(draft.passengers).length} phòng</dd></div>
-      <div><dt>Giá</dt><dd>{usable && quoteIntent ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: quoteIntent.quote.currency ?? draft.currency }).format(quoteIntent.quote.totalAmount ?? 0) : 'Chưa có báo giá hiệu lực'}</dd></div>
-    </dl><p className={flow.muted}>Lựa chọn chưa phải là giữ chỗ.</p>
+    {selectedPhoto && <div className={flow.summaryMedia}>
+      <img src={selectedPhoto.image} alt={selected?.cruiseName ?? selectedPhoto.caption} width="800" height="500" />
+    </div>}
+    <div className={flow.summaryBody}>
+      <p className={flow.summaryEyebrow}>HÀNH TRÌNH CỦA BẠN</p>
+      <h2>{selected?.cruiseName ?? 'Chưa chọn chuyến'}</h2>
+      <dl className={flow.summaryFacts}>
+        {selected?.departurePortName && <div><dt>Khởi hành từ</dt><dd>{selected.departurePortName}</dd></div>}
+        {selected?.shipName && <div><dt>Trên tàu</dt><dd>{selected.shipName}</dd></div>}
+        <div><dt>Khởi hành · Giờ Việt Nam</dt><dd>{bookingWhen(selected?.departureDatetime)}</dd></div>
+        <div><dt>Trở về · Giờ Việt Nam</dt><dd>{bookingWhen(selected?.returnDatetime)}</dd></div>
+        <div><dt>Người đi &amp; phòng</dt><dd>{draft.passengers.length} khách · {groupPassengers(draft.passengers).length} phòng</dd></div>
+      </dl>
+      {selectedBenefits.length > 0 && <details className={flow.summaryInclusions}>
+        <summary>Bao gồm trong gói đã chọn ({selectedBenefits.length})</summary>
+        <ul>{selectedBenefits.map(item => <li key={item}>{item}</li>)}</ul>
+      </details>}
+      <div className={flow.summaryTotalCard}>
+        <span>Tổng tiền báo giá</span>
+        <strong>{usable && quoteIntent ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: quoteIntent.quote.currency ?? draft.currency }).format(quoteIntent.quote.totalAmount ?? 0) : 'Chưa có báo giá hiệu lực'}</strong>
+      </div>
+      <p className={flow.muted}>Lựa chọn chưa phải là giữ chỗ.</p>
+    </div>
   </>}>
     {(uncertain || quoteUnknown) && <div ref={recovery} tabIndex={-1} role="region" aria-label="Cần đối chiếu kết quả"><Notice title={uncertain ? 'Cần kiểm tra kết quả trước khi đặt lại' : 'Chưa nhận được kết quả báo giá'} tone="warning"><p>{uncertain ? 'Hệ thống có thể đã tiếp nhận yêu cầu. Đã khóa gửi lại để tránh tạo trùng. Nếu chưa có mã, liên hệ bộ phận hỗ trợ để kiểm tra bằng thông tin người đại diện.' : 'Chưa có mã báo giá để đối chiếu. Thông tin đã nhập được giữ; vui lòng liên hệ bộ phận hỗ trợ trước khi tiếp tục.'}</p><ButtonLink tone="secondary" to="/booking/lookup">Tra cứu khi đã có mã</ButtonLink></Notice></div>}
     {error && !uncertain && !quoteUnknown && <Notice title="Chưa hoàn tất yêu cầu" tone="error">{error}</Notice>}

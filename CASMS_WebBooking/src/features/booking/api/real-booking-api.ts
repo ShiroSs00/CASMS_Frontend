@@ -87,6 +87,9 @@ export type BookingCruiseOption = {
     cruiseName: string;
     status: string;
     shipId: string | null;
+    shipName?: string | null;
+    departurePortName?: string | null;
+    returnPortName?: string | null;
     departureDatetime: string;
     returnDatetime?: string;
 };

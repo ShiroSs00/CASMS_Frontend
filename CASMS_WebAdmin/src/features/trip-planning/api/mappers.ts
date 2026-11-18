@@ -1,3 +1,4 @@
+import { departureWindowInputs } from '@/domain/trip-departure-window'
 import { itineraryDayRole } from '@/domain/itinerary-day'
 import { PlanningFault } from './gateway'
 import type { CurrentTrip, CurrentVersion, CurrentSaveContent } from './current-contract'
@@ -9,7 +10,7 @@ export function tripView(raw: CurrentTrip): Trip {
   if (!raw || typeof raw.tripId !== 'string' || typeof raw.name !== 'string' || !Number.isSafeInteger(raw.revision) || !Number.isInteger(raw.durationDays) || !['DRAFT','READY','ARCHIVED'].includes(raw.status)) throw new PlanningFault('Dữ liệu chuyến không đúng định dạng.',502)
   const rules=raw.durationGroup&&supportedDuration(raw.durationGroup)?durationRules[raw.durationGroup]:null
   const consistent=rules&&raw.durationDays>=rules.minDays&&raw.durationDays<=rules.maxDays
-  return { ...raw, durationIssue:consistent?undefined:'Nhóm thời lượng và số ngày từ máy chủ chưa đầy đủ hoặc chưa khớp. Cần đối soát dữ liệu trước khi thay đổi số ngày.', info: { name: raw.name, description: raw.description ?? '', durationBand: raw.durationGroup==='SHORT'||raw.durationGroup==='LONG'?raw.durationGroup:'', scope: raw.plannedScope === 'DOMESTIC' || raw.plannedScope === 'INTERNATIONAL' ? raw.plannedScope : '', regionIds: raw.domesticRegions ?? [], countryCodes: raw.countryCodes ?? [] } }
+  return { ...raw, durationIssue:consistent?undefined:'Nhóm thời lượng và số ngày từ máy chủ chưa đầy đủ hoặc chưa khớp. Cần đối soát dữ liệu trước khi thay đổi số ngày.', info: { ...departureWindowInputs(raw), name: raw.name, description: raw.description ?? '', durationBand: raw.durationGroup==='SHORT'||raw.durationGroup==='LONG'?raw.durationGroup:'', scope: raw.plannedScope === 'DOMESTIC' || raw.plannedScope === 'INTERNATIONAL' ? raw.plannedScope : '', regionIds: raw.domesticRegions ?? [], countryCodes: raw.countryCodes ?? [] } }
 }
 export function versionView(raw: CurrentVersion): Version {
   if (!raw || typeof raw.versionId !== 'string' || !Number.isSafeInteger(raw.revision) || !['DRAFT','IN_REVIEW','PUBLISHED','CANCELLED'].includes(raw.status) || !Array.isArray(raw.days) || !Array.isArray(raw.stops) || !Array.isArray(raw.entries)) throw new PlanningFault('Dữ liệu phiên bản chưa đầy đủ. Không thể ghi đè nội dung.',502)

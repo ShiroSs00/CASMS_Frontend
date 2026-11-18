@@ -5,6 +5,7 @@ import { Button, Field, Notice, PageHeader, Panel } from '@/shared/ui';
 import { realBookingApi, type BookingDetail } from '../api/real-booking-api';
 import { RealBookingFrame } from '../components/RealBookingUI';
 import { BookingPhotoNote } from '../components/BookingExperience';
+import { CustomerCancellation } from '../components/CustomerCancellation';
 import { PublicBookingRecord } from '../components/PublicBookingRecord';
 import { bookingLookupFailure, isBookingLookupMismatch } from '../model/booking-feedback';
 import styles from '../components/LiveBooking.module.css';
@@ -85,6 +86,6 @@ export function BookingLookupPage() {
       <Button type="submit" disabled={busy}>{busy ? 'Đang tra cứu…' : 'Tra cứu'}</Button>
     </fieldset></form>{error && <div id="lookup-error-summary" ref={errorSummary} tabIndex={-1} role="region" aria-label="Không tra cứu được"><Notice title="Không tra cứu được" tone="error">{error}</Notice></div>}</Panel>
     <aside className={styles.lookupHelp}><BookingPhotoNote /><h2>Bạn cần chuẩn bị gì?</h2><p>Mã đặt chỗ và thông tin liên hệ đã dùng khi đặt. Kiểm tra lại ký tự và thông tin người đại diện nếu chưa tìm thấy.</p><p className={styles.helper}>Tra cứu chỉ hiển thị dữ liệu được hệ thống trả về; không tự xác nhận đặt chỗ hoặc thanh toán.</p></aside></div>
-    {data && <section className={styles.stack} aria-label="Kết quả tra cứu"><h2 ref={resultHeading} tabIndex={-1}>Kết quả tra cứu · {data.bookingReference}</h2><PublicBookingRecord booking={data}/></section>}
+    {data && <section className={styles.stack} aria-label="Kết quả tra cứu"><h2 ref={resultHeading} tabIndex={-1}>Kết quả tra cứu · {data.bookingReference}</h2><PublicBookingRecord booking={data}/><CustomerCancellation key={data.bookingId} bookingId={data.bookingId} bookingStatus={data.bookingStatus}/></section>}
   </div></RealBookingFrame>;
 }

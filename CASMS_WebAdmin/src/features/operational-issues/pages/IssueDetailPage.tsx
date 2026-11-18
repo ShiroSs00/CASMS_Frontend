@@ -1,3 +1,4 @@
+import { CancellationQueue } from '@/shared/cancellation'
 import { PageHeader } from '@/shared/ui'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useLocation, useParams } from 'react-router'
@@ -74,7 +75,7 @@ export function IssueDetailPage() {
             <div className={styles.detailMain}>
               <IssueTimeline issue={state.issue} />
               <IssueOverview issue={state.issue} />
-              <IssueResolution issue={state.issue} />
+              <IssueResolution issue={state.issue} /><CancellationQueue key={state.issue.id} issueId={state.issue.id}/>
               <IssueHistory />
             </div>
             <div className={styles.actionRail}>

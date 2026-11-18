@@ -40,6 +40,10 @@ const messages:Readonly<Record<string,string>>={
   FARE_SALE_SCOPE_INELIGIBLE:'Các gói du thuyền đã chọn chưa đủ điều kiện bán. Đối chiếu điều kiện gói du thuyền trước khi xác nhận.',
   PORT_TIMEZONE_CHANGED:'Múi giờ cảng đã thay đổi. Cần rà soát lịch và xác minh lại dữ liệu cảng.',
   PORT_SNAPSHOT_UNAVAILABLE:'Chưa có thông tin cảng đã chụp cho lịch sử này. Cần đối chiếu nguồn trước khi xác nhận.',
+  TRIP_DEPARTURE_WINDOW_INVALID: 'Nhập đủ hai mốc khởi hành theo thứ tự từ sớm nhất đến trễ nhất.',
+  TRIP_DEPARTURE_WINDOW_LOCKED: 'Khung khởi hành đã khóa vì lịch trình đang được duyệt hoặc đã công bố.',
+  DEPARTURE_OUTSIDE_TRIP_WINDOW: 'Chọn giờ khởi hành trong khoảng cho phép của mẫu lịch trình.',
+  DUPLICATE_DESTINATION_VISIT: 'Điểm tham quan này đã có trong lần ghé cảng. Bỏ lượt bị lặp rồi lưu lại.',
   INVALID_DESTINATION_VISIT:'Mỗi lượt tham quan cần điểm đến và thứ tự riêng trong lần ghé cảng.',
   VISIT_PARENT_MISMATCH:'Lượt tham quan không thuộc lần ghé trong phiên bản đang sửa.',
 

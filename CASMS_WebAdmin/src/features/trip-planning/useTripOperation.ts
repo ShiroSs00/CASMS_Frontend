@@ -33,7 +33,7 @@ export function useTripOperation(kind:Kind){
   function failed(error:unknown){
     const current=activeRef.current;if(!current)return
     const fault=failure(error)
-    const rejected=fault.status===401||fault.status===403||fault.status===404||((fault.status===400||fault.status===422)&&['INVALID_INPUT','INVALID_DURATION'].includes(fault.code))
+    const rejected=fault.status===401||fault.status===403||fault.status===404||((fault.status===400||fault.status===422)&&['INVALID_INPUT','INVALID_DURATION','TRIP_DEPARTURE_WINDOW_INVALID'].includes(fault.code))
     write({...current,status:rejected?'failed':'unknown'})
   }
   return {record,warning,blocked:Boolean(record&&(record.status==='sending'||record.status==='unknown')),begin,failed,succeeded:(tripId:string)=>{if(activeRef.current)write({...activeRef.current,status:'succeeded',tripId})},clear:()=>write(null)}
