@@ -1,3 +1,5 @@
+import { departureWindowIncludes, departureWindowLabel } from '@/domain/trip-departure-window'
+import { businessErrorMessage } from '@/shared/api/business-errors'
 import { businessCopy } from '@/shared/i18n/business-copy'
 import { InheritedSourcePlan } from '../components/InheritedSourcePlan'
 import { EditorLayout } from '@/shared/ui'
@@ -15,7 +17,7 @@ import { cruiseApi } from '../api/cruise-api'
 import { creationReturn } from '../model/creation-return'
 import { cruiseCreateIntent } from '../model/create-intent'
 import { DepartureSourcePicker } from '../components/DepartureSourcePicker'
-import { readPublishedSource, type PublishedSource } from '../api/source-version'
+import { readPublishedSource } from '../api/source-version'
 import { departureApi } from '../api/departure-api'
 import { type DepartureSchedule } from '../model/departure-contract'
 import { scheduleInstant } from '../model/cruise-validation'
@@ -42,73 +44,6 @@ const EMPTY_DRAFT: CruiseDraft = {
 const calendarLabel = (value: string) => {
   const [date, time] = value.split('T')
   return time ? date.split('-').reverse().join('/') + ' · ' + time.replace(/^(\d{2}:\d{2}):00$/, '$1') : 'Chưa xác định'
-}
-
-function convertPortClockToVietnamClock(rawTime: string, portTimeZoneId?: string | null, referenceDate?: string): { clock: string; label: string } {
-  const normalized = rawTime.length === 5 ? `${rawTime}:00` : rawTime.slice(0, 8)
-  if (!portTimeZoneId || portTimeZoneId === 'Asia/Ho_Chi_Minh') {
-    return { clock: normalized, label: `${normalized.slice(0, 5)} (giờ Việt Nam)` }
-  }
-  try {
-    const [y, m, d] = (referenceDate && /^\d{4}-\d{2}-\d{2}$/.test(referenceDate) ? referenceDate : '2026-11-10').split('-').map(Number)
-    const [hh, mm, ss] = normalized.split(':').map(Number)
-    const utcGuess = Date.UTC(y, m - 1, d, hh, mm, ss || 0)
-    const getPartsMs = (instantMs: number, timeZone: string) => {
-      const parts = Object.fromEntries(
-        new Intl.DateTimeFormat('en-CA', {
-          timeZone,
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hourCycle: 'h23',
-        }).formatToParts(new Date(instantMs)).map(p => [p.type, p.value])
-      )
-      return Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute), Number(parts.second))
-    }
-    const portOffsetMs = getPartsMs(utcGuess, portTimeZoneId) - utcGuess
-    const actualInstantMs = utcGuess - portOffsetMs
-    const vnParts = Object.fromEntries(
-      new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Asia/Ho_Chi_Minh',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hourCycle: 'h23',
-      }).formatToParts(new Date(actualInstantMs)).map(p => [p.type, p.value])
-    )
-    const vnClock = `${vnParts.hour}:${vnParts.minute}:${vnParts.second}`
-    return {
-      clock: vnClock,
-      label: `${vnClock.slice(0, 5)} giờ Việt Nam (${normalized.slice(0, 5)} giờ cảng ${portTimeZoneId})`,
-    }
-  } catch {
-    return { clock: normalized, label: normalized.slice(0, 5) }
-  }
-}
-
-function resolveTemplateDepartureClock(source: PublishedSource | null | undefined, referenceDate?: string): { clock: string; label: string } | null {
-  if (!source) return null
-  const day1 = source.days.find(day => day.dayNumber === 1)
-  if (day1?.plannedDepartureTime) {
-    const clock = day1.plannedDepartureTime.length === 5 ? `${day1.plannedDepartureTime}:00` : day1.plannedDepartureTime.slice(0, 8)
-    return { clock, label: `${clock.slice(0, 5)} (giờ Việt Nam)` }
-  }
-  const firstStop = source.stops.find(stop => (stop.isEmbarkation || stop.stopOrder === 1) && stop.departureDayNumber === 1 && stop.plannedDepartureTime)
-  if (firstStop?.plannedDepartureTime) {
-    return convertPortClockToVietnamClock(firstStop.plannedDepartureTime, firstStop.timeZoneId, referenceDate)
-  }
-  const day1Entries = source.entries
-    .filter(entry => entry.startDayNumber === 1 && entry.plannedStartTime)
-    .sort((a, b) => a.plannedStartTime.localeCompare(b.plannedStartTime))
-  if (day1Entries[0]?.plannedStartTime) {
-    const raw = day1Entries[0].plannedStartTime
-    const clock = raw.length === 5 ? `${raw}:00` : raw.slice(0, 8)
-    return { clock, label: `${clock.slice(0, 5)} (theo lịch ngày 1)` }
-  }
-  return { clock: '08:00:00', label: '08:00 (giờ gợi ý theo mẫu)' }
 }
 
 export function CruiseFormPage() {
@@ -161,12 +96,17 @@ export function CruiseFormPage() {
   const requestedSource = params.get('sourceVersionId')
   const invalidSource = !editing && params.has('sourceVersionId') && !requestedSource?.trim()
   const sourceId = editing ? null : uncertain && createIntent.record ? createIntent.record.payload.sourceVersionId ?? null : requestedSource
+  const source = useReadQuery('cruise-source:' + sourceId, useCallback(signal => sourceId ? readPublishedSource(sourceId, signal) : Promise.resolve(null), [sourceId]))
+  const activeSource = !source.loading && !source.error && source.data?.versionId === sourceId ? source.data : null
+  const outsideDepartureWindow = Boolean(activeSource && draft.departureDatetime &&
+    !departureWindowIncludes(activeSource, draft.departureDatetime))
+  const departureWindowError = outsideDepartureWindow ? businessErrorMessage('DEPARTURE_OUTSIDE_TRIP_WINDOW', '') : undefined
   const scheduleKey = JSON.stringify([sourceId, draft.departureDatetime])
-  const previewScheduleData = previewSchedule?.key === scheduleKey ? previewSchedule.data : null
+  const previewScheduleData = !outsideDepartureWindow && previewSchedule?.key === scheduleKey ? previewSchedule.data : null
   useLayoutEffect(() => () => scheduleRequest.current?.abort(), [scheduleKey])
 
   const loadSchedule = useCallback(async (apply: boolean) => {
-    if (!draft.departureDatetime || !sourceId) return
+    if (!draft.departureDatetime || !sourceId || !activeSource || outsideDepartureWindow) return
     scheduleRequest.current?.abort()
     const request = new AbortController()
     scheduleRequest.current = request
@@ -194,16 +134,20 @@ export function CruiseFormPage() {
       setPreviewSchedule({ key: scheduleKey, data: schedule })
       if (!apply) setScheduleDetailOpen(true)
     } catch (err) {
-      if (!request.signal.aborted) setApplyScheduleError(err instanceof Error ? err.message : 'Không tải được lịch trình theo ngày giờ này.')
+      if (request.signal.aborted) return
+      if (err instanceof ApiError && err.code === 'DEPARTURE_OUTSIDE_TRIP_WINDOW') {
+        setErrors(current => ({ ...current, departureDatetime: err.message }))
+      } else {
+        setApplyScheduleError(err instanceof Error ? err.message : 'Không tải được lịch trình theo ngày giờ này.')
+      }
     } finally {
       if (scheduleRequest.current === request) {
         scheduleRequest.current = null
         setApplyingSchedule(false)
       }
     }
-  }, [sourceId, draft.departureDatetime, scheduleKey])
+  }, [sourceId, draft.departureDatetime, scheduleKey, activeSource, outsideDepartureWindow])
 
-  const source = useReadQuery('cruise-source:' + sourceId, useCallback(signal => sourceId ? readPublishedSource(sourceId, signal) : Promise.resolve(null), [sourceId]))
   const displayName = !editing && sourceId && source.data && !nameEdited ? source.data.tripName : draft.cruiseName
   const [storedCruise, setStoredCruise] = useState<CruiseRecord | null>(null)
   const sourceEditing = editing && Boolean(storedCruise?.sourceVersionId)
@@ -238,7 +182,7 @@ export function CruiseFormPage() {
   const suitableShips = eligibilityKey && eligible.data?.expectedPassengerCount === passengerCount &&
     eligible.data?.sourceVersionId === sourceId && eligible.data?.sourceVersionRevision === previewRevision &&
     Date.parse(eligible.data.departureDatetime) === scheduleInstant(draft.departureDatetime).getTime() ? eligible.data.ships : []
-  const canSave = (!sourceId || appliedPreview === JSON.stringify([sourceId, draft.departureDatetime]) && previewRevision != null && source.data?.revision === previewRevision) && (editing || Boolean(sourceId)) && (editing || !canChooseInitialShip || suitableShips.some(ship => ship.shipId === draft.shipId)) && !uncertain && !invalidSource && createIntent.owner === (access.userId ?? '') && (!sourceId || !source.loading && !source.error && source.data?.versionId === sourceId) && !portsLoading && !portsError && access.canDo(editing ? 'CRUISE_UPDATE_DRAFT' : 'CRUISE_CREATE') && (!editing || (loadedId === cruiseId && currentStatus === 'DRAFT'))
+  const canSave = !outsideDepartureWindow && (!sourceId || appliedPreview === JSON.stringify([sourceId, draft.departureDatetime]) && previewRevision != null && source.data?.revision === previewRevision) && (editing || Boolean(sourceId)) && (editing || !canChooseInitialShip || suitableShips.some(ship => ship.shipId === draft.shipId)) && !uncertain && !invalidSource && createIntent.owner === (access.userId ?? '') && (!sourceId || !source.loading && !source.error && source.data?.versionId === sourceId) && !portsLoading && !portsError && access.canDo(editing ? 'CRUISE_UPDATE_DRAFT' : 'CRUISE_CREATE') && (!editing || (loadedId === cruiseId && currentStatus === 'DRAFT'))
 
   useEffect(() => {
     if (!cruiseId) return
@@ -372,6 +316,10 @@ export function CruiseFormPage() {
     } catch (error) {
       if (editing ? mutationOutcomeUnknown(error) : createIntent.record?.status === 'unknown' || createIntent.storageError) setUncertain(true)
       if (error instanceof ApiError && error.code === 'STALE_REVISION') setSubmitError('Chuyến khởi hành đã được người khác cập nhật. Nội dung bạn nhập vẫn được giữ. Mở bản đã lưu ở thẻ khác để đối chiếu trước khi chỉnh tiếp.')
+      if (error instanceof ApiError && error.code === 'DEPARTURE_OUTSIDE_TRIP_WINDOW') {
+        setErrors(current => ({ ...current, departureDatetime: error.message }))
+        return
+      }
       if (error instanceof ApiError && error.code === 'DRAFT_ITINERARY_DAY_COUNT_MISMATCH') {
         setErrors(current => ({ ...current, departureDatetime: 'Giờ mới làm thay đổi số ngày lịch trình. Chọn giờ giữ nguyên số ngày theo giờ Việt Nam.' }))
         return
@@ -432,15 +380,15 @@ export function CruiseFormPage() {
                 disabled={busy || uncertain}
                 onChangeSource={() => setChangeSourceOpen(true)}
               />
-              {!previewScheduleData && <Button tone="text" onClick={() => setScheduleDetailOpen(true)}>Xem lịch từng ngày</Button>}
+              <p><strong>Khung khởi hành cho phép:</strong> {departureWindowLabel(source.data)}</p>
+              {!previewScheduleData && <Button type="button" onClick={() => setScheduleDetailOpen(true)}>Xem lịch từng ngày</Button>}
             </Panel>
           </aside>
           <Panel className={styles.departureCreateMain}>
             <FormSection title="Ngày khởi hành và tên tour">
               <CruiseDateTimeFields key={dateFieldsGeneration} id="departure-time" label="khởi hành"
-                value={draft.departureDatetime} error={errors.departureDatetime}
-                suggestClock={resolveTemplateDepartureClock(source.data) ? date => resolveTemplateDepartureClock(source.data, date)?.clock : undefined}
-                templateClockLabel={resolveTemplateDepartureClock(source.data)?.label}
+                value={draft.departureDatetime} error={departureWindowError ?? errors.departureDatetime}
+                templateClock={source.data.days.find(day => day.dayNumber === 1)?.plannedDepartureTime ?? undefined}
                 onChange={value => update('departureDatetime', value)} onIncompleteChange={setDateFieldsIncomplete} />
               <Field htmlFor="cruise-name" label="Tên tour *" error={errors.cruiseName}>
                 <input id="cruise-name" value={displayName} aria-invalid={Boolean(errors.cruiseName)} onChange={event => update('cruiseName', event.target.value)} />
@@ -461,7 +409,7 @@ export function CruiseFormPage() {
                   ['Khởi hành (giờ Việt Nam)', calendarLabel(draft.departureDatetime)],
                   ['Kết thúc dự kiến (giờ Việt Nam)', calendarLabel(previewScheduleData.returnDatetime ? localCruiseInput(previewScheduleData.returnDatetime) : '')],
                 ]} />
-                <Button tone="text" disabled={applyingSchedule} onClick={handleOpenScheduleDetail}>Xem lịch theo ngày khởi hành</Button>
+                <Button type="button" disabled={applyingSchedule} onClick={handleOpenScheduleDetail}>Xem lịch theo ngày khởi hành</Button>
               </div>}
               {applyScheduleError && (
                 <div className={styles.departureCheckError} role="alert">

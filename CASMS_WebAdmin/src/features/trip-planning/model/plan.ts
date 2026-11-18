@@ -1,8 +1,10 @@
+import { SHIP_TIME_ZONE, wallTimeToInstant } from '@/shared/lib/journey-time'
+import type { DepartureWindowInputs } from '@/domain/trip-departure-window'
 import { businessCopy } from '@/shared/i18n/business-copy'
 import type { CurrentTrip, CurrentVersion, CurrentDay, CurrentStop, CurrentEntry, EntryLocation } from '../api/current-contract'
 
 /** Form model; api/mappers and saveInfo map it to the Java DTO field names. */
-export type TripInfo = { name: string; durationBand: 'SHORT' | 'LONG' | ''; scope: 'DOMESTIC' | 'INTERNATIONAL' | ''; regionIds: string[]; countryCodes: string[]; description: string }
+export type TripInfo = { name: string; durationBand: 'SHORT' | 'LONG' | ''; scope: 'DOMESTIC' | 'INTERNATIONAL' | ''; regionIds: string[]; countryCodes: string[]; description: string } & DepartureWindowInputs
 export type TargetTripCreate = TripInfo
 export type Day = CurrentDay & { key: string }
 export type Stop = CurrentStop
@@ -30,12 +32,12 @@ export function domesticRegionLabel(code?:string|null){
 export const versionLabels = { DRAFT: businessCopy('trip.template.DRAFT'), IN_REVIEW: businessCopy('trip.template.IN_REVIEW_LEGACY'), PUBLISHED: businessCopy('trip.template.PUBLISHED'), CANCELLED:'Đã hủy' }
 export const tripLabels = { DRAFT: businessCopy('trip.DRAFT'), READY: businessCopy('trip.READY'), ARCHIVED: 'Đã lưu trữ' }
 export const kindLabels = { ONBOARD_ACTIVITY: 'Hoạt động trên tàu', SHORE_EXCURSION: 'Tour tham quan trên bờ', SERVING_WINDOW: 'Khung phục vụ' }
-export const emptyInfo = (): TripInfo => ({ name: '', durationBand: 'SHORT', scope: '', regionIds: [], countryCodes: [], description: '' })
+export const emptyInfo = (): TripInfo => ({ name: '', durationBand: 'SHORT', scope: '', regionIds: [], countryCodes: [], description: '', earliestDeparture: '', latestDeparture: '' })
 export const contentOf = (v: Version): Content => structuredClone({ days: v.days, stops: v.stops, entries: v.entries })
 export const newKey = () => crypto.randomUUID()
 export const shortTime = (time: string | null | undefined) => time?.slice(0, 5) ?? 'Chưa có giờ'
 export const timeNumber = (day: number, time: string | null) => (day - 1) * 86400 + (time ? time.split(':').reduce((sum, part, index) => sum + Number(part) * [3600,60,1][index], 0) : 0)
-export function infoErrors(form: TripInfo) {
+export function infoErrors(form: TripInfo, requireWindow = false) {
   const errors: Record<string,string> = {}
   if (!form.name.trim()) errors.name = 'Nhập tên chuyến.'
   if (form.name.length > 200) errors.name = 'Tên chuyến tối đa 200 ký tự.'
@@ -43,6 +45,20 @@ export function infoErrors(form: TripInfo) {
   if (!form.scope) errors.scope = 'Chọn phạm vi.'
   if (form.scope === 'DOMESTIC' && !form.regionIds.length) errors.regions = 'Chọn ít nhất một miền.'
   if (form.scope === 'INTERNATIONAL' && !form.countryCodes.length) errors.countries = 'Chọn ít nhất một quốc gia/vùng lãnh thổ.'
+  const windowFields = ['earliestDeparture', 'latestDeparture'] as const
+  const needsPair = requireWindow || Boolean(form.earliestDeparture || form.latestDeparture)
+  const instants: Partial<Record<(typeof windowFields)[number], string>> = {}
+  for (const field of windowFields) {
+    if (!form[field]) {
+      if (needsPair) errors[field] = 'Nhập ngày và giờ khởi hành.'
+      continue
+    }
+    try { instants[field] = wallTimeToInstant(form[field], SHIP_TIME_ZONE) }
+    catch { errors[field] = 'Nhập ngày và giờ hợp lệ.' }
+  }
+  if (instants.earliestDeparture && instants.latestDeparture && instants.earliestDeparture > instants.latestDeparture) {
+    errors.latestDeparture = 'Khởi hành trễ nhất phải bằng hoặc sau khởi hành sớm nhất.'
+  }
   return errors
 }
 export function localViolations(content: Content): Violation[] {

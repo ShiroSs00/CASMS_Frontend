@@ -1,3 +1,4 @@
+import { departureWindowInstants } from '@/domain/trip-departure-window'
 import { planningViolationMessage } from '../model/validation-copy'
 import { apiRequest, ApiError } from '@/shared/api'
 import type { CurrentTrip, CurrentVersion } from './current-contract'
@@ -12,8 +13,8 @@ const segment=encodeURIComponent
 export function failure(error: unknown): PlanningFault {
   if (error instanceof PlanningFault) return error
   if (error instanceof ApiError) {
-    const details=error.details as ({violations?:Violation[]}&Partial<Violation>)|Violation[]|undefined
-    const rows:Violation[]=Array.isArray(details)?details:Array.isArray(details?.violations)?details.violations:details&&(typeof details.clientKey==='string'||typeof details.fieldPath==='string'||typeof details.dayNumber==='number')?[{...details,code:error.code??'REQUEST_FAILED',severity:'ERROR',message:error.message}]:[]
+    const details=error.details as ({violations?:Violation[]}&Partial<Violation>&{stopClientKey?:string})|Violation[]|undefined
+    const rows:Violation[]=Array.isArray(details)?details:Array.isArray(details?.violations)?details.violations:details&&(typeof details.clientKey==='string'||typeof details.fieldPath==='string'||typeof details.dayNumber==='number')?[{...details,clientKey:details.clientKey??details.stopClientKey,code:error.code??'REQUEST_FAILED',severity:'ERROR',message:error.message}]:[]
     return new PlanningFault(businessErrorMessage(error.code,error.message),error.status,error.code??'REQUEST_FAILED',rows.map(row=>({...row,message:planningViolationMessage(row)})))
   }
   return new PlanningFault(error instanceof Error?error.message:'Chưa thực hiện được yêu cầu.')
@@ -31,7 +32,11 @@ export const liveGateway: PlanningGateway = {
   async saveInfo(info,key,previous) {
     if(previous&&info.durationBand!==previous.info.durationBand)throw new PlanningFault('Không đổi nhóm thời lượng của chuyến đang có qua biểu mẫu này: số ngày hiện có có thể không còn phù hợp. Hãy nhân bản hoặc tạo chuyến mới đúng thời lượng.',422,'DURATION_GROUP_CHANGE_PENDING')
     if(!supportedDuration(info.durationBand))throw new PlanningFault('Nhóm thời lượng này chưa được hỗ trợ.',422,'INVALID_DURATION_GROUP')
-    const body={name:info.name.trim(),description:info.description,durationGroup:info.durationBand,plannedScope:info.scope,domesticRegions:info.regionIds,countryCodes:info.countryCodes}
+    const window = departureWindowInstants(info)
+    // Keep exact stored values on unchanged fields, including fractional seconds.
+    if (previous && info.earliestDeparture === previous.info.earliestDeparture) window.earliestDeparture = previous.earliestDeparture ?? null
+    if (previous && info.latestDeparture === previous.info.latestDeparture) window.latestDeparture = previous.latestDeparture ?? null
+    const body={...window,name:info.name.trim(),description:info.description,durationGroup:info.durationBand,plannedScope:info.scope,domesticRegions:info.regionIds,countryCodes:info.countryCodes}
     return tripView(await apiRequest<CurrentTrip>(previous?`/trips/${segment(previous.tripId)}/draft`:'/trips',{method:previous?'PATCH':'POST',idempotencyKey:previous?undefined:key,body:previous?{...body,expectedRevision:previous.revision}:body}))
   },
   async clone(id,sourceVersionId,key) {return tripView(await apiRequest<CurrentTrip>(`/trips/${segment(id)}/clone`,{method:'POST',idempotencyKey:key,query:{sourceVersionId}}))},

@@ -2,6 +2,7 @@ import type { Violation } from './plan'
 import { violationTarget } from './violation-target'
 
 const copy: Record<string, string> = {
+  DUPLICATE_DESTINATION_VISIT: 'Điểm tham quan này đã có trong lần ghé cảng. Bỏ lượt bị lặp rồi lưu lại.',
   EMPTY_SCHEDULE: 'Thêm nội dung cho lịch trình trước khi chốt mẫu.',
   INVALID_DAY_COUNT: 'Số ngày trong lịch trình không khớp thời lượng chuyến đi.',
   INVALID_TERMINAL_CALL_TYPE: 'Chọn kiểu ghé Thông thường cho cảng kết thúc.',

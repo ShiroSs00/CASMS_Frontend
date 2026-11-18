@@ -1,3 +1,4 @@
+import { StaffCancellation } from '@/shared/cancellation'
 import { CruisePackageEntitlements } from '@/domain/cruise-package';
 import { CruisePackageBookingCabin, CruisePackageBookingHistory } from '../components/CruisePackageBookingCabin';
 import { BookingContractAcceptance } from '../components/BookingContractAcceptance';
@@ -72,8 +73,9 @@ export function RealBookingDetail({ related }: {
     related?: (bookingId: string) => ReactNode;
 }) {
     const { bookingId = '' } = useParams();
+    const [legacyCancelId, setLegacyCancelId] = useState('');
     const detail = useReadQuery('real-booking:' + bookingId, useCallback(signal => realBookingApi.get(bookingId, signal), [bookingId]));
-    const content = <>{false}<PageHeader title={detail.data?.bookingReference ?? 'Chi tiết đặt chỗ'} breadcrumb="ĐẶT CHỖ / CHI TIẾT" actions={<ButtonLink tone="secondary" to={'/admin/bookings'}>Danh sách đặt chỗ</ButtonLink>}/><BookingReadState {...detail} publicResource={undefined}/>{detail.data && <><div className={styles.recordWorkspace}><div><BookingRecord booking={detail.data}/></div><aside className={styles.recordActions}><>{<BookingContractAcceptance key={bookingId + ':' + detail.data.contractStatus} booking={detail.data} onChanged={detail.retry}/>}<CruisePackageBookingHistory booking={detail.data}/>{detail.data.passengers.some(p => p.farePackageOfferId) && <CruisePackageEntitlements bookingId={bookingId} passengers={detail.data.passengers}/>}<CruisePackageBookingCabin key={bookingId} booking={detail.data} onChanged={detail.retry}/><BookingOperations key={bookingId} booking={detail.data} onChanged={detail.retry}/></></aside></div>{related&&!detail.data.passengers.some(passenger=>passenger.farePackageOfferId)&&<details className={styles.legacyPackages}>
+    const content = <>{false}<PageHeader title={detail.data?.bookingReference ?? 'Chi tiết đặt chỗ'} breadcrumb="ĐẶT CHỖ / CHI TIẾT" actions={<ButtonLink tone="secondary" to={'/admin/bookings'}>Danh sách đặt chỗ</ButtonLink>}/><BookingReadState {...detail} publicResource={undefined}/>{detail.data && <><div className={styles.recordWorkspace}><div><BookingRecord booking={detail.data}/></div><aside className={styles.recordActions}><>{<BookingContractAcceptance key={bookingId + ':' + detail.data.contractStatus} booking={detail.data} onChanged={detail.retry}/>}<CruisePackageBookingHistory booking={detail.data}/>{detail.data.passengers.some(p => p.farePackageOfferId) && <CruisePackageEntitlements bookingId={bookingId} passengers={detail.data.passengers}/>}<CruisePackageBookingCabin key={bookingId} booking={detail.data} onChanged={detail.retry}/><StaffCancellation key={bookingId + "-cancellation"} bookingId={bookingId} bookingStatus={detail.data.bookingStatus} onChanged={detail.retry} onLegacyAvailable={setLegacyCancelId}/><BookingOperations key={bookingId} legacyCancelAllowed={legacyCancelId === bookingId} booking={detail.data} onChanged={detail.retry}/></></aside></div>{related&&!detail.data.passengers.some(passenger=>passenger.farePackageOfferId)&&<details className={styles.legacyPackages}>
       <summary>Gói dịch vụ của hành khách</summary>
       {related(bookingId)}
     </details>}</>}</>;
@@ -90,15 +92,16 @@ export function BookingRecord({ booking }: {
             ['Trạng thái hợp đồng', booking.contractStatus ? ({ Draft: 'Bản nháp', Accepted: 'Đã chấp thuận', Cancelled: 'Đã hủy' } as Record<string, string>)[booking.contractStatus] ?? booking.contractStatus : 'Chưa có trạng thái'],
         ]}/>{booking.contractSigningInstructions && <p>{booking.contractSigningInstructions}</p>}{booking.cancellationReason && <p>Lý do hủy: {booking.cancellationReason}</p>}<p>Hình thức: {bookingPlanName(booking.paymentPlan)}</p><BookingInstallments booking={booking}/><p>Thanh toán theo hướng dẫn đã được xác nhận. Trạng thái đặt chỗ được cập nhật sau khi đối soát.</p></Panel><Panel title="Hành khách & Cabin"><DataTable label="Hành khách đặt chỗ" headers={['Hành khách', 'Cabin', 'Gói dịch vụ', 'Trạng thái']}>{booking.passengers.map(item => <tr key={item.bookingPassengerId}><td>{item.fullName}</td><td>{item.cabinNumber ?? 'Chưa phân Cabin'}</td><td>{item.tourPackageName ?? 'Chưa chọn gói'}</td><td>{item.participationStatus === 'Active' ? 'Tham gia' : 'Đã hủy'}</td></tr>)}</DataTable></Panel></>;
 }
-function BookingOperations({ booking, onChanged }: {
+function BookingOperations({ booking, onChanged, legacyCancelAllowed }: {
     booking: BookingDetail;
     onChanged: () => void;
+    legacyCancelAllowed: boolean;
 }) {
     const access = useSessionAccess(), lock = useRef(false);
     const [uncertain, setUncertain] = useState(false);
     const [action, setAction] = useState<'confirm' | 'cancel' | 'cabin' | null>(null), [reason, setReason] = useState(''), [person, setPerson] = useState(''), [cabinId, setCabinId] = useState(''), [acknowledged, setAcknowledged] = useState(false), [error, setError] = useState(''), [busy, setBusy] = useState(false);
     const cabins = useReadQuery('booking-change-cabins:' + booking.cruiseId + action, useCallback(signal => action === 'cabin' ? realBookingApi.cabins(booking.cruiseId, signal) : Promise.resolve(null), [booking.cruiseId, action]));
-    const permitted = (value: NonNullable<typeof action>) => canManageBooking(value, booking.bookingStatus, access) && (value !== 'confirm' || booking.contractStatus === 'Accepted') && (value !== 'cabin' || booking.passengers.some(p => !p.farePackageOfferId && p.participationStatus === 'Active'));
+    const permitted = (value: NonNullable<typeof action>) => (value !== 'cancel' || legacyCancelAllowed) && canManageBooking(value, booking.bookingStatus, access) && (value !== 'confirm' || booking.contractStatus === 'Accepted') && (value !== 'cabin' || booking.passengers.some(p => !p.farePackageOfferId && p.participationStatus === 'Active'));
     async function confirm() {
         if (!action || !permitted(action) || lock.current || uncertain)
             return;

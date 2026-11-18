@@ -1,3 +1,4 @@
+import { departureWindowLabel } from '@/domain/trip-departure-window'
 import { createScheduleTemplate } from '../model/schedule-validation'
 import { describeRouteDays, projectRoute } from '../model/route-order'
 import { mergePlanningViolations } from '../model/validation-copy'
@@ -69,13 +70,21 @@ function Schedule({initial}:{initial:Trip}) {
   }
   const newVersion=can('TRIP_PLAN_WRITE')&&!gateway.readOnly&&trip.status!=='ARCHIVED'?()=>{setSource(trip.versions?.filter(v=>v.status==='PUBLISHED').at(-1)?.versionId??'');setCreate(true)}:undefined
   return <>
-    {query.loading?<Loading label="Đang tải phiên bản lịch trình…"/>:query.error?<Notice title="Chưa mở được phiên bản" tone="error">{query.error.message}<div className={styles.actions}><Button onClick={query.retry}>Tải lại</Button><Link to={root}>Về danh sách chuyến</Link>{trip.versions?.map(v=><Button key={v.versionId} onClick={()=>setChosen(v.versionId)}>Mở phiên bản {v.versionNumber}</Button>)}</div></Notice>:query.data?<VersionEditor key={query.data.versionId} initial={query.data} trip={trip} setTrip={setTrip} onSwitch={setChosen} onNew={newVersion}/>:<Panel title={trip.name}><Empty title="Chưa có phiên bản lịch trình"/><Link to={root}>Về danh sách</Link>{newVersion&&<Button onClick={newVersion}>Tạo phiên bản nháp</Button>}</Panel>}
+    {query.loading?<Loading label="Đang tải phiên bản lịch trình…"/>:query.error?<Notice title="Chưa mở được phiên bản" tone="error">{query.error.message}<div className={styles.actions}><Button onClick={query.retry}>Tải lại</Button><Link to={root}>Về danh sách chuyến</Link>{trip.versions?.map(v=><Button key={v.versionId} onClick={()=>setChosen(v.versionId)}>Mở phiên bản {v.versionNumber}</Button>)}</div></Notice>:query.data?<VersionEditor key={query.data.versionId} initial={query.data} trip={trip} setTrip={setTrip} onSwitch={setChosen} onNew={newVersion}/>:<Panel title={trip.name}><DepartureWindowSummary trip={trip}/><Empty title="Chưa có phiên bản lịch trình"/><Link to={root}>Về danh sách</Link>{newVersion&&<Button onClick={newVersion}>Tạo phiên bản nháp</Button>}</Panel>}
     {create&&<Modal title="Tạo phiên bản lịch trình" busy={busy} onClose={()=>{if(!busy)setCreate(false)}} footer={<><Button tone="secondary" data-overlay-dismiss disabled={busy} onClick={()=>setCreate(false)}>Hủy</Button><Button busy={busy} disabled={creationUnknown} onClick={()=>void createVersion()}>{trip.versions?.some(v=>v.status==='DRAFT'||v.status==='IN_REVIEW')?'Mở bản chưa hoàn tất':busy?'Đang tạo…':'Tạo bản nháp'}</Button></>}>
       <p>Chỉ tạo bản nháp mới khi không còn bản nháp hoặc mẫu cần xử lý theo quy trình cũ của chuyến đi này.</p>
       <Field htmlFor="planning-source-version" label="Nguồn nội dung"><select id="planning-source-version" value={source} disabled={busy} onChange={e=>setSource(e.target.value)}><option value="">Nội dung trống theo số ngày của chuyến</option>{trip.versions?.filter(v=>v.status==='PUBLISHED').map(v=><option key={v.versionId} value={v.versionId}>Phiên bản {v.versionNumber} · Mẫu đã chốt</option>)}</select></Field>
       {error&&<Notice title="Chưa tạo được phiên bản" tone="error">{error}<Button disabled={busy} onClick={()=>void reconcileVersions()}>Đọc lại danh sách phiên bản</Button></Notice>}
     </Modal>}
   </>
+}
+function DepartureWindowSummary({ trip }: { trip: Trip }) {
+  const { can, root, gateway } = usePlanning()
+  const canEdit = can('TRIP_UPDATE') && !gateway.readOnly && trip.status !== 'ARCHIVED' &&
+    !trip.structuralLockedAt && !trip.versions?.some(item => item.status === 'PUBLISHED' || item.status === 'IN_REVIEW')
+  return <p>Khung khởi hành cho phép: {departureWindowLabel(trip)}{' '}
+    {canEdit && <Link to={`${root}/${trip.tripId}/info`}>Chỉnh thông tin khung chuyến</Link>}
+  </p>
 }
 type EditorProps={initial:Version;trip:Trip;setTrip:React.Dispatch<React.SetStateAction<Trip>>;onSwitch:(id:string)=>void;onNew?:()=>void}
 function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
@@ -284,6 +293,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
       <header className={styles.editorHeading}>
         <div className={styles.editorTitle}>
           <h1>{trip.name}</h1>
+          <DepartureWindowSummary trip={trip}/>
           <div className={styles.editorMeta}>
             <span>{content.days.length} ngày</span>
             {trip.tripType && <span>{trip.tripType === 'ROUND_TRIP' ? 'Khứ hồi' : 'Một chiều'}</span>}
@@ -318,7 +328,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew}:EditorProps) {
     {!editable&&version.status==='DRAFT'&&!uncertain&&<p className={styles.muted}>Chỉ xem · {trip.status==='ARCHIVED'?'Chuyến đã lưu trữ':'Tài khoản không có quyền chỉnh sửa'}</p>}
     {version.rejectionReason&&<Notice title={version.status==='CANCELLED'?'Lý do hủy bản nháp':'Lý do trả lại'} tone="warning">{version.rejectionReason}</Notice>}
     {trip.durationIssue&&<Notice title="Cần kiểm tra thời lượng" tone="warning">{trip.durationIssue}</Notice>}
-    {fault&&<Notice title="Chưa hoàn tất thao tác" tone="error">{fault.message}{uncertain&&<Button onClick={()=>setCompare(true)} disabled={Boolean(busy)}>Đối chiếu bản đã lưu</Button>}</Notice>}
+    {fault&&<Notice title="Chưa hoàn tất thao tác" tone="error">{fault.message}{fault.code==='DUPLICATE_DESTINATION_VISIT'&&fault.violations[0]&&<Button tone="secondary" onClick={()=>locate(fault.violations[0])}>Mở lần ghé cần sửa</Button>}{uncertain&&<Button onClick={()=>setCompare(true)} disabled={Boolean(busy)}>Đối chiếu bản đã lưu</Button>}</Notice>}
 
     <div className={styles.layout}>
       <nav className={`${styles.rail} ${styles.dayNavigator}`} aria-label="Hành trình">

@@ -1,3 +1,4 @@
+import { CancellationQueue } from '@/shared/cancellation'
 import { useState } from 'react'
 import { Button, ButtonLink, ListFooter, PageHeader, Panel } from '@/shared/ui'
 
@@ -33,6 +34,7 @@ export function IssueListPage() {
         <ButtonLink to="/admin/issues/new">Báo cáo sự cố</ButtonLink>
       </>} />
 
+      <CancellationQueue operations/>
       <IssueMetrics totals={state.data?.statusTotals ?? null} />
       <IssueSearchFilters
         cruises={cruises}

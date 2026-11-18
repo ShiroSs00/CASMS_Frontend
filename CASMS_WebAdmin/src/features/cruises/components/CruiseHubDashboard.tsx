@@ -15,12 +15,13 @@ import styles from './CruiseHubDashboard.module.css'
 type Query<T> = { data: T | null | undefined; loading: boolean; error: unknown; retry: () => void }
 
 export function CruiseHubDashboard({
-  detail, salePlan, sellability, sections, onNavigate, onReview, onSale, onStop,
+  detail, salePlan, sellability, sections, refreshKey, onNavigate, onReview, onSale, onStop,
 }: {
   detail: CruiseDetailView
   salePlan: Query<PlanView>
   sellability: Query<Awaited<ReturnType<typeof departureApi.publicSellability>>>
   sections: readonly DepartureSection[]
+  refreshKey: number
   onNavigate: (section: DepartureSection) => void
   onReview: () => void
   onSale: () => void
@@ -31,7 +32,7 @@ export function CruiseHubDashboard({
   const id = cruise.cruiseId
   const canRead = sections.includes('departure-start')
   const departure = useReadQuery(
-    JSON.stringify(['ops-departure-readiness', access.userId, id, cruise.revision, canRead]),
+    JSON.stringify(['ops-departure-readiness', access.userId, id, cruise.revision, refreshKey, canRead]),
     useCallback(signal => canRead ? departureApi.departureReadiness(id, signal) : Promise.resolve(null), [id, canRead]),
   )
   const plan = salePlan.loading || salePlan.error ? null : salePlan.data
@@ -50,14 +51,23 @@ export function CruiseHubDashboard({
       <RecordFacts entries={[
         ['Chuyến khởi hành', cruiseStatusLabels[cruise.status]],
         ['Trạng thái bán công khai', saleState],
-        ['Điều kiện sẵn sàng mở bán', salePlan.loading ? 'Đang kiểm tra' : plan?.readyStatus === 'READY' ? 'Đã xác nhận' : plan ? 'Chưa xác nhận' : 'Chưa xác định'],
-        ['Điều kiện sẵn sàng khởi hành', departure.loading ? 'Đang kiểm tra' : gate?.ready === true ? 'Đạt' : gate?.status === 'NOT_READY' ? 'Còn việc cần xử lý' : 'Chưa xác định'],
       ]}/>
       {cruise.stoppedAt && cruise.stopReason && <Notice title="Lý do dừng bán">{cruise.stopReason}</Notice>}
       {sellability.error != null && <Notice title="Chưa đọc được trạng thái bán" tone="error"><Button tone="secondary" onClick={sellability.retry}>Tải lại trạng thái bán</Button></Notice>}
-      {departure.error && <Notice title="Chưa đọc được điều kiện khởi hành" tone="error"><Button tone="secondary" onClick={departure.retry}>Tải lại điều kiện khởi hành</Button></Notice>}
-      {gate?.blockers?.length ? <ul>{[...new Set(gate.blockers)].map(code => <li key={code}>{readinessMessage(code)}</li>)}</ul> : null}
     </Panel>
+    <div className={styles.workGrid}>
+      {sections.includes('checks') && <Panel title="Sẵn sàng mở bán">
+        <p>{salePlan.loading ? 'Đang đối chiếu' : plan?.readyStatus === 'READY' ? 'Đạt' : plan ? 'Chưa đạt' : 'Chưa xác định'}</p>
+        {Boolean(plan?.readyBlockers.length) && <ul>{[...new Set(plan?.readyBlockers)].map(code => <li key={code}>{readinessMessage(code)}</li>)}</ul>}
+        <Button tone="secondary" autoWidth onClick={onSale}>Xem điều kiện mở bán</Button>
+      </Panel>}
+      {canRead && <Panel title="Sẵn sàng khởi hành">
+        <p>{departure.loading ? 'Đang đối chiếu' : gate?.ready === true ? 'Đạt' : gate?.status === 'NOT_READY' ? 'Chưa đạt' : 'Chưa xác định'}</p>
+        {departure.error && <Notice title="Chưa đọc được điều kiện khởi hành" tone="error"><Button tone="secondary" onClick={departure.retry}>Tải lại điều kiện khởi hành</Button></Notice>}
+        {Boolean(gate?.blockers?.length) && <ul>{[...new Set(gate?.blockers)].map(code => <li key={code}>{readinessMessage(code)}</li>)}</ul>}
+        {['PUBLISHED', 'IN_PROGRESS', 'COMPLETED'].includes(cruise.status) && link('departure-start', 'Xem điều kiện khởi hành')}
+      </Panel>}
+    </div>
     <div className={styles.workGrid}>
       <Panel title="Thương mại và xét duyệt">
         <p>{plan ? <Badge label={planReviewStates[plan.planStatus].title} tone={planReviewStates[plan.planStatus].tone}/> : salePlan.loading ? 'Đang tải hồ sơ…' : 'Chưa đọc được hồ sơ'}</p>
@@ -67,7 +77,6 @@ export function CruiseHubDashboard({
           {plan && <Button autoWidth onClick={onReview}>{packageCount ? 'Xem hồ sơ, gói và giá đã gửi' : 'Xem hồ sơ xét duyệt'}</Button>}
           {link('transaction-policy', 'Xem chính sách giao dịch')}
           {link('resources', 'Xem tàu và quy định')}
-          {sections.includes('checks') && <Button tone="secondary" autoWidth onClick={onSale}>Quản lý mở bán</Button>}
           {onStop && <Button tone="danger" autoWidth onClick={onStop}>Dừng bán</Button>}
         </div>
       </Panel>
@@ -81,7 +90,6 @@ export function CruiseHubDashboard({
           {link('operation', 'Vận hành và sự cố')}
           {link('changes', 'Theo dõi thay đổi lịch')}
           {link('sales', 'Xem tồn cabin')}
-          {['PUBLISHED', 'IN_PROGRESS', 'COMPLETED'].includes(cruise.status) && link('departure-start', 'Điều kiện khởi hành')}
         </div>
       </Panel>
     </div>
