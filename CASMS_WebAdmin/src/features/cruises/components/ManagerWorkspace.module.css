@@ -163,12 +163,17 @@
 }
 
 .operationsRoot{min-width:0}
-.conditionList{display:grid;gap:0;list-style:none;margin:16px 0;padding:0}
-.conditionList>li{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--ui-border);line-height:1.6}
-.conditionList>li:last-child{border-bottom:0}
+.deptEmptyNote{margin:0;font-size:13px;line-height:1.55;color:var(--ui-muted,#506777)}
+.blockerChecklist{display:grid;gap:12px;padding:18px 20px;border:1px solid #dfd2b5;border-radius:8px;background:#fcf9f1}
+.blockerChecklistHead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding-bottom:10px;border-bottom:1px solid #eadfc8}
+.blockerChecklistHead strong{font-size:14px;color:var(--ui-ink,#0b2a4a)}
+.conditionList{display:grid;gap:0;list-style:none;margin:0;padding:0}
+.conditionList>li{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid #eadfc8;line-height:1.6}
+.conditionList>li:last-child{border-bottom:0;padding-bottom:0}
 .conditionList>li>span{min-width:0;overflow-wrap:anywhere}
+.conditionStepNumber{display:inline-grid;place-items:center;flex:none;width:24px;height:24px;border-radius:50%;background:#efe3c7;color:#6d4406;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
 .conditionList button{flex-shrink:0}
-@media(max-width:600px){.conditionList>li{align-items:flex-start;flex-direction:column;gap:4px}}
+@media(max-width:600px){.conditionList>li{align-items:flex-start;flex-direction:column;gap:8px}}
 
 .conditionBody{flex:1;min-width:0;overflow-wrap:anywhere}
 .conditionBody>p{margin:0}

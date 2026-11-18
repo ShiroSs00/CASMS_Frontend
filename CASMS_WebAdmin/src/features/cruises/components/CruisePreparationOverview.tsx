@@ -53,7 +53,7 @@ export function CruisePreparationOverview({
       <RecordFacts
         entries={[
           ['Mã chuyến khởi hành', cruise.cruiseCode],
-          ['Tàu', detail.ship?.shipName ?? 'Chưa đọc được thông tin tàu'],
+          ['Tàu', detail.ship?.shipName ?? (cruise.shipId ? 'Chưa tải được thông tin tàu' : 'Chưa phân công tàu')],
           ['Khởi hành', journeyTime(cruise.departureDatetime)],
           ['Kết thúc', journeyTime(cruise.returnDatetime)],
           ['Lịch trình nguồn', source || 'Chưa có thông tin lịch trình nguồn'],

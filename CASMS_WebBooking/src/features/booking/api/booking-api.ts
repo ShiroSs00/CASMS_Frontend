@@ -52,9 +52,9 @@ export const liveCruiseCatalogApi = {
     booking: project(() => decodeBookingReadiness(value, id)),
   }
  },
- async list(page:number, signal?:AbortSignal, cruiseType?: 'ONE_DAY' | 'MULTI_DAYS') {
+ async list(page:number, signal?:AbortSignal, cruiseType?: 'ONE_DAY' | 'MULTI_DAYS', size = 6) {
   const data = await apiRequest<LiveCruisePageDto>('/cruise', {
-   query: { status:'PUBLISHED', saleState:'OPEN_FOR_SALE', page:page-1, size:6, sort:'departureDatetime,asc', cruiseType }, signal,
+   query: { status:'PUBLISHED', saleState:'OPEN_FOR_SALE', page:page-1, size, sort:'departureDatetime,asc', cruiseType }, signal,
   })
   return toPublishedPage(data)
  },

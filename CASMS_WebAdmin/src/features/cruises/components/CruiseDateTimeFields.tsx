@@ -8,12 +8,16 @@ const QUICK_CLOCKS = ['08:00', '09:00', '12:00', '16:00']
 function PickerButton({
   type,
   value,
+  min,
+  max,
   text,
   label,
   onSelect,
 }: {
   type: 'date' | 'time'
   value: string
+  min?: string
+  max?: string
   text: string
   label: string
   onSelect: (value: string) => void
@@ -43,6 +47,8 @@ function PickerButton({
         ref={input}
         type={type}
         value={value}
+        min={min}
+        max={max}
         aria-label={label}
         aria-hidden={!expanded}
         className={expanded ? undefined : styles.pickerAnchor}
@@ -61,6 +67,8 @@ export function CruiseDateTimeFields({
   value,
   error,
   templateClock,
+  minDate,
+  maxDate,
   onChange,
   onIncompleteChange,
 }: {
@@ -69,17 +77,19 @@ export function CruiseDateTimeFields({
   value: string
   error?: string
   templateClock?: string
+  minDate?: string
+  maxDate?: string
   onChange: (value: string) => void
   onIncompleteChange?: (incomplete: boolean) => void
 }) {
+  const normalizedSuggested = templateClock && validCruiseClock(templateClock) ? templateClock.replace(/^(\d{2}:\d{2}):00$/, '$1') : undefined
   const [isoDate, initialClock] = value.split('T')
   const [date, setDate] = useState(() => isoDate.split('-').reverse().join('/'))
-  const [clock, setClock] = useState(() => initialClock?.replace(/^(\d{2}:\d{2}):00$/, '$1') ?? '')
+  const [clock, setClock] = useState(() => initialClock?.replace(/^(\d{2}:\d{2}):00$/, '$1') || normalizedSuggested || '')
   const [dateTouched, setDateTouched] = useState(false)
   const [clockTouched, setClockTouched] = useState(false)
 
   const parsedDay = parseCruiseDate(date)
-  const normalizedSuggested = templateClock && validCruiseClock(templateClock) ? templateClock.replace(/^(\d{2}:\d{2}):00$/, '$1') : undefined
 
   const dateError = dateTouched && !parsedDay ? 'Nhập ngày hợp lệ theo dạng 25/04/2028.' : undefined
   const clockError =
@@ -115,8 +125,8 @@ export function CruiseDateTimeFields({
   const isUsingTemplateClock = Boolean(normalizedSuggested && clock.trim() === normalizedSuggested)
 
   const clockHint = normalizedSuggested
-    ? `Giờ tham khảo từ lịch mẫu là ${normalizedSuggested}. Chọn Dùng giờ theo mẫu hoặc nhập giờ khác.`
-    : 'Nhập theo định dạng 24 tiếng (ví dụ 08:00, 16:00) hoặc chọn nhanh bên dưới.'
+    ? `Đã điền sẵn theo giờ mẫu (${normalizedSuggested}). Có thể chọn nhanh hoặc nhập giờ khác.`
+    : 'Nhập theo định dạng 24 tiếng (ví dụ 08:00, 16:00) hoặc chọn nhanh.'
 
   return (
     <div className={styles.departureDateTime}>
@@ -124,7 +134,7 @@ export function CruiseDateTimeFields({
         <Field
           htmlFor={id}
           label={`Ngày ${label} *`}
-          hint="Ngày/tháng/năm, ví dụ 25/04/2028"
+          hint="Định dạng DD/MM/YYYY, ví dụ 25/04/2028"
           error={dateError}
         >
           <input
@@ -142,6 +152,8 @@ export function CruiseDateTimeFields({
           <PickerButton
             type="date"
             value={parsedDay ?? ''}
+            min={minDate}
+            max={maxDate}
             text="Chọn ngày"
             label={`Chọn ngày ${label}`}
             onSelect={selected => changeDate(selected.split('-').reverse().join('/'))}
@@ -177,28 +189,33 @@ export function CruiseDateTimeFields({
           />
         </Field>
 
-        <div className={styles.clockQuickActions} aria-label="Chọn nhanh giờ khởi hành">
+        <div className={styles.clockQuickActions} role="group" aria-label="Chọn nhanh giờ khởi hành">
           {normalizedSuggested && (
             <button
               type="button"
               className={`${styles.clockQuickBtn} ${styles.clockTemplateBtn} ${isUsingTemplateClock ? styles.clockQuickBtnActive : ''}`}
+              aria-pressed={isUsingTemplateClock}
               onClick={applyTemplateClock}
             >
               {isUsingTemplateClock
-                ? `Đang dùng giờ mẫu (${normalizedSuggested})`
-                : `Dùng giờ theo mẫu (${normalizedSuggested})`}
+                ? `Giờ mẫu (${normalizedSuggested})`
+                : `Dùng giờ mẫu (${normalizedSuggested})`}
             </button>
           )}
-          {QUICK_CLOCKS.filter(preset => preset !== normalizedSuggested).map(preset => (
-            <button
-              key={preset}
-              type="button"
-              className={`${styles.clockQuickBtn} ${clock.trim() === preset ? styles.clockQuickBtnActive : ''}`}
-              onClick={() => changeClock(preset)}
-            >
-              {preset}
-            </button>
-          ))}
+          {QUICK_CLOCKS.filter(preset => preset !== normalizedSuggested).map(preset => {
+            const active = clock.trim() === preset
+            return (
+              <button
+                key={preset}
+                type="button"
+                className={`${styles.clockQuickBtn} ${active ? styles.clockQuickBtnActive : ''}`}
+                aria-pressed={active}
+                onClick={() => changeClock(preset)}
+              >
+                {preset}
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>

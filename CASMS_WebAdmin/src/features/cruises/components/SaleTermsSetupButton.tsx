@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { useReadQuery } from '@/shared/api'
-import { Button } from '@/shared/ui'
+import { Badge, Button } from '@/shared/ui'
 import { saleTermsApi } from '../api/sale-terms'
 
 export function SaleTermsSetupButton({ cruiseId }: { cruiseId: string }) {
@@ -28,11 +28,11 @@ export function SaleTermsSetupButton({ cruiseId }: { cruiseId: string }) {
     }
   }
 
-  if (sent || pending.data) return <span role="status">Đã gửi yêu cầu cho OPS</span>
-  return <div>
-    <Button tone="secondary" autoWidth disabled={pending.loading || busy} onClick={() => void send()}>
+  if (sent || pending.data) return <Badge label="Đã gửi yêu cầu cho Vận hành" tone="info" />
+  return <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+    <Button tone="secondary" size="compact" autoWidth disabled={pending.loading || busy} onClick={() => void send()}>
       {busy ? 'Đang gửi…' : 'Yêu cầu cấu hình'}
     </Button>
-    {error && !pending.loading && <p role="alert">Chưa gửi được. Thử lại.</p>}
+    {error && !pending.loading && <span role="alert" style={{ fontSize: 12, color: 'var(--danger, #b42318)' }}>Chưa gửi được yêu cầu. Thử lại.</span>}
   </div>
 }

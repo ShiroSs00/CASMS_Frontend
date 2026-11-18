@@ -79,7 +79,10 @@ function PlanForm({ plan, path, onSaved }: { plan: Plan; path: string; onSaved: 
     Date.parse(startsAt) >= arrival &&
     finish <= endLimit
   const changed = Date.parse(startsAt) !== Date.parse(plan.startsAt ?? '') || duration !== plan.durationMinutes
-  const display = (time: string) => (zone ? journeyTime(time, zone) : journeyTime(time, 'UTC') + ' UTC')
+  const display = (time: string | null | undefined) => {
+    if (!time || !Number.isFinite(Date.parse(time))) return 'Chưa xác định'
+    return zone ? journeyTime(time, zone) : `${journeyTime(time, 'UTC')} UTC`
+  }
 
   return (
     <div className={styles.disembarkationBlock}>

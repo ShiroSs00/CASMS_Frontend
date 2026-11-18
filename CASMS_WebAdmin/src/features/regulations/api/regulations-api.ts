@@ -160,11 +160,20 @@ export const regulationsApi = {
     const action = nextStatus === 'ACTIVE' ? 'activate' : 'deactivate'
     return toRegulation(await apiRequest<RegulationDto>(`${byId(id)}/${action}`, { method: 'PATCH' }))
   },
-  async getAssignments(type: HostType, hostId: string): Promise<AssignmentSnapshot> {
+  async getCruiseDeparture(cruiseId: string): Promise<string | null> {
+    try {
+      const dto = await apiRequest<{ departureDatetime?: string | null }>(`/cruise/${encodeURIComponent(cruiseId)}`)
+      return dto?.departureDatetime ?? null
+    } catch {
+      return null
+    }
+  },
+  async getAssignments(type: HostType, hostId: string, at?: string): Promise<AssignmentSnapshot> {
     const base = assignmentPath(type, hostId)
+    const validAt = at && Number.isFinite(Date.parse(at)) ? new Date(at).toISOString() : undefined
     const [directDtos, snapshot] = await Promise.all([
       apiRequest<AssignmentDto[]>(base),
-      apiRequest<SnapshotDto>(`${base}/effective`),
+      apiRequest<SnapshotDto>(`${base}/effective`, { query: validAt ? { at: validAt } : undefined }),
     ])
     const direct = await Promise.all(directDtos.map((item) => apiRequest<RegulationDto>(byId(item.regulationId))))
     if(!snapshot?.host||snapshot.host.id!==hostId||!Array.isArray(snapshot.direct)||!Array.isArray(snapshot.inherited))throw new ApiError('Phản hồi quy định chưa khớp với đối tượng đang xem. Tải lại danh sách.',502,'REGULATION_ASSIGNMENT_RESPONSE_INVALID')
@@ -204,16 +213,16 @@ export const regulationsApi = {
   async assign(type: HostType, hostId: string, regulationId: string) {
     const body = type === 'ship' ? { shipId: hostId, regulationId } : { cruiseId: hostId, regulationId }
     await apiRequest<unknown>(assignmentPath(type, hostId), { method: 'POST', body })
-    let actual:AssignmentSnapshot
-    try{actual=await this.getAssignments(type,hostId)}catch{throw new ApiError('Đã gửi yêu cầu gán nhưng chưa đọc lại được liên kết. Tải lại danh sách trước khi thao tác tiếp.',502,'REGULATION_READBACK_UNCONFIRMED')}
-    if(!actual.direct.some(item=>item.regulation.id===regulationId))throw new ApiError('Chưa xác nhận được liên kết sau khi gán. Tải lại danh sách trước khi thao tác tiếp.',502,'REGULATION_READBACK_UNCONFIRMED')
+    let actual: AssignmentDto[]
+    try { actual = await apiRequest<AssignmentDto[]>(assignmentPath(type, hostId)) } catch { throw new ApiError('Đã gửi yêu cầu gán nhưng chưa đọc lại được liên kết. Tải lại danh sách trước khi thao tác tiếp.', 502, 'REGULATION_READBACK_UNCONFIRMED') }
+    if (!actual.some(item => item.regulationId === regulationId)) throw new ApiError('Chưa xác nhận được liên kết sau khi gán. Tải lại danh sách trước khi thao tác tiếp.', 502, 'REGULATION_READBACK_UNCONFIRMED')
     return { message: 'Đã gán quy định.' }
   },
   async remove(type: HostType, hostId: string, regulationId: string) {
     await apiRequest<void>(`${assignmentPath(type, hostId)}/${encodeURIComponent(regulationId)}`, { method: 'DELETE' })
-    let actual:AssignmentSnapshot
-    try{actual=await this.getAssignments(type,hostId)}catch{throw new ApiError('Đã gửi yêu cầu gỡ nhưng chưa đọc lại được liên kết. Tải lại danh sách trước khi thao tác tiếp.',502,'REGULATION_READBACK_UNCONFIRMED')}
-    if(actual.direct.some(item=>item.regulation.id===regulationId))throw new ApiError('Chưa xác nhận được việc gỡ liên kết. Tải lại danh sách trước khi thao tác tiếp.',502,'REGULATION_READBACK_UNCONFIRMED')
+    let actual: AssignmentDto[]
+    try { actual = await apiRequest<AssignmentDto[]>(assignmentPath(type, hostId)) } catch { throw new ApiError('Đã gửi yêu cầu gỡ nhưng chưa đọc lại được liên kết. Tải lại danh sách trước khi thao tác tiếp.', 502, 'REGULATION_READBACK_UNCONFIRMED') }
+    if (actual.some(item => item.regulationId === regulationId)) throw new ApiError('Chưa xác nhận được việc gỡ liên kết. Tải lại danh sách trước khi thao tác tiếp.', 502, 'REGULATION_READBACK_UNCONFIRMED')
     return { message: 'Đã gỡ quy định khỏi đối tượng.' }
   },
 }

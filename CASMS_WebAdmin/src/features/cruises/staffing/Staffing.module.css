@@ -53,7 +53,8 @@
 @media(max-width:480px){ .fields { grid-template-columns:minmax(0,1fr); } }
 
 .handoffList { display:grid; }
-.handoffBudget { display:flex;flex-wrap:wrap;align-items:baseline;gap:0 var(--space-2);margin:0 0 var(--space-4);padding:var(--space-3);background:var(--ui-subtle);border-radius:var(--radius-md); }
+.handoffBudgetWrap { margin-bottom:var(--space-3); }
+.budgetAnchorLink { font-weight:600; color:var(--brand-navy); text-decoration:underline; text-underline-offset:3px; }
 .handoffItem { display:grid; gap:var(--space-3); padding-block:var(--space-4); min-width:0; }
 .handoffItem:first-child { padding-block-start:0; }
 .handoffItem:last-child { padding-block-end:0; }

@@ -81,7 +81,7 @@ export function PlanPackageSelection({ cruiseId, onSaved }: { cruiseId: string; 
     {selected.filter(choice => !data?.offers.some(candidate => candidate.product.offer.id === choice.offerId)).map(choice =>
       <p key={choice.offerId}>Gói đã chọn không còn khả dụng. <Button tone="secondary" disabled={busy} onClick={() => setDraft(selected.filter(item => item.offerId !== choice.offerId))}>Bỏ gói khỏi hồ sơ</Button></p>)}
     {terms.data?.terms && <p>Thuế: {chargeText(terms.data.terms.tax, true)} · Phí cảng: {chargeText(terms.data.terms.portFee, false)}</p>}
-    {terms.error && <Button tone="secondary" onClick={terms.retry}>Tải lại thuế và phí cảng</Button>}
+    {terms.error && <div className={styles.selectionActions}><Button tone="secondary" size="compact" autoWidth onClick={terms.retry}>Tải lại thuế và phí cảng</Button></div>}
     <div className={styles.selectionActions}><Button autoWidth disabled={!editable || !draft || busy || Boolean(error) || query.loading || Boolean(query.error)} onClick={() => void save()}>Lưu lựa chọn gói</Button></div>
   </Panel>
 }

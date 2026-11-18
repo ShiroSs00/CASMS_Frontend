@@ -93,3 +93,73 @@
   .hero { min-height:clamp(660px,calc(100svh - 180px),1040px); }
   .heroInner { padding-block:88px 128px; }
 }
+
+/* Royal-inspired Live Tours Showcase & Active Fleet Band */
+.finderFields { display:grid; grid-template-columns:1.25fr 1fr; gap:12px; flex:1; min-width:0; }
+@media(max-width:600px) { .finderFields { grid-template-columns:1fr; flex-basis:100%; } }
+
+.liveSection { margin-top:64px; display:grid; gap:24px; }
+.showcaseHead { display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:16px 24px; }
+.showcaseTitleWrap { display:grid; gap:8px; }
+.showcaseTitleWrap h2 { font-size:clamp(28px,2.8vw,40px); line-height:1.2; font-weight:500; }
+.sectionLink { display:inline-flex; align-items:center; gap:8px; min-height:40px; padding:6px 14px; border:1px solid #c3d0ce; border-radius:8px; background:#fff; color:var(--brand-navy); font-size:13px; font-weight:600; transition:border-color 140ms ease,color 140ms ease; }
+.sectionLink:hover { border-color:var(--brand-teal); color:var(--brand-teal); }
+
+.filterTabs { display:flex; flex-wrap:wrap; gap:6px 24px; border-bottom:1px solid #d5dedb; }
+.filterTab { position:relative; border:0; background:transparent; padding:10px 2px 12px; font:500 14px/1.4 var(--font-family-body); color:var(--text-secondary); cursor:pointer; }
+.filterTab:hover { color:var(--brand-navy); }
+.filterTab[aria-selected='true'] { color:var(--brand-navy); font-weight:600; }
+.filterTab[aria-selected='true']::after { content:''; position:absolute; inset:auto 0 -1px 0; height:2px; background:var(--brand-teal); }
+
+.tourGrid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:20px; }
+@media(max-width:1180px) { .tourGrid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:620px) { .tourGrid { grid-template-columns:minmax(0,1fr); } }
+
+.tourCard { display:grid; grid-template-rows:auto 1fr auto; background:#fff; border:1px solid #d5e0e4; border-radius:10px; overflow:hidden; transition:border-color 160ms ease,box-shadow 160ms ease; }
+.tourCard:hover { border-color:#98b6bc; box-shadow:0 10px 24px rgb(11 42 74 / 8%); }
+.tourPhoto { position:relative; aspect-ratio:16/10; overflow:hidden; background:#0d324d; }
+.tourPhoto img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 320ms ease; }
+.tourCard:hover .tourPhoto img { transform:scale(1.04); }
+.tourPill { position:absolute; top:10px; left:10px; padding:4px 10px; border-radius:6px; background:rgb(255 255 255 / 95%); color:var(--brand-navy); font-size:11px; font-weight:700; line-height:1.3; box-shadow:0 2px 6px rgb(6 26 43 / 16%); }
+.tourBody { display:grid; gap:8px; padding:16px 18px 14px; align-content:start; min-width:0; }
+.tourMetaTop { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px; font-size:12px; color:var(--text-secondary); }
+.tourCode { font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; font-size:11px; padding:2px 6px; border-radius:4px; background:#f0f4f5; color:#425969; }
+.tourTitle { font-family:var(--font-family-heading); font-size:17px; font-weight:600; line-height:1.35; color:var(--brand-navy); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.tourTitle a { color:inherit; }
+.tourTitle a:hover { color:var(--brand-teal); text-decoration:underline; text-underline-offset:3px; }
+.tourShip { display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:500; color:#2b475a; }
+.tourRoute { font-size:13px; line-height:1.45; color:var(--text-secondary); }
+.tourFooter { display:grid; gap:8px; padding:12px 18px 16px; border-top:1px solid #e7eeee; background:#fafcfb; }
+.tourDate { display:flex; align-items:baseline; justify-content:space-between; gap:8px; font-size:12px; color:var(--text-secondary); font-variant-numeric:tabular-nums; }
+.tourDate strong { font-size:13px; color:var(--brand-navy); }
+.tourCta { justify-self:start; font-size:13px; font-weight:600; color:var(--brand-teal); text-decoration:underline; text-underline-offset:4px; white-space:nowrap; }
+.tourCta:hover { color:var(--brand-navy); }
+
+.skeletonCard { background:#fff; border:1px solid #dce6e7; border-radius:10px; overflow:hidden; }
+.skeletonPhoto { aspect-ratio:16/10; background:#e5ecee; }
+.skeletonLines { padding:16px 18px; display:grid; gap:10px; }
+.skeletonLine { height:13px; border-radius:5px; background:#e8eef0; width:82%; animation:pulse 1.4s ease-in-out infinite; }
+.skeletonLineShort { width:52%; }
+@keyframes pulse { 50% { opacity:.45; } }
+
+.emptyTours { padding:32px 24px; border:1px dashed #c4d3d0; border-radius:10px; background:#fff; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; }
+.emptyToursCopy { display:grid; gap:4px; }
+.emptyToursCopy strong { font-size:16px; color:var(--brand-navy); }
+.emptyToursCopy p { font-size:13px; color:var(--text-secondary); }
+
+/* Deep Navy Fleet Band (Royal-style ship posters backed by live data) */
+.fleetBand { margin-top:72px; padding:48px; background:var(--brand-navy); color:var(--brand-pearl); border-radius:10px; display:grid; gap:28px; }
+.fleetHead { display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:16px 24px; }
+.fleetHead .eyebrow { color:#e7d38c; }
+.fleetHead h2 { font-size:clamp(28px,2.8vw,40px); line-height:1.25; margin-top:8px; color:#fff; }
+.fleetHead p { max-width:48ch; font-size:14px; line-height:1.7; color:#d2e0e5; margin-top:8px; }
+.fleetGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; }
+.fleetPoster { position:relative; display:block; aspect-ratio:3/4; min-height:280px; border-radius:10px; overflow:hidden; border:1px solid rgb(255 255 255 / 14%); background:#071b2b; }
+.fleetPoster img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 360ms ease; }
+.fleetPoster:hover img { transform:scale(1.04); }
+.fleetScrim { position:absolute; inset:auto 0 0 0; padding:48px 18px 18px; background:linear-gradient(180deg,transparent 0%,rgb(6 26 43 / 88%) 100%); display:grid; gap:4px; color:#fff; }
+.fleetScrim h3 { font-family:var(--font-family-heading); font-size:20px; font-weight:600; line-height:1.25; color:#fff; text-transform:uppercase; letter-spacing:.02em; }
+.fleetScrim span { font-size:12px; color:#dce7eb; }
+@media(max-width:760px) { .fleetBand { padding:28px 20px; margin-top:48px; } }
+@media(prefers-reduced-motion:reduce) { .tourPhoto img,.fleetPoster img,.skeletonLine { transition:none; animation:none; transform:none!important; } }
+

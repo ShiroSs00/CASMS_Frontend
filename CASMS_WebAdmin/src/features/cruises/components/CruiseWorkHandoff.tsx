@@ -83,17 +83,20 @@ export function CruiseWorkHandoff({
       {read.data && (
         <>
           {!budgetAmount && read.data.canDispatch && (
-            <p className={styles.handoffBudget} role="status">
-              {budgetLoading ? (
-                'Đang kiểm tra ngân sách…'
-              ) : budgetUnavailable ? (
-                'Kiểm tra lại ngân sách trước khi giao việc.'
-              ) : (
-                <>
-                  <a href="#operating-budget">Lưu ngân sách vận hành</a> để gửi yêu cầu cho các bộ phận.
-                </>
-              )}
-            </p>
+            <div className={styles.handoffBudgetWrap}>
+              <Notice title={budgetLoading ? 'Đang kiểm tra ngân sách vận hành…' : 'Cần nhập ngân sách vận hành trước khi giao việc'} tone={budgetUnavailable ? 'warning' : 'info'}>
+                {budgetLoading ? (
+                  'Hệ thống đang kiểm tra trạng thái ngân sách.'
+                ) : budgetUnavailable ? (
+                  'Chưa xác nhận được ngân sách hiện tại. Kiểm tra lại mục Ngân sách vận hành trước khi giao việc.'
+                ) : (
+                  <>
+                    Thiết lập ngân sách ở mục trên để gửi yêu cầu chuẩn bị cho các bộ phận.{' '}
+                    <a className={styles.budgetAnchorLink} href="#operating-budget">Đến mục ngân sách ↑</a>
+                  </>
+                )}
+              </Notice>
+            </div>
           )}
           {(['ASM', 'SHIP'] as const).map(group => {
             const task = read.data?.tasks.find(item => item.group === group)

@@ -1,4 +1,12 @@
 import {SHIP_TIME_ZONE,journeyTime,wallTimeToInstant,zonedInput} from '@/shared/lib/journey-time'
+import {
+  formatRegulationSourceLabel,
+  formatRegulationValue,
+  regulationScopeLabels,
+  regulationStatusLabels,
+  regulationTypeLabels,
+  regulationUnitLabels,
+} from '@/shared/i18n/regulation-labels'
 export type RegulationType =
   | 'SAFETY'
   | 'CAPACITY'
@@ -119,27 +127,11 @@ export type MutationResult = {
   message: string
 }
 
-export const typeLabels: Record<RegulationType, string> = {
-  SPEED: 'Tốc độ',
-  CAPACITY: 'Sức chứa',
-  SAFETY: 'An toàn',
-  WEATHER: 'Thời tiết',
-  ENVIRONMENT: 'Môi trường',
-  HEALTH: 'Sức khỏe',
-}
+export const typeLabels: Record<RegulationType, string> = regulationTypeLabels
 
-export const scopeLabels: Record<RegulationScope, string> = {
-  GLOBAL: 'Toàn hệ thống',
-  SHIP: 'Theo tàu',
-  CRUISE: 'Theo chuyến khởi hành',
-}
+export const scopeLabels: Record<RegulationScope, string> = regulationScopeLabels
 
-export const statusLabels: Record<RegulationStatus, string> = {
-  DRAFT: 'Bản nháp',
-  ACTIVE: 'Đã kích hoạt',
-  INACTIVE: 'Đã ngừng kích hoạt',
-  EXPIRED: 'Hết hạn',
-}
+export const statusLabels: Record<RegulationStatus, string> = regulationStatusLabels
 
 export const effectiveLabels: Record<EffectiveStatus, string> = {
   EFFECTIVE: 'Đang hiệu lực',
@@ -169,13 +161,12 @@ export function regulationInput(instant:string|number){return zonedInput(instant
 export function regulationInstant(value:string){
  return /(?:Z|[+-]\d{2}:\d{2})$/.test(value)?new Date(value).toISOString():wallTimeToInstant(value,SHIP_TIME_ZONE)
 }
-export const unitLabels:Record<RegulationUnit,string>={KNOT:'hải lý/giờ',KM:'km',METER:'m',PERCENT:'%',PERSON:'người',CELSIUS:'°C',NONE:'Không có đơn vị'}
-export function regulationValue(regulation:Pick<Regulation,'value'|'unit'>){
- const unit=regulation.unit&&regulation.unit!=='NONE'?unitLabels[regulation.unit]??'Chưa xác định đơn vị':''
- return [regulation.value,unit].filter(Boolean).join(' ')
+export const unitLabels: Record<RegulationUnit, string> = regulationUnitLabels
+export function regulationValue(regulation: Pick<Regulation, 'value' | 'unit'>) {
+  return formatRegulationValue(regulation.value, regulation.unit)
 }
-export function regulationSource(source:string){
- return source.replace(/^GLOBAL(?=$|\s|\s*·)/,'Toàn hệ thống').replace(/^SHIP(?=$|\s|\s*·)/,'Tàu').replace(/^CRUISE(?=$|\s|\s*·)/,'Chuyến khởi hành')
+export function regulationSource(source: string) {
+  return formatRegulationSourceLabel(source)
 }
 
 export function formatDateTime(value:string|null){
