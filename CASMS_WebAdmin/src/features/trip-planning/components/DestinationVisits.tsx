@@ -1,5 +1,5 @@
 import { destinationVisitLabel } from '../model/destination-label'
-import { useCallback } from 'react'
+import { useCallback, useId, useRef } from 'react'
 import { useReadQuery } from '@/shared/api'
 import { Button, Field, Loading, Notice } from '@/shared/ui'
 import { apiRequest } from '@/shared/api'
@@ -7,9 +7,10 @@ import { countryLabel } from '../model/plan'
 import type { DestinationVisit } from '../api/current-contract'
 import styles from '../Planning.module.css'
 import visitStyles from './DestinationVisits.module.css'
-export function DestinationVisits({ visits, onChange, port }: {
+export function DestinationVisits({ visits, onChange, port, readOnly }: {
   visits: DestinationVisit[]
   onChange: (visits: DestinationVisit[]) => void
+  readOnly?: boolean
   port?: { name: string; countryCode?: string; destinationId?: string }
 }) {
  const catalog=useReadQuery('visit-destinations',useCallback(signal=>apiRequest<{destinationId:string;destinationName:string;countryCode:string}[]>('/destinations/active',{signal}),[]))
@@ -17,42 +18,75 @@ export function DestinationVisits({ visits, onChange, port }: {
    destination.destinationId === port?.destinationId ||
    !port?.countryCode || destination.countryCode?.toUpperCase() === port.countryCode.toUpperCase(),
  )
+ const selectId = useId()
+ const pending = useRef<{ base: DestinationVisit[]; next: DestinationVisit[] } | null>(null)
+ const selectedIds = new Set<string>()
+ const duplicates = new Map<string, DestinationVisit>()
+ for (const visit of visits) {
+   if (selectedIds.has(visit.destinationId)) duplicates.set(visit.destinationId, visit)
+   selectedIds.add(visit.destinationId)
+ }
  const linked = local.find(destination => destination.destinationId === port?.destinationId)
+ const available = local.filter(destination => !selectedIds.has(destination.destinationId))
+ const labels = new Map<string, string>()
+ for (const destination of catalog.data ?? []) labels.set(destination.destinationId, destinationVisitLabel(destination.destinationName))
+ for (const visit of visits) {
+   if (!labels.has(visit.destinationId)) labels.set(visit.destinationId, destinationVisitLabel(visit.destinationName ?? 'Điểm đến đã lưu'))
+ }
+ const nameCounts = new Map<string, number>()
+ for (const name of labels.values()) nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1)
+ function label(destinationId: string) {
+   const name = labels.get(destinationId) ?? 'Điểm đến đã lưu'
+   return (nameCounts.get(name) ?? 0) > 1 ? `${name} (${destinationId})` : name
+ }
+ function currentVisits() {
+   return pending.current?.base === visits ? pending.current.next : visits
+ }
+ function change(next: DestinationVisit[]) {
+   pending.current = { base: visits, next }
+   onChange(next)
+ }
  function add(destinationId: string) {
-   const destination = local.find(item => item.destinationId === destinationId)
-   if (!destination || !port) return
-   onChange([...visits, {
+   const current = currentVisits()
+   const destination = available.find(item => item.destinationId === destinationId)
+   if (!destination || !port || readOnly || catalog.loading || catalog.error ||
+     current.some(visit => visit.destinationId === destinationId)) return
+   change([...current, {
      clientKey: crypto.randomUUID(),
      destinationId,
      destinationName: destination.destinationName,
-     sequence: visits.length + 1,
+     sequence: current.length + 1,
    }])
  }
  function remove(clientKey: string) {
-   onChange(visits.filter(visit => visit.clientKey !== clientKey)
+   if (readOnly) return
+   change(currentVisits().filter(visit => visit.clientKey !== clientKey)
      .map((visit, index) => ({ ...visit, sequence: index + 1 })))
  }
  return <fieldset className={styles.formGroup}><legend>Điểm tham quan</legend>
+ {duplicates.size > 0 && <Notice title="Có điểm tham quan bị lặp" tone="error">
+   <p>{[...duplicates.keys()].map(label).join(', ')}. {readOnly ? 'Liên hệ người quản lý lịch trình để xử lý.' : 'Chọn Bỏ ở lượt bị lặp trước khi lưu.'}</p>
+ </Notice>}
  {visits.length > 0 && <ol className={visitStyles.list}>
    {visits.map(visit => {
-     const name = destinationVisitLabel(visit.destinationName ?? catalog.data?.find(item => item.destinationId === visit.destinationId)?.destinationName ?? 'Điểm đến đã lưu')
+     const name = label(visit.destinationId)
      return <li key={visit.clientKey}><div className={visitStyles.row}>
        <span>{name}</span>
-       <Button tone="text" size="compact" aria-label={'Bỏ ' + name} onClick={() => remove(visit.clientKey)}>Bỏ</Button>
+       <Button disabled={readOnly} tone="text" size="compact" aria-label={'Bỏ ' + name} onClick={() => remove(visit.clientKey)}>Bỏ</Button>
      </div></li>
    })}
  </ol>}
- {!port ? <p>Chọn cảng ở trên để xem các điểm đến.</p> : <>
+ {readOnly ? null : !port ? <p>Chọn cảng ở trên để xem các điểm đến.</p> : <>
    <p className={visitStyles.context}>Lần ghé: <strong>{port.name}</strong></p>
    {catalog.loading ? <Loading label="Đang tải điểm đến…"/> : catalog.error
      ? <Notice title="Chưa tải được điểm đến" tone="error"><Button onClick={catalog.retry}>Thử lại</Button></Notice>
-     : local.length === 0 ? <p>Chưa có điểm đến phù hợp trong danh mục.</p> : <>
-       {linked && !visits.some(visit => visit.destinationId === linked.destinationId) &&
-         <Button tone="secondary" onClick={() => add(linked.destinationId)}>Thêm {destinationVisitLabel(linked.destinationName)}</Button>}
-       <Field htmlFor="visit-destination" label={port.countryCode ? `Thêm điểm tham quan · ${countryLabel(port.countryCode)}` : 'Thêm điểm tham quan'}>
-         <select id="visit-destination" value="" onChange={event => add(event.target.value)}>
+     : available.length === 0 ? <p>{local.length ? 'Đã thêm tất cả điểm đến phù hợp.' : 'Chưa có điểm đến phù hợp trong danh mục.'}</p> : <>
+       {linked && !selectedIds.has(linked.destinationId) &&
+         <Button tone="secondary" onClick={() => add(linked.destinationId)}>Thêm {label(linked.destinationId)}</Button>}
+       <Field htmlFor={selectId} label={port.countryCode ? `Thêm điểm tham quan tại ${countryLabel(port.countryCode)}` : 'Thêm điểm tham quan'}>
+         <select id={selectId} value="" onChange={event => add(event.target.value)}>
            <option value="">Chọn điểm đến để thêm vào lần ghé</option>
-           {local.map(destination => <option key={destination.destinationId} value={destination.destinationId}>{destinationVisitLabel(destination.destinationName)}</option>)}
+           {available.map(destination => <option key={destination.destinationId} value={destination.destinationId}>{label(destination.destinationId)}</option>)}
          </select>
        </Field>
      </>}

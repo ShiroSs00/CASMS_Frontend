@@ -20,3 +20,12 @@ export function photosForPorts(names: readonly (string | null | undefined)[]) {
   const ports = names.map(name => name && portKey(name)).filter(Boolean)
   return cruisePortPhotos.filter(photo => ports.some(port => port && ` ${port} `.includes(` ${photo.match} `)))
 }
+
+export function primaryPhotoForCruise(
+  cruise: { title?: string | null; departurePort?: string | null; returnPort?: string | null },
+  fallbackIndex = 0,
+) {
+  const text = portKey([cruise.title, cruise.departurePort, cruise.returnPort].filter(Boolean).join(' '))
+  return cruisePortPhotos.find(photo => ` ${text} `.includes(` ${photo.match} `))
+    ?? cruisePortPhotos[fallbackIndex % cruisePortPhotos.length]
+}

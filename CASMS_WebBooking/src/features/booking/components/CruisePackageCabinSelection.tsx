@@ -6,6 +6,7 @@ import type { AvailableCabin, BookingPersonDraft } from '../api/real-booking-api
 import { useLiveBooking } from '../model/live-booking-context'
 import { groupPassengers, personGroup } from '../model/booking-party'
 import { eligibleCabins } from '../model/booking-cabin-selection'
+import { cabinTypeName } from '../model/booking-presentation'
 import { BookingCabinChoices } from './BookingCabinChoices'
 import type { BookingModelRenderer } from './BookingShipModel'
 import type { BookingPackageOption } from './LiveBookingFields'
@@ -38,16 +39,42 @@ export function CruisePackageCabinSelection({ catalog, cabins, shipId, render, p
       <div className={styles.section}>
       {group.members.map(index => {
         const p = draft.passengers[index], fare = catalog.offers.find(o => o.selection.offerId === p.farePackageOfferId)?.selection
-        return <section key={personIds[index] ?? index} className={styles.section} aria-label={`Lựa chọn hành khách ${index + 1}`}>
-          <h3>{p.fullName || `Hành khách ${index + 1}`}</h3>
+        return <section key={personIds[index] ?? index} className={styles.passengerConfigCard} aria-label={`Lựa chọn hành khách ${index + 1}`}>
+          <div className={styles.passengerConfigHead}>
+            <h3>{p.fullName || `Hành khách ${index + 1}`}</h3>
+            {index === 0 && <span className={styles.leadTag}>Người đại diện</span>}
+          </div>
           {catalog.fareManaged ? <>
+            {catalog.offers.length > 0 && <div className={styles.offerPickGrid} role="group" aria-label={`Chọn nhanh gói cho hành khách ${index + 1}`}>
+              {catalog.offers.map(o => {
+                const selected = p.farePackageOfferId === o.selection.offerId
+                return <button
+                  key={o.selection.offerId}
+                  type="button"
+                  className={`${styles.offerPickCard} ${selected ? styles.offerPickCardSelected : ''}`}
+                  aria-pressed={selected}
+                  onClick={() => update(index, {
+                    farePackageOfferId: o.selection.offerId,
+                    farePackagePriceRevisionId: o.selection.priceRevisionId,
+                    tourPackageId: '',
+                    cabinId: '',
+                  })}
+                >
+                  <span className={styles.offerPickMeta}>{cabinTypeName(o.selection.cabinType)} · {o.selection.logicalCategory}</span>
+                  <strong>{o.selection.templateName}</strong>
+                  <span className={styles.offerPickPrice}>
+                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: o.currencyCode }).format(Number(o.selection.amount))} / người
+                  </span>
+                </button>
+              })}
+            </div>}
             <Field htmlFor={`person-${index}-farePackageOfferId`} label="Gói du thuyền và hạng cabin *" error={errors[`person-${index}-farePackageOfferId`]}>
               <select id={`person-${index}-farePackageOfferId`} value={p.farePackageOfferId ?? ''} onChange={e => {
                 const selected = catalog.offers.find(o => o.selection.offerId === e.target.value)?.selection
                 update(index, { farePackageOfferId: selected?.offerId, farePackagePriceRevisionId: selected?.priceRevisionId, tourPackageId: '', cabinId: '' })
               }}><option value="">Chọn gói du thuyền</option>{p.farePackageOfferId && !fare && <option value={p.farePackageOfferId}>Gói đã chọn cần kiểm tra lại</option>}{catalog.offers.map(o => <option key={o.selection.offerId} value={o.selection.offerId}>{o.selection.templateName} · {o.selection.logicalCategory} · {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: o.currencyCode }).format(Number(o.selection.amount))}/người</option>)}</select>
             </Field>
-            {fare && <details><summary>Quyền lợi trong gói</summary><ul>{fare.benefits.map(b => <li key={b.sourceBenefitId}>{b.resourceName} · {b.inclusion === 'INCLUDED' ? 'Đã bao gồm' : b.inclusion === 'LIMITED_INCLUDED' ? `Đã bao gồm, giới hạn ${b.quantityLimit} ${b.serviceUnitCode ?? 'lượt'}` : b.inclusion === 'OPTIONAL' ? 'Tùy chọn' : 'Không bao gồm'}{b.requiresReservation && ' · Cần đăng ký riêng'}</li>)}</ul></details>}
+            {fare && <details className={styles.benefitDrawer}><summary>Quyền lợi trong gói ({fare.benefits.length})</summary><ul>{fare.benefits.map(b => <li key={b.sourceBenefitId}>{b.resourceName} · {b.inclusion === 'INCLUDED' ? 'Đã bao gồm' : b.inclusion === 'LIMITED_INCLUDED' ? `Đã bao gồm, giới hạn ${b.quantityLimit} ${b.serviceUnitCode ?? 'lượt'}` : b.inclusion === 'OPTIONAL' ? 'Tùy chọn' : 'Không bao gồm'}{b.requiresReservation && ' · Cần đăng ký riêng'}</li>)}</ul></details>}
             <Field htmlFor={`person-${index}-cabinSelectionMode`} label="Cách chọn cabin *" error={errors[`person-${index}-cabinSelectionMode`]}>
               <select id={`person-${index}-cabinSelectionMode`} value={p.cabinSelectionMode ?? ''} onChange={e => update(index, { cabinSelectionMode: e.target.value ? e.target.value as CabinSelectionMode : undefined, cabinId: '' })}>
                 <option value="">Chọn cách nhận cabin</option><option value="PHYSICAL_CABIN">Chọn cabin cụ thể</option><option value="CATEGORY_HOLD">Giữ chỗ theo hạng, chọn cabin sau</option>

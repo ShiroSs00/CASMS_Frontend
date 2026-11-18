@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { CancellationQueue } from '@/shared/cancellation'
+import { RefundHistory, RefundSummary } from '../components/RefundWorkspace'
 import { UsdDisplayRate } from '../components/UsdDisplayRate'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
@@ -40,6 +42,8 @@ function FinanceWorkspace() {
     {access.roles.includes('FINANCE_OFFICER') && access.has('PAYMENT_REPORT') && <UsdDisplayRate />}
 
     {!canBookings && <Notice title="Danh sách đặt chỗ chưa khả dụng">{access.status === 'loading' ? 'Đang kiểm tra quyền truy cập…' : 'Tài khoản cần quyền xem đặt chỗ để mở danh sách và hợp đồng.'}</Notice>}
+    <CancellationQueue/>
+    {access.status === 'ready' && access.roles.includes('FINANCE_OFFICER') && access.has('PAYMENT_REFUND') && <RefundSummary/>}
     <div className={styles.financeGrid}>
     {canPayments && <Panel className={styles.financeLookup} title="Tra cứu khoản thu" ><form onSubmit={openLedger}><Field htmlFor="finance-booking-id" label="ID đặt chỗ"><input id="finance-booking-id" required value={bookingId} onChange={event => setBookingId(event.target.value)} /></Field><Button type="submit">Mở khoản thu</Button></form>{error && <Notice title="Chưa tra cứu được" tone="error">{error}</Notice>}</Panel>}
     {canBookings && <Panel className={styles.financeList} title="Đặt chỗ"><BookingReadState {...list} />{list.data && <>
@@ -50,6 +54,7 @@ function FinanceWorkspace() {
     </>}</Panel>}
     {!selected && canBookings && !list.loading && !list.error && Boolean(list.data?.content.length) && <Panel title="Chi tiết khoản thu"><Empty title="Chọn đặt chỗ để xem khoản thu"><p>Mở một đặt chỗ trong danh sách hoặc tra cứu bằng ID để đối chiếu giao dịch và lịch thanh toán.</p></Empty></Panel>}
     {selected && <section id="finance-selected-ledger" aria-label={`Tài chính ${selected.reference}`}><h2 ref={selectedHeading} tabIndex={-1}>Khoản thu và lịch thanh toán · {selected.reference}</h2>
+      <RefundHistory key={selected.id + '-refunds'} bookingId={selected.id}/>
       <PaymentLedger key={selected.id} bookingId={selected.id} currency={detail.data?.currency ?? selected.currency} onChanged={() => { detail.retry(); list.retry() }} />
       {canBookings && <Panel title="Lịch thanh toán"><BookingReadState {...detail} />{detail.data && <BookingInstallments booking={detail.data} />}
         {detail.error instanceof ApiError && detail.error.status === 403 && <Notice title="Chưa truy cập được hợp đồng" tone="warning">Tài khoản chưa được phép đọc chi tiết đặt chỗ này. Bạn vẫn có thể tra cứu khoản thu phía trên bằng quyền thanh toán của mình.</Notice>}

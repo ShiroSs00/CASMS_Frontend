@@ -1,3 +1,4 @@
+import { departureWindowInputs, type DepartureWindow } from '@/domain/trip-departure-window'
 import type { ItineraryDayRole } from '@/domain/itinerary-day'
 import { apiRequest, ApiError } from '@/shared/api'
 import { validDurationDays } from '@/domain/trip-duration'
@@ -5,7 +6,7 @@ export type SourceDay={dayNumber:number;dayRole?:ItineraryDayRole;departurePortI
 export type SourceStop={visits?:{visitId?:string;clientKey:string;destinationId:string;destinationName?:string|null;sequence:number}[];destinationId?:string|null;destinationName?:string|null;clientKey:string;portName?:string;stopOrder:number;arrivalDayNumber:number;departureDayNumber:number;plannedArrivalTime:string|null;plannedDepartureTime:string|null;timeZoneId?:string;allAboardDayNumber?:number|null;allAboardTime?:string|null;isEmbarkation?:boolean;isDisembarkation?:boolean;arrivalMethod?:string;callType?:string}
 export type SourceEntry={destinationId?:string|null;destinationName?:string|null;stopClientKey?:string|null;entryId?:string;clientKey:string;title:string;kind:'ONBOARD_ACTIVITY'|'SHORE_EXCURSION'|'SERVING_WINDOW';startDayNumber:number;endDayNumber:number;plannedStartTime:string;plannedEndTime:string;timeZoneId:string;locationText:string|null;meetingPoint:string|null;notes?:string|null;displayLocation?:string|null;categoryName?:string|null;referenceShipName?:string|null}
 type SourceVersionDto={versionId:string;versionNumber:number;revision?:number|null;publishedAt?:string|null;publishedByName?:string|null;sourceVersionId?:string|null;tripId:string;status:string;days:SourceDay[];stops:SourceStop[];entries:SourceEntry[]}
-type SourceTripDto={tripId:string;tripCode:string;name:string;status:string;description?:string|null;durationGroup?:string|null;durationDays?:number|null;durationNights?:number|null}
+type SourceTripDto={tripId:string;tripCode:string;name:string;status:string;description?:string|null;durationGroup?:string|null;durationDays?:number|null;durationNights?:number|null} & DepartureWindow
 
 export async function readPublishedSource(versionId: string, signal?: AbortSignal, readOnlyHistory=false) {
   const source = await apiRequest<{version:SourceVersionDto;trip:SourceTripDto}>(
@@ -30,7 +31,9 @@ export async function readPublishedSource(versionId: string, signal?: AbortSigna
   if(!readOnlyHistory&&(version.revision==null||version.revision<1))throw new ApiError('Phiên bản nguồn chưa có revision hợp lệ. Tải lại nguồn trước khi tạo chuyến.',422,'SOURCE_REVISION_REQUIRED')
   if(!readOnlyHistory&&version.entries.some(entry=>entry.kind==='SERVING_WINDOW'))throw new ApiError('Mẫu đã chốt có khung phục vụ lịch sử. Chưa thể tạo chuyến từ nguồn này khi CR-REVIEW-04 chưa được quyết định.',409,'LEGACY_SOURCE_MATERIALIZATION_BLOCKED')
   if(!readOnlyHistory&&(!validDurationDays(trip.durationGroup,trip.durationDays)||trip.durationNights==null||!Number.isSafeInteger(trip.durationNights)||trip.durationNights<0||trip.durationNights>trip.durationDays!||version.days.length!==trip.durationDays||new Set(version.days.map(d=>d.dayNumber)).size!==trip.durationDays||version.days.some(d=>d.dayNumber<1||d.dayNumber>trip.durationDays!)))throw new ApiError('Thời lượng nguồn thiếu hoặc không khớp nhóm và số ngày lịch trình. Kiểm tra lại chuyến đi nguồn trước khi tạo chuyến khởi hành.',422,'SOURCE_DURATION_INVALID')
-  return {publishedAt:version.publishedAt??null,publishedByName:version.publishedByName??null,inheritedFromVersionId:version.sourceVersionId??null,tripStatus:trip.status,revision:version.revision??null,description:trip.description??null,durationGroup:trip.durationGroup??null,durationDays:trip.durationDays??null,durationNights:trip.durationNights??null,days:version.days,stops:version.stops,entries:version.entries,versionId:version.versionId,versionNumber:version.versionNumber,status:version.status,tripId:trip.tripId,tripCode:trip.tripCode,tripName:trip.name}
+  try { departureWindowInputs(trip) }
+  catch { throw new ApiError('Khung khởi hành của mẫu không hợp lệ. Tải lại để đối chiếu.', 502) }
+  return {earliestDeparture:trip.earliestDeparture??null,latestDeparture:trip.latestDeparture??null,publishedAt:version.publishedAt??null,publishedByName:version.publishedByName??null,inheritedFromVersionId:version.sourceVersionId??null,tripStatus:trip.status,revision:version.revision??null,description:trip.description??null,durationGroup:trip.durationGroup??null,durationDays:trip.durationDays??null,durationNights:trip.durationNights??null,days:version.days,stops:version.stops,entries:version.entries,versionId:version.versionId,versionNumber:version.versionNumber,status:version.status,tripId:trip.tripId,tripCode:trip.tripCode,tripName:trip.name}
 }
 
 export type EligibleSource = {

@@ -14,16 +14,13 @@ import { Action, ActionLink, EmptyState, Heading } from './BookingUI'
 const catalogHero = '/images/ports/ha-long-bay.webp'
 import s from './Booking.module.css'
 import detailStyles from './CruiseDetail.module.css'
-import { cruisePortPhotos } from '../model/cruise-port-photos'
+import { primaryPhotoForCruise } from '../model/cruise-port-photos'
 
 type LoadIssue = { message: string; status: number }
 type LoadResult<T> = { value?: T; issue?: LoadIssue }
 
 function getCruisePhoto(cruise: LiveCruise, index: number) {
-  const text = `${cruise.title} ${cruise.departurePort ?? ''} ${cruise.returnPort ?? ''}`.toLowerCase()
-  const found = cruisePortPhotos.find(p => text.includes(p.match))
-  if (found) return found
-  return cruisePortPhotos[index % cruisePortPhotos.length]
+  return primaryPhotoForCruise(cruise, index)
 }
 
 function issueFor(error: unknown): LoadIssue {

@@ -29,6 +29,8 @@ function InfoForm({trip:initial}:{trip?:Trip}) {
   const operation=useTripOperation('create'),lock=useRef(false),regions=useSources('regions'),countries=useSources('countries'),durations=useSources('durations')
   const permitted=can(trip?'TRIP_UPDATE':'TRIP_CREATE')&&!gateway.readOnly&&trip?.status!=='ARCHIVED'
   const full=gateway.supportsFullInfo,locked=Boolean(trip?.structuralLockedAt||trip?.versions?.some(v=>v.status==='PUBLISHED'))
+  const windowLocked = locked || Boolean(trip?.versions?.some(version => version.status === 'IN_REVIEW'))
+  const requireWindow = !trip || Boolean(baseline.earliestDeparture || baseline.latestDeparture)
   const scopeChanged=Boolean(trip)&&(form.scope!==baseline.scope||JSON.stringify(form.regionIds)!==JSON.stringify(baseline.regionIds)||JSON.stringify(form.countryCodes)!==JSON.stringify(baseline.countryCodes))
   const portCatalog=useSources('ports',{tripId:trip?.tripId},Boolean(trip)&&scopeChanged,trip?.revision)
   const scopePorts=scopeChanged&&!portCatalog.loading&&!portCatalog.error?portCatalog.data:null
@@ -41,7 +43,7 @@ function InfoForm({trip:initial}:{trip?:Trip}) {
     return versions.flatMap(version=>portScopeViolations(version,scopeInfo,scopePorts).map(issue=>({...issue,message:'Phiên bản '+version.versionNumber+' · '+issue.message})))
   },[gateway,trip,scopeChanged,scopeInfo,scopePorts]))
   const dirty=JSON.stringify(form)!==JSON.stringify(baseline),guard=useUnsavedGuard(dirty,busy)
-  const errors:Record<string,string>=full||!trip?infoErrors(form):(!form.name.trim()?{name:'Nhập tên chuyến.'}:form.name.length>200?{name:'Tên chuyến tối đa 200 ký tự.'}:{})
+  const errors:Record<string,string>=full||!trip?infoErrors(form, requireWindow):(!form.name.trim()?{name:'Nhập tên chuyến.'}:form.name.length>200?{name:'Tên chuyến tối đa 200 ký tự.'}:{})
   const scopeBlocked=scopeChanged&&(scopeData.loading||Boolean(scopeData.error)||portCatalog.loading||Boolean(portCatalog.error&&portCatalog.errorCode!=='SCOPE_COUNTRY_REQUIRED')||Boolean(scopeData.data?.length))
   const show=(field:string)=>attempted||touched[field]?errors[field]:undefined
   const change=<K extends keyof TripInfo>(field:K,value:TripInfo[K])=>setForm(old=>({...old,[field]:value}))
@@ -80,6 +82,26 @@ function InfoForm({trip:initial}:{trip?:Trip}) {
       {trip
         ? <p>Khung hiện có {trip.durationDays} ngày.</p>
         : supportedDuration(form.durationBand) && <p>Lịch trình bắt đầu với {durationRules[form.durationBand].defaultDays} ngày. Bạn có thể thêm ngày ở bước lập lịch trình, trong nhóm thời lượng đã chọn.</p>}
+      </section>
+      <section className={styles.infoSection} aria-labelledby="trip-departure-window">
+        <h3 id="trip-departure-window">Khoảng thời gian khởi hành</h3>
+        <p id="trip-departure-window-hint">Nhập ngày và giờ Việt Nam (Asia/Ho_Chi_Minh).</p>
+        {windowLocked && <p>Khung khởi hành đã khóa vì lịch trình đang được duyệt hoặc đã công bố.</p>}
+        {trip && !baseline.earliestDeparture && !baseline.latestDeparture && <p>Chưa thiết lập khung khởi hành.</p>}
+        <div className={styles.grid}>
+          {([
+            ['earliestDeparture', 'Khởi hành sớm nhất'],
+            ['latestDeparture', 'Khởi hành trễ nhất'],
+          ] as const).map(([field, label]) => (
+            <Field key={field} htmlFor={'trip-' + field} label={requireWindow && !windowLocked ? label + ' *' : label} error={show(field)}>
+              <input id={'trip-' + field} type="datetime-local" step={1} value={form[field]}
+                aria-describedby="trip-departure-window-hint" required={requireWindow && !windowLocked}
+                disabled={!permitted || busy || windowLocked || !full}
+                onBlur={() => setTouched(old => ({ ...old, [field]: true }))}
+                onChange={event => change(field, event.target.value)} />
+            </Field>
+          ))}
+        </div>
       </section>
       {trip&&!full&&<p className={styles.note}>Dữ liệu hiện có: {trip.durationDays} ngày · Phạm vi: {domainStatus('source.scope',trip.plannedScope??'')}.</p>}
       {error&&<Notice title="Chưa lưu được thông tin" tone="error">{error}<p>Bản nhập vẫn được giữ. Bạn có thể sửa rồi thử lại.</p>{trip&&<Button type="button" tone="secondary" onClick={()=>setCompare(true)}>Đối chiếu bản đã lưu</Button>}</Notice>}

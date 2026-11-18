@@ -9,9 +9,20 @@ export function BookingFlowLayout({ stage, available, locked, path, back, headin
   headingRef: Ref<HTMLHeadingElement>; summary: ReactNode; children: ReactNode
 }) {
   return <div className={styles.flow} data-booking-redesign>
-    <div><Link to={back}>Về danh mục hành trình</Link></div>
-    <BookingJourneyProgress labels={bookingStageLabels} stage={stage} available={available} locked={locked} path={path} />
-    <h1 ref={headingRef} tabIndex={-1}>{bookingStageLabels[stage - 1]}</h1>
-    <div className={styles.layout}><div className={styles.main}>{children}</div><aside className={styles.summary}>{summary}</aside></div>
+    <div className={styles.flowTopBar}>
+      <Link to={back} className={styles.backLink}>← Về danh mục hành trình</Link>
+      <span className={styles.stepCounter}>Bước {stage} / {bookingStageLabels.length}</span>
+    </div>
+    {/* UX: Persistent Left Summary Rail + Main Stepper Workspace (Royal Caribbean inspired) */}
+    <div className={styles.layout}>
+      <aside className={styles.summary} aria-label="Tóm tắt hành trình đang đặt">{summary}</aside>
+      <div className={styles.workspace}>
+        <BookingJourneyProgress labels={bookingStageLabels} stage={stage} available={available} locked={locked} path={path} />
+        <header className={styles.stepHeader}>
+          <h1 ref={headingRef} tabIndex={-1}>{bookingStageLabels[stage - 1]}</h1>
+        </header>
+        <div className={styles.main}>{children}</div>
+      </div>
+    </div>
   </div>
 }

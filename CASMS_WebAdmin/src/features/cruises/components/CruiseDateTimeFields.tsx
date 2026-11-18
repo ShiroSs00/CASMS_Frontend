@@ -60,8 +60,7 @@ export function CruiseDateTimeFields({
   label,
   value,
   error,
-  suggestClock,
-  templateClockLabel,
+  templateClock,
   onChange,
   onIncompleteChange,
 }: {
@@ -69,21 +68,18 @@ export function CruiseDateTimeFields({
   label: string
   value: string
   error?: string
-  suggestClock?: (isoDate: string) => string | undefined
-  templateClockLabel?: string | null
+  templateClock?: string
   onChange: (value: string) => void
   onIncompleteChange?: (incomplete: boolean) => void
 }) {
   const [isoDate, initialClock] = value.split('T')
   const [date, setDate] = useState(() => isoDate.split('-').reverse().join('/'))
   const [clock, setClock] = useState(() => initialClock?.replace(/^(\d{2}:\d{2}):00$/, '$1') ?? '')
-  const [clockEdited, setClockEdited] = useState(Boolean(initialClock))
   const [dateTouched, setDateTouched] = useState(false)
   const [clockTouched, setClockTouched] = useState(false)
 
   const parsedDay = parseCruiseDate(date)
-  const rawSuggested = suggestClock ? suggestClock(parsedDay ?? '2026-11-10') : undefined
-  const normalizedSuggested = rawSuggested?.replace(/^(\d{2}:\d{2}):00$/, '$1')
+  const normalizedSuggested = templateClock && validCruiseClock(templateClock) ? templateClock.replace(/^(\d{2}:\d{2}):00$/, '$1') : undefined
 
   const dateError = dateTouched && !parsedDay ? 'Nhập ngày hợp lệ theo dạng 25/04/2028.' : undefined
   const clockError =
@@ -100,23 +96,17 @@ export function CruiseDateTimeFields({
   }
 
   function changeDate(nextDate: string) {
-    const day = parseCruiseDate(nextDate)
-    const suggestion = !clockEdited && day ? suggestClock?.(day) : undefined
-    const nextClock = suggestion?.replace(/^(\d{2}:\d{2}):00$/, '$1') ?? clock
     setDate(nextDate)
-    setClock(nextClock)
-    apply(nextDate, nextClock)
+    apply(nextDate, clock)
   }
 
   function changeClock(nextClock: string) {
-    setClockEdited(true)
     setClock(nextClock)
     apply(date, nextClock)
   }
 
   function applyTemplateClock() {
     if (!normalizedSuggested) return
-    setClockEdited(false)
     setClockTouched(false)
     setClock(normalizedSuggested)
     apply(date, normalizedSuggested)
@@ -125,7 +115,7 @@ export function CruiseDateTimeFields({
   const isUsingTemplateClock = Boolean(normalizedSuggested && clock.trim() === normalizedSuggested)
 
   const clockHint = normalizedSuggested
-    ? `Giờ theo mẫu: ${templateClockLabel ?? normalizedSuggested}. Nhấn "Dùng giờ mẫu" bên dưới hoặc tự nhập giờ khác.`
+    ? `Giờ tham khảo từ lịch mẫu là ${normalizedSuggested}. Chọn Dùng giờ theo mẫu hoặc nhập giờ khác.`
     : 'Nhập theo định dạng 24 tiếng (ví dụ 08:00, 16:00) hoặc chọn nhanh bên dưới.'
 
   return (
@@ -135,7 +125,7 @@ export function CruiseDateTimeFields({
           htmlFor={id}
           label={`Ngày ${label} *`}
           hint="Ngày/tháng/năm, ví dụ 25/04/2028"
-          error={dateError ?? error}
+          error={dateError}
         >
           <input
             id={id}
@@ -164,7 +154,7 @@ export function CruiseDateTimeFields({
           htmlFor={id + '-clock'}
           label={`Giờ ${label} (giờ Việt Nam) *`}
           hint={clockHint}
-          error={clockError}
+          error={clockError ?? error}
         >
           <input
             id={id + '-clock'}
@@ -172,7 +162,7 @@ export function CruiseDateTimeFields({
             required
             autoComplete="off"
             maxLength={8}
-            placeholder={normalizedSuggested ?? 'Ví dụ: 08:00'}
+            placeholder="HH:MM"
             onBlur={() => {
               if (clock) setClockTouched(true)
             }}

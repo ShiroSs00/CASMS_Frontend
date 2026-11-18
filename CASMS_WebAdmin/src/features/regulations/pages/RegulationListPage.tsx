@@ -1,6 +1,8 @@
+import { apiRequest, useReadQuery } from '@/shared/api'
 import {useSessionAccess} from '@/shared/auth'
+import { downloadCsv } from '@/shared/lib/download-csv'
 import { CollectionSummary, DataTable, Field, ListFilters } from '@/shared/ui'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 
 import { regulationsApi } from '../api/regulations-api'
@@ -10,6 +12,7 @@ import type {
 } from '../model/regulation'
 import {
   regulationInput,
+  regulationInstant,
   scopeLabels,
   typeLabels,
 } from '../model/regulation'
@@ -32,9 +35,51 @@ const emptyQuery: RegulationListQuery = {
   effectiveAt: regulationInput(Date.now()),
   effectiveOnly: false,
 }
+
+type ComplianceScope = keyof typeof scopeLabels
+type ComplianceRow = { scope: ComplianceScope; active: number; upcoming: number; expired: number }
+
 export function RegulationListPage() {
   const navigate = useNavigate()
   const access=useSessionAccess()
+  const showCompliance = access.status === 'ready' && access.roles.includes('OPERATIONS_MANAGER') && access.has('REGULATION_READ')
+  const [scope, setScope] = useState<ComplianceScope | ''>('')
+  const [effectiveAt, setEffectiveAt] = useState(() => regulationInput(Date.now()))
+  const [complianceFilter, setComplianceFilter] = useState<{ at: string; scope?: ComplianceScope }>(
+    () => ({ at: regulationInstant(effectiveAt) }))
+  const [exporting, setExporting] = useState(false)
+  const [complianceError, setComplianceError] = useState('')
+  const compliance = useReadQuery(
+    `regulation-compliance:${access.userId}:${showCompliance}:${complianceFilter.at}:${complianceFilter.scope}`, useCallback(
+      signal => showCompliance ? apiRequest<ComplianceRow[]>(
+        '/operational-regulations/compliance-summary', { signal, query: complianceFilter }) : Promise.resolve(null),
+      [showCompliance, complianceFilter]))
+
+  function applyComplianceFilters() {
+    setComplianceError('')
+    try {
+      setComplianceFilter({ at: regulationInstant(effectiveAt), scope: scope || undefined })
+    } catch {
+      setComplianceError('Chọn thời điểm kiểm tra hợp lệ.')
+    }
+  }
+
+  async function exportCompliance() {
+    if (exporting || !access.has('REPORT_GENERATE')) return
+    setExporting(true)
+    setComplianceError('')
+    try {
+      const csv = await apiRequest<string>('/operational-regulations/compliance-summary/export', {
+        method: 'POST', body: complianceFilter,
+      })
+      downloadCsv(csv, 'bao-cao-quy-dinh-van-hanh.csv')
+    } catch {
+      setComplianceError('Chưa xuất được báo cáo quy định.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const [query, setQuery] = useState(()=>({...emptyQuery,effectiveAt:regulationInput(Date.now())}))
   const [appliedQuery, setAppliedQuery] = useState(query)
   const [items, setItems] = useState<RegulationListItem[]>([])
@@ -87,6 +132,29 @@ export function RegulationListPage() {
         }
       />
 
+      {showCompliance && <Panel title="Tổng hợp quy định theo phạm vi">
+        <ListFilters className={styles.regulationFilters} label="Bộ lọc báo cáo quy định" onSubmit={applyComplianceFilters}
+          actions={<Button type="submit">Xem tổng hợp</Button>}>
+          <Field htmlFor="compliance-scope" label="Phạm vi báo cáo">
+            <select id="compliance-scope" value={scope} onChange={event => setScope(event.target.value as ComplianceScope | '')}>
+              <option value="">Tất cả phạm vi</option>
+              {Object.entries(scopeLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+            </select>
+          </Field>
+          <Field htmlFor="compliance-at" label="Thời điểm kiểm tra (giờ Việt Nam)">
+            <input id="compliance-at" type="datetime-local" required value={effectiveAt} onChange={event => setEffectiveAt(event.target.value)} />
+          </Field>
+        </ListFilters>
+        {complianceError && <p role="alert">{complianceError}</p>}
+        {compliance.loading && <p role="status">Đang tải tổng hợp…</p>}
+        {compliance.error && <p role="alert">Chưa tải được tổng hợp. <Button onClick={compliance.retry}>Tải lại</Button></p>}
+        {compliance.data && <DataTable label="Tổng hợp quy định" headers={['Phạm vi', 'Hiệu lực', 'Sắp đến hạn', 'Hết hiệu lực']}>
+          {compliance.data.map(row => <tr key={row.scope}><td>{scopeLabels[row.scope]}</td>
+            <td>{row.active}</td><td>{row.upcoming}</td><td>{row.expired}</td></tr>)}
+        </DataTable>}
+        {compliance.data && !compliance.error && access.has('REPORT_GENERATE')
+          && <Button tone="secondary" disabled={exporting} onClick={() => void exportCompliance()}>Xuất CSV quy định</Button>}
+      </Panel>}
       <CollectionSummary count={loading || error ? null : items.length} filtered={Boolean(appliedQuery.search || appliedQuery.type !== 'ALL' || appliedQuery.scope !== 'ALL' || appliedQuery.status !== 'ALL')} label="Quy định trong kết quả" scope="Tra cứu theo thời điểm đã chọn" />
       <Panel title="Bộ lọc">
         <ListFilters className={styles.regulationFilters} label="Bộ lọc quy định" onSubmit={applyFilters} actions={<><Button type="submit">Áp dụng bộ lọc</Button><Button onClick={resetFilters} tone="secondary">Xóa bộ lọc</Button></>}>

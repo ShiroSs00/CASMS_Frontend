@@ -211,6 +211,7 @@ function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) 
                 <Button tone="secondary" onClick={() => goSection('overview')}>Về tổng quan</Button>
               </Notice>}
               {operations && access.has('CRUISE_READ') && <CruiseHubDashboard
+                refreshKey={checkEpoch}
                 detail={detail} salePlan={salePlan} sellability={sellability}
                 sections={allowedDepartureSections(sectionAccess).map(([key])=>key)} onNavigate={goSection}
                 onReview={()=>goOperationsStep(1)} onSale={()=>goOperationsStep(3)}
