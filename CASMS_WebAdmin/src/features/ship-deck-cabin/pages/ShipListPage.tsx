@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, ButtonLink, DataTable, Empty, Field, Loading, Notice, PageHeader, Panel, PermissionLink } from '@/shared/ui'
+import { Badge, Button, ButtonLink, DataTable, Empty, Field, Loading, Notice, PageHeader, Panel, PermissionLink } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { PageControls } from '../ship-types/Catalog'
 import { shipError, shipTypesApi } from '../ship-types/api'
@@ -13,7 +13,8 @@ import { useFleetQuery } from '../hooks/useFleetQuery'
 import styles from '../ship-types/ShipWork.module.css'
 
 const blankFilters: ShipListFilters = { search: '', status: '', type: '' }
-function Filters({ filters, options, onSubmit, onReset }: {
+function Filters({ filters, options, canViewArchive, onSubmit, onReset }: {
+  canViewArchive: boolean
   filters: ShipListFilters; options: Map<string, string>; onSubmit: (value: ShipListFilters) => void; onReset: () => void
 }) {
   const [draft, setDraft] = useState(filters)
@@ -36,8 +37,13 @@ function Filters({ filters, options, onSubmit, onReset }: {
           <option value="">Tất cả trạng thái</option>{Object.entries(shipStatuses).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
         </select>
       </Field>
+      {canViewArchive && <Field htmlFor="vessel-archive-filter" label="Phạm vi tàu">
+        <select value={draft.archived ? 'archived' : 'active'} onChange={event => setDraft(value => ({ ...value, archived: event.target.value === 'archived' }))}>
+          <option value="active">Chưa lưu trữ</option><option value="archived">Đã lưu trữ</option>
+        </select>
+      </Field>}
       <Button type="submit" tone="secondary" autoWidth>Tìm và lọc</Button>
-      {(filters.search || filters.type || filters.status || draft.search || draft.type || draft.status) &&
+      {(filters.search || filters.type || filters.status || filters.archived || draft.search || draft.type || draft.status || draft.archived) &&
         <Button tone="text" onClick={() => { setDraft(blankFilters); onReset() }}>Xóa bộ lọc</Button>}
     </form>
   </Panel>
@@ -45,11 +51,12 @@ function Filters({ filters, options, onSubmit, onReset }: {
 
 export function ShipListPage() {
   const access = useSessionAccess()
-  const { search: locationSearch } = useLocation()
+  const { search: locationSearch, state } = useLocation()
   const [, setParams] = useSearchParams()
   const params = new URLSearchParams(locationSearch)
-  const { search, status, type } = readShipListFilters(params)
-  const filters = { search, status, type }
+  const filters = readShipListFilters(params)
+  const { type } = filters
+  const canViewArchive = access.roles.includes('SHIP_MANAGER') && !access.roles.includes('ADMIN') && access.canDo('SHIP_ARCHIVE')
   const page = readShipListPage(params)
   const listQuery = shipListParams(filters, page).toString()
   const canReadTypes = access.roles.some(role => role === 'ADMIN' || role === 'SHIP_MANAGER')
@@ -70,7 +77,7 @@ export function ShipListPage() {
     if (ship.shipTypeId && !typeOptions.has(ship.shipTypeId)) typeOptions.set(ship.shipTypeId, ship.shipTypeName || ship.shipTypeCode || 'Loại tàu đã gắn')
   }
   if (type && type !== 'legacy' && !typeOptions.has(type)) typeOptions.set(type, 'Loại đang lọc')
-  const filtered = Boolean(filters.search || filters.status || filters.type)
+  const filtered = Boolean(filters.search || filters.status || filters.type || filters.archived)
   const totalPages = result.data?.totalPages ?? 0
 
   function reset() { setParams(shipListParams(blankFilters, 0)) }
@@ -78,7 +85,8 @@ export function ShipListPage() {
   return <AdminShell><div className={styles.stack}>
     <PageHeader breadcrumb="Quản lý tàu / Danh sách tàu" title="Quản lý tàu"
       actions={access.roles.includes('SHIP_MANAGER') && <ButtonLink to="/admin/ships/new">Thêm tàu</ButtonLink>} />
-    <Filters key={shipListParams(filters, 0).toString()} filters={filters} options={typeOptions}
+    {state?.archivedShipName && <Notice title="Đã lưu trữ tàu" tone="success">{state.archivedShipName}</Notice>}
+    <Filters key={shipListParams(filters, 0).toString()} filters={filters} options={typeOptions} canViewArchive={canViewArchive}
       onSubmit={value => setParams(shipListParams(value, 0))} onReset={reset} />
     {types.error && <Notice tone="warning" title="Chưa tải được toàn bộ danh mục loại tàu">
       Danh sách tàu vẫn tra cứu được. <Button tone="text" onClick={types.retry}>Tải lại danh mục</Button>
@@ -94,7 +102,7 @@ export function ShipListPage() {
           <td>{ship.code}</td><th scope="row">{ship.name}</th>
           <td>{ship.shipTypeId ? ship.shipTypeName || ship.shipTypeCode || 'Loại tàu đã gắn' : 'Chưa phân loại'}</td>
           <td className={styles.number}>{ship.capacity.toLocaleString('vi-VN')}</td>
-          <td className={styles.number}>{ship.totalDecks}</td><td><StatusBadge status={ship.status} /></td>
+          <td className={styles.number}>{ship.totalDecks}</td><td>{ship.archivedAt ? <Badge label="Đã lưu trữ" /> : <StatusBadge status={ship.status} />}</td>
           <td><PermissionLink to={'/admin/ships/' + ship.id} state={{ listQuery }}
             aria-label={'Chi tiết tàu ' + ship.name}>Chi tiết</PermissionLink></td>
         </tr>)}

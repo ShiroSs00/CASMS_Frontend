@@ -21,7 +21,7 @@ export function FleetDialogs({ dialog, ship, onChange, onSaved }: { dialog: Flee
   const access = useSessionAccess()
   const navigate = useNavigate()
   const mutation = useMutation()
-  if (!dialog) return null
+  if (!dialog || (ship.archivedAt && dialog.type !== 'room')) return null
   if (dialog.type === 'deleteShip') {
     if (!access.canDo('SHIP_DELETE')) return null
     return <Modal title="Xóa tàu chưa sử dụng?" description={`${ship.code} · ${ship.name}`} busy={mutation.busy} onClose={() => onChange(null)} protectChanges={false}
@@ -39,7 +39,7 @@ export function FleetDialogs({ dialog, ship, onChange, onSaved }: { dialog: Flee
   if (!access.canDo('CABIN_READ')) return null
   const room = dialog.room
   return <Modal title={`Phòng ${room.number}`} description={`${ship.name} · ${dialog.deckName}`} onClose={() => onChange(null)} protectChanges={false}
-    footer={<><Button tone="secondary" data-overlay-dismiss onClick={() => onChange(null)}>Đóng</Button>{access.canDo('CABIN_UPDATE') && <Button onClick={() => onChange({ type: 'edit', target: { kind: 'cabins', item: room } })}>Chỉnh sửa phòng</Button>}</>}>
+    footer={<><Button tone="secondary" data-overlay-dismiss onClick={() => onChange(null)}>Đóng</Button>{!ship.archivedAt && access.canDo('CABIN_UPDATE') && <Button onClick={() => onChange({ type: 'edit', target: { kind: 'cabins', item: room } })}>Chỉnh sửa phòng</Button>}</>}>
     <dl className={styles.readonly}>
       <div><dt>Loại phòng</dt><dd>{roomTypeLabels[room.type]}</dd></div><div><dt>Trạng thái</dt><dd>{cabinStatuses[room.status]}</dd></div>
       <div><dt>Sức chứa</dt><dd>{room.capacity} khách</dd></div><div><dt>Hỗ trợ người khuyết tật</dt><dd>{room.accessible ? 'Có' : 'Không'}</dd></div>
