@@ -191,16 +191,16 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
   }
 
   return (
-    <section aria-label="Cấu hình Add-on">
+    <section aria-label="Cấu hình dịch vụ mua thêm">
       <h3>Dịch vụ mua thêm</h3>
       <QueryState loading={query.loading} error={query.error} />
-      {query.error && <Button onClick={query.retry}>Tải lại Add-on</Button>}
+      {query.error && <Button onClick={query.retry}>Tải lại dịch vụ mua thêm</Button>}
       {!creating && mutation.feedback}
       {canWrite && (
         <>
           <QueryState loading={configuration.loading} error={configuration.error} />
-          {configuration.error && <Button tone="secondary" onClick={configuration.retry}>Tải lại điều kiện Add-on</Button>}
-          {configuration.data && !configuration.data.canCreate && <Notice title="Chưa thể cấu hình Add-on" tone="warning">{configuration.data.reason}</Notice>}
+          {configuration.error && <Button tone="secondary" onClick={configuration.retry}>Tải lại điều kiện dịch vụ mua thêm</Button>}
+          {configuration.data && !configuration.data.canCreate && <Notice title="Chưa thể cấu hình dịch vụ mua thêm" tone="warning">{configuration.data.reason}</Notice>}
           {!creating && <Button disabled={createBlocked} onClick={() => setCreating(true)}>Thêm dịch vụ mua thêm</Button>}
         </>
       )}
@@ -212,7 +212,7 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
       {query.data?.map(a => (
         <article key={a.id}>
           <h4>{a.resourceName} · {a.amount} USD/{a.pricingUnit === 'PERSON' ? 'người' : a.serviceUnitCode ?? 'chưa xác định đơn vị'}</h4>
-          <p>{a.publishedAt ? 'Đã phát hành cấu hình Add-on' : 'Cấu hình nháp'} · Revision {a.revision}</p>
+          <p>{a.publishedAt ? 'Đã phát hành cấu hình dịch vụ mua thêm' : 'Cấu hình nháp'} · Phiên bản {a.revision}</p>
           <p>{a.eligibility}</p>
           <ul>
             {a.salesWindows.map(w => (
@@ -296,7 +296,7 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
                   method: 'POST',
                   body: { resourceType: type, resourceId: resource, amount, windows, eligibility: eligibility.trim() }
                 }),
-                'Đã lưu cấu hình Add-on nháp. Chưa tạo purchase hoặc entitlement.'
+                'Đã lưu cấu hình dịch vụ mua thêm nháp. Chưa tạo giao dịch mua hoặc quyền sử dụng.'
               )
               if (ok) reset()
             }}

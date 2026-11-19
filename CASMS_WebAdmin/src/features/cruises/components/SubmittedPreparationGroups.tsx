@@ -269,7 +269,7 @@ export function SubmittedPreparationGroups({
               setPage(1)
             }}
           >
-            <option value="oldest">Chờ lâu nhất trước (Ưu tiên SLA)</option>
+            <option value="oldest">Chờ lâu nhất trước</option>
             <option value="newest">Mới gửi gần đây nhất</option>
             <option value="cruise">Theo mã chuyến (A → Z)</option>
           </select>

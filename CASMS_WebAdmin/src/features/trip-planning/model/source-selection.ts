@@ -20,6 +20,7 @@ export function selectEntrySource(entry:Entry,source:Source,previous?:Source):En
     }:{}),
     ...(entry.kind==='SHORE_EXCURSION'?{
       destinationId:source.destinationId??null,
+      destinationName:source.destinationName??null,
     }:{}),
   }
 }

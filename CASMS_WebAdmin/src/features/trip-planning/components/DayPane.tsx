@@ -82,6 +82,7 @@ export function DayPane({
           <span className={styles.agendaKind}>
             {kindLabels[entry.kind]}
             {port && ' · ' + port}
+            {entry.kind === 'SHORE_EXCURSION' && entry.destinationName && ' · ' + entry.destinationName}
             {entry.kind === 'SERVING_WINDOW' ? ' · Dữ liệu lịch sử · Chỉ xem' : ''}
           </span>
           <h3>{entry.title || kindLabels[entry.kind]}</h3>
@@ -121,20 +122,23 @@ export function DayPane({
   function shoreTours(stop: Stop) {
     const tours = entries.filter(entry => entry.kind === 'SHORE_EXCURSION' && entry.stopClientKey === stop.clientKey)
     const hasDeadline = Boolean(stop.allAboardDayNumber && stop.allAboardTime)
+    const hasPlannedDestination = Boolean(stop.destinationId || stop.visits?.length)
     const withinDeparture = stop.allAboardDayNumber != null && Boolean(stop.allAboardTime) &&
       (!stop.plannedDepartureTime || timeNumber(stop.allAboardDayNumber, stop.allAboardTime) <= timeNumber(stop.departureDayNumber, stop.plannedDepartureTime))
     const canAddTour = stop.allAboardDayNumber != null && Boolean(stop.allAboardTime && stop.plannedArrivalTime) &&
       timeNumber(stop.allAboardDayNumber, stop.allAboardTime) > timeNumber(stop.arrivalDayNumber, stop.plannedArrivalTime) &&
-      withinDeparture
+      withinDeparture && hasPlannedDestination
     return <>
       {editable && (canAddTour
         ? <Button tone="secondary" size="compact" disabled={busy} onClick={() => onEntry('SHORE_EXCURSION', undefined, stop.clientKey)}>Thêm tour bờ</Button>
         : <p className={hasDeadline && !withinDeparture ? styles.error : styles.muted} role={hasDeadline && !withinDeparture ? 'alert' : undefined}>
-            {hasDeadline
-              ? (!withinDeparture
-                  ? 'Hạn trở lại tàu đang vượt quá giờ kết thúc / giờ rời cảng. Hãy chỉnh lại hạn trở lại tàu.'
-                  : 'Cần đủ thời gian từ lúc tàu đến đến hạn trở lại để thêm tour bờ.')
-              : 'Đặt hạn trở lại tàu để thêm tour bờ.'}
+            {hasDeadline && !withinDeparture
+              ? 'Hạn trở lại tàu đang vượt quá giờ kết thúc / giờ rời cảng. Hãy chỉnh lại hạn trở lại tàu.'
+              : !hasDeadline
+                ? 'Đặt hạn trở lại tàu và thêm Điểm tham quan để thêm tour bờ.'
+                : !hasPlannedDestination
+                  ? 'Thêm ít nhất một Điểm tham quan trong lần ghé cảng để thêm tour bờ.'
+                  : 'Cần đủ thời gian từ lúc tàu đến đến hạn trở lại để thêm tour bờ.'}
           </p>)}
       {tours.map(agendaRow)}
     </>
@@ -266,6 +270,11 @@ export function DayPane({
               {disembarkationStop?.allAboardTime && (
                 <p>Hạn hành khách trở lại tàu: Ngày {disembarkationStop.allAboardDayNumber} {shortTime(disembarkationStop.allAboardTime)}</p>
               )}
+              {Boolean(disembarkationStop?.visits?.length) && (
+                <p className={styles.muted}>
+                  Điểm tham quan: {disembarkationStop!.visits!.map(visit => visit.destinationName?.trim() || 'Điểm đến đã lưu').join(', ')}
+                </p>
+              )}
               {disembarkationStop && violations.filter(issue => issue.clientKey === disembarkationStop.clientKey && issue.field === 'allAboardTime').map((issue, idx) => (
                 <p key={`${disembarkationStop.clientKey}:allAboard:${idx}`} className={styles.error} role="alert">{issue.message}</p>
               ))}
@@ -278,7 +287,7 @@ export function DayPane({
                     disabled={busy || (editEndingInline && (!disembarkationStop.plannedArrivalTime || !disembarkationStop.plannedDepartureTime))}
                     onClick={() => onStop(disembarkationStop, editEndingInline)}
                   >
-                    {editEndingInline ? 'Chỉnh hạn trở lại tàu' : editable ? 'Chỉnh cảng và giờ kết thúc' : 'Xem chi tiết cảng kết thúc'}
+                    {editEndingInline ? 'Hạn trở lại, cập bến & điểm tham quan' : editable ? 'Chỉnh cảng và giờ kết thúc' : 'Xem chi tiết cảng kết thúc'}
                   </Button>
                 </div>
               )}
@@ -374,6 +383,11 @@ export function DayPane({
                           </p>
                           {stop.countryCode === 'VN' && <p className={styles.muted}>{domesticRegionLabel(stop.domesticRegion)}</p>}
                           {stop.allAboardTime && <p>Hạn hành khách trở lại tàu: Ngày {stop.allAboardDayNumber} {shortTime(stop.allAboardTime)}</p>}
+                          {Boolean(stop.visits?.length) && (
+                            <p className={styles.muted}>
+                              Điểm tham quan: {stop.visits!.map(visit => visit.destinationName?.trim() || 'Điểm đến đã lưu').join(', ')}
+                            </p>
+                          )}
                           {stop.arrivalDayNumber < day.dayNumber && <p className={styles.muted}>Tiếp diễn cùng lần ghé từ Ngày {stop.arrivalDayNumber}.</p>}
                           {stopErrors.map((issue, idx) => (
                             <p key={`${stop.clientKey}:${issue.code}:${idx}`} className={styles.error} role="alert">{issue.message}</p>

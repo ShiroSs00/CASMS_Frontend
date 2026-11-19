@@ -23,7 +23,6 @@ export function OperatingBudget({
   const [draft, setDraft] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [saved, setSaved] = useState(false)
   const lock = useRef(false)
   const input = useRef<HTMLInputElement>(null)
   const editing = draft !== null
@@ -57,9 +56,12 @@ export function OperatingBudget({
               {budget.amountVnd ? formatOperatingBudget(budget.amountVnd) : 'Chưa nhập ngân sách'}
             </strong>
             <Badge
-              label={budget.amountVnd ? 'Đã chốt ngân sách (Chưa gồm thuế & phí cảng)' : 'Cần thiết lập'}
+              label={budget.amountVnd ? 'Đã lưu ngân sách' : 'Cần thiết lập'}
               tone={budget.amountVnd ? 'success' : 'warning'}
             />
+            {budget.amountVnd && (
+              <span className={styles.sectionMeta}>Chưa gồm thuế và phí cảng</span>
+            )}
           </div>
           {budget.canEdit && (
             <Button
@@ -68,7 +70,6 @@ export function OperatingBudget({
               autoWidth
               onClick={() => {
                 setDraft(budget.amountVnd ?? '')
-                setSaved(false)
                 setError('')
               }}
             >
@@ -90,7 +91,6 @@ export function OperatingBudget({
             try {
               await preparationApi.saveOperatingBudget(cruiseId, budget.revision, value)
               setDraft(null)
-              setSaved(true)
               onSaved()
             } catch (cause) {
               if (cause instanceof ApiError && cause.status === 409) retry()
@@ -140,11 +140,6 @@ export function OperatingBudget({
             </Button>
           </div>
         </form>
-      )}
-      {saved && budget && (
-        <p className={styles.budgetFeedback} role="status">
-          Đã lưu ngân sách.
-        </p>
       )}
       {error && (
         <Notice tone="error" title="Không thể lưu ngân sách">

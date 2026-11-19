@@ -73,7 +73,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
      return (
       <li key={code}>
        <span className={styles.conditionStepNumber} aria-hidden="true">{index + 1}</span>
-       {manager && code === 'FARE_PLAN_SELECTION_REQUIRED' ? <div className={styles.conditionBody}><p>Chọn một gói du thuyền đủ điều kiện để đưa vào hồ sơ trình duyệt.</p></div>
+       {manager && code === 'FARE_PLAN_SELECTION_REQUIRED' ? <div className={styles.conditionBody}><p>Chọn một gói du thuyền đủ điều kiện để đưa vào hồ sơ gửi duyệt.</p></div>
         : manager && code === 'SALE_TERMS_REQUIRED' ? <div className={styles.conditionBody}><p>Quản lý vận hành cần cấu hình thuế và phí cảng trước khi gửi hồ sơ.</p></div>
         : <ProgramBlocker code={code} data={data} fixed={itineraryMode === 'FIXED'} />}
        {destination && onSection && <Button size="compact" autoWidth tone="secondary" onClick={() => onSection(destination[0])}>{destination[0] === 'fare-packages' ? 'Xem cấu hình gói' : `Mở ${destination[1].toLocaleLowerCase('vi-VN')}`}</Button>}
@@ -90,7 +90,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
  if(mode==='summary')return null
  if(mode==='prepare'){
   const timeFields=<>
-   {query.loading&&<Loading/>}{query.error&&<Notice title="Chưa tải được khung thời gian" tone="error">{safeError(query.error)}<Button tone="secondary" onClick={query.retry}>Thử lại</Button></Notice>}
+   {query.loading&&<Loading/>}{query.error&&<Notice title="Chưa tải được khung thời gian" tone="error"><p>{safeError(query.error)}</p><Button tone="secondary" onClick={query.retry}>Thử lại</Button></Notice>}
    {data&&<PlanWindows key={`${cruiseId}:${data.windows.expectedRevision}`} data={data} onSaved={refreshPlan} editable={editablePlan}/>}
   </>
   return <>
@@ -103,7 +103,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
  </>
  }
  const supplement=Boolean(data&&['SUBMITTED','APPROVED'].includes(data.planStatus))
- const submitLabel=supplement?'Gửi bổ sung cho Vận hành':'Nộp hồ sơ tour cho Vận hành'
+ const submitLabel=supplement?'Gửi bổ sung cho Quản lý vận hành':'Nộp hồ sơ tour cho Quản lý vận hành'
  const actionLabel=(value:MainflowAction)=>value==='ready'?'Xác nhận sẵn sàng mở bán':value==='approve'?'Phê duyệt hồ sơ':value==='reject'?'Từ chối hồ sơ':value==='request-revision'?'Yêu cầu chỉnh sửa':businessCopy(actionKeys[value])
  const actionDialog=action&&<Modal busy={busy} title={action==='submit'?submitLabel:actionLabel(action)} onClose={()=>{if(!busy)setAction(null)}} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setAction(null)}>Quay lại</Button><Button disabled={busy||uncertain||query.loading||Boolean(query.error)||(action==='approve'&&evidenceMissing)||(action==='submit'&&!dossierValid)||(['reject','request-revision'].includes(action)&&!reason.trim())} onClick={()=>void execute()}>{busy?'Đang gửi…':action==='submit'?submitLabel:actionLabel(action)}</Button></>}>
    {action==='submit'&&<>
@@ -111,12 +111,11 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
     {dossier.loading&&<Loading label="Đang đối chiếu hồ sơ chuẩn bị…"/>}
     {dossier.error&&<Notice title="Chưa đọc được hồ sơ chuẩn bị" tone="error"><Button tone="secondary" onClick={dossier.retry}>Tải lại hồ sơ</Button></Notice>}
     {dossier.data&&!dossier.loading&&!dossier.error&&<>
-     <ul>{dossier.data.sections.map(section=><li key={section.sectionCode}>{section.sectionName} · {preparationStatusLabels[section.status]}{section.returnReason&&<p>{section.returnReason}</p>}</li>)}</ul>
-     {dossier.data&&!dossierAllowed&&<Notice title="Chưa thể gửi hồ sơ">Kiểm tra điều phối viên và quyền gửi hai nhóm hồ sơ của Quản lý lịch trình.</Notice>}
-     {dossier.data&&<RecordFacts entries={dossier.data.sections.map(section=>[
+     {!dossierAllowed&&<Notice title="Chưa thể gửi hồ sơ">Kiểm tra điều phối viên và quyền gửi hai nhóm hồ sơ của Quản lý lịch trình.</Notice>}
+     <RecordFacts entries={dossier.data.sections.map(section=>[
       section.sectionName,
-      `${operationsStaffRole(section.ownerRole)} · ${preparationStatusLabels[section.status]}`,
-     ] as const)}/>}
+      `${operationsStaffRole(section.ownerRole)} · ${preparationStatusLabels[section.status]}${section.returnReason ? ` (${section.returnReason})` : ''}`,
+     ] as const)}/>
      {pendingSections.length>0&&<Field htmlFor="departure-dossier-evidence" label={supplement?'Nội dung bổ sung hồ sơ':'Nội dung và bằng chứng chuẩn bị'}><textarea id="departure-dossier-evidence" rows={5} value={evidence} onChange={event=>setEvidence(event.target.value)} required disabled={busy||uncertain}/></Field>}
     </>}
     <p>{data?.unifiedPackageReview?'Quản lý vận hành duyệt kế hoạch, giá các gói đã chọn và thuế/phí trong cùng hồ sơ.':'Quản lý vận hành xét duyệt kế hoạch và các điều kiện thương mại.'} Gửi hồ sơ chưa mở bán chuyến.</p>
@@ -195,7 +194,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
          />
         </div>
         <div className={styles.prepCardBody}>
-         <p>{!hasPricingBlocker ? '✓ Chính sách giá và các gói thương mại đã được duyệt đủ điều kiện mở bán.' : 'Chính sách giá gói du thuyền cần được Quản lý vận hành phê duyệt độc lập trước khi mở bán.'}</p>
+         <p>{!hasPricingBlocker ? '✓ Chính sách giá và các gói du thuyền đã được phê duyệt.' : data.unifiedPackageReview ? 'Cần phê duyệt giá gói du thuyền cùng hồ sơ tại Bước 1.' : 'Chính sách giá cần được Quản lý vận hành phê duyệt trước khi mở bán.'}</p>
          {hasPricingBlocker && onReview && (
           <div style={{ marginTop: '8px' }}>
            <Button tone="secondary" onClick={onReview}>Kiểm tra và duyệt chính sách giá →</Button>
@@ -228,10 +227,9 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
        </div>
       </div>
 
-      <Notice title="Quy trình nghiệp vụ theo phân kỳ vận hành" tone="neutral">
-       <p>Bước 2 kiểm tra kế hoạch, chính sách giá, cửa sổ nhận đặt chỗ và các điều kiện của chuyến như tàu, cabin, cảng và lịch tàu.</p>
-       <p>Việc phân công nhân sự trên tàu, hoàn thiện 4 nhóm hồ sơ kỹ thuật - dịch vụ và công bố buổi hướng dẫn an toàn sẽ được thực hiện tại <strong>Khâu chuẩn bị trước ngày xuất bến</strong> (khi tàu sắp chạy thực tế).</p>
-      </Notice>
+      <p className={styles.sectionMeta}>
+       Phân công nhân sự, 4 nhóm hồ sơ kỹ thuật – dịch vụ và buổi hướng dẫn an toàn được kiểm tra ở khâu chuẩn bị trước ngày xuất bến.
+      </p>
 
       {/* Các điều kiện khác nếu có */}
       {otherBlockers.length > 0 && (

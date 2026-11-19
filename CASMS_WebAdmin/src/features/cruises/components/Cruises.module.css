@@ -150,7 +150,7 @@
 .departureTiming { grid-column:1 / -1; min-width:0; }
 .departureDateTime { grid-column:1 / -1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-4) var(--space-5); align-items:start; }
 .pickerField { display:grid; gap:var(--space-2); min-width:0; }
-.pickerField > :first-child { display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:var(--space-2); align-items:center; }
+.pickerField > :first-child { display:grid; grid-template-columns:minmax(9.5rem,1fr) auto; column-gap:var(--space-2); align-items:center; }
 .pickerField > :first-child > :is(label,div), .pickerExpanded { grid-column:1 / -1; }
 .pickerSlot { position:relative; display:grid; }
 .pickerSlot > button { white-space:nowrap; }
@@ -161,8 +161,8 @@
 .clockTemplateBtn { border-color:var(--brand-teal, #0E6B7A); color:var(--brand-teal, #0E6B7A); background:#f5fbfb; }
 .clockQuickBtnActive { background:var(--cruise-navy, #0b2a4a); border-color:var(--cruise-navy, #0b2a4a); color:#ffffff; }
 .clockQuickBtnActive:hover { background:var(--cruise-navy, #0b2a4a); border-color:var(--cruise-navy, #0b2a4a); }
-@container (max-width:34rem) { .departureDateTime, .departureWindowRange { grid-template-columns:minmax(0,1fr); } }
-@media (max-width:600px) { .departureDateTime, .departureWindowRange { grid-template-columns:minmax(0,1fr); } }
+@container (max-width:44rem) { .departureDateTime, .departureWindowRange { grid-template-columns:minmax(0,1fr); } }
+@media (max-width:1200px) { .departureDateTime, .departureWindowRange { grid-template-columns:minmax(0,1fr); } }
 .departureTiming > button { margin-block-start:var(--space-2); }
 @container (max-width:730px) {
   .departureCreateLayout { grid-template-columns:minmax(0, 1fr); grid-template-areas:"source" "form"; gap:var(--space-3); }
@@ -170,8 +170,91 @@
 .departureScheduleFull,
 .departureScheduleRow,
 .departureSourceRow,
-.departureCheckError {
+.departureCheckError,
+.shipPickerBlock {
   grid-column: 1 / -1;
+}
+.shipPickerBlock {
+  display: grid;
+  gap: var(--space-3, 12px);
+  min-width: 0;
+}
+.shipPickerPanel {
+  display: grid;
+  gap: var(--space-2, 8px);
+  padding: var(--space-3, 12px);
+  border: 1px solid var(--ui-border, var(--border-default));
+  border-radius: var(--radius-control, 6px);
+  background: var(--ui-subtle, #f4f7f8);
+}
+.shipPickerMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 8px);
+  font-size: var(--text-xs, 12px);
+  color: var(--ui-muted, var(--text-secondary));
+  font-variant-numeric: tabular-nums;
+}
+.shipPickerList {
+  display: grid;
+  gap: var(--space-2, 8px);
+  max-height: 16rem;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.shipPickerOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  width: 100%;
+  min-height: var(--control-height-default, 44px);
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  border: 1px solid var(--ui-border, var(--border-default));
+  border-radius: var(--radius-control, 6px);
+  background: var(--ui-surface, #ffffff);
+  color: var(--ui-ink, var(--brand-navy));
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--motion-feedback, 140ms) var(--ease-feedback, ease), background-color var(--motion-feedback, 140ms) var(--ease-feedback, ease);
+}
+.shipPickerOption:hover {
+  border-color: var(--brand-teal, #0e6b7a);
+  background: #f5fbfb;
+}
+.shipPickerOption:focus-visible {
+  outline: 3px solid var(--ui-focus, var(--brand-teal));
+  outline-offset: 2px;
+}
+.shipPickerOptionSelected {
+  border-color: var(--brand-teal, #0e6b7a);
+  background: #eaf4f4;
+  box-shadow: inset 3px 0 0 var(--brand-teal, #0e6b7a);
+}
+.shipPickerOptionMain {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.shipPickerOptionMain strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ui-ink, var(--brand-navy));
+  overflow-wrap: anywhere;
+}
+.shipPickerOptionMain small {
+  font-size: 12px;
+  color: var(--ui-muted, var(--text-secondary));
+  font-variant-numeric: tabular-nums;
+}
+.shipPickerEmpty {
+  margin: 0;
+  padding: var(--space-2, 8px) 0;
+  font-size: 13px;
+  color: var(--ui-muted, var(--text-secondary));
 }
 .departureSourceRow {
   display: flex;

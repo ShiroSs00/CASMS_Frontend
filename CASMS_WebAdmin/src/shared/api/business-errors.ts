@@ -60,7 +60,7 @@ const messages:Readonly<Record<string,string>>={
   INVALID_COUNTRY_CODE:'Chọn quốc gia hợp lệ trong danh mục.',
   DIRECTORY_MANAGE_FORBIDDEN:'Chỉ Quản lý vận hành có quyền tương ứng được quản lý danh mục cảng và điểm đến.',
   LEGACY_SOURCE_MATERIALIZATION_BLOCKED:'Mẫu đã chốt có khung phục vụ lịch sử. Chưa thể tạo chuyến từ nguồn này khi chưa có quyết định CR-REVIEW-04.',
-  SOURCE_REVISION_REQUIRED:'Phiên bản nguồn chưa có revision hợp lệ. Tải lại nguồn trước khi tạo chuyến.',
+  SOURCE_REVISION_REQUIRED:'Phiên bản nguồn chưa có số phiên bản hợp lệ. Tải lại nguồn trước khi tạo chuyến.',
   SOURCE_PROGRAM_MATERIALIZATION_FAILED:'Không thể tạo đầy đủ chương trình nguồn. Giao dịch tạo chuyến chưa được hoàn tất.',
   IDEMPOTENCY_COMPLETION_FAILED:'Chưa thể xác nhận đã lưu kết quả tạo chuyến. Giữ mã yêu cầu và đối chiếu trước khi thử lại.',
 
@@ -86,6 +86,9 @@ const messages:Readonly<Record<string,string>>={
   EXCURSION_PRICE_REQUIRED:'Tour tham quan chưa có giá hợp lệ. Nhập 0 nếu tour miễn phí.',
   EXCURSION_CURRENCY_REQUIRED:'Tour tham quan chưa có mã tiền tệ hợp lệ.',
   EXCURSION_OUTSIDE_PORT_CALL:'Thời gian tour chưa hợp lệ: giờ về phải sau giờ bắt đầu, nằm trong lần ghé cảng và không vượt hạn trở lại tàu.',
+  EXCURSION_DESTINATION_NOT_PLANNED:'Điểm đến của tour bờ chưa được thêm vào danh sách Điểm tham quan của lần ghé cảng này.',
+  EXCURSION_DESTINATION_NOT_SERVED:'Cảng của lần ghé này không phục vụ điểm đến của tour bờ đã chọn.',
+  EXCURSION_SOURCE_DESTINATION_MISMATCH:'Nguồn tour bờ không thuộc điểm đến đang chọn.',
 
   SERVICE_NOT_AVAILABLE_ON_SHIP:'Dịch vụ chưa được gán cho tàu của chuyến khởi hành này. Tải lại danh sách; nếu vẫn thiếu, Quản lý tàu cần cập nhật dịch vụ trên tàu.',
   SOURCE_CONFIGURATION_LOCKED:'Phạm vi và cấu trúc của chuyến khởi hành này được quản lý theo nguồn liên kết; không thể ghi đè tại form chỉnh sửa.',

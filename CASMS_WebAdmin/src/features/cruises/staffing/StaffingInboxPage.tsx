@@ -171,7 +171,10 @@ function StaffingInbox({ review }: { review: boolean }) {
           {inbox.loading ? (
             <Loading label="Đang tải danh sách yêu cầu nhân sự…" />
           ) : inbox.error ? (
-            <Notice tone="error" title="Chưa tải được danh sách">{staffingError(inbox.error)}</Notice>
+            <Notice tone="error" title="Chưa tải được danh sách">
+              <p>{staffingError(inbox.error)}</p>
+              <Button tone="secondary" size="compact" autoWidth onClick={inbox.retry}>Thử lại</Button>
+            </Notice>
           ) : !items.length ? (
             <Empty title={hr ? 'Chưa có chuyến nào chờ phân công nhân sự' : 'Chưa có phương án nào chờ xác nhận'} />
           ) : !filtered.length ? (
@@ -217,6 +220,7 @@ function StaffingInbox({ review }: { review: boolean }) {
                         tone="secondary"
                         size="compact"
                         autoWidth
+                        className={styles.tableActionBtn}
                         onClick={() => openRequest(request.id)}
                       >
                         {hr && request.status === 'SENT_TO_HR' ? 'Phân công' : 'Xem chi tiết'}
@@ -245,7 +249,8 @@ function ShipManagerAssignments({ userId }: { userId: string | null | undefined 
         {saved && <Notice tone="success" title="Đã phân công Quản lý tàu">{saved}</Notice>}
         {queue.loading && <Loading label="Đang tải danh sách chuyến…" />}
         {queue.error && <Notice tone="error" title="Chưa tải được danh sách">
-          {staffingError(queue.error)} <Button tone="secondary" onClick={queue.retry}>Thử lại</Button>
+          <p>{staffingError(queue.error)}</p>
+          <Button tone="secondary" size="compact" autoWidth onClick={queue.retry}>Thử lại</Button>
         </Notice>}
         {queue.data?.length === 0 && <p>Không có chuyến nào đang thiếu Quản lý tàu.</p>}
         {!!queue.data?.length && <Field htmlFor="ship-manager-cruise" label="Chuyến cần phân công">
@@ -275,7 +280,8 @@ function AssignShipManager({ cruiseId, onAssigned }: { cruiseId: string; onAssig
   const selected = candidates.find(user => user.userId === userId)
   if (options.loading) return <Loading label="Đang tải Quản lý tàu có thể phân công…" />
   if (options.error) return <Notice tone="error" title="Chưa tải được Quản lý tàu">
-    {staffingError(options.error)} <Button tone="secondary" onClick={options.retry}>Thử lại</Button>
+    <p>{staffingError(options.error)}</p>
+    <Button tone="secondary" size="compact" autoWidth onClick={options.retry}>Thử lại</Button>
   </Notice>
   if (!candidates.length) return <p>Chưa có Quản lý tàu phù hợp với lịch chuyến.</p>
   return <form className={styles.form} onSubmit={async event => {
@@ -317,7 +323,8 @@ function StaffingDetail({ requestId, onChanged, onCompleted, review }: {
   if (request.error || !request.data) {
     return (
       <Notice tone="error" title="Chưa mở được yêu cầu">
-        {staffingError(request.error)} <Button tone="secondary" onClick={request.retry}>Thử lại</Button>
+        <p>{staffingError(request.error)}</p>
+        <Button tone="secondary" size="compact" autoWidth onClick={request.retry}>Thử lại</Button>
       </Notice>
     )
   }
@@ -331,16 +338,24 @@ function StaffingDetail({ requestId, onChanged, onCompleted, review }: {
       <div className={styles.stack}>
         <RequestHeader request={request.data} />
         {review && request.data.status === 'PENDING_SHIP_REVIEW' && (
-          <div>
-            <ButtonLink tone="secondary" size="compact" to={`/admin/service-locations?cruiseId=${encodeURIComponent(request.data.cruiseId)}`}>
+          <div className={styles.rowMeta}>
+            <ButtonLink tone="secondary" size="compact" autoWidth to={`/admin/service-locations?cruiseId=${encodeURIComponent(request.data.cruiseId)}`}>
               Xem đề nghị bố trí dịch vụ của chuyến
+            </ButtonLink>
+            <ButtonLink tone="secondary" size="compact" autoWidth to={`/admin/cruises/${encodeURIComponent(request.data.cruiseId)}?section=preparation`}>
+              Hồ sơ chuẩn bị (Kỹ thuật tàu)
             </ButtonLink>
           </div>
         )}
-        <StaffingV2 request={request.data} refreshKey={refreshTick} onChanged={syncAll} onCompleted={onCompleted} />
-        {!review && request.data.status === 'SENT_TO_HR' && (
-          <Assignments request={request.data} refresh={syncAll} activityOnly />
-        )}
+        <StaffingV2
+          request={request.data}
+          refreshKey={refreshTick}
+          onChanged={syncAll}
+          onCompleted={onCompleted}
+          activitySection={!review && request.data.status === 'SENT_TO_HR'
+            ? <Assignments request={request.data} refresh={syncAll} activityOnly />
+            : undefined}
+        />
       </div>
     )
   }
@@ -549,7 +564,7 @@ function Assignments({ request, refresh, activityOnly = false }: { request: Staf
   return (
     <div className={styles.stack}>
       {(!activityOnly || shifts.length > 0) && (
-      <Panel title={activityOnly ? 'Phân ca hoạt động và tour bờ' : undefined}>
+      <Panel title={activityOnly ? '2. Phân ca hoạt động và tour bờ' : undefined}>
         <div className={styles.section}>
           {!activityOnly && <RequestHeader request={request} tone={editable ? 'warning' : 'success'} />}
 
@@ -773,7 +788,7 @@ function Assignments({ request, refresh, activityOnly = false }: { request: Staf
                     {availableCount === 0 && externalOnboardStaff.length === 0 && (
                       <Notice tone="info" title="Chưa có thêm Nhân viên phục vụ trên tàu khả dụng">
                         <p>
-                          Hiện trong hệ thống không còn tài khoản role Nhân viên phục vụ trên tàu (Onboard Staff) nào khác chưa được bố trí. Tạo thêm tài khoản có role Nhân viên phục vụ trên tàu để đủ người xếp vào chuyến.
+                          Hiện trong hệ thống không còn tài khoản vai trò Nhân viên phục vụ trên tàu nào khác chưa được bố trí. Tạo thêm tài khoản có vai trò Nhân viên phục vụ trên tàu để đủ người xếp vào chuyến.
                         </p>
                         {access.canDo('USER_READ') && (
                           <div style={{ marginTop: '8px' }}>

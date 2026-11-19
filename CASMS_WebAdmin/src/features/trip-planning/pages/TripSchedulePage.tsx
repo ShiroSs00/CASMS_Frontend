@@ -84,7 +84,7 @@ function DepartureWindowSummary({ trip }: { trip: Trip }) {
   const { can, root, gateway } = usePlanning()
   const canEdit = can('TRIP_UPDATE') && !gateway.readOnly && trip.status !== 'ARCHIVED' &&
     !trip.structuralLockedAt && !trip.versions?.some(item => item.status === 'PUBLISHED' || item.status === 'IN_REVIEW')
-  return <p>Khung khởi hành cho phép: {departureWindowLabel(trip)}{' '}
+  return <p>Khung giờ khởi hành cho phép: {departureWindowLabel(trip)}{' '}
     {canEdit && <Link to={`${root}/${trip.tripId}/info`}>Chỉnh thông tin khung chuyến</Link>}
   </p>
 }

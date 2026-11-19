@@ -112,7 +112,7 @@ export function staffingError(error: unknown) {
 
 export const staffingStatus: Record<string,string> = {
   PENDING_ASM:'Chờ Quản lý dịch vụ hoàn tất chương trình', PENDING_SHIP_REVIEW:'Chờ Quản lý tàu chuẩn bị',
-  SHIP_REVIEWED:'Chờ Quản lý lịch trình gửi nhân sự', HR_APPROVED:'Chờ Quản lý vận hành duyệt',
+  SHIP_REVIEWED:'Chờ Quản lý lịch trình chuyển Quản lý nhân sự', HR_APPROVED:'Chờ Quản lý vận hành duyệt',
   SENT_TO_HR:'Chờ Quản lý nhân sự phân công', HR_SUBMITTED:'Chờ Quản lý tàu xác nhận',
   SHIP_CONFIRMED:'Chờ Quản lý lịch trình xác nhận', PLANNER_CONFIRMED:'Chờ Quản lý vận hành duyệt',
   OPS_APPROVED:'Đã duyệt', RETURNED:'Đã trả lại', CANCELLED:'Đã hủy',

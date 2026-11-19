@@ -13,6 +13,7 @@ import {
 } from '../api/preparation-api'
 import { PreparationCoordinator } from './PreparationCoordinator'
 import { allowedDepartureSections, type DepartureSection } from '../model/preparation'
+import { operationsStaffRole } from '../model/operations-workflow'
 import styles from './ManagerWorkspace.module.css'
 
 const actions = {
@@ -116,9 +117,10 @@ export function PreparationEvidence({
   const can = (section: Section, action: PreparationAction) =>
     section.allowedActions.includes(action.toUpperCase()) &&
     (action === 'submit'
-      ? query.data?.coordinatorUserId === access.userId &&
-        access.roles.includes('CRUISE_MANAGER') &&
-        access.has('CRUISE_PREPARATION_SUBMIT')
+      ? access.has('CRUISE_PREPARATION_SUBMIT') &&
+        (section.submitterRole === 'CRUISE_MANAGER'
+          ? query.data?.coordinatorUserId === access.userId && access.roles.includes('CRUISE_MANAGER')
+          : access.roles.includes(section.submitterRole))
       : access.roles.includes('OPERATIONS_MANAGER') && access.has('CRUISE_PREPARATION_CONFIRM'))
 
   async function execute() {
@@ -236,10 +238,11 @@ export function PreparationEvidence({
           const statusTone = section.status === 'CONFIRMED' ? 'success'
             : section.status === 'REJECTED' ? 'error'
               : ['RETURNED', 'SUBMITTED', 'STALE'].includes(section.status) ? 'warning' : 'neutral'
+          const ownerLabel = operationsStaffRole(section.ownerRole)
           const next = section.status === 'RETURNED' || section.status === 'REJECTED'
-            ? 'Quản lý lịch trình rà soát phản hồi rồi bổ sung hồ sơ.'
+            ? `${ownerLabel} rà soát phản hồi rồi bổ sung hồ sơ.`
             : section.status === 'STALE'
-              ? 'Quản lý lịch trình đối chiếu thay đổi của chuyến trước khi gửi lại.'
+              ? `${ownerLabel} đối chiếu thay đổi của chuyến trước khi gửi lại.`
               : null
 
           return (
@@ -354,7 +357,7 @@ export function PreparationEvidence({
                           )}
                           {section.submittedByUserId === access.userId && (
                             <span className={styles.prepCardMeta}>
-                              Người nộp hồ sơ không thể tự duyệt. Một nhân viên Vận hành khác cần xét duyệt.
+                              Người nộp hồ sơ không thể tự duyệt. Cần một Quản lý vận hành khác xét duyệt.
                             </span>
                           )}
                         </>

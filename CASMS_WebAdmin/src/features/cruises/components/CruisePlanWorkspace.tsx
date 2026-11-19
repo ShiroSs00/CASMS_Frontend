@@ -58,7 +58,7 @@ export function CruisePlanWorkspace({
           <div className={styles.prepWorkflowStack}>
             <section className={styles.prepWorkflowStep} aria-labelledby="prep-budget-heading">
               <div className={styles.prepWorkflowStepHead}>
-                <h3 id="prep-budget-heading">Ngân sách vận hành</h3>
+                <h3 id="prep-budget-heading">1. Ngân sách vận hành</h3>
               </div>
               <OperatingBudget
                 key={cruiseId}
@@ -76,12 +76,7 @@ export function CruisePlanWorkspace({
 
             <section className={styles.prepWorkflowStep} aria-labelledby="department-work-heading">
               <div className={styles.prepWorkflowStepHead}>
-                <div>
-                  <h3 id="department-work-heading">Yêu cầu chuẩn bị</h3>
-                  <p className={styles.sectionMeta}>
-                    Sau khi lưu ngân sách, bạn có thể gửi yêu cầu riêng cho từng bộ phận.
-                  </p>
-                </div>
+                <h3 id="department-work-heading">2. Yêu cầu chuẩn bị và nhân sự</h3>
               </div>
               <div className={styles.departmentGrid}>
                 <CruiseWorkHandoff
@@ -104,7 +99,7 @@ export function CruisePlanWorkspace({
 
         <section className={styles.prepWorkflowStep} aria-labelledby="prep-booking-heading">
           <div className={styles.prepWorkflowStepHead}>
-            <h3 id="prep-booking-heading">Nhận đặt chỗ và gói trình duyệt</h3>
+            <h3 id="prep-booking-heading">{canPrepare ? '3. Nhận đặt chỗ và gói gửi duyệt' : 'Nhận đặt chỗ và gói gửi duyệt'}</h3>
           </div>
           <CruisePlanReview
             embedded

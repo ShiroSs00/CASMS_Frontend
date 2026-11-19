@@ -168,7 +168,7 @@ function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) 
         const cruise = detail.cruise
         if (serviceWorkspace) return <>
           <PageHeader breadcrumb="Gói và dịch vụ theo chuyến" title={cruise.cruiseName}
-            description={`${cruise.cruiseCode} · ${detail.ship?.shipName ?? 'Tàu chưa xác định'} · ${formatDateTime(cruise.departureDatetime)}`}
+            description={`${cruise.cruiseCode} · ${detail.ship?.shipName ?? (detail.supplementaryLoading ? 'Đang tải thông tin tàu…' : 'Chưa phân công tàu')} · ${formatDateTime(cruise.departureDatetime)}`}
             actions={params.get('work') === 'program'
               ? <ButtonLink to="/admin/preparation-requests" tone="secondary">Về yêu cầu chuẩn bị tour</ButtonLink>
               : <ButtonLink to={cruiseListReturn(params.get('returnTo'))} tone="secondary">Chọn chuyến khác</ButtonLink>} />
@@ -189,7 +189,7 @@ function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) 
             <dl className={preparationStyles.departureIdentity}>
               <div><dt>Khởi hành (giờ Việt Nam)</dt><dd>{formatDateTime(cruise.departureDatetime)}</dd></div>
               <div><dt>Kết thúc (giờ Việt Nam)</dt><dd>{formatDateTime(cruise.returnDatetime)}</dd></div>
-              <div><dt>Tàu được phân công</dt><dd>{detail.ship?.shipName??(cruise.shipId?'Chưa tải được thông tin tàu':'Chưa phân công')}</dd></div>
+              <div><dt>Tàu được phân công</dt><dd>{detail.ship?.shipName??(detail.supplementaryLoading?'Đang tải thông tin tàu…':cruise.shipId?'Chưa tải được thông tin tàu':'Chưa phân công')}</dd></div>
               {cruise.sourceTripCode&&<div><dt>Lịch trình nguồn</dt><dd>{cruise.sourceTripCode}</dd></div>}
               <div><dt>Trạng thái chuyến</dt><dd><CruiseStatusBadge status={cruise.status}/></dd></div>
             </dl>
@@ -335,11 +335,11 @@ function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) 
             {crmPlan.data&&<p className={preparationStyles.reviewFooterNote}>
               {canReviewPreparation
                 ? 'Hồ sơ đã đủ điều kiện để chuyển sang Bước 3 và gửi Quản lý vận hành duyệt.'
-                : 'Còn điều kiện cần hoàn thiện ở thẻ Tổng quan trước khi có thể nộp hồ sơ cho Vận hành.'}
+                : 'Còn điều kiện cần hoàn thiện ở thẻ Tổng quan trước khi có thể nộp hồ sơ cho Quản lý vận hành.'}
             </p>}
             <div className={preparationStyles.reviewFooterActions}>
               {crmPlan.data&&!canReviewPreparation&&section!=='overview'&&<Button tone="secondary" autoWidth onClick={()=>goSection('overview')}>Xem các mục cần hoàn thiện</Button>}
-              <Button autoWidth disabled={!canReviewPreparation} onClick={()=>goPreparationStep(3)}>Nộp hồ sơ tour cho Vận hành</Button>
+              <Button autoWidth disabled={!canReviewPreparation} onClick={()=>goPreparationStep(3)}>Nộp hồ sơ tour cho Quản lý vận hành</Button>
             </div>
           </div>}
           {lifecycleAction && access.canDo(lifecyclePermissions[lifecycleAction]) && <Modal busy={lifecycleBusy} title='Xác nhận chuyển trạng thái' onClose={() => { if (!lifecycleBusy) setLifecycleAction(null) }} footer={<div className={styles.dialogActions}>

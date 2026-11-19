@@ -117,7 +117,7 @@ export function CruiseWorkHandoff({
                   />
                 </header>
                 {task ? <TaskStatus task={task} compact /> : (
-                  <p className={workspaceStyles.sectionMeta}>Chờ Quản lý lịch trình gửi yêu cầu.</p>
+                  <p className={workspaceStyles.sectionMeta}>Chưa gửi yêu cầu chuẩn bị.</p>
                 )}
                 {canSend && budgetAmount && (group === 'ASM' || read.data?.shipAssigned) ? (
                   <details className={styles.handoffCompose} key={task?.revision ?? 0}>
@@ -213,8 +213,8 @@ function SendRequest({ path, group, initialMessage, onChanged }: {
         label={group === 'ASM' ? 'Hoạt động, dịch vụ hoặc tour bờ cần chuẩn bị' : 'Nội dung cần xác nhận'}
         hint={
           group === 'ASM'
-            ? 'Ghi hoạt động, tour bờ hoặc dịch vụ cần chuẩn bị.'
-            : 'Ghi yêu cầu về tàu, boong, cabin hoặc khả năng phục vụ.'
+            ? undefined
+            : 'Ghi rõ yêu cầu về tàu, boong, cabin hoặc khả năng phục vụ.'
         }
       >
         <textarea

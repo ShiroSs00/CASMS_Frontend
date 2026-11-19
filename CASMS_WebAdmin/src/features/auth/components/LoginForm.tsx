@@ -36,7 +36,7 @@ export function LoginForm({ expired, login, onSuccess }: {
     finally { lock.current = false; setBusy(false) }
   }
   return <div className={styles.loginCard}>
-    <p className={styles.eyebrow}>{expired ? 'PHIÊN ĐĂNG NHẬP' : 'OCEVIE · STAFF PORTAL'}</p>
+    <p className={styles.eyebrow}>{expired ? 'PHIÊN ĐĂNG NHẬP' : 'OCEVIE · CỔNG QUẢN TRỊ'}</p>
     <h1>{expired ? 'Phiên của bạn đã hết hạn' : 'Không gian điều hành'}</h1>
     <p>{expired ? 'Đăng nhập lại để tiếp tục.' : 'Đăng nhập dành cho quản trị viên, quản lý và nhân viên đặt chỗ.'}</p>
     <form className={styles.loginForm} onSubmit={(event) => void submit(event)} noValidate>

@@ -24,7 +24,8 @@ import { canManageBooking } from '../model/booking-permissions';
 export function RealBookingList() {
     const access = useSessionAccess();
     const [status, setStatus] = useState(''), [page, setPage] = useState(0), [cruiseId, setCruiseId] = useState('');
-    const choices = useReadQuery('booking-cruises', realBookingApi.cruises);
+    const canReadCruises = access.has('CRUISE_READ') && !access.roles.includes('FINANCE_OFFICER');
+    const choices = useReadQuery(`booking-cruises:${canReadCruises}`, useCallback(signal => canReadCruises ? realBookingApi.cruises(signal) : Promise.resolve([]), [canReadCruises]));
     const list = useReadQuery(`booking-list:${page}:${status}:${cruiseId}`, useCallback(signal => realBookingApi.list(page, status || undefined, cruiseId || undefined, signal), [page, status, cruiseId]));
     const root = '/admin/bookings';
     const filtered = Boolean(status || cruiseId);
@@ -35,14 +36,16 @@ export function RealBookingList() {
     <CollectionSummary count={list.loading || list.error ? null : list.data?.totalElements ?? null} visible={list.data?.content.length} filtered={filtered} label="Đặt chỗ trong kết quả" scope="Tổng kết quả từ hệ thống"/>
     <div className={listStyles.registerWorkspace}><Panel className={listStyles.registerFilters} title="Bộ lọc">
       <ListFilters label="Bộ lọc đặt chỗ" actions={<Button tone="secondary" disabled={!filtered} onClick={resetFilters}>Xóa bộ lọc</Button>}>
-        <Field htmlFor="booking-cruise" label="Chuyến khởi hành"><select id="booking-cruise" value={cruiseId} onChange={event => { setCruiseId(event.target.value); setPage(0); }}>
-          <option value="">Tất cả chuyến khởi hành</option>{choices.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}
-        </select></Field>
+        {canReadCruises && (
+          <Field htmlFor="booking-cruise" label="Chuyến khởi hành"><select id="booking-cruise" value={cruiseId} onChange={event => { setCruiseId(event.target.value); setPage(0); }}>
+            <option value="">Tất cả chuyến khởi hành</option>{choices.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}
+          </select></Field>
+        )}
         <Field htmlFor="booking-status" label="Trạng thái"><select id="booking-status" value={status} onChange={event => { setStatus(event.target.value); setPage(0); }}>
           <option value="">Tất cả trạng thái</option>{Object.entries(bookingStatusName).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select></Field>
       </ListFilters>
-      {choices.error && <div className={listStyles.notice}><Notice title="Chưa tải được bộ lọc chuyến" tone="warning">Danh sách đặt chỗ vẫn được tải độc lập. <Button tone="secondary" onClick={choices.retry}>Thử lại</Button></Notice></div>}
+      {canReadCruises && choices.error && <div className={listStyles.notice}><Notice title="Chưa tải được bộ lọc chuyến" tone="warning">Danh sách đặt chỗ vẫn được tải độc lập. <Button tone="secondary" onClick={choices.retry}>Thử lại</Button></Notice></div>}
     </Panel>
     <Panel className={listStyles.registerResults} title="Danh sách đặt chỗ">
       <BookingReadState {...list} publicResource={undefined}/>

@@ -66,6 +66,7 @@ export function EntryDetails({content,entry,kind,onClose,violation}:{content:Con
             <Detail label="Dự kiến bắt đầu">{dayTime(entry.startDayNumber,entry.plannedStartTime)}</Detail>
             <Detail label="Dự kiến kết thúc">{dayTime(entry.endDayNumber,entry.plannedEndTime)}</Detail>
             {entry.kind==='SHORE_EXCURSION'&&<Detail label="Lần ghé cảng" wide>{stop?`${stop.stopOrder}. ${text(stop.portName)} · Ngày ${stop.arrivalDayNumber}–${stop.departureDayNumber}`:'Chưa có thông tin'}</Detail>}
+            {entry.kind==='SHORE_EXCURSION'&&entry.destinationName&&<Detail label="Điểm tham quan" wide>{entry.destinationName}</Detail>}
           </dl>
         </section>
         <section className={styles.detailSection} aria-label="Địa điểm và thông tin bổ sung">
