@@ -11,10 +11,13 @@ export function DestinationVisits({ visits, onChange, port, readOnly }: {
   visits: DestinationVisit[]
   onChange: (visits: DestinationVisit[]) => void
   readOnly?: boolean
-  port?: { name: string; countryCode?: string; destinationId?: string }
+  port?: { name: string; countryCode?: string; destinationId?: string; servedDestinationIds?: string[] }
 }) {
  const catalog=useReadQuery('visit-destinations',useCallback(signal=>apiRequest<{destinationId:string;destinationName:string;countryCode:string}[]>('/destinations/active',{signal}),[]))
+ const hasServedInfo = Array.isArray(port?.servedDestinationIds)
+ const servedSet = new Set<string>(hasServedInfo ? port!.servedDestinationIds! : (port?.destinationId ? [port.destinationId] : []))
  const local = (catalog.data ?? []).filter(destination =>
+   servedSet.has(destination.destinationId) ||
    destination.destinationId === port?.destinationId ||
    !port?.countryCode || destination.countryCode?.toUpperCase() === port.countryCode.toUpperCase(),
  )
@@ -28,6 +31,8 @@ export function DestinationVisits({ visits, onChange, port, readOnly }: {
  }
  const linked = local.find(destination => destination.destinationId === port?.destinationId)
  const available = local.filter(destination => !selectedIds.has(destination.destinationId))
+ const servedAvailable = hasServedInfo ? available.filter(destination => servedSet.has(destination.destinationId)) : []
+ const otherAvailable = hasServedInfo ? available.filter(destination => !servedSet.has(destination.destinationId)) : available
  const labels = new Map<string, string>()
  for (const destination of catalog.data ?? []) labels.set(destination.destinationId, destinationVisitLabel(destination.destinationName))
  for (const visit of visits) {
@@ -70,14 +75,18 @@ export function DestinationVisits({ visits, onChange, port, readOnly }: {
  {visits.length > 0 && <ol className={visitStyles.list}>
    {visits.map(visit => {
      const name = label(visit.destinationId)
+     const servedByPort = !hasServedInfo || servedSet.has(visit.destinationId)
      return <li key={visit.clientKey}><div className={visitStyles.row}>
-       <span>{name}</span>
+       <span>
+         {name}
+         {!servedByPort && <small className={styles.muted}> · Chỉ ghi nhận lượt tham quan (cảng không phục vụ tour bờ)</small>}
+       </span>
        <Button disabled={readOnly} tone="text" size="compact" aria-label={'Bỏ ' + name} onClick={() => remove(visit.clientKey)}>Bỏ</Button>
      </div></li>
    })}
  </ol>}
  {readOnly ? null : !port ? <p>Chọn cảng ở trên để xem các điểm đến.</p> : <>
-   <p className={visitStyles.context}>Lần ghé: <strong>{port.name}</strong></p>
+   <p className={visitStyles.context}>Lần ghé: <strong>{port.name}</strong>{hasServedInfo && servedSet.size > 0 ? ' · Chỉ các điểm đến được cảng phục vụ mới gắn được tour bờ.' : ''}</p>
    {catalog.loading ? <Loading label="Đang tải điểm đến…"/> : catalog.error
      ? <Notice title="Chưa tải được điểm đến" tone="error"><Button onClick={catalog.retry}>Thử lại</Button></Notice>
      : available.length === 0 ? <p>{local.length ? 'Đã thêm tất cả điểm đến phù hợp.' : 'Chưa có điểm đến phù hợp trong danh mục.'}</p> : <>
@@ -86,7 +95,18 @@ export function DestinationVisits({ visits, onChange, port, readOnly }: {
        <Field htmlFor={selectId} label={port.countryCode ? `Thêm điểm tham quan tại ${countryLabel(port.countryCode)}` : 'Thêm điểm tham quan'}>
          <select id={selectId} value="" onChange={event => add(event.target.value)}>
            <option value="">Chọn điểm đến để thêm vào lần ghé</option>
-           {available.map(destination => <option key={destination.destinationId} value={destination.destinationId}>{label(destination.destinationId)}</option>)}
+           {hasServedInfo ? <>
+             {servedAvailable.length > 0 && (
+               <optgroup label="Được cảng phục vụ (có thể gắn tour bờ)">
+                 {servedAvailable.map(destination => <option key={destination.destinationId} value={destination.destinationId}>{label(destination.destinationId)}</option>)}
+               </optgroup>
+             )}
+             {otherAvailable.length > 0 && (
+               <optgroup label="Điểm đến khác cùng quốc gia (chỉ ghi nhận lượt tham quan)">
+                 {otherAvailable.map(destination => <option key={destination.destinationId} value={destination.destinationId}>{label(destination.destinationId)}</option>)}
+               </optgroup>
+             )}
+           </> : available.map(destination => <option key={destination.destinationId} value={destination.destinationId}>{label(destination.destinationId)}</option>)}
          </select>
        </Field>
      </>}

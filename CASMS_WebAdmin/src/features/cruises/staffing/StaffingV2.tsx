@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { Badge, Button, ButtonLink, Field, Loading, Notice, Panel } from '@/shared/ui'
 import { cruiseStaffApi } from '../api/cruise-staff-api'
@@ -38,12 +38,12 @@ function formatActivityKind(kind: string) {
   return kind
 }
 
-export function StaffingV2({ request, onChanged, onCompleted, coordinator = false, readOnly = false, refreshKey = 0 }: {
-  request: StaffingRequest; onChanged: () => void; onCompleted: () => void; coordinator?: boolean; readOnly?: boolean; refreshKey?: number
+export function StaffingV2({ request, onChanged, onCompleted, coordinator = false, readOnly = false, refreshKey = 0, activitySection }: {
+  request: StaffingRequest; onChanged: () => void; onCompleted: () => void; coordinator?: boolean; readOnly?: boolean; refreshKey?: number; activitySection?: ReactNode
 }) {
   const details = useReadQuery(`staffing-review:${request.id}:${request.revision}:${refreshKey}`,
     useCallback(signal => staffingApi.reviewDetails(request.id, signal), [request.id]))
-  const [latest, setLatest] = useState<ReviewDetails>()
+  const [latest, setLatest] = useState<{ key: number; data: ReviewDetails }>()
   const [busy, setBusy] = useState(false)
   const lock = useRef(false)
   const [error, setError] = useState('')
@@ -51,7 +51,9 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
   const [reason, setReason] = useState('')
   const [returning, setReturning] = useState(false)
   const [draft, setDraft] = useState<{ areas: string[]; needs: (Omit<NeedInput, 'requiredCount'> & { count: string })[] }>()
-  const state = latest && latest.request.revision > (details.data?.request.revision ?? 0) ? latest : details.data
+  const state = latest && latest.key === refreshKey && latest.data.request.revision > (details.data?.request.revision ?? 0)
+    ? latest.data
+    : details.data
   const ship = !readOnly && request.status === 'PENDING_SHIP_REVIEW'
   const hr = !readOnly && request.status === 'SENT_TO_HR'
   const options = useReadQuery('staffing-need-candidates:' + request.cruiseId,
@@ -64,9 +66,9 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
     setError('')
     try {
       const result = await change()
-      if ('request' in result) setLatest(result)
+      if ('request' in result) setLatest({ key: refreshKey, data: result })
       else if (!finish && state) {
-        setLatest({ ...state, request: result })
+        setLatest({ key: refreshKey, data: { ...state, request: result } })
         details.retry()
         options.retry()
       }
@@ -135,10 +137,392 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
 
   const currentStepIndex = v2Steps.findIndex(step => (step.statuses as readonly string[]).includes(current.status))
 
+  const shipProgramContent = (
+    <div className={styles.section}>
+      {!!state.ship?.cabins.length && (
+        <details className={styles.details}>
+          <summary>Xem tình trạng cabin ({availableCabins}/{totalCabins} sẵn sàng)</summary>
+          <ul className={styles.cabinGrid}>
+            {state.ship.cabins.map(cabin => (
+              <li key={cabin.cabinId} className={styles.cabinItem}>
+                <strong>Cabin {cabin.number}</strong>
+                <Badge
+                  label={formatCabinStatus(cabin.status)}
+                  tone={cabin.status === 'AVAILABLE' ? 'success' : 'warning'}
+                />
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {ship && !legacyShip && (
+        <fieldset disabled={disabled} className={styles.fieldsetBox}>
+          <legend>Bước 1: Khu vực mở và số người cần</legend>
+          <p className={styles.statusNote}>
+            Chọn khu vực hoạt động trong chuyến và nhập số người cho vị trí cần dùng (để trống vị trí không cần).
+            {working.areas.length > 0 && ` Đang chọn ${working.areas.length} khu vực · Tổng định biên: ${draftHeadcount} người.`}
+          </p>
+          <div className={styles.areaGrid}>
+            {state.areas.length === 0 && (
+              <Notice tone="warning" title="Tàu chưa có khu vực dịch vụ">
+                Tàu này chưa được cấu hình khu vực dịch vụ hoặc máy POS. Cần hoàn thiện cấu hình khu vực dịch vụ trên hồ sơ tàu trước khi chọn khu vực mở và lập định biên nhân sự.
+              </Notice>
+            )}
+            {state.areas.map(area => {
+              const checked = working.areas.includes(area.areaId)
+              const areaNeeds = working.needs.filter(need => need.areaId === area.areaId)
+              const areaMissingNeed = checked && areaNeeds.length === 0
+              return (
+                <div key={area.areaId} className={`${styles.areaCard} ${checked ? styles.areaCardActive : ''}`.trim()}>
+                  <div className={styles.areaCheckRow}>
+                    <label className={styles.areaCheckLabel}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={event => setDraft({
+                          areas: event.target.checked
+                            ? [...working.areas, area.areaId]
+                            : working.areas.filter(id => id !== area.areaId),
+                          needs: working.needs.filter(need => need.areaId !== area.areaId),
+                        })}
+                      />
+                      <span>{area.name}</span>
+                    </label>
+                    <div className={styles.rowMeta}>
+                      <Badge
+                        label={area.eligibleTerminals.length ? `${area.eligibleTerminals.length} máy POS hợp lệ` : 'Chưa có POS hợp lệ'}
+                        tone={area.eligibleTerminals.length ? 'info' : 'warning'}
+                      />
+                      {checked && (
+                        <Badge
+                          label={areaNeeds.length ? `${areaNeeds.length} vị trí cần người` : 'Chưa nhập số người'}
+                          tone={areaNeeds.length ? 'success' : 'warning'}
+                        />
+                      )}
+                    </div>
+                  </div>
+                  {checked && (
+                    <>
+                      <div className={styles.positionGrid}>
+                        {state.positionOptions.map(position => {
+                          const id = `staffing-${area.areaId}-${position}`
+                          const count = working.needs.find(need => need.areaId === area.areaId && need.positionCode === position)?.count ?? ''
+                          const invalidCount = count !== '' && (!/^\d+$/.test(count) || Number(count) < 1 || Number(count) > 2147483647)
+                          return (
+                            <Field
+                              key={id}
+                              htmlFor={id}
+                              label={positionLabels[position] ?? position}
+                              error={invalidCount ? 'Nhập số nguyên dương từ 1 trở lên.' : undefined}
+                            >
+                              <input
+                                id={id}
+                                type="number"
+                                min={1}
+                                max={2147483647}
+                                step={1}
+                                placeholder="Để trống nếu không cần"
+                                value={count}
+                                onChange={event => {
+                                  const next = working.needs.filter(need => need.areaId !== area.areaId || need.positionCode !== position)
+                                  if (event.target.value) next.push({ areaId: area.areaId, positionCode: position, count: event.target.value })
+                                  setDraft({ ...working, needs: next })
+                                }}
+                              />
+                            </Field>
+                          )
+                        })}
+                      </div>
+                      {areaMissingNeed && (
+                        <p className={styles.blockerHint}>
+                          Khu vực mở cần nhập số lượng (tối thiểu 1 người) cho ít nhất một vị trí.
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          <div className={styles.actions}>
+            <Button
+              autoWidth
+              disabled={disabled || invalid || !draft}
+              onClick={() => void mutate(async () => {
+                const updated = await staffingApi.saveShipPlan(
+                  current,
+                  working.areas,
+                  working.needs.map(({ areaId, positionCode, count }) => ({
+                    areaId,
+                    positionCode,
+                    requiredCount: Number(count),
+                  })),
+                )
+                setDraft(undefined)
+                return updated
+              })}
+            >
+              Lưu khu vực và nhu cầu
+            </Button>
+            {draft && (
+              <Button tone="secondary" autoWidth disabled={disabled} onClick={() => setDraft(undefined)}>
+                Hủy thay đổi chưa lưu
+              </Button>
+            )}
+          </div>
+        </fieldset>
+      )}
+
+      {activeAreas.length > 0 && (
+        <div className={styles.subSection}>
+          <div className={styles.sectionHeadingRow}>
+            <h3>{editingPlacement ? 'Bước 2: Gán máy POS cho từng khu vực mở' : 'Khu vực mở và máy POS phục vụ'}</h3>
+            <span className={styles.subtle}>{posCoveredCount}/{activeAreas.length} khu vực đã gắn POS</span>
+          </div>
+          <ul className={styles.rows}>
+            {activeAreas.map(area => {
+              const hasPos = area.terminals.length > 0
+              const areaNeedsSummary = needs
+                .filter(need => need.areaId === area.areaId)
+                .map(need => `${positionLabels[need.positionCode] ?? need.positionCode}: ${need.requiredCount} người`)
+                .join(' · ')
+              return (
+                <li className={styles.row} key={area.areaId}>
+                  <div className={styles.rowMain}>
+                    <strong>{area.name}</strong>
+                    {areaNeedsSummary && <small className={styles.subtle}>{areaNeedsSummary}</small>}
+                  </div>
+                  <div className={styles.rowMeta}>
+                    <Badge
+                      label={hasPos ? `POS: ${area.terminals.map(t => t.name).join(', ')}` : 'Chưa gắn máy POS'}
+                      tone={hasPos ? 'success' : 'warning'}
+                    />
+                    {editingPlacement && (
+                      <div className={styles.rowControl}>
+                        <Field htmlFor={`pos-${area.areaId}`} label="Máy POS">
+                          <select
+                            id={`pos-${area.areaId}`}
+                            disabled={disabled || Boolean(draft)}
+                            value={area.terminals[0]?.terminalId ?? ''}
+                            onChange={event => {
+                              const terminal = event.target.value
+                              if (terminal) void mutate(() => staffingApi.placePos(current, area.areaId, terminal))
+                            }}
+                          >
+                            <option value="" disabled>
+                              {legacyShip || area.eligibleTerminals.length ? 'Chọn máy POS' : 'Chưa có máy POS hợp lệ'}
+                            </option>
+                            {(legacyShip ? state.terminalOptions : area.eligibleTerminals).map(terminal => (
+                              <option key={terminal.terminalId} value={terminal.terminalId}>{terminal.name}</option>
+                            ))}
+                          </select>
+                        </Field>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
+      {state.plannedServices.length > 0 && (
+        <div className={styles.subSection}>
+          <div className={styles.sectionHeadingRow}>
+            <h3>{editingPlacement ? 'Bước 3: Bố trí dịch vụ trên tàu vào khu vực đã có POS' : 'Dịch vụ trên tàu'}</h3>
+            <span className={styles.subtle}>{servicesCoveredCount}/{state.plannedServices.length} dịch vụ đã bố trí</span>
+          </div>
+          <ul className={styles.rows}>
+            {state.plannedServices.map(service => {
+              const placed = service.placements[0]?.areaId
+              const proposalStatus = service.proposal ? {
+                PENDING: 'chờ xác nhận',
+                CONFIRMED: 'đã xác nhận',
+                RETURNED: 'đã trả bổ sung',
+              }[service.proposal.status] : ''
+              const proposal = service.proposal && (
+                <div className={styles.rowMeta}>
+                  <small className={styles.subtle}>
+                    Đề xuất: {service.proposal.deckName} ({proposalStatus}){service.proposal.note ? ` · ${service.proposal.note}` : ''}
+                  </small>
+                  {ship && service.proposal.status === 'PENDING' && (
+                    <ButtonLink to={`/admin/service-locations?cruiseId=${encodeURIComponent(current.cruiseId)}`}
+                      tone="secondary" size="compact" autoWidth>Xử lý đề nghị</ButtonLink>
+                  )}
+                </div>
+              )
+              const placedArea = activeAreas.find(area => area.areaId === placed)
+              const candidates = activeAreas.filter(area => service.eligibleAreaIds.includes(area.areaId) && area.terminals.length)
+              const eligibleNames = state.areas
+                .filter(area => service.eligibleAreaIds.includes(area.areaId))
+                .map(area => area.name)
+                .join(', ')
+              if (!editingPlacement) {
+                return (
+                  <li key={service.serviceId} className={styles.row}>
+                    <div className={styles.rowMain}>
+                      <strong>{service.name}</strong>
+                      {proposal}
+                    </div>
+                    <Badge
+                      label={placedArea ? placedArea.name : 'Chưa bố trí'}
+                      tone={placedArea ? 'success' : 'warning'}
+                    />
+                  </li>
+                )
+              }
+              return (
+                <li key={service.serviceId} className={styles.row}>
+                  <div className={styles.rowMain}>
+                    <strong>{service.name}</strong>
+                    {proposal}
+                    {candidates.length === 0 && (
+                      <small className={styles.subtle}>
+                        {eligibleNames
+                          ? `Cần mở và gắn POS cho: ${eligibleNames}`
+                          : 'Chưa có khu vực hợp lệ trên tàu cho dịch vụ này'}
+                      </small>
+                    )}
+                  </div>
+                  <div className={styles.rowControl}>
+                    <Field key={service.serviceId} htmlFor={`service-${service.serviceId}`} label="Khu vực phục vụ">
+                      <select
+                        id={`service-${service.serviceId}`}
+                        disabled={disabled || Boolean(draft)}
+                        value={placed ?? ''}
+                        onChange={event => {
+                          const area = candidates.find(option => option.areaId === event.target.value)
+                          if (area) void mutate(() => staffingApi.placeService(current, service.serviceId, area.areaId, area.terminals[0].terminalId))
+                        }}
+                      >
+                        <option value="" disabled>Chọn khu vực đã có POS</option>
+                        {candidates.map(area => <option key={area.areaId} value={area.areaId}>{area.name}</option>)}
+                      </select>
+                    </Field>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+
+  const staffingAssignmentPanel = !ship && (
+    <Panel title={hr ? '1. Phân công nhân sự theo định biên khu vực' : 'Nhu cầu và nhân viên đã phân công'}>
+      <div className={styles.section}>
+        {options.error && (
+          <Notice title="Chưa tải được nhân viên" tone="error">
+            <Button tone="text" onClick={options.retry}>Thử lại</Button>
+          </Notice>
+        )}
+        {!needs.length && <p className={styles.statusNote}>Chuyến này chưa có nhu cầu tại khu vực dịch vụ.</p>}
+        {needs.length > 0 && (
+          <ul className={styles.rows}>
+            {needs.map(need => {
+              const assigned = need.assignedUserIds
+              const gap = Math.max(0, need.requiredCount - assigned.length)
+              const used = new Set(needs.flatMap(item => item.assignedUserIds))
+              const candidates = (options.data?.users ?? []).filter(user => user.allowedRoles.includes(need.positionCode)
+                && !used.has(user.userId) && (state.staff.find(staff => staff.userId === user.userId)?.role ?? need.positionCode) === need.positionCode)
+              return (
+                <li className={styles.row} key={need.needId}>
+                  <div className={styles.rowMain}>
+                    <strong>{need.areaName} · {positionLabels[need.positionCode] ?? need.positionCode}</strong>
+                    <div className={styles.rowMeta}>
+                      <span className={styles.subtle}>{assigned.length}/{need.requiredCount} đã phân công</span>
+                      <Badge
+                        label={gap === 0 ? 'Đủ người' : `Thiếu ${gap} người`}
+                        tone={gap === 0 ? 'success' : 'warning'}
+                      />
+                    </div>
+                    {assigned.length > 0 && (
+                      <div className={styles.assignedList}>
+                        {assigned.map(userId => (
+                          <div className={styles.assignedChip} key={userId}>
+                            <span>{name(userId)}</span>
+                            {hr && (
+                              <Button
+                                size="compact"
+                                tone="text"
+                                autoWidth
+                                disabled={disabled}
+                                onClick={() => void mutate(() => staffingApi.assignNeed(current, need.needId, userId, false))}
+                              >
+                                Bỏ khỏi vị trí
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {hr && assigned.length < need.requiredCount && (
+                    <div className={styles.rowControl}>
+                      <Field
+                        htmlFor={`hire-${need.needId}`}
+                        label="Chọn nhân viên"
+                        hint={candidates.length ? `${candidates.length} nhân viên khả dụng` : 'Chưa có thêm nhân viên phù hợp'}
+                      >
+                        <select
+                          id={`hire-${need.needId}`}
+                          value=""
+                          disabled={disabled || options.loading}
+                          onChange={event => {
+                            const userId = event.target.value
+                            if (userId) void mutate(() => staffingApi.assignNeed(current, need.needId, userId, true))
+                          }}
+                        >
+                          <option value="" disabled>{candidates.length ? 'Chọn nhân viên đủ điều kiện' : 'Chưa có người phù hợp'}</option>
+                          {candidates.map(user => <option key={user.userId} value={user.userId}>{user.username}</option>)}
+                        </select>
+                      </Field>
+                    </div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+
+        {!!state.activities.length && !(hr && activitySection) && (
+          <div className={styles.subSection}>
+            <div className={styles.sectionHeadingRow}>
+              <h3>Ca hoạt động trên tàu và tour tham quan trên bờ</h3>
+              <span className={styles.subtle}>{activitiesCoveredCount}/{state.activities.length} ca đã có người phụ trách</span>
+            </div>
+            <ul className={styles.rows}>
+              {state.activities.map(activity => {
+                const hasStaff = activity.staffIds.length > 0
+                return (
+                  <li key={activity.activityId} className={styles.row}>
+                    <div className={styles.rowMain}>
+                      <strong>{activity.name}</strong>
+                      <small className={styles.subtle}>
+                        {formatActivityKind(activity.kind)} · {hasStaff ? `Phụ trách: ${activity.staffIds.map(name).join(', ')}` : 'Chưa phân ca'}
+                      </small>
+                    </div>
+                    <Badge
+                      label={hasStaff ? `${activity.staffIds.length} nhân sự` : 'Chưa phân ca'}
+                      tone={hasStaff ? 'success' : 'warning'}
+                    />
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )}
+      </div>
+    </Panel>
+  )
+
   return (
     <div className={styles.stack}>
       {current.workflowVersion === 'V2' && (
-        <ol className={styles.workflowStepper} aria-label="Tiến độ quy trình nhân sự V2">
+        <ol className={styles.workflowStepper} aria-label="Tiến độ quy trình chuẩn bị nhân sự">
           {v2Steps.map((step, index) => {
             const isApproved = current.status === 'OPS_APPROVED'
             const isDone = isApproved || (currentStepIndex > -1 && index < currentStepIndex)
@@ -209,13 +593,23 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
             </strong>
             <Badge
               label={
-                totalRequired === 0
+                totalRequired === 0 && state.activities.length === 0
                   ? 'Chưa định biên'
-                  : missingStaffCount === 0
-                    ? 'Đủ theo nhu cầu'
-                    : `Thiếu ${missingStaffCount} người`
+                  : missingStaffCount === 0 && missingActivitiesCount === 0
+                    ? 'Đủ định biên & ca'
+                    : missingStaffCount > 0 && missingActivitiesCount > 0
+                      ? `Thiếu ${missingStaffCount} định biên · ${missingActivitiesCount} ca`
+                      : missingStaffCount > 0
+                        ? `Thiếu ${missingStaffCount} định biên khu vực`
+                        : `Thiếu ${missingActivitiesCount} ca hoạt động/tour bờ`
               }
-              tone={totalRequired === 0 ? 'neutral' : missingStaffCount === 0 ? 'success' : 'warning'}
+              tone={
+                totalRequired === 0 && state.activities.length === 0
+                  ? 'neutral'
+                  : missingStaffCount === 0 && missingActivitiesCount === 0
+                    ? 'success'
+                    : 'warning'
+              }
             />
           </div>
           <span className={styles.summarySub}>
@@ -232,391 +626,21 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
         </Notice>
       )}
 
-      <Panel title="Tàu và chương trình phục vụ">
-        <div className={styles.section}>
-          <p>
-            {state.ship
-              ? `${state.ship.name} · ${formatShipStatus(state.ship.status)} · ${totalCabins} cabin (${availableCabins} sẵn sàng)`
-              : 'Chuyến chưa có tàu'}
-          </p>
-          {!!state.ship?.cabins.length && (
-            <details className={styles.details}>
-              <summary>Xem tình trạng cabin ({totalCabins} phòng)</summary>
-              <ul className={styles.cabinGrid}>
-                {state.ship.cabins.map(cabin => (
-                  <li key={cabin.cabinId} className={styles.cabinItem}>
-                    <strong>Cabin {cabin.number}</strong>
-                    <Badge
-                      label={formatCabinStatus(cabin.status)}
-                      tone={cabin.status === 'AVAILABLE' ? 'success' : 'warning'}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
-
-          {ship && !legacyShip && (
-            <fieldset disabled={disabled} className={styles.fieldsetBox}>
-              <legend>Bước 1: Khu vực mở và số người cần</legend>
-              <p className={styles.statusNote}>
-                Chọn các khu vực dịch vụ thực sự hoạt động trong chuyến này và nhập định biên theo từng vị trí. Khu vực không mở sẽ không bắt buộc gắn máy POS hoặc phân công nhân sự.
-                {working.areas.length > 0 && ` Đang chọn ${working.areas.length} khu vực · Tổng định biên nháp: ${draftHeadcount} người.`}
-              </p>
-              <div className={styles.areaGrid}>
-                {state.areas.map(area => {
-                  const checked = working.areas.includes(area.areaId)
-                  const areaNeeds = working.needs.filter(need => need.areaId === area.areaId)
-                  const areaMissingNeed = checked && areaNeeds.length === 0
-                  return (
-                    <div key={area.areaId} className={`${styles.areaCard} ${checked ? styles.areaCardActive : ''}`.trim()}>
-                      <div className={styles.areaCheckRow}>
-                        <label className={styles.areaCheckLabel}>
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={event => setDraft({
-                              areas: event.target.checked
-                                ? [...working.areas, area.areaId]
-                                : working.areas.filter(id => id !== area.areaId),
-                              needs: working.needs.filter(need => need.areaId !== area.areaId),
-                            })}
-                          />
-                          <span>{area.name}</span>
-                        </label>
-                        <div className={styles.rowMeta}>
-                          <Badge
-                            label={area.eligibleTerminals.length ? `${area.eligibleTerminals.length} máy POS hợp lệ` : 'Chưa có POS hợp lệ'}
-                            tone={area.eligibleTerminals.length ? 'info' : 'warning'}
-                          />
-                          {checked && (
-                            <Badge
-                              label={areaNeeds.length ? `${areaNeeds.length} vị trí cần người` : 'Chưa nhập số người'}
-                              tone={areaNeeds.length ? 'success' : 'warning'}
-                            />
-                          )}
-                        </div>
-                      </div>
-                      {checked && (
-                        <>
-                          <div className={styles.positionGrid}>
-                            {state.positionOptions.map(position => {
-                              const id = `staffing-${area.areaId}-${position}`
-                              const count = working.needs.find(need => need.areaId === area.areaId && need.positionCode === position)?.count ?? ''
-                              const invalidCount = count !== '' && (!/^\d+$/.test(count) || Number(count) < 1 || Number(count) > 2147483647)
-                              return (
-                                <Field
-                                  key={id}
-                                  htmlFor={id}
-                                  label={positionLabels[position] ?? position}
-                                  hint="Để trống nếu khu vực không cần vị trí này"
-                                  error={invalidCount ? 'Nhập số nguyên dương từ 1 trở lên.' : undefined}
-                                >
-                                  <input
-                                    id={id}
-                                    type="number"
-                                    min={1}
-                                    max={2147483647}
-                                    step={1}
-                                    placeholder="Số người cần"
-                                    value={count}
-                                    onChange={event => {
-                                      const next = working.needs.filter(need => need.areaId !== area.areaId || need.positionCode !== position)
-                                      if (event.target.value) next.push({ areaId: area.areaId, positionCode: position, count: event.target.value })
-                                      setDraft({ ...working, needs: next })
-                                    }}
-                                  />
-                                </Field>
-                              )
-                            })}
-                          </div>
-                          {areaMissingNeed && (
-                            <p className={styles.blockerHint}>
-                              Khu vực mở cần nhập số lượng (tối thiểu 1 người) cho ít nhất một vị trí.
-                            </p>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-              <div className={styles.actions}>
-                <Button
-                  autoWidth
-                  disabled={disabled || invalid || !draft}
-                  onClick={() => void mutate(async () => {
-                    const updated = await staffingApi.saveShipPlan(
-                      current,
-                      working.areas,
-                      working.needs.map(({ areaId, positionCode, count }) => ({
-                        areaId,
-                        positionCode,
-                        requiredCount: Number(count),
-                      })),
-                    )
-                    setDraft(undefined)
-                    return updated
-                  })}
-                >
-                  Lưu khu vực và nhu cầu
-                </Button>
-                {draft && (
-                  <Button tone="secondary" autoWidth disabled={disabled} onClick={() => setDraft(undefined)}>
-                    Hủy thay đổi chưa lưu
-                  </Button>
-                )}
-                {draft && !invalid && (
-                  <span className={styles.blockerHint}>
-                    Bạn có thay đổi khu vực hoặc nhu cầu chưa lưu. Hãy bấm &ldquo;Lưu khu vực và nhu cầu&rdquo; trước khi gắn POS hoặc xác nhận.
-                  </span>
-                )}
-              </div>
-            </fieldset>
-          )}
-
-          {activeAreas.length > 0 && (
-            <div className={styles.subSection}>
-              <div className={styles.sectionHeadingRow}>
-                <h3>{editingPlacement ? 'Bước 2: Gán máy POS cho từng khu vực mở' : 'Khu vực mở và máy POS phục vụ'}</h3>
-                <span className={styles.subtle}>{posCoveredCount}/{activeAreas.length} khu vực đã gắn POS</span>
-              </div>
-              <ul className={styles.rows}>
-                {activeAreas.map(area => {
-                  const hasPos = area.terminals.length > 0
-                  const areaNeedsSummary = needs
-                    .filter(need => need.areaId === area.areaId)
-                    .map(need => `${positionLabels[need.positionCode] ?? need.positionCode}: ${need.requiredCount} người`)
-                    .join(' · ')
-                  return (
-                    <li className={styles.row} key={area.areaId}>
-                      <div className={styles.rowMain}>
-                        <strong>{area.name}</strong>
-                        {areaNeedsSummary && <small className={styles.subtle}>Định biên đã lưu: {areaNeedsSummary}</small>}
-                      </div>
-                      <div className={styles.rowMeta}>
-                        <Badge
-                          label={hasPos ? `POS: ${area.terminals.map(t => t.name).join(', ')}` : 'Chưa gắn máy POS'}
-                          tone={hasPos ? 'success' : 'warning'}
-                        />
-                        {editingPlacement && (
-                          <div className={styles.rowControl}>
-                            <Field htmlFor={`pos-${area.areaId}`} label={`POS tại ${area.name}`}>
-                              <select
-                                id={`pos-${area.areaId}`}
-                                disabled={disabled || Boolean(draft)}
-                                value={area.terminals[0]?.terminalId ?? ''}
-                                onChange={event => {
-                                  const terminal = event.target.value
-                                  if (terminal) void mutate(() => staffingApi.placePos(current, area.areaId, terminal))
-                                }}
-                              >
-                                <option value="" disabled>
-                                  {legacyShip || area.eligibleTerminals.length ? 'Chọn máy POS' : 'Khu vực chưa có máy POS hợp lệ'}
-                                </option>
-                                {(legacyShip ? state.terminalOptions : area.eligibleTerminals).map(terminal => (
-                                  <option key={terminal.terminalId} value={terminal.terminalId}>{terminal.name}</option>
-                                ))}
-                              </select>
-                            </Field>
-                          </div>
-                        )}
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          )}
-
-          {state.plannedServices.length > 0 && (
-            <div className={styles.subSection}>
-              <div className={styles.sectionHeadingRow}>
-                <h3>{editingPlacement ? 'Bước 3: Bố trí dịch vụ trên tàu vào khu vực đã có POS' : 'Dịch vụ trên tàu'}</h3>
-                <span className={styles.subtle}>{servicesCoveredCount}/{state.plannedServices.length} dịch vụ đã bố trí</span>
-              </div>
-              <ul className={styles.rows}>
-                {state.plannedServices.map(service => {
-                  const placed = service.placements[0]?.areaId
-                  const proposal = service.proposal && <div className={styles.rowMain}>
-                    <small className={styles.subtle}>Quản lý dịch vụ đề xuất {service.proposal.deckName} · {service.proposal.note}</small>
-                    <small className={styles.subtle}>{{
-                      PENDING: 'Đề nghị đang chờ xác nhận',
-                      CONFIRMED: 'Đề nghị đã được xác nhận',
-                      RETURNED: 'Đề nghị đã trả về Quản lý dịch vụ',
-                    }[service.proposal.status]}</small>
-                    {ship && service.proposal.status === 'PENDING' && (
-                      <ButtonLink to={`/admin/service-locations?cruiseId=${encodeURIComponent(current.cruiseId)}`}
-                        tone="secondary" size="compact" autoWidth>Xử lý đề nghị</ButtonLink>
-                    )}
-                  </div>
-                  const placedArea = activeAreas.find(area => area.areaId === placed)
-                  const candidates = activeAreas.filter(area => service.eligibleAreaIds.includes(area.areaId) && area.terminals.length)
-                  const eligibleNames = state.areas
-                    .filter(area => service.eligibleAreaIds.includes(area.areaId))
-                    .map(area => area.name)
-                    .join(', ')
-                  if (!editingPlacement) {
-                    return (
-                      <li key={service.serviceId} className={styles.row}>
-                        <div className={styles.rowMain}>
-                          <strong>{service.name}</strong>
-                          {proposal}
-                          <small className={styles.subtle}>
-                            {placedArea ? `Phục vụ tại ${placedArea.name}` : 'Chưa bố trí khu vực phục vụ'}
-                          </small>
-                        </div>
-                        <Badge
-                          label={placedArea ? placedArea.name : 'Chưa bố trí'}
-                          tone={placedArea ? 'success' : 'warning'}
-                        />
-                      </li>
-                    )
-                  }
-                  return (
-                    <li key={service.serviceId} className={styles.row}>
-                      <div className={styles.rowMain}>
-                        <strong>{service.name}</strong>
-                        {proposal}
-                        <small className={styles.subtle}>
-                          {candidates.length > 0
-                            ? `Có ${candidates.length} khu vực mở đủ điều kiện POS`
-                            : eligibleNames
-                              ? `Cần mở và gắn POS cho khu vực hợp lệ (${eligibleNames})`
-                              : 'Chưa có khu vực hợp lệ trên tàu cho dịch vụ này'}
-                        </small>
-                      </div>
-                      <div className={styles.rowControl}>
-                        <Field key={service.serviceId} htmlFor={`service-${service.serviceId}`} label={service.name}>
-                          <select
-                            id={`service-${service.serviceId}`}
-                            disabled={disabled || Boolean(draft)}
-                            value={placed ?? ''}
-                            onChange={event => {
-                              const area = candidates.find(option => option.areaId === event.target.value)
-                              if (area) void mutate(() => staffingApi.placeService(current, service.serviceId, area.areaId, area.terminals[0].terminalId))
-                            }}
-                          >
-                            <option value="" disabled>Chọn khu vực đã có POS</option>
-                            {candidates.map(area => <option key={area.areaId} value={area.areaId}>{area.name}</option>)}
-                          </select>
-                        </Field>
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          )}
-        </div>
-      </Panel>
-
-      {!ship && (
-        <Panel title="Nhu cầu và nhân viên đã phân công">
-          <div className={styles.section}>
-            {options.error && (
-              <Notice title="Chưa tải được nhân viên" tone="error">
-                <Button tone="text" onClick={options.retry}>Thử lại</Button>
-              </Notice>
-            )}
-            {!needs.length && <p className={styles.statusNote}>Chuyến này chưa có nhu cầu tại khu vực dịch vụ.</p>}
-            {needs.length > 0 && (
-              <ul className={styles.rows}>
-                {needs.map(need => {
-                  const assigned = need.assignedUserIds
-                  const gap = Math.max(0, need.requiredCount - assigned.length)
-                  const used = new Set(needs.flatMap(item => item.assignedUserIds))
-                  const candidates = (options.data?.users ?? []).filter(user => user.allowedRoles.includes(need.positionCode)
-                    && !used.has(user.userId) && (state.staff.find(staff => staff.userId === user.userId)?.role ?? need.positionCode) === need.positionCode)
-                  return (
-                    <li className={styles.row} key={need.needId}>
-                      <div className={styles.rowMain}>
-                        <strong>{need.areaName} · {positionLabels[need.positionCode] ?? need.positionCode}</strong>
-                        <div className={styles.rowMeta}>
-                          <span className={styles.subtle}>{assigned.length}/{need.requiredCount} đã phân công</span>
-                          <Badge
-                            label={gap === 0 ? 'Đủ người' : `Thiếu ${gap} người`}
-                            tone={gap === 0 ? 'success' : 'warning'}
-                          />
-                        </div>
-                        {assigned.length > 0 && (
-                          <div className={styles.assignedList}>
-                            {assigned.map(userId => (
-                              <div className={styles.assignedChip} key={userId}>
-                                <span>{name(userId)}</span>
-                                {hr && (
-                                  <Button
-                                    size="compact"
-                                    tone="text"
-                                    autoWidth
-                                    disabled={disabled}
-                                    onClick={() => void mutate(() => staffingApi.assignNeed(current, need.needId, userId, false))}
-                                  >
-                                    Bỏ khỏi vị trí
-                                  </Button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      {hr && assigned.length < need.requiredCount && (
-                        <div className={styles.rowControl}>
-                          <Field
-                            htmlFor={`hire-${need.needId}`}
-                            label="Chọn nhân viên"
-                            hint={candidates.length ? `${candidates.length} nhân viên đủ điều kiện khả dụng` : 'Chưa có thêm nhân viên phù hợp'}
-                          >
-                            <select
-                              id={`hire-${need.needId}`}
-                              value=""
-                              disabled={disabled || options.loading}
-                              onChange={event => {
-                                const userId = event.target.value
-                                if (userId) void mutate(() => staffingApi.assignNeed(current, need.needId, userId, true))
-                              }}
-                            >
-                              <option value="" disabled>{candidates.length ? 'Chọn nhân viên đủ điều kiện' : 'Chưa có người phù hợp'}</option>
-                              {candidates.map(user => <option key={user.userId} value={user.userId}>{user.username}</option>)}
-                            </select>
-                          </Field>
-                        </div>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-
-            {!!state.activities.length && (
-              <div className={styles.subSection}>
-                <div className={styles.sectionHeadingRow}>
-                  <h3>Ca hoạt động trên tàu và tour tham quan trên bờ</h3>
-                  <span className={styles.subtle}>{activitiesCoveredCount}/{state.activities.length} ca đã có người phụ trách</span>
-                </div>
-                <ul className={styles.rows}>
-                  {state.activities.map(activity => {
-                    const hasStaff = activity.staffIds.length > 0
-                    return (
-                      <li key={activity.activityId} className={styles.row}>
-                        <div className={styles.rowMain}>
-                          <strong>{activity.name}</strong>
-                          <small className={styles.subtle}>
-                            {formatActivityKind(activity.kind)} · {hasStaff ? `Phụ trách: ${activity.staffIds.map(name).join(', ')}` : 'Chưa phân ca'}
-                          </small>
-                        </div>
-                        <Badge
-                          label={hasStaff ? `${activity.staffIds.length} nhân sự` : 'Chưa phân ca'}
-                          tone={hasStaff ? 'success' : 'warning'}
-                        />
-                      </li>
-                    )
-                  })}
-                </ul>
-              </div>
-            )}
-          </div>
-        </Panel>
+      {hr ? (
+        <>
+          {staffingAssignmentPanel}
+          {activitySection}
+          <details className={styles.details}>
+            <summary>Xem cấu hình tàu, khu vực mở và dịch vụ</summary>
+            <div className={styles.detailsBody}>{shipProgramContent}</div>
+          </details>
+        </>
+      ) : (
+        <>
+          <Panel title="Tàu và chương trình phục vụ">{shipProgramContent}</Panel>
+          {staffingAssignmentPanel}
+          {activitySection}
+        </>
       )}
 
       {error && <Notice title="Chưa lưu được thay đổi" tone="error">{error}</Notice>}
@@ -644,21 +668,27 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
               Lưu hoặc hủy thay đổi ở mục &ldquo;Bước 1: Khu vực mở và số người cần&rdquo; trước khi xác nhận phương án tàu.
             </p>
           )}
-          {!draft && ship && !legacyShip && (activeAreas.length === 0 || posCoveredCount < activeAreas.length || servicesCoveredCount < state.plannedServices.length) && (
-            <p className={styles.blockerHint}>
-              Trước khi xác nhận phương án tàu, cần hoàn tất: {activeAreas.length === 0 ? 'chọn và lưu khu vực mở có nhu cầu nhân sự; ' : ''}
-              {posCoveredCount < activeAreas.length ? `gắn máy POS cho ${activeAreas.length - posCoveredCount} khu vực mở còn thiếu; ` : ''}
-              {servicesCoveredCount < state.plannedServices.length ? `bố trí khu vực/POS cho ${state.plannedServices.length - servicesCoveredCount} dịch vụ trên tàu.` : ''}
-            </p>
-          )}
+          {!draft && ship && !legacyShip && (() => {
+            const shipBlockers = [
+              activeAreas.length === 0 ? 'chọn và lưu khu vực mở có nhu cầu nhân sự' : null,
+              posCoveredCount < activeAreas.length ? `gắn máy POS cho ${activeAreas.length - posCoveredCount} khu vực mở còn thiếu` : null,
+              servicesCoveredCount < state.plannedServices.length ? `bố trí khu vực/POS cho ${state.plannedServices.length - servicesCoveredCount} dịch vụ trên tàu` : null,
+            ].filter(Boolean)
+            if (!shipBlockers.length) return null
+            return (
+              <p className={styles.blockerHint}>
+                Trước khi xác nhận phương án tàu, cần hoàn tất: {shipBlockers.join('; ')}.
+              </p>
+            )
+          })()}
           {hr && missingStaffCount > 0 && (
             <p className={styles.blockerHint}>
               Còn thiếu {missingStaffCount} nhân sự theo định biên khu vực. Hãy phân công đủ người trước khi gửi, hoặc bấm &ldquo;{action.backLabel}&rdquo; để trả Quản lý tàu điều chỉnh khu vực/nhu cầu.
             </p>
           )}
-          {hr && missingStaffCount === 0 && missingActivitiesCount > 0 && (
+          {hr && missingActivitiesCount > 0 && (
             <p className={styles.blockerHint}>
-              Đã đủ định biên khu vực nhưng còn {missingActivitiesCount} ca hoạt động/tour bờ chưa phân ca. Hãy phân ca ở mục bên dưới trước khi gửi phương án.
+              Còn {missingActivitiesCount} ca hoạt động trên tàu / tour bờ chưa được phân ca. Hãy phân ca ở mục bên trên trước khi gửi phương án.
             </p>
           )}
           {action.back === 'SHIP_RETURN_ASM' && state.canReturnToAsm === false && (
@@ -683,7 +713,14 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
           <div className={styles.actions}>
             {action.approve && !returning && (
               <Button
-                disabled={disabled || Boolean(draft) || current.shipPlanStale || (hr && staffingMissing(current) > 0)}
+                disabled={
+                  disabled
+                  || details.loading
+                  || Boolean(draft)
+                  || current.shipPlanStale
+                  || (ship && !legacyShip && (activeAreas.length === 0 || posCoveredCount < activeAreas.length || servicesCoveredCount < state.plannedServices.length))
+                  || (hr && (missingStaffCount > 0 || missingActivitiesCount > 0))
+                }
                 busy={busy}
                 onClick={() => {
                   const next = action.approve

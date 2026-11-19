@@ -48,7 +48,7 @@ export type AvailableCabinQuery = { shipId?: string; deckId?: string; cabinType?
 
 export const shipStatuses: Record<ShipStatus,string> = {
   DRAFT:'Đang thiết lập',READY:'Sẵn sàng hoạt động',IN_SERVICE:'Đang hoạt động',
-  MAINTENANCE:'Đang bảo trì',SUSPENDED:'Tạm dừng hoạt động',RETIRED:'Đã ngừng hoat động',
+  MAINTENANCE:'Đang bảo trì',SUSPENDED:'Tạm dừng hoạt động',RETIRED:'Đã ngừng hoạt động',
 }
 
 export const cabinStatuses: Record<CabinStatus, string> = {

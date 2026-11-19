@@ -29,7 +29,8 @@ export function StaffingPreparation({ cruiseId, refreshKey, onStarted }: {
   if (query.error || !data) {
     return (
       <Notice tone="error" title="Chưa tải được phương án nhân sự">
-        {staffingError(query.error)} <Button tone="secondary" onClick={query.retry}>Thử lại</Button>
+        <p>{staffingError(query.error)}</p>
+        <Button tone="secondary" size="compact" autoWidth onClick={query.retry}>Thử lại</Button>
       </Notice>
     )
   }
@@ -142,11 +143,10 @@ export function StaffingPreparation({ cruiseId, refreshKey, onStarted }: {
               setBusy(false)
               lock.current = false
             }
-          }}>Gửi phương án cho Vận hành</Button>}
+          }}>Gửi phương án cho Quản lý vận hành</Button>}
       </>}
       {!active && <div className={styles.form}>
-        <p>Khởi tạo để Quản lý dịch vụ hoàn thiện chương trình và Quản lý tàu xác định khu vực mở cùng số người cần.</p>
-        {!data.hasOperatingBudget && <p>Lưu ngân sách vận hành trước khi khởi tạo.</p>}
+        <p className={workspaceStyles.sectionMeta}>Khởi tạo để Quản lý dịch vụ hoàn thiện chương trình và Quản lý tàu xác định khu vực mở cùng số người cần.</p>
         <Button busy={busy} disabled={!data.hasOperatingBudget} autoWidth onClick={() => void start()}>
           Khởi tạo yêu cầu nhân sự
         </Button>

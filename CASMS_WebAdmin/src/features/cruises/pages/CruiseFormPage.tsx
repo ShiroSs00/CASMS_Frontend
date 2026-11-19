@@ -1,4 +1,4 @@
-import { departureWindowIncludes, departureWindowInputs, departureWindowLabel } from '@/domain/trip-departure-window'
+import { departureWindowIncludes, departureWindowInputs, departureWindowLabel, parseDepartureMinute } from '@/domain/trip-departure-window'
 import { businessErrorMessage } from '@/shared/api/business-errors'
 import { businessCopy } from '@/shared/i18n/business-copy'
 import { InheritedSourcePlan } from '../components/InheritedSourcePlan'
@@ -46,13 +46,6 @@ const calendarLabel = (value: string) => {
   return time ? date.split('-').reverse().join('/') + ' · ' + time.replace(/^(\d{2}:\d{2}):00$/, '$1') : 'Chưa xác định'
 }
 
-const formatWallDateTime = (value: string) => {
-  const [date, time] = value.split('T')
-  if (!date) return 'Chưa xác định'
-  const day = date.split('-').reverse().join('/')
-  return time ? `${day} · ${time.slice(0, 5)}` : day
-}
-
 function departureScheduleErrorMessage(err: unknown, durationDays?: number | null, durationNights?: number | null): string {
   if (!(err instanceof ApiError)) return err instanceof Error ? err.message : 'Không tải được lịch trình theo ngày giờ này.'
   if (err.code === 'SOURCE_DURATION_INVALID' || err.code === 'DRAFT_ITINERARY_DAY_COUNT_MISMATCH') {
@@ -68,6 +61,12 @@ function departureScheduleErrorMessage(err: unknown, durationDays?: number | nul
   }
   return err.message
 }
+
+const normalizeShipSearch = (text: string) =>
+  text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLocaleLowerCase('vi').trim()
+
+const shipStatusLabel = (status: string) =>
+  ({ DRAFT: 'Đang thiết lập', READY: 'Sẵn sàng', IN_SERVICE: 'Đang khai thác', MAINTENANCE: 'Đang bảo trì', SUSPENDED: 'Tạm dừng', RETIRED: 'Đã ngừng hoạt động' } as Record<string, string>)[status] ?? status
 
 export function CruiseFormPage() {
   const [dateFieldsGeneration, setDateFieldsGeneration] = useState(0)
@@ -99,6 +98,7 @@ export function CruiseFormPage() {
   const [initialSourceId] = useState(() => new URLSearchParams(location.search).get('sourceVersionId'))
   const [shipEdited, setShipEdited] = useState(() => Boolean(restored?.draft.shipId))
   const [passengerInput, setPassengerInput] = useState(() => String(createIntent.record?.payload.expectedPassengerCount ?? restored?.draft.expectedPassengerCount ?? ''))
+  const [shipSearch, setShipSearch] = useState('')
   const [submitError, setSubmitError] = useState('')
   const [busy, setBusy] = useState(false)
   const [appliedPreview, setAppliedPreview] = useState('')
@@ -269,6 +269,12 @@ export function CruiseFormPage() {
 
   const portOptions = [...(portsLoadedKey === portRequestKey ? ports : []), ...(loadedId === cruiseId ? storedPorts : []).filter((port, index, all) => port && !ports.some(item => item.portId === port.portId) && all.findIndex(item => item?.portId === port.portId) === index)]
   const selectedShip = suitableShips.find(ship => ship.shipId === draft.shipId)
+  const normalizedShipQuery = normalizeShipSearch(shipSearch)
+  const filteredSuitableShips = normalizedShipQuery
+    ? suitableShips.filter(ship =>
+        normalizeShipSearch(`${ship.shipName ?? ''} ${ship.shipCode ?? ''}`).includes(normalizedShipQuery),
+      )
+    : suitableShips
 
   useEffect(() => {
     if (editing || !sourceId || !draft.departureDatetime || invalidSource) return
@@ -393,8 +399,6 @@ export function CruiseFormPage() {
 
   const windowBounds = source.data ? departureWindowInputs(source.data) : { earliestDeparture: '', latestDeparture: '' }
   const hasDepartureWindow = Boolean(windowBounds.earliestDeparture && windowBounds.latestDeparture)
-  const windowMinDate = windowBounds.earliestDeparture ? windowBounds.earliestDeparture.split('T')[0] : undefined
-  const windowMaxDate = windowBounds.latestDeparture ? windowBounds.latestDeparture.split('T')[0] : undefined
   const windowStatus = !hasDepartureWindow
     ? 'flexible'
     : !draft.departureDatetime
@@ -412,10 +416,19 @@ export function CruiseFormPage() {
 
   function nearestAllowedDeparture() {
     if (!hasDepartureWindow) return ''
-    if (!draft.departureDatetime) return windowBounds.earliestDeparture
-    return draft.departureDatetime > windowBounds.latestDeparture
-      ? windowBounds.latestDeparture
-      : windowBounds.earliestDeparture
+    const fallbackDate = localCruiseInput(new Date().toISOString()).split('T')[0]
+    const [datePart, timePart] = draft.departureDatetime ? draft.departureDatetime.split('T') : [fallbackDate, '']
+    const baseDate = datePart || fallbackDate
+    if (!timePart) return `${baseDate}T${windowBounds.earliestDeparture}`
+    try {
+      const currentMinute = parseDepartureMinute(timePart.slice(0, 5))
+      const targetClock = currentMinute > parseDepartureMinute(windowBounds.latestDeparture)
+        ? windowBounds.latestDeparture
+        : windowBounds.earliestDeparture
+      return `${baseDate}T${targetClock}`
+    } catch {
+      return `${baseDate}T${windowBounds.earliestDeparture}`
+    }
   }
 
   function returnToSelectedSchedule() {
@@ -475,8 +488,8 @@ export function CruiseFormPage() {
                 onChangeSource={() => setChangeSourceOpen(true)}
               />
               <div className={styles.sourceWindowSummary}>
-                <span>Khung khởi hành</span>
-                <strong>{hasDepartureWindow ? departureWindowLabel(source.data) : 'Linh hoạt · Không giới hạn ngày'}</strong>
+                <span>Khung giờ khởi hành</span>
+                <strong>{hasDepartureWindow ? departureWindowLabel(source.data) : 'Linh hoạt · Không giới hạn khung giờ'}</strong>
               </div>
               {!previewScheduleData && <Button type="button" tone="secondary" fullWidth onClick={() => setScheduleDetailOpen(true)}>Xem lịch từng ngày</Button>}
             </Panel>
@@ -484,14 +497,14 @@ export function CruiseFormPage() {
           <Panel className={styles.departureCreateMain}>
             <FormSection title="Ngày khởi hành và tên tour">
               {/* UX: Proximity & Error Prevention — surface allowed departure window right above date/time inputs */}
-              <div className={`${styles.departureWindowBanner} ${styles[`departureWindow_${windowStatus}`]}`} role="region" aria-label="Khung khởi hành cho phép">
+              <div className={`${styles.departureWindowBanner} ${styles[`departureWindow_${windowStatus}`]}`} role="region" aria-label="Khung giờ khởi hành cho phép">
                 <div className={styles.departureWindowTop}>
                   <div className={styles.departureWindowHeading}>
                     <svg className={styles.windowIcon} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                       <rect x="3" y="4" width="18" height="18" rx="2" />
                       <path d="M16 2v4M8 2v4M3 10h18" />
                     </svg>
-                    <strong>{hasDepartureWindow ? 'Khung khởi hành cho phép (giờ Việt Nam)' : 'Khung khởi hành linh hoạt'}</strong>
+                    <strong>{hasDepartureWindow ? 'Khung giờ khởi hành cho phép (giờ Việt Nam)' : 'Khung giờ khởi hành linh hoạt'}</strong>
                   </div>
                   <Badge
                     tone={windowStatus === 'valid' ? 'success' : windowStatus === 'outside' ? 'error' : windowStatus === 'required' ? 'info' : 'neutral'}
@@ -499,7 +512,7 @@ export function CruiseFormPage() {
                       windowStatus === 'valid' ? 'Hợp lệ · Trong khung'
                         : windowStatus === 'outside' ? 'Ngoài khung cho phép'
                         : windowStatus === 'required' ? 'Bắt buộc trong khung'
-                        : 'Không giới hạn ngày'
+                        : 'Không giới hạn khung giờ'
                     }
                   />
                 </div>
@@ -507,23 +520,23 @@ export function CruiseFormPage() {
                   <>
                     <dl className={styles.departureWindowRange}>
                       <div>
-                        <dt>Mở khung</dt>
-                        <dd>{formatWallDateTime(windowBounds.earliestDeparture)}</dd>
+                        <dt>Sớm nhất</dt>
+                        <dd>{windowBounds.earliestDeparture}</dd>
                       </div>
                       <div>
-                        <dt>Đóng khung</dt>
-                        <dd>{formatWallDateTime(windowBounds.latestDeparture)}</dd>
+                        <dt>Trễ nhất</dt>
+                        <dd>{windowBounds.latestDeparture}</dd>
                       </div>
                     </dl>
                     {(windowStatus === 'required' || windowStatus === 'outside') && (
                       <div className={styles.departureWindowActions}>
                         <span className={styles.muted}>
                           {windowStatus === 'outside'
-                            ? 'Ngày giờ đã chọn nằm ngoài khoảng mở bán của tuyến mẫu.'
-                            : 'Chọn ngày giờ trong khoảng trên hoặc điền nhanh mốc hợp lệ.'}
+                            ? 'Giờ khởi hành đã chọn nằm ngoài khung giờ cho phép của mẫu lịch trình.'
+                            : 'Chọn giờ khởi hành trong khung trên hoặc điền nhanh giờ mở khung.'}
                         </span>
                         <Button type="button" tone="secondary" size="compact" autoWidth onClick={() => applySuggestedDeparture(nearestAllowedDeparture())}>
-                          {windowStatus === 'outside' ? 'Đưa về mốc hợp lệ gần nhất' : 'Dùng mốc mở khung'}
+                          {windowStatus === 'outside' ? 'Đưa về giờ hợp lệ gần nhất' : 'Dùng giờ mở khung'}
                         </Button>
                       </div>
                     )}
@@ -533,7 +546,8 @@ export function CruiseFormPage() {
 
               <CruiseDateTimeFields key={`${dateFieldsGeneration}:${source.data.versionId}`} id="departure-time" label="khởi hành"
                 value={draft.departureDatetime} error={departureWindowError ?? errors.departureDatetime}
-                minDate={windowMinDate} maxDate={windowMaxDate}
+                minClock={windowBounds.earliestDeparture || undefined}
+                maxClock={windowBounds.latestDeparture || undefined}
                 templateClock={source.data.days.find(day => day.dayNumber === 1)?.plannedDepartureTime ?? undefined}
                 onChange={value => update('departureDatetime', value)} onIncompleteChange={setDateFieldsIncomplete} />
 
@@ -575,22 +589,83 @@ export function CruiseFormPage() {
                     if (draft.shipId) update('shipId', null)
                   }} />
                 </Field>
-                <Field htmlFor="departure-initial-ship" label="Tàu cho tour *" error={errors.shipId}
-                  hint={!draft.departureDatetime || !validPassengerCount ? 'Chọn ngày khởi hành và nhập số khách để tìm tàu.' : undefined}>
-                  <select id="departure-initial-ship" value={selectedShip?.shipId ?? ''} aria-invalid={Boolean(errors.shipId)} disabled={eligible.loading || Boolean(eligible.error) || !suitableShips.length} onChange={event => update('shipId', event.target.value || null)}>
-                    <option value="">{!draft.departureDatetime ? 'Chọn ngày và giờ khởi hành trước' : !validPassengerCount ? 'Nhập số khách trước' : 'Chọn tàu đủ chỗ'}</option>
-                    {suitableShips.map(ship => <option key={ship.shipId} value={ship.shipId}>
-                      {ship.shipName} · {ship.totalCapacity} chỗ
-                    </option>)}
-                  </select>
-                </Field>
+                <div className={styles.shipPickerBlock}>
+                  <Field htmlFor="departure-ship-search" label="Tàu cho tour *" error={errors.shipId}
+                    hint={
+                      !draft.departureDatetime || !validPassengerCount
+                        ? 'Chọn ngày khởi hành và nhập số khách để tìm tàu theo tên.'
+                        : suitableShips.length > 0
+                          ? `Có ${suitableShips.length} tàu đủ chỗ và trống lịch. Nhập tên hoặc mã tàu để lọc nhanh.`
+                          : undefined
+                    }>
+                    <input
+                      id="departure-ship-search"
+                      type="search"
+                      autoComplete="off"
+                      placeholder={!draft.departureDatetime ? 'Chọn ngày và giờ khởi hành trước' : !validPassengerCount ? 'Nhập số khách trước' : 'Tìm theo tên hoặc mã tàu…'}
+                      value={shipSearch}
+                      disabled={eligible.loading || Boolean(eligible.error) || !suitableShips.length}
+                      aria-invalid={Boolean(errors.shipId)}
+                      onKeyDown={event => {
+                        if (event.key === 'Enter') event.preventDefault()
+                      }}
+                      onChange={event => setShipSearch(event.target.value)}
+                    />
+                  </Field>
+                  {suitableShips.length > 0 && !eligible.loading && !eligible.error && (
+                    <div className={styles.shipPickerPanel}>
+                      <div className={styles.shipPickerMeta}>
+                        <span>
+                          Hiển thị {filteredSuitableShips.length} / {suitableShips.length} tàu phù hợp
+                        </span>
+                        {shipSearch.trim() && (
+                          <Button type="button" tone="text" size="compact" autoWidth onClick={() => setShipSearch('')}>
+                            Xóa từ khóa
+                          </Button>
+                        )}
+                      </div>
+                      {filteredSuitableShips.length > 0 ? (
+                        <div className={styles.shipPickerList} role="radiogroup" aria-label="Danh sách tàu phù hợp">
+                          {filteredSuitableShips.map(ship => {
+                            const isSelected = selectedShip?.shipId === ship.shipId
+                            const shipTitle = ship.shipName?.trim() || ship.shipCode || 'Tàu chưa đặt tên'
+                            return (
+                              <button
+                                key={ship.shipId}
+                                type="button"
+                                role="radio"
+                                aria-checked={isSelected}
+                                className={`${styles.shipPickerOption} ${isSelected ? styles.shipPickerOptionSelected : ''}`.trim()}
+                                onClick={() => update('shipId', ship.shipId)}
+                              >
+                                <span className={styles.shipPickerOptionMain}>
+                                  <strong>{shipTitle}</strong>
+                                  <small>
+                                    {ship.shipCode ? `${ship.shipCode} · ` : ''}
+                                    {ship.totalCapacity} chỗ · {shipStatusLabel(ship.status)}
+                                  </small>
+                                </span>
+                                {isSelected && <Badge tone="success" label="Đã chọn" />}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <p className={styles.shipPickerEmpty} role="status">
+                          Không tìm thấy tàu nào khớp &ldquo;{shipSearch.trim()}&rdquo;.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
                 {eligibilityKey && eligible.data && !eligible.loading && !eligible.error && !suitableShips.length &&
                   <p className={styles.departureScheduleFull} role="status">Không có tàu đủ chỗ và còn lịch trống.</p>}
                 {selectedShip && (
                   <div className={styles.departureScheduleFull}>
                     <RecordFacts entries={[
+                      ['Tàu đã chọn', selectedShip.shipName?.trim() || selectedShip.shipCode],
                       ['Sức chứa tối đa', `${selectedShip.totalCapacity} khách`],
-                      ['Trạng thái tàu', selectedShip.status === 'READY' ? 'Sẵn sàng' : selectedShip.status === 'IN_SERVICE' ? 'Đang khai thác' : selectedShip.status],
+                      ['Trạng thái tàu', shipStatusLabel(selectedShip.status)],
                     ]} />
                   </div>
                 )}
@@ -648,7 +723,7 @@ export function CruiseFormPage() {
               <Field htmlFor="legacy-mode" label="Chỉnh sửa lịch trình"><select id="legacy-mode" value={draft.itineraryMode ?? 'FIXED'} onChange={e => update('itineraryMode', e.target.value as 'FIXED' | 'CUSTOM')}><option value="FIXED">Giữ cố định lịch trình hiện có</option><option value="CUSTOM">Cho phép chỉnh sửa lịch trình</option></select></Field>
             </>}
           </FormSection>
-            <FormSection title="Ngày và giờ">
+            <FormSection title="02 · Ngày và giờ">
               <CruiseDateTimeFields key={loadedId} id="departure-time" label="khởi hành" value={draft.departureDatetime} error={errors.departureDatetime} onChange={value => update('departureDatetime', value)} />
               {sourceEditing || sourceId
                 ? <RecordFacts entries={[[ 'Kết thúc (giờ Việt Nam)', calendarLabel(draft.returnDatetime) ]]} />
@@ -673,7 +748,7 @@ export function CruiseFormPage() {
           {portsLoading && !portsError && <Loading label="Đang tải danh sách cảng…" />}
           {portsError && <Notice title="Không tải được danh sách cảng" tone="error"><p>{portsError}</p><Button type="button" tone="secondary" onClick={() => { setPortsLoading(true); setPortsError(''); setPortsAttempt(value => value + 1) }}>Tải lại danh sách cảng</Button></Notice>}
           {detailError && <Notice title="Không tải được chuyến" tone="error"><p>{detailError}</p><Button type="button" tone="secondary" onClick={() => { setLoading(true); setDetailError(''); setDetailAttempt(value => value + 1) }}>Tải lại chuyến</Button></Notice>}
-          {loadedId === cruiseId && currentStatus !== 'DRAFT' && <Notice title="Không thể sửa chuyến" tone="warning"><p>Chỉ chuyến ở trạng thái DRAFT mới được chỉnh sửa.</p></Notice>}
+          {loadedId === cruiseId && currentStatus !== 'DRAFT' && <Notice title="Không thể sửa chuyến" tone="warning"><p>Chỉ chuyến khởi hành ở trạng thái Nháp mới được chỉnh sửa.</p></Notice>}
           {submitError && <Notice title="Chưa xác nhận được kết quả lưu" tone="error"><p>{submitError}</p>{cruiseId && <PermissionLink target="_blank" rel="noopener noreferrer" to={'/admin/cruises/' + encodeURIComponent(cruiseId)}>Xem bản đã lưu ở thẻ khác để đối chiếu</PermissionLink>}</Notice>}
           <div className={styles.formActions}>{access.canDo('CRUISE_UPDATE_DRAFT') && <Button type="submit" tone="primary" value="draft" disabled={busy || !canSave}>{busy ? 'Đang lưu…' : 'Lưu thay đổi'}</Button>}<Button tone="secondary" disabled={busy} onClick={() => navigate(cruiseId ? `/admin/cruises/${cruiseId}` : '/admin/cruises')}>Hủy</Button></div>
         </Panel></fieldset>

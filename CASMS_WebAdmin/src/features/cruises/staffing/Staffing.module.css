@@ -9,6 +9,7 @@
 @media(max-width:600px){ .filterBar { grid-template-columns:minmax(0, 1fr); } .filterActions button { width:100%; } }
 .tableCellTitle { font-weight:600; color:var(--ui-ink); display:block; }
 .tableCellSub { font-size:var(--text-xs, 12px); color:var(--ui-muted); font-variant-numeric:tabular-nums; }
+.tableActionBtn { white-space:nowrap; }
 .queueGap { color:var(--warn, #995700); font-size:var(--text-xs, 12px); font-weight:600; }
 .queueReady { color:var(--success, #167347); font-size:var(--text-xs, 12px); font-weight:600; }
 .assignGrid { display:grid; grid-template-columns:minmax(18rem, 24rem) minmax(0, 1fr); gap:var(--space-5, 20px); align-items:start; }

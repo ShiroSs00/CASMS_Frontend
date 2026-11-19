@@ -187,9 +187,9 @@ export function canRoleOpenAdminPath(roles: readonly string[], pathname: string,
   const cruiseDetail = module === 'cruises' && parts.length === 4 && parts[3] !== 'new'
   const opsReview = cruiseDetail && currentRoles.includes('OPERATIONS_MANAGER')
     && access.permissions.includes('ITINERARY_APPROVE')
-  const financeRead = cruiseDetail && currentRoles.includes('FINANCE_OFFICER')
-    && access.permissions.includes('BOOKING_READ')
-  if (!module || (!hasWorkScope(currentRoles, module) && !opsReview && !financeRead)) return false
+  const shipPreparation = cruiseDetail && currentRoles.includes('SHIP_MANAGER')
+    && access.permissions.includes('CRUISE_PREPARATION_READ')
+  if (!module || (!hasWorkScope(currentRoles, module) && !opsReview && !shipPreparation)) return false
   if (module==='staffing') return currentRoles.includes('HR_MANAGER') && access.permissions.includes('CRUISE_STAFF_ASSIGN')
   if (module==='staffing-reviews') return [
     ['SHIP_MANAGER','CRUISE_PREPARATION_READ'],['OPERATIONS_MANAGER','CRUISE_VALIDATE'],

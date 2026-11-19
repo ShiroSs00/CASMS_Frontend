@@ -392,7 +392,7 @@ export function CruisePlanQueuePage() {
                     </Field>
                   </div>
 
-                  <Field htmlFor="ops-plan-sender" label="Người trình duyệt">
+                  <Field htmlFor="ops-plan-sender" label="Người gửi hồ sơ">
                     <select
                       id="ops-plan-sender"
                       value={senderFilter}
@@ -450,7 +450,7 @@ export function CruisePlanQueuePage() {
                         setPage(1)
                       }}
                     >
-                      <option value="oldest">Chờ lâu nhất trước (Ưu tiên SLA)</option>
+                      <option value="oldest">Chờ lâu nhất trước</option>
                       <option value="newest">Mới gửi gần đây nhất</option>
                       <option value="code">Theo mã chuyến (A → Z)</option>
                     </select>
@@ -502,7 +502,7 @@ export function CruisePlanQueuePage() {
                       label="Hồ sơ chuyến khởi hành"
                       headers={[
                         'Chuyến khởi hành',
-                        'Người trình duyệt',
+                        'Người gửi hồ sơ',
                         'Thời điểm gửi',
                         'Kiểm tra điều kiện',
                         'Trạng thái xét duyệt',
@@ -517,7 +517,7 @@ export function CruisePlanQueuePage() {
                             <td>
                               <div className={styles.queuePrimaryCell}>
                                 <strong>{plan.cruiseCode}</strong>
-                                <span className={styles.queueCodeBadge}>Bản trình #{revNumber}</span>
+                                <span className={styles.queueCodeBadge}>Lần gửi #{revNumber}</span>
                               </div>
                             </td>
                             <td>

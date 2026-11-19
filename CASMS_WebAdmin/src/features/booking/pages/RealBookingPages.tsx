@@ -36,10 +36,10 @@ export function RealBookingList() {
         {access.canDo('BOOKING_CREATE') && <ButtonLink to={root + '/new'}>Tạo đặt chỗ</ButtonLink>}</>}/>
     <section aria-label="Bộ lọc đặt chỗ">
       <div className={agentStyles.toolbar}>
-        <Field htmlFor="booking-cruise" label="Chuyến có đặt chỗ"><select value={cruiseId} onChange={event => { setCruiseId(event.target.value); setPage(0); }}>
+        <Field htmlFor="booking-cruise" label="Chuyến có đặt chỗ"><select id="booking-cruise" value={cruiseId} onChange={event => { setCruiseId(event.target.value); setPage(0); }}>
           <option value="">Tất cả chuyến trong phạm vi xem</option>{choices.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseName}</option>)}
         </select></Field>
-        <Field htmlFor="booking-status" label="Trạng thái đặt chỗ"><select value={status} onChange={event => { setStatus(event.target.value); setPage(0); }}>
+        <Field htmlFor="booking-status" label="Trạng thái đặt chỗ"><select id="booking-status" value={status} onChange={event => { setStatus(event.target.value); setPage(0); }}>
           <option value="">Tất cả trạng thái</option>{Object.entries(bookingStatusName).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select></Field>
         <div className={agentStyles.toolbarActions}><Button tone="secondary" onClick={() => { list.retry(); choices.retry(); }}>Tải lại</Button><Button tone="text" disabled={!filtered} onClick={resetFilters}>Xóa bộ lọc</Button></div>

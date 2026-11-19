@@ -114,7 +114,7 @@ export function DepartureMilestones({
           >
             <span aria-hidden="true">3</span>
             <div>
-              <strong>Bước 3: Nộp hồ sơ tour cho Vận hành</strong>
+              <strong>Bước 3: Nộp hồ sơ tour cho Quản lý vận hành</strong>
               <small>Kiểm tra tổng thể và gửi phê duyệt mở bán</small>
             </div>
           </button>

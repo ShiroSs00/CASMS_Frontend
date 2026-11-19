@@ -69,6 +69,8 @@ export function CruiseDateTimeFields({
   templateClock,
   minDate,
   maxDate,
+  minClock,
+  maxClock,
   onChange,
   onIncompleteChange,
 }: {
@@ -79,13 +81,18 @@ export function CruiseDateTimeFields({
   templateClock?: string
   minDate?: string
   maxDate?: string
+  minClock?: string
+  maxClock?: string
   onChange: (value: string) => void
   onIncompleteChange?: (incomplete: boolean) => void
 }) {
-  const normalizedSuggested = templateClock && validCruiseClock(templateClock) ? templateClock.replace(/^(\d{2}:\d{2}):00$/, '$1') : undefined
+  const withinClockBounds = (candidate: string) =>
+    (!minClock || candidate >= minClock) && (!maxClock || candidate <= maxClock)
+  const rawSuggested = templateClock && validCruiseClock(templateClock) ? templateClock.replace(/^(\d{2}:\d{2}):00$/, '$1') : undefined
+  const normalizedSuggested = rawSuggested && withinClockBounds(rawSuggested) ? rawSuggested : undefined
   const [isoDate, initialClock] = value.split('T')
   const [date, setDate] = useState(() => isoDate.split('-').reverse().join('/'))
-  const [clock, setClock] = useState(() => initialClock?.replace(/^(\d{2}:\d{2}):00$/, '$1') || normalizedSuggested || '')
+  const [clock, setClock] = useState(() => initialClock?.replace(/^(\d{2}:\d{2}):00$/, '$1') || normalizedSuggested || minClock || '')
   const [dateTouched, setDateTouched] = useState(false)
   const [clockTouched, setClockTouched] = useState(false)
 
@@ -124,9 +131,17 @@ export function CruiseDateTimeFields({
 
   const isUsingTemplateClock = Boolean(normalizedSuggested && clock.trim() === normalizedSuggested)
 
-  const clockHint = normalizedSuggested
-    ? `Đã điền sẵn theo giờ mẫu (${normalizedSuggested}). Có thể chọn nhanh hoặc nhập giờ khác.`
-    : 'Nhập theo định dạng 24 tiếng (ví dụ 08:00, 16:00) hoặc chọn nhanh.'
+  const quickPresets = Array.from(new Set([
+    ...(minClock ? [minClock] : []),
+    ...QUICK_CLOCKS,
+    ...(maxClock ? [maxClock] : []),
+  ])).filter(preset => preset !== normalizedSuggested && withinClockBounds(preset)).sort()
+
+  const clockHint = minClock && maxClock
+    ? `Khung giờ hợp lệ: ${minClock} – ${maxClock} (giờ Việt Nam).`
+    : normalizedSuggested
+      ? `Đã điền sẵn theo giờ mẫu (${normalizedSuggested}). Có thể chọn nhanh hoặc nhập giờ khác.`
+      : 'Nhập theo định dạng 24 tiếng (ví dụ 08:00, 16:00) hoặc chọn nhanh.'
 
   return (
     <div className={styles.departureDateTime}>
@@ -183,6 +198,8 @@ export function CruiseDateTimeFields({
           <PickerButton
             type="time"
             value={validCruiseClock(clock) ? clock.trim() : ''}
+            min={minClock}
+            max={maxClock}
             text="Chọn giờ"
             label={`Chọn giờ ${label}`}
             onSelect={changeClock}
@@ -202,7 +219,7 @@ export function CruiseDateTimeFields({
                 : `Dùng giờ mẫu (${normalizedSuggested})`}
             </button>
           )}
-          {QUICK_CLOCKS.filter(preset => preset !== normalizedSuggested).map(preset => {
+          {quickPresets.map(preset => {
             const active = clock.trim() === preset
             return (
               <button

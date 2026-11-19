@@ -84,17 +84,17 @@ function InfoForm({trip:initial}:{trip?:Trip}) {
         : supportedDuration(form.durationBand) && <p>Lịch trình bắt đầu với {durationRules[form.durationBand].defaultDays} ngày. Bạn có thể thêm ngày ở bước lập lịch trình, trong nhóm thời lượng đã chọn.</p>}
       </section>
       <section className={styles.infoSection} aria-labelledby="trip-departure-window">
-        <h3 id="trip-departure-window">Khoảng thời gian khởi hành</h3>
-        <p id="trip-departure-window-hint">Nhập ngày và giờ Việt Nam (Asia/Ho_Chi_Minh).</p>
+        <h3 id="trip-departure-window">Khung giờ khởi hành cho phép</h3>
+        <p id="trip-departure-window-hint">Áp dụng theo giờ trên tàu (giờ Việt Nam) cho mọi ngày khởi hành dùng mẫu này.</p>
         {windowLocked && <p>Khung khởi hành đã khóa vì lịch trình đang được duyệt hoặc đã công bố.</p>}
-        {trip && !baseline.earliestDeparture && !baseline.latestDeparture && <p>Chưa thiết lập khung khởi hành.</p>}
+        {trip && !baseline.earliestDeparture && !baseline.latestDeparture && <p>Chưa thiết lập khung giờ khởi hành.</p>}
         <div className={styles.grid}>
           {([
-            ['earliestDeparture', 'Khởi hành sớm nhất'],
-            ['latestDeparture', 'Khởi hành trễ nhất'],
+            ['earliestDeparture', 'Giờ khởi hành sớm nhất'],
+            ['latestDeparture', 'Giờ khởi hành trễ nhất'],
           ] as const).map(([field, label]) => (
             <Field key={field} htmlFor={'trip-' + field} label={requireWindow && !windowLocked ? label + ' *' : label} error={show(field)}>
-              <input id={'trip-' + field} type="datetime-local" step={1} value={form[field]}
+              <input id={'trip-' + field} type="time" step={60} value={form[field]}
                 aria-describedby="trip-departure-window-hint" required={requireWindow && !windowLocked}
                 disabled={!permitted || busy || windowLocked || !full}
                 onBlur={() => setTouched(old => ({ ...old, [field]: true }))}

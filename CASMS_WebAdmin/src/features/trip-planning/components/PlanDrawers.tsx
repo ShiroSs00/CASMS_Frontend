@@ -34,13 +34,15 @@ export function StopDrawer(props:StopDrawerProps) {
 
 function StopForm({content,tripId,tripRevision,tripInfo,dayNumber,readOnly,stop,allAboardOnly=false,onClose,onApply,violation}:StopDrawerProps) {
   const server=useViolationField(violation,'stop-draft',readOnly)
-  const ports=useSources('ports',{tripId},Boolean(tripId),tripRevision),[draft,setDraft]=useState<Stop>(()=>{
+  const [initialSnapshot]=useState<Stop>(()=>{
     const initial:Stop=structuredClone(stop??{clientKey:newKey(),portId:'',portName:'',stopOrder:Math.max(0,...content.stops.map(s=>s.stopOrder))+1,arrivalDayNumber:dayNumber,plannedArrivalTime:'',departureDayNumber:dayNumber,plannedDepartureTime:'',callType:'NORMAL',arrivalMethod:'BERTH',allAboardDayNumber:null,allAboardTime:null,isEmbarkation:false,isDisembarkation:false})
     if(allAboardOnly&&initial.allAboardDayNumber==null&&initial.arrivalDayNumber===initial.departureDayNumber){
       initial.allAboardDayNumber=initial.arrivalDayNumber
     }
     return initial
   })
+  const ports=useSources('ports',{tripId},Boolean(tripId),tripRevision),[draft,setDraft]=useState<Stop>(()=>structuredClone(initialSnapshot))
+  const stopDirty=JSON.stringify(draft)!==JSON.stringify(initialSnapshot)
   const [attempted,setAttempted]=useState(false),[touched,setTouched]=useState<Record<string,boolean>>({})
   const change=<K extends keyof Stop>(field:K,value:Stop[K])=>setDraft(old=>({...old,[field]:value}))
   const errors:Record<string,string>={}
@@ -76,6 +78,11 @@ function StopForm({content,tripId,tripRevision,tripInfo,dayNumber,readOnly,stop,
       :timeNumber(draft.departureDayNumber,draft.plannedDepartureTime)<timeNumber(draft.allAboardDayNumber??draft.departureDayNumber,draft.allAboardTime??draft.plannedDepartureTime)?'plannedDepartureTime':'allAboardTime'
     errors[field]='Tour bờ đang gắn với lần ghé nằm ngoài khung giờ mới. Chỉnh giờ tour trước.'
   }
+  const plannedDestinationIds=new Set<string>([...(draft.visits??[]).map(v=>v.destinationId),...(draft.destinationId?[draft.destinationId]:[])])
+  const strandedTours=linked.filter(entry=>entry.destinationId&&!plannedDestinationIds.has(entry.destinationId))
+  if(strandedTours.length){
+    errors.visits=`Tour bờ “${strandedTours.map(entry=>entry.title).join(', ')}” đang dùng điểm tham quan vừa bỏ. Hãy giữ lại điểm tham quan đó hoặc chỉnh tour bờ trước.`
+  }
   const hasTimingConflict=conflicts.length>0||Boolean(routeIssue)||Boolean(terminalIssue)
   const immediateStopError=(field:string)=>
     (field==='plannedArrivalTime'&&(conflicts.length>0||Boolean(routeIssue)||Boolean(draft.plannedArrivalTime&&errors.plannedArrivalTime)))
@@ -87,6 +94,20 @@ function StopForm({content,tripId,tripRevision,tripInfo,dayNumber,readOnly,stop,
   const days=(value:number,onChange:(n:number)=>void,id:string)=> <select id={id} value={value} disabled={readOnly} onChange={e=>onChange(Number(e.target.value))}>{content.days.map(d=><option key={d.key} value={d.dayNumber}>{scheduleDayLabel(d.dayNumber,content.days.length)}</option>)}</select>
   const focusedAllAboard=allAboardOnly&&!shown('portId')&&!shown('callType')&&!shown('plannedArrivalTime')&&!shown('plannedDepartureTime')&&!hasTimingConflict
   const aboardDayChoices=content.days.filter(d=>d.dayNumber>=draft.arrivalDayNumber&&d.dayNumber<=draft.departureDayNumber)
+  const sameCallDay=draft.arrivalDayNumber===draft.departureDayNumber
+  const aboardMin=sameCallDay&&draft.plannedArrivalTime?draft.plannedArrivalTime.slice(0,5):undefined
+  const aboardMax=sameCallDay&&draft.plannedDepartureTime?draft.plannedDepartureTime.slice(0,5):undefined
+  const portTitle=port?.name??port?.label??draft.portName??'Chưa chọn cảng'
+  const visitPort=port
+    ? { name: port.name ?? port.label, countryCode: port.countryCode, destinationId: port.destinationId, servedDestinationIds: port.servedDestinationIds }
+    : draft.portId
+      ? { name: draft.portName ?? 'Cảng đã chọn', countryCode: draft.countryCode, destinationId: draft.destinationId ?? undefined }
+      : undefined
+  const portMeta=[
+    (port?.countryCode??draft.countryCode)?countryLabel(port?.countryCode??draft.countryCode):null,
+    (port?.countryCode??draft.countryCode)==='VN'&&(port?.domesticRegion??draft.domesticRegion)?domesticRegionLabel(port?.domesticRegion??draft.domesticRegion):null,
+    zone?`Giờ địa phương: ${zone}`:'Chưa xác định múi giờ',
+  ].filter(Boolean).join(' · ')
   function apply(event:React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();setAttempted(true);if(readOnly)return
     const normalized=focusedAllAboard&&!draft.allAboardTime?{...draft,allAboardDayNumber:null}:draft
@@ -94,17 +115,32 @@ function StopForm({content,tripId,tripRevision,tripInfo,dayNumber,readOnly,stop,
     if(Object.keys(errors).filter(k=>!focusedAllAboard||k!=='allAboardTime'||Boolean(normalized.allAboardTime)||linked.length>0).length||ports.loading||ports.error){focusError('stop-draft');return}
     onApply({...normalized,portName:port?.name??port?.label??normalized.portName,timeZoneId:zone,countryCode:port?.countryCode??normalized.countryCode,domesticRegion:port?.domesticRegion??normalized.domesticRegion??null});onClose()
   }
-  const drawerTitle=focusedAllAboard?'Chỉnh hạn trở lại tàu':!draft.isEmbarkation&&!draft.isDisembarkation?(stop?'Sửa lần ghé':'Thêm lần ghé'):(stop?'Sửa ':'Chọn ')+stopRoleLabel(draft.isEmbarkation,draft.isDisembarkation).toLocaleLowerCase('vi')
-  return <Modal variant="drawer" wide title={drawerTitle} onClose={onClose} protectChanges={!readOnly} footer={<><Button tone="secondary" data-overlay-dismiss onClick={onClose}>{readOnly?'Đóng':'Hủy'}</Button>{!readOnly&&<Button type="submit" form="stop-draft" disabled={ports.loading||Boolean(ports.error)||!eligiblePorts.length}>{stop?'Lưu thay đổi':'Thêm lần ghé'}</Button>}</>}>
+  const drawerTitle=focusedAllAboard?'Chi tiết lần ghé & hạn trở lại tàu':!draft.isEmbarkation&&!draft.isDisembarkation?(stop?'Sửa lần ghé':'Thêm lần ghé'):(stop?'Sửa ':'Chọn ')+stopRoleLabel(draft.isEmbarkation,draft.isDisembarkation).toLocaleLowerCase('vi')
+  return <Modal variant="drawer" wide title={drawerTitle} onClose={onClose} protectChanges={!readOnly} dirty={stopDirty} footer={<><Button tone="secondary" data-overlay-dismiss onClick={onClose}>{readOnly?'Đóng':'Hủy'}</Button>{!readOnly&&<Button type="submit" form="stop-draft" disabled={ports.loading||Boolean(ports.error)||!eligiblePorts.length}>{stop?'Lưu thay đổi':'Thêm lần ghé'}</Button>}</>}>
     {hasTimingConflict&&<Notice title="Thời gian ghé cảng bị xung đột" tone="error">{errors.plannedArrivalTime??errors.plannedDepartureTime}</Notice>}
     <form tabIndex={-1} onChangeCapture={server.dismiss} id="stop-draft" className={`${styles.single} ${styles.stopForm}`} onSubmit={e=>apply(e)} noValidate>
       {server.notice}
-      {!focusedAllAboard && (
-        <SourcePicker portLayout id="stop-port" label={stopRoleLabel(draft.isEmbarkation,draft.isDisembarkation)+' *'} placeholder={'Chọn '+stopRoleLabel(draft.isEmbarkation,draft.isDisembarkation).toLocaleLowerCase('vi')} emptyMessage="Không có cảng phù hợp với phạm vi, quốc gia và miền đã chọn. Kiểm tra thông tin chuyến hoặc danh mục cảng." value={draft.portId} selectedLabel={draft.portName} options={eligiblePorts} loading={ports.loading} loadError={ports.error} error={shown('portId')} readOnly={readOnly} retry={ports.retry} onBlur={touch('portId')} onChange={id=>{const selected=ports.data.find(p=>p.id===id);setDraft(old=>({...old,portId:id,portName:selected?.name??selected?.label,timeZoneId:selected?.timeZoneId,countryCode:selected?.countryCode,domesticRegion:selected?.domesticRegion??null}))}}/>
+      {focusedAllAboard ? (
+        <dl className={styles.portContext}>
+          <div>
+            <dt>{stopRoleLabel(draft.isEmbarkation,draft.isDisembarkation)}</dt>
+            <dd><strong>{portTitle}</strong><br/><span className={styles.muted}>{portMeta}</span></dd>
+          </div>
+          <div>
+            <dt>{draft.isDisembarkation?'Giờ cập cảng & kết thúc (chỉ xem)':'Thời gian tàu đến và rời cảng (chỉ xem)'}</dt>
+            <dd>{sameCallDay?`Ngày ${draft.arrivalDayNumber} · ${shortTime(draft.plannedArrivalTime)} – ${shortTime(draft.plannedDepartureTime)}`:`Ngày ${draft.arrivalDayNumber} ${shortTime(draft.plannedArrivalTime)} → Ngày ${draft.departureDayNumber} ${shortTime(draft.plannedDepartureTime)}`}</dd>
+          </div>
+        </dl>
+      ) : (
+        <>
+          <SourcePicker portLayout id="stop-port" label={stopRoleLabel(draft.isEmbarkation,draft.isDisembarkation)+' *'} placeholder={'Chọn '+stopRoleLabel(draft.isEmbarkation,draft.isDisembarkation).toLocaleLowerCase('vi')} emptyMessage="Không có cảng phù hợp với phạm vi, quốc gia và miền đã chọn. Kiểm tra thông tin chuyến hoặc danh mục cảng." value={draft.portId} selectedLabel={draft.portName} options={eligiblePorts} loading={ports.loading} loadError={ports.error} error={shown('portId')} readOnly={readOnly} retry={ports.retry} onBlur={touch('portId')} onChange={id=>{const selected=ports.data.find(p=>p.id===id);setDraft(old=>({...old,portId:id,portName:selected?.name??selected?.label,timeZoneId:selected?.timeZoneId,countryCode:selected?.countryCode,domesticRegion:selected?.domesticRegion??null}))}}/>
+          {port&&<p className={styles.portSelectionMeta}>{portMeta}</p>}
+        </>
       )}
-      {port&&<p className={styles.portSelectionMeta}>{focusedAllAboard&&<><strong>{port.name??port.label??draft.portName}</strong>{' · '}</>}{countryLabel(port.countryCode??draft.countryCode)}
-        {(port.countryCode??draft.countryCode)==='VN'&&draft.domesticRegion&&<> · {domesticRegionLabel(draft.domesticRegion)}</>}
-        {' · '}{zone?`Giờ địa phương: ${zone}`:'Chưa xác định múi giờ'}</p>}
+      {(!readOnly||!draft.isDisembarkation||linked.length>0||draft.allAboardTime||shown('allAboardTime'))&&focusedAllAboard&&(
+        <fieldset className={styles.formGroup}><legend>Hạn hành khách trở lại tàu</legend><div className={styles.grid}><Field htmlFor="stop-aboard-day" label="Ngày hạn trở lại tàu"><select id="stop-aboard-day" value={draft.allAboardDayNumber??''} disabled={readOnly||aboardDayChoices.length===1} onChange={e=>change('allAboardDayNumber',e.target.value?Number(e.target.value):null)}><option value="">Chưa chọn</option>{(aboardDayChoices.length?aboardDayChoices:content.days).map(d=><option key={d.key} value={d.dayNumber}>{scheduleDayLabel(d.dayNumber,content.days.length)}</option>)}</select></Field><Field htmlFor="stop-aboard" label="Giờ hạn trở lại tàu" error={shown('allAboardTime')}><input id="stop-aboard" type="time" min={aboardMin} max={aboardMax} step={timeStep(draft.allAboardTime)} value={draft.allAboardTime??''} disabled={readOnly} aria-invalid={Boolean(shown('allAboardTime'))} onBlur={touch('allAboardTime')} onChange={e=>{const nextTime=e.target.value||null;setDraft(old=>({...old,allAboardTime:nextTime,allAboardDayNumber:nextTime?(old.allAboardDayNumber??(old.arrivalDayNumber===old.departureDayNumber?old.arrivalDayNumber:null)):null}))}}/></Field></div>
+        </fieldset>
+      )}
       <fieldset className={styles.formGroup}>
         <legend>Kiểu ghé</legend>
         <div className={styles.single}>
@@ -115,13 +151,21 @@ function StopForm({content,tripId,tripRevision,tripInfo,dayNumber,readOnly,stop,
         <fieldset className={styles.formGroup}><legend>Thời gian tàu đến và rời cảng</legend><div className={styles.grid}><Field htmlFor="stop-arrival-day" label="Ngày tàu đến *">{days(draft.arrivalDayNumber,n=>change('arrivalDayNumber',n),'stop-arrival-day')}</Field><Field htmlFor="stop-arrival" label="Giờ tàu dự kiến đến *" error={shown('plannedArrivalTime')}><input id="stop-arrival" type="time" step={timeStep(draft.plannedArrivalTime)} value={draft.plannedArrivalTime??''} disabled={readOnly} aria-invalid={Boolean(shown('plannedArrivalTime'))} onBlur={touch('plannedArrivalTime')} onChange={e=>change('plannedArrivalTime',e.target.value)}/></Field><Field htmlFor="stop-departure-day" label={draft.isDisembarkation?"Ngày kết thúc dự kiến *":"Ngày tàu rời *"}>{days(draft.departureDayNumber,n=>change('departureDayNumber',n),'stop-departure-day')}</Field><Field htmlFor="stop-departure" label={draft.isDisembarkation?"Giờ kết thúc dự kiến *":"Giờ tàu dự kiến rời *"} error={shown('plannedDepartureTime')}><input id="stop-departure" type="time" step={timeStep(draft.plannedDepartureTime)} value={draft.plannedDepartureTime??''} disabled={readOnly} aria-invalid={Boolean(shown('plannedDepartureTime'))} onBlur={touch('plannedDepartureTime')} onChange={e=>change('plannedDepartureTime',e.target.value)}/></Field></div>
         </fieldset>
       )}
-      <details className={styles.visitOptions}>
-        <summary>Cách lên bờ · {draft.arrivalMethod === 'TENDER' ? 'Trung chuyển bằng tàu nhỏ' : 'Cập bến'}</summary>
-        <Field htmlFor="stop-method" label={draft.isDisembarkation?"Cách khách xuống tàu":"Cách lên bờ"}><select id="stop-method" value={draft.arrivalMethod} disabled={readOnly} onChange={e=>change('arrivalMethod',e.target.value as Stop['arrivalMethod'])}><option value="BERTH">Cập bến</option><option value="TENDER">Trung chuyển bằng tàu nhỏ</option></select></Field>
-      </details>
-      {(!readOnly||!draft.isDisembarkation||linked.length>0||draft.allAboardTime||shown('allAboardTime'))&&<>      <fieldset className={styles.formGroup}><legend>Hạn hành khách trở lại tàu</legend><div className={styles.grid}><Field htmlFor="stop-aboard-day" label="Ngày trở lại"><select id="stop-aboard-day" value={draft.allAboardDayNumber??''} disabled={readOnly||(focusedAllAboard&&aboardDayChoices.length===1)} onChange={e=>change('allAboardDayNumber',e.target.value?Number(e.target.value):null)}><option value="">Chưa chọn</option>{(focusedAllAboard&&aboardDayChoices.length?aboardDayChoices:content.days).map(d=><option key={d.key} value={d.dayNumber}>{scheduleDayLabel(d.dayNumber,content.days.length)}</option>)}</select></Field><Field htmlFor="stop-aboard" label="Giờ hạn trở lại" error={shown('allAboardTime')}><input id="stop-aboard" type="time" step={timeStep(draft.allAboardTime)} value={draft.allAboardTime??''} disabled={readOnly} aria-invalid={Boolean(shown('allAboardTime'))} onBlur={touch('allAboardTime')} onChange={e=>{const nextTime=e.target.value||null;setDraft(old=>({...old,allAboardTime:nextTime,allAboardDayNumber:nextTime?(old.allAboardDayNumber??(old.arrivalDayNumber===old.departureDayNumber?old.arrivalDayNumber:null)):(focusedAllAboard?null:old.allAboardDayNumber)}))}}/></Field></div>
-      </fieldset></>}
-      {(port||Boolean(draft.visits?.length))&&<DestinationVisits readOnly={readOnly} port={port ? { name: port.name ?? port.label, countryCode: port.countryCode, destinationId: port.destinationId } : undefined} visits={draft.visits??[]} onChange={visits=>change('visits',visits)}/>}
+      <fieldset className={styles.formGroup}>
+        <legend>{draft.isDisembarkation?'Cách cập bến và xuống tàu':'Cách cập bến và lên bờ'}</legend>
+        <Field htmlFor="stop-method" label={draft.isDisembarkation?'Cách khách xuống tàu':'Cách lên bờ'}>
+          <select id="stop-method" value={draft.arrivalMethod} disabled={readOnly} onChange={e=>change('arrivalMethod',e.target.value as Stop['arrivalMethod'])}>
+            <option value="BERTH">Cập bến</option>
+            <option value="TENDER">Trung chuyển bằng tàu nhỏ</option>
+          </select>
+        </Field>
+      </fieldset>
+      {(!readOnly||!draft.isDisembarkation||linked.length>0||draft.allAboardTime||shown('allAboardTime'))&&!focusedAllAboard&&(
+        <fieldset className={styles.formGroup}><legend>Hạn hành khách trở lại tàu</legend><div className={styles.grid}><Field htmlFor="stop-aboard-day" label="Ngày hạn trở lại tàu"><select id="stop-aboard-day" value={draft.allAboardDayNumber??''} disabled={readOnly} onChange={e=>change('allAboardDayNumber',e.target.value?Number(e.target.value):null)}><option value="">Chưa chọn</option>{content.days.map(d=><option key={d.key} value={d.dayNumber}>{scheduleDayLabel(d.dayNumber,content.days.length)}</option>)}</select></Field><Field htmlFor="stop-aboard" label="Giờ hạn trở lại tàu" error={shown('allAboardTime')}><input id="stop-aboard" type="time" min={aboardMin} max={aboardMax} step={timeStep(draft.allAboardTime)} value={draft.allAboardTime??''} disabled={readOnly} aria-invalid={Boolean(shown('allAboardTime'))} onBlur={touch('allAboardTime')} onChange={e=>{const nextTime=e.target.value||null;setDraft(old=>({...old,allAboardTime:nextTime,allAboardDayNumber:nextTime?(old.allAboardDayNumber??(old.arrivalDayNumber===old.departureDayNumber?old.arrivalDayNumber:null)):old.allAboardDayNumber}))}}/></Field></div>
+        </fieldset>
+      )}
+      {(visitPort||Boolean(draft.visits?.length))&&<DestinationVisits readOnly={readOnly} port={visitPort} visits={draft.visits??[]} onChange={visits=>change('visits',visits)}/>}
+      {errors.visits&&<p className={styles.error} role="alert">{errors.visits}</p>}
       {(errors.embarkation||errors.disembarkation)&&<p className={styles.error} role="alert">{errors.embarkation??errors.disembarkation}</p>}
       {linked.length>0&&<p>Tour đang liên kết: {linked.map(e=>e.title).join(', ')}. Tour giữ liên kết với lần ghé này.</p>}
     </form>
@@ -138,14 +182,57 @@ function EntryForm({content,dayNumber,readOnly,entry,kind,initialStopClientKey,o
   const [keyword,setKeyword]=useState(''),[categoryFilter,setCategoryFilter]=useState(''),[retained,setRetained]=useState<Source>()
   const categories=useSources('activityCategories',{},kind==='ONBOARD_ACTIVITY')
   const initialStop=kind==='SHORE_EXCURSION'?content.stops.find(s=>s.clientKey===initialStopClientKey):undefined
-  const [draft,setDraft]=useState<Entry>(()=>structuredClone(entry??{clientKey:newKey(),dayNumber,kind,sourceId:null,serviceId:null,stopClientKey:initialStop?.clientKey??null,title:'',startDayNumber:initialStop?.arrivalDayNumber??dayNumber,plannedStartTime:'',endDayNumber:initialStop?.allAboardDayNumber??initialStop?.departureDayNumber??dayNumber,plannedEndTime:'',timeZoneId:kind==='SHORE_EXCURSION'?'':SHIP_ZONE,locationText:'',meetingPoint:'',notes:''})),[attempted,setAttempted]=useState(false),[touched,setTouched]=useState<Record<string,boolean>>({})
+  const [initialEntrySnapshot]=useState<Entry>(()=>structuredClone(entry??{clientKey:newKey(),dayNumber,kind,sourceId:null,serviceId:null,stopClientKey:initialStop?.clientKey??null,title:'',startDayNumber:initialStop?.arrivalDayNumber??dayNumber,plannedStartTime:'',endDayNumber:initialStop?.allAboardDayNumber??initialStop?.departureDayNumber??dayNumber,plannedEndTime:'',timeZoneId:kind==='SHORE_EXCURSION'?'':SHIP_ZONE,locationText:'',meetingPoint:'',notes:''}))
+  const [draft,setDraft]=useState<Entry>(()=>structuredClone(initialEntrySnapshot)),[attempted,setAttempted]=useState(false),[touched,setTouched]=useState<Record<string,boolean>>({})
+  const entryDirty=JSON.stringify(draft)!==JSON.stringify(initialEntrySnapshot)
   const change=<K extends keyof Entry>(field:K,value:Entry[K])=>setDraft(old=>({...old,[field]:value}))
   const stop=content.stops.find(s=>s.clientKey===draft.stopClientKey),zone=kind==='SHORE_EXCURSION'?stop?.timeZoneId:SHIP_ZONE,errors:Record<string,string>={}
-  const sources=useSources(kind==='ONBOARD_ACTIVITY'?'activities':'excursions',{keyword,category:categoryFilter,portId:kind==='SHORE_EXCURSION'?stop?.portId:undefined},kind!=='SHORE_EXCURSION'||Boolean(stop))
+  const plannedDestinations=(()=>{
+    if(kind!=='SHORE_EXCURSION'||!stop)return [] as {destinationId:string;destinationName:string}[]
+    const seen=new Set<string>()
+    const list:{destinationId:string;destinationName:string}[]=[]
+    for(const visit of stop.visits??[]){
+      if(visit.destinationId&&!seen.has(visit.destinationId)){
+        seen.add(visit.destinationId)
+        list.push({destinationId:visit.destinationId,destinationName:visit.destinationName?.trim()||'Điểm đến đã lên kế hoạch'})
+      }
+    }
+    if(stop.destinationId&&!seen.has(stop.destinationId)){
+      seen.add(stop.destinationId)
+      list.push({destinationId:stop.destinationId,destinationName:stop.destinationName?.trim()||'Điểm đến của cảng'})
+    }
+    return list
+  })()
+  const [selectedDestinationId,setSelectedDestinationId]=useState<string>(()=>entry?.destinationId??'')
+  const activeDestinationId=kind!=='SHORE_EXCURSION'
+    ? ''
+    : plannedDestinations.length===1
+      ? plannedDestinations[0].destinationId
+      : plannedDestinations.some(item=>item.destinationId===selectedDestinationId)
+        ? selectedDestinationId
+        : plannedDestinations[0]?.destinationId??''
+  const activeDestination=plannedDestinations.find(item=>item.destinationId===activeDestinationId)
+  const sources=useSources(
+    kind==='ONBOARD_ACTIVITY'?'activities':'excursions',
+    {keyword,category:categoryFilter,portId:kind==='SHORE_EXCURSION'?stop?.portId:undefined,destinationId:kind==='SHORE_EXCURSION'?activeDestinationId||undefined:undefined},
+    kind!=='SHORE_EXCURSION'||Boolean(stop&&activeDestinationId),
+  )
   const filtering=Boolean(keyword.trim()||categoryFilter)
   const chosen=sources.data.find(source=>source.id===draft.sourceId)??(filtering&&retained?.id===draft.sourceId?retained:undefined)
   function search(value:string){if(chosen)setRetained(chosen);setKeyword(value)}
   function filterCategory(value:string){if(chosen)setRetained(chosen);setCategoryFilter(value)}
+  function changeDestination(nextDestinationId:string){
+    setSelectedDestinationId(nextDestinationId)
+    setKeyword('')
+    setRetained(undefined)
+    const target=plannedDestinations.find(item=>item.destinationId===nextDestinationId)
+    setDraft(old=>({
+      ...old,
+      destinationId:nextDestinationId||null,
+      destinationName:target?.destinationName??null,
+      ...(old.destinationId&&old.destinationId!==nextDestinationId?{sourceId:null,sourceExcursionId:null}:{}),
+    }))
+  }
 
   const limitByAllAboard=Boolean(stop?.allAboardDayNumber!=null&&stop?.allAboardTime&&(!stop.plannedDepartureTime||timeNumber(stop.allAboardDayNumber,stop.allAboardTime)<=timeNumber(stop.departureDayNumber,stop.plannedDepartureTime)))
   const stopLimitDay=stop?(limitByAllAboard?stop.allAboardDayNumber!:stop.departureDayNumber):content.days.length
@@ -164,6 +251,13 @@ function EntryForm({content,dayNumber,readOnly,entry,kind,initialStopClientKey,o
   if(kind==='SHORE_EXCURSION') {
     if(chosen?.portId&&stop&&chosen.portId!==stop.portId)errors.sourceId='Nguồn tham quan không thuộc cảng của lần ghé đã chọn.'
     if(!stop)errors.stop='Chọn lần ghé cảng.'
+    else if(plannedDestinations.length===0)errors.stop='Lần ghé này chưa có Điểm tham quan. Hãy bổ sung Điểm tham quan trong lần ghé cảng trước khi thêm tour bờ.'
+    if(plannedDestinations.length>0&&!activeDestinationId)errors.destinationId='Chọn điểm tham quan đã lên kế hoạch cho lần ghé này.'
+    if(chosen?.destinationId&&plannedDestinations.length>0&&!plannedDestinations.some(item=>item.destinationId===chosen.destinationId)){
+      errors.sourceId='Điểm đến của tour bờ chưa được thêm vào Điểm tham quan của lần ghé cảng này.'
+    } else if(chosen?.destinationId&&activeDestinationId&&chosen.destinationId!==activeDestinationId){
+      errors.sourceId='Nguồn tour bờ không thuộc điểm đến đang chọn.'
+    }
 
     if(!validTimeZone(zone))errors.stop='Lần ghé cảng chưa có múi giờ hợp lệ.'
     if(stop&&(!stop.allAboardDayNumber||!stop.allAboardTime))errors.stop='Cần bổ sung hạn trở lại tàu trong lần ghé trước khi thêm tham quan.'
@@ -179,6 +273,7 @@ function EntryForm({content,dayNumber,readOnly,entry,kind,initialStopClientKey,o
   const immediateEntryError=(field:string)=>
     (field==='plannedStartTime'&&Boolean(draft.plannedStartTime&&errors.plannedStartTime))
     ||(field==='plannedEndTime'&&Boolean(draft.plannedEndTime&&errors.plannedEndTime))
+    ||(field==='sourceId'&&Boolean(chosen&&errors.sourceId))
   const shown=(field:string)=>server.errorFor(field)??(attempted||touched[field]||immediateEntryError(field)?errors[field]:undefined)
   const touch=(field:string)=>()=>setTouched(old=>({...old,[field]:true}))
   const allowedDays=kind==='SHORE_EXCURSION'&&stop?content.days.filter(d=>d.dayNumber>=stop.arrivalDayNumber&&d.dayNumber<=stopLimitDay):content.days
@@ -190,16 +285,43 @@ function EntryForm({content,dayNumber,readOnly,entry,kind,initialStopClientKey,o
   function apply(event:React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();setAttempted(true);if(readOnly)return
     if(Object.keys(errors).length||sources.loading||sources.error){focusError('entry-draft');return}
-    const saved={...draft,dayNumber:draft.startDayNumber,timeZoneId:zone!,serviceId:null}
+    const saved:Entry={
+      ...draft,
+      dayNumber:draft.startDayNumber,
+      timeZoneId:zone!,
+      serviceId:null,
+      ...(kind==='SHORE_EXCURSION'?{
+        destinationId:chosen?.destinationId??activeDestinationId??draft.destinationId??null,
+        destinationName:chosen?.destinationName??activeDestination?.destinationName??draft.destinationName??null,
+      }:{}),
+    }
     onApply([saved]);onClose()
   }
-  return <Modal variant="drawer" wide title={`${readOnly?'Xem':entry?'Chỉnh':'Thêm'} ${kindLabels[kind].toLocaleLowerCase('vi')}`} onClose={onClose} protectChanges={!readOnly} footer={<><Button tone="secondary" data-overlay-dismiss onClick={onClose}>{readOnly?'Đóng':'Hủy'}</Button>{!readOnly&&<Button type="submit" form="entry-draft" disabled={sources.loading||Boolean(sources.error)||!chosen}>{entry?'Cập nhật mục':'Thêm vào lịch trình'}</Button>}</>}>
+  const excursionDestinationLabel=chosen?.destinationName??activeDestination?.destinationName??draft.destinationName
+  return <Modal variant="drawer" wide title={`${readOnly?'Xem':entry?'Chỉnh':'Thêm'} ${kindLabels[kind].toLocaleLowerCase('vi')}`} onClose={onClose} protectChanges={!readOnly} dirty={entryDirty} footer={<><Button tone="secondary" data-overlay-dismiss onClick={onClose}>{readOnly?'Đóng':'Hủy'}</Button>{!readOnly&&<Button type="submit" form="entry-draft" disabled={sources.loading||Boolean(sources.error)||!chosen||(kind==='SHORE_EXCURSION'&&plannedDestinations.length===0)}>{entry?'Cập nhật mục':'Thêm vào lịch trình'}</Button>}</>}>
     <form tabIndex={-1} onChangeCapture={server.dismiss} id="entry-draft" className={styles.single} onSubmit={e=>apply(e)} noValidate>
       {server.notice}
       {kind==='SHORE_EXCURSION'&&<Field htmlFor="entry-stop" label="Cảng tổ chức" error={shown('stop')}><input id="entry-stop" value={stop?.portName??'Không tìm thấy cảng'} readOnly aria-invalid={Boolean(shown('stop'))}/></Field>}
+      {kind==='SHORE_EXCURSION'&&stop&&plannedDestinations.length===0&&(
+        <Notice title="Chưa có điểm tham quan cho lần ghé" tone="warning">
+          Lần ghé cảng này chưa có điểm đến nào trong mục Điểm tham quan. Hãy đóng hộp thoại này, mở thông tin lần ghé cảng để thêm điểm tham quan rồi mới chọn tour bờ.
+        </Notice>
+      )}
+      {kind==='SHORE_EXCURSION'&&plannedDestinations.length===1&&(
+        <Field htmlFor="entry-destination" label="Điểm tham quan của lần ghé" error={shown('destinationId')}>
+          <input id="entry-destination" value={plannedDestinations[0].destinationName} readOnly aria-invalid={Boolean(shown('destinationId'))}/>
+        </Field>
+      )}
+      {kind==='SHORE_EXCURSION'&&plannedDestinations.length>1&&(
+        <Field htmlFor="entry-destination" label="Điểm tham quan *" error={shown('destinationId')}>
+          <select id="entry-destination" value={activeDestinationId} disabled={readOnly} aria-invalid={Boolean(shown('destinationId'))} onBlur={touch('destinationId')} onChange={e=>changeDestination(e.target.value)}>
+            {plannedDestinations.map(item=><option key={item.destinationId} value={item.destinationId}>{item.destinationName}</option>)}
+          </select>
+        </Field>
+      )}
       {kind==='ONBOARD_ACTIVITY'&&!readOnly&&<Field htmlFor="entry-category-filter" label="Nhóm hoạt động" error={categories.error||undefined}><select id="entry-category-filter" value={categoryFilter} disabled={categories.loading||Boolean(categories.error)||sources.loading} onChange={e=>filterCategory(e.target.value)}><option value="">Tất cả nhóm</option>{categories.data.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select>{categories.error&&<Button type="button" tone="text" onClick={categories.retry}>Tải lại nhóm</Button>}</Field>}
-      {(kind!=='SHORE_EXCURSION'||stop)&&<SourcePicker id="entry-source" label={kind==='ONBOARD_ACTIVITY'?'Hoạt động *':'Tour tham quan trên bờ *'} placeholder={kind==='ONBOARD_ACTIVITY'?'Chọn hoạt động':'Chọn tour tham quan tại cảng này'} emptyMessage={kind==='SHORE_EXCURSION'?'Cảng này chưa có tour tham quan trên bờ trong danh mục.':'Danh mục chưa có nguồn phù hợp.'} value={draft.sourceId??''} selectedLabel={draft.title} selectedSource={chosen} options={sources.data} loading={sources.loading} loadError={sources.error} error={shown('sourceId')} readOnly={readOnly} retry={()=>{setRetained(undefined);sources.retry()}} onBlur={touch('sourceId')} searchValue={keyword} onSearch={search} filtered={Boolean(categoryFilter)} onChange={id=>{const source=sources.data.find(item=>item.id===id);if(source){setDraft(old=>selectEntrySource(old,source,chosen));setRetained(source)}else{change('sourceId',null);setRetained(undefined)}}}/>}
-      {(draft.categoryName||draft.displayLocation||draft.referenceShipName)&&<div className={styles.sourceContext}>{draft.categoryName&&<span>{draft.categoryName}</span>}{draft.referenceShipName&&<span>Tàu tham chiếu: {draft.referenceShipName}</span>}{draft.displayLocation&&<span>Vị trí tham chiếu: {draft.displayLocation}</span>}</div>}
+      {(kind!=='SHORE_EXCURSION'||(stop&&plannedDestinations.length>0))&&<SourcePicker id="entry-source" label={kind==='ONBOARD_ACTIVITY'?'Hoạt động *':'Tour tham quan trên bờ *'} placeholder={kind==='ONBOARD_ACTIVITY'?'Chọn hoạt động':'Chọn tour bờ theo điểm tham quan đã chọn'} emptyMessage={kind==='SHORE_EXCURSION'?'Điểm tham quan này chưa có tour bờ nào được cảng phục vụ trong danh mục.':'Danh mục chưa có nguồn phù hợp.'} value={draft.sourceId??''} selectedLabel={draft.title} selectedSource={chosen} options={sources.data} loading={sources.loading} loadError={sources.error} error={shown('sourceId')} readOnly={readOnly} retry={()=>{setRetained(undefined);sources.retry()}} onBlur={touch('sourceId')} searchValue={keyword} onSearch={search} filtered={Boolean(categoryFilter)} onChange={id=>{const source=sources.data.find(item=>item.id===id);if(source){setDraft(old=>selectEntrySource(old,source,chosen));setRetained(source)}else{change('sourceId',null);setRetained(undefined)}}}/>}
+      {(draft.categoryName||draft.displayLocation||draft.referenceShipName||(kind==='SHORE_EXCURSION'&&excursionDestinationLabel))&&<div className={styles.sourceContext}>{kind==='SHORE_EXCURSION'&&excursionDestinationLabel&&<span>Điểm tham quan: {excursionDestinationLabel}</span>}{kind==='SHORE_EXCURSION'&&chosen?.supplierName&&<span>Đơn vị cung cấp: {chosen.supplierName}</span>}{draft.categoryName&&<span>{draft.categoryName}</span>}{draft.referenceShipName&&<span>Tàu tham chiếu: {draft.referenceShipName}</span>}{draft.displayLocation&&<span>Vị trí tham chiếu: {draft.displayLocation}</span>}</div>}
       <Field htmlFor="entry-title" label="Tiêu đề *" error={shown('title')}><input id="entry-title" maxLength={200} value={draft.title??''} disabled={readOnly} aria-invalid={Boolean(shown('title'))} onBlur={touch('title')} onChange={e=>change('title',e.target.value)}/></Field>
       {kind==='SHORE_EXCURSION'&&stop?.plannedArrivalTime&&stopLimitTime?<p className={styles.timeContext}>Khung giờ cho phép tại cảng: {stop.arrivalDayNumber===stopLimitDay?`Ngày ${stop.arrivalDayNumber} · ${shortTime(stop.plannedArrivalTime)} – ${shortTime(stopLimitTime)}`:`Ngày ${stop.arrivalDayNumber} ${shortTime(stop.plannedArrivalTime)} → Ngày ${stopLimitDay} ${shortTime(stopLimitTime)}`}</p>:kind!=='SHORE_EXCURSION'&&<p className={styles.timeContext}>Giờ Việt Nam</p>}
       <div className={styles.grid}><Field htmlFor="entry-start-day" label="Ngày bắt đầu">{daySelect(draft.startDayNumber,n=>change('startDayNumber',n),'entry-start-day')}</Field><Field htmlFor="entry-start" label="Giờ bắt đầu *" error={shown('plannedStartTime')}><input id="entry-start" type="time" min={sameDayMin} max={sameDayMax} step={timeStep(draft.plannedStartTime)} value={draft.plannedStartTime??''} disabled={readOnly} aria-invalid={Boolean(shown('plannedStartTime'))} onBlur={touch('plannedStartTime')} onChange={e=>change('plannedStartTime',e.target.value)}/></Field><Field htmlFor="entry-end-day" label="Ngày kết thúc">{daySelect(draft.endDayNumber,n=>change('endDayNumber',n),'entry-end-day')}</Field><Field htmlFor="entry-end" label="Giờ kết thúc *" error={shown('plannedEndTime')}><input id="entry-end" type="time" min={draft.plannedStartTime&&singleStopDay?draft.plannedStartTime.slice(0,5):sameDayMin} max={sameDayMax} step={timeStep(draft.plannedEndTime)} value={draft.plannedEndTime??''} disabled={readOnly} aria-invalid={Boolean(shown('plannedEndTime'))} onBlur={touch('plannedEndTime')} onChange={e=>change('plannedEndTime',e.target.value)}/></Field></div>

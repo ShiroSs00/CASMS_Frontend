@@ -34,14 +34,15 @@ export async function planningSources(kind:SourceKind,signal:AbortSignal,query:S
   }
   if(kind==='activityCategories')return rows(await apiRequest(`${root}/catalogs/activity-categories`,{signal})).map(row=>({...identity(row,'code','name'),description:text(row,'description')}))
   // These endpoints return arrays. Do not fabricate page totals or paging parameters.
-  const values=rows(await apiRequest(`${root}/sources/${kind}`,{signal,query:{keyword:query.keyword?.trim()||undefined,...(kind==='activities'?{category:query.category||undefined}:kind==='excursions'?{portId:query.portId||undefined}:kind==='ports'?{destinationId:query.destinationId||undefined,tripId:query.tripId||undefined,countryCode:query.countryCode||undefined,countryCodes:query.countryCodes?.length?query.countryCodes.join(','):undefined}:{})}}))
+  const values=rows(await apiRequest(`${root}/sources/${kind}`,{signal,query:{keyword:query.keyword?.trim()||undefined,...(kind==='activities'?{category:query.category||undefined}:kind==='excursions'?{portId:query.portId||undefined,destinationId:query.destinationId||undefined}:kind==='ports'?{destinationId:query.destinationId||undefined,tripId:query.tripId||undefined,countryCode:query.countryCode||undefined,countryCodes:query.countryCodes?.length?query.countryCodes.join(','):undefined}:{})}}))
   return values.map(row=>{
     const source=identity(row,kind==='ports'?'portId':kind==='activities'?'sourceActivityId':kind==='excursions'?'sourceExcursionId':'serviceId',kind==='ports'?'portName':kind==='activities'?'activityName':kind==='excursions'?'excursionName':'serviceName')
     const code=text(row,kind==='ports'?'portCode':kind==='activities'?'activityCode':kind==='excursions'?'excursionCode':'serviceCode')
-    const context=[code,kind==='ports'?countryLabel(text(row,'countryCode')):undefined,kind==='ports'?text(row,'localityName')??text(row,'destinationName'):undefined,kind==='excursions'?text(row,'portName'):undefined,kind==='excursions'?text(row,'supplierName'):undefined].filter(Boolean)
+    const context=[code,kind==='ports'?countryLabel(text(row,'countryCode')):undefined,kind==='ports'?text(row,'localityName')??text(row,'destinationName'):undefined,kind==='excursions'?text(row,'destinationName'):undefined,kind==='excursions'?text(row,'portName'):undefined,kind==='excursions'?text(row,'supplierName'):undefined].filter(Boolean)
+    const servedDestinationIds=Array.isArray(row.servedDestinationIds)?row.servedDestinationIds.filter((item):item is string=>typeof item==='string'&&item.trim().length>0):undefined
     return {...source,code,label:context.length?`${source.name} · ${context.join(' · ')}`:source.name,
       timeZoneId:text(row,'timeZoneId'),portId:text(row,'portId'),countryCode:text(row,'countryCode'),domesticRegion:text(row,'domesticRegion'),
-      destinationId:text(row,'destinationId'),destinationName:text(row,'destinationName'),supplierName:text(row,'supplierName'),
+      destinationId:text(row,'destinationId'),destinationName:text(row,'destinationName'),servedDestinationIds,supplierName:text(row,'supplierName'),
       description:text(row,'description'),location:text(row,'location'),meetingPoint:text(row,'meetingPoint'),
       category:text(row,'category'),categoryName:text(row,'categoryName'),categoryIcon:text(row,'categoryIcon'),
       deckId:text(row,'deckId'),deckNumber:number(row,'deckNumber'),deckName:text(row,'deckName'),

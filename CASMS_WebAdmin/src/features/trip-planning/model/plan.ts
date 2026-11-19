@@ -1,5 +1,4 @@
-import { SHIP_TIME_ZONE, wallTimeToInstant } from '@/shared/lib/journey-time'
-import type { DepartureWindowInputs } from '@/domain/trip-departure-window'
+import { parseDepartureMinute, type DepartureWindowInputs } from '@/domain/trip-departure-window'
 import { businessCopy } from '@/shared/i18n/business-copy'
 import type { CurrentTrip, CurrentVersion, CurrentDay, CurrentStop, CurrentEntry, EntryLocation } from '../api/current-contract'
 
@@ -14,7 +13,7 @@ export type Trip = CurrentTrip & { info: TripInfo; durationIssue?:string }
 export type Version = Omit<CurrentVersion, 'days' | 'stops' | 'entries'> & Content
 export type SourceKind = 'ports' | 'services' | 'activities' | 'excursions' | 'regions' | 'countries' | 'durations' | 'activityCategories'
 export type SourceQuery = { keyword?:string; category?:string; portId?:string; destinationId?:string; tripId?:string; countryCode?:string; countryCodes?:readonly string[] }
-export type Source = EntryLocation & { id: string; label: string; name?:string; code?:string; timeZoneId?: string; portId?: string; countryCode?:string; domesticRegion?:string | null; destinationId?:string; destinationName?:string; supplierName?:string; description?:string; location?:string; meetingPoint?:string; minDays?:number; maxDays?:number; defaultDays?:number }
+export type Source = EntryLocation & { id: string; label: string; name?:string; code?:string; timeZoneId?: string; portId?: string; countryCode?:string; domesticRegion?:string | null; destinationId?:string; destinationName?:string; servedDestinationIds?:string[]; supplierName?:string; description?:string; location?:string; meetingPoint?:string; minDays?:number; maxDays?:number; defaultDays?:number }
 export type Violation = { code: string; severity: 'ERROR' | 'WARNING'; message: string; dayNumber?: number; clientKey?: string; field?: string; fieldPath?:string; actionHint?:string; entityType?: string }
 export type Report = { versionId: string; revision: number; validForSubmit: boolean; violations: Violation[]; deferredChecks: string[] }
 export type History = { auditId: string; action: string; actorUserId: string | null; actorName?:string|null; entityType?:string; entityId?:string; detail: string; occurredAt: string; result: string }
@@ -47,17 +46,17 @@ export function infoErrors(form: TripInfo, requireWindow = false) {
   if (form.scope === 'INTERNATIONAL' && !form.countryCodes.length) errors.countries = 'Chọn ít nhất một quốc gia/vùng lãnh thổ.'
   const windowFields = ['earliestDeparture', 'latestDeparture'] as const
   const needsPair = requireWindow || Boolean(form.earliestDeparture || form.latestDeparture)
-  const instants: Partial<Record<(typeof windowFields)[number], string>> = {}
+  const minutes: Partial<Record<(typeof windowFields)[number], number>> = {}
   for (const field of windowFields) {
     if (!form[field]) {
-      if (needsPair) errors[field] = 'Nhập ngày và giờ khởi hành.'
+      if (needsPair) errors[field] = 'Nhập giờ khởi hành.'
       continue
     }
-    try { instants[field] = wallTimeToInstant(form[field], SHIP_TIME_ZONE) }
-    catch { errors[field] = 'Nhập ngày và giờ hợp lệ.' }
+    try { minutes[field] = parseDepartureMinute(form[field]) }
+    catch { errors[field] = 'Nhập giờ hợp lệ (HH:mm).' }
   }
-  if (instants.earliestDeparture && instants.latestDeparture && instants.earliestDeparture > instants.latestDeparture) {
-    errors.latestDeparture = 'Khởi hành trễ nhất phải bằng hoặc sau khởi hành sớm nhất.'
+  if (minutes.earliestDeparture != null && minutes.latestDeparture != null && minutes.earliestDeparture > minutes.latestDeparture) {
+    errors.latestDeparture = 'Giờ khởi hành trễ nhất phải bằng hoặc sau giờ khởi hành sớm nhất.'
   }
   return errors
 }

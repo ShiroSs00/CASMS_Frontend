@@ -47,7 +47,7 @@ export function useCruiseList() {
       setState({
         status: 'error',
         data: null,
-        error: error instanceof Error ? error.message : 'Không tải được danh sách cruise.',
+        error: error instanceof Error ? error.message : 'Không tải được danh sách chuyến khởi hành.',
       })
     })
     return () => controller.abort()

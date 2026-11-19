@@ -45,7 +45,7 @@ export function CruiseGuidance({cruiseId,onChanged,onReview,refreshKey=0}:{cruis
  return <Panel title={businessCopy('guidance.title')}>
   {plan.loading&&<Loading label="Đang đối chiếu kế hoạch đã duyệt…"/>}
   {plan.error&&<Notice title="Chưa đọc được kế hoạch đã duyệt" tone="error"><Button tone="secondary" onClick={plan.retry}>Tải lại kế hoạch</Button></Notice>}
-  {!plan.loading&&!plan.error&&!windows&&<Notice title="Cần phê duyệt kế hoạch trước khi lập buổi hướng dẫn">Thời gian chỉ được lấy từ Cruise Plan đã được Quản lý vận hành phê duyệt và còn hiệu lực.{onReview&&<Button tone="text" onClick={onReview}>Xem xét duyệt kế hoạch</Button>}</Notice>}
+  {!plan.loading&&!plan.error&&!windows&&<Notice title="Cần phê duyệt kế hoạch trước khi lập buổi hướng dẫn">Thời gian chỉ được lấy từ kế hoạch chuyến khởi hành đã được Quản lý vận hành phê duyệt và còn hiệu lực.{onReview&&<Button tone="text" onClick={onReview}>Xem xét duyệt kế hoạch</Button>}</Notice>}
   {windows&&!plan.loading&&!plan.error&&<RecordFacts entries={[["Bắt đầu hướng dẫn · Kế hoạch đã duyệt",journeyTime(windows.guidanceOpensAt,SHIP_TIME_ZONE)],["Kết thúc hướng dẫn · Giờ Việt Nam",journeyTime(windows.guidanceClosesAt,SHIP_TIME_ZONE)]]}/>}
   {(query.loading||people.loading)&&<Loading/>}{(query.error||people.error)&&<Notice title="Chưa tải được buổi hướng dẫn hoặc danh sách người phụ trách"><Button onClick={()=>{query.retry();people.retry()}}>Tải lại dữ liệu</Button></Notice>}
   {!query.loading&&!query.error&&query.data?.length===0&&<p>Chưa có buổi hướng dẫn trước chuyến.</p>}

@@ -1,4 +1,4 @@
-import { departureWindowInstants } from '@/domain/trip-departure-window'
+import { departureWindowValues } from '@/domain/trip-departure-window'
 import { planningViolationMessage } from '../model/validation-copy'
 import { apiRequest, ApiError } from '@/shared/api'
 import type { CurrentTrip, CurrentVersion } from './current-contract'
@@ -32,8 +32,7 @@ export const liveGateway: PlanningGateway = {
   async saveInfo(info,key,previous) {
     if(previous&&info.durationBand!==previous.info.durationBand)throw new PlanningFault('Không đổi nhóm thời lượng của chuyến đang có qua biểu mẫu này: số ngày hiện có có thể không còn phù hợp. Hãy nhân bản hoặc tạo chuyến mới đúng thời lượng.',422,'DURATION_GROUP_CHANGE_PENDING')
     if(!supportedDuration(info.durationBand))throw new PlanningFault('Nhóm thời lượng này chưa được hỗ trợ.',422,'INVALID_DURATION_GROUP')
-    const window = departureWindowInstants(info)
-    // Keep exact stored values on unchanged fields, including fractional seconds.
+    const window = departureWindowValues(info)
     if (previous && info.earliestDeparture === previous.info.earliestDeparture) window.earliestDeparture = previous.earliestDeparture ?? null
     if (previous && info.latestDeparture === previous.info.latestDeparture) window.latestDeparture = previous.latestDeparture ?? null
     const body={...window,name:info.name.trim(),description:info.description,durationGroup:info.durationBand,plannedScope:info.scope,domesticRegions:info.regionIds,countryCodes:info.countryCodes}
