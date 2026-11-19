@@ -35,6 +35,8 @@ type Task = {
   sourceTripCode?: string | null
   sourceTripName?: string | null
   sourceVersionNumber?: number | null
+  staffingStatus?: string | null
+  shipAssigned?: boolean
 }
 type Work = { canDispatch: boolean; shipAssigned: boolean; tasks: Task[]; staffingRequestId?: string | null }
 const labels = { ASM: 'Hoạt động, dịch vụ và tour bờ', SHIP: 'Cabin, khu vực và khả năng phục vụ' }
@@ -230,7 +232,7 @@ function SendRequest({ path, group, initialMessage, onChanged }: {
       </Button>
       {send.error && (
         <Notice title="Chưa gửi được yêu cầu" tone="error">
-          {send.error}
+          {send.error.message}
         </Notice>
       )}
     </form>
@@ -239,7 +241,7 @@ function SendRequest({ path, group, initialMessage, onChanged }: {
 
 function useWorkMutation(path: string, onChanged: () => void) {
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState<Error | null>(null)
   const lock = useRef(false)
   return {
     busy,
@@ -248,12 +250,12 @@ function useWorkMutation(path: string, onChanged: () => void) {
       if (lock.current) return
       lock.current = true
       setBusy(true)
-      setError('')
+      setError(null)
       try {
         await apiRequest(path, { method, body })
         onChanged()
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Chưa thực hiện được thao tác.')
+        setError(cause instanceof Error ? cause : new Error('Chưa thực hiện được thao tác.'))
       } finally {
         lock.current = false
         setBusy(false)
@@ -270,7 +272,16 @@ export function CruiseWorkInboxPage() {
   return (
     <CruiseFrame>
       <div className={styles.workspace}>
-        <PageHeader title="Yêu cầu chuẩn bị tour" breadcrumb="" />
+        <PageHeader title="Yêu cầu chuẩn bị tour" breadcrumb=""
+          actions={<Button tone="secondary" size="compact" onClick={query.retry}>Cập nhật</Button>} />
+        {access.roles.includes('SHIP_MANAGER') && access.has('CRUISE_PREPARATION_READ') && (
+          <Notice tone="info" title="Công việc từ Quản lý dịch vụ">
+            <div className={styles.actions}>
+              <ButtonLink to="/admin/staffing-reviews" tone="secondary" size="compact">Xét phương án nhân sự</ButtonLink>
+              <ButtonLink to="/admin/service-locations" tone="secondary" size="compact">Bố trí dịch vụ</ButtonLink>
+            </div>
+          </Notice>
+        )}
         <div className={styles.actions}>
           <Button tone={!showDone ? 'primary' : 'secondary'} aria-pressed={!showDone} onClick={() => setShowDone(false)}>
             Đang mở
@@ -310,6 +321,11 @@ function WorkItem({ task, onChanged }: { task: Task; onChanged: () => void }) {
   const field = useId()
   const action = useWorkMutation(`${root}/${task.cruiseId}/${task.group}`, onChanged)
   const respond = (type: Action) => void action.run('PUT', { action: type, revision: task.revision, response: response.trim() })
+  const details = action.error instanceof ApiError && action.error.code === 'ITINERARY_PROGRAMS_INCOMPLETE'
+    ? action.error.details : null
+  const issues = details && typeof details === 'object' && 'issues' in details && Array.isArray(details.issues)
+    ? [...new Set(details.issues.flatMap(issue => typeof issue?.message === 'string' ? [issue.message as string] : []))]
+    : []
 
   const sourcePlanLabel = task.sourceTripCode
     ? `${task.sourceTripCode}${task.sourceTripName ? ` · ${task.sourceTripName}` : ''}${task.sourceVersionNumber != null ? ` (Phiên bản ${task.sourceVersionNumber})` : ''}`
@@ -348,6 +364,18 @@ function WorkItem({ task, onChanged }: { task: Task; onChanged: () => void }) {
         ]}
       />
       <TaskStatus task={task} />
+      {task.group === 'ASM' && (task.staffingStatus === 'PENDING_ASM' || task.staffingStatus === 'PENDING_SHIP_REVIEW') && (
+        task.shipAssigned === false
+          ? <Notice tone="warning" title="Chuyến chưa có Quản lý tàu">
+              Kết quả được lưu cho chuyến. Quản lý tàu sẽ thấy yêu cầu trong mục Xét phương án nhân sự sau khi được phân công.
+            </Notice>
+          : <p>Quản lý tàu của chuyến nhận chương trình trong mục Xét phương án nhân sự.</p>
+      )}
+      {task.group === 'ASM' && task.status === 'COMPLETED' && task.staffingStatus === null && (
+        <Notice tone="info" title="Đã gửi kết quả chương trình cho Quản lý lịch trình">
+          Để bàn giao theo luồng nhân sự, Quản lý lịch trình khởi tạo yêu cầu trong mục Chuẩn bị nhân sự.
+        </Notice>
+      )}
       {task.canAccept && (
         <Button busy={action.busy} onClick={() => respond('ACCEPT')}>
           Nhận yêu cầu
@@ -387,7 +415,9 @@ function WorkItem({ task, onChanged }: { task: Task; onChanged: () => void }) {
           </Field>
           <div className={styles.actions}>
             <Button busy={action.busy} disabled={task.group === 'ASM' && !response.trim()} onClick={() => respond('COMPLETE')}>
-              {task.group === 'ASM' ? 'Gửi kết quả cho CRM' : 'Xác nhận đáp ứng'}
+              {task.group === 'ASM'
+                ? task.staffingStatus === 'PENDING_ASM' ? 'Hoàn tất chương trình' : 'Gửi kết quả cho Quản lý lịch trình'
+                : 'Xác nhận đáp ứng'}
             </Button>
             <Button tone="secondary" disabled={action.busy || !response.trim()} onClick={() => respond('RETURN')}>
               Yêu cầu bổ sung
@@ -397,7 +427,8 @@ function WorkItem({ task, onChanged }: { task: Task; onChanged: () => void }) {
       )}
       {action.error && (
         <Notice title="Chưa phản hồi được" tone="error">
-          {action.error}
+          {action.error.message}
+          {issues.length > 0 && <ul>{issues.map(issue => <li key={issue}>{issue}</li>)}</ul>}
         </Notice>
       )}
     </Panel>

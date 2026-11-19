@@ -4,7 +4,7 @@ import {planEvidence} from '../model/plan-evidence'
 import {uniqueConditionCodes} from '../model/operations-issues'
 import {FrozenPlanPackages,PlanPackageSelection} from './PlanPackageSelection'
 import {allowedDepartureSections,type DepartureSection} from '../model/preparation'
-import {operationsConditionTarget,planMakerReason} from '../model/operations-workflow'
+import {operationsConditionTarget,operationsStaffRole,planMakerReason} from '../model/operations-workflow'
 import {DeparturePricingPolicy} from './DeparturePricingPolicy'
 import {SaleTermsSetupButton} from './SaleTermsSetupButton'
 import {PlanSnapshot} from './PlanSnapshot'
@@ -20,7 +20,7 @@ import {preparationWallTime,preparationInstant} from '../model/preparation-time'
 import {journeyTime,SHIP_TIME_ZONE,validTimeZone} from '@/shared/lib/journey-time'
 import styles from './ManagerWorkspace.module.css'
 import {planReviewActions,planReviewStates} from '../model/plan-review'
-import {preparationApi,preparationStatusLabels} from '../api/preparation-api'
+import {coordinatorDossierSections,preparationApi,preparationStatusLabels} from '../api/preparation-api'
 const actionKeys={submit:'cruise.plan.SUBMIT_ACTION',withdraw:'cruise.plan.WITHDRAW_ACTION',approve:'cruise.plan.APPROVE_ACTION',reject:'cruise.plan.REJECT_ACTION','request-revision':'cruise.plan.REQUEST_REVISION_ACTION',ready:'cruise.ready.SET_READY_ACTION'} as const
 const safeError=(error:unknown)=>error instanceof ApiError&&error.code==='SELF_APPROVAL_FORBIDDEN'?'Bạn đã tham gia chuẩn bị hồ sơ hoặc điều khoản. Cần người xét duyệt khác.':businessErrorMessage(error instanceof ApiError?error.code:undefined,'')
 export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onReview,onNextStep,itineraryMode,mode='all',embedded=false}:{cruiseId:string;refreshKey?:number|string;onChanged?:()=>void;onSection?:(section:DepartureSection)=>void;onReview?:()=>void;onNextStep?:()=>void;itineraryMode?:'FIXED'|'CUSTOM';embedded?:boolean;mode?:'all'|'prepare'|'submit'|'review'|'ready'|'summary'}){
@@ -33,7 +33,8 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
  const [evidence,setEvidence]=useState('')
  const readDossier=allowed&&action==='submit'&&access.has('CRUISE_PREPARATION_READ')
  const dossier=useReadQuery(`submit-dossier:${access.userId}:${access.status}:${cruiseId}:${epoch}:${refreshKey}:${readDossier}`,useCallback(signal=>readDossier?preparationApi.get(cruiseId,signal):Promise.resolve(null),[readDossier,cruiseId]))
- const pendingSections=dossier.data?.sections.filter(section=>!['SUBMITTED','CONFIRMED'].includes(section.status))??[]
+ const coordinatorSections=coordinatorDossierSections(dossier.data?.sections??[])
+ const pendingSections=coordinatorSections.filter(section=>!['SUBMITTED','CONFIRMED'].includes(section.status))
  const dossierAllowed=Boolean(dossier.data&&!dossier.loading&&!dossier.error&&dossier.data.coordinatorUserId===access.userId&&access.has('CRUISE_PREPARATION_SUBMIT')&&pendingSections.every(section=>section.allowedActions.includes('SUBMIT')))
  const dossierValid=dossierAllowed&&(pendingSections.length===0||Boolean(evidence.trim()))
 
@@ -55,7 +56,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
   if(action==='ready'?!(access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_VALIDATE')):['submit','withdraw'].includes(action)?!crm:!ops)return
   if(action==='submit'&&!dossierValid)return
   lock.current=true;setBusy(true);setError('');setSuccess('')
-  try{const actual=await mainflowApi.action(data,action,reason,action==='submit'&&dossier.data?{preparationEvidence:evidence.trim(),pendingPreparationCodes:pendingSections.map(section=>section.sectionCode),preparationRevisions:Object.fromEntries(dossier.data.sections.map(section=>[section.sectionCode,section.revision]))}:undefined);setAction(null);if(action==='submit')setEvidence('');if(action==='request-revision'&&mode==='review'){void navigate('/admin/cruise-plan-reviews');return}setSuccess(action==='submit'?'Đã gửi hồ sơ chuyến khởi hành':action==='ready'?domainStatus('cruise.ready',actual.readyStatus):domainStatus('cruise.plan',actual.planStatus));setEpoch(n=>n+1);query.retry();onChanged?.()}
+  try{const actual=await mainflowApi.action(data,action,reason,action==='submit'&&dossier.data?{preparationEvidence:evidence.trim(),pendingPreparationCodes:pendingSections.map(section=>section.sectionCode),preparationRevisions:Object.fromEntries(coordinatorSections.map(section=>[section.sectionCode,section.revision]))}:undefined);setAction(null);if(action==='submit')setEvidence('');if(action==='request-revision'&&mode==='review'){void navigate('/admin/cruise-plan-reviews');return}setSuccess(action==='submit'?'Đã gửi hồ sơ chuyến khởi hành':action==='ready'?domainStatus('cruise.ready',actual.readyStatus):domainStatus('cruise.plan',actual.planStatus));setEpoch(n=>n+1);query.retry();onChanged?.()}
   catch(e){setError(safeError(e));if(e instanceof ApiError&&e.status===409){setAction(null);query.retry()}if(!(e instanceof ApiError)||e.status===0||e.status>=500)setUncertain(true)}finally{lock.current=false;setBusy(false)}
  }
  const blockers = data ? uniqueConditionCodes(data.planBlockers) : []
@@ -111,7 +112,11 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
     {dossier.error&&<Notice title="Chưa đọc được hồ sơ chuẩn bị" tone="error"><Button tone="secondary" onClick={dossier.retry}>Tải lại hồ sơ</Button></Notice>}
     {dossier.data&&!dossier.loading&&!dossier.error&&<>
      <ul>{dossier.data.sections.map(section=><li key={section.sectionCode}>{section.sectionName} · {preparationStatusLabels[section.status]}{section.returnReason&&<p>{section.returnReason}</p>}</li>)}</ul>
-     {!dossierAllowed&&<Notice title="Chưa thể gửi hồ sơ">Chỉ Quản lý lịch trình được phân công phụ trách hồ sơ và có quyền gửi mới thực hiện được thao tác này.</Notice>}
+     {dossier.data&&!dossierAllowed&&<Notice title="Chưa thể gửi hồ sơ">Kiểm tra điều phối viên và quyền gửi hai nhóm hồ sơ của Quản lý lịch trình.</Notice>}
+     {dossier.data&&<RecordFacts entries={dossier.data.sections.map(section=>[
+      section.sectionName,
+      `${operationsStaffRole(section.ownerRole)} · ${preparationStatusLabels[section.status]}`,
+     ] as const)}/>}
      {pendingSections.length>0&&<Field htmlFor="departure-dossier-evidence" label={supplement?'Nội dung bổ sung hồ sơ':'Nội dung và bằng chứng chuẩn bị'}><textarea id="departure-dossier-evidence" rows={5} value={evidence} onChange={event=>setEvidence(event.target.value)} required disabled={busy||uncertain}/></Field>}
     </>}
     <p>{data?.unifiedPackageReview?'Quản lý vận hành duyệt kế hoạch, giá các gói đã chọn và thuế/phí trong cùng hồ sơ.':'Quản lý vận hành xét duyệt kế hoạch và các điều kiện thương mại.'} Gửi hồ sơ chưa mở bán chuyến.</p>
@@ -145,6 +150,10 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
      <Notice title="Chuyến khởi hành đã sẵn sàng mở bán" tone="success">
       <p>Kế hoạch khởi hành và chính sách giá đã được Quản lý vận hành xác nhận. Chuyến khởi hành đủ điều kiện để tiến hành mở bán vé.</p>
       {onNextStep && <div className={styles.planActions}><Button tone="primary" onClick={onNextStep}>Tiếp tục: Mở bán</Button></div>}
+      {data.readyNeedsRefresh&&availableActions.includes('ready')&&
+       <Button tone="secondary" disabled={busy||uncertain} onClick={()=>{setAction('ready');setReason('');setSuccess('')}}>
+        Cập nhật xác nhận sẵn sàng
+       </Button>}
      </Notice>
     ) : (
      <>

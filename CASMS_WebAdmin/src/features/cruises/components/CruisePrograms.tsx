@@ -227,7 +227,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
    {!data.programs[kind].length&&(
     <div className={styles.emptyProgram}>
      <strong>Chưa có {titles[kind].toLocaleLowerCase('vi')} trong chuyến khởi hành này.</strong>
-     {crm&&!programWork&&<p style={{margin:'4px 0 0'}}>Bộ phận Quản lý hoạt động và dịch vụ (ASM) chịu trách nhiệm cấu hình chi tiết {titles[kind].toLocaleLowerCase('vi')} theo yêu cầu chuẩn bị của chuyến.</p>}
+     {crm&&!programWork&&<p style={{margin:'4px 0 0'}}>Bộ phận Quản lý hoạt động và dịch vụ chịu trách nhiệm cấu hình chi tiết {titles[kind].toLocaleLowerCase('vi')} theo yêu cầu chuẩn bị của chuyến.</p>}
     </div>
    )}
    {data.programs[kind].length>0&&!data.programs[kind].some(p=>p.name.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi')))&&<p className={styles.emptyProgram}>Không có nội dung khớp với “{search}”. <Button tone="text" onClick={()=>setSearch('')}>Xóa tìm kiếm</Button></p>}
@@ -259,9 +259,9 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
 
    {editingProgram&&editable&&<ScopedProgramEditor cruiseId={cruiseId} kind={editingProgram.kind} entry={editingProgram.entry} options={data.options} revision={data.plan.windows.expectedRevision} onClose={()=>setEditingProgram(null)} onSaved={()=>{setEditingProgram(null);setEpoch(n=>n+1);onChanged()}}/>}
    {kind==='packages'&&editable&&access.canDo('TOUR_PACKAGE_ASSIGN')&&<div className={styles.disclosureBody}><DeparturePackageManager cruiseId={cruiseId} onChanged={()=>{setEpoch(n=>n+1);onChanged()}}/></div>}
-   {crm&&!programWork&&data.programs[kind].length>0&&<div className={styles.programRoleHint}><strong>Phân công nghiệp vụ:</strong> Bộ phận Quản lý hoạt động và dịch vụ (ASM) chịu trách nhiệm cấu hình chi tiết {titles[kind].toLocaleLowerCase('vi')} theo yêu cầu chuẩn bị của chuyến.</div>}
+   {crm&&!programWork&&data.programs[kind].length>0&&<div className={styles.programRoleHint}><strong>Phân công nghiệp vụ:</strong> Bộ phận Quản lý hoạt động và dịch vụ chịu trách nhiệm cấu hình chi tiết {titles[kind].toLocaleLowerCase('vi')} theo yêu cầu chuẩn bị của chuyến.</div>}
    {crm&&fixed&&(!fixedActivity||!data.options.ship.id)&&<Notice title={businessCopy('cruise.itinerary.FIXED')}>{fixedActivity?'Phân công tàu trước khi thêm hoạt động.':businessErrorMessage('FIXED_ITINERARY_READ_ONLY','')}</Notice>}
-   {crm&&kind==='serving-windows'&&data.options.services.filter(s=>s.scheduled).length===0&&<Notice title={data.options.ship.id?'Tàu chưa có dịch vụ cần xếp khung phục vụ':'Chưa phân công tàu'}>{data.options.ship.id?'Ship Manager cần gán dịch vụ cho tàu trước khi Quản lý lịch trình xếp khung phục vụ.':'Phân công tàu tại mục Tàu và quy định trước khi chọn dịch vụ.'}</Notice>}
+   {crm&&kind==='serving-windows'&&data.options.services.filter(s=>s.scheduled).length===0&&<Notice title={data.options.ship.id?'Tàu chưa có dịch vụ cần xếp khung phục vụ':'Chưa phân công tàu'}>{data.options.ship.id?'Quản lý tàu cần gán dịch vụ cho tàu trước khi Quản lý lịch trình xếp khung phục vụ.':'Phân công tàu tại mục Tàu và quy định trước khi chọn dịch vụ.'}</Notice>}
    {coordinator&&editable&&<Modal title="Người phụ trách" busy={busy} onClose={()=>setCoordinator(null)} footer={
     <Button type="submit" form="program-coordinator" disabled={busy||uncertain||staff.loading||Boolean(staff.error)||!staff.data}>Lưu người phụ trách</Button>}>
     <p>{coordinator.row.name}</p>

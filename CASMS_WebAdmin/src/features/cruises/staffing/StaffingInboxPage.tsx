@@ -114,6 +114,9 @@ function StaffingInbox({ review }: { review: boolean }) {
           title={title}
           actions={<Button tone="secondary" size="compact" onClick={inbox.retry}>Cập nhật</Button>}
         />
+        {hr && access.roles.includes('HR_MANAGER') && access.canDo('CRUISE_STAFF_ASSIGN') && (
+          <ShipManagerAssignments key={access.userId} userId={access.userId} />
+        )}
         <Panel title={hr ? 'Tour chờ phân công' : 'Phương án chờ xử lý'}>
           <section className={styles.filterBar} aria-label="Bộ lọc yêu cầu nhân sự">
             <Field htmlFor="staffing-cruise-search" label="Tìm kiếm chuyến tour">
@@ -230,6 +233,78 @@ function StaffingInbox({ review }: { review: boolean }) {
   )
 }
 
+function ShipManagerAssignments({ userId }: { userId: string | null | undefined }) {
+  const queue = useReadQuery(`ship-manager-needed:${userId}`, staffingApi.cruisesWithoutShipManager)
+  const [cruiseId, setCruiseId] = useState('')
+  const [saved, setSaved] = useState('')
+  const selected = queue.data?.find(cruise => cruise.cruiseId === cruiseId)
+  return (
+    <Panel title="Chuyến cần phân công Quản lý tàu">
+      <div className={styles.section}>
+        <div><Button tone="secondary" size="compact" disabled={queue.loading} onClick={queue.retry}>Cập nhật danh sách</Button></div>
+        {saved && <Notice tone="success" title="Đã phân công Quản lý tàu">{saved}</Notice>}
+        {queue.loading && <Loading label="Đang tải danh sách chuyến…" />}
+        {queue.error && <Notice tone="error" title="Chưa tải được danh sách">
+          {staffingError(queue.error)} <Button tone="secondary" onClick={queue.retry}>Thử lại</Button>
+        </Notice>}
+        {queue.data?.length === 0 && <p>Không có chuyến nào đang thiếu Quản lý tàu.</p>}
+        {!!queue.data?.length && <Field htmlFor="ship-manager-cruise" label="Chuyến cần phân công">
+          <select id="ship-manager-cruise" value={selected?.cruiseId ?? ''} onChange={event => setCruiseId(event.target.value)}>
+            <option value="">Chọn chuyến</option>
+            {queue.data.map(cruise => <option key={cruise.cruiseId} value={cruise.cruiseId}>{cruise.cruiseName} · {cruise.cruiseCode}</option>)}
+          </select>
+        </Field>}
+        {selected && <AssignShipManager key={selected.cruiseId} cruiseId={selected.cruiseId} onAssigned={() => {
+          setSaved(selected.cruiseName)
+          setCruiseId('')
+          queue.retry()
+        }} />}
+      </div>
+    </Panel>
+  )
+}
+
+function AssignShipManager({ cruiseId, onAssigned }: { cruiseId: string; onAssigned: () => void }) {
+  const options = useReadQuery(`ship-manager-options:${cruiseId}`,
+    useCallback(signal => cruiseStaffApi.options(cruiseId, signal), [cruiseId]))
+  const [userId, setUserId] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const lock = useRef(false)
+  const candidates = options.data?.users.filter(user => user.allowedRoles.includes('SHIP_MANAGER')) ?? []
+  const selected = candidates.find(user => user.userId === userId)
+  if (options.loading) return <Loading label="Đang tải Quản lý tàu có thể phân công…" />
+  if (options.error) return <Notice tone="error" title="Chưa tải được Quản lý tàu">
+    {staffingError(options.error)} <Button tone="secondary" onClick={options.retry}>Thử lại</Button>
+  </Notice>
+  if (!candidates.length) return <p>Chưa có Quản lý tàu phù hợp với lịch chuyến.</p>
+  return <form className={styles.form} onSubmit={async event => {
+    event.preventDefault()
+    if (lock.current || !selected) return
+    lock.current = true
+    setBusy(true)
+    setError('')
+    try {
+      await cruiseStaffApi.assign(cruiseId, { userId: selected.userId, roleInCruise: 'SHIP_MANAGER', notes: '' })
+      onAssigned()
+    } catch (cause) {
+      setError(staffingError(cause))
+    } finally {
+      lock.current = false
+      setBusy(false)
+    }
+  }}>
+    <Field htmlFor="ship-manager-user" label="Quản lý tàu">
+      <select id="ship-manager-user" value={selected?.userId ?? ''} disabled={busy} onChange={event => setUserId(event.target.value)}>
+        <option value="">Chọn người phụ trách</option>
+        {candidates.map(user => <option key={user.userId} value={user.userId}>{user.username}</option>)}
+      </select>
+    </Field>
+    {error && <Notice tone="error" title="Chưa phân công được">{error}</Notice>}
+    <Button type="submit" busy={busy} disabled={!selected}>Phân công Quản lý tàu</Button>
+  </form>
+}
+
 function StaffingDetail({ requestId, onChanged, onCompleted, review }: {
   requestId: string; onChanged: () => void; onCompleted: () => void; review: boolean
 }) {
@@ -255,6 +330,13 @@ function StaffingDetail({ requestId, onChanged, onCompleted, review }: {
     return (
       <div className={styles.stack}>
         <RequestHeader request={request.data} />
+        {review && request.data.status === 'PENDING_SHIP_REVIEW' && (
+          <div>
+            <ButtonLink tone="secondary" size="compact" to={`/admin/service-locations?cruiseId=${encodeURIComponent(request.data.cruiseId)}`}>
+              Xem đề nghị bố trí dịch vụ của chuyến
+            </ButtonLink>
+          </div>
+        )}
         <StaffingV2 request={request.data} refreshKey={refreshTick} onChanged={syncAll} onCompleted={onCompleted} />
         {!review && request.data.status === 'SENT_TO_HR' && (
           <Assignments request={request.data} refresh={syncAll} activityOnly />
@@ -551,7 +633,7 @@ function Assignments({ request, refresh, activityOnly = false }: { request: Staf
                 </div>
                 <p className={styles.requirementRule}>
                   {requirement
-                    ? 'Chỉ nhân viên có vai trò Nhân viên phục vụ trên tàu (Onboard Staff) của chuyến mới xếp được vào dịch vụ này.'
+                    ? 'Chỉ nhân viên có vai trò Nhân viên phục vụ trên tàu của chuyến mới xếp được vào dịch vụ này.'
                     : shift
                       ? `Chọn Nhân viên phục vụ trên tàu trống lịch ${date(shift.startsAt)} – ${date(shift.endsAt)}. Nếu chưa đánh dấu phụ trách, bấm "Cho phép phụ trách".`
                       : ''}

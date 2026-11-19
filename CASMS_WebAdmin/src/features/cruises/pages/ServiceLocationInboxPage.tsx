@@ -29,7 +29,8 @@ export function ServiceLocationInboxPage() {
     setParams(next)
   }
   return <CruiseFrame><div className={styles.workspace}>
-    <PageHeader breadcrumb="Quản lý tàu" title="Đề nghị bố trí dịch vụ" />
+    <PageHeader breadcrumb="Quản lý tàu" title="Đề nghị bố trí dịch vụ"
+      actions={<Button tone="secondary" size="compact" onClick={query.retry}>Cập nhật</Button>} />
     <Panel title="Tour chờ phản hồi">
       {query.loading && <Loading label="Đang tải các tour chờ phản hồi…" />}
       {query.error && <Notice tone="error" title="Chưa tải được danh sách">

@@ -105,7 +105,7 @@ export function CancellationQueue({ issueId, operations = false, onInspectBookin
   const query = useReadQuery(`cancellation-queue:${access.userId}:${issueId}:${page}:${allowed}`,
     useCallback(signal => allowed ? cancellationApi.queue(page, signal, issueId) : Promise.resolve(null), [allowed, issueId, page]))
   if (!allowed || query.error instanceof ApiError && query.error.status === 404) return null
-  return <Panel title={issueId ? 'Yêu cầu hủy liên quan đến sự cố' : operations ? 'Yêu cầu hủy cần OPS đối chiếu' : 'Yêu cầu hủy chờ tài chính duyệt'}>
+  return <Panel title={issueId ? 'Yêu cầu hủy liên quan đến sự cố' : operations ? 'Yêu cầu hủy cần Quản lý vận hành đối chiếu' : 'Yêu cầu hủy chờ tài chính duyệt'}>
     {query.loading && <Loading label="Đang tải yêu cầu hủy…" />}
     {query.error && <Notice title="Chưa tải được yêu cầu hủy" tone="error"><Button tone="secondary" size="compact" autoWidth onClick={query.retry}>Tải lại</Button></Notice>}
     {query.data && <><Cases items={query.data.content} onChanged={query.retry} onInspectBooking={onInspectBooking}/>

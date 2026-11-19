@@ -418,6 +418,27 @@ export function CruiseFormPage() {
       : windowBounds.earliestDeparture
   }
 
+  function returnToSelectedSchedule() {
+    if (!source.data) return
+    const target = '/admin/trips/' + encodeURIComponent(source.data.tripId) + '/schedule?' + new URLSearchParams({
+      versionId: source.data.versionId,
+      returnTo: '/admin/cruises/new?sourceVersionId=' + source.data.versionId,
+    }).toString()
+    guard.allowLeave()
+    navigate(target, {
+      state: access.userId ? {
+        cruiseCreationDraft: {
+          owner: access.userId,
+          sourceVersionId: source.data.versionId,
+          draft: { ...draft, cruiseName: displayName, expectedPassengerCount: validPassengerCount ? passengerCount : null },
+          nameEdited,
+          appliedPreview,
+          previewRevision,
+        },
+      } : undefined,
+    })
+  }
+
   return <CruiseFrame>
     <div className={styles.content}>
       {uncertain && <Notice title={createIntent.record?.status === 'succeeded' ? 'Đã tạo tour' : editing ? 'Chưa xác nhận được thay đổi' : 'Chưa rõ tour đã được tạo hay chưa'} tone="warning">
@@ -608,7 +629,7 @@ export function CruiseFormPage() {
             {!portsLoading && !portsError && !ports.length && <Notice title="Chưa có cảng hoạt động" tone="warning">Cần tạo hoặc kích hoạt cảng trước khi lập chuyến mới.</Notice>}
             {submitError && !uncertain && <div className={styles.departureCheckError} role="alert"><strong>Chưa tạo được tour</strong><p>{submitError}</p></div>}
             <div className={styles.formActions}>
-              <ButtonLink tone="secondary" to={'/admin/trips/' + encodeURIComponent(source.data.tripId) + '/schedule?versionId=' + encodeURIComponent(source.data.versionId)}>Về lịch trình đã chọn</ButtonLink>
+              {access.canDo('TRIP_READ') && <Button type="button" tone="secondary" disabled={busy} onClick={returnToSelectedSchedule}>Về lịch trình đã chọn</Button>}
               {access.canDo('CRUISE_CREATE') && <Button type="submit" tone="primary" value="draft" disabled={busy || !canSave}>{busy ? 'Đang tạo tour…' : 'Tạo tour'}</Button>}
             </div>
           </Panel>

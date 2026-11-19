@@ -7,10 +7,10 @@ import styles from './Staffing.module.css'
 import workspaceStyles from '../components/ManagerWorkspace.module.css'
 
 const v2WaitingCopy: Record<string, string> = {
-  PENDING_ASM: 'Đang chờ Quản lý dịch vụ (ASM) nhận việc và hoàn tất chương trình phục vụ của chuyến.',
+  PENDING_ASM: 'Đang chờ Quản lý dịch vụ nhận việc và hoàn tất chương trình phục vụ của chuyến.',
   PENDING_SHIP_REVIEW: 'Đang chờ Quản lý tàu kiểm tra tàu và cabin, chọn khu vực mở, gắn máy POS, bố trí dịch vụ và nhập định biên nhân sự.',
-  SENT_TO_HR: 'Đang chờ Quản lý nhân sự (HR) phân công nhân viên đủ điều kiện vào từng khu vực, vị trí và ca hoạt động.',
-  PLANNER_CONFIRMED: 'Đã gửi Quản lý vận hành (OPS) xem xét và phê duyệt phương án nhân sự.',
+  SENT_TO_HR: 'Đang chờ Quản lý nhân sự phân công nhân viên đủ điều kiện vào từng khu vực, vị trí và ca hoạt động.',
+  PLANNER_CONFIRMED: 'Đã gửi Quản lý vận hành xem xét và phê duyệt phương án nhân sự.',
 }
 
 export function StaffingPreparation({ cruiseId, refreshKey, onStarted }: {
@@ -145,7 +145,7 @@ export function StaffingPreparation({ cruiseId, refreshKey, onStarted }: {
           }}>Gửi phương án cho Vận hành</Button>}
       </>}
       {!active && <div className={styles.form}>
-        <p>Khởi tạo để ASM hoàn thiện chương trình và Quản lý tàu xác định khu vực mở cùng số người cần.</p>
+        <p>Khởi tạo để Quản lý dịch vụ hoàn thiện chương trình và Quản lý tàu xác định khu vực mở cùng số người cần.</p>
         {!data.hasOperatingBudget && <p>Lưu ngân sách vận hành trước khi khởi tạo.</p>}
         <Button busy={busy} disabled={!data.hasOperatingBudget} autoWidth onClick={() => void start()}>
           Khởi tạo yêu cầu nhân sự

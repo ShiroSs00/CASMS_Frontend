@@ -213,7 +213,7 @@ function StaffAssignmentsWorkspace({ cruiseId, onChanged, embedded = false }: { 
             <h3 className={styles.cardTitle}>Bổ sung nhân sự vào chuyến</h3>
             <p className={styles.cardSubtitle}>
               {!list.loading && !hasOnboardStaff
-                ? 'Chuyến cần tối thiểu 1 Nhân viên phục vụ trên tàu (Onboard Staff) để phục vụ dịch vụ và xuất bến.'
+                ? 'Chuyến cần tối thiểu 1 Nhân viên phục vụ trên tàu để phục vụ dịch vụ và xuất bến.'
                 : 'Chỉ tài khoản có vai trò Nhân viên phục vụ trên tàu mới xếp được vào dịch vụ và ca hoạt động.'}
             </p>
           </div>

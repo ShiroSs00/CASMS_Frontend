@@ -19,7 +19,7 @@ type Props = {
   violations?: Violation[]
   onType: (type: Day['dayType']) => void
   onTitle: (title: string) => void
-  onStop: (stop?: Stop) => void
+  onStop: (stop?: Stop, allAboardOnly?: boolean) => void
   onEntry: (kind: Entry['kind'], entry?: Entry, stopClientKey?: string) => void
   onRemoveStop: (stop: Stop) => void
   onRemoveEntry: (entry: Entry) => void
@@ -46,7 +46,7 @@ export function DayPane({
   const target = violation ? violationTarget(violation) : null
   const fieldError = (id: string) => {
     if (target?.dayNumber === day.dayNumber && target.fieldId === id) return violation?.message
-    const field = id === 'planning-disembarkation-arrival' ? 'plannedArrivalTime' : id === 'planning-disembarkation-time' ? 'plannedDepartureTime' : id === 'planning-ending-port-info' ? 'portId' : null
+    const field = id === 'planning-disembarkation-arrival' ? 'plannedArrivalTime' : id === 'planning-disembarkation-time' ? 'plannedDepartureTime' : (id === 'planning-ending-port-info' || id === 'planning-disembarkation-port') ? 'portId' : null
     return violations.find(issue => {
       const location = violationTarget(issue, content)
       return location.dayNumber === day.dayNumber && location.fieldId === id
@@ -71,6 +71,7 @@ export function DayPane({
   function agendaRow(entry: Entry) {
     const continuation = entry.startDayNumber !== day.dayNumber
     const port = entry.kind === 'SHORE_EXCURSION' ? content.stops.find(stop => stop.clientKey === entry.stopClientKey)?.portName : null
+    const entryErrors = violations.filter(issue => issue.clientKey === entry.clientKey)
     return (
       <article id={`planning-${entry.clientKey}`} key={entry.clientKey} className={styles.agendaRow}>
         <div className={styles.agendaTime}>
@@ -99,6 +100,9 @@ export function DayPane({
           )}
           {entry.categoryName && <p className={styles.agendaMeta}>{entry.categoryName}</p>}
           {entry.notes && <p>{entry.notes}</p>}
+          {entryErrors.map((issue, idx) => (
+            <p key={`${entry.clientKey}:${issue.code}:${idx}`} className={styles.error} role="alert">{issue.message}</p>
+          ))}
         </div>
         <div className={styles.actions}>
           <Button tone="text" disabled={busy} onClick={() => onEntry(entry.kind, entry)}>
@@ -117,12 +121,21 @@ export function DayPane({
   function shoreTours(stop: Stop) {
     const tours = entries.filter(entry => entry.kind === 'SHORE_EXCURSION' && entry.stopClientKey === stop.clientKey)
     const hasDeadline = Boolean(stop.allAboardDayNumber && stop.allAboardTime)
+    const withinDeparture = stop.allAboardDayNumber != null && Boolean(stop.allAboardTime) &&
+      (!stop.plannedDepartureTime || timeNumber(stop.allAboardDayNumber, stop.allAboardTime) <= timeNumber(stop.departureDayNumber, stop.plannedDepartureTime))
     const canAddTour = stop.allAboardDayNumber != null && Boolean(stop.allAboardTime && stop.plannedArrivalTime) &&
-      timeNumber(stop.allAboardDayNumber, stop.allAboardTime) > timeNumber(stop.arrivalDayNumber, stop.plannedArrivalTime)
+      timeNumber(stop.allAboardDayNumber, stop.allAboardTime) > timeNumber(stop.arrivalDayNumber, stop.plannedArrivalTime) &&
+      withinDeparture
     return <>
       {editable && (canAddTour
         ? <Button tone="secondary" size="compact" disabled={busy} onClick={() => onEntry('SHORE_EXCURSION', undefined, stop.clientKey)}>Thêm tour bờ</Button>
-        : <p className={styles.muted}>{hasDeadline ? 'Cần đủ thời gian từ lúc tàu đến đến hạn trở lại để thêm tour bờ.' : 'Đặt hạn trở lại tàu để thêm tour bờ.'}</p>)}
+        : <p className={hasDeadline && !withinDeparture ? styles.error : styles.muted} role={hasDeadline && !withinDeparture ? 'alert' : undefined}>
+            {hasDeadline
+              ? (!withinDeparture
+                  ? 'Hạn trở lại tàu đang vượt quá giờ kết thúc / giờ rời cảng. Hãy chỉnh lại hạn trở lại tàu.'
+                  : 'Cần đủ thời gian từ lúc tàu đến đến hạn trở lại để thêm tour bờ.')
+              : 'Đặt hạn trở lại tàu để thêm tour bờ.'}
+          </p>)}
       {tours.map(agendaRow)}
     </>
   }
@@ -250,7 +263,25 @@ export function DayPane({
                 </Field>
               </div>
               </div>}
-              {disembarkationStop && <Button tone="secondary" size="compact" disabled={busy} onClick={() => onStop(disembarkationStop)}>{editEndingInline ? 'Chỉnh hạn trở lại tàu' : editable ? 'Chỉnh cảng và giờ kết thúc' : 'Xem chi tiết cảng kết thúc'}</Button>}
+              {disembarkationStop?.allAboardTime && (
+                <p>Hạn hành khách trở lại tàu: Ngày {disembarkationStop.allAboardDayNumber} {shortTime(disembarkationStop.allAboardTime)}</p>
+              )}
+              {disembarkationStop && violations.filter(issue => issue.clientKey === disembarkationStop.clientKey && issue.field === 'allAboardTime').map((issue, idx) => (
+                <p key={`${disembarkationStop.clientKey}:allAboard:${idx}`} className={styles.error} role="alert">{issue.message}</p>
+              ))}
+              {disembarkationStop && (
+                <div className={styles.actions}>
+                  <Button
+                    tone="secondary"
+                    size="compact"
+                    autoWidth
+                    disabled={busy || (editEndingInline && (!disembarkationStop.plannedArrivalTime || !disembarkationStop.plannedDepartureTime))}
+                    onClick={() => onStop(disembarkationStop, editEndingInline)}
+                  >
+                    {editEndingInline ? 'Chỉnh hạn trở lại tàu' : editable ? 'Chỉnh cảng và giờ kết thúc' : 'Xem chi tiết cảng kết thúc'}
+                  </Button>
+                </div>
+              )}
               {disembarkationStop && shoreTours(disembarkationStop)}
             </section>
           )}

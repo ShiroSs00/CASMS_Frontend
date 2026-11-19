@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { ApiError, useReadQuery } from '@/shared/api'
-import { Badge, Button, Field, Loading, Notice, Panel } from '@/shared/ui'
+import { Badge, Button, ButtonLink, Field, Loading, Notice, Panel } from '@/shared/ui'
 import { cruiseStaffApi } from '../api/cruise-staff-api'
 import {
   positionLabels, staffingApi, staffingCabinStatusLabels, staffingError, staffingMissing, staffingShipStatusLabels,
@@ -9,19 +9,19 @@ import {
 import styles from './Staffing.module.css'
 
 const actions = {
-  PENDING_SHIP_REVIEW: { approve: 'SHIP_CHECKED', label: 'Xác nhận phương án tàu', back: 'SHIP_RETURN_ASM', backLabel: 'Trả ASM bổ sung chương trình' },
-  SHIP_REVIEWED: { approve: 'SEND_TO_HR', label: 'Gửi HR phân công', back: 'CRM_RETURN_SHIP', backLabel: 'Trả Quản lý tàu' },
+  PENDING_SHIP_REVIEW: { approve: 'SHIP_CHECKED', label: 'Xác nhận phương án tàu', back: 'SHIP_RETURN_ASM', backLabel: 'Trả Quản lý dịch vụ bổ sung chương trình' },
+  SHIP_REVIEWED: { approve: 'SEND_TO_HR', label: 'Gửi Quản lý nhân sự phân công', back: 'CRM_RETURN_SHIP', backLabel: 'Trả Quản lý tàu' },
   SENT_TO_HR: { approve: 'HR_SUBMITTED', label: 'Gửi phương án cho Quản lý lịch trình', back: 'HR_RETURN_SHIP', backLabel: 'Báo thiếu hoặc yêu cầu kiểm tra lại tàu' },
-  HR_SUBMITTED: { approve: 'PLANNER_CONFIRMED', label: 'Gửi Vận hành duyệt', back: 'CRM_RETURN_HR', backLabel: 'Trả HR bổ sung' },
+  HR_SUBMITTED: { approve: 'PLANNER_CONFIRMED', label: 'Gửi Quản lý vận hành duyệt', back: 'CRM_RETURN_HR', backLabel: 'Trả Quản lý nhân sự bổ sung' },
   PLANNER_CONFIRMED: { approve: 'OPS_APPROVED', label: 'Duyệt phương án nhân sự', back: 'OPS_RETURN_CRM', backLabel: 'Trả Quản lý lịch trình' },
 } satisfies Record<string, { approve: StaffingAction; label: string; back: StaffingAction; backLabel: string }>
 
 const v2Steps = [
-  { id: 'asm', title: '1. Chương trình', owner: 'Quản lý dịch vụ (ASM)', statuses: ['PENDING_ASM'] },
+  { id: 'asm', title: '1. Chương trình', owner: 'Quản lý dịch vụ', statuses: ['PENDING_ASM'] },
   { id: 'ship', title: '2. Khu vực, POS & nhu cầu', owner: 'Quản lý tàu', statuses: ['PENDING_SHIP_REVIEW'] },
-  { id: 'dispatch', title: '3. Kiểm tra & gửi HR', owner: 'Quản lý lịch trình', statuses: ['SHIP_REVIEWED'] },
-  { id: 'hr', title: '4. Phân công nhân sự', owner: 'Quản lý nhân sự (HR)', statuses: ['SENT_TO_HR'] },
-  { id: 'approval', title: '5. Kiểm tra & phê duyệt', owner: 'CRM → Quản lý vận hành', statuses: ['HR_SUBMITTED', 'PLANNER_CONFIRMED', 'OPS_APPROVED'] },
+  { id: 'dispatch', title: '3. Kiểm tra & gửi nhân sự', owner: 'Quản lý lịch trình', statuses: ['SHIP_REVIEWED'] },
+  { id: 'hr', title: '4. Phân công nhân sự', owner: 'Quản lý nhân sự', statuses: ['SENT_TO_HR'] },
+  { id: 'approval', title: '5. Kiểm tra & phê duyệt', owner: 'Quản lý lịch trình → Quản lý vận hành', statuses: ['HR_SUBMITTED', 'PLANNER_CONFIRMED', 'OPS_APPROVED'] },
 ] as const
 
 function formatShipStatus(status: string) {
@@ -76,6 +76,10 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
       setError(staffingError(cause))
       if (cause instanceof ApiError && cause.code === 'STAFFING_REVISION_CONFLICT') {
         setStale(true)
+        details.retry()
+      }
+      if (cause instanceof ApiError && cause.code === 'HANDOFF_TOUR_LOCKED') {
+        setReturning(false)
         details.retry()
       }
     } finally {
@@ -434,6 +438,18 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
               <ul className={styles.rows}>
                 {state.plannedServices.map(service => {
                   const placed = service.placements[0]?.areaId
+                  const proposal = service.proposal && <div className={styles.rowMain}>
+                    <small className={styles.subtle}>Quản lý dịch vụ đề xuất {service.proposal.deckName} · {service.proposal.note}</small>
+                    <small className={styles.subtle}>{{
+                      PENDING: 'Đề nghị đang chờ xác nhận',
+                      CONFIRMED: 'Đề nghị đã được xác nhận',
+                      RETURNED: 'Đề nghị đã trả về Quản lý dịch vụ',
+                    }[service.proposal.status]}</small>
+                    {ship && service.proposal.status === 'PENDING' && (
+                      <ButtonLink to={`/admin/service-locations?cruiseId=${encodeURIComponent(current.cruiseId)}`}
+                        tone="secondary" size="compact" autoWidth>Xử lý đề nghị</ButtonLink>
+                    )}
+                  </div>
                   const placedArea = activeAreas.find(area => area.areaId === placed)
                   const candidates = activeAreas.filter(area => service.eligibleAreaIds.includes(area.areaId) && area.terminals.length)
                   const eligibleNames = state.areas
@@ -445,6 +461,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                       <li key={service.serviceId} className={styles.row}>
                         <div className={styles.rowMain}>
                           <strong>{service.name}</strong>
+                          {proposal}
                           <small className={styles.subtle}>
                             {placedArea ? `Phục vụ tại ${placedArea.name}` : 'Chưa bố trí khu vực phục vụ'}
                           </small>
@@ -460,6 +477,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                     <li key={service.serviceId} className={styles.row}>
                       <div className={styles.rowMain}>
                         <strong>{service.name}</strong>
+                        {proposal}
                         <small className={styles.subtle}>
                           {candidates.length > 0
                             ? `Có ${candidates.length} khu vực mở đủ điều kiện POS`
@@ -643,6 +661,11 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
               Đã đủ định biên khu vực nhưng còn {missingActivitiesCount} ca hoạt động/tour bờ chưa phân ca. Hãy phân ca ở mục bên dưới trước khi gửi phương án.
             </p>
           )}
+          {action.back === 'SHIP_RETURN_ASM' && state.canReturnToAsm === false && (
+            <Notice tone="warning" title="Chương trình đang khóa">
+              Nhờ Quản lý lịch trình rút hồ sơ đang chờ duyệt hoặc Quản lý vận hành yêu cầu bổ sung kế hoạch để Quản lý dịch vụ chỉnh sửa.
+            </Notice>
+          )}
           {returning && (
             <Field
               htmlFor="staffing-v2-return"
@@ -674,7 +697,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
               <Button
                 tone={returning ? 'primary' : 'secondary'}
                 busy={returning && busy}
-                disabled={disabled || (returning && !reason.trim())}
+                disabled={disabled || (action.back === 'SHIP_RETURN_ASM' && state.canReturnToAsm === false) || (returning && !reason.trim())}
                 onClick={() => {
                   const previous = action.back
                   if (returning && previous) void mutate(() => staffingApi.transition(current, previous, reason.trim()), true)
