@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Badge, Button, Field, Loading, Notice, Panel } from '@/shared/ui'
+import { Badge, Button, Field, Loading, Modal, Notice, Panel } from '@/shared/ui'
 import { cancellationApi, cancellationStatus, type CancellationCase, type CancellationStatus } from './api'
 import styles from './CancellationCases.module.css'
+import { mutationOutcomeUnknown } from '@/shared/lib/mutation-outcome'
 
 const actionLabels = { verify: 'Xác nhận đã đối chiếu sự cố', approve: 'Duyệt hủy đặt chỗ', reject: 'Từ chối yêu cầu', withdraw: 'Rút yêu cầu' }
 const statusTones: Record<CancellationStatus, 'warning' | 'info' | 'success' | 'error' | 'neutral'> = {
@@ -118,8 +119,8 @@ export function CancellationQueue({ issueId, operations = false, onInspectBookin
   </Panel>
 }
 
-export function StaffCancellation({ bookingId, bookingStatus, onChanged, onLegacyAvailable }: {
-  bookingId: string; bookingStatus: string; onChanged: () => void; onLegacyAvailable: (id: string) => void
+export function StaffCancellation({ bookingId, bookingStatus, onChanged, onLegacyAvailable, confirmRequest = false }: {
+  bookingId: string; bookingStatus: string; onChanged: () => void; onLegacyAvailable: (id: string) => void; confirmRequest?: boolean
 }) {
   const access = useSessionAccess()
   const allowed = access.status === 'ready' && (access.roles.includes('BOOKING_AGENT') || access.roles.includes('FINANCE_OFFICER'))
@@ -135,6 +136,13 @@ export function StaffCancellation({ bookingId, bookingStatus, onChanged, onLegac
   const savedKey = useRef<{ payload: string; key: string } | null>(null)
   const lock = useRef(false)
 
+  const [reviewRequest, setReviewRequest] = useState(false)
+  const pendingStorageKey = confirmRequest ? `ocevie.booking-agent.cancel.v1:${access.userId}:${bookingId}` : null
+  const [unknownRequest, setUnknownRequest] = useState(() => {
+    try { return Boolean(pendingStorageKey && sessionStorage.getItem(pendingStorageKey)) }
+    catch { return confirmRequest }
+  })
+
   const legacyAvailable = query.error instanceof ApiError && query.error.status === 404
   useEffect(() => {
     onLegacyAvailable(canRequest && legacyAvailable ? bookingId : '')
@@ -143,27 +151,36 @@ export function StaffCancellation({ bookingId, bookingStatus, onChanged, onLegac
   if (!allowed || query.error instanceof ApiError && [403, 404].includes(query.error.status)) return null
   function refresh() { query.retry(); onChanged() }
   async function submit() {
-    if (lock.current || !reason.trim()) return
+    if (lock.current || !reason.trim() || unknownRequest) return
     lock.current = true; setBusy(true); setError('')
     try {
       const issue = scenario === 'OPERATIONAL_DISRUPTION' ? issueId.trim() : undefined
       const payload = JSON.stringify([scenario, reason.trim(), issue])
       if (savedKey.current?.payload !== payload) savedKey.current = { payload, key: crypto.randomUUID() }
+      if (pendingStorageKey) sessionStorage.setItem(pendingStorageKey, savedKey.current.key)
       await cancellationApi.request(bookingId, reason.trim(), savedKey.current.key, scenario, issue)
+      if (pendingStorageKey) sessionStorage.removeItem(pendingStorageKey)
+      setReviewRequest(false)
       savedKey.current = null
       setReason(''); setIssueId(''); refresh()
     } catch (value) {
       setError(value instanceof Error ? value.message : 'Chưa gửi được yêu cầu hủy.')
+      if (confirmRequest) {
+        const unknown = mutationOutcomeUnknown(value)
+        setUnknownRequest(unknown)
+        if (!unknown && pendingStorageKey) sessionStorage.removeItem(pendingStorageKey)
+      }
       if (value instanceof ApiError && value.status === 409) query.retry()
     } finally { lock.current = false; setBusy(false) }
   }
 
   return <Panel title="Yêu cầu hủy đặt chỗ">
+    {unknownRequest && <Notice title="Cần kiểm tra kết quả yêu cầu hủy" tone="warning">Chưa xác định kết quả yêu cầu trước. Gửi lại đang được khóa để tránh trùng. <Button tone="text" onClick={query.retry}>Tải lại lịch sử yêu cầu hủy</Button></Notice>}
     {query.loading && <Loading label="Đang tải yêu cầu hủy…" />}
     {query.error && <Notice title="Chưa tải được yêu cầu hủy" tone="error"><Button tone="secondary" size="compact" autoWidth onClick={query.retry}>Tải lại</Button></Notice>}
     {query.data && <Cases items={query.data} onChanged={refresh}/>}
     {canRequest && bookingStatus !== 'Cancelled' && query.data && !query.data.some(item =>
-      ['PENDING_OPS','PENDING_FINANCE'].includes(item.status)) && <form className={styles.stack} onSubmit={e => { e.preventDefault(); void submit() }}>
+      ['PENDING_OPS','PENDING_FINANCE'].includes(item.status)) && <form className={styles.stack} onSubmit={e => { e.preventDefault(); if (confirmRequest) setReviewRequest(true); else void submit() }}>
       <Field htmlFor={field + '-scenario'} label="Nguồn yêu cầu">
         <select id={field + '-scenario'} value={scenario} onChange={e => setScenario(e.target.value as CancellationCase['scenario'])}>
           <option value="CUSTOMER">Khách hàng</option><option value="COMPANY">Công ty</option>
@@ -175,7 +192,10 @@ export function StaffCancellation({ bookingId, bookingStatus, onChanged, onLegac
       </Field>}
       <Field htmlFor={field} label="Lý do yêu cầu hủy"><textarea id={field} required maxLength={1000} value={reason} onChange={e => setReason(e.target.value)}/></Field>
       {error && <Notice title="Chưa gửi được yêu cầu hủy" tone="error">{error}</Notice>}
-      <div className={styles.actionFooter}><Button type="submit" autoWidth busy={busy}>Gửi yêu cầu hủy</Button></div>
+      <div className={styles.actionFooter}><Button type="submit" autoWidth busy={busy} disabled={unknownRequest}>Gửi yêu cầu hủy</Button></div>
     </form>}
+    {confirmRequest && reviewRequest && <Modal title="Gửi yêu cầu hủy đặt chỗ?" busy={busy} onClose={() => setReviewRequest(false)} footer={<><Button tone="secondary" disabled={busy} onClick={() => setReviewRequest(false)}>Quay lại</Button><Button busy={busy} disabled={unknownRequest} onClick={() => void submit()}>Gửi yêu cầu hủy</Button></>}>
+      <p>Yêu cầu sẽ được xem xét theo quy trình hủy và thanh toán. Gửi yêu cầu chưa đồng nghĩa đặt chỗ đã bị hủy; cabin được giải phóng khi việc hủy được duyệt.</p><p>Lý do: {reason}</p>{error && <Notice title="Chưa gửi được yêu cầu hủy" tone="error">{error}</Notice>}
+    </Modal>}
   </Panel>
 }

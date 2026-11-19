@@ -52,6 +52,7 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
   const [selected, setSelected] = useState<ShipType | null>(initial)
   const [name, setName] = useState('')
   const [profile, setProfile] = useState<ProfileDraft>({})
+  const [profileExpanded, setProfileExpanded] = useState(false)
   const [errors, setErrors] = useState<ReturnType<typeof validateProfile> & { shipName?: string }>({})
   const [failure, setFailure] = useState<unknown>(null)
   const [notice, setNotice] = useState(initialError ?? '')
@@ -159,24 +160,35 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
       </section>}
       {step === 1 && <section className={styles.workflowSection} aria-labelledby="provision-step-heading">
         <div className={styles.workflowHeading}><h2 id="provision-step-heading" ref={headingRef} tabIndex={-1}>Thông tin tàu</h2>
-          <p>Loại tàu: <strong>{selected?.name}</strong>. Mã tàu được cấp tự động khi tạo.</p></div>
+          <p>Đặt tên riêng cho tàu. Hồ sơ vận hành có thể bổ sung sau.</p></div>
         <form className={styles.provisionForm} ref={formRef} noValidate onSubmit={event => {
           event.preventDefault()
           const validation = { ...validateProfile(profile), ...(!name.trim() || name.trim().length > 100
             ? { shipName: 'Nhập tên riêng của tàu, tối đa 100 ký tự.' } : {}) }
           setErrors(validation)
-          if (Object.keys(validation).length) requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus())
+          if (Object.keys(validation).length) {
+            if (Object.keys(validation).some(key => key !== 'shipName')) setProfileExpanded(true)
+            requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus())
+          }
           else move(2)
         }}>
           <FormErrorSummary errors={errors} />
-          <Field htmlFor="vessel-name" label="Tên tàu *" error={errors.shipName}>
-            <input id="vessel-name" required maxLength={100} value={name} onChange={event => { setName(event.target.value); setErrors(current => ({ ...current, shipName: undefined })) }} />
-          </Field>
-          <div className={styles.workflowHeading}><h3>Hồ sơ vận hành</h3><p>Không bắt buộc ở bước này. Bạn có thể bổ sung sau khi tạo tàu.</p></div>
-          <ProfileFields draft={profile} errors={errors}
-            onChange={(key, value) => { setProfile(current => ({ ...current, [key]: value })); setErrors(current => ({ ...current, [key]: undefined })) }}
-            onBlur={key => setErrors(current => ({ ...current, [key]: validateProfile(profile)[key] }))} />
-          <div className={styles.workflowActions}><Button tone="secondary" onClick={() => move(0)}>Quay lại: Chọn loại tàu</Button><Button type="submit">Tiếp tục: Xác nhận</Button></div>
+          <div className={styles.provisionIdentity}>
+            <Field htmlFor="vessel-name" label="Tên tàu *" hint="Tên riêng của tàu, tối đa 100 ký tự." error={errors.shipName}>
+              <input id="vessel-name" required maxLength={100} value={name} onChange={event => { setName(event.target.value); setErrors(current => ({ ...current, shipName: undefined })) }} />
+            </Field>
+            <div className={styles.provisionTypeSummary}><dl><dt>Loại tàu đã chọn</dt><dd>{selected?.name}</dd></dl><p>Mã tàu được cấp tự động khi tạo.</p></div>
+          </div>
+          <details className={styles.provisionProfileDetails} open={profileExpanded} onToggle={event => setProfileExpanded(event.currentTarget.open)}>
+            <summary><h3>Hồ sơ vận hành <span>(không bắt buộc)</span></h3></summary>
+            <p>Điền thông tin đang có hoặc bổ sung sau khi tạo tàu.</p>
+            <div className={styles.provisionProfileGroups}><ProfileFields grouped draft={profile} errors={errors}
+              onChange={(key, value) => { setProfile(current => ({ ...current, [key]: value })); setErrors(current => ({ ...current, [key]: undefined })) }}
+              onBlur={key => setErrors(current => ({ ...current, [key]: validateProfile(profile)[key] }))} /></div>
+          </details>
+          <div className={styles.workflowActions}><Button tone="secondary" onClick={() => move(0)}>Quay lại: Chọn loại tàu</Button>
+            <div className={styles.provisionNextAction}><p>Bạn sẽ kiểm tra lại thông tin ở bước tiếp theo.</p><Button type="submit" autoWidth>Tiếp tục: Xác nhận</Button></div>
+          </div>
         </form>
       </section>}
       {step === 2 && selected && <section className={styles.workflowSection} aria-labelledby="provision-step-heading">

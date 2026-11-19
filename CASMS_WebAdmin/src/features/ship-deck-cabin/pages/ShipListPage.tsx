@@ -23,9 +23,10 @@ function Filters({ filters, options, canViewArchive, onSubmit, onReset }: {
       event.preventDefault()
       onSubmit({ ...draft, search: draft.search.trim() })
     }}>
-      <Field htmlFor="find-vessel" label="Tìm theo tên hoặc mã tàu">
+      <div className={styles.shipListSearchField}><Field htmlFor="find-vessel" label="Tìm theo tên hoặc mã tàu">
         <input type="search" placeholder="Nhập tên hoặc mã tàu" maxLength={100} value={draft.search} onChange={event => setDraft(value => ({ ...value, search: event.target.value }))} />
-      </Field>
+      </Field></div>
+      <div className={styles.shipListSelects} data-has-archive={canViewArchive}>
       <Field htmlFor="vessel-type-filter" label="Loại tàu">
         <select value={draft.type} onChange={event => setDraft(value => ({ ...value, type: event.target.value }))}>
           <option value="">Tất cả loại tàu</option><option value="legacy">Chưa phân loại</option>
@@ -42,6 +43,7 @@ function Filters({ filters, options, canViewArchive, onSubmit, onReset }: {
           <option value="active">Chưa lưu trữ</option><option value="archived">Đã lưu trữ</option>
         </select>
       </Field>}
+      </div>
       <div className={styles.shipFilterActions}><Button type="submit" tone="secondary" autoWidth>Áp dụng bộ lọc</Button>
       {(filters.search || filters.type || filters.status || filters.archived || draft.search || draft.type || draft.status || draft.archived) &&
         <Button tone="text" onClick={() => { setDraft(blankFilters); onReset() }}>Xóa bộ lọc</Button>}

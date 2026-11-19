@@ -29,6 +29,7 @@ const adminRoutes = [
   { path: '/admin/staff/:area', lazy: featurePage(() => import('./pages/AdminStaffFunctionPage'), 'AdminStaffFunctionPage') },
   { path: '/admin/bookings', lazy: featurePage(() => import('./pages/AdminBookingPages'), 'AdminBookingListPage') },
   { path: '/admin/bookings/lookup', lazy: featurePage(() => import('./pages/AdminBookingPages'), 'AdminBookingLookupPage') },
+  { path: '/admin/bookings/cruises', lazy: featurePage(() => import('./pages/AdminBookingPages'), 'AdminBookingSaleCruisesPage') },
   { path: '/admin/bookings/new', lazy: featurePage(() => import('./pages/AdminBookingPages'), 'AdminBookingCreatePage') },
   { path: '/admin/bookings/:bookingId', lazy: featurePage(() => import('./pages/AdminBookingPages'), 'AdminBookingDetailPage') },
   { path: '/admin/activity-registrations', lazy: featurePage(() => import('@/features/activities'), 'ActivityRegistrationPage') },

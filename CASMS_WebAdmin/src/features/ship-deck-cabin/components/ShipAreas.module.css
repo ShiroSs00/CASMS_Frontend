@@ -1,4 +1,7 @@
 .stack { display:grid;gap:20px;min-width:0; }
+.areaTable { min-width:0; }
+.areaTable table { min-width:0; }
+.areaTable table :is(th,td) { padding:var(--space-3) var(--space-4);overflow-wrap:anywhere; }
 .deckPicker { width:min(100%,420px); }
 .filters { display:grid;grid-template-columns:2fr 1fr;gap:16px;min-width:0; }
 .filters>* { min-width:0; }

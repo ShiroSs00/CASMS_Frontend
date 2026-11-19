@@ -2,6 +2,8 @@ import {FleetPagination} from '../components/FleetPagination'
 import {paginateFleet} from '../model/fleet-pagination'
 import {ShipAreaCount} from '../components/ShipAreaCount'
 import {useState} from 'react'
+import { Navigate } from 'react-router'
+import { useSessionAccess } from '@/shared/auth'
 import {shipStatuses,type ShipStatus} from '../model/types'
 import { PermissionLink as Link } from '@/shared/ui'
 import { Button, ButtonLink, Empty, Loading, Notice, PageHeader } from '@/shared/ui'
@@ -13,7 +15,7 @@ import { StatusBadge } from '../components/Common'
 import styles from './FleetDashboard.module.css'
 
 const repository = { load: shipDeckCabinApi.loadShipList, loadField: shipDeckCabinApi.loadShipListField }
-export function FleetDashboardPage() {
+function FleetDashboardContent() {
   const { state } = useShipList(repository)
   const [page,setPage]=useState(1)
   const [status,setStatus]=useState<ShipStatus|'ALL'>('ALL')
@@ -36,4 +38,9 @@ export function FleetDashboardPage() {
       </article>)}</div>:<Empty title={state.data.items.length?'Không có tàu ở trạng thái này':'Chưa có tàu được phân công'}/>}<FleetPagination pagination={pagination} onChange={setPage}/></section>
     </div>}
   </div></AdminShell>
+}
+
+export function FleetDashboardPage() {
+  const access = useSessionAccess()
+  return access.roles.includes('SHIP_MANAGER') ? <Navigate to="/admin/ships" replace /> : <FleetDashboardContent />
 }

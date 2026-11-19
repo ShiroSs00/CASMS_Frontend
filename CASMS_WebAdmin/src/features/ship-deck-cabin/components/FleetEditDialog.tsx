@@ -17,7 +17,6 @@ export function FleetEditDialog({ target, onClose, onSaved }: { target: FleetEdi
   const source = target.item
   const [draft, setDraft] = useState<ShipDraft>(target.kind === 'ships' ? target.item : { code: '', name: '', capacity: 1, totalDecks: 1, commissionDate: '', status: 'DRAFT' })
   const [deckName, setDeckName] = useState(target.kind === 'decks' ? target.item.name : '')
-  const [multiplier, setMultiplier] = useState(target.kind === 'decks' ? target.item.priceMultiplier ?? 1 : 1)
   const [capacity, setCapacity] = useState(target.kind === 'cabins' ? target.item.capacity : 1)
   const [accessible, setAccessible] = useState(target.kind === 'cabins' && target.item.accessible)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -33,13 +32,12 @@ export function FleetEditDialog({ target, onClose, onSaved }: { target: FleetEdi
     if (target.kind === 'ships') validation = validateShipEdit(draft, target.item)
     else if (target.kind === 'decks') {
       if (deckName.length > 50) validation.name = 'Tên boong tối đa 50 ký tự.'
-      if (!Number.isFinite(multiplier) || multiplier < .5 || multiplier > 5) validation.multiplier = 'Hệ số điều chỉnh giá cơ sở theo boong phải từ 0,50 đến 5,00.'
     } else if (!Number.isInteger(capacity) || capacity < 1 || capacity > 2147483647) validation.capacity = 'Sức chứa phải là số nguyên dương hợp lệ.'
     setErrors(validation)
     if (Object.keys(validation).length) { requestAnimationFrame(() => form.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()); return }
     await mutation.run(async () => {
       if (target.kind === 'ships') await shipDeckCabinApi.saveShip(draft, target.item)
-      else if (target.kind === 'decks') await shipDeckCabinApi.updateDeckOperations(source.id, deckName, multiplier)
+      else if (target.kind === 'decks') await shipDeckCabinApi.updateDeckOperations(source.id, deckName)
       else await shipDeckCabinApi.saveCabin({ ...target.item, capacity, accessible }, source.id)
       onSaved('Thông tin đã được cập nhật.'); onClose()
     })
@@ -61,8 +59,6 @@ export function FleetEditDialog({ target, onClose, onSaved }: { target: FleetEdi
       </> : target.kind === 'decks' ? <>
         <p className={styles.muted}>Boong {target.item.number}. Số boong và vị trí trong mô hình được giữ nguyên khi cập nhật thông tin vận hành.</p>
         <Field htmlFor={`${formId}-name`} label="Tên boong" error={errors.name}><input id={`${formId}-name`} value={deckName} maxLength={50} disabled={mutation.busy} onChange={event => { setDeckName(event.target.value); setErrors({}); mutation.clear() }} /></Field>
-        <Field htmlFor={`${formId}-multiplier`} label="Hệ số điều chỉnh giá cơ sở theo boong" error={errors.multiplier}><input id={`${formId}-multiplier`} type="number" min={.5} max={5} step={.01} value={multiplier} disabled={mutation.busy} onChange={event => { setMultiplier(Number(event.target.value)); setErrors({}); mutation.clear() }} /></Field>
-        <p>Giá cơ sở theo loại phòng được nhân với hệ số này. Hệ số 1.00 giữ nguyên giá cơ sở.</p>
       </> : <>
         <dl className={styles.readonly}><div><dt>Số phòng</dt><dd>{target.item.number}</dd></div><div><dt>Loại phòng</dt><dd>{roomTypeLabels[target.item.type]}</dd></div></dl>
         <p className={styles.muted}>Loại phòng và thông tin 3D được cập nhật qua dữ liệu mô hình. Trạng thái vận hành được thay đổi bằng thao tác riêng.</p>
