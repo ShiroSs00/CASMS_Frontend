@@ -3,6 +3,11 @@ import { ApiError } from '@/shared/api'
 /** Customer copy is selected from reviewed codes; never render an arbitrary server message. */
 export function bookingTransactionFailure(error:unknown) {
   if(error instanceof ApiError){
+    if(error.code==='BOOKING_CONTRACT_NOT_ACCEPTED')return 'Cần ghi nhận hợp đồng đã ký trước khi xác nhận đặt chỗ.'
+    if(error.code==='BOOKING_DEPOSIT_NOT_PAID')return 'Khoản thu đã được đối soát chưa đủ mức cọc yêu cầu. Kiểm tra thanh toán trước khi xác nhận đặt chỗ.'
+    if(error.code==='CANCELLATION_CASE_REQUIRED')return 'Đặt chỗ này cần gửi yêu cầu hủy để bộ phận tài chính xem xét. Không hủy trực tiếp.'
+    if(error.code==='FARE_CABIN_CHANGE_NOT_SUPPORTED')return 'Chưa hỗ trợ đổi cabin của gói du thuyền trong luồng này. Giữ nguyên nhóm và cabin đã phân.'
+    if(error.code==='RECOVERY_IN_PROGRESS')return 'Yêu cầu đặt chỗ vẫn đang xử lý. Kiểm tra kết quả sau; không tạo lại đặt chỗ.'
     if(error.code==='BUSINESS_POLICY_REQUIRED')return 'Hiện chưa thể phát hành báo giá hoặc nhận đặt chỗ cho lựa chọn này. Vui lòng thử lại sau hoặc liên hệ bộ phận hỗ trợ.'
     if(['SALE_SUSPENDED','CRUISE_SALE_STOPPED'].includes(error.code??''))return 'Chuyến khởi hành đang tạm dừng nhận đặt chỗ mới. Thông tin bạn đã nhập vẫn được giữ.'
     if(['FARE_QUOTED_PRICE_STALE','QUOTE_INVALIDATED','QUOTE_POLICY_MISMATCH','QUOTE_SELECTION_MISMATCH','FARE_OFFER_INELIGIBLE','FARE_OFFER_NOT_AVAILABLE','PACKAGE_NOT_AVAILABLE_FOR_CRUISE','PACKAGE_NOT_ACTIVE'].includes(error.code??''))return 'Giá hoặc điều kiện của lựa chọn đã thay đổi. Kiểm tra lại hành trình và gói trước khi yêu cầu báo giá mới.'
