@@ -88,16 +88,18 @@ function TypeVessels({ id }: { id: string }) {
   const [page, setPage] = useState(0)
   const load = useCallback((signal: AbortSignal) => shipTypesApi.ships(id, page, signal), [id, page])
   const result = useReadQuery('type-ships:' + id + ':' + page, load)
-  return <section className={styles.catalogList} aria-labelledby="type-vessels-heading">
-    <div className={styles.listHeading}><h2 id="type-vessels-heading">Tàu thuộc loại</h2>{result.data && <span>{result.data.totalElements.toLocaleString('vi-VN')} tàu trong phạm vi xem</span>}</div>
-    {result.loading && <Loading label="Đang tải tàu thuộc loại…" />}
+  return <section className={`${styles.catalogList} ${styles.typeVessels}`} aria-labelledby="type-vessels-heading">
+    <div className={styles.typeVesselsHeading}><div className={styles.shipListTitle}><h2 id="type-vessels-heading">Danh sách tàu cùng loại</h2>{result.data && <span aria-live="polite">{result.data.totalElements.toLocaleString('vi-VN')} tàu</span>}</div>
+      <p>Các tàu sử dụng loại tàu này, trong phạm vi bạn được phép xem.</p></div>
+    {result.loading && <Loading label="Đang tải danh sách tàu cùng loại…" />}
     {result.error && <Notice title="Chưa tải được danh sách tàu" tone="error">{shipError(result.error)} <Button tone="text" onClick={result.retry}>Thử lại</Button></Notice>}
-    {result.data?.content.length ? <DataTable label="Tàu thuộc loại" headers={['Mã tàu', 'Tên tàu', 'Trạng thái', '']}>
+    {!!result.data?.content.length && <p className={styles.tableHint}>Vuốt ngang bảng để xem đầy đủ thông tin.</p>}
+    {result.data?.content.length ? <DataTable label="Danh sách tàu cùng loại" headers={['Mã tàu', 'Tên tàu', 'Trạng thái', 'Thao tác']}>
       {result.data.content.map(ship => <tr key={ship.shipId}><td>{ship.shipCode}</td><th scope="row">{ship.shipName}</th>
         <td><StatusBadge status={ship.status} /></td>
-        <td><PermissionLink to={'/admin/ships/' + ship.shipId} aria-label={'Chi tiết tàu ' + ship.shipName}>Chi tiết</PermissionLink></td>
+        <td><PermissionLink to={'/admin/ships/' + ship.shipId} aria-label={'Chi tiết tàu ' + ship.shipName}>Xem tàu</PermissionLink></td>
       </tr>)}
-    </DataTable> : result.data && <p className={styles.sectionEmpty}>Chưa có tàu thuộc loại này trong phạm vi xem của bạn.</p>}
+    </DataTable> : result.data && <p className={styles.sectionEmpty}>Chưa có tàu cùng loại trong phạm vi xem của bạn.</p>}
     {result.data && result.data.totalPages > 1 && <PageControls page={result.data} label="tàu" onPage={setPage} />}
   </section>
 }
@@ -143,8 +145,8 @@ function TypeDetail({ id }: { id: string }) {
     {saved && <Notice title="Đã cập nhật trạng thái loại tàu" tone="success">Thông tin đã được lưu.</Notice>}
     {type && <>
       <div className={styles.typeStatusBar}><div><span>Trạng thái sử dụng</span><TypeStatusBadge status={type.status} /></div>
-        {admin && <Button tone="text" onClick={() => { setError(''); setSaved(false); setStatusTarget(type.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE') }}>
-          {type.status === 'ACTIVE' ? 'Ngừng sử dụng loại' : 'Bật sử dụng loại'}
+        {admin && <Button tone="secondary" autoWidth onClick={() => { setError(''); setSaved(false); setStatusTarget(type.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE') }}>
+          {type.status === 'ACTIVE' ? 'Ngừng sử dụng loại tàu' : 'Bật sử dụng loại tàu'}
         </Button>}
       </div>
       <div className={styles.typeDetailSections}>

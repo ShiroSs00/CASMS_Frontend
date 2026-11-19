@@ -74,8 +74,8 @@ export const shipDeckCabinApi = {
     if (rows.some(row => row.shipId !== shipId)) throw new ApiError('Danh sách phòng không khớp với tàu đang xem.', 502)
     return rows.map(cabin).sort((a, b) => a.number.localeCompare(b.number, 'vi', { numeric: true }))
   },
-  async updateDeckOperations(id: string, name: string, priceMultiplier: number) {
-    const result = deck(await apiRequest<DeckDto>(idPath('decks', id), { method: 'PATCH', body: { deckName: name.trim(), priceMultiplier } }))
+  async updateDeckOperations(id: string, name: string) {
+    const result = deck(await apiRequest<DeckDto>(idPath('decks', id), { method: 'PATCH', body: { deckName: name.trim() } }))
     notify(); return result
   },
   async listShipPage(page: number, signal: AbortSignal, filters: ShipListFilters) {
@@ -155,7 +155,7 @@ export const shipDeckCabinApi = {
     return ship(archived)
   },
   async saveDeck(draft: DeckDraft, id?: string) {
-    const body = { deckNumber: !id && draft.number === '' ? undefined : draft.number, deckName: draft.name.trim(), priceMultiplier: draft.priceMultiplier ?? 1.0, ...(!id ? { shipId: draft.shipId } : {}) }
+    const body = { deckNumber: !id && draft.number === '' ? undefined : draft.number, deckName: draft.name.trim(), ...(!id ? { shipId: draft.shipId } : {}) }
     const saved = deck(await apiRequest<DeckDto>(id ? idPath('decks', id) : paths.decks, { method: id ? 'PATCH' : 'POST', body }))
     notify(); return saved
   },

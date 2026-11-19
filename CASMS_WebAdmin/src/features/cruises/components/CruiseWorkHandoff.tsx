@@ -272,7 +272,7 @@ export function CruiseWorkInboxPage() {
   return (
     <CruiseFrame>
       <div className={styles.workspace}>
-        <PageHeader title="Yêu cầu chuẩn bị tour" breadcrumb=""
+        <PageHeader title="Xét duyệt tàu cho chuyến" breadcrumb=""
           actions={<Button tone="secondary" size="compact" onClick={query.retry}>Cập nhật</Button>} />
         {access.roles.includes('SHIP_MANAGER') && access.has('CRUISE_PREPARATION_READ') && (
           <Notice tone="info" title="Công việc từ Quản lý dịch vụ">

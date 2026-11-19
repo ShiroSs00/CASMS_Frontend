@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, Empty, Loading, Notice, Panel } from '@/shared/ui'
+import { Button, Loading, Notice } from '@/shared/ui'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { useFleetQuery } from '../hooks/useFleetQuery'
 import { CruiseTable } from './CruiseTable'
@@ -13,17 +13,19 @@ export function ShipSchedule({ ship, onDialog }: { ship: Ship; onDialog: (dialog
   const canReadCurrent = access.canDo('SHIP_CURRENT_CRUISE')
   const load = useCallback((signal: AbortSignal) => shipDeckCabinApi.getCurrentCruise(ship.id, signal), [ship.id])
   const query = useFleetQuery('ship-current-cruise:' + ship.id, load, canReadCurrent)
-  return <div className={styles.stack}>
-    {canReadCurrent && <Panel title="Chuyến đang khai thác">
-      {query.loading && <Loading />}
-      {query.error && <Notice title="Chưa tải được chuyến đang khai thác" tone="error">{query.error} <Button tone="text" onClick={query.retry}>Thử lại</Button></Notice>}
-      {!query.loading && !query.error && (query.data ? <CruiseTable rows={[query.data]} /> : <Empty title="Tàu chưa có chuyến đang khai thác" />)}
-    </Panel>}
-    <Panel title="Tra cứu lịch theo thời gian">
-      <div className={styles.actions}>
-        {access.canDo('SHIP_SCHEDULE_CHECK') && <Button tone="secondary" onClick={() => onDialog({ type: 'operation', kind: 'ships', item: ship, operation: 'schedule' })}>Kiểm tra lịch trống</Button>}
-        {access.canDo('SHIP_AFFECTED_CRUISES') && <Button tone="secondary" onClick={() => onDialog({ type: 'operation', kind: 'ships', item: ship, operation: 'affected' })}>Xem các chuyến trong khoảng thời gian</Button>}
+  return <div className={styles.scheduleWorkspace}>
+    {canReadCurrent && <section className={styles.scheduleSection} aria-labelledby="ship-current-activity-heading">
+      <h3 id="ship-current-activity-heading">Chuyến đang hoạt động</h3>
+      {query.loading && <Loading label="Đang tải chuyến đang hoạt động…" />}
+      {query.error && <Notice title="Chưa tải được chuyến đang hoạt động" tone="error">{query.error} <Button tone="text" onClick={query.retry}>Thử lại</Button></Notice>}
+      {!query.loading && !query.error && (query.data ? <CruiseTable rows={[query.data]} label="Chuyến đang hoạt động" /> : <p className={styles.scheduleEmpty}>Hiện tàu chưa có chuyến đang hoạt động.</p>)}
+    </section>}
+    {(access.canDo('SHIP_SCHEDULE_CHECK') || access.canDo('SHIP_AFFECTED_CRUISES')) && <section className={styles.scheduleSection} aria-labelledby="ship-activity-lookup-heading">
+      <div><h3 id="ship-activity-lookup-heading">Tra cứu lịch hoạt động</h3><p>Chọn khoảng thời gian để kiểm tra lịch trống hoặc xem các chuyến liên quan.</p></div>
+      <div className={styles.scheduleActions}>
+        {access.canDo('SHIP_SCHEDULE_CHECK') && <Button autoWidth onClick={() => onDialog({ type: 'operation', kind: 'ships', item: ship, operation: 'schedule' })}>Kiểm tra lịch trống</Button>}
+        {access.canDo('SHIP_AFFECTED_CRUISES') && <Button tone={access.canDo('SHIP_SCHEDULE_CHECK') ? 'secondary' : 'primary'} autoWidth onClick={() => onDialog({ type: 'operation', kind: 'ships', item: ship, operation: 'affected' })}>Xem chuyến theo thời gian</Button>}
       </div>
-    </Panel>
+    </section>}
   </div>
 }

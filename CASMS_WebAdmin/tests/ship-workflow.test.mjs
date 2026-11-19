@@ -59,6 +59,23 @@ test('typed ship PATCH omits legacy origin and production year', async t => {
   assert.deepEqual(JSON.parse(calls[0][1].body), { shipName: 'New name', commissionDate: '2000-01-01' })
 })
 
+test('deck name edits omit pricing so an existing multiplier is preserved', async t => {
+  const calls = []
+  t.mock.method(globalThis, 'fetch', async (url, request) => {
+    calls.push([url, request])
+    return Response.json({ success: true, data: { deckId: 'deck-id', shipId: 'ship-id', deckNumber: 2, deckName: 'New name', priceMultiplier: 1.75 } })
+  })
+  setSessionAccess(access('SHIP_MANAGER', ['DECK_UPDATE', 'DECK_CREATE']))
+  setApiAccessToken('qa-test-token')
+  const updated = await shipDeckCabinApi.updateDeckOperations('deck-id', ' New name ')
+  assert.equal(updated.priceMultiplier, 1.75)
+  assert.deepEqual(JSON.parse(calls[0][1].body), { deckName: 'New name' })
+  await shipDeckCabinApi.saveDeck({ shipId: 'ship-id', number: 2, name: 'New name', priceMultiplier: 1.75 }, 'deck-id')
+  assert.equal(Object.hasOwn(JSON.parse(calls[1][1].body), 'priceMultiplier'), false)
+  await shipDeckCabinApi.saveDeck({ shipId: 'ship-id', number: 2, name: 'New name' })
+  assert.equal(Object.hasOwn(JSON.parse(calls[2][1].body), 'priceMultiplier'), false)
+})
+
 test('ShipType and physical ship routes follow the real role split', () => {
   const canOpen = (actor, path) => canRoleOpenAdminPath(actor.roles, path, '', actor)
   assert.equal(canOpen(admin, '/admin/ship-types'), true)
@@ -80,6 +97,7 @@ test('ShipType and physical ship routes follow the real role split', () => {
 
 test('Ship Manager can find the scoped ship list in the sidebar with read permission', () => {
   assert.ok(roleNavigationItems(manager.roles, manager).some(item => item.to === '/admin/ships' && item.label === 'Danh sách tàu'))
+  assert.equal(roleNavigationItems(manager.roles, manager).some(item => item.to === '/admin/fleet-dashboard'), false)
   const noRead = access('SHIP_MANAGER', [])
   assert.equal(roleNavigationItems(noRead.roles, noRead).some(item => item.to === '/admin/ships'), false)
 })
