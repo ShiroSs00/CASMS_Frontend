@@ -7,7 +7,8 @@ import { formatOperatingBudget } from '../api/preparation-api'
 import { cruiseStaffApi } from '../api/cruise-staff-api'
 import { CruiseStaffAssignments } from '../components/CruiseStaffAssignments'
 import { CruiseFrame } from '../components/CruiseUI'
-import { candidateStatusCopy, staffingApi, staffingError, staffingStatus, type StaffingRequest, type WorkPlan } from './staffing-api'
+import { candidateStatusCopy, positionLabels, staffingApi, staffingError, staffingMissing, staffingStatusLabel, type StaffingAction, type StaffingRequest, type WorkPlan } from './staffing-api'
+import { StaffingV2 } from './StaffingV2'
 import styles from './Staffing.module.css'
 
 const clock = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh' })
@@ -36,8 +37,10 @@ function StaffingInbox({ review }: { review: boolean }) {
   const [statusFilter, setStatusFilter] = useState('')
   const [lastReviewedId, setLastReviewedId] = useState('')
   const selectedId = searchParams.get('requestId') ?? ''
-  const items = (inbox.data ?? []).filter(request => hr ? request.status === 'SENT_TO_HR'
-    : (ship && request.status === 'HR_SUBMITTED') || (operations && request.status === 'PLANNER_CONFIRMED'))
+  const items = (inbox.data ?? []).filter(request => hr ? (
+    request.status === 'SENT_TO_HR' || (request.workflowVersion !== 'V2' && request.shipReviewWorkflow && request.status === 'SHIP_CONFIRMED')
+  ) : (ship && (request.status === 'PENDING_SHIP_REVIEW' || (request.workflowVersion !== 'V2' && request.status === 'HR_SUBMITTED')))
+    || (operations && (request.status === 'PLANNER_CONFIRMED' || request.status === 'HR_APPROVED')))
 
   function openRequest(id: string) {
     const next = new URLSearchParams(searchParams)
@@ -65,6 +68,7 @@ function StaffingInbox({ review }: { review: boolean }) {
               key={selectedId}
               requestId={selectedId}
               review={review}
+              onCompleted={() => { openRequest(''); inbox.retry() }}
               onChanged={() => {
                 if (review) setLastReviewedId(selectedId)
                 inbox.retry()
@@ -87,7 +91,7 @@ function StaffingInbox({ review }: { review: boolean }) {
   const normalizedQuery = cruiseSearch.trim().toLowerCase()
   const availableStatuses = [...new Set(items.map(item => item.status))]
   const filtered = items.filter(request => {
-    const missing = request.requirements.reduce((sum, item) => sum + Math.max(0, item.required - item.assigned), 0)
+    const missing = staffingMissing(request)
     if (progressFilter === 'MISSING' && missing === 0) return false
     if (progressFilter === 'COVERED' && missing > 0) return false
     if (statusFilter && request.status !== statusFilter) return false
@@ -141,7 +145,7 @@ function StaffingInbox({ review }: { review: boolean }) {
                 <option value="">Tất cả</option>
                 {availableStatuses.map(status => (
                   <option key={status} value={status}>
-                    {staffingStatus[status] ?? 'Chưa xác định'}
+                    {staffingStatusLabel(items.find(item => item.status === status)!)}
                   </option>
                 ))}
               </select>
@@ -176,11 +180,13 @@ function StaffingInbox({ review }: { review: boolean }) {
           ) : (
             <DataTable
               label="Danh sách yêu cầu nhân sự theo chuyến"
-              headers={['Chuyến khởi hành', 'Thời gian chạy', 'Nhu cầu dịch vụ', 'Tiến độ', 'Trạng thái', 'Thao tác']}
+              headers={['Chuyến khởi hành', 'Thời gian chạy', 'Nhu cầu nhân sự', 'Tiến độ', 'Trạng thái', 'Thao tác']}
             >
               {filtered.map(request => {
-                const missing = request.requirements.reduce((sum, item) => sum + Math.max(0, item.required - item.assigned), 0)
-                const servicesLabel = request.requirements.map(item => `${item.serviceName} (${item.assigned}/${item.required})`).join(', ')
+                const missing = staffingMissing(request)
+                const servicesLabel = request.workflowVersion === 'V2' ? (request.needs ?? [])
+                  .map(need => `${need.areaName} · ${positionLabels[need.positionCode] ?? need.positionCode} (${need.assignedUserIds.length}/${need.requiredCount})`).join(', ')
+                  : request.requirements.map(item => `${item.serviceName} (${item.assigned}/${item.required})`).join(', ')
                 return (
                   <tr key={request.id}>
                     <td>
@@ -193,12 +199,13 @@ function StaffingInbox({ review }: { review: boolean }) {
                     <td>{servicesLabel || '—'}</td>
                     <td>
                       <span className={missing > 0 ? styles.queueGap : styles.queueReady}>
-                        {missing > 0 ? `Còn thiếu ${missing} vị trí` : 'Đã đủ người'}
+                        {request.status === 'PENDING_SHIP_REVIEW' ? 'Chờ xác nhận nhu cầu'
+                          : missing > 0 ? `Còn thiếu ${missing} người` : 'Đủ theo nhu cầu'}
                       </span>
                     </td>
                     <td>
                       <Badge
-                        label={staffingStatus[request.status] ?? 'Trạng thái chưa xác định'}
+                        label={staffingStatusLabel(request)}
                         tone={request.status === 'SENT_TO_HR' ? 'warning' : 'info'}
                       />
                     </td>
@@ -223,7 +230,10 @@ function StaffingInbox({ review }: { review: boolean }) {
   )
 }
 
-function StaffingDetail({ requestId, onChanged, review }: { requestId: string; onChanged: () => void; review: boolean }) {
+function StaffingDetail({ requestId, onChanged, onCompleted, review }: {
+  requestId: string; onChanged: () => void; onCompleted: () => void; review: boolean
+}) {
+  const [refreshTick, setRefreshTick] = useState(0)
   const request = useReadQuery(
     'staffing-request:' + requestId,
     useCallback(signal => staffingApi.detail(requestId, signal), [requestId]),
@@ -236,6 +246,22 @@ function StaffingDetail({ requestId, onChanged, review }: { requestId: string; o
       </Notice>
     )
   }
+  if (request.data.workflowVersion === 'V2' || request.data.status === 'PENDING_SHIP_REVIEW') {
+    const syncAll = () => {
+      setRefreshTick(tick => tick + 1)
+      request.retry()
+      onChanged()
+    }
+    return (
+      <div className={styles.stack}>
+        <RequestHeader request={request.data} />
+        <StaffingV2 request={request.data} refreshKey={refreshTick} onChanged={syncAll} onCompleted={onCompleted} />
+        {!review && request.data.status === 'SENT_TO_HR' && (
+          <Assignments request={request.data} refresh={syncAll} activityOnly />
+        )}
+      </div>
+    )
+  }
   return <RequestView request={request.data} review={review} refresh={() => { request.retry(); onChanged() }} />
 }
 
@@ -245,7 +271,7 @@ function RequestHeader({ request, tone }: { request: StaffingRequest; tone?: 'ne
       <div className={styles.requestTitleRow}>
         <h2>{request.cruiseName}</h2>
         <div role="status">
-          <Badge label={staffingStatus[request.status] ?? 'Trạng thái chưa xác định'} tone={tone} />
+          <Badge label={staffingStatusLabel(request)} tone={tone} />
         </div>
       </div>
       <div className={styles.metaStrip}>
@@ -257,7 +283,7 @@ function RequestHeader({ request, tone }: { request: StaffingRequest; tone?: 'ne
         )}
       </div>
       {request.returnReason && (
-        <Notice tone="warning" title="Quản lý tàu yêu cầu bổ sung">{request.returnReason}</Notice>
+        <Notice tone="warning" title="Yêu cầu cần bổ sung">{request.returnReason}</Notice>
       )}
     </div>
   )
@@ -269,7 +295,7 @@ function RequestView({ request, refresh, review }: { request: StaffingRequest; r
       ['SENT_TO_HR', 'HR_SUBMITTED'].includes(request.status)) {
     return <Assignments request={request} refresh={refresh} />
   }
-  if (!review) return <RequestHeader request={request} />
+  if (!review && request.status !== 'SHIP_CONFIRMED') return <RequestHeader request={request} />
   return <StaffingReview request={request} refresh={refresh} />
 }
 
@@ -281,9 +307,11 @@ function StaffingReview({ request, refresh }: { request: StaffingRequest; refres
   const [error, setError] = useState('')
   const lock = useRef(false)
   const ship = request.status === 'HR_SUBMITTED' && access.roles.includes('SHIP_MANAGER') && access.has('CRUISE_PREPARATION_READ')
-  const ops = request.status === 'PLANNER_CONFIRMED' && access.roles.includes('OPERATIONS_MANAGER') && access.has('CRUISE_VALIDATE')
+  const ops = (request.status === 'PLANNER_CONFIRMED' || request.status === 'HR_APPROVED') && access.roles.includes('OPERATIONS_MANAGER') && access.has('CRUISE_VALIDATE')
+  const hrApproval = request.status === 'SHIP_CONFIRMED' && request.shipReviewWorkflow
+    && access.roles.includes('HR_MANAGER') && access.has('CRUISE_STAFF_ASSIGN')
 
-  async function review(action: 'SHIP_CONFIRMED' | 'RETURNED' | 'OPS_APPROVED') {
+  async function review(action: StaffingAction) {
     if (lock.current) return
     lock.current = true
     setBusy(true)
@@ -331,6 +359,9 @@ function StaffingReview({ request, refresh }: { request: StaffingRequest; refres
             </>
           )}
           {ops && <Button busy={busy} onClick={() => void review('OPS_APPROVED')}>Duyệt phương án nhân sự</Button>}
+          {hrApproval && <Button busy={busy} onClick={() => void review('HR_APPROVED')}>Duyệt phân công</Button>}
+          {hrApproval && !returning && <Button tone="secondary" disabled={busy} onClick={() => setReturning(true)}>Yêu cầu bổ sung</Button>}
+          {hrApproval && returning && <Button busy={busy} disabled={!reason.trim()} onClick={() => void review('HR_RETURN_STAFF')}>Trả về bước phân công</Button>}
         </div>
       </div>
     </Panel>
@@ -347,7 +378,7 @@ function useStaffCandidates(cruiseId: string, kind: WorkPlan['windows'][number][
   )
 }
 
-function Assignments({ request, refresh }: { request: StaffingRequest; refresh: () => void }) {
+function Assignments({ request, refresh, activityOnly = false }: { request: StaffingRequest; refresh: () => void; activityOnly?: boolean }) {
   const access = useSessionAccess()
   const { cruiseId } = request
   const plan = useReadQuery('staffing-work:' + cruiseId, useCallback(signal => staffingApi.workPlan(cruiseId, signal), [cruiseId]))
@@ -355,7 +386,10 @@ function Assignments({ request, refresh }: { request: StaffingRequest; refresh: 
     `staffing-cruise-options:${cruiseId}`,
     useCallback(signal => cruiseStaffApi.options(cruiseId, signal), [cruiseId]),
   )
-  const firstOpenService = request.requirements.find(item => item.assigned < item.required)?.serviceId ?? request.requirements[0]?.serviceId ?? ''
+  const shifts = (plan.data?.windows ?? []).filter(w => w.kind === 'ONBOARD' || w.kind === 'SHORE')
+  const firstOpenService = activityOnly
+    ? (shifts.find(item => item.userIds.length === 0)?.windowId ?? shifts[0]?.windowId ?? '')
+    : (request.requirements.find(item => item.assigned < item.required)?.serviceId ?? request.requirements[0]?.serviceId ?? shifts[0]?.windowId ?? '')
   const [selectedTarget, setSelectedTarget] = useState('')
   const [staffSearch, setStaffSearch] = useState('')
   const [staffStatusFilter, setStaffStatusFilter] = useState<'ALL' | 'AVAILABLE' | 'EXTERNAL' | 'BLOCKED'>('ALL')
@@ -365,8 +399,8 @@ function Assignments({ request, refresh }: { request: StaffingRequest; refresh: 
 
   const editable = request.status === 'SENT_TO_HR'
   const target = selectedTarget || firstOpenService
-  const requirement = request.requirements.find(item => item.serviceId === target)
-  const shift = plan.data?.windows.find(item => item.windowId === target && (item.kind === 'ONBOARD' || item.kind === 'SHORE'))
+  const requirement = activityOnly ? undefined : request.requirements.find(item => item.serviceId === target)
+  const shift = shifts.find(item => item.windowId === target)
   const candidateQuery = useStaffCandidates(cruiseId, requirement ? 'SERVICE' : shift?.kind, requirement?.serviceId ?? shift?.resourceId)
   const candidates = candidateQuery.data ?? []
   const externalOnboardStaff = (optionsQuery.data?.users ?? []).filter(
@@ -430,51 +464,54 @@ function Assignments({ request, refresh }: { request: StaffingRequest; refresh: 
     await run(() => cruiseStaffApi.assign(cruiseId, { userId, roleInCruise: 'ONBOARD_STAFF', notes: '' }))
   }
 
-  const shifts = (plan.data?.windows ?? []).filter(w => w.kind === 'ONBOARD' || w.kind === 'SHORE')
-
   return (
     <div className={styles.stack}>
-      <Panel>
+      {(!activityOnly || shifts.length > 0) && (
+      <Panel title={activityOnly ? 'Phân ca hoạt động và tour bờ' : undefined}>
         <div className={styles.section}>
-          <RequestHeader request={request} tone={editable ? 'warning' : 'success'} />
+          {!activityOnly && <RequestHeader request={request} tone={editable ? 'warning' : 'success'} />}
 
-          {editable && (
+          {editable && (!activityOnly || shifts.length > 0) && (
             <div className={styles.assignGrid}>
               {/* Left column inside cruise: Services & Shifts to staff */}
               <div className={styles.section}>
-                <div className={styles.sectionHeadingRow}>
-                  <h3>1. Chọn dịch vụ / ca cần xếp</h3>
-                </div>
-                <ul className={styles.targetList}>
-                  {request.requirements.map(item => {
-                    const gap = Math.max(0, item.required - item.assigned)
-                    const active = target === item.serviceId
-                    return (
-                      <li key={item.serviceId}>
-                        <button
-                          type="button"
-                          className={styles.targetButton}
-                          aria-pressed={active}
-                          onClick={() => {
-                            setSelectedTarget(item.serviceId)
-                            setError('')
-                          }}
-                        >
-                          <div className={styles.rowMain}>
-                            <strong>{item.serviceName}</strong>
-                            <small className={styles.subtle}>{item.assigned}/{item.required} đã bố trí</small>
-                          </div>
-                          <Badge label={gap > 0 ? `Thiếu ${gap}` : 'Đủ người'} tone={gap > 0 ? 'warning' : 'success'} />
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
+                {!activityOnly && (
+                  <>
+                    <div className={styles.sectionHeadingRow}>
+                      <h3>1. Chọn dịch vụ / ca cần xếp</h3>
+                    </div>
+                    <ul className={styles.targetList}>
+                      {request.requirements.map(item => {
+                        const gap = Math.max(0, item.required - item.assigned)
+                        const active = target === item.serviceId
+                        return (
+                          <li key={item.serviceId}>
+                            <button
+                              type="button"
+                              className={styles.targetButton}
+                              aria-pressed={active}
+                              onClick={() => {
+                                setSelectedTarget(item.serviceId)
+                                setError('')
+                              }}
+                            >
+                              <div className={styles.rowMain}>
+                                <strong>{item.serviceName}</strong>
+                                <small className={styles.subtle}>{item.assigned}/{item.required} đã bố trí</small>
+                              </div>
+                              <Badge label={gap > 0 ? `Thiếu ${gap}` : 'Đủ người'} tone={gap > 0 ? 'warning' : 'success'} />
+                            </button>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </>
+                )}
 
                 {shifts.length > 0 && (
                   <>
                     <div className={styles.sectionHeadingRow}>
-                      <h3>Ca hoạt động / tour bờ</h3>
+                      <h3>{activityOnly ? '1. Chọn ca hoạt động / tour bờ' : 'Ca hoạt động / tour bờ'}</h3>
                     </div>
                     <ul className={styles.targetList}>
                       {shifts.map(window => {
@@ -494,7 +531,10 @@ function Assignments({ request, refresh }: { request: StaffingRequest; refresh: 
                                 <strong>{window.name}</strong>
                                 <small className={styles.subtle}>{date(window.startsAt)} – {date(window.endsAt)}</small>
                               </div>
-                              <Badge label={`${window.userIds.length} đã phân ca`} tone="neutral" />
+                              <Badge
+                                label={window.userIds.length > 0 ? `${window.userIds.length} đã phân ca` : 'Chưa phân ca'}
+                                tone={window.userIds.length > 0 ? 'success' : 'warning'}
+                              />
                             </button>
                           </li>
                         )
@@ -684,7 +724,7 @@ function Assignments({ request, refresh }: { request: StaffingRequest; refresh: 
             </div>
           )}
 
-          {editable && (
+          {editable && !activityOnly && (
             <div className={styles.actions}>
               <Button
                 busy={busy}
@@ -702,6 +742,7 @@ function Assignments({ request, refresh }: { request: StaffingRequest; refresh: 
           )}
         </div>
       </Panel>
+      )}
 
       {editable && (
         <Panel title="Nhân sự đã phân công vào chuyến">
@@ -712,6 +753,7 @@ function Assignments({ request, refresh }: { request: StaffingRequest; refresh: 
               candidateQuery.retry()
               optionsQuery.retry()
               plan.retry()
+              refresh()
             }}
           />
         </Panel>

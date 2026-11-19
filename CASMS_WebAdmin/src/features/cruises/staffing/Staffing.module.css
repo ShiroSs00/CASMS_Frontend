@@ -52,6 +52,43 @@
 .actions { display:flex; flex-wrap:wrap; gap:var(--space-3); padding-top:var(--space-4); border-top:1px solid var(--ui-border); align-items:center; }
 @media(max-width:480px){ .fields { grid-template-columns:minmax(0,1fr); } }
 
+/* Staffing V2 operational workspace: workflow stepper, summary strip, area cards, and assignment rows. */
+.workflowStepper { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:var(--space-2); list-style:none; margin:0; padding:var(--space-3); background:var(--surface-subtle, #f4f7f8); border:1px solid var(--ui-border, #d5e0e4); border-radius:var(--radius-panel, 8px); }
+.workflowStep { display:grid; gap:2px; padding:var(--space-2) var(--space-3); border-radius:var(--radius-control, 6px); border:1px solid transparent; font-size:var(--text-xs, 12px); color:var(--ui-muted, #506777); min-width:0; }
+.workflowStep strong { font-size:var(--text-sm, 13px); font-weight:600; color:var(--ui-ink, #0b2a4a); display:block; }
+.workflowStepDone { background:var(--ui-surface, #fff); border-color:var(--ui-border, #d5e0e4); }
+.workflowStepDone strong { color:var(--success, #167347); }
+.workflowStepCurrent { background:var(--surface-warm, #f3ebdd); border-color:var(--fg-2, #0e6b7a); color:var(--ui-ink, #0b2a4a); }
+@media(max-width:960px){ .workflowStepper { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
+@media(max-width:600px){ .workflowStepper { grid-template-columns:minmax(0, 1fr); } }
+
+.summaryStrip { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:var(--space-4); padding:var(--space-4); background:var(--surface-subtle, #f4f7f8); border:1px solid var(--ui-border, #d5e0e4); border-radius:var(--radius-panel, 8px); }
+.summaryCell { display:grid; gap:4px; min-width:0; align-content:start; }
+.summaryLabel { font-size:var(--text-xs, 12px); color:var(--ui-muted, #506777); }
+.summaryValueRow { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-2); }
+.summaryValue { font-size:var(--text-base, 14px); font-weight:600; color:var(--ui-ink, #0b2a4a); font-variant-numeric:tabular-nums; }
+.summarySub { font-size:var(--text-xs, 12px); color:var(--ui-muted, #506777); font-variant-numeric:tabular-nums; }
+@media(max-width:900px){ .summaryStrip { grid-template-columns:minmax(0, 1fr); } }
+
+.cabinGrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(11rem, 1fr)); gap:var(--space-2); list-style:none; margin:0; padding:var(--space-3) 0 0; }
+.cabinItem { display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); padding:var(--space-2) var(--space-3); background:var(--surface-subtle, #f4f7f8); border:1px solid var(--ui-border, #d5e0e4); border-radius:var(--radius-control, 6px); font-size:var(--text-sm, 13px); font-variant-numeric:tabular-nums; }
+
+.fieldsetBox { display:grid; gap:var(--space-3); margin:0; padding:var(--space-4); border:1px solid var(--ui-border, #d5e0e4); border-radius:var(--radius-panel, 8px); background:var(--surface-subtle, #f4f7f8); min-width:0; }
+.fieldsetBox > legend { padding:0 var(--space-2); font-size:var(--text-base, 14px); font-weight:600; color:var(--ui-ink, #0b2a4a); }
+.areaGrid { display:grid; gap:var(--space-3); }
+.areaCard { display:grid; gap:var(--space-3); padding:var(--space-3) var(--space-4); background:var(--ui-surface, #fff); border:1px solid var(--ui-border, #d5e0e4); border-radius:var(--radius-control, 6px); min-width:0; }
+.areaCardActive { border-color:var(--fg-2, #0e6b7a); background:var(--ui-surface, #fff); }
+.areaCheckRow { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-2) var(--space-3); }
+.areaCheckLabel { display:inline-flex; align-items:center; gap:var(--space-2); font-size:var(--text-base, 14px); font-weight:600; color:var(--ui-ink, #0b2a4a); cursor:pointer; min-height:28px; }
+.areaCheckLabel input[type="checkbox"] { width:18px; height:18px; accent-color:var(--fg-2, #0e6b7a); cursor:pointer; }
+.positionGrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(13rem, 1fr)); gap:var(--space-3); padding-top:var(--space-2); border-top:1px solid var(--ui-border, #d5e0e4); }
+.subSection { display:grid; gap:var(--space-3); padding-top:var(--space-4); border-top:1px solid var(--ui-border, #d5e0e4); min-width:0; }
+.rowControl { flex:1 1 16rem; max-width:24rem; min-width:0; }
+.assignedList { display:flex; flex-wrap:wrap; gap:var(--space-2); margin-top:var(--space-1); }
+.assignedChip { display:inline-flex; align-items:center; gap:var(--space-2); padding:4px 10px; background:var(--surface-subtle, #f4f7f8); border:1px solid var(--ui-border, #d5e0e4); border-radius:var(--radius-control, 6px); font-size:var(--text-sm, 13px); color:var(--ui-ink, #0b2a4a); }
+.blockerHint { margin:0; font-size:var(--text-sm, 13px); color:var(--warn, #995700); line-height:1.5; }
+.statusNote { margin:0; padding:var(--space-2) var(--space-3); background:var(--surface-subtle, #f4f7f8); border:1px solid var(--ui-border, #d5e0e4); border-radius:var(--radius-control, 6px); font-size:var(--text-sm, 13px); color:var(--ui-muted, #506777); line-height:1.5; }
+
 .handoffList { display:grid; }
 .handoffBudgetWrap { margin-bottom:var(--space-3); }
 .budgetAnchorLink { font-weight:600; color:var(--brand-navy); text-decoration:underline; text-underline-offset:3px; }
