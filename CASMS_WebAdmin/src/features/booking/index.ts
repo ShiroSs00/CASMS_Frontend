@@ -2,6 +2,7 @@ export { BookingProvider } from './components/BookingProvider'
 
 export { RealBookingList, RealBookingDetail, BookingLookupPage } from './pages/RealBookingPages'
 export { RealBookingCreatePage } from './pages/RealBookingCreatePage'
+export { BookingSaleCruises } from './pages/BookingSaleCruises'
 export { FinanceBookingsPage } from './pages/FinanceBookingsPage'
 export { CheckinDesk, PassengerCheckinActions } from './pages/CheckinDesk'
 
