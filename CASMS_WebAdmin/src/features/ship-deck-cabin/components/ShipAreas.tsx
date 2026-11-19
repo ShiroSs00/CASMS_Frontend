@@ -1,7 +1,7 @@
 import {useCallback,useRef,useState} from 'react'
 import {apiRequest,useReadQuery} from '@/shared/api'
 import {useSessionAccess} from '@/shared/auth'
-import {Badge,Button,Empty,Field,Loading,Notice,Panel} from '@/shared/ui'
+import {Button,DataTable,Empty,Field,Loading,Notice,Panel} from '@/shared/ui'
 import {readShipServiceAreas} from '../api/ship-areas-api'
 import {shipDeckCabinApi} from '../api/ship-deck-cabin-api'
 import {useFleetQuery} from '../hooks/useFleetQuery'
@@ -91,6 +91,7 @@ export function ShipAreas({shipId,initialDeck=''}:{shipId:string;initialDeck?:st
    {decks.error&&<Notice title="Không tải được danh sách boong" tone="error">{decks.error}</Notice>}
    {!access.canDo('DECK_READ')&&<Empty title="Chưa có quyền xem boong"/>}
    {!decks.loading&&!decks.error&&decks.data?.length===0&&<Empty title="Tàu chưa có boong"/>}
+   {!selected&&decks.data&&decks.data.length>0&&<p>Chọn boong để xem danh sách khu vực dịch vụ.</p>}
    {selected&&areas.loading&&!areas.data&&<Loading label="Đang tải khu vực dịch vụ…"/>}
    {selected&&areas.error&&<Notice title="Không tải được khu vực dịch vụ" tone="error">{areas.error}</Notice>}
    {selected&&areas.data&&<>
@@ -99,8 +100,10 @@ export function ShipAreas({shipId,initialDeck=''}:{shipId:string;initialDeck?:st
      <Field htmlFor="service-area-kind" label="Loại khu vực dịch vụ"><select id="service-area-kind" value={kind} onChange={event=>{setKind(event.target.value);setPage(1)}}><option value="">Tất cả loại</option>{kinds.map(value=><option key={value} value={value}>{areaKindLabel(value)}</option>)}</select></Field>
     </div>
     {(search||kind)&&<div><Button tone="text" onClick={()=>{setSearch('');setKind('');setPage(1)}}>Xóa bộ lọc</Button></div>}
-    {rows.length?<ul className={styles.list}>{pagination.items.map(area=><li key={area.id}><h3>{displayName(area)}</h3><Badge label={areaKindLabel(area.kind)}/></li>)}</ul>:<Empty title={onDeck.length?'Không có khu vực dịch vụ phù hợp':'Boong chưa có khu vực dịch vụ'}/>}
-    <FleetPagination pagination={pagination} onChange={setPage}/>
+    {rows.length?<div className={styles.areaTable}><DataTable label="Danh sách khu vực dịch vụ" headers={['Tên khu vực dịch vụ','Loại khu vực dịch vụ']}>
+      {pagination.items.map(area=><tr key={area.id}><th scope="row">{displayName(area)}</th><td>{areaKindLabel(area.kind)}</td></tr>)}
+    </DataTable></div>:<Empty title={onDeck.length?'Không có khu vực dịch vụ phù hợp':'Boong chưa có khu vực dịch vụ'}/>}
+    <FleetPagination pagination={pagination} onChange={setPage} label="khu vực"/>
    </>}
   </div>
  </Panel>

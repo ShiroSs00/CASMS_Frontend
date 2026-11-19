@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { useLocation } from 'react-router'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, Empty, Field, Loading, Notice, Panel, ListFooter } from '@/shared/ui'
+import { Button, DataTable, Empty, Field, Loading, Notice, Panel, ListFooter } from '@/shared/ui'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { useFleetQuery } from '../hooks/useFleetQuery'
 import { emptyRoomFilters, filterRooms, roomCounts, roomTypeLabels } from '../model/ship-management'
@@ -47,7 +47,21 @@ export function ShipInventory({ ship, view, initialDeck = '', onDialog }: { ship
       {rooms.error && view === 'decks' && <Notice title="Chưa tải được số phòng theo boong" tone="warning">{rooms.error}</Notice>}
       {view === 'decks' && !access.canDo('DECK_READ') && <Notice title="Chưa có quyền xem boong" tone="warning">Tài khoản cần được cấp quyền đọc boong.</Notice>}
       {view === 'cabins' && !access.canDo('CABIN_READ') && <Notice title="Chưa có quyền xem phòng" tone="warning">Tài khoản cần được cấp quyền đọc phòng.</Notice>}
-      {view === 'decks' && decks.data && (decks.data.length ? <><ul className={styles.inventoryCards}>{deckPagination.items.map(deck=><li key={deck.id}><div className={styles.inventoryHeading}><h3>Boong {deck.number} · {deck.name||'Chưa đặt tên'}</h3></div><dl className={styles.inventoryFacts}><div><dt>Số phòng</dt><dd>{counts?.get(deck.id)?.total??'—'}</dd></div><div><dt>Phòng sẵn sàng</dt><dd>{counts?.get(deck.id)?.available??'—'}</dd></div><div><dt>Hệ số điều chỉnh giá cơ sở theo boong</dt><dd>{(deck.priceMultiplier??1).toLocaleString('vi-VN')}×</dd></div></dl><div className={styles.rowActions}>{access.canDo('CABIN_READ') && <Link state={state} className={styles.textLink} to={`/admin/ships/${ship.id}?${new URLSearchParams({tab:'cabins',deck:deck.id})}`}>Xem phòng</Link>}{access.canDo('SHIP_CONFIGURATION_READ')&&<Link state={state} className={styles.textLink} to={`/admin/ships/${ship.id}?${new URLSearchParams({tab:'areas',deck:deck.id})}`}>Khu vực dịch vụ</Link>}{!ship.archivedAt && access.canDo('DECK_UPDATE') && <Button tone="text" size="compact" disabled={decks.loading} onClick={() => onDialog({ type: 'edit', target: { kind: 'decks', item: deck } })}>Chỉnh sửa</Button>}</div></li>)}</ul><FleetPagination pagination={deckPagination} onChange={setPage}/></> : <Empty title="Tàu chưa có boong"></Empty>)}
+      {view === 'cabins' && !selectedDeck && decks.data && decks.data.length > 0 && <p className={styles.muted}>Chọn boong để xem danh sách phòng.</p>}
+      {view === 'decks' && decks.data && (decks.data.length ? <>
+        <div className={styles.inventoryTable}><DataTable label="Danh sách boong" headers={['Số boong', 'Tên boong', 'Số phòng', 'Phòng sẵn sàng', 'Thao tác']}>
+          {deckPagination.items.map(deck => <tr key={deck.id}>
+            <td className={styles.inventoryNumber}>{deck.number}</td><th scope="row">{deck.name || 'Chưa đặt tên'}</th>
+            <td className={styles.inventoryNumber}>{counts?.get(deck.id)?.total ?? '—'}</td><td className={styles.inventoryNumber}>{counts?.get(deck.id)?.available ?? '—'}</td>
+            <td><div className={styles.inventoryRowActions}>
+              {access.canDo('CABIN_READ') && <Link state={state} className={styles.textLink} to={`/admin/ships/${ship.id}?${new URLSearchParams({tab:'cabins',deck:deck.id})}`}>Xem phòng</Link>}
+              {access.canDo('SHIP_CONFIGURATION_READ') && <Link state={state} className={styles.textLink} to={`/admin/ships/${ship.id}?${new URLSearchParams({tab:'areas',deck:deck.id})}`}>Khu vực dịch vụ</Link>}
+              {!ship.archivedAt && access.canDo('DECK_UPDATE') && <Button tone="text" size="compact" disabled={decks.loading} onClick={() => onDialog({ type: 'edit', target: { kind: 'decks', item: deck } })}>Chỉnh sửa</Button>}
+            </div></td>
+          </tr>)}
+        </DataTable></div>
+        <FleetPagination pagination={deckPagination} onChange={setPage} label="boong" />
+      </> : <Empty title="Tàu chưa có boong" />)}
       {view === 'cabins' && selectedDeck && rooms.data && <>
         <div className={styles.roomFilters}>
           <Field htmlFor="fleet-room-search" label="Tìm phòng"><input id="fleet-room-search" value={filters.search} placeholder="Nhập số phòng…" onChange={event => changeFilters({ ...filters, search: event.target.value })} /></Field>
@@ -56,12 +70,14 @@ export function ShipInventory({ ship, view, initialDeck = '', onDialog }: { ship
           <Field htmlFor="fleet-room-type" label="Loại phòng"><select id="fleet-room-type" value={filters.type} onChange={event => changeFilters({ ...filters, type: event.target.value as CabinType | '' })}><option value="">Tất cả loại phòng</option>{Object.entries(roomTypeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
         </div>
         {hasFilters && <div><Button tone="text" onClick={() => changeFilters({ ...emptyRoomFilters,deck:filters.deck })}>Xóa bộ lọc</Button></div>}
-        {visibleRooms.length ? <ul className={styles.inventoryCards}>{visibleRooms.map(room=><li key={room.id}><div className={styles.inventoryHeading}><h3>{room.number}</h3><StatusBadge status={room.status}/></div><dl className={styles.inventoryFacts}><div><dt>Loại phòng</dt><dd>{roomTypeLabels[room.type]}</dd></div><div><dt>Sức chứa</dt><dd>{room.capacity} khách</dd></div><div><dt>Hỗ trợ người khuyết tật</dt><dd>{room.accessible?'Có':'Không'}</dd></div></dl><div className={styles.roomActions}>
+        {visibleRooms.length ? <div className={styles.inventoryTable}><DataTable label="Danh sách phòng" headers={['Số phòng', 'Loại phòng', 'Sức chứa (khách)', 'Hỗ trợ người khuyết tật', 'Trạng thái', 'Thao tác']}>
+          {visibleRooms.map(room => <tr key={room.id}><th scope="row">{room.number}</th><td>{roomTypeLabels[room.type]}</td><td className={styles.inventoryNumber}>{room.capacity}</td><td>{room.accessible ? 'Có' : 'Không'}</td><td><StatusBadge status={room.status} /></td><td><div className={styles.inventoryRowActions}>
             <Button tone="secondary" size="compact" onClick={() => onDialog({ type: 'room', room, deckName: deckLabel(room.deckId) })}>Chi tiết</Button>
             {!ship.archivedAt && access.canDo('CABIN_UPDATE') && <Button tone="text" size="compact" disabled={rooms.loading} onClick={() => onDialog({ type: 'edit', target: { kind: 'cabins', item: room } })}>Chỉnh sửa</Button>}
             {!ship.archivedAt && room.status === 'AVAILABLE' && access.canDo('CABIN_BLOCK') && <Button tone="text" size="compact" disabled={rooms.loading} onClick={() => onDialog({ type: 'operation', kind: 'cabins', item: room, operation: 'block' })}>Khóa phòng</Button>}
             {!ship.archivedAt && ['MAINTENANCE', 'OUT_OF_SERVICE'].includes(room.status) && access.canDo('CABIN_RELEASE') && <Button tone="text" size="compact" disabled={rooms.loading} onClick={() => onDialog({ type: 'operation', kind: 'cabins', item: room, operation: 'release' })}>Mở phòng</Button>}
-          </div></li>)}</ul> : <Empty title={rooms.data.length ? 'Không có phòng phù hợp' : 'Tàu chưa có phòng'}></Empty>}
+          </div></td></tr>)}
+        </DataTable></div> : <Empty title={rooms.data.length ? 'Không có phòng phù hợp' : 'Boong này chưa có phòng'} />}
         <ListFooter summary={`${filtered.length?((currentPage-1)*ROOMS_PER_PAGE+1):0}–${Math.min(currentPage*ROOMS_PER_PAGE,filtered.length)} / ${filtered.length} phòng`}><Button tone="secondary" size="compact" autoWidth disabled={currentPage<=1} onClick={()=>setPage(currentPage-1)}>← Trước</Button><span aria-live="polite">{currentPage} / {pageCount}</span><Button tone="secondary" size="compact" autoWidth disabled={currentPage>=pageCount} onClick={()=>setPage(currentPage+1)}>Sau →</Button></ListFooter>
       </>}
     </div>

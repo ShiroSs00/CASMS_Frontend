@@ -26,7 +26,7 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
   const access = useSessionAccess()
   const permitted = access.canDo(entityPermission(kind, source ? 'UPDATE' : 'CREATE'))
   const [shipDraft, setShip] = useState<ShipDraft>(ship ?? { code: '', name: '', capacity: 0, totalDecks: 0, commissionDate: '', status: 'DRAFT' })
-  const [deckDraft, setDeck] = useState<DeckDraft>(deck ?? { shipId: hostId, number: '', name: '', priceMultiplier: 1.0 })
+  const [deckDraft, setDeck] = useState<DeckDraft>(deck ? { shipId: deck.shipId, number: deck.number, name: deck.name } : { shipId: hostId, number: '', name: '' })
   const [cabinDraft, setCabin] = useState<CabinDraft>(cabin ?? { shipId: hostId,
     deckId: data.decks.some(row => row.id === deckId && row.shipId === hostId) ? deckId : '',
     number: '', type: 'INTERIOR', capacity: 0, status: 'AVAILABLE', accessible: false })
@@ -75,8 +75,6 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
               <SelectField label="Tàu *" value={deckDraft.shipId} disabled={mutation.busy || Boolean(deck)} error={errors.shipId} onChange={(value) => changeDeck('shipId', value)}>{hostOptions}</SelectField>
               <InputField label="Số hiệu boong" type="number" min={1} step={1} max={deckNumberLimit} value={deckDraft.number} disabled={mutation.busy} error={errors.number} onChange={(event) => changeDeck('number', event.target.value === '' ? '' : Number(event.target.value))} hint={deckNumberLimit != null ? `Để trống để tự đánh số. Số hiệu tối đa: ${deckNumberLimit}.` : 'Chọn tàu trước khi nhập số hiệu boong.'} />
               <InputField label="Tên boong" maxLength={50} value={deckDraft.name} disabled={mutation.busy} error={errors.name} onChange={(event) => changeDeck('name', event.target.value)} />
-              <InputField label="Hệ số điều chỉnh giá cơ sở theo boong" type="number" min={0.5} max={5.0} step={0.05} value={deckDraft.priceMultiplier ?? 1.0} disabled={mutation.busy} error={errors.priceMultiplier} onChange={(event) => changeDeck('priceMultiplier', Number(event.target.value))} />
-              <p>Giá cơ sở theo loại phòng được nhân với hệ số của boong. Hệ số 1.00 giữ nguyên giá cơ sở; không nhân trực tiếp vào giá gói dịch vụ hoặc phí cảng.</p>
             </FormSection> : <FormSection title="Cấu hình cabin" >
               <SelectField label="Tàu *" value={cabinDraft.shipId} disabled={mutation.busy || Boolean(cabin)} error={errors.shipId} onChange={(value) => changeCabin('shipId', value)}>{hostOptions}</SelectField>
               <SelectField label="Boong *" value={cabinDraft.deckId} disabled={mutation.busy || Boolean(cabin) || !cabinDraft.shipId} error={errors.deckId} onChange={(value) => changeCabin('deckId', value)}><option value="">Chọn boong</option>{data.decks.filter((row) => row.shipId === cabinDraft.shipId).map((row) => <option value={row.id} key={row.id}>Boong {row.number} · {row.name || 'Chưa đặt tên'}</option>)}</SelectField>
