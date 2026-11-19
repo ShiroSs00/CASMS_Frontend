@@ -2,7 +2,7 @@ import { useCallback, useContext, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, Field, Loading, Notice, PageHeader, Panel, PermissionLink } from '@/shared/ui'
+import { Button, ButtonLink, Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { ShipViewerContext } from './viewer-context'
 import { shipTypesApi, shipError, unknownOutcome, type DesignManifest, type StoredDesign } from './api'
@@ -35,9 +35,10 @@ function DesignForm({ id, originalKey }: { id?: string; originalKey?: string }) 
   const [busy, setBusy] = useState('')
   const locked = useRef(false)
   const stepHeading = useRef<HTMLHeadingElement>(null)
+  const fileInput = useRef<HTMLInputElement>(null)
   const canUpload = Boolean(viewer) && access.roles.includes('ADMIN') && ['SHIP_CREATE', 'SHIP_MODEL_CREATE', 'SHIP_MODEL_READ'].every(access.canDo)
   const returnPath = id ? '/admin/ship-types/' + id : '/admin/ship-types'
-  const actionLabel = id ? 'Áp dụng phiên bản' : 'Lưu loại tàu'
+  const actionLabel = id ? 'Áp dụng thiết kế' : 'Tạo loại tàu'
 
   async function run(label: string, action: () => Promise<void>) {
     if (locked.current || !canUpload) return
@@ -65,17 +66,18 @@ function DesignForm({ id, originalKey }: { id?: string; originalKey?: string }) 
   function upload() {
     if (!viewer) return
     if (!file) {
-      setFileError('Chọn một tệp ZIP mô hình.')
+      setFileError('Chọn tệp thiết kế để tiếp tục.')
+      document.getElementById('ship-bundle-picker')?.focus()
       return
     }
-    void run('Đang xác minh ZIP…', async () => {
+    void run('Đang kiểm tra thiết kế…', async () => {
       let modelKey: string
       try {
         modelKey = (await viewer.readBundle(file)).modelKey
         if (originalKey && modelKey !== originalKey) throw new Error('Gói thay thế phải có cùng mã thiết kế ' + originalKey + '.')
       } catch (failure) {
         setFileError(shipError(failure))
-        document.getElementById('ship-bundle')?.focus()
+        document.getElementById('ship-bundle-picker')?.focus()
         return
       }
       const uploaded = await shipTypesApi.upload(modelKey, file)
@@ -85,12 +87,12 @@ function DesignForm({ id, originalKey }: { id?: string; originalKey?: string }) 
   }
 
   function confirm(candidate: StoredDesign, reviewed?: NonNullable<typeof preview>) {
-    void run(id ? 'Đang áp dụng phiên bản…' : 'Đang lưu loại tàu…', async () => {
+    void run(id ? 'Đang áp dụng thiết kế…' : 'Đang tạo loại tàu…', async () => {
       if (reviewed && await viewer?.fingerprint(reviewed.manifest) !== reviewed.fingerprint) {
         throw new Error('Bản xem trước đã thay đổi. Vui lòng tải lại.')
       }
       if (!saveAttempt(storageKey, candidate)) {
-        throw new Error('Trình duyệt chưa lưu được phiên bản đang xác nhận. Bật lưu trữ cho trang này rồi thử lại.')
+        throw new Error('Trình duyệt chưa lưu được thiết kế đang xác nhận. Bật lưu trữ cho trang này rồi thử lại.')
       }
       setPending(candidate)
       setChecked(false)
@@ -116,50 +118,62 @@ function DesignForm({ id, originalKey }: { id?: string; originalKey?: string }) 
         saveAttempt(storageKey, null)
         navigate('/admin/ship-types/' + record.shipTypeId, { replace: true })
       } else if (!id && record) {
-        setStatus('Mã loại đang gắn phiên bản khác. Mở danh sách loại tàu để đối chiếu.')
+        setStatus('Mã loại đang dùng thiết kế khác. Mở danh sách loại tàu để đối chiếu.')
       } else {
         setChecked(true)
-        setStatus('Chưa thấy phiên bản này được xác nhận. Có thể gửi lại cùng bản đã kiểm tra.')
+        setStatus('Chưa thấy thiết kế này được xác nhận. Có thể gửi lại cùng bản đã kiểm tra.')
       }
     })
   }
 
-  return <div className={styles.stack}>
-    <PageHeader title={id ? 'Thay phiên bản mô hình' : 'Tạo loại tàu từ mô hình 3D'} breadcrumb="Cấu hình tàu / Loại tàu / Mô hình 3D" />
-    <PermissionLink to={returnPath}>{id ? 'Về chi tiết loại tàu' : 'Về danh sách loại tàu'}</PermissionLink>
-    {!canUpload && <Notice title="Chưa có quyền tải và xem mô hình" tone="warning">Tài khoản cần quyền tạo loại tàu và đọc mô hình.</Notice>}
+  return <div className={`${styles.stack} ${styles.designPage}`}>
+    <PageHeader title={id ? 'Cập nhật thiết kế loại tàu' : 'Tạo loại tàu'}
+      breadcrumb={'Cấu hình tàu / Loại tàu / ' + (id ? 'Cập nhật thiết kế' : 'Tạo mới')}
+      description={id ? 'Chọn thiết kế thay thế và kiểm tra thông tin trước khi áp dụng.' : 'Chọn thiết kế và kiểm tra thông tin trước khi tạo loại tàu.'}
+      actions={<ButtonLink to={returnPath} tone="secondary" autoWidth><span aria-hidden="true">←</span> {id ? 'Về chi tiết loại tàu' : 'Về danh sách loại tàu'}</ButtonLink>} />
+    {!canUpload && <Notice title="Chưa có quyền nhập thiết kế" tone="warning">Tài khoản cần quyền tạo loại tàu và đọc mô hình.</Notice>}
     {error && <Notice title="Chưa thực hiện được thao tác" tone="error">{error}</Notice>}
     {status && <Notice title="Kết quả kiểm tra" tone="info">{status}</Notice>}
     {pending ? <Panel title="Xác minh trạng thái lưu">
-      <p>Mã {pending.modelKey}. Hệ thống sẽ kiểm tra phiên bản đã gửi.</p>
+      <p>Mã {pending.modelKey}. Hệ thống sẽ kiểm tra thiết kế đã gửi.</p>
       <div className={styles.actions}>
         <Button busy={Boolean(busy)} onClick={() => checkResult(pending)}>Kiểm tra kết quả</Button>
         {checked && <Button tone="secondary" disabled={Boolean(busy)} onClick={() => confirm(pending)}>{actionLabel}</Button>}
       </div>
     </Panel> : <>
-      <ol className={styles.stepper} aria-label="Tiến độ tạo loại tàu">
-        <li aria-current={design ? undefined : 'step'}>1. Tải ZIP</li>
-        <li aria-current={design && !preview ? 'step' : undefined}>2. Đọc manifest</li>
-        <li aria-current={preview ? 'step' : undefined}>3. Xem và xác nhận</li>
+      <ol className={styles.designSteps} aria-label={id ? 'Tiến độ thay phiên bản thiết kế' : 'Tiến độ tạo loại tàu'}>
+        <li aria-current={design ? undefined : 'step'}><span aria-hidden="true">1</span> Chọn thiết kế</li>
+        <li aria-current={design && !preview ? 'step' : undefined}><span aria-hidden="true">2</span> Kiểm tra thông tin</li>
+        <li aria-current={preview ? 'step' : undefined}><span aria-hidden="true">3</span> {id ? 'Xác nhận cập nhật' : 'Xác nhận tạo'}</li>
       </ol>
-      {!design && <Panel title="Gói mô hình">
+      {!design && <Panel title="Thiết kế loại tàu" subtitle="Thông tin và cấu trúc loại tàu sẽ được đọc từ tệp thiết kế.">
         <form onSubmit={event => { event.preventDefault(); upload() }}>
-          <Field htmlFor="ship-bundle" label="Tệp ZIP mô hình *" error={fileError} hint="Dùng ZIP chứa manifest.json, checksums.json và các tệp GLB được tham chiếu.">
-            <input id="ship-bundle" type="file" accept=".zip,application/zip" disabled={Boolean(busy) || !canUpload}
+          <Field htmlFor="ship-bundle" label="Tệp thiết kế *" error={fileError} hint="Sử dụng gói thiết kế định dạng .zip.">
+            <input ref={fileInput} hidden id="ship-bundle" type="file" accept=".zip,application/zip" disabled={Boolean(busy) || !canUpload}
               onChange={event => { setFile(event.target.files?.[0] ?? null); setFileError('') }} />
+            <div className={styles.designFilePicker}>
+              <Button id="ship-bundle-picker" tone="secondary" autoWidth disabled={Boolean(busy) || !canUpload}
+                aria-describedby="ship-bundle-hint" aria-invalid={Boolean(fileError)} onClick={() => fileInput.current?.click()}>
+                {file ? 'Đổi tệp thiết kế' : 'Chọn tệp thiết kế'}
+              </Button>
+              <p role="status">{file ? file.name : 'Chưa chọn tệp thiết kế'}</p>
+            </div>
           </Field>
-          <div className={styles.actions}><Button type="submit" busy={Boolean(busy)} disabled={!canUpload}>{busy || 'Tải lên và xác minh'}</Button></div>
+          <div className={styles.designFormActions}>
+            <p>Bạn sẽ xác nhận thông tin ở bước cuối.</p>
+            <Button type="submit" busy={Boolean(busy)} disabled={!canUpload}>{busy || 'Kiểm tra thiết kế'}</Button>
+          </div>
         </form>
       </Panel>}
       {design && <Panel>
-        <h2 ref={stepHeading} tabIndex={-1}>Bản xem trước thiết kế</h2>
-        <dl className={styles.facts}><div><dt>Mã thiết kế</dt><dd>{design.modelKey}</dd></div><div><dt>Phiên bản đã xác minh</dt><dd>{design.assetVersion}</dd></div></dl>
-        {preview && <DesignPreviewContent design={design} manifest={preview.manifest} />}
+        <h2 ref={stepHeading} tabIndex={-1}>Thông tin loại tàu</h2>
+        <p>Mã loại: {design.modelKey}</p>
+        {preview && <DesignPreviewContent manifest={preview.manifest} />}
         <div className={styles.actions}>
           {preview ? <Button busy={Boolean(busy)} disabled={!canUpload || metadataIssues(preview.manifest).length > 0}
             onClick={() => confirm(design, preview)}>{actionLabel}</Button>
-            : <Button busy={Boolean(busy)} onClick={() => void run('Đang đọc manifest…', () => loadPreview(design))}>Đọc lại manifest</Button>}
-          <Button tone="secondary" disabled={Boolean(busy)} onClick={() => { setFile(null); setDesign(null); setPreview(null); setError('') }}>Chọn ZIP khác</Button>
+            : <Button busy={Boolean(busy)} onClick={() => void run('Đang đọc thông tin thiết kế…', () => loadPreview(design))}>Kiểm tra lại thiết kế</Button>}
+          <Button tone="secondary" disabled={Boolean(busy)} onClick={() => { setFile(null); setDesign(null); setPreview(null); setError('') }}>Chọn thiết kế khác</Button>
         </div>
       </Panel>}
     </>}

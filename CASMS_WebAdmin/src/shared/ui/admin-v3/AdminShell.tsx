@@ -9,7 +9,10 @@ import styles from './AdminShell.module.css'
 import experience from '../Experience.module.css'
 import { AdminAccountContext, AdminRoleContext } from './admin-account-context'
 
-export function AdminShell({ children, className = '', topbar }: { children: ReactNode; className?: string; topbar?: ReactNode }) {
+export function AdminShell({ children, className = '', topbar, contextNavigation }: {
+  children: ReactNode; className?: string; topbar?: ReactNode
+  contextNavigation?: { ariaLabel: string; label: string; description?: string; items: { label: string; to: string; active: boolean; state?: unknown }[] }
+}) {
   const { pathname } = useLocation()
   const access = useSessionAccess()
   const roles=useContext(AdminRoleContext)
@@ -39,6 +42,12 @@ export function AdminShell({ children, className = '', topbar }: { children: Rea
     </header>
     <aside id="admin-navigation" className={`${styles.sidebar} ${menuOpen ? styles.sidebarOpen : ''}`} aria-label="Điều hướng quản trị">
       <div className={styles.workspaceContext}><span>KHU VỰC LÀM VIỆC</span><strong>{roleLabel}</strong></div>
+      {contextNavigation && <nav className={styles.contextNavigation} aria-label={contextNavigation.ariaLabel}>
+        <div className={styles.contextIdentity}><strong>{contextNavigation.label}</strong>{contextNavigation.description && <span>{contextNavigation.description}</span>}</div>
+        {contextNavigation.items.map(item => <Link key={item.to} to={item.to} state={item.state}
+          aria-current={item.active ? 'page' : undefined} className={`${styles.navItem} ${item.active ? styles.active : ''}`}
+          onClick={() => { setMenu({ path: pathname, open: false }); requestAnimationFrame(() => document.getElementById('admin-v3-main')?.focus()) }}>{item.label}</Link>)}
+      </nav>}
       <label className={styles.navigationSearch}><span>Tìm chức năng</span><input type="search" value={navigationQuery} onChange={event => setNavigationQuery(event.target.value)} placeholder="Tên chức năng…" /></label>
       <nav aria-label="Điều hướng khu vực" className={styles.navigation}>
         <div className={styles.navGroup}><p className={styles.groupLabel}>CÔNG VIỆC VÀ TRA CỨU</p>

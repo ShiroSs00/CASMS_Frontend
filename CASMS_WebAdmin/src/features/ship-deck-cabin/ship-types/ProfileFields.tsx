@@ -30,8 +30,12 @@ export function ProfileFields({ draft, errors, disabled, onChange, onBlur }: {
   </section>)}</>
 }
 
-export function ProfileFacts({ profile }: { profile: OperationalProfile }) {
-  return <div className={styles.stack}>{profileGroups.map(group => <section className={styles.formSection} key={group.title}>
+export function ProfileFacts({ profile, onlyProvided = false }: { profile: OperationalProfile; onlyProvided?: boolean }) {
+  const groups = profileGroups.map(group => ({ ...group, fields: group.fields.filter(({ key }) => {
+    const value = profile[key]
+    return !onlyProvided || (Array.isArray(value) ? value.length > 0 : Boolean(value))
+  }) })).filter(group => group.fields.length > 0)
+  return <div className={styles.stack}>{groups.map(group => <section className={styles.formSection} key={group.title}>
     <h3>{group.title}</h3><dl className={styles.facts}>
       {group.fields.map(field => {
         const value = profile[field.key]

@@ -12,7 +12,8 @@ export function AdminNavigationIcon({ section }: { section: string }) {
     model: 'M12 2l9 5v10l-9 5-9-5V7l9-5zm0 10 9-5M12 12 3 7m9 5v10',
     dashboard: 'M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 0h7v7h-7z',
   }
-  const kind = section.includes('model') || section.includes('import') ? 'model'
+  const kind = section === 'ship-models' ? 'locations'
+    : section.includes('model') || section.includes('import') ? 'model'
     : section.includes('dashboard') ? 'dashboard'
     : section.includes('tracking') ? 'locations'
     : section.includes('staff') ? 'bookings'

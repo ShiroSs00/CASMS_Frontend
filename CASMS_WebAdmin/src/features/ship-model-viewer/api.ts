@@ -1,6 +1,17 @@
 import { apiAsset, apiRequest } from '@/shared/api'
-import { assetPath, decodeAsset, decodeManifest, type Issue, type Job, type ShipModel, type ShipChoice } from './model'
+import { assetPath, decodeAsset, decodeManifest, type Issue, type Job, type ShipModel, type ShipChoice, type ShipTypeChoice } from './model'
 export const viewerApi = {
+  async shipTypes(signal: AbortSignal) {
+    const rows: ShipTypeChoice[] = []
+    for (let page = 0; page < 1000; page++) {
+      const data = await apiRequest<{ content: ShipTypeChoice[]; totalPages: number }>('/ship-types', { query: { page, size: 100, sort: 'code,asc' }, signal })
+      if (!Array.isArray(data.content) || !Number.isInteger(data.totalPages) || data.totalPages < 0
+        || data.content.some(row => !row || !row.shipTypeId || typeof row.name !== 'string' || typeof row.code !== 'string')) throw new Error('Danh mục loại tàu không hợp lệ.')
+      rows.push(...data.content)
+      if (page + 1 >= data.totalPages) return rows
+    }
+    throw new Error('Danh mục loại tàu vượt giới hạn tải.')
+  },
   async ships(signal: AbortSignal) {
     const result: ShipChoice[]=[]
     for(let page=0;page<1000;page++) { const data=await apiRequest<{content:ShipChoice[];totalPages:number}>('/ships',{query:{page,size:100},signal}); if(!Array.isArray(data.content)) throw new Error('Danh sách tàu không hợp lệ.'); result.push(...data.content); if(page+1>=data.totalPages) return result }

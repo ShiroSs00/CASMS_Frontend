@@ -1,4 +1,10 @@
 .stack { display:flex; flex-direction:column; gap:24px; min-width:0; }
+.shipDetailPage { gap:var(--space-5); }
+.shipDetailPage .shipDetailHeading { padding:0 0 var(--space-5);border:0;border-block-end:1px solid var(--border-default);border-radius:0;background:transparent; }
+.currentSectionHeading { margin:0;font-size:var(--text-2xl);font-weight:600; }
+.typeInformation { display:grid;gap:var(--space-4);padding-block-end:var(--space-5);border-block-end:1px solid var(--border-default); }
+.typeInformation h3 { margin:0;font-size:var(--text-xl);font-weight:600; }
+.typeInformation p { margin:0;color:var(--text-secondary); }
 .fleetPageHeading { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
 .fleetPageHeading header { margin-bottom:0; }
 .fleetPageHeading > a { background:var(--ui-surface); }

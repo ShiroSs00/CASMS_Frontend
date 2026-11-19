@@ -35,3 +35,139 @@
 .formSection h3 { margin-block: 0 var(--space-3, 12px); }
 .reference { overflow-wrap: anywhere; }
 td.version { max-width: 13rem; }
+
+.designPage { gap: var(--space-5); }
+.designPage > header { margin-block-end: 0; }
+.designPage > section { margin-block-end:0; }
+.catalogList { display:grid;gap:var(--space-4);min-width:0; }
+.catalogList > h2 { margin:0;font-size:var(--text-xl);font-weight:600; }
+.catalogFilters { display:grid;grid-template-columns:minmax(0,2fr) minmax(12rem,1fr) auto;gap:var(--space-4);align-items:end; }
+.filterActions { display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2); }
+.listHeading { display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:var(--space-3); }
+.listHeading h2, .typeDetailSections h2 { margin:0;font-size:var(--text-xl);font-weight:600; }
+.listHeading > span { color:var(--text-secondary);font-size:var(--text-sm);font-variant-numeric:tabular-nums; }
+.catalogTable table :is(td,th) { padding:var(--space-3) var(--space-4); }
+.catalogTable thead th:nth-child(n+3):nth-child(-n+5) { text-align:end; }
+.catalogTable tbody th { min-width:10rem; }
+.catalogTable tr > :first-child { min-width:7rem;white-space:nowrap; }
+.tableHint { display:none; }
+.typeStatusBar { display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:var(--space-3);border-block-end:1px solid var(--border-default);padding-block-end:var(--space-4); }
+.typeStatusBar > div { display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-3); }
+.typeStatusBar > div > span:first-child { color:var(--text-secondary); }
+.typeDetailSections { display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:var(--space-6);border-block-end:1px solid var(--border-default);padding-block-end:var(--space-6); }
+.typeDetailSections > section { min-width:0; }
+.typeDetailSections > section + section { padding-inline-start:var(--space-6);border-inline-start:1px solid var(--border-default); }
+.typeDetailSections h2 { margin-block-end:var(--space-4); }
+.typeDetailSections .facts { grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-5) var(--space-4); }
+.typeDetailSections dt { font-size:var(--text-sm);margin-block-end:var(--space-1); }
+.typeDetailSections dd { font-weight:500; }
+.typeDetailSections p, .sectionEmpty { margin:0;color:var(--text-secondary); }
+.typeDetailSections p + dl { margin-block-start:var(--space-4); }
+.sectionEmpty { padding-block:var(--space-4); }
+@media (max-width: 1000px) {
+  .tableHint { display:block;margin:0;color:var(--text-secondary);font-size:var(--text-sm); }
+  .catalogFilters { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  .filterActions { grid-column:1/-1; }
+  .typeDetailSections { grid-template-columns:1fr; }
+  .typeDetailSections > section + section { padding-inline-start:0;border-inline-start:0;padding-block-start:var(--space-5);border-block-start:1px solid var(--border-default); }
+}
+@media (max-width: 600px) {
+  .catalogFilters { grid-template-columns:minmax(0,1fr); }
+  .typeStatusBar { align-items:flex-start; }
+  .typeDetailSections .facts { grid-template-columns:minmax(0,1fr);gap:var(--space-4); }
+}
+.metadataSection { margin-block-start:var(--space-5);padding-block-start:var(--space-5);border-block-start:1px solid var(--border-default); }
+.metadataSection h3 { margin:0;font-size:var(--text-lg); }
+.metadataSection > p { margin-block:var(--space-2) var(--space-4);color:var(--text-secondary); }
+.designSteps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.designSteps li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+  border-block-end: 2px solid var(--border-default);
+  color: var(--text-secondary);
+}
+.designSteps li[aria-current='step'] {
+  border-color: var(--brand-teal);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.designSteps li > span { font-variant-numeric: tabular-nums; }
+.designFilePicker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+}
+.designFilePicker p { flex: 1 1 0; min-width: 0; margin: 0; overflow-wrap: anywhere; color: var(--text-secondary); }
+.designFormActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-block-start: var(--space-5);
+  padding-block-start: var(--space-5);
+  border-block-start: 1px solid var(--border-default);
+}
+.designFormActions p { margin: 0; color: var(--text-secondary); }
+.provisionSteps li { align-items:flex-start; }
+.provisionSteps strong { display:block;font-weight:600; }
+.provisionSteps small { display:block;margin-block-start:var(--space-1);font-size:var(--text-sm);font-weight:400;color:var(--text-secondary); }
+.provisionSteps li[data-complete='true'] { border-color:var(--brand-teal); }
+.workflowSection { display:grid;gap:var(--space-4);min-width:0; }
+.workflowHeading h2 { margin:0;font-size:var(--text-2xl); }
+.workflowHeading h3 { margin:0;font-size:var(--text-xl); }
+.workflowHeading p { margin:var(--space-2) 0 0;color:var(--text-secondary); }
+.typePickerSearch { display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:var(--space-3); }
+.resultSummary { margin:0;color:var(--text-secondary);font-size:var(--text-sm); }
+.typePickerTable table :is(th,td), .shipListTable table :is(th,td) { padding:var(--space-3) var(--space-4); }
+.typePickerTable tr > :first-child { min-width:8rem; }
+.typePickerTable tr > :nth-child(2), .shipListTable tr > :first-child { white-space:nowrap; }
+.typePickerTable thead th:nth-child(n+4), .shipListTable thead th:nth-child(4), .shipListTable thead th:nth-child(5) { text-align:end; }
+.typePickerTable tr[data-selected='true'] > :is(th,td) { background:var(--surface-subtle); }
+.typeChoice { display:flex;align-items:center;gap:var(--space-2);min-height:var(--ocevie-control-height-default);cursor:pointer;white-space:nowrap; }
+.typeChoice input { flex:none; }
+.selectedTypeFacts { border-block-start:1px solid var(--border-default);padding-block-start:var(--space-4); }
+.selectedTypeFacts summary { display:list-item;cursor:pointer;min-height:var(--ocevie-control-height-default);padding-block:var(--space-3);font-weight:600; }
+.selectedTypeFacts summary:focus-visible { outline:2px solid var(--brand-teal);outline-offset:2px; }
+.selectedTypeFacts[open] .facts { padding-block:var(--space-4); }
+.workflowActions { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-4);border-block-start:1px solid var(--border-default);padding-block-start:var(--space-4);margin-block-start:var(--space-2); }
+.workflowActions p { margin:0;flex:1 1 16rem;color:var(--text-secondary); }
+.provisionForm { display:grid;gap:var(--space-5); }
+.provisionForm .formSection + .formSection { margin-block-start:0; }
+.confirmationProfile .formSection + .formSection { margin-block-start:0; }
+.provisionForm .grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.shipListFilters { display:grid;grid-template-columns:minmax(0,2fr) repeat(3,minmax(0,1fr));gap:var(--space-4);align-items:end; }
+.shipFilterActions { display:flex;flex-wrap:wrap;gap:var(--space-3);grid-column:1/-1; }
+.shipListTitle { display:flex;align-items:baseline;flex-wrap:wrap;gap:var(--space-3); }
+.shipListTitle > span { color:var(--text-secondary);font-size:var(--text-sm);font-variant-numeric:tabular-nums; }
+@media (max-width: 1000px) {
+  .shipListFilters { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .provisionForm .grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 600px) {
+  .provisionForm .grid { grid-template-columns:minmax(0,1fr); }
+  .typePickerSearch, .shipListFilters { grid-template-columns:minmax(0,1fr); }
+  .workflowActions { align-items:stretch;flex-direction:column; }
+  .workflowActions p { flex-basis:auto; }
+  .workflowActions > button { width:100%; }
+  .typePickerSearch .filterActions > button:first-child { flex:1; }
+  .designSteps { grid-template-columns: 1fr; gap: 0; }
+  .designSteps li { padding-block: var(--space-3); }
+  .designFilePicker { align-items: stretch; flex-direction: column; }
+  .designFilePicker p { flex-basis: auto; }
+  .designFormActions > button { width: 100%; }
+}

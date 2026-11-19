@@ -12,9 +12,9 @@
 .canvasPanel:fullscreen{width:100vw;height:100vh;border:0;border-radius:0}.canvasPanel:fullscreen .canvas{height:auto;flex:1}.sceneLegend{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 2px;color:var(--ui-muted);font-size:10px}.sceneLegend span{display:inline-flex;align-items:center;gap:6px}.sceneLegend i{width:9px;height:9px;background:#e8ab34;border-radius:3px}
 .inspector{padding:20px 16px}.detailTitle>span{font-size:10px;color:var(--ui-muted);letter-spacing:1px}.detailTitle h2{margin:10px 0 12px;font-size:20px;line-height:1.4;overflow-wrap:anywhere}.facts{margin:0;display:flex;flex-direction:column}.facts>div{padding:14px 0;border-bottom:1px solid var(--ui-border)}.facts>div:last-child{border-bottom:0}.facts dt{font-size:11px;color:var(--ui-muted);line-height:1.5}.facts dd{margin:6px 0 0;font-size:13px;line-height:1.7;overflow-wrap:anywhere}.inspectorHint,.note{padding:12px 0 0;color:var(--ui-muted);font-size:12px;line-height:1.7}.inspectorHint{border-top:1px solid var(--ui-border)}.clearSelection{min-height:44px;border:0;padding:0 0 12px;background:none;color:var(--brand-teal);font:500 12px var(--ui-font)}
 .metadataGrid{display:grid;grid-template-columns:1fr 1fr;gap:20px;min-width:0}.metadataGrid .facts{display:grid;grid-template-columns:1fr 1fr;column-gap:24px}.metadataGrid .facts>div{min-width:0}.jobs{display:flex;flex-direction:column;gap:20px}.jobs article{border:1px solid var(--ui-border);border-radius:10px;padding:20px}.jobs article>div:first-child{display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap}.jobs time{font-size:13px;color:var(--ui-muted)}.jobs .facts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px}.issueList{list-style:none;padding:0;display:grid;gap:12px}.issueList li{padding:16px;background:#fff6ed;border:1px solid #eed2ba;border-radius:var(--radius-control);font-size:13px;line-height:1.7}.issueList code{font-size:11px;overflow-wrap:anywhere}
-.shipCards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.shipCards>button{display:flex;align-items:flex-start;flex-direction:column;gap:16px;padding:24px;background:white;border:1px solid var(--ui-border);border-radius:var(--radius-panel);text-align:left;color:var(--ui-ink)}.shipCards>button:hover{border-color:var(--brand-teal);background:#f5fafb}.shipCards strong{font-size:18px;line-height:1.4}.shipCards small{color:var(--ui-muted)}.shipCards button>span:first-child{font-size:28px;color:#117887}.shipCards button>span:last-child{font-size:13px;margin-top:auto;font-weight:600}.srOnly{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.srOnly{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
 @media(max-width:1250px){.workspace{grid-template-columns:190px minmax(0,1fr)}.inspector{grid-column:1/-1}.inspector .facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 24px}.canvas{height:480px}}
-@media(max-width:760px){.workspace,.metadataGrid{grid-template-columns:1fr}.structure{padding:16px}.deckList{display:flex;max-height:140px;flex-wrap:wrap;gap:4px}.deckList .deckButton{width:auto;min-width:115px}.cabinList{max-height:180px}.structure>.deckButton{width:auto;margin-bottom:8px}.canvas{height:400px}.inspector{grid-column:auto}.inspector .facts,.metadataGrid .facts{grid-template-columns:1fr 1fr}.jobs .facts{grid-template-columns:1fr 1fr}.versionBar>div:last-child,.shipBar>div{flex:1 1 100%}.tabs button{padding:10px;font-size:12px}.tabs>span{margin-left:0}.canvasToolbar button,.canvasBottom button{min-height:44px}.shipCards{grid-template-columns:1fr}}
+@media(max-width:760px){.workspace,.metadataGrid{grid-template-columns:1fr}.structure{padding:16px}.deckList{display:flex;max-height:140px;flex-wrap:wrap;gap:4px}.deckList .deckButton{width:auto;min-width:115px}.cabinList{max-height:180px}.structure>.deckButton{width:auto;margin-bottom:8px}.canvas{height:400px}.inspector{grid-column:auto}.inspector .facts,.metadataGrid .facts{grid-template-columns:1fr 1fr}.jobs .facts{grid-template-columns:1fr 1fr}.versionBar>div:last-child,.shipBar>div{flex:1 1 100%}.tabs button{padding:10px;font-size:12px}.tabs>span{margin-left:0}.canvasToolbar button,.canvasBottom button{min-height:44px}}
 @keyframes loadingPulse{50%{opacity:.4}}
 @media(prefers-reduced-motion:reduce){.loader{animation:loadingPulse 1.6s var(--ease-feedback) infinite}}
 .versionBar>div{flex:1 1 240px;min-width:0}
@@ -101,14 +101,20 @@
 .canvas { height:clamp(300px,calc(100dvh - 340px),640px); }
 @media(max-width:760px) { .pageHeader>div:has(select) { flex-basis:100%;order:3;max-width:none; } .canvas { height:360px; } }
 
-/* Vessel identity is the business code; names remain readable for duplicate models. */
-.shipCards { grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px; }
-.shipCards>button { position:relative;flex-direction:row;align-items:center;justify-content:space-between;gap:16px;padding:22px;min-height:116px;border-radius:8px;transition:background-color 200ms ease,border-color 200ms ease,transform 120ms cubic-bezier(.16,1,.3,1); }
-.shipCards .shipIdentity { display:flex;flex-direction:column;gap:8px;min-width:0; }
-.shipCards .shipIdentity strong { font-size:19px;line-height:1.4;font-weight:600;letter-spacing:.01em;overflow-wrap:anywhere; }
-.shipCards .shipIdentity>span { color:var(--ui-muted);font-size:13px;line-height:1.6;overflow-wrap:anywhere; }
-.shipCards button>.shipArrow:last-child { display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;margin:0;border:1px solid var(--ui-border);border-radius:50%;color:var(--brand-teal);font-size:18px;font-weight:400;background:var(--ui-subtle); }
-.shipCards>button:active { transform:scale(.985); }
-@media(hover:hover) and (pointer:fine) { .shipCards>button:hover { border-color:var(--brand-teal);background:#EDF5F5; } }
-@media(max-width:600px) { .shipCards { grid-template-columns:1fr; } .shipCards>button { min-height:96px;padding:18px; } }
-@media(prefers-reduced-motion:reduce) { .shipCards>button { transition:background-color 200ms ease,border-color 200ms ease; } .shipCards>button:active { transform:none; } }
+.lookupHeader { display:grid;gap:var(--space-5);min-width:0; }
+.lookupHeader > header { margin-block-end:0; }
+.shipSelector { display:flex;align-items:end;flex-wrap:wrap;gap:var(--space-4); }
+.shipSelector > div { flex:1 1 0;min-width:0; }
+.shipList { display:grid;gap:var(--space-4);min-width:0; }
+.shipListHeading { display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap; }
+.shipListHeading h2 { margin:0;font-size:var(--text-xl);font-weight:600; }
+.shipListHeading p { margin:0;color:var(--text-secondary);font-variant-numeric:tabular-nums; }
+.shipCode { overflow-wrap:anywhere; }
+.shipTypeHint { display:block;margin-block-start:var(--space-1);color:var(--text-secondary);font-size:var(--text-sm); }
+.shipList table { min-width:0;table-layout:fixed; }
+.shipList :is(th,td) { padding:var(--space-3) var(--space-4);white-space:normal;overflow-wrap:anywhere; }
+.shipList tr > :first-child { width:30%; }
+.shipList tr > :last-child { width:25%; }
+.designLink { display:inline-flex;align-items:center;min-block-size:var(--control-height-default); }
+@media(max-width:600px) { .shipSelector { align-items:stretch;flex-direction:column; } }
+@media(max-width:600px) { .shipList :is(th,td) { padding:var(--space-2); } }
