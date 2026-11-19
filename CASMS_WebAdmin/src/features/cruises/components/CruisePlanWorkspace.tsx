@@ -32,6 +32,7 @@ export function CruisePlanWorkspace({
 }) {
   const access = useSessionAccess()
   const [budgetChanges, setBudgetChanges] = useState(0)
+  const [handoffChanges, setHandoffChanges] = useState(0)
   const canPrepare = coordinator && access.canDo('CRUISE_PREPARATION_SUBMIT')
   const budget = useReadQuery(
     `operating-budget:${access.userId}:${cruiseId}:${refreshKey}:${canPrepare}`,
@@ -84,7 +85,7 @@ export function CruisePlanWorkspace({
               </div>
               <div className={styles.departmentGrid}>
                 <CruiseWorkHandoff
-                  key={'handoff:' + cruiseId}
+                  key={`handoff:${cruiseId}:${handoffChanges}`}
                   cruiseId={cruiseId}
                   budgetAmount={budget.data?.amountVnd ?? null}
                   budgetLoading={budget.loading}
@@ -94,6 +95,7 @@ export function CruisePlanWorkspace({
                   key={cruiseId}
                   cruiseId={cruiseId}
                   refreshKey={`${refreshKey}:${budgetChanges}`}
+                  onStarted={() => setHandoffChanges(count => count + 1)}
                 />
               </div>
             </section>

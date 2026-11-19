@@ -36,7 +36,7 @@ type Task = {
   sourceTripName?: string | null
   sourceVersionNumber?: number | null
 }
-type Work = { canDispatch: boolean; shipAssigned: boolean; tasks: Task[] }
+type Work = { canDispatch: boolean; shipAssigned: boolean; tasks: Task[]; staffingRequestId?: string | null }
 const labels = { ASM: 'Hoạt động, dịch vụ và tour bờ', SHIP: 'Cabin, khu vực và khả năng phục vụ' }
 const teams = { ASM: 'Quản lý dịch vụ', SHIP: 'Quản lý tàu' }
 const statuses = {
@@ -99,6 +99,7 @@ export function CruiseWorkHandoff({
             </div>
           )}
           {(['ASM', 'SHIP'] as const).map(group => {
+            if (group === 'SHIP' && read.data?.staffingRequestId) return null
             const task = read.data?.tasks.find(item => item.group === group)
             const canSend = read.data?.canDispatch && (!task || task.status === 'RETURNED')
             return (
