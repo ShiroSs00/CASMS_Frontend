@@ -1,4 +1,5 @@
-export type ShipChoice = { shipId: string; shipCode: string; shipName: string; manifestModelId?: string | null }
+export type ShipChoice = { shipId: string; shipCode: string; shipName: string; shipTypeId?: string | null; shipTypeName?: string | null; shipTypeCode?: string | null; manifestModelId?: string | null }
+export type ShipTypeChoice = { shipTypeId: string; code: string; name: string; status: string }
 export type ShipModel = { shipModelId: string; shipId: string; modelKey?: string | null; status: string; fileFormat: string; createdAt: string; updatedAt: string; shipManufacturerName?: string; modelProvider?: string }
 export type AssetInfo = { id: string; modelKey?: string | null; status: string; cabinCount: number; mappedCabinCount: number; deckCount: number; mappedDeckCount: number; units: string; shipManufacturerName?: string; modelProvider?: string }
 export type Deck = { id: string; number: number; name: string; nodeName: string; asset: string; elevationMetres?: number; cabinIds?: string[] }

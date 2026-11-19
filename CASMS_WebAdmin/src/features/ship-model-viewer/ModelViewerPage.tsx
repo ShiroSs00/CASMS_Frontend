@@ -3,12 +3,8 @@ import { useSearchParams } from 'react-router'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
 import { apiRequest, ApiError, useReadQuery } from '@/shared/api'
-import { Badge, Button, Empty, Field, Loading, Notice, Panel } from '@/shared/ui'
+import { Badge, Button, ButtonLink, DataTable, Empty, Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
-import { ExistingModelImport } from './import/ExistingModelImport'
-import { ImportJobDetails } from './import/ImportJobDetails'
-import type { ImportJob } from './import/model'
-import { refreshShipStructure } from '@/shared/lib/ship-structure-revision'
 import { viewerApi } from './api'
 import { ModelCanvas } from './ModelCanvas'
 import { cabinDeckLabel, serviceName, serviceType, cabinTypes, selectedAreas, selectedCabins, type Area, type AssetInfo, type Cabin, type Manifest, type ShipChoice } from './model'
@@ -150,70 +146,108 @@ export function ShipRecordViewer({ ship }: { ship: string }) {
 }
 
 function ModelDetail({ship,id}:{ship:string;id:string}) {
-  const access=useSessionAccess(),[tab,setTab]=useState('scene')
-  const load=useCallback((signal:AbortSignal)=>viewerApi.manifest(ship,id,signal),[ship,id])
-  const manifest=useReadQuery(`viewer-manifest:${ship}:${id}`,load)
-  const canManageTechnicalSetup = access.inWorkScope('ship-import') && access.canDo('BLE_ANCHOR_READ')
-  return <>{canManageTechnicalSetup&&<nav className={styles.tabs} aria-label="Nội dung sơ đồ tàu">{[['scene','Sơ đồ tàu'],['ble','Thiết bị định vị']].map(([value,label])=><button key={value} aria-pressed={tab===value} onClick={()=>setTab(value)}>{label}</button>)}</nav>}
-    {manifest.loading&&<Loading label="Đang tải sơ đồ tàu…"/>}{manifest.error&&<Failure error={manifest.error} retry={manifest.retry}/>}
-    {manifest.data&&(tab==='ble'&&canManageTechnicalSetup?<BleSetup ship={ship} model={id} manifest={manifest.data}/>:<Explore ship={ship} model={id} manifest={manifest.data}/>)}</>
+  const access = useSessionAccess()
+  const canManage = access.inWorkScope('ship-import') && access.canDo('BLE_ANCHOR_READ')
+  const load = useCallback((signal:AbortSignal) => canManage ? viewerApi.manifest(ship,id,signal) : Promise.resolve(null), [canManage,ship,id])
+  const manifest = useReadQuery(`positioning-manifest:${access.userId}:${ship}:${id}`,load)
+  if (!canManage) return <Notice title="Chưa có quyền xem cấu hình thiết bị định vị" tone="warning">Tài khoản chưa được cấp quyền thiết lập định vị cho tàu.</Notice>
+  return <>
+    {manifest.loading && <Loading label="Đang tải dữ liệu bố trí thiết bị…" />}
+    {manifest.error && <Failure error={manifest.error} retry={manifest.retry} />}
+    {manifest.data && <BleSetup ship={ship} model={id} manifest={manifest.data} />}
+  </>
 }
 function ShipModels({ ship, requested, onModel, renderHeader }: {
-  ship: ShipChoice; requested: string; onModel: (id: string) => void; renderHeader: (action: ReactNode) => ReactNode
+  ship: ShipChoice; requested: string; onModel: (id: string) => void; renderHeader: () => ReactNode
 }) {
   const access = useSessionAccess()
-  const canUpdate = access.inWorkScope('ship-import') && access.canDo('SHIP_MODEL_UPDATE')
-  const [editing, setEditing] = useState(false)
-  const [result, setResult] = useState<{ job: ImportJob; fromHistory: boolean } | null>(null)
-  const resultFocus = useRef<HTMLDivElement>(null)
-  const load=useCallback((signal:AbortSignal)=>viewerApi.models(ship.shipId,signal),[ship.shipId]),query=useReadQuery(`viewer-models:${ship.shipId}`,load)
-  const models=query.data?[...query.data].sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt)):[]
-  const selected=requested?models.find(model=>model.shipModelId===requested):models[0]
-  function importFinished(job: ImportJob, fromHistory = false) {
-    setResult({ job, fromHistory })
-    setEditing(false)
-    onModel(job.modelId)
-    query.retry()
-    refreshShipStructure()
-    requestAnimationFrame(() => resultFocus.current?.focus())
-  }
-
+  const load = useCallback((signal:AbortSignal) => viewerApi.models(ship.shipId,signal), [ship.shipId])
+  const query = useReadQuery(`positioning-models:${access.userId}:${ship.shipId}`,load)
+  const models = query.data ? [...query.data].sort((a,b) => Date.parse(b.createdAt)-Date.parse(a.createdAt)) : []
+  const selected = requested ? models.find(model => model.shipModelId===requested) : models[0]
   return <>
-    {renderHeader(canUpdate && <Button autoWidth disabled={!query.data} onClick={() => setEditing(true)}>Cập nhật mô hình</Button>)}
-    {result && <Panel title={result.fromHistory ? 'Kết quả quan sát được trong lịch sử' : 'Kết quả import mô hình'}>
-      <div tabIndex={-1} ref={resultFocus}>
-        {result.fromHistory && <p>Máy chủ chưa cung cấp mã đối chiếu riêng cho yêu cầu đã mất kết nối.</p>}
-        <ImportJobDetails job={result.job} canRead={access.canDo('SHIP_READ')} />
-      </div>
-    </Panel>}
-    {query.loading&&<Loading label="Đang tải sơ đồ tàu…"/>}{query.error&&<Failure error={query.error} retry={query.retry}/>} {query.data?.length===0&&<Panel><Empty title="Tàu chưa có sơ đồ 3D" /></Panel>}
-    {requested&&!selected&&!query.loading&&models.length>0&&<Notice title="Không tìm thấy sơ đồ đã chọn" tone="warning"><Button tone="text" onClick={()=>onModel('')}>Xem sơ đồ khác</Button></Notice>}
-    {selected&&<ModelDetail key={`${ship.shipId}:${selected.shipModelId}:${selected.updatedAt}`} ship={ship.shipId} id={selected.shipModelId}/>}
-    {editing && canUpdate && query.data && <ExistingModelImport key={access.userId} shipId={ship.shipId}
-      shipName={ship.shipName} manifestModelId={ship.manifestModelId} models={query.data}
-      onResult={importFinished} onClose={() => { setEditing(false); query.retry() }} />}
+    {renderHeader()}
+    {query.loading && <Loading label="Đang tải dữ liệu tàu…" />}
+    {query.error && <Failure error={query.error} retry={query.retry} />}
+    {query.data?.length===0 && <Empty title="Chưa có dữ liệu bố trí để thiết lập định vị">Tàu cần có cấu trúc boong được liên kết trước khi bố trí thiết bị.</Empty>}
+    {requested && !selected && !query.loading && models.length>0 && <Notice title="Không tìm thấy dữ liệu bố trí đã chọn" tone="warning"><Button tone="text" onClick={() => onModel('')}>Dùng dữ liệu hiện hành</Button></Notice>}
+    {selected && <ModelDetail key={`${ship.shipId}:${selected.shipModelId}:${selected.updatedAt}`} ship={ship.shipId} id={selected.shipModelId} />}
   </>
 }
 export function ModelViewerPage() {
-  const access=useSessionAccess(),[params,setParams]=useSearchParams()
-  const canRead=access.canDo('SHIP_READ')
-  const load=useCallback((signal:AbortSignal)=>canRead?viewerApi.ships(signal):Promise.resolve([]),[canRead])
-  const query=useReadQuery('viewer-ships',load),shipId=params.get('ship')??'',ship=query.data?.find(s=>s.shipId===shipId)
-  const renderHeader = (action: ReactNode) => <header className={styles.pageHeader}>
-    <div><h1>Sơ đồ tàu 3D</h1></div>
-    <Field htmlFor="viewer-ship" label="Mã tàu">
-      <select id="viewer-ship" value={shipId} disabled={query.loading || !query.data?.length}
-        onChange={event => setParams(event.target.value ? { ship: event.target.value } : {})}>
-        <option value="">Chọn mã tàu</option>
-        {query.data?.map(row => <option key={row.shipId} value={row.shipId}>{row.shipCode}</option>)}
-      </select>
-    </Field>
-    {action}
-  </header>
+  const access = useSessionAccess(), [params,setParams] = useSearchParams()
+  const canRead = access.canDo('SHIP_READ')
+  const canReadTypes = access.roles.some(role => role==='ADMIN' || role==='SHIP_MANAGER')
+  const load = useCallback((signal:AbortSignal) => canRead ? viewerApi.ships(signal) : Promise.resolve([]), [canRead])
+  const loadTypes = useCallback((signal:AbortSignal) => canReadTypes ? viewerApi.shipTypes(signal) : Promise.resolve([]), [canReadTypes])
+  const query = useReadQuery('positioning-ships:'+access.userId,load)
+  const types = useReadQuery('positioning-types:'+access.userId,loadTypes)
+  const typeFilter = params.get('legacy')==='true' ? 'legacy' : params.get('shipTypeId') ?? ''
+  const shipId = params.get('ship') ?? ''
+  const typeOptions = new Map((types.data ?? []).map(type => [type.shipTypeId, `${type.name} (${type.code})${type.status==='INACTIVE' ? ' · Ngừng sử dụng' : ''}`]))
+  for (const row of query.data ?? []) {
+    if (row.shipTypeId && !typeOptions.has(row.shipTypeId)) typeOptions.set(row.shipTypeId,row.shipTypeName || row.shipTypeCode || 'Loại tàu đã gắn')
+  }
+  const ships = (query.data ?? []).filter(row => !typeFilter || (typeFilter==='legacy' ? !row.shipTypeId : row.shipTypeId===typeFilter))
+  const ship = ships.find(row => row.shipId===shipId)
+  function listParams() {
+    const next = new URLSearchParams(params)
+    next.delete('ship'); next.delete('model')
+    return next
+  }
+  const listQuery = listParams().toString()
+  const listPath = '/admin/ship-models'+(listQuery ? '?'+listQuery : '')
+  function selectShip(id:string) {
+    const next = listParams()
+    if (id) next.set('ship',id)
+    return next
+  }
+  function changeType(value:string) {
+    const next = listParams()
+    next.delete('shipTypeId'); next.delete('legacy')
+    if (value==='legacy') next.set('legacy','true')
+    else if (value) next.set('shipTypeId',value)
+    setParams(next)
+  }
+  const renderHeader = () => <div className={styles.lookupHeader}>
+    <PageHeader title="Thiết lập thiết bị định vị" breadcrumb="Cấu hình tàu / Thiết lập thiết bị định vị"
+      description="Chọn loại tàu và tàu để bố trí, kiểm tra thiết bị định vị trên từng boong." />
+    <div className={styles.shipSelector}>
+      <Field htmlFor="positioning-type" label="Loại tàu">
+        <select id="positioning-type" value={typeFilter} disabled={query.loading || types.loading} onChange={event => changeType(event.target.value)}>
+          <option value="">Tất cả loại tàu</option>
+          <option value="legacy">Chưa phân loại</option>
+          {[...typeOptions].sort((a,b) => a[1].localeCompare(b[1],'vi')).map(([id,label]) => <option key={id} value={id}>{label}</option>)}
+          {typeFilter && typeFilter!=='legacy' && !typeOptions.has(typeFilter) && <option value={typeFilter}>Loại tàu không có trong danh mục</option>}
+        </select>
+      </Field>
+      <Field htmlFor="viewer-ship" label="Chọn tàu">
+        <select id="viewer-ship" value={ship?.shipId ?? ''} disabled={query.loading || !ships.length} onChange={event => setParams(selectShip(event.target.value))}>
+          <option value="">Xem danh sách tàu</option>
+          {ships.map(row => <option key={row.shipId} value={row.shipId}>{row.shipCode} · {row.shipName}</option>)}
+        </select>
+      </Field>
+      {shipId && <ButtonLink to={listPath} tone="secondary" autoWidth><span aria-hidden="true">←</span> Về danh sách tàu</ButtonLink>}
+    </div>
+  </div>
   return <AdminShell><div className={styles.page}>
-    {!ship && renderHeader(!shipId && <Link className={styles.secondaryLink} to="/admin/ship-types/new">Thêm loại tàu</Link>)}
-    {query.loading&&<Loading label="Đang tải tàu…"/>}{query.error&&<Failure error={query.error} retry={query.retry}/>}
-    {!access.canDo('SHIP_READ')&&<Notice title="Chưa có quyền đọc tàu" tone="warning">Cần quyền SHIP_READ để xem mô hình thuộc tàu.</Notice>}
-    {ship?<ShipModels key={shipId} ship={ship} renderHeader={renderHeader} requested={params.get('model')??''} onModel={model=>setParams(model?{ship:shipId,model}:{ship:shipId})}/>:query.data&&<Panel title="Danh sách mã tàu"><div className={styles.shipCards}>{query.data.map(s=><button key={s.shipId} onClick={()=>setParams({ship:s.shipId})} aria-label={`Xem sơ đồ tàu ${s.shipCode} · ${s.shipName}`}><div className={styles.shipIdentity}><strong>{s.shipCode}</strong><span>{s.shipName}</span></div><span className={styles.shipArrow} aria-hidden="true">↗</span></button>)}</div>{!query.data.length&&<Empty title="Chưa có tàu"/>}</Panel>}
+    {!ship && renderHeader()}
+    {query.loading && <Loading label="Đang tải tàu…" />}
+    {query.error && <Failure error={query.error} retry={query.retry} />}
+    {types.error && <Notice title="Chưa tải được danh mục loại tàu" tone="warning">Các loại đã gắn với tàu vẫn có thể tra cứu. <Button tone="text" onClick={types.retry}>Tải lại danh mục</Button></Notice>}
+    {shipId && !ship && !query.loading && !query.error && <Notice title="Không tìm thấy tàu trong danh sách đang lọc" tone="warning">Tàu đã chọn không thuộc loại đang lọc hoặc phạm vi truy cập. <Link to={listPath}>Về danh sách tàu</Link></Notice>}
+    {!canRead && <Notice title="Chưa có quyền đọc tàu" tone="warning">Tài khoản cần quyền đọc tàu để truy cập cấu hình định vị.</Notice>}
+    {ship ? <ShipModels key={shipId} ship={ship} renderHeader={renderHeader} requested={params.get('model') ?? ''}
+      onModel={model => { const next = selectShip(shipId); if (model) next.set('model',model); setParams(next) }} />
+      : query.data && <section className={styles.shipList} aria-labelledby="viewer-ship-list-heading">
+        <div className={styles.shipListHeading}><h2 id="viewer-ship-list-heading">Danh sách tàu{typeFilter ? ' theo loại' : ''}</h2><p>{ships.length} tàu</p></div>
+        {ships.length ? <DataTable label="Danh sách tàu" headers={['Mã tàu','Tên tàu','Thao tác']}>
+          {ships.map(row => <tr key={row.shipId}>
+            <th scope="row" className={styles.shipCode}>{row.shipCode}</th>
+            <td>{row.shipName}<span className={styles.shipTypeHint}>Loại tàu: {row.shipTypeId ? row.shipTypeName || typeOptions.get(row.shipTypeId) || row.shipTypeCode || 'Chưa tải được tên loại' : 'Chưa phân loại'}</span></td>
+            <td><Link className={styles.designLink} to={'/admin/ship-models?'+selectShip(row.shipId)} aria-label={'Thiết lập định vị tàu '+row.shipCode}>Thiết lập định vị</Link></td>
+          </tr>)}
+        </DataTable> : <Empty title={typeFilter ? 'Chưa có tàu thuộc loại đang chọn' : 'Chưa có tàu trong phạm vi truy cập'}>Chọn loại tàu khác để tra cứu.</Empty>}
+      </section>}
   </div></AdminShell>
 }

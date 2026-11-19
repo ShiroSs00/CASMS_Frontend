@@ -4,7 +4,7 @@ import { ApiError, setApiAccessToken } from '../src/shared/api/client.ts'
 import { apiPermissionRequirement, hasPermissions } from '../src/shared/auth/permission-policy.ts'
 import { setSessionAccess } from '../src/shared/auth/session-access.ts'
 import { actionInWorkScope } from '../src/shared/auth/work-policy.ts'
-import { canRoleOpenAdminPath } from '../src/shared/ui/admin-v3/admin-navigation.ts'
+import { canRoleOpenAdminPath, roleNavigationItems } from '../src/shared/ui/admin-v3/admin-navigation.ts'
 import { shipTypesApi, shipError, storedAssetPath, unknownOutcome } from '../src/features/ship-deck-cabin/ship-types/api.ts'
 import { metadataIssues } from '../src/features/ship-deck-cabin/ship-types/design-metadata.ts'
 import { missingProfileLabels, profilePayload, validateProfile } from '../src/features/ship-deck-cabin/ship-types/profile.ts'
@@ -76,6 +76,12 @@ test('ShipType and physical ship routes follow the real role split', () => {
   assert.equal(authorized(manager, 'GET', '/ships/vessel/models/model/assets/ship.glb'), true)
   assert.equal(authorized(manager, 'GET', storedAssetPath(design, 'ship.glb')), false)
   assert.equal(authorized(admin, 'GET', storedAssetPath(design, 'ship.glb')), true)
+})
+
+test('Ship Manager can find the scoped ship list in the sidebar with read permission', () => {
+  assert.ok(roleNavigationItems(manager.roles, manager).some(item => item.to === '/admin/ships' && item.label === 'Danh sách tàu'))
+  const noRead = access('SHIP_MANAGER', [])
+  assert.equal(roleNavigationItems(noRead.roles, noRead).some(item => item.to === '/admin/ships'), false)
 })
 
 test('staged workflow sends one multipart upload, then a pinned GET and a minimal confirm body', async t => {
