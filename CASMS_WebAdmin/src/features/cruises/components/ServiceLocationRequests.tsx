@@ -13,6 +13,7 @@ type Request = {
 type View = {
   canPropose: boolean; canReview: boolean; services: Option[]; decks: Option[]; requests: Request[]
   operatingBudgetVnd?: string | null
+  shipAssigned?: boolean
 }
 const status = { PENDING: 'Chờ Quản lý tàu', CONFIRMED: 'Đã xác nhận', RETURNED: 'Cần bổ sung' }
 
@@ -63,6 +64,13 @@ export function ServiceLocationRequests({ cruiseId, onChanged }: { cruiseId: str
     </Notice>}
     {view && <>
       {view.operatingBudgetVnd && <p>Ngân sách vận hành dự kiến <strong>{formatOperatingBudget(view.operatingBudgetVnd)}</strong></p>}
+      {access.roles.includes('ACTIVITY_SERVICE_MANAGER') && (view.canPropose || view.requests.some(request => request.status === 'PENDING')) && (
+        view.shipAssigned === false
+          ? <Notice tone="warning" title="Chuyến chưa có Quản lý tàu">
+              Đề nghị sẽ xuất hiện trong mục Bố trí dịch vụ sau khi Quản lý tàu được phân công cho chuyến.
+            </Notice>
+          : <p>Quản lý tàu nhận đề nghị trong mục Bố trí dịch vụ.</p>
+      )}
       {!view.requests.length && <Empty title="Chưa có đề nghị bố trí dịch vụ" />}
       <ul className={styles.rows}>{view.requests.map(request => <li key={request.serviceId} className={styles.row}>
         <div className={styles.section}>
@@ -81,7 +89,7 @@ export function ServiceLocationRequests({ cruiseId, onChanged }: { cruiseId: str
             </>}
           </div>}
         </div>
-        <Badge label={status[request.status]} />
+        <Badge label={request.status === 'PENDING' && view.shipAssigned === false ? 'Chờ phân công Quản lý tàu' : status[request.status]} />
       </li>)}</ul>
       {view.canPropose && !view.decks.length && <p>Tàu này chưa có boong để đề nghị bố trí.</p>}
       {view.canPropose && view.decks.length > 0 && services.length > 0 && <form className={styles.form}

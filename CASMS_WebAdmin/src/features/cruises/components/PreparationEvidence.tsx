@@ -39,13 +39,13 @@ const sectionMeta: Record<
   },
   ENTERTAINMENT_SHORE: {
     title: 'Hoạt động và tour bờ',
-    specialist: 'ASM phụ trách dịch vụ và tour bờ',
+    specialist: 'Quản lý dịch vụ phụ trách dịch vụ và tour bờ',
     targetSection: 'program',
     targetLabel: 'Xem hoạt động và tour bờ',
   },
   SAFETY_CREW: {
     title: 'An toàn và thuyền viên',
-    specialist: 'Nhân sự bố trí người, Vận hành kiểm tra an toàn',
+    specialist: 'Quản lý nhân sự bố trí người, Quản lý vận hành kiểm tra an toàn',
     targetSection: 'staff',
     targetLabel: 'Xem phân công nhân sự',
   },

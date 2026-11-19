@@ -14,8 +14,11 @@ export function formatOperatingBudget(amount:string) {
  return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(BigInt(amount))
 }
 const root=(id:string)=>`/cruise/${encodeURIComponent(id)}/preparation`
+export function coordinatorDossierSections(sections: PreparationSection[]) {
+ return sections.filter(section => section.sectionCode === 'HOTEL_CABIN' || section.sectionCode === 'ENTERTAINMENT_SHORE')
+}
 export function decodePreparation(value:PreparationDashboard,id:string){
- if(!value||value.cruiseId!==id||!Number.isSafeInteger(value.cruiseRevision)||typeof value.canAssignCoordinator!=='boolean'||!Array.isArray(value.sections)||value.sections.length!==preparationCodes.length||new Set(value.sections.map(s=>s.sectionCode)).size!==preparationCodes.length||value.sections.some(s=>!preparationCodes.includes(s.sectionCode as typeof preparationCodes[number])||s.submitterRole!=='CRUISE_MANAGER'||!Number.isSafeInteger(s.revision)||!preparationStatuses.includes(s.status)||!Array.isArray(s.allowedActions)||s.allowedActions.some(a=>!['SUBMIT','CONFIRM','RETURN','REJECT'].includes(a))||!Array.isArray(s.checkItems)||s.checkItems.some(i=>typeof i.ready!=='boolean'||typeof i.required!=='boolean')))throw new ApiError('Phản hồi hồ sơ chuẩn bị thiếu hoặc sai dữ liệu bắt buộc. Không thể xác nhận trạng thái hồ sơ.',502,'PREPARATION_RESPONSE_INVALID')
+ if(!value||value.cruiseId!==id||!Number.isSafeInteger(value.cruiseRevision)||typeof value.canAssignCoordinator!=='boolean'||!Array.isArray(value.sections)||value.sections.length!==preparationCodes.length||new Set(value.sections.map(s=>s.sectionCode)).size!==preparationCodes.length||value.sections.some(s=>!preparationCodes.includes(s.sectionCode as typeof preparationCodes[number])||!['CRUISE_MANAGER','SHIP_MANAGER','OPERATIONS_MANAGER'].includes(s.submitterRole)||!Number.isSafeInteger(s.revision)||!preparationStatuses.includes(s.status)||!Array.isArray(s.allowedActions)||s.allowedActions.some(a=>!['SUBMIT','CONFIRM','RETURN','REJECT'].includes(a))||!Array.isArray(s.checkItems)||s.checkItems.some(i=>typeof i.ready!=='boolean'||typeof i.required!=='boolean')))throw new ApiError('Phản hồi hồ sơ chuẩn bị thiếu hoặc sai dữ liệu bắt buộc. Không thể xác nhận trạng thái hồ sơ.',502,'PREPARATION_RESPONSE_INVALID')
  return value
 }
 export const preparationApi={

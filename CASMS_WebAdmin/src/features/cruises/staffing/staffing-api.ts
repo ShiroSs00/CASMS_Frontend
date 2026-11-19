@@ -8,10 +8,12 @@ export type ReviewDetails = {
   ship: { name: string; status: string; cabins: { cabinId: string; number: string; status: string }[] } | null
   areas: { areaId: string; name: string; terminals: Terminal[]; eligibleTerminals: Terminal[]; staffIds: string[] }[]
   terminalOptions: Terminal[]
-  plannedServices: { serviceId: string; name: string; eligibleAreaIds: string[]; placements: { areaId: string; terminalId: string }[] }[]
+  plannedServices: { serviceId: string; name: string; eligibleAreaIds: string[]; placements: { areaId: string; terminalId: string }[];
+    proposal?: { deckName: string; note: string; status: 'PENDING' | 'CONFIRMED' | 'RETURNED' } | null }[]
   activities: { activityId: string; kind: string; name: string; staffIds: string[] }[]
   staff: { userId: string; username: string; role: string }[]
   positionOptions: string[]
+  canReturnToAsm?: boolean
 }
 type Terminal = { terminalId: string; name: string }
 export type StaffingAction = 'HR_SUBMITTED' | 'SHIP_CONFIRMED' | 'PLANNER_CONFIRMED' | 'OPS_APPROVED'
@@ -51,6 +53,8 @@ const planPath = (id: string) => `/cruises/${encodeURIComponent(id)}/staffing-re
 const staffPath = (cruise: string, user: string) => `/cruise/${encodeURIComponent(cruise)}/staff/${encodeURIComponent(user)}`
 export const staffingApi = {
   inbox: (signal: AbortSignal) => apiRequest<StaffingRequest[]>(path+'/inbox', { signal }),
+  cruisesWithoutShipManager: (signal: AbortSignal) =>
+    apiRequest<Pick<StaffingRequest, 'cruiseId' | 'cruiseName' | 'cruiseCode'>[]>(path+'/ship-manager-needed', { signal }),
   detail: (id: string, signal: AbortSignal) => apiRequest<StaffingRequest>(path+'/'+encodeURIComponent(id), { signal }),
   workPlan: (id: string, signal: AbortSignal) => apiRequest<WorkPlan>(`/cruise/${encodeURIComponent(id)}/staff/work-plan`, { signal }),
   candidates: (id: string, kind: WorkPlan['windows'][number]['kind'], resourceId: string, signal: AbortSignal) =>
@@ -107,16 +111,16 @@ export function staffingError(error: unknown) {
 }
 
 export const staffingStatus: Record<string,string> = {
-  PENDING_ASM:'Chờ ASM hoàn tất chương trình', PENDING_SHIP_REVIEW:'Chờ Quản lý tàu chuẩn bị',
-  SHIP_REVIEWED:'Chờ Quản lý lịch trình gửi HR', HR_APPROVED:'Chờ Vận hành duyệt',
-  SENT_TO_HR:'Chờ Nhân sự phân công', HR_SUBMITTED:'Chờ Quản lý tàu xác nhận',
-  SHIP_CONFIRMED:'Chờ Quản lý lịch trình xác nhận', PLANNER_CONFIRMED:'Chờ Vận hành duyệt',
+  PENDING_ASM:'Chờ Quản lý dịch vụ hoàn tất chương trình', PENDING_SHIP_REVIEW:'Chờ Quản lý tàu chuẩn bị',
+  SHIP_REVIEWED:'Chờ Quản lý lịch trình gửi nhân sự', HR_APPROVED:'Chờ Quản lý vận hành duyệt',
+  SENT_TO_HR:'Chờ Quản lý nhân sự phân công', HR_SUBMITTED:'Chờ Quản lý tàu xác nhận',
+  SHIP_CONFIRMED:'Chờ Quản lý lịch trình xác nhận', PLANNER_CONFIRMED:'Chờ Quản lý vận hành duyệt',
   OPS_APPROVED:'Đã duyệt', RETURNED:'Đã trả lại', CANCELLED:'Đã hủy',
 }
 
 export function staffingStatusLabel(request: StaffingRequest) {
   if (request.workflowVersion === 'V2' && request.status === 'HR_SUBMITTED') return 'Chờ Quản lý lịch trình kiểm tra'
-  if (request.shipReviewWorkflow && request.status === 'SHIP_CONFIRMED') return 'Chờ HR duyệt'
+  if (request.shipReviewWorkflow && request.status === 'SHIP_CONFIRMED') return 'Chờ Quản lý nhân sự duyệt'
   return staffingStatus[request.status] ?? 'Trạng thái chưa xác định'
 }
 

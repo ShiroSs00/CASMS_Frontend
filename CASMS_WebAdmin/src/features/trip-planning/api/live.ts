@@ -47,7 +47,6 @@ export const liveGateway: PlanningGateway = {
       const source=await currentVersion(sourceVersionId)
       if(source.tripId!==trip.tripId)throw new PlanningFault('Phiên bản nguồn không thuộc chuyến đi này.',422,'INVALID_INPUT')
       if(source.entries.some(entry=>entry.kind==='SERVING_WINDOW'))throw new PlanningFault('Phiên bản nguồn có khung phục vụ lịch sử chỉ đọc, chưa thể nhân bản. Chọn nội dung trống để tạo bản nháp riêng.',409,'LEGACY_TEMPLATE_CLONE_BLOCKED')
-      if(source.stops.some(stop=>Boolean(stop.visits?.length)))throw new PlanningFault('Chưa thể sao chép nguồn có lượt tham quan: Chức năng tạo phiên bản hiện chưa bảo toàn các lượt này. Có thể chọn nội dung trống để lập bản nháp riêng.',422,'CLIENT_INPUT')
     }
     const saved=versionView(await apiRequest<CurrentVersion>(`/trips/${segment(trip.tripId)}/schedule-versions`,{method:'POST',body:sourceVersionId?{sourceVersionId}:{}}))
     // TripService's create projection omits visits. Read the canonical detail before editing.
