@@ -101,6 +101,6 @@ export function DataTable({ headers, children, label }: { headers: string[]; chi
 export function Loading({ label = 'Đang tải dữ liệu…' }: { label?: string }) {
   return <div className={`${styles.empty} ${styles.loadingState}`} role="status"><span className={styles.spinner} aria-hidden="true" /><strong>{label}</strong><div className={styles.loadingLines} aria-hidden="true"><span /><span /></div></div>
 }
-export function Empty({ title = 'Không có kết quả phù hợp', children }: { title?: string; children?: ReactNode }) {
-  return <div className={styles.empty}><span className={styles.emptyMark} aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4zM4 14h5l2 3h2l2-3h5M8 8h8" /></svg></span><strong>{title}</strong>{children}</div>
+export function Empty({ title = 'Không có kết quả phù hợp', children, className = '' }: { title?: string; children?: ReactNode; className?: string }) {
+  return <div className={`${styles.empty} ${className}`.trim()}><span className={styles.emptyMark} aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4zM4 14h5l2 3h2l2-3h5M8 8h8" /></svg></span><strong>{title}</strong>{children}</div>
 }

@@ -45,7 +45,12 @@ export function PassengerCheckinActions({ passengerId, fullName, bookingStatus, 
     {uncertain&&<Notice title="Cần đối chiếu hồ sơ Check-in" tone="warning">Đọc lại trạng thái hành khách trước khi tiếp tục; chưa gửi lại thao tác.</Notice>}
     {access.canDo('CHECKIN_CREATE')&&canStart&&<Button disabled={busy||uncertain||bookingStatus!=='Confirmed'} onClick={()=>setAction('start')}>Bắt đầu Check-in</Button>}
     {access.canDo('CHECKIN_UPDATE')&&result?.checkinStatus==='InProgress'&&<Button disabled={busy||uncertain||bookingStatus!=='Confirmed'} onClick={()=>setAction('complete')}>Xác nhận hoàn tất kiểm tra</Button>}
-    {action&&<Modal title={action==='start'?'Bắt đầu Check-in':'Hoàn tất kiểm tra'} busy={busy} onClose={()=>setAction(null)}><p>Đối chiếu hành khách, hợp đồng, chứng từ và yêu cầu an toàn tại quầy trước khi xác nhận.</p>{error&&<Notice title="Chưa cập nhật được" tone="error">{error}</Notice>}<Button disabled={busy||uncertain} onClick={()=>void submit()}>Xác nhận</Button></Modal>}
+    {action&&<Modal quiet title={action==='start'?'Bắt đầu Check-in':'Hoàn tất kiểm tra'} description={fullName} busy={busy}
+      onClose={()=>setAction(null)}
+      footer={<><Button tone="secondary" autoWidth data-overlay-dismiss onClick={()=>setAction(null)}>Quay lại</Button><Button autoWidth disabled={uncertain} busy={busy} onClick={()=>void submit()}>Xác nhận</Button></>}>
+      <p>Đối chiếu hành khách, hợp đồng, chứng từ và yêu cầu an toàn tại quầy trước khi xác nhận.</p>
+      {error&&<Notice title="Chưa cập nhật được" tone="error">{error}</Notice>}
+    </Modal>}
   </Panel>
 }
 

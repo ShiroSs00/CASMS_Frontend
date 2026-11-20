@@ -2,8 +2,9 @@ import { useCallback, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
 import { apiRequest, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, DataTable, Empty, Loading, Notice, Panel } from '@/shared/ui'
+import { Button, DataTable, Empty, ListFooter, Loading, Notice, Panel } from '@/shared/ui'
 import { CruisePassengerManifest, type ManifestPassenger } from './index'
+import styles from './DepartureManifestWorkspace.module.css'
 
 type Departure={cruiseId:string;cruiseCode:string;cruiseName:string}
 export function DepartureManifestWorkspace({renderCheckin,renderDeparture}:{renderCheckin?:(person:ManifestPassenger,onChanged:()=>void)=>ReactNode;renderDeparture?:(cruiseId:string)=>ReactNode}) {
@@ -23,9 +24,19 @@ export function DepartureManifestWorkspace({renderCheckin,renderDeparture}:{rend
     {!allowed&&<Notice title="Chưa có quyền xem chuyến khởi hành">{access.status==='loading'?'Đang kiểm tra quyền…':'Cần quyền đọc chuyến khởi hành để tra cứu hành khách theo chuyến.'}</Notice>}
     {!cruiseId&&allowed&&<Panel title="Chọn chuyến khởi hành">
       {query.loading&&<Loading label="Đang tải chuyến khởi hành…"/>}
-      {query.error&&<Notice title="Chưa tải được chuyến" tone="error">{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>}
-      {!query.loading&&!query.error&&query.data&&(query.data.content.length?<><DataTable label="Chuyến khởi hành" headers={['Tên chuyến','Mã chuyến','Thao tác']}>{query.data.content.map(c=><tr key={c.cruiseId}><td>{c.cruiseName}</td><td>{c.cruiseCode}</td><td><Button tone="secondary" onClick={()=>choose(c.cruiseId)}>Xem hành khách</Button></td></tr>)}</DataTable><Button tone="secondary" disabled={page===0} onClick={()=>go(page-1)}>Trang trước</Button><span> Trang {page+1} </span><Button tone="secondary" disabled={page+1>=query.data.totalPages} onClick={()=>go(page+1)}>Trang sau</Button></>:<Empty title="Chưa có chuyến khởi hành"/>)}
+      {query.error&&<Notice title="Chưa tải được chuyến" tone="error">{query.error.message}<Button tone="secondary" autoWidth onClick={query.retry}>Thử lại</Button></Notice>}
+      {!query.loading&&!query.error&&query.data&&<>
+        {query.data.content.length ? <DataTable label="Chuyến khởi hành" headers={['Tên chuyến','Mã chuyến','Thao tác']}>
+          {query.data.content.map(c=><tr key={c.cruiseId}><td>{c.cruiseName}</td><td>{c.cruiseCode}</td><td><Button tone="secondary" autoWidth onClick={()=>choose(c.cruiseId)}>Xem hành khách</Button></td></tr>)}
+        </DataTable> : <Empty title="Chưa có chuyến khởi hành" className={styles.empty}>
+          <Button tone="secondary" autoWidth onClick={query.retry}>Tải lại chuyến</Button>
+        </Empty>}
+        {(page>0 || query.data.totalPages>1) && <ListFooter summary={`Trang ${page+1}${page<query.data.totalPages ? ' / '+query.data.totalPages : ''}`}>
+          <Button tone="secondary" size="compact" autoWidth disabled={page===0} onClick={()=>go(page-1)}>Trang trước</Button>
+          <Button tone="secondary" size="compact" autoWidth disabled={page+1>=query.data.totalPages} onClick={()=>go(page+1)}>Trang sau</Button>
+        </ListFooter>}
+      </>}
     </Panel>}
-    {cruiseId&&allowed&&<><Button tone="secondary" onClick={()=>choose('')}>Quay lại danh sách chuyến</Button><CruisePassengerManifest key={cruiseId} cruiseId={cruiseId} refreshKey={refresh} onSelectPassenger={renderCheckin&&access.canDo('CHECKIN_READ')?person=>setSelection({cruiseId,person}):undefined}/>{selection?.cruiseId===cruiseId&&renderCheckin&&renderCheckin(selection.person,()=>setRefresh(value=>value+1))}{renderDeparture?.(cruiseId)}</>}
+    {cruiseId&&allowed&&<div className={styles.manifest}><Button tone="secondary" autoWidth onClick={()=>choose('')}>Quay lại danh sách chuyến</Button><CruisePassengerManifest key={cruiseId} cruiseId={cruiseId} refreshKey={refresh} onSelectPassenger={renderCheckin&&access.canDo('CHECKIN_READ')?person=>setSelection({cruiseId,person}):undefined}/>{selection?.cruiseId===cruiseId&&renderCheckin&&renderCheckin(selection.person,()=>setRefresh(value=>value+1))}{renderDeparture?.(cruiseId)}</div>}
   </>
 }
