@@ -69,10 +69,11 @@ function CaseActions({ item, onChanged }: { item: CancellationCase; onChanged: (
   </form>
 }
 
-function Cases({ items, onChanged, onInspectBooking }: {
+function Cases({ items, onChanged, onInspectBooking, formatDate = formatRequestedAt }: {
   items: CancellationCase[]
   onChanged: () => void
   onInspectBooking?: (bookingId: string) => void
+  formatDate?: (value: string) => string
 }) {
   if (!items.length) return <p className={styles.actionHint}>Chưa có yêu cầu hủy.</p>
   return <ul className={styles.caseList}>{items.map(item => <li key={item.caseId} className={styles.caseCard}>
@@ -81,7 +82,7 @@ function Cases({ items, onChanged, onInspectBooking }: {
         <Badge label={cancellationStatus[item.status]} tone={statusTones[item.status]} />
         <span>{scenarioLabels[item.scenario] ?? item.scenario}</span>
         <span>·</span>
-        <span>{formatRequestedAt(item.requestedAt)}</span>
+        <span>{formatDate(item.requestedAt)}</span>
       </div>
       {onInspectBooking && <Button tone="secondary" size="compact" autoWidth onClick={() => onInspectBooking(item.bookingId)}>Mở khoản thu đặt chỗ</Button>}
     </div>
@@ -119,8 +120,9 @@ export function CancellationQueue({ issueId, operations = false, onInspectBookin
   </Panel>
 }
 
-export function StaffCancellation({ bookingId, bookingStatus, onChanged, onLegacyAvailable, confirmRequest = false }: {
+export function StaffCancellation({ bookingId, bookingStatus, onChanged, onLegacyAvailable, confirmRequest = false, formatDate }: {
   bookingId: string; bookingStatus: string; onChanged: () => void; onLegacyAvailable: (id: string) => void; confirmRequest?: boolean
+  formatDate?: (value: string) => string
 }) {
   const access = useSessionAccess()
   const allowed = access.status === 'ready' && (access.roles.includes('BOOKING_AGENT') || access.roles.includes('FINANCE_OFFICER'))
@@ -137,6 +139,7 @@ export function StaffCancellation({ bookingId, bookingStatus, onChanged, onLegac
   const lock = useRef(false)
 
   const [reviewRequest, setReviewRequest] = useState(false)
+  const [reasonError, setReasonError] = useState('')
   const pendingStorageKey = confirmRequest ? `ocevie.booking-agent.cancel.v1:${access.userId}:${bookingId}` : null
   const [unknownRequest, setUnknownRequest] = useState(() => {
     try { return Boolean(pendingStorageKey && sessionStorage.getItem(pendingStorageKey)) }
@@ -178,9 +181,20 @@ export function StaffCancellation({ bookingId, bookingStatus, onChanged, onLegac
     {unknownRequest && <Notice title="Cần kiểm tra kết quả yêu cầu hủy" tone="warning">Chưa xác định kết quả yêu cầu trước. Gửi lại đang được khóa để tránh trùng. <Button tone="text" onClick={query.retry}>Tải lại lịch sử yêu cầu hủy</Button></Notice>}
     {query.loading && <Loading label="Đang tải yêu cầu hủy…" />}
     {query.error && <Notice title="Chưa tải được yêu cầu hủy" tone="error"><Button tone="secondary" size="compact" autoWidth onClick={query.retry}>Tải lại</Button></Notice>}
-    {query.data && <Cases items={query.data} onChanged={refresh}/>}
+    {query.data && <Cases items={query.data} onChanged={refresh} formatDate={formatDate}/>}
     {canRequest && bookingStatus !== 'Cancelled' && query.data && !query.data.some(item =>
-      ['PENDING_OPS','PENDING_FINANCE'].includes(item.status)) && <form className={styles.stack} onSubmit={e => { e.preventDefault(); if (confirmRequest) setReviewRequest(true); else void submit() }}>
+      ['PENDING_OPS','PENDING_FINANCE'].includes(item.status)) && <form className={styles.stack} onSubmit={event => {
+        event.preventDefault()
+        if (!confirmRequest) { void submit(); return }
+        if (lock.current || unknownRequest) return
+        if (!reason.trim()) {
+          setReasonError('Nhập lý do yêu cầu hủy đặt chỗ.')
+          event.currentTarget.querySelector('textarea')?.focus()
+          return
+        }
+        setError('')
+        setReviewRequest(true)
+      }}>
       <Field htmlFor={field + '-scenario'} label="Nguồn yêu cầu">
         <select id={field + '-scenario'} value={scenario} onChange={e => setScenario(e.target.value as CancellationCase['scenario'])}>
           <option value="CUSTOMER">Khách hàng</option><option value="COMPANY">Công ty</option>
@@ -190,12 +204,16 @@ export function StaffCancellation({ bookingId, bookingStatus, onChanged, onLegac
       {scenario === 'OPERATIONAL_DISRUPTION' && <Field htmlFor={field + '-issue'} label="ID sự cố của chuyến">
         <input id={field + '-issue'} required value={issueId} onChange={e => setIssueId(e.target.value)}/>
       </Field>}
-      <Field htmlFor={field} label="Lý do yêu cầu hủy"><textarea id={field} required maxLength={1000} value={reason} onChange={e => setReason(e.target.value)}/></Field>
+      <Field htmlFor={field} label="Lý do yêu cầu hủy" error={reasonError}><textarea id={field} required maxLength={1000} value={reason} onChange={event => {
+        setReason(event.target.value); setReasonError('')
+      }}/></Field>
       {error && <Notice title="Chưa gửi được yêu cầu hủy" tone="error">{error}</Notice>}
       <div className={styles.actionFooter}><Button type="submit" autoWidth busy={busy} disabled={unknownRequest}>Gửi yêu cầu hủy</Button></div>
     </form>}
     {confirmRequest && reviewRequest && <Modal title="Gửi yêu cầu hủy đặt chỗ?" busy={busy} onClose={() => setReviewRequest(false)} footer={<><Button tone="secondary" disabled={busy} onClick={() => setReviewRequest(false)}>Quay lại</Button><Button busy={busy} disabled={unknownRequest} onClick={() => void submit()}>Gửi yêu cầu hủy</Button></>}>
-      <p>Yêu cầu sẽ được xem xét theo quy trình hủy và thanh toán. Gửi yêu cầu chưa đồng nghĩa đặt chỗ đã bị hủy; cabin được giải phóng khi việc hủy được duyệt.</p><p>Lý do: {reason}</p>{error && <Notice title="Chưa gửi được yêu cầu hủy" tone="error">{error}</Notice>}
+      <p>Đặt chỗ giữ nguyên trạng thái khi gửi yêu cầu. Cabin được giải phóng sau khi quy trình duyệt hoàn tất.</p>
+      <p><strong>{scenarioLabels[scenario]}</strong></p>
+      <p>Lý do: {reason}</p>{error && <Notice title="Chưa gửi được yêu cầu hủy" tone="error">{error}</Notice>}
     </Modal>}
   </Panel>
 }
