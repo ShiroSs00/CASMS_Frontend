@@ -9,7 +9,7 @@ import { mutationOutcomeUnknown } from '@/shared/lib/mutation-outcome'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { Button, ButtonLink, Field, FormSection, Notice, PageHeader, Panel } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
-import {businessCopy} from '@/shared/i18n/business-copy'
+import {isActivityCurrency} from '../model/activity'
 import { ActivityCatalogEditor } from './ActivityCatalogEditor'
 import { activityApi } from '../api/activity-api'
 import { ActivityFrame, ActivityState } from '../components/ActivityUI'
@@ -53,8 +53,9 @@ function ActivityEditor({ activityId }: { activityId: string }) {
     const controller = new AbortController()
     void activityApi.get(activityId, controller.signal).then(item => {
       if (controller.signal.aborted) return
-      setDraft({ activityCode: item.code, activityName: item.name, cruiseId: item.cruiseId ?? '', description: item.description ?? '', startTime: localTime(item.startTime), endTime: localTime(item.endTime), location: item.location ?? '', capacity: item.capacity, price: item.currencyCode==='USD'?item.price:null, currencyCode: 'USD',deckId:item.deckId??null,cabinId:item.cabinId??null })
-      setBaseline({activityCode:item.code,activityName:item.name,cruiseId:item.cruiseId??'',description:item.description??'',startTime:localTime(item.startTime),endTime:localTime(item.endTime),location:item.location??'',capacity:item.capacity,price:item.currencyCode==='USD'?item.price:null,currencyCode:'USD',deckId:item.deckId??null,cabinId:item.cabinId??null})
+      const savedDraft = { activityCode: item.code, activityName: item.name, cruiseId: item.cruiseId ?? '', description: item.description ?? '', startTime: localTime(item.startTime), endTime: localTime(item.endTime), location: item.location ?? '', capacity: item.capacity, price: item.price ?? null, currencyCode: item.currencyCode ?? 'USD', deckId:item.deckId??null,cabinId:item.cabinId??null }
+      setDraft(savedDraft)
+      setBaseline(savedDraft)
       setSavedCabin(item.cabinId?{id:item.cabinId,name:item.cabinNumber??null}:null)
       setEditable(item.status === 'PLANNED' && item.cruiseId !== null); setLoadedId(item.id); setError('')
     }).catch((reason: unknown) => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Không tải được hoạt động.') })
@@ -98,7 +99,13 @@ function ActivityEditor({ activityId }: { activityId: string }) {
 
       </FormSection><FormSection title="Thời gian và sức chứa" ><p>Giờ tàu: Việt Nam (Asia/Ho_Chi_Minh).</p>
       {(['startTime', 'endTime'] as const).map(key => <Field key={key} htmlFor={'activity-' + key} label={key === 'startTime' ? 'Bắt đầu *' : 'Kết thúc *'} error={errors[key]}><input {...input(key)} type="datetime-local" value={draft[key]} onChange={event => update(key, event.target.value)} /></Field>)}
-      {(['capacity', 'price'] as const).map(key => <Field key={key} htmlFor={'activity-' + key} label={key === 'capacity' ? 'Sức chứa *' : businessCopy('program.field.priceUsd')} error={errors[key]}><input {...input(key)} type="number" min={key === 'capacity' ? 1 : 0} step={key === 'capacity' ? 1 : '0.01'} value={draft[key] === null || Number.isNaN(draft[key]) ? '' : draft[key]} onChange={event => update(key, event.target.value === '' ? key === 'price' ? null : NaN : Number(event.target.value))} /></Field>)}
+      {(['capacity', 'price'] as const).map(key => <Field key={key} htmlFor={'activity-' + key} label={key === 'capacity' ? 'Sức chứa *' : 'Giá tham gia'} error={errors[key]}><input {...input(key)} type="number" min={key === 'capacity' ? 1 : 0} step={key === 'capacity' ? 1 : 'any'} value={draft[key] === null || Number.isNaN(draft[key]) ? '' : draft[key]} onChange={event => update(key, event.target.value === '' ? key === 'price' ? null : NaN : Number(event.target.value))} /></Field>)}
+      <Field htmlFor="activity-currencyCode" label="Đơn vị tiền tệ" error={errors.currencyCode}>
+        <select {...input('currencyCode')} value={draft.currencyCode} onChange={event => update('currencyCode', event.target.value)}>
+          {!isActivityCurrency(draft.currencyCode) && <option value={draft.currencyCode}>{draft.currencyCode}</option>}
+          <option value="VND">VND · Đồng Việt Nam</option><option value="USD">USD · Đô la Mỹ</option>
+        </select>
+      </Field>
       </FormSection><FormSection title="Nội dung giới thiệu" >
       <Field htmlFor="activity-description" label="Mô tả" error={errors.description}><textarea {...input('description')} maxLength={1000} value={draft.description} onChange={event => update('description', event.target.value)} /></Field>
       </FormSection>

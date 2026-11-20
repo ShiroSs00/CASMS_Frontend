@@ -6,6 +6,7 @@ import { mutationOutcomeUnknown } from '@/shared/lib/mutation-outcome'
 import { Button, ButtonLink, EditorLayout, Field, FormErrorSummary, FormSection, Notice, PageHeader, Panel, useUnsavedFormGuard } from '@/shared/ui'
 import { activityApi, type ActivityCatalogEntry } from '../api/activity-api'
 import { ActivityFrame } from '../components/ActivityUI'
+import { isActivityCurrency } from '../model/activity'
 import styles from '../components/Activities.module.css'
 
 const categories = {
@@ -19,7 +20,7 @@ export function ActivityCatalogEditor({ initial }: { initial?: ActivityCatalogEn
   const access = useSessionAccess(), navigate = useNavigate()
   const [draft, setDraft] = useState({
     activityName: initial?.name ?? '', description: initial?.description ?? '', category: initial?.category ?? '',
-    capacity: initial?.capacity?.toString() ?? '', price: initial?.currencyCode === 'USD' ? initial.price?.toString() ?? '' : '',
+    capacity: initial?.capacity?.toString() ?? '', price: initial?.price?.toString() ?? '', currencyCode: initial?.currencyCode ?? 'USD',
   })
   const [baseline] = useState(draft)
   const lock = useRef(false)
@@ -37,10 +38,12 @@ export function ActivityCatalogEditor({ initial }: { initial?: ActivityCatalogEn
     const invalid: Record<string, string> = {}
     if (!draft.activityName.trim()) invalid.activityName = 'Nhập tên hoạt động.'
     if (!Number.isSafeInteger(capacity) || capacity < 1 || capacity > 2147483647) invalid.capacity = 'Nhập sức chứa là số nguyên dương, tối đa 2.147.483.647.'
-    if (price != null && (!Number.isFinite(price) || price < 0)) invalid.price = 'Nhập giá USD là số không âm.'
+    if (price != null && (!Number.isFinite(price) || price < 0)) invalid.price = 'Nhập giá là số không âm.'
+    const currency = draft.currencyCode
+    if (!isActivityCurrency(currency)) invalid.currencyCode = 'Chọn VND hoặc USD.'
     setErrors(invalid)
     setError('')
-    if (Object.keys(invalid).length) {
+    if (Object.keys(invalid).length || !isActivityCurrency(currency)) {
       requestAnimationFrame(() => form.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus())
       return
     }
@@ -51,14 +54,14 @@ export function ActivityCatalogEditor({ initial }: { initial?: ActivityCatalogEn
     try {
       const saved = await activityApi.saveCatalog({
         activityName: draft.activityName.trim(), description: draft.description.trim() || null,
-        category: draft.category || null, capacity, price, currencyCode: 'USD',
+        category: draft.category || null, capacity, price, currencyCode: currency,
       }, initial?.id)
       savedId = saved.id
       const actual = await activityApi.read(savedId)
       if (actual.catalogEntry !== true || (initial && actual.id !== initial.id)
           || actual.name !== draft.activityName.trim() || actual.capacity !== capacity
           || (actual.description ?? '') !== draft.description.trim() || (actual.category ?? '') !== draft.category
-          || actual.price !== (price ?? 0) || actual.currencyCode !== 'USD') {
+          || actual.price !== (price ?? 0) || actual.currencyCode !== currency) {
         throw new ApiError('Phản hồi chưa xác nhận đúng hoạt động đã lưu.', 502)
       }
       guard.allowLeave()
@@ -87,7 +90,13 @@ export function ActivityCatalogEditor({ initial }: { initial?: ActivityCatalogEn
         </FormSection>
         <FormSection title="Giá và sức chứa">
         <Field htmlFor="catalog-activity-capacity" label="Sức chứa *" error={errors.capacity}><input id="catalog-activity-capacity" type="number" min={1} max={2147483647} step={1} required value={draft.capacity} onChange={e => update('capacity', e.target.value)} /></Field>
-        <Field htmlFor="catalog-activity-price" label="Giá" error={errors.price}><input id="catalog-activity-price" type="number" min={0} step="any" value={draft.price} onChange={e => update('price', e.target.value)} /></Field>
+        <Field htmlFor="catalog-activity-price" label="Giá tham chiếu" error={errors.price}><input id="catalog-activity-price" type="number" min={0} step="any" value={draft.price} onChange={e => update('price', e.target.value)} /></Field>
+        <Field htmlFor="catalog-activity-currency" label="Đơn vị tiền tệ" error={errors.currencyCode}>
+          <select value={draft.currencyCode} onChange={e => update('currencyCode', e.target.value)}>
+            {!isActivityCurrency(draft.currencyCode) && <option value={draft.currencyCode}>{draft.currencyCode}</option>}
+            <option value="VND">VND · Đồng Việt Nam</option><option value="USD">USD · Đô la Mỹ</option>
+          </select>
+        </Field>
         </FormSection>
         <FormSection title="Nội dung giới thiệu">
         <Field htmlFor="catalog-activity-description" label="Mô tả"><textarea id="catalog-activity-description" maxLength={1000} value={draft.description} onChange={e => update('description', e.target.value)} /></Field>

@@ -46,7 +46,8 @@ export function ActivityTimeFields({ departure, arrival }: CruiseTimeRange) {
       <strong>Trong lịch chuyến · Giờ Việt Nam</strong>
       {' '}{journeyTime(departure)} – {journeyTime(arrival)}
     </p>
-    {!sameDay ? <>
+    <div className={styles.activityTimePair}>
+    {!sameDay ?
       <Field htmlFor="activity-start-day" label="Ngày bắt đầu">
         <input id="activity-start-day" name="startDay" type="date" min={firstDay} max={lastDay}
           value={startDay} onChange={event => {
@@ -54,16 +55,16 @@ export function ActivityTimeFields({ departure, arrival }: CruiseTimeRange) {
             setStartDay(nextDay)
             if (nextDay > endDay) setEndDay(nextDay)
           }} required />
-      </Field>
+      </Field> : <input type="hidden" name="startDay" value={firstDay} />}
+    <Field htmlFor="program-start" label="Giờ bắt đầu *"><input id="program-start" name="start" type="time" required /></Field>
+    </div>
+    <div className={styles.activityTimePair}>
+    {!sameDay ?
       <Field htmlFor="activity-end-day" label="Ngày kết thúc">
         <input id="activity-end-day" name="endDay" type="date" min={startDay || firstDay} max={lastDay}
           value={endDay} onChange={event => setEndDay(event.target.value)} required />
-      </Field>
-    </> : <>
-      <input type="hidden" name="startDay" value={firstDay} />
-      <input type="hidden" name="endDay" value={firstDay} />
-    </>}
-    <Field htmlFor="program-start" label="Giờ bắt đầu"><input id="program-start" name="start" type="time" required /></Field>
-    <Field htmlFor="program-end" label="Giờ kết thúc"><input id="program-end" name="end" type="time" required /></Field>
+      </Field> : <input type="hidden" name="endDay" value={firstDay} />}
+    <Field htmlFor="program-end" label="Giờ kết thúc *"><input id="program-end" name="end" type="time" required /></Field>
+    </div>
   </>
 }
