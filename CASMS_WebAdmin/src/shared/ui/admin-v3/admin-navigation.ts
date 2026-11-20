@@ -62,7 +62,7 @@ export const adminWorkspaces: readonly AdminWorkspace[] = [
     responsibility:'Hoạt động · Dịch vụ · Tour trên bờ', permissions:['ACTIVITY_READ','SERVICE_READ','EXCURSION_READ'],
     tools:['activities','services','products','service-packages','cruise-package-templates','service-requests','package-assignments','suppliers','shore-excursions','tour-groups'],
     steps:['Chuẩn bị hoạt động trên tàu và tour ghé cảng.','Cấu hình dịch vụ, sản phẩm, gói và quyền lợi.','Quản lý đăng ký, phân nhóm và điểm danh.','Theo dõi yêu cầu phục vụ và trạng thái hoạt động.'],
-    action:{label:'Tạo hoạt động dùng chung',to:'/admin/activities/new',permission:'ACTIVITY_CREATE'} },
+    action:{label:'Tạo hoạt động mẫu',to:'/admin/activities/new',permission:'ACTIVITY_CREATE'} },
 ]
 export const adminNavigation = [{label:'CÔNG VIỆC VÀ TRA CỨU',items:tools}]
 export function canOpenAdminItem(item: AdminNavigationItem, access: AdminAccess) {
@@ -227,7 +227,11 @@ export function roleNavigationGroups(roles: readonly string[], access: AdminAcce
   if(primaryStaffRole(access.roles ?? roles)==='SHIP_MANAGER') return roleNavigationItems(roles,access).map(item=>({id:item.to!.replace('/admin/',''),label:item.label,items:[item],direct:true}))
   if(primaryStaffRole(access.roles ?? roles)==='ACTIVITY_SERVICE_MANAGER') {
     const items=roleNavigationItems(roles,access).map(item =>
-      item.to==='/admin/cruises' ? {...item,label:'Gói và dịch vụ theo chuyến'} : item)
+      item.to==='/admin/cruises'
+        ? {...item,label:'Gói và dịch vụ theo chuyến'}
+        : item.to==='/admin/preparation-requests'
+          ? {...item,label:'Yêu cầu chuẩn bị chương trình'}
+          : item)
     const groups=[
       {id:'preparation',label:'Chuẩn bị cho chuyến',sections:['preparation-requests','cruises','activities','shore-excursions']},
       {id:'catalog',label:'Nội dung và mẫu gói',sections:['cruise-package-templates','services','products']},

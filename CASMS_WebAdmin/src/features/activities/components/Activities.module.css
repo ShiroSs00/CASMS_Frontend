@@ -30,6 +30,18 @@ form .actions { justify-content:flex-end; padding-top:16px; border-top:1px solid
 .recordName { display:block; color:var(--brand-navy); font-weight:600; line-height:1.6; }
 .recordCode { display:block; color:var(--text-secondary); font-size:12px; margin-top:4px; font-weight:400; }
 
+.modeBanner { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-3, 12px); padding:var(--space-3, 12px) var(--space-4, 16px); margin-bottom:var(--space-4, 16px); background:var(--surface-subtle, #f4f7f8); border:1px solid var(--ui-border, #d5e0e4); border-left:3px solid var(--fg-2, #0e6b7a); border-radius:var(--radius-sm, 6px); }
+.modeBannerText { display:grid; gap:2px; min-width:0; }
+.modeBannerText strong { font-size:var(--text-sm, 13px); color:var(--ui-ink, #0b2a4a); }
+.modeBannerText span { font-size:var(--text-sm, 13px); color:var(--ui-muted, #506777); line-height:1.45; }
+.rowActions { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-2, 8px); }
+.cruisePicker { display:grid; gap:var(--space-3, 12px); }
+.cruisePickerList { list-style:none; margin:0; padding:0; display:grid; gap:var(--space-2, 8px); max-height:22rem; overflow-y:auto; }
+.cruisePickerItem { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-3, 12px); padding:var(--space-3, 12px) var(--space-4, 16px); border:1px solid var(--ui-border, #d5e0e4); border-radius:var(--radius-sm, 6px); background:var(--ui-surface, #fff); }
+.cruisePickerMeta { display:grid; gap:2px; min-width:0; }
+.cruisePickerMeta strong { font-size:var(--text-base, 14px); color:var(--ui-ink, #0b2a4a); }
+.cruisePickerMeta span { font-size:var(--text-xs, 12px); color:var(--ui-muted, #506777); }
+
 .detailLayout { display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,320px); gap:24px; align-items:start; }
 .actionRail { min-width:0; position:sticky; top:var(--workspace-sticky-top,24px); }
 .actionRail:empty { display:none; }
