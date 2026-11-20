@@ -9,11 +9,12 @@ import { realBookingApi } from '../api/real-booking-api'
 import { BookingReadState, RealBookingFrame } from '../components/RealBookingUI'
 import { BookingInstallments } from '../components/BookingInstallments'
 import { PaymentLedger } from '../components/PaymentLedger'
+import { SepayReconciliationPanel } from '../components/SepayReconciliationPanel'
 import { bookingMoney } from '../model/booking-presentation'
 import { bookingStatusName, bookingWhen } from '../model/real-booking-view'
 import styles from '../components/LiveBooking.module.css'
 
-type WorkspaceTab = 'payments' | 'refunds' | 'rate'
+type WorkspaceTab = 'payments' | 'reconciliation' | 'refunds' | 'rate'
 
 const bookingStatusTone: Record<string, 'warning' | 'success' | 'neutral'> = {
   Draft: 'warning',
@@ -36,6 +37,7 @@ function FinanceWorkspace() {
 
   const tabs: { id: WorkspaceTab; label: string }[] = [
     ...(canBookings || canPayments ? [{ id: 'payments' as const, label: 'Thu tiền & đặt chỗ' }] : []),
+    ...(canPayments ? [{ id: 'reconciliation' as const, label: 'Đối soát VietQR / SePay' }] : []),
     ...(canRefunds ? [{ id: 'refunds' as const, label: 'Hủy chỗ & hoàn tiền' }] : []),
     ...(canRate ? [{ id: 'rate' as const, label: 'Tỷ giá USD tham khảo' }] : []),
   ]
@@ -165,7 +167,14 @@ function FinanceWorkspace() {
 
           <div className={styles.financeDetailGrid}>
             <div className={styles.financeDetailMain}>
-              <PaymentLedger key={selected.id} bookingId={selected.id} currency={activeCurrency} onChanged={() => { detail.retry(); list.retry() }} />
+              <PaymentLedger
+                key={selected.id}
+                bookingId={selected.id}
+                currency={activeCurrency}
+                bookingTotalPaid={detail.data?.totalPaidAmount}
+                bookingOutstanding={detail.data?.outstandingBalance}
+                onChanged={() => { detail.retry(); list.retry() }}
+              />
               <RefundHistory key={selected.id + '-refunds'} bookingId={selected.id} />
             </div>
             {canBookings && <div className={styles.financeDetailSide}>
@@ -219,6 +228,32 @@ function FinanceWorkspace() {
             </div>
           </>}
         </Panel>}
+      </div>}
+
+      {canPayments && activeTab === 'reconciliation' && <div
+        id={`${baseId}-panel-reconciliation`}
+        role={tabs.length > 1 ? 'tabpanel' : undefined}
+        aria-labelledby={tabs.length > 1 ? `${baseId}-tab-reconciliation` : undefined}
+        className={styles.financeTabPanel}
+      >
+        <SepayReconciliationPanel
+          onInspectBooking={targetId => {
+            const known = list.data?.content.find(row => row.bookingId.toLowerCase() === targetId.toLowerCase())
+            selectBooking({
+              id: targetId,
+              reference: known?.bookingReference ?? 'Đặt chỗ từ đối soát SePay',
+              currency: known?.currency ?? '',
+              cruiseName: known?.cruiseName,
+              status: known?.bookingStatus,
+              fareAmount: known?.agreedFareAmount,
+            })
+            setBookingId(targetId)
+          }}
+          onMutated={() => {
+            detail.retry()
+            list.retry()
+          }}
+        />
       </div>}
 
       {canRefunds && activeTab === 'refunds' && <div

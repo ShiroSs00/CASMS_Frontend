@@ -1,0 +1,11 @@
+.page { max-width: 1120px; margin: 0 auto; padding: 28px 20px 64px; display: grid; gap: 24px; }
+.topline { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.topline a { text-decoration: underline; text-underline-offset: 4px; color: var(--brand-navy); }
+.helper { color: var(--text-secondary); font-size: 14px; line-height: 1.65; margin: 0; }
+.grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.85fr); gap: 28px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.fields { border: 0; margin: 0; padding: 0; display: grid; gap: 18px; min-width: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.help { padding: 24px; border: 1px solid #d5dfdc; border-top: 3px solid var(--brand-gold); border-radius: 10px; background: #f8faf8; display: grid; gap: 12px; }
+.help h2 { margin: 0; font-size: 20px; color: var(--brand-navy); }
+.help p { margin: 0; line-height: 1.65; }

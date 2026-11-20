@@ -1,4 +1,10 @@
 [
+  {"method": "GET", "path": "/payment/sepay/reconciliation", "mode": "ANY", "permissions": ["PAYMENT_REPORT", "PAYMENT_PROCESS"], "roles": ["FINANCE_OFFICER"]},
+  {"method": "GET", "path": "/payment/sepay/reconciliation/{transactionId}", "mode": "ANY", "permissions": ["PAYMENT_REPORT", "PAYMENT_PROCESS"], "roles": ["FINANCE_OFFICER"]},
+  {"method": "POST", "path": "/payment/sepay/reconciliation/{transactionId}/resolve", "mode": "ALL", "permissions": ["PAYMENT_PROCESS"], "roles": ["FINANCE_OFFICER"]},
+  {"method": "POST", "path": "/payment/sepay/reconciliation/{transactionId}/retry", "mode": "ALL", "permissions": ["PAYMENT_PROCESS"], "roles": ["FINANCE_OFFICER"]},
+  {"method": "GET", "path": "/payment/sepay/options/{bookingId}", "mode": "ANY", "permissions": ["PAYMENT_REPORT", "PAYMENT_PROCESS"], "roles": ["FINANCE_OFFICER"]},
+  {"method": "GET", "path": "/payment/sepay/status/{paymentId}", "mode": "ANY", "permissions": ["PAYMENT_REPORT", "PAYMENT_PROCESS"], "roles": ["FINANCE_OFFICER"]},
   {
     "method": "GET",
     "path": "/ships/{shipId}/archive-eligibility",

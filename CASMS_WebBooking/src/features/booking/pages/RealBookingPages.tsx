@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, Link } from 'react-router';
 import { ApiError } from '@/shared/api';
-import { Button, Field, Notice, PageHeader, Panel } from '@/shared/ui';
+import { useSessionAccess } from '@/shared/auth';
+import { Button, ButtonLink, Field, Notice, PageHeader, Panel } from '@/shared/ui';
 import { realBookingApi, type BookingDetail } from '../api/real-booking-api';
 import { RealBookingFrame } from '../components/RealBookingUI';
 import { BookingPhotoNote } from '../components/BookingExperience';
+import { BookingPaymentActionCard } from '../components/BookingPaymentActionCard';
 import { CustomerCancellation } from '../components/CustomerCancellation';
 import { PublicBookingRecord } from '../components/PublicBookingRecord';
 import { bookingLookupFailure, isBookingLookupMismatch } from '../model/booking-feedback';
@@ -12,6 +14,8 @@ import styles from '../components/LiveBooking.module.css';
 export { PublicBookingRecord as BookingRecord } from '../components/PublicBookingRecord';
 export function BookingLookupPage() {
     const [params] = useSearchParams();
+    const access = useSessionAccess();
+    const isPassenger = access.status === 'ready' && access.roles.includes('PASSENGER');
     const [reference, setReference] = useState(() => params.get('reference') ?? ''), [email, setEmail] = useState(''), [phone, setPhone] = useState(''), [data, setData] = useState<BookingDetail | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false), lock = useRef(false);
     const requestRef = useRef<AbortController | null>(null);
     const [fields, setFields] = useState<{ reference?: string; contact?: string; email?: string }>({});
@@ -71,8 +75,14 @@ export function BookingLookupPage() {
         setMismatch('');
     }
     const contactDescription = ['lookup-contact-help', fields.contact && 'lookup-contact-error', mismatch && 'lookup-mismatch'].filter(Boolean).join(' ');
+    const canShowGuestPayPrompt =
+        !isPassenger
+        && data != null
+        && data.bookingStatus !== 'Cancelled'
+        && data.currency === 'VND'
+        && (data.outstandingBalance == null || data.outstandingBalance > 0);
     return <RealBookingFrame><div className={styles.stack}>
-    <div className={styles.journeyTopline}><Link to="/cruises">← Khám phá hành trình</Link><p className={styles.helper}>Không cần đăng nhập</p></div>
+    <div className={styles.journeyTopline}><Link to="/cruises">← Khám phá hành trình</Link><p className={styles.helper}>Không cần đăng nhập để tra cứu</p></div>
     <PageHeader title="Tra cứu đặt chỗ" breadcrumb="HÀNH TRÌNH / ĐẶT CHỖ"/>
     <div className={styles.lookupGrid}><Panel title="Thông tin tra cứu"><form noValidate aria-busy={busy} onSubmit={event => { event.preventDefault(); void lookup(); }}><fieldset disabled={busy} className={styles.draftFields}>
       <Field htmlFor="lookup-reference" label="Mã đặt chỗ" hint="Mã được hiển thị sau khi hệ thống tiếp nhận đặt chỗ." error={fields.reference}><input ref={referenceInput} id="lookup-reference" value={reference} autoComplete="off" spellCheck={false} aria-required="true" aria-invalid={Boolean(mismatch)} aria-describedby={mismatch ? 'lookup-mismatch' : undefined} onChange={event => { setReference(event.target.value); setFields(current => ({ ...current, reference: undefined })); clearResult(); }}/></Field>
@@ -85,7 +95,18 @@ export function BookingLookupPage() {
       {mismatch && <div id="lookup-mismatch"><Notice title="Kiểm tra thông tin tra cứu" tone="error">{mismatch}</Notice></div>}
       <Button type="submit" disabled={busy}>{busy ? 'Đang tra cứu…' : 'Tra cứu'}</Button>
     </fieldset></form>{error && <div id="lookup-error-summary" ref={errorSummary} tabIndex={-1} role="region" aria-label="Không tra cứu được"><Notice title="Không tra cứu được" tone="error">{error}</Notice></div>}</Panel>
-    <aside className={styles.lookupHelp}><BookingPhotoNote /><h2>Bạn cần chuẩn bị gì?</h2><p>Mã đặt chỗ và thông tin liên hệ đã dùng khi đặt. Kiểm tra lại ký tự và thông tin người đại diện nếu chưa tìm thấy.</p><p className={styles.helper}>Tra cứu chỉ hiển thị dữ liệu được hệ thống trả về; không tự xác nhận đặt chỗ hoặc thanh toán.</p></aside></div>
-    {data && <section className={styles.stack} aria-label="Kết quả tra cứu"><h2 ref={resultHeading} tabIndex={-1}>Kết quả tra cứu · {data.bookingReference}</h2><PublicBookingRecord booking={data}/><CustomerCancellation key={data.bookingId} bookingId={data.bookingId} bookingStatus={data.bookingStatus}/></section>}
+    <aside className={styles.lookupHelp}><BookingPhotoNote /><h2>Bạn cần chuẩn bị gì?</h2><p>Mã đặt chỗ và thông tin liên hệ đã dùng khi đặt. Kiểm tra lại ký tự và thông tin người đại diện nếu chưa tìm thấy.</p><p className={styles.helper}>Tra cứu chỉ hiển thị dữ liệu được hệ thống trả về; để tạo mã VietQR thanh toán trực tuyến, vui lòng đăng nhập bằng tài khoản hành khách của đặt chỗ.</p></aside></div>
+    {data && <section className={styles.stack} aria-label="Kết quả tra cứu"><h2 ref={resultHeading} tabIndex={-1}>Kết quả tra cứu · {data.bookingReference}</h2><PublicBookingRecord booking={data} paymentAction={
+      isPassenger
+        ? <BookingPaymentActionCard booking={data} onBookingReload={() => void lookup()} />
+        : canShowGuestPayPrompt
+          ? <Notice title="Đăng nhập để thanh toán trực tuyến qua VietQR" tone="info">
+              <p>Để đảm bảo an toàn tài khoản, chức năng tạo mã VietQR và theo dõi trạng thái chuyển khoản chỉ mở sau khi đăng nhập tài khoản hành khách của đặt chỗ này.</p>
+              <div className={styles.actions}>
+                <ButtonLink autoWidth to={`/login?next=${encodeURIComponent(`/my-bookings/${data.bookingId}`)}&reference=${encodeURIComponent(data.bookingReference)}`}>Đăng nhập để thanh toán VietQR</ButtonLink>
+              </div>
+            </Notice>
+          : null
+    }/><CustomerCancellation key={data.bookingId} bookingId={data.bookingId} bookingStatus={data.bookingStatus}/></section>}
   </div></RealBookingFrame>;
 }
