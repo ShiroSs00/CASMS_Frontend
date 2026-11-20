@@ -10,13 +10,13 @@ const contractStatusMap: Record<string, { label: string; tone: 'warning' | 'succ
   Cancelled: { label: 'Đã hủy', tone: 'error' },
 }
 
-export function BookingInstallments({ booking }: { booking: BookingDetail }) {
+export function BookingInstallments({ booking, showContract = true }: { booking: BookingDetail; showContract?: boolean }) {
   const installments = [...booking.installments].sort((a,b)=>a.sequenceNo-b.sequenceNo)
   const contractMeta = booking.contractStatus ? contractStatusMap[booking.contractStatus] : undefined
-  return <>{booking.bookingStatus === 'Draft' && booking.contractStatus !== 'Accepted' && <Notice title="Chưa thể xác nhận đặt chỗ" tone="warning">Hợp đồng chưa được ghi nhận chấp nhận. Bộ phận được phân quyền cần đối chiếu bản ký và ghi nhận hợp đồng trước khi xác nhận đặt chỗ.</Notice>}
+  return <>{showContract && booking.bookingStatus === 'Draft' && booking.contractStatus !== 'Accepted' && <Notice title="Chưa thể xác nhận đặt chỗ" tone="warning">Hợp đồng chưa được ghi nhận chấp nhận. Bộ phận được phân quyền cần đối chiếu bản ký và ghi nhận hợp đồng trước khi xác nhận đặt chỗ.</Notice>}
     <p className={styles.helper}>Các kỳ dưới đây là nghĩa vụ theo lịch hợp đồng, chưa xác nhận đã thanh toán. Đặt chỗ được xác nhận không đồng nghĩa đã thanh toán đầy đủ.</p>
     <dl className={styles.summary}>
-      <div><dt>Hợp đồng</dt><dd><span className={styles.monoCode}>{booking.contractReference ?? 'Chưa có'}</span> {contractMeta ? <Badge label={contractMeta.label} tone={contractMeta.tone} /> : <Badge label={booking.contractStatus ?? 'Chưa xác định'} tone="neutral" />}</dd></div>
+      {showContract && <div><dt>Hợp đồng</dt><dd><span className={styles.monoCode}>{booking.contractReference ?? 'Chưa có'}</span> {contractMeta ? <Badge label={contractMeta.label} tone={contractMeta.tone} /> : <Badge label={booking.contractStatus ?? 'Chưa xác định'} tone="neutral" />}</dd></div>}
       <div><dt>Hình thức thanh toán đã chọn</dt><dd>{({ FULL: 'Thanh toán một lần', DEPOSIT: 'Đặt cọc và thanh toán phần còn lại', STAGES: 'Thanh toán theo đợt' } as Record<string, string>)[booking.paymentPlan ?? ''] ?? 'Chưa xác định'}</dd></div>
     </dl>
     {!installments.length && <p className={styles.helper}>Chưa có lịch thanh toán. Liên hệ bộ phận đặt chỗ để được hỗ trợ.</p>}
