@@ -3,7 +3,7 @@ import { ApiError, apiRequestRaw } from '@/shared/api'
 import {decodeEntitlement} from '@/domain/cruise-package'
 import { decodeActivityCatalogEntry, readActivityCatalog, unwrapActivityResponse } from '@/domain/activity-catalog'
 export type { ActivityCatalogEntry } from '@/domain/activity-catalog'
-import type { Activity, ActivityDraft, Availability, CruiseOption, Participation, Registration, ScheduleCheck } from '../model/activity'
+import type { Activity, ActivityCurrency, ActivityDraft, Availability, CruiseOption, Participation, Registration, ScheduleCheck } from '../model/activity'
 
 function record(value: unknown, status: number): Activity {
   const dto = unwrapActivityResponse(value, status)
@@ -15,7 +15,7 @@ function record(value: unknown, status: number): Activity {
   // Jackson may omit null fields. Normalize only the nullable Cruise association.
   return { ...dto, cruiseId: 'cruiseId' in dto ? dto.cruiseId : null } as Activity
 }
-export type ActivityCatalogDraft = { activityName: string; description: string | null; category: string | null; capacity: number; price: number | null; currencyCode: 'USD' }
+export type ActivityCatalogDraft = { activityName: string; description: string | null; category: string | null; capacity: number; price: number | null; currencyCode: ActivityCurrency }
 function list<T>(value: unknown, status: number): T[] {
   const dto = unwrapActivityResponse(value, status)
   if (!Array.isArray(dto)) throw new ApiError('Danh sách hoạt động không đúng định dạng.', status)

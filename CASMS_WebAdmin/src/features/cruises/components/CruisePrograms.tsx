@@ -166,7 +166,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
     const activity=decodeActivities(rows as ScopedActivity[],cruiseId).find(row=>row.id===id)
     const plan=await readPlan()
     if(!activity||activity.sourceActivityId!==sourceId||activity.location!==body.location
-      ||(activity.deckId??null)!==body.deckId||(activity.cabinId??null)!==body.cabinId
+      ||(activity.deckId??null)!==(body.deckId??null)||(activity.cabinId??null)!==(body.cabinId??null)
       ||Date.parse(activity.startTime)!==Date.parse(instant('start'))||Date.parse(activity.endTime)!==Date.parse(instant('end'))
       ||activity.capacity!==(capacity??source?.capacity)||plan.windows.expectedRevision<=data.plan.windows.expectedRevision)
      throw new ApiError('Chưa đối chiếu được hoạt động nguồn đã lưu.',502)
@@ -285,20 +285,24 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
     </form>
     {error&&<Notice title="Chưa lưu được người phụ trách" tone="error">{error}</Notice>}
    </Modal>}
-   {creating&&canCreate&&<Modal wide variant={kind==='activities'?'drawer':'modal'} busy={busy} title={'Thêm '+titles[kind].toLocaleLowerCase('vi')} onClose={()=>setCreating(false)} footer={<><Button tone="secondary" disabled={busy} data-overlay-dismiss onClick={()=>setCreating(false)}>Hủy</Button><Button type="submit" form="cruise-program-create" disabled={busy||uncertain||fixedActivity&&!source}>{busy?'Đang lưu…':kind==='activities'?'Thêm hoạt động':businessCopy('program.action.saveDraft')}</Button></>}>
+   {creating&&canCreate&&<Modal wide quiet={kind==='activities'} variant={kind==='activities'?'drawer':'modal'} busy={busy} title={'Thêm '+titles[kind].toLocaleLowerCase('vi')} onClose={()=>setCreating(false)} footer={<><Button tone="secondary" disabled={busy} data-overlay-dismiss onClick={()=>setCreating(false)}>Hủy</Button><Button type="submit" form="cruise-program-create" disabled={busy||uncertain||fixedActivity&&!source}>{busy?'Đang lưu…':kind==='activities'?'Thêm hoạt động':businessCopy('program.action.saveDraft')}</Button></>}>
    <form id="cruise-program-create" className={styles.modalForm} key={kind} onSubmit={create}><fieldset disabled={busy||uncertain}>
-    {kind==='activities'&&<Field htmlFor="program-activity-source" label="Nguồn hoạt động (Kho mẫu dùng chung)" hint={fixedActivity?'Chuyến lịch trình cố định chọn từ Kho hoạt động mẫu rồi gán giờ và khu vực trên tàu.':'Chọn mẫu có sẵn từ Kho hoạt động mẫu để điền nhanh, hoặc để trống để nhập hoạt động riêng cho chuyến này.'}>
-      <select id="program-activity-source" value={sourceId} onChange={e=>setSourceId(e.target.value)} disabled={catalog.loading||Boolean(catalog.error)}>
+    {kind==='activities'&&<div className={styles.activityFull}>
+    <Field htmlFor="program-activity-source" label={fixedActivity?'Hoạt động mẫu *':'Hoạt động mẫu'} hint={!fixedActivity?'Có thể chọn mẫu hoặc nhập hoạt động riêng.':undefined}>
+      <select id="program-activity-source" value={sourceId} required={fixedActivity} onChange={e=>setSourceId(e.target.value)} disabled={catalog.loading||Boolean(catalog.error)}>
         <option value="">{fixedActivity?"Chọn hoạt động từ Kho mẫu":"Tự nhập hoạt động riêng cho chuyến này"}</option>
         {catalog.data?.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
       </select>
-      {catalog.loading&&<p role="status">Đang tải kho hoạt động mẫu…</p>}
-      {catalog.error&&<Button tone="secondary" onClick={catalog.retry}>Tải lại kho mẫu</Button>}
-    </Field>}
+    </Field>
+    {catalog.loading&&<p className={styles.activitySourcePrice} role="status">Đang tải kho hoạt động mẫu…</p>}
+    {catalog.error&&<Button tone="secondary" autoWidth onClick={catalog.retry}>Tải lại kho mẫu</Button>}
+    {source&&<p className={styles.activitySourcePrice}>Giá từ mẫu: <strong>{source.price == null ? 'Chưa cấu hình' :
+      new Intl.NumberFormat('vi-VN', {maximumFractionDigits:4}).format(source.price)+' '+(source.currencyCode??'USD')}</strong></p>}
+    </div>}
     {kind!=='serving-windows'&&!(kind==='activities'&&(sourceId||fixedActivity))&&<Field htmlFor="program-name" label={businessCopy('program.field.name')}><input id="program-name" name="name" required/></Field>}
     {(kind==='activities'&&!sourceId&&!fixedActivity||kind==='packages')&&<Field htmlFor="program-description" label={businessCopy('program.field.description')}><textarea id="program-description" name="description"/></Field>}
     {kind==='activities'&&<>
-      <ActivityAreaField options={data.options}/>
+      <div className={styles.activityFull}><ActivityAreaField options={data.options}/></div>
       <ActivityMeetingPointField id="program-meeting-point"/>
       <Field htmlFor="program-capacity" label="Sức chứa">
         <input id="program-capacity" name="capacity" type="number" min={1} max={2147483647} step={1}

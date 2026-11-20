@@ -1,4 +1,8 @@
 import {wallTimeToInstant,SHIP_TIME_ZONE} from '@/shared/lib/journey-time'
+export type ActivityCurrency = 'VND' | 'USD'
+export function isActivityCurrency(value: string): value is ActivityCurrency {
+  return value === 'VND' || value === 'USD'
+}
 export type Activity = {
   catalogEntry?: false
   sourceActivityId?: string | null; responsibleUserId?: string | null
@@ -29,6 +33,6 @@ export function validateActivity(draft: ActivityDraft, cruises: CruiseOption[] |
   if (cruise && (start < Date.parse(cruise.departureDatetime) || end > Date.parse(cruise.returnDatetime))) errors.endTime = 'Thời gian hoạt động phải nằm trong khoảng thời gian chuyến.'
   if (!Number.isSafeInteger(draft.capacity) || draft.capacity < 1) errors.capacity = 'Sức chứa phải là số nguyên dương.'
   if (draft.price !== null && (!Number.isFinite(draft.price) || draft.price < 0)) errors.price = 'Giá phải là số không âm.'
-  if (draft.currencyCode && !/^[A-Z]{3}$/.test(draft.currencyCode)) errors.currencyCode = 'Mã tiền tệ gồm 3 chữ cái viết hoa.'
+  if (!isActivityCurrency(draft.currencyCode)) errors.currencyCode = 'Chọn VND hoặc USD.'
   return errors
 }

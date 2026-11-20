@@ -128,6 +128,7 @@ const messages:Readonly<Record<string,string>>={
   ITINERARY_CRUISE_DATES_MISMATCH:'Ngày đầu lịch trình phải là ngày khởi hành và ngày cuối phải là ngày kết thúc chuyến theo giờ tàu Việt Nam.',
   ITINERARY_DAY_DATE_MISMATCH:'Ngày thứ N phải bằng ngày khởi hành cộng N−1 ngày và không vượt ngày kết thúc chuyến.',
   CURRENCY_USD_REQUIRED:businessCopy('pricing.review.usdRequired'),
+  ACTIVITY_CURRENCY_UNSUPPORTED:'Hoạt động trên tàu hỗ trợ VND hoặc USD. Kiểm tra đơn vị tiền tệ của hoạt động hoặc mẫu đã chọn.',
   SERVICE_SCHEDULE_CRUISE_MISMATCH:'Lịch phục vụ không thuộc chuyến khởi hành của hành khách. Chọn lại lịch phù hợp.',
   PRICING_POLICY_APPROVAL_REQUIRED:'Chính sách thương mại hiện hành cần được Quản lý vận hành xét duyệt riêng trước khi mở bán.',
   PRICING_POLICY_PENDING:businessCopy('pricing.review.pending'),
