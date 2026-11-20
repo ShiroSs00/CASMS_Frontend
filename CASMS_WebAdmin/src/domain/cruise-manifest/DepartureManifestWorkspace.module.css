@@ -1,0 +1,16 @@
+.empty {
+  border:0;
+  padding:var(--space-4);
+  background:var(--surface-default);
+}
+
+.manifest {
+  display:grid;
+  align-items:start;
+  gap:var(--space-4);
+  min-width:0;
+}
+
+.manifest > button {
+  justify-self:start;
+}

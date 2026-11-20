@@ -4,6 +4,7 @@ export function AdminNavigationIcon({ section }: { section: string }) {
     fleet: 'M3 17l9 4 9-4-2-7H5l-2 7zm4-7V5h10v5M10 5V2m-7 20 4-1 5 1 5-1 4 1',
     schedule: 'M5 5h14v16H5zM8 2v6m8-6v6M5 11h14m-10 4h2m3 0h2',
     bookings: 'M5 3h14v18H5zM8 8h8m-8 4h8m-8 4h4',
+    checkin: 'M4 8V4h4m8 0h4v4m0 8v4h-4m-8 0H4v-4m4-4 3 3 5-6',
     locations: 'M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 0 1 14 0zm-7-3a3 3 0 1 0 0 6 3 3 0 0 0 0-6',
     operations: 'M12 2l8 4v6c0 5-8 10-8 10S4 17 4 12V6l8-4zm-4 10 3 3 5-6',
     services: 'M4 10h16v11H4zM2 6h20v4H2zm10 0v15M12 6C5 6 5 0 9 2l3 4zm0 0c7 0 7-6 3-4l-3 4',
