@@ -1,6 +1,16 @@
 import type { ComponentType } from 'react'
 import { createBrowserRouter } from 'react-router'
-import { CruiseSearchPage, CustomerCruiseDetailPage, BookingPartyPage, BookingLookupPage, TravellerDetailsPage, ReviewBookingPage } from '@/features/booking'
+import {
+  CruiseSearchPage,
+  CustomerCruiseDetailPage,
+  BookingPartyPage,
+  BookingLookupPage,
+  MyBookingsPage,
+  MyBookingDetailPage,
+  TravellerDetailsPage,
+  ReviewBookingPage,
+} from '@/features/booking'
+import { CustomerLoginPage } from '@/features/customer-auth'
 import { CustomerCabinExperiencePage, CustomerShipsPage } from './CustomerShipPages'
 import { CustomerRecoveryRedirect } from './CustomerRecoveryRedirect'
 import { PublicLayout } from './layouts/PublicLayout'
@@ -8,9 +18,11 @@ import { BookingSessionLayout } from './layouts/BookingSessionLayout'
 import { RouteLoading } from './RouteLoading'
 import { RouteErrorPage } from './RouteErrorPage'
 import { AccountActivationRoute } from './AccountActivationRoute'
+
 function featurePage<T>(load: () => Promise<T>, key: keyof T) {
   return async () => ({ Component: (await load())[key] as ComponentType })
 }
+
 export const router = createBrowserRouter([{
   ErrorBoundary: RouteErrorPage, HydrateFallback: RouteLoading, Component: BookingSessionLayout,
   children: [{ path: '/', Component: PublicLayout, children: [
@@ -26,8 +38,10 @@ export const router = createBrowserRouter([{
     { path: 'booking/travellers', Component: TravellerDetailsPage },
     { path: 'booking/cabin-experience', Component: CustomerCabinExperiencePage },
     { path: 'booking/review', Component: ReviewBookingPage },
-    { path: 'my-bookings', Component: CustomerRecoveryRedirect },
-    { path: 'my-bookings/:bookingId/*', Component: CustomerRecoveryRedirect },
-    ...['login', 'register', 'verify-email', 'forgot-password', 'reset-password', 'reservation-lookup', 'account-locked'].map(path => ({ path, Component: CustomerRecoveryRedirect })),
+    { path: 'login', Component: CustomerLoginPage },
+    { path: 'my-bookings', Component: MyBookingsPage },
+    { path: 'my-bookings/:bookingId', Component: MyBookingDetailPage },
+    { path: 'my-bookings/:bookingId/*', Component: MyBookingDetailPage },
+    ...['register', 'verify-email', 'forgot-password', 'reset-password', 'reservation-lookup', 'account-locked'].map(path => ({ path, Component: CustomerRecoveryRedirect })),
   ] }],
 }])

@@ -205,6 +205,18 @@ const messages:Readonly<Record<string,string>>={
   INVALID_PORT_CALL_TIMES:'Ngày giờ dự kiến đến và rời của lần ghé cảng chưa hợp lệ.',
   SHORE_EXCURSION_OUTSIDE_PORT_WINDOW:'Tour tham quan trên bờ vượt giờ đến, giờ rời hoặc hạn trở lại tàu của lần ghé.',
   EXCURSION_OUTSIDE_PORT_WINDOW:'Tour tham quan đang liên kết không nằm trong khoảng thời gian ghé cảng mới.',
+  AUTH_REQUIRED:'Vui lòng đăng nhập tài khoản hành khách để tiếp tục thao tác thanh toán.',
+  PAYMENT_BALANCE_CHANGED:'Số dư hoặc khoản cần thanh toán đã thay đổi kể từ lúc tải trang. Vui lòng tải lại thông tin đặt chỗ trước khi tạo mã VietQR.',
+  IDEMPOTENCY_KEY_CONFLICT:'Yêu cầu thanh toán trước đó không khớp khoản đang chọn. Vui lòng tải lại đặt chỗ trước khi thử lại.',
+  PAYMENT_ORDER_CLOSED:'Lệnh thanh toán trước đã hết hiệu lực. Vui lòng tạo yêu cầu thanh toán mới.',
+  PAYMENT_ALREADY_CONFIRMED:'Khoản thanh toán này đã được xác nhận trước đó.',
+  BOOKING_CANCELLED:'Đặt chỗ đã bị hủy nên không thể tạo lệnh thanh toán.',
+  BOOKING_HOLD_EXPIRED:'Thời gian giữ chỗ của đặt chỗ đã hết hạn. Vui lòng liên hệ hỗ trợ hoặc tạo đặt chỗ mới.',
+  BOOKING_ALREADY_PAID:'Đặt chỗ này đã được thanh toán đủ.',
+  DEPOSIT_ALREADY_PAID:'Khoản cọc của đặt chỗ này đã được thanh toán trước đó.',
+  STAGE_ALREADY_PAID:'Đợt thanh toán này đã được thanh toán đủ.',
+  ALL_STAGES_PAID:'Tất cả các đợt thanh toán của đặt chỗ đã hoàn tất.',
+  SEPAY_DISABLED:'Cổng thanh toán VietQR hiện đang tạm ngưng.',
 }
 
 /** Reviewed business codes only. Free-text server messages cannot supply UI business copy. */

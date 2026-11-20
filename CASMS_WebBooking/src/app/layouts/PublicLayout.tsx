@@ -1,4 +1,5 @@
 import { externalAppUrl } from '@/shared/lib/external-app'
+import { useCustomerAuth } from '@/features/customer-auth'
 import { BrandLogo, Button, ConnectionNotice, Modal } from '@/shared/ui'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, ScrollRestoration, useLocation, useNavigation } from 'react-router'
@@ -18,6 +19,7 @@ const navigationLinks = [
 export function PublicLayout() {
   const navigation = useNavigation()
   const location = useLocation()
+  const { status: authStatus, user, logout } = useCustomerAuth()
   const [menuLocation, setMenuLocation] = useState<string | null>(null)
   const menuOpen = menuLocation === location.key
   const desktopNav = useRef<HTMLElement>(null)
@@ -52,11 +54,26 @@ export function PublicLayout() {
         <NavLink className={styles.brand} to="/" end aria-label="OceVie"><BrandLogo /></NavLink>
         <nav ref={desktopNav} aria-label="Điều hướng chính" className={styles.desktopNav}>
           {navigationLinks.map(([to, label]) => <NavLink key={to} to={to}>{label}</NavLink>)}
+          {authStatus === 'authenticated' && <NavLink to="/my-bookings">Đặt chỗ của tôi</NavLink>}
           <PublicContact variant="nav" id="nav-contact" />
         </nav>
       </div>
       <div className={styles.accountNav}>
         <PublicContact variant="button" id="header-contact" />
+        {authStatus === 'authenticated' ? (
+          <Button
+            tone="secondary"
+            size="compact"
+            autoWidth
+            title={user?.username ? `Đăng xuất tài khoản ${user.username}` : 'Đăng xuất'}
+            aria-label={user?.username ? `Đăng xuất tài khoản ${user.username}` : 'Đăng xuất'}
+            onClick={() => void logout()}
+          >
+            Đăng xuất
+          </Button>
+        ) : (
+          <NavLink to="/login" className={styles.loginLink}>Đăng nhập</NavLink>
+        )}
         {adminUrl && <a href={adminUrl} className={styles.loginLink}>Dành cho nhân viên</a>}
         <Button tone="secondary" autoWidth className={styles.menuTrigger} aria-label="Mở menu điều hướng"
           aria-haspopup="dialog" aria-expanded={menuOpen} onClick={event => {
@@ -73,6 +90,14 @@ export function PublicLayout() {
     {menuOpen && <Modal title="Điều hướng" variant="drawer" protectChanges={false} onClose={() => setMenuLocation(null)}>
       <nav className={styles.drawerNav} aria-label="Điều hướng chính">
         {navigationLinks.map(([to, label]) => <NavLink key={to} to={to} onClick={() => setMenuLocation(null)}>{label}</NavLink>)}
+        {authStatus === 'authenticated' ? (
+          <>
+            <NavLink to="/my-bookings" onClick={() => setMenuLocation(null)}>Đặt chỗ của tôi</NavLink>
+            <Button tone="secondary" autoWidth onClick={() => { setMenuLocation(null); void logout() }}>Đăng xuất ({user?.username})</Button>
+          </>
+        ) : (
+          <NavLink to="/login" onClick={() => setMenuLocation(null)}>Đăng nhập hành khách</NavLink>
+        )}
         {adminUrl && <a href={adminUrl}>Dành cho nhân viên</a>}
       </nav>
     </Modal>}

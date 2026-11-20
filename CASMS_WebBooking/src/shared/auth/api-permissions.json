@@ -1,4 +1,7 @@
 [
+  {"method": "GET", "path": "/payment/sepay/options/{bookingId}", "mode": "ALL", "permissions": [], "roles": ["PASSENGER"]},
+  {"method": "POST", "path": "/payment/sepay/checkout", "mode": "ALL", "permissions": [], "roles": ["PASSENGER"]},
+  {"method": "GET", "path": "/payment/sepay/status/{paymentId}", "mode": "ALL", "permissions": [], "roles": ["PASSENGER"]},
   {"method": "GET", "path": "/booking/{bookingId}/cancellations", "mode": "ALL", "permissions": [], "roles": ["BOOKING_AGENT", "FINANCE_OFFICER", "PASSENGER"]},
   {"method": "POST", "path": "/booking/{bookingId}/cancellations", "mode": "ALL", "permissions": [], "roles": ["BOOKING_AGENT", "PASSENGER"]},
   {"method": "POST", "path": "/cancellations/{id}/withdraw", "mode": "ALL", "permissions": [], "roles": ["BOOKING_AGENT", "PASSENGER"]},

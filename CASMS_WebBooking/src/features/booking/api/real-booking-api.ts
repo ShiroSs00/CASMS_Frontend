@@ -1,5 +1,5 @@
 import { ApiError, apiRequest } from '@/shared/api';
-import { decodeBookingContext, type BookingContext, type BookingSummary } from '@/domain/booking-context';
+import { decodeBookingContext, decodeBookingSummary, type BookingContext, type BookingSummary } from '@/domain/booking-context';
 import { decodeCruisePackageBookingFields, type CabinSelectionMode, type CruisePackageCatalog, type CruisePackageBookingFields } from '@/domain/cruise-package';
 import { financialAmount, financialFlag } from '../model/booking-financials';
 export type AvailableCabin = {
@@ -37,6 +37,8 @@ export type BookingDetail = Omit<BookingContext, 'passengers'> & {
     outstandingBalance: number | null;
     fullyPaid: boolean | null;
     finalPaymentDueAt: string | null;
+    holdExpiresAt?: string | null;
+    bookedByUserId?: string | null;
     contractReference: string | null;
     contractStatus: string | null;
     paymentPlan: string | null;
@@ -100,8 +102,8 @@ export function decodeBookingDetail(value: unknown): BookingDetail {
     if (!/^[A-Z]{3}$/.test(row.currency) || (row.agreedFareAmount as number) < 0 || (row.requiredDepositAmount as number) < 0
         || (row.paymentPlan != null && !['FULL', 'DEPOSIT', 'STAGES'].includes(String(row.paymentPlan)))
         || (row.contractStatus != null && !['Draft', 'Accepted', 'Cancelled'].includes(String(row.contractStatus)))
-        || ['contractReference', 'contractStatus', 'contractSigningInstructions', 'cancellationReason'].some(key => row[key] != null && typeof row[key] !== 'string')
-        || ['departureDatetime', 'returnDatetime', 'finalPaymentDueAt'].some(key => row[key] != null && (typeof row[key] !== 'string' || !Number.isFinite(Date.parse(row[key] as string))))
+        || ['contractReference', 'contractStatus', 'contractSigningInstructions', 'cancellationReason', 'bookedByUserId'].some(key => row[key] != null && typeof row[key] !== 'string')
+        || ['departureDatetime', 'returnDatetime', 'finalPaymentDueAt', 'holdExpiresAt'].some(key => row[key] != null && (typeof row[key] !== 'string' || !Number.isFinite(Date.parse(row[key] as string))))
         || row.installments.some(item => !item || !Number.isSafeInteger(item.sequenceNo) || item.sequenceNo < 1 || typeof item.requiredAmount !== 'number' || !Number.isFinite(item.requiredAmount) || item.requiredAmount < 0 || typeof item.currency !== 'string' || !/^[A-Z]{3}$/.test(item.currency) || !['Scheduled', 'Cancelled'].includes(item.status) || !['Deposit', 'FinalFare'].includes(item.installmentType) || (item.description != null && typeof item.description !== 'string') || (item.dueAt != null && (typeof item.dueAt !== 'string' || !Number.isFinite(Date.parse(item.dueAt))))))
         throw new Error('Thông tin giá và hợp đồng đặt chỗ không hợp lệ.');
     const passengers = context.passengers.map((person, index) => {
@@ -125,6 +127,8 @@ export function decodeBookingDetail(value: unknown): BookingDetail {
         agreedFareAmount: row.agreedFareAmount, currency: row.currency, requiredDepositAmount: row.requiredDepositAmount,
         totalPaidAmount: financialAmount(row.totalPaidAmount), outstandingBalance: financialAmount(row.outstandingBalance), fullyPaid: financialFlag(row.fullyPaid),
         paymentPlan: row.paymentPlan ?? null, finalPaymentDueAt: row.finalPaymentDueAt ?? null,
+        holdExpiresAt: (row.holdExpiresAt as string | null | undefined) ?? null,
+        bookedByUserId: (row.bookedByUserId as string | null | undefined) ?? null,
         contractReference: row.contractReference ?? null, contractStatus: row.contractStatus ?? null,
         contractSigningInstructions: row.contractSigningInstructions ?? null, cancellationReason: row.cancellationReason ?? null,
         departureDatetime: row.departureDatetime ?? null, returnDatetime: row.returnDatetime ?? null,
@@ -256,6 +260,35 @@ export function validateBooking(draft: BookingDraft, cruise: BookingCruiseOption
     return Object.values(bookingFieldErrors(draft, cruise, cabins, now));
 }
 export const realBookingApi = {
+    async listMine(page = 0, signal?: AbortSignal): Promise<{ content: BookingListItem[]; totalPages: number; totalElements: number }> {
+        const data = await apiRequest<{ content: unknown[]; totalPages: number; totalElements: number }>('/booking', {
+            query: { page, size: 12, sort: 'createdAt,desc' },
+            signal,
+        });
+        if (!data || !Array.isArray(data.content) || !Number.isSafeInteger(data.totalPages)) {
+            throw new Error('Không tải được danh sách đặt chỗ của bạn.');
+        }
+        const content = data.content.map(item => {
+            const summary = decodeBookingSummary(item);
+            const row = item as Record<string, unknown>;
+            return {
+                ...summary,
+                createdAt: typeof row.createdAt === 'string' ? row.createdAt : null,
+                agreedFareAmount: typeof row.agreedFareAmount === 'number' && Number.isFinite(row.agreedFareAmount) ? row.agreedFareAmount : null,
+                currency: typeof row.currency === 'string' ? row.currency : null,
+                departureDatetime: typeof row.departureDatetime === 'string' ? row.departureDatetime : null,
+                passengerCount: typeof row.passengerCount === 'number' && Number.isSafeInteger(row.passengerCount) ? row.passengerCount : null,
+            } as BookingListItem;
+        });
+        return { content, totalPages: data.totalPages, totalElements: Number(data.totalElements ?? content.length) };
+    },
+    async getMine(bookingId: string, signal?: AbortSignal): Promise<BookingDetail> {
+        const data = decodeBookingDetail(await apiRequest<unknown>(`/booking/${encodeURIComponent(bookingId)}`, { signal }));
+        if (data.bookingId !== bookingId) {
+            throw new Error('Chi tiết đặt chỗ trả về không khớp mã yêu cầu.');
+        }
+        return data;
+    },
     async lookup(reference: string, email: string, phoneNumber: string, signal?: AbortSignal) { const data = decodeBookingDetail(await apiRequest<unknown>('/booking/lookup', { query: { reference: reference.trim(), email: email.trim() || undefined, phoneNumber: phoneNumber.trim() || undefined }, signal })); if (data.bookingReference !== reference.trim())
         throw new Error('Mã đặt chỗ trả về không khớp yêu cầu.'); return data; },
     async cabins(cruiseId: string, signal?: AbortSignal, filters?: {
