@@ -58,7 +58,9 @@ export function CruiseRegulationsPanel({
   onReloadDetail,
   renderAssignment,
 }: CruiseRegulationsPanelProps) {
-  const { cruise, ship, departurePort } = detail
+  void canReadShip
+  void canReadShipRegulations
+  const { cruise, departurePort } = detail
   const [referenceMode, setReferenceMode] = useState<RegulationReferenceMode>('departure')
   const [nowRetryTick, setNowRetryTick] = useState(0)
   const [modeLoading, setModeLoading] = useState(false)
@@ -142,13 +144,14 @@ export function CruiseRegulationsPanel({
     onReloadDetail?.()
   }, [onReloadDetail, referenceMode])
 
-  const countSuffix = !isBusy && !activeError ? ` · ${activeRegulations.length} đang hiệu lực` : ''
+  const visibleCount = groups.reduce((sum, group) => sum + group.items.length, 0)
+  const countSuffix = !isBusy && !activeError ? ` · ${visibleCount} đang hiệu lực` : ''
   const checkedAtText = activeCheckedAt ? journeyTime(activeCheckedAt, displayZone) : 'Chưa xác định'
 
   return (
     <Panel
       title={`Quy định vận hành${countSuffix}`}
-      subtitle="Kiểm tra đầy đủ quy định chung, quy định kế thừa từ tàu và quy định riêng cho chuyến theo mốc thời gian."
+      subtitle="Kiểm tra quy định chung toàn hệ thống và quy định riêng áp dụng cho chuyến theo mốc thời gian."
     >
       <p className={styles.muted}>
         Danh sách này hỗ trợ kiểm tra điều kiện an toàn trước chuyến đi; không thay thế giấy phép cảng hay kiểm tra thuyền viên.
@@ -201,16 +204,9 @@ export function CruiseRegulationsPanel({
         <div className={styles.regGroups}>
           {groups.map((group) => {
             const isCruiseGroup = group.key === 'CRUISE'
-            const isShipGroup = group.key === 'SHIP'
-
-            let emptyMessage = 'Chưa có quy định nào đang hiệu lực tại mốc đối chiếu này.'
-            if (isShipGroup && !cruise.shipId) {
-              emptyMessage = 'Chuyến chưa được phân công tàu nên chưa có quy định kế thừa từ tàu.'
-            } else if (isShipGroup && ship) {
-              emptyMessage = `Tàu ${ship.shipName} chưa có quy định nào đang hiệu lực tại mốc đối chiếu này.`
-            } else if (isCruiseGroup) {
-              emptyMessage = 'Chưa có quy định riêng nào đang hiệu lực cho chuyến này tại mốc đối chiếu.'
-            }
+            const emptyMessage = isCruiseGroup
+              ? 'Chưa có quy định riêng nào đang hiệu lực cho chuyến này tại mốc đối chiếu.'
+              : 'Chưa có quy định chung nào đang hiệu lực tại mốc đối chiếu này.'
 
             return (
               <section key={group.key} className={styles.regGroup} aria-label={group.title}>
@@ -219,28 +215,9 @@ export function CruiseRegulationsPanel({
                     <h3>
                       {group.title} · {group.items.length}
                     </h3>
-                    <span className={styles.regGroupRole}>
-                      {isShipGroup && ship ? `${ship.shipName} (${ship.shipCode}) · Chỉ đọc` : group.roleLabel}
-                    </span>
+                    <span className={styles.regGroupRole}>{group.roleLabel}</span>
                   </div>
                   <div className={styles.regGroupActions}>
-                    {isShipGroup && cruise.shipId && canReadShipRegulations ? (
-                      <ButtonLink
-                        tone="secondary"
-                        size="compact"
-                        to={`/admin/ships/${encodeURIComponent(cruise.shipId)}/regulations`}
-                      >
-                        Xem quy định tàu
-                      </ButtonLink>
-                    ) : isShipGroup && cruise.shipId && canReadShip ? (
-                      <ButtonLink
-                        tone="secondary"
-                        size="compact"
-                        to={`/admin/ships/${encodeURIComponent(cruise.shipId)}`}
-                      >
-                        Hồ sơ tàu
-                      </ButtonLink>
-                    ) : null}
                     {isCruiseGroup && canAssign && renderAssignment?.(cruise.cruiseId, handleAssigned)}
                     {isCruiseGroup && canReadDetail && (
                       <ButtonLink

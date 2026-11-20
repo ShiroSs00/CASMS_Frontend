@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { Badge, Button, ButtonLink, DataTable, Empty, Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
@@ -109,81 +109,117 @@ function StaffingInbox({ review }: { review: boolean }) {
   return (
     <CruiseFrame>
       <div className={styles.workspace}>
-        <PageHeader
-          breadcrumb=""
-          title={title}
-          actions={<Button tone="secondary" size="compact" onClick={inbox.retry}>Cập nhật</Button>}
-        />
-        {hr && access.roles.includes('HR_MANAGER') && access.canDo('CRUISE_STAFF_ASSIGN') && (
-          <ShipManagerAssignments key={access.userId} userId={access.userId} />
-        )}
-        <Panel title={hr ? 'Tour chờ phân công' : 'Phương án chờ xử lý'}>
-          <section className={styles.filterBar} aria-label="Bộ lọc yêu cầu nhân sự">
-            <Field htmlFor="staffing-cruise-search" label="Tìm kiếm chuyến tour">
-              <input
-                id="staffing-cruise-search"
-                type="search"
-                placeholder="Nhập tên chuyến…"
-                value={cruiseSearch}
-                onChange={event => setCruiseSearch(event.target.value)}
-              />
-            </Field>
-            <Field htmlFor="staffing-progress-filter" label="Tiến độ nhân sự">
-              <select
-                id="staffing-progress-filter"
-                value={progressFilter}
-                onChange={event => setProgressFilter(event.target.value as 'ALL' | 'MISSING' | 'COVERED')}
-              >
-                <option value="ALL">Tất cả</option>
-                <option value="MISSING">Còn thiếu nhân sự</option>
-                <option value="COVERED">Đã đủ nhân sự</option>
-              </select>
-            </Field>
-            <Field htmlFor="staffing-status-filter" label="Trạng thái">
-              <select
-                id="staffing-status-filter"
-                value={statusFilter}
-                onChange={event => setStatusFilter(event.target.value)}
-              >
-                <option value="">Tất cả</option>
-                {availableStatuses.map(status => (
-                  <option key={status} value={status}>
-                    {staffingStatusLabel(items.find(item => item.status === status)!)}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <div className={styles.filterActions}>
-              <Button tone="secondary" autoWidth disabled={!hasFilters} onClick={resetFilters}>
-                Xóa bộ lọc
-              </Button>
-            </div>
-          </section>
-
-          {!inbox.loading && !inbox.error && (
-            <div className={styles.resultsHead}>
-              <span className={styles.resultCount}>
-                Hiển thị {filtered.length} / {items.length} yêu cầu
-              </span>
-            </div>
+        <div className={styles.stack}>
+          <PageHeader
+            breadcrumb={hr ? 'Quản lý nhân sự' : ship ? 'Quản lý tàu / Xét duyệt chuyến' : 'Quản lý vận hành'}
+            title={title}
+            description={
+              hr
+                ? 'Phân bổ nhân sự phù hợp cho từng khu vực và dịch vụ của chuyến khởi hành theo đề xuất đã duyệt.'
+                : ship
+                  ? 'Kiểm tra và xác nhận phương án nhân sự theo các khu vực trên tàu trước khi chuyển bước phân công tiếp theo.'
+                  : 'Rà soát và phê duyệt phương án nhân sự cho chuyến khởi hành trước khi mở bán.'
+            }
+            actions={
+              <Button tone="secondary" size="compact" autoWidth onClick={inbox.retry}>Cập nhật</Button>
+            }
+          />
+          {ship && !hr && (
+            <nav className={styles.shipSwitcher} aria-label="Các đầu việc duyệt của Quản lý tàu">
+              <Link to="/admin/preparation-requests" className={styles.shipSwitchTab}>
+                1. Xác nhận đáp ứng tàu
+              </Link>
+              <Link to="/admin/service-locations" className={styles.shipSwitchTab}>
+                2. Đề nghị bố trí dịch vụ
+              </Link>
+              <Link to="/admin/staffing-reviews" aria-current="page" className={`${styles.shipSwitchTab} ${styles.shipSwitchTabActive}`}>
+                3. Xét phương án nhân sự ({items.length})
+              </Link>
+            </nav>
           )}
+          {hr && access.roles.includes('HR_MANAGER') && access.canDo('CRUISE_STAFF_ASSIGN') && (
+            <ShipManagerAssignments key={access.userId} userId={access.userId} />
+          )}
+          <Panel title={hr ? 'Chuyến chờ phân công nhân sự' : 'Phương án nhân sự chờ xác nhận'}>
+            <section className={styles.filterBar} aria-label="Bộ lọc yêu cầu nhân sự">
+              <Field htmlFor="staffing-cruise-search" label="Tìm kiếm chuyến tour">
+                <input
+                  id="staffing-cruise-search"
+                  type="search"
+                  placeholder="Nhập tên chuyến…"
+                  value={cruiseSearch}
+                  onChange={event => setCruiseSearch(event.target.value)}
+                />
+              </Field>
+              <Field htmlFor="staffing-progress-filter" label="Tiến độ nhân sự">
+                <select
+                  id="staffing-progress-filter"
+                  value={progressFilter}
+                  onChange={event => setProgressFilter(event.target.value as 'ALL' | 'MISSING' | 'COVERED')}
+                >
+                  <option value="ALL">Tất cả</option>
+                  <option value="MISSING">Còn thiếu nhân sự</option>
+                  <option value="COVERED">Đã đủ nhân sự</option>
+                </select>
+              </Field>
+              <Field htmlFor="staffing-status-filter" label="Trạng thái">
+                <select
+                  id="staffing-status-filter"
+                  value={statusFilter}
+                  onChange={event => setStatusFilter(event.target.value)}
+                >
+                  <option value="">Tất cả</option>
+                  {availableStatuses.map(status => (
+                    <option key={status} value={status}>
+                      {staffingStatusLabel(items.find(item => item.status === status)!)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <div className={styles.filterActions}>
+                <Button tone="secondary" autoWidth disabled={!hasFilters} onClick={resetFilters}>
+                  Xóa bộ lọc
+                </Button>
+              </div>
+            </section>
 
-          {inbox.loading ? (
-            <Loading label="Đang tải danh sách yêu cầu nhân sự…" />
-          ) : inbox.error ? (
-            <Notice tone="error" title="Chưa tải được danh sách">
-              <p>{staffingError(inbox.error)}</p>
-              <Button tone="secondary" size="compact" autoWidth onClick={inbox.retry}>Thử lại</Button>
-            </Notice>
-          ) : !items.length ? (
-            <Empty title={hr ? 'Chưa có chuyến nào chờ phân công nhân sự' : 'Chưa có phương án nào chờ xác nhận'} />
-          ) : !filtered.length ? (
-            <Empty title="Không tìm thấy chuyến phù hợp với bộ lọc">
-              <Button tone="secondary" size="compact" autoWidth onClick={resetFilters}>
-                Xóa bộ lọc
-              </Button>
-            </Empty>
-          ) : (
+            {!inbox.loading && !inbox.error && (
+              <div className={styles.resultsHead}>
+                <span className={styles.resultCount}>
+                  Hiển thị {filtered.length} / {items.length} yêu cầu
+                </span>
+              </div>
+            )}
+
+            {inbox.loading ? (
+              <Loading label="Đang tải danh sách yêu cầu nhân sự…" />
+            ) : inbox.error ? (
+              <Notice tone="error" title="Chưa tải được danh sách">
+                <p>{staffingError(inbox.error)}</p>
+                <Button tone="secondary" size="compact" autoWidth onClick={inbox.retry}>Thử lại</Button>
+              </Notice>
+            ) : !items.length ? (
+              <Empty title={hr ? 'Chưa có chuyến nào chờ phân công nhân sự' : 'Chưa có phương án nhân sự nào chờ xác nhận'}>
+                <p>
+                  {hr
+                    ? 'Khi Quản lý lịch trình hoặc Quản lý tàu gửi yêu cầu nhân sự, chuyến sẽ hiển thị tại đây.'
+                    : ship
+                      ? 'Khi Quản lý dịch vụ hoàn tất chương trình cho chuyến thuộc tàu bạn phụ trách, phương án nhân sự sẽ tự động chuyển về đây để bạn duyệt.'
+                      : 'Chưa có phương án nhân sự nào từ các bộ phận gửi lên chờ phê duyệt.'}
+                </p>
+                {ship && !hr && (
+                  <ButtonLink to="/admin/preparation-requests" tone="secondary" size="compact" autoWidth>
+                    ← Quay lại Trung tâm duyệt chuyến
+                  </ButtonLink>
+                )}
+              </Empty>
+            ) : !filtered.length ? (
+              <Empty title="Không tìm thấy chuyến phù hợp với bộ lọc">
+                <Button tone="secondary" size="compact" autoWidth onClick={resetFilters}>
+                  Xóa bộ lọc
+                </Button>
+              </Empty>
+            ) : (
             <DataTable
               label="Danh sách yêu cầu nhân sự theo chuyến"
               headers={['Chuyến khởi hành', 'Thời gian chạy', 'Nhu cầu nhân sự', 'Tiến độ', 'Trạng thái', 'Thao tác']}
@@ -232,6 +268,7 @@ function StaffingInbox({ review }: { review: boolean }) {
             </DataTable>
           )}
         </Panel>
+        </div>
       </div>
     </CruiseFrame>
   )

@@ -76,12 +76,6 @@ export function groupRegulationsBySource<T extends { source: SharedRegulationSco
       items: items.filter((item) => item.source === 'GLOBAL'),
     },
     {
-      key: 'SHIP' as const,
-      title: 'Kế thừa từ tàu',
-      roleLabel: 'Từ hồ sơ tàu · Chỉ đọc',
-      items: items.filter((item) => item.source === 'SHIP'),
-    },
-    {
       key: 'CRUISE' as const,
       title: 'Riêng cho chuyến',
       roleLabel: 'Gán trực tiếp cho chuyến',

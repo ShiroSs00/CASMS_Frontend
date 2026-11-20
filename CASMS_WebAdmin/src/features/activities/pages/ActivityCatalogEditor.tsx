@@ -74,8 +74,8 @@ export function ActivityCatalogEditor({ initial }: { initial?: ActivityCatalogEn
 
   const update = (field: keyof typeof draft, value: string) => setDraft(current => ({ ...current, [field]: value }))
   return <ActivityFrame>
-    <PageHeader breadcrumb="DỊCH VỤ TÀU / DANH MỤC" title={initial ? 'Chỉnh sửa hoạt động dùng chung' : 'Tạo hoạt động dùng chung'}
-      description="Đặt tên và sức chứa cho hoạt động. Giờ và địa điểm sẽ được chọn trên từng chuyến khởi hành." />
+    <PageHeader breadcrumb="QUẢN LÝ HOẠT ĐỘNG / KHO MẪU" title={initial ? 'Chỉnh sửa hoạt động mẫu' : 'Tạo hoạt động mẫu (dùng chung)'}
+      description="Lưu thông tin chuẩn (tên, nhóm, sức chứa mặc định, giá tham chiếu) vào kho để dùng lại cho nhiều chuyến. Giờ tổ chức và boong cụ thể sẽ được chọn trong Chương trình của từng chuyến." />
     <EditorLayout><Panel title="Thông tin hoạt động"><form ref={form} onSubmit={submit} noValidate>
       <FormErrorSummary errors={errors} />
       <fieldset className={styles.form} disabled={busy || uncertain || !allowed}>

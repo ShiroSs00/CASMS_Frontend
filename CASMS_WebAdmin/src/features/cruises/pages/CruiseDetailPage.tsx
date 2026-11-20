@@ -48,6 +48,7 @@ import { CruiseChecks } from '../components/CruiseChecks'
 import { DepartureTabs, PreparationOverview, ProgramDestinations } from '../components/DeparturePreparation'
 import { operationsSectionStage, allowedDepartureSections, preparationSection, preparationIssueSection, cruiseListReturn, type DepartureSection } from '../model/preparation'
 import preparationStyles from '../components/DeparturePreparation.module.css'
+import staffingStyles from '../staffing/Staffing.module.css'
 
 const lifecyclePermissions = { publish: 'CRUISE_PUBLISH', complete: 'CRUISE_COMPLETE', cancel: 'CRUISE_CANCEL' } as const
 
@@ -81,6 +82,25 @@ function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) 
   const { state, refresh } = useCruiseDetail(cruiseId)
   const [stopSaleModalOpen, setStopSaleModalOpen] = useState(false)
   const [stopSaleNotice, setStopSaleNotice] = useState('')
+  const isProgramWork = params.get('work') === 'program'
+  const rawAsmTab = params.get('asmTab')
+  const asmTab: 'program' | 'locations' | 'packages' =
+    rawAsmTab === 'locations' || rawAsmTab === 'packages' || (rawAsmTab === 'program' && isProgramWork)
+      ? rawAsmTab
+      : isProgramWork
+        ? 'program'
+        : 'packages'
+  const setAsmTab = (next: 'program' | 'locations' | 'packages') => {
+    const query = new URLSearchParams(params)
+    query.set('asmTab', next)
+    query.delete('openCreate')
+    setParams(query, { preventScrollReset: true })
+  }
+  const initialProgramKind = (() => {
+    const raw = params.get('programKind')
+    return raw === 'activities' || raw === 'excursions' || raw === 'serving-windows' ? raw : undefined
+  })()
+  const autoOpenProgramCreate = params.get('openCreate') === '1'
   const sellability = useReadQuery(`hub-sellability:${cruiseId}:${checkEpoch}`, useCallback(signal => cruiseId ? departureApi.publicSellability(cruiseId, signal) : Promise.resolve(null), [cruiseId]))
   const canReadCrmPlan=manager&&access.has('CRUISE_READ')
   const crmPlan=useReadQuery(`crm-plan-controls:${access.userId}:${access.status}:${cruiseId}:${checkEpoch}:${canReadCrmPlan}`,useCallback(signal=>canReadCrmPlan&&cruiseId?mainflowApi.get(cruiseId,signal):Promise.resolve(null),[canReadCrmPlan,cruiseId]))
@@ -166,20 +186,87 @@ function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) 
       {state.data && (() => {
         const detail = state.data
         const cruise = detail.cruise
-        if (serviceWorkspace) return <>
-          <PageHeader breadcrumb="Gói và dịch vụ theo chuyến" title={cruise.cruiseName}
-            description={`${cruise.cruiseCode} · ${detail.ship?.shipName ?? (detail.supplementaryLoading ? 'Đang tải thông tin tàu…' : 'Chưa phân công tàu')} · ${formatDateTime(cruise.departureDatetime)}`}
-            actions={params.get('work') === 'program'
-              ? <ButtonLink to="/admin/preparation-requests" tone="secondary">Về yêu cầu chuẩn bị tour</ButtonLink>
-              : <ButtonLink to={cruiseListReturn(params.get('returnTo'))} tone="secondary">Chọn chuyến khác</ButtonLink>} />
-          <ServiceLocationRequests key={cruise.cruiseId} cruiseId={cruise.cruiseId} />
-          {params.get('work')==='program'&&<CruisePrograms cruiseId={cruise.cruiseId}
-            departure={cruise.departureDatetime} arrival={cruise.returnDatetime}
-            itineraryMode={cruise.itineraryMode} programWork onChanged={()=>void reload()}/>}
-          <DepartureCruisePackages key={cruise.cruiseId} shipName={detail.ship?.shipName}
-            cruiseId={cruise.cruiseId} onChanged={()=>void reload()}
-            renderAssignment={onChanged=><DeparturePackageManager cruiseId={cruise.cruiseId} onChanged={onChanged}/>}/>
-        </>
+        if (serviceWorkspace) {
+          const steps = isProgramWork
+            ? ([
+                { id: 'program', num: '1', label: 'Hoạt động & lịch phục vụ', desc: 'Xếp hoạt động trên tàu (từ kho mẫu hoặc tạo riêng), tour bờ và khung phục vụ dịch vụ.' },
+                { id: 'locations', num: '2', label: 'Bố trí dịch vụ trên boong', desc: 'Đề nghị vị trí boong cho từng dịch vụ để Quản lý tàu kiểm tra và xác nhận.' },
+                { id: 'packages', num: '3', label: 'Gói du thuyền & giá bán', desc: 'Áp dụng mẫu gói theo tàu, thiết lập dịch vụ mua thêm và mức giá bán.' },
+              ] as const)
+            : ([
+                { id: 'packages', num: '1', label: 'Gói du thuyền & giá bán', desc: 'Áp dụng mẫu gói theo tàu, thiết lập dịch vụ mua thêm và mức giá bán.' },
+                { id: 'locations', num: '2', label: 'Bố trí dịch vụ trên boong', desc: 'Đề nghị vị trí boong cho từng dịch vụ để Quản lý tàu kiểm tra và xác nhận.' },
+              ] as const)
+          return <>
+            <PageHeader
+              breadcrumb={isProgramWork ? 'Chuẩn bị chương trình chuyến' : 'Gói và dịch vụ theo chuyến'}
+              title={cruise.cruiseName}
+              description={`${cruise.cruiseCode} · ${detail.ship?.shipName ?? (detail.supplementaryLoading ? 'Đang tải thông tin tàu…' : 'Chưa phân công tàu')} · ${formatDateTime(cruise.departureDatetime)}`}
+              actions={isProgramWork
+                ? <ButtonLink to="/admin/preparation-requests" tone="secondary">← Yêu cầu chuẩn bị chương trình</ButtonLink>
+                : <ButtonLink to={cruiseListReturn(params.get('returnTo'))} tone="secondary">← Chọn chuyến khác</ButtonLink>}
+            />
+
+            <nav className={staffingStyles.programStepBar} aria-label="Các bước cấu hình chương trình chuyến">
+              {steps.map(step => {
+                const active = asmTab === step.id
+                return (
+                  <button
+                    key={step.id}
+                    type="button"
+                    aria-pressed={active}
+                    className={`${staffingStyles.programStepBtn} ${active ? staffingStyles.programStepBtnActive : ''}`}
+                    onClick={() => setAsmTab(step.id)}
+                  >
+                    <span className={staffingStyles.programStepLabel}>
+                      <span className={staffingStyles.stepNum}>{step.num}</span>
+                      <span>{step.label}</span>
+                    </span>
+                    <span className={staffingStyles.programStepDesc}>{step.desc}</span>
+                  </button>
+                )
+              })}
+            </nav>
+
+            {asmTab === 'program' && isProgramWork && (
+              <CruisePrograms
+                cruiseId={cruise.cruiseId}
+                departure={cruise.departureDatetime}
+                arrival={cruise.returnDatetime}
+                itineraryMode={cruise.itineraryMode}
+                initialKind={initialProgramKind}
+                autoOpenCreate={autoOpenProgramCreate}
+                programWork
+                onChanged={() => void reload()}
+              />
+            )}
+
+            {asmTab === 'locations' && (
+              <ServiceLocationRequests key={cruise.cruiseId} cruiseId={cruise.cruiseId} />
+            )}
+
+            {asmTab === 'packages' && (
+              <DepartureCruisePackages
+                key={cruise.cruiseId}
+                shipName={detail.ship?.shipName}
+                cruiseId={cruise.cruiseId}
+                onChanged={() => void reload()}
+                renderAssignment={onChanged => <DeparturePackageManager cruiseId={cruise.cruiseId} onChanged={onChanged} />}
+              />
+            )}
+
+            {isProgramWork && (
+              <div className={staffingStyles.programHandoffBar}>
+                <span>
+                  Đã hoàn tất thiết lập chương trình cho <strong>{cruise.cruiseCode}</strong>? Quay lại trang yêu cầu để nhập tóm tắt và gửi xác nhận cho Quản lý lịch trình.
+                </span>
+                <ButtonLink to="/admin/preparation-requests" size="compact" autoWidth>
+                  Quay lại gửi kết quả →
+                </ButtonLink>
+              </div>
+            )}
+          </>
+        }
         const showDepartureStart = Boolean(sectionLabel('departure-start')) && ['PUBLISHED', 'IN_PROGRESS', 'COMPLETED'].includes(cruise.status)
         return <>
           {detail.supplementaryLoading && <Loading label="Đang tải thông tin liên quan đến chuyến…" />}

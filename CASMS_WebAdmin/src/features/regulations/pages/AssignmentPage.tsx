@@ -310,7 +310,6 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
   </Button>
 
   const globalInherited = snapshot?.inherited.filter((item) => item.source === 'GLOBAL') ?? []
-  const shipInherited = snapshot?.inherited.filter((item) => item.source === 'SHIP') ?? []
 
   const content = <>
       {onAssigned ? assignButton : <>
@@ -372,9 +371,6 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
           <>
             <Panel title={`Quy định chung · ${globalInherited.length}`}>
               <AssignmentTable checkedAt={snapshot.checkedAt} direct={false} removePermission={`${prefix}_REMOVE`} onRemove={setRemoveItem} rows={globalInherited} />
-            </Panel>
-            <Panel title={`Kế thừa từ tàu · ${shipInherited.length}`}>
-              <AssignmentTable checkedAt={snapshot.checkedAt} direct={false} removePermission={`${prefix}_REMOVE`} onRemove={setRemoveItem} rows={shipInherited} />
             </Panel>
             <Panel title={`Riêng cho chuyến (gán trực tiếp) · ${snapshot.direct.length}`}>
               <AssignmentTable checkedAt={snapshot.checkedAt} direct removePermission={`${prefix}_REMOVE`} onRemove={setRemoveItem} rows={snapshot.direct} />

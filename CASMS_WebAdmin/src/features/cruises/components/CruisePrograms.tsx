@@ -4,7 +4,7 @@ import {readActivityCatalog} from '@/domain/activity-catalog'
 import {packageComponents} from '../api/scoped-package'
 import {ActivityTimeRepair} from './ActivityTimeRepair'
 import {DeparturePackageManager} from './DeparturePackageManager'
-import {useCallback,useRef,useState,type FormEvent} from 'react'
+import {useCallback,useEffect,useRef,useState,type FormEvent} from 'react'
 import {ApiError,apiRequest,useReadQuery} from '@/shared/api'
 import {useSessionAccess} from '@/shared/auth'
 import {businessErrorMessage} from '@/shared/api/business-errors'
@@ -27,12 +27,13 @@ type Program={id:string;cruiseId?:string;sourceActivityId?:string|null;responsib
 type Options=CruiseVenueOptions&{services:Choice[];suppliers:Choice[];stops:Choice[]}
 const titles:Record<Kind,string>={activities:businessCopy('program.onboardActivity'),excursions:businessCopy('program.SHORE_EXCURSION'),packages:businessCopy('program.TOUR_PACKAGE'),'serving-windows':businessCopy('program.SERVING_WINDOW')}
 type ProgramContext = {planStatus:string;unifiedPackageReview?:boolean;mayConfigure?:boolean;programIssues?:ProgramIssue[];windows:{expectedRevision:number}}
-export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChanged,programWork=false}:CruiseTimeRange&{cruiseId:string;itineraryMode?:'FIXED'|'CUSTOM';onChanged:()=>void;programWork?:boolean}){
+export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChanged,programWork=false,initialKind,autoOpenCreate=false}:CruiseTimeRange&{cruiseId:string;itineraryMode?:'FIXED'|'CUSTOM';onChanged:()=>void;programWork?:boolean;initialKind?:Kind;autoOpenCreate?:boolean}){
  const access=useSessionAccess(),crm=access.roles.includes('CRUISE_MANAGER')&&access.has('CRUISE_UPDATE_DRAFT'),ops=access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_READ'),allowed=crm||ops||programWork,root=`/cruise-plans/${cruiseId}`
  const readPlan=useCallback((signal?:AbortSignal):Promise<ProgramContext> =>
   ops&&!programWork&&!crm?mainflowApi.get(cruiseId,signal):apiRequest(`/cruise-work/${cruiseId}/program-context`,{signal}),
   [ops,programWork,crm,cruiseId])
- const [epoch,setEpoch]=useState(0),[manualKind,setKind]=useState<Kind|null>(null),[editing,setEditing]=useState<{activity:ScopedActivity;revision:number}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false),lock=useRef(false)
+ const [epoch,setEpoch]=useState(0),[manualKind,setKind]=useState<Kind|null>(initialKind??null),[editing,setEditing]=useState<{activity:ScopedActivity;revision:number}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false),lock=useRef(false)
+ const autoOpened=useRef(false)
  const [repairing,setRepairing]=useState<string|null>(null),[repairSuccess,setRepairSuccess]=useState(false)
  const [areaEditing,setAreaEditing]=useState<ScopedActivity|null>(null)
  const [selectedArea,setSelectedArea]=useState('')
@@ -66,6 +67,13 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
  const fixedActivity=itineraryMode==='FIXED'&&kind==='activities'
  const isPackageKind:boolean=kind==='packages'
  const canCreate=Boolean(editable&&!isPackageKind&&(!fixed||fixedActivity&&Boolean(data.options.ship.id)))
+ useEffect(()=>{
+  if(!autoOpenCreate||autoOpened.current||!data||!canCreate)return
+  autoOpened.current=true
+  setError('')
+  setSourceId('')
+  setCreating(true)
+ },[autoOpenCreate,data,canCreate])
  async function saveCoordinator(event:FormEvent){
   event.preventDefault()
   if(!editable||!coordinator||lock.current||uncertain||!canReadStaff||!staff.data||staff.error||staff.loading)return
@@ -279,13 +287,13 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
    </Modal>}
    {creating&&canCreate&&<Modal wide variant={kind==='activities'?'drawer':'modal'} busy={busy} title={'Thêm '+titles[kind].toLocaleLowerCase('vi')} onClose={()=>setCreating(false)} footer={<><Button tone="secondary" disabled={busy} data-overlay-dismiss onClick={()=>setCreating(false)}>Hủy</Button><Button type="submit" form="cruise-program-create" disabled={busy||uncertain||fixedActivity&&!source}>{busy?'Đang lưu…':kind==='activities'?'Thêm hoạt động':businessCopy('program.action.saveDraft')}</Button></>}>
    <form id="cruise-program-create" className={styles.modalForm} key={kind} onSubmit={create}><fieldset disabled={busy||uncertain}>
-    {kind==='activities'&&<Field htmlFor="program-activity-source" label="Hoạt động dùng chung">
+    {kind==='activities'&&<Field htmlFor="program-activity-source" label="Nguồn hoạt động (Kho mẫu dùng chung)" hint={fixedActivity?'Chuyến lịch trình cố định chọn từ Kho hoạt động mẫu rồi gán giờ và khu vực trên tàu.':'Chọn mẫu có sẵn từ Kho hoạt động mẫu để điền nhanh, hoặc để trống để nhập hoạt động riêng cho chuyến này.'}>
       <select id="program-activity-source" value={sourceId} onChange={e=>setSourceId(e.target.value)} disabled={catalog.loading||Boolean(catalog.error)}>
-        <option value="">{fixedActivity?"Chọn hoạt động dùng chung":"Nhập hoạt động riêng cho chuyến"}</option>
+        <option value="">{fixedActivity?"Chọn hoạt động từ Kho mẫu":"Tự nhập hoạt động riêng cho chuyến này"}</option>
         {catalog.data?.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
       </select>
-      {catalog.loading&&<p role="status">Đang tải danh mục hoạt động…</p>}
-      {catalog.error&&<Button tone="secondary" onClick={catalog.retry}>Tải lại danh mục</Button>}
+      {catalog.loading&&<p role="status">Đang tải kho hoạt động mẫu…</p>}
+      {catalog.error&&<Button tone="secondary" onClick={catalog.retry}>Tải lại kho mẫu</Button>}
     </Field>}
     {kind!=='serving-windows'&&!(kind==='activities'&&(sourceId||fixedActivity))&&<Field htmlFor="program-name" label={businessCopy('program.field.name')}><input id="program-name" name="name" required/></Field>}
     {(kind==='activities'&&!sourceId&&!fixedActivity||kind==='packages')&&<Field htmlFor="program-description" label={businessCopy('program.field.description')}><textarea id="program-description" name="description"/></Field>}
