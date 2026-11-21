@@ -70,6 +70,7 @@ export function CruisePlanWorkspace({
                 onSaved={() => {
                   budget.retry()
                   setBudgetChanges(count => count + 1)
+                  onChanged()
                 }}
               />
             </section>
@@ -91,6 +92,7 @@ export function CruisePlanWorkspace({
                   cruiseId={cruiseId}
                   refreshKey={`${refreshKey}:${budgetChanges}`}
                   onStarted={() => setHandoffChanges(count => count + 1)}
+                  onBudgetRequired={budget.retry}
                 />
               </div>
             </section>

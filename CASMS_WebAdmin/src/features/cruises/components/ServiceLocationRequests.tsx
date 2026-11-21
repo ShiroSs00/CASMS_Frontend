@@ -14,6 +14,8 @@ type View = {
   canPropose: boolean; canReview: boolean; services: Option[]; decks: Option[]; requests: Request[]
   operatingBudgetVnd?: string | null
   shipAssigned?: boolean
+  shipId: string | null
+  deckBlocker: 'SHIP_REQUIRED' | 'SHIP_DECK_REQUIRED' | null
 }
 const statusLabels = { PENDING: 'Chờ Quản lý tàu duyệt', CONFIRMED: 'Đã xác nhận', RETURNED: 'Cần bổ sung' } as const
 const statusTones = { PENDING: 'warning', CONFIRMED: 'success', RETURNED: 'error' } as const
@@ -94,7 +96,17 @@ export function ServiceLocationRequests({ cruiseId, onChanged }: { cruiseId: str
               )}
             </div>
 
-            {access.roles.includes('ACTIVITY_SERVICE_MANAGER') && (view.canPropose || pendingCount > 0) && (
+            {view.deckBlocker === 'SHIP_REQUIRED' && (
+              <Notice tone="warning" title="Chuyến chưa được gán tàu">
+                Quản lý lịch trình cần gán tàu trước khi Quản lý dịch vụ đề nghị boong bố trí.
+              </Notice>
+            )}
+            {view.deckBlocker === 'SHIP_DECK_REQUIRED' && (
+              <Notice tone="warning" title="Tàu chưa có boong để bố trí">
+                Quản lý tàu cần hoàn tất danh sách boong trước khi Quản lý dịch vụ gửi đề nghị.
+              </Notice>
+            )}
+            {view.shipId && !view.deckBlocker && access.roles.includes('ACTIVITY_SERVICE_MANAGER') && (view.canPropose || pendingCount > 0) && (
               view.shipAssigned === false ? (
                 <Notice tone="warning" title="Chuyến chưa có Quản lý tàu">
                   Đề nghị sẽ hiển thị trong mục Bố trí dịch vụ của Quản lý tàu ngay khi Quản lý tàu được phân công cho chuyến.
@@ -247,11 +259,7 @@ export function ServiceLocationRequests({ cruiseId, onChanged }: { cruiseId: str
               </ul>
             )}
 
-            {view.canPropose && !view.decks.length && (
-              <p className={styles.statusNote}>Tàu phân công cho chuyến chưa có danh sách boong để đề nghị bố trí dịch vụ.</p>
-            )}
-
-            {view.canPropose && view.decks.length > 0 && services.length > 0 && (
+            {view.canPropose && view.shipId && !view.deckBlocker && view.decks.length > 0 && services.length > 0 && (
               <form
                 className={styles.stepBox}
                 onSubmit={event => {

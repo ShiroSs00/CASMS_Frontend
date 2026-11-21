@@ -1,12 +1,15 @@
 import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { ApiError, useReadQuery } from '@/shared/api'
-import { Badge, Button, ButtonLink, Field, Loading, Notice, Panel } from '@/shared/ui'
+import { useSessionAccess } from '@/shared/auth'
+import { mutationOutcomeUnknown } from '@/shared/lib/mutation-outcome'
+import { Badge, Button, ButtonLink, Field, Loading, Modal, Notice, Panel } from '@/shared/ui'
 import { cruiseStaffApi } from '../api/cruise-staff-api'
 import {
   positionLabels, staffingApi, staffingCabinStatusLabels, staffingError, staffingMissing, staffingShipStatusLabels,
   type NeedInput, type ReviewDetails, type StaffingAction, type StaffingRequest,
 } from './staffing-api'
 import styles from './Staffing.module.css'
+import { placementGuidance, placementKey, requiresReviewReload, resetImpactCopy, servicePlacementChoices, shipReviewReady } from './ship-review'
 
 const actions = {
   PENDING_SHIP_REVIEW: { approve: 'SHIP_CHECKED', label: 'Xác nhận phương án tàu', back: 'SHIP_RETURN_ASM', backLabel: 'Trả Quản lý dịch vụ bổ sung chương trình' },
@@ -17,11 +20,11 @@ const actions = {
 } satisfies Record<string, { approve: StaffingAction; label: string; back: StaffingAction; backLabel: string }>
 
 const v2Steps = [
-  { id: 'asm', title: '1. Chương trình', owner: 'Quản lý dịch vụ', statuses: ['PENDING_ASM'] },
-  { id: 'ship', title: '2. Khu vực, POS & nhu cầu', owner: 'Quản lý tàu', statuses: ['PENDING_SHIP_REVIEW'] },
-  { id: 'dispatch', title: '3. Kiểm tra & gửi nhân sự', owner: 'Quản lý lịch trình', statuses: ['SHIP_REVIEWED'] },
-  { id: 'hr', title: '4. Phân công nhân sự', owner: 'Quản lý nhân sự', statuses: ['SENT_TO_HR'] },
-  { id: 'approval', title: '5. Kiểm tra & phê duyệt', owner: 'Quản lý lịch trình → Quản lý vận hành', statuses: ['HR_SUBMITTED', 'PLANNER_CONFIRMED', 'OPS_APPROVED'] },
+  { id: 'asm', title: 'Chương trình', owner: 'Quản lý dịch vụ', statuses: ['PENDING_ASM'] },
+  { id: 'ship', title: 'Khu vực, POS & nhu cầu', owner: 'Quản lý tàu', statuses: ['PENDING_SHIP_REVIEW'] },
+  { id: 'dispatch', title: 'Kiểm tra & gửi nhân sự', owner: 'Quản lý lịch trình', statuses: ['SHIP_REVIEWED'] },
+  { id: 'hr', title: 'Phân công nhân sự', owner: 'Quản lý nhân sự', statuses: ['SENT_TO_HR'] },
+  { id: 'approval', title: 'Kiểm tra & phê duyệt', owner: 'Quản lý lịch trình → Quản lý vận hành', statuses: ['HR_SUBMITTED', 'PLANNER_CONFIRMED', 'OPS_APPROVED'] },
 ] as const
 
 function formatShipStatus(status: string) {
@@ -41,6 +44,7 @@ function formatActivityKind(kind: string) {
 export function StaffingV2({ request, onChanged, onCompleted, coordinator = false, readOnly = false, refreshKey = 0, activitySection }: {
   request: StaffingRequest; onChanged: () => void; onCompleted: () => void; coordinator?: boolean; readOnly?: boolean; refreshKey?: number; activitySection?: ReactNode
 }) {
+  const access = useSessionAccess()
   const details = useReadQuery(`staffing-review:${request.id}:${request.revision}:${refreshKey}`,
     useCallback(signal => staffingApi.reviewDetails(request.id, signal), [request.id]))
   const [latest, setLatest] = useState<{ key: number; data: ReviewDetails }>()
@@ -50,12 +54,19 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
   const [stale, setStale] = useState(false)
   const [reason, setReason] = useState('')
   const [returning, setReturning] = useState(false)
+  const [confirmation, setConfirmation] = useState<{ message: string; revision: number; run: () => void }>()
   const [draft, setDraft] = useState<{ areas: string[]; needs: (Omit<NeedInput, 'requiredCount'> & { count: string })[] }>()
   const state = latest && latest.key === refreshKey && latest.data.request.revision > (details.data?.request.revision ?? 0)
     ? latest.data
     : details.data
-  const ship = !readOnly && request.status === 'PENDING_SHIP_REVIEW'
-  const hr = !readOnly && request.status === 'SENT_TO_HR'
+  const stage = state?.request.status ?? request.status
+  const ship = !readOnly && !coordinator && stage === 'PENDING_SHIP_REVIEW'
+    && access.roles.includes('SHIP_MANAGER') && access.has('CRUISE_PREPARATION_READ')
+  const hr = !readOnly && !coordinator && stage === 'SENT_TO_HR'
+    && access.roles.includes('HR_MANAGER') && access.canDo('CRUISE_STAFF_ASSIGN')
+  const crm = coordinator && access.roles.includes('CRUISE_MANAGER') && access.canDo('CRUISE_PREPARATION_SUBMIT')
+  const ops = !coordinator && stage === 'PLANNER_CONFIRMED'
+    && access.roles.includes('OPERATIONS_MANAGER') && access.has('CRUISE_VALIDATE')
   const options = useReadQuery('staffing-need-candidates:' + request.cruiseId,
     useCallback(signal => hr ? cruiseStaffApi.options(request.cruiseId, signal) : Promise.resolve(null), [request.cruiseId, hr]))
 
@@ -76,7 +87,8 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
       else onChanged()
     } catch (cause) {
       setError(staffingError(cause))
-      if (cause instanceof ApiError && cause.code === 'STAFFING_REVISION_CONFLICT') {
+      if (mutationOutcomeUnknown(cause) || cause instanceof ApiError && requiresReviewReload(cause.code)) {
+        setLatest(undefined)
         setStale(true)
         details.retry()
       }
@@ -90,12 +102,17 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
     }
   }
 
-  if (!state) {
+  if (!state && !stale) {
     if (details.loading) return <Loading label="Đang tải phương án…" />
     return <Notice title="Chưa tải được phương án" tone="error">
       {staffingError(details.error)} <Button tone="text" onClick={details.retry}>Thử lại</Button>
     </Notice>
   }
+  if (!state) return <Notice title="Cần tải lại phương án" tone="warning">
+    <p>{error}</p>
+    {details.loading ? <Loading label="Đang tải phương án mới…" /> :
+      <Button tone="secondary" onClick={details.retry}>Tải lại phương án</Button>}
+  </Notice>
   const current = state.request
   const legacyShip = ship && current.workflowVersion !== 'V2'
   const editingPlacement = ship && (!legacyShip || current.asmProgramWorkflow)
@@ -103,19 +120,32 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
     ? undefined
     : legacyShip
       ? { approve: 'SHIP_CHECKED' as const, label: 'Xác nhận phương án tàu', back: undefined, backLabel: '' }
-      : coordinator && (current.shipPlanStale || current.status === 'OPS_APPROVED')
+      : crm && (current.shipPlanStale || current.status === 'OPS_APPROVED')
         ? { approve: undefined, label: '', back: 'CRM_RETURN_SHIP' as const, backLabel: 'Trả Quản lý tàu kiểm tra lại' }
-        : actions[current.status as keyof typeof actions]
+        : ship || hr || ops || crm && (stage === 'SHIP_REVIEWED' || stage === 'HR_SUBMITTED')
+          ? actions[current.status as keyof typeof actions]
+          : undefined
   const selected = current.activeAreaIds ?? []
   const needs = current.needs ?? []
   const activeAreas = state.areas.filter(area => legacyShip || selected.includes(area.areaId))
+  const ready = shipReviewReady(state)
+  const canAssignNeeds = hr && !current.shipPlanStale
+  const placementNotApplicable = current.workflowVersion === 'V2' && ready
+    && activeAreas.length === 0 && state.plannedServices.length === 0
+  const hasAreaPlanning = state.areas.length > 0 || state.plannedServices.length > 0
+    || selected.length > 0 || needs.length > 0
   const working = draft ?? {
     areas: selected,
     needs: needs.map(need => ({ areaId: need.areaId, positionCode: need.positionCode, count: String(need.requiredCount) })),
   }
   const invalid = working.areas.some(area => !working.needs.some(need => need.areaId === area))
     || working.needs.some(need => !/^\d+$/.test(need.count) || Number(need.count) < 1 || Number(need.count) > 2147483647)
-  const disabled = busy || stale
+  const disabled = busy || stale || details.loading || Boolean(details.error) || current.revision < request.revision
+  function confirmImpact(action: 'save' | StaffingAction, run: () => void) {
+    const message = resetImpactCopy(current, action)
+    if (message) setConfirmation({ message, revision: current.revision, run })
+    else run()
+  }
   const name = (id: string) =>
     state.staff.find(staff => staff.userId === id)?.username
     ?? options.data?.users.find(user => user.userId === id)?.username
@@ -125,10 +155,12 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
   const availableCabins = state.ship?.cabins.filter(cabin => cabin.status === 'AVAILABLE').length ?? 0
   const posCoveredCount = activeAreas.filter(area => area.terminals.length > 0).length
   const servicesCoveredCount = state.plannedServices.filter(service => {
-    const placed = service.placements[0]?.areaId
-    return Boolean(placed && activeAreas.some(area => area.areaId === placed))
+    return service.placements.some(placement => current.workflowVersion === 'V2'
+      ? servicePlacementChoices(state, service).some(choice => placementKey(choice) === placementKey(placement))
+      : activeAreas.some(area => area.areaId === placement.areaId))
   }).length
   const totalRequired = needs.reduce((sum, need) => sum + need.requiredCount, 0)
+  const noStaffingDemand = current.workflowVersion === 'V2' && totalRequired === 0 && state.activities.length === 0
   const totalAssigned = needs.reduce((sum, need) => sum + need.assignedUserIds.length, 0)
   const missingStaffCount = staffingMissing(current)
   const activitiesCoveredCount = state.activities.filter(activity => activity.staffIds.length > 0).length
@@ -136,6 +168,22 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
   const draftHeadcount = working.needs.reduce((sum, item) => sum + (/^\d+$/.test(item.count) ? Number(item.count) : 0), 0)
 
   const currentStepIndex = v2Steps.findIndex(step => (step.statuses as readonly string[]).includes(current.status))
+  const workflowSteps = (
+    <ol className={styles.workflowStepper} aria-label="Tiến độ quy trình chuẩn bị nhân sự">
+      {v2Steps.map((step, index) => {
+        const approved = current.status === 'OPS_APPROVED'
+        const done = approved || index < currentStepIndex
+        const active = !approved && index === currentStepIndex
+        return (
+          <li key={step.id} aria-current={active ? 'step' : undefined}
+            className={`${styles.workflowStep} ${done ? styles.workflowStepDone : active ? styles.workflowStepCurrent : ''}`}>
+            <strong>{index + 1}. {step.title}</strong>
+            <span>{step.owner}</span>
+          </li>
+        )
+      })}
+    </ol>
+  )
 
   const shipProgramContent = (
     <div className={styles.section}>
@@ -155,8 +203,9 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
           </ul>
         </details>
       )}
+      {placementNotApplicable && <p className={styles.subtle}>Không áp dụng cấu hình khu vực phục vụ và POS cho chuyến này.</p>}
 
-      {ship && !legacyShip && (
+      {ship && !legacyShip && hasAreaPlanning && (
         <fieldset disabled={disabled} className={styles.fieldsetBox}>
           <legend>Bước 1: Khu vực mở và số người cần</legend>
           <p className={styles.statusNote}>
@@ -249,7 +298,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
             <Button
               autoWidth
               disabled={disabled || invalid || !draft}
-              onClick={() => void mutate(async () => {
+              onClick={() => confirmImpact('save', () => void mutate(async () => {
                 const updated = await staffingApi.saveShipPlan(
                   current,
                   working.areas,
@@ -261,7 +310,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                 )
                 setDraft(undefined)
                 return updated
-              })}
+              }))}
             >
               Lưu khu vực và nhu cầu
             </Button>
@@ -283,6 +332,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
           <ul className={styles.rows}>
             {activeAreas.map(area => {
               const hasPos = area.terminals.length > 0
+              const posChoices = legacyShip ? state.terminalOptions : area.eligibleTerminals
               const areaNeedsSummary = needs
                 .filter(need => need.areaId === area.areaId)
                 .map(need => `${positionLabels[need.positionCode] ?? need.positionCode}: ${need.requiredCount} người`)
@@ -303,17 +353,19 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                         <Field htmlFor={`pos-${area.areaId}`} label="Máy POS">
                           <select
                             id={`pos-${area.areaId}`}
-                            disabled={disabled || Boolean(draft)}
-                            value={area.terminals[0]?.terminalId ?? ''}
+                            disabled={disabled || Boolean(draft) || posChoices.length === 0}
+                            value={area.terminals.find(terminal => posChoices.some(choice => choice.terminalId === terminal.terminalId))?.terminalId ?? ''}
                             onChange={event => {
                               const terminal = event.target.value
-                              if (terminal) void mutate(() => staffingApi.placePos(current, area.areaId, terminal))
+                              if (posChoices.some(choice => choice.terminalId === terminal)) {
+                                void mutate(() => staffingApi.placePos(current, area.areaId, terminal))
+                              }
                             }}
                           >
                             <option value="" disabled>
                               {legacyShip || area.eligibleTerminals.length ? 'Chọn máy POS' : 'Chưa có máy POS hợp lệ'}
                             </option>
-                            {(legacyShip ? state.terminalOptions : area.eligibleTerminals).map(terminal => (
+                            {posChoices.map(terminal => (
                               <option key={terminal.terminalId} value={terminal.terminalId}>{terminal.name}</option>
                             ))}
                           </select>
@@ -336,7 +388,6 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
           </div>
           <ul className={styles.rows}>
             {state.plannedServices.map(service => {
-              const placed = service.placements[0]?.areaId
               const proposalStatus = service.proposal ? {
                 PENDING: 'chờ xác nhận',
                 CONFIRMED: 'đã xác nhận',
@@ -353,22 +404,28 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                   )}
                 </div>
               )
-              const placedArea = activeAreas.find(area => area.areaId === placed)
-              const candidates = activeAreas.filter(area => service.eligibleAreaIds.includes(area.areaId) && area.terminals.length)
-              const eligibleNames = state.areas
-                .filter(area => service.eligibleAreaIds.includes(area.areaId))
-                .map(area => area.name)
-                .join(', ')
+              const candidates = servicePlacementChoices(state, service)
+              const placed = service.placements.find(item =>
+                candidates.some(candidate => placementKey(candidate) === placementKey(item)))
+              const pairLabel = ({ areaId, terminalId }: typeof candidates[number]) => {
+                const area = state.areas.find(item => item.areaId === areaId)
+                const terminal = area?.terminals.find(item => item.terminalId === terminalId)
+                  ?? area?.eligibleTerminals.find(item => item.terminalId === terminalId)
+                return `${area?.name ?? 'Khu vực phục vụ'} · ${terminal?.name ?? 'Máy POS'}`
+              }
+              const configuredLabels = (service.configuredPlacements ?? []).map(pairLabel)
+              const blocker = service.placementBlocker && placementGuidance[service.placementBlocker]
               if (!editingPlacement) {
                 return (
                   <li key={service.serviceId} className={styles.row}>
                     <div className={styles.rowMain}>
                       <strong>{service.name}</strong>
                       {proposal}
+                      {blocker && <small className={styles.subtle}>{blocker}</small>}
                     </div>
                     <Badge
-                      label={placedArea ? placedArea.name : 'Chưa bố trí'}
-                      tone={placedArea ? 'success' : 'warning'}
+                      label={placed ? pairLabel(placed) : 'Chưa có bố trí hợp lệ'}
+                      tone={placed ? 'success' : 'warning'}
                     />
                   </li>
                 )
@@ -380,25 +437,26 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                     {proposal}
                     {candidates.length === 0 && (
                       <small className={styles.subtle}>
-                        {eligibleNames
-                          ? `Cần mở và gắn POS cho: ${eligibleNames}`
-                          : 'Chưa có khu vực hợp lệ trên tàu cho dịch vụ này'}
+                        {blocker ?? 'Chưa có cặp khu vực và POS đủ điều kiện.'}
                       </small>
                     )}
+                    {configuredLabels.length > 0 && <small className={styles.subtle}>
+                      Cặp đã cấu hình: {configuredLabels.join(', ')}
+                    </small>}
                   </div>
                   <div className={styles.rowControl}>
-                    <Field key={service.serviceId} htmlFor={`service-${service.serviceId}`} label="Khu vực phục vụ">
+                    <Field htmlFor={`service-${service.serviceId}`} label="Khu vực và máy POS">
                       <select
                         id={`service-${service.serviceId}`}
-                        disabled={disabled || Boolean(draft)}
-                        value={placed ?? ''}
+                        disabled={disabled || Boolean(draft) || candidates.length === 0}
+                        value={placed ? placementKey(placed) : ''}
                         onChange={event => {
-                          const area = candidates.find(option => option.areaId === event.target.value)
-                          if (area) void mutate(() => staffingApi.placeService(current, service.serviceId, area.areaId, area.terminals[0].terminalId))
+                          const pair = candidates.find(option => placementKey(option) === event.target.value)
+                          if (pair) void mutate(() => staffingApi.placeService(current, service.serviceId, pair.areaId, pair.terminalId))
                         }}
                       >
                         <option value="" disabled>Chọn khu vực đã có POS</option>
-                        {candidates.map(area => <option key={area.areaId} value={area.areaId}>{area.name}</option>)}
+                        {candidates.map(pair => <option key={placementKey(pair)} value={placementKey(pair)}>{pairLabel(pair)}</option>)}
                       </select>
                     </Field>
                   </div>
@@ -444,7 +502,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                         {assigned.map(userId => (
                           <div className={styles.assignedChip} key={userId}>
                             <span>{name(userId)}</span>
-                            {hr && (
+                            {canAssignNeeds && (
                               <Button
                                 size="compact"
                                 tone="text"
@@ -460,7 +518,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                       </div>
                     )}
                   </div>
-                  {hr && assigned.length < need.requiredCount && (
+                  {canAssignNeeds && assigned.length < need.requiredCount && (
                     <div className={styles.rowControl}>
                       <Field
                         htmlFor={`hire-${need.needId}`}
@@ -522,24 +580,17 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
   return (
     <div className={styles.stack}>
       {current.workflowVersion === 'V2' && (
-        <ol className={styles.workflowStepper} aria-label="Tiến độ quy trình chuẩn bị nhân sự">
-          {v2Steps.map((step, index) => {
-            const isApproved = current.status === 'OPS_APPROVED'
-            const isDone = isApproved || (currentStepIndex > -1 && index < currentStepIndex)
-            const isCurrent = !isApproved && index === currentStepIndex
-            const stepClass = isDone
-              ? `${styles.workflowStep} ${styles.workflowStepDone}`
-              : isCurrent
-                ? `${styles.workflowStep} ${styles.workflowStepCurrent}`
-                : styles.workflowStep
-            return (
-              <li key={step.id} className={stepClass} aria-current={isCurrent ? 'step' : undefined}>
-                <strong>{step.title}</strong>
-                <span>{step.owner}</span>
-              </li>
-            )
-          })}
-        </ol>
+        <>
+          <div className={styles.desktopWorkflow}>{workflowSteps}</div>
+          <details className={styles.mobileWorkflow}>
+            <summary>
+              {current.status === 'OPS_APPROVED' ? 'Đã duyệt phương án nhân sự'
+                : currentStepIndex >= 0 ? `Bước ${currentStepIndex + 1}/${v2Steps.length} · ${v2Steps[currentStepIndex].title}`
+                  : 'Tiến độ chuẩn bị nhân sự'}
+            </summary>
+            {workflowSteps}
+          </details>
+        </>
       )}
 
       <div className={styles.summaryStrip} role="region" aria-label="Tổng quan phương án tàu và nhân sự">
@@ -557,16 +608,24 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
           <span className={styles.summarySub}>
             {state.ship ? `${availableCabins}/${totalCabins} cabin sẵn sàng phục vụ` : 'Cần gán tàu trước khi kiểm tra'}
           </span>
+          {state.staff.find(member => member.role === 'SHIP_MANAGER')?.username && <span className={styles.summarySub}>
+            Quản lý tàu: {state.staff.find(member => member.role === 'SHIP_MANAGER')?.username}
+          </span>}
+          {current.workflowVersion === 'V2' && state.ship && <span className={styles.summarySub}>
+            {state.ship.modelId ? 'Có mô hình tàu sẵn sàng đang áp dụng' : 'Chưa có mô hình tàu sẵn sàng'}
+          </span>}
         </div>
 
         <div className={styles.summaryCell}>
           <span className={styles.summaryLabel}>Khu vực mở, POS & dịch vụ</span>
           <div className={styles.summaryValueRow}>
-            <strong className={styles.summaryValue}>
+            {!placementNotApplicable && <strong className={styles.summaryValue}>
               {activeAreas.length}/{state.areas.length} khu vực mở
-            </strong>
+            </strong>}
             <Badge
               label={
+                placementNotApplicable ? 'Không áp dụng' :
+                current.workflowVersion === 'V2' ? (ready ? 'Phương án đáp ứng' : 'Cần kiểm tra phương án') :
                 activeAreas.length === 0
                   ? 'Chưa chọn khu vực'
                   : posCoveredCount === activeAreas.length && servicesCoveredCount === state.plannedServices.length
@@ -574,25 +633,28 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                     : 'Cần hoàn tất POS/dịch vụ'
               }
               tone={
-                activeAreas.length > 0 && posCoveredCount === activeAreas.length && servicesCoveredCount === state.plannedServices.length
+                placementNotApplicable ? 'neutral' :
+                (current.workflowVersion === 'V2' ? ready :
+                  activeAreas.length > 0 && posCoveredCount === activeAreas.length && servicesCoveredCount === state.plannedServices.length)
                   ? 'success'
                   : 'warning'
               }
             />
           </div>
-          <span className={styles.summarySub}>
+          {!placementNotApplicable && <span className={styles.summarySub}>
             {posCoveredCount}/{activeAreas.length} khu vực đã gắn POS · {servicesCoveredCount}/{state.plannedServices.length} dịch vụ trên tàu đã bố trí
-          </span>
+          </span>}
         </div>
 
         <div className={styles.summaryCell}>
           <span className={styles.summaryLabel}>Định biên & phân công nhân sự</span>
           <div className={styles.summaryValueRow}>
-            <strong className={styles.summaryValue}>
+            {!noStaffingDemand && <strong className={styles.summaryValue}>
               {totalAssigned}/{totalRequired} nhân sự
-            </strong>
+            </strong>}
             <Badge
               label={
+                noStaffingDemand ? (placementNotApplicable ? 'Không cần bố trí nhân sự' : 'Chưa có nhu cầu hoặc ca để phân công') :
                 totalRequired === 0 && state.activities.length === 0
                   ? 'Chưa định biên'
                   : missingStaffCount === 0 && missingActivitiesCount === 0
@@ -612,24 +674,24 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
               }
             />
           </div>
-          <span className={styles.summarySub}>
+          {!noStaffingDemand && <span className={styles.summarySub}>
             {state.activities.length > 0
               ? `${needs.length} vị trí khu vực · ${activitiesCoveredCount}/${state.activities.length} ca hoạt động/tour bờ`
               : `${needs.length} vị trí định biên tại khu vực mở`}
-          </span>
+          </span>}
         </div>
       </div>
 
       {current.shipPlanStale && (
-        <Notice title="Cấu hình phục vụ trên tàu đã thay đổi" tone="warning">
-          Dữ liệu tàu, POS hoặc chương trình phục vụ đã thay đổi sau khi Quản lý tàu xác nhận. Cần trả yêu cầu về Quản lý tàu để kiểm tra và xác nhận lại.
+        <Notice title="Phương án tàu đã thay đổi" tone="warning">
+          Các phân công cũ không được tính vào nhu cầu hiện tại. Cần trả Quản lý tàu kiểm tra lại trước khi chuyển tiếp.
         </Notice>
       )}
 
       {hr ? (
         <>
           {staffingAssignmentPanel}
-          {activitySection}
+          {!stale && !current.shipPlanStale && activitySection}
           <details className={styles.details}>
             <summary>Xem cấu hình tàu, khu vực mở và dịch vụ</summary>
             <div className={styles.detailsBody}>{shipProgramContent}</div>
@@ -639,7 +701,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
         <>
           <Panel title="Tàu và chương trình phục vụ">{shipProgramContent}</Panel>
           {staffingAssignmentPanel}
-          {activitySection}
+          {!stale && !current.shipPlanStale && activitySection}
         </>
       )}
 
@@ -651,6 +713,9 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
             tone="text"
             disabled={details.loading || Boolean(details.error)}
             onClick={() => {
+              if (draft && (!ship || draft.areas.some(id => !state.areas.some(area => area.areaId === id))
+                || draft.needs.some(need => !state.positionOptions.includes(need.positionCode)))) setDraft(undefined)
+              setReturning(false)
               setLatest(undefined)
               setStale(false)
               setError('')
@@ -668,16 +733,18 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
               Lưu hoặc hủy thay đổi ở mục &ldquo;Bước 1: Khu vực mở và số người cần&rdquo; trước khi xác nhận phương án tàu.
             </p>
           )}
-          {!draft && ship && !legacyShip && (() => {
+          {!draft && ship && !legacyShip && !ready && (() => {
             const shipBlockers = [
-              activeAreas.length === 0 ? 'chọn và lưu khu vực mở có nhu cầu nhân sự' : null,
+              !state.ship ? 'nhờ Quản lý lịch trình gán tàu cho chuyến' : null,
+              state.ship && !state.ship.modelId ? 'hoàn tất mô hình tàu sẵn sàng' : null,
               posCoveredCount < activeAreas.length ? `gắn máy POS cho ${activeAreas.length - posCoveredCount} khu vực mở còn thiếu` : null,
               servicesCoveredCount < state.plannedServices.length ? `bố trí khu vực/POS cho ${state.plannedServices.length - servicesCoveredCount} dịch vụ trên tàu` : null,
             ].filter(Boolean)
-            if (!shipBlockers.length) return null
             return (
               <p className={styles.blockerHint}>
-                Trước khi xác nhận phương án tàu, cần hoàn tất: {shipBlockers.join('; ')}.
+                {shipBlockers.length
+                  ? `Trước khi xác nhận phương án tàu, cần ${shipBlockers.join(', ')}.`
+                  : 'Máy chủ chưa xác nhận phương án sẵn sàng. Kiểm tra cấu hình tàu và khu vực của các hoạt động trong chương trình.'}
               </p>
             )
           })()}
@@ -718,7 +785,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                   || details.loading
                   || Boolean(draft)
                   || current.shipPlanStale
-                  || (ship && !legacyShip && (activeAreas.length === 0 || posCoveredCount < activeAreas.length || servicesCoveredCount < state.plannedServices.length))
+                  || (ship && !ready)
                   || (hr && (missingStaffCount > 0 || missingActivitiesCount > 0))
                 }
                 busy={busy}
@@ -737,7 +804,8 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                 disabled={disabled || (action.back === 'SHIP_RETURN_ASM' && state.canReturnToAsm === false) || (returning && !reason.trim())}
                 onClick={() => {
                   const previous = action.back
-                  if (returning && previous) void mutate(() => staffingApi.transition(current, previous, reason.trim()), true)
+                  if (returning && previous) confirmImpact(previous,
+                    () => void mutate(() => staffingApi.transition(current, previous, reason.trim()), true))
                   else setReturning(true)
                 }}
               >
@@ -759,6 +827,17 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
             )}
           </div>
         </div>
+      )}
+      {confirmation && (
+        <Modal title="Xác nhận thay đổi phương án nhân sự" onClose={() => setConfirmation(undefined)} footer={<>
+          <Button tone="secondary" onClick={() => setConfirmation(undefined)}>Quay lại</Button>
+          <Button disabled={disabled || confirmation.revision !== current.revision} onClick={() => {
+            setConfirmation(undefined)
+            confirmation.run()
+          }}>Tiếp tục</Button>
+        </>}>
+          <p>{confirmation.message}</p>
+        </Modal>
       )}
     </div>
   )

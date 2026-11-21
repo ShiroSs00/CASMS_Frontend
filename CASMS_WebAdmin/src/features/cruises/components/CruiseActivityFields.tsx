@@ -5,7 +5,10 @@ import type { ShipVenueOptions } from '@/domain/ship-venue'
 import styles from './ManagerWorkspace.module.css'
 
 export type ActivityArea = { id: string; name: string; deckId: string }
-export type CruiseVenueOptions = ShipVenueOptions & { activityAreas?: ActivityArea[] }
+export type CruiseVenueOptions = ShipVenueOptions & {
+  ship: ShipVenueOptions['ship'] & { modelId?: string | null }
+  activityAreas?: ActivityArea[]
+}
 export type CruiseTimeRange = { departure: string; arrival: string }
 
 export function ActivityAreaField({ options }: { options: CruiseVenueOptions }) {

@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { ApiError } from '@/shared/api'
 import { Badge, Button, Field, Notice } from '@/shared/ui'
-import { formatOperatingBudget, preparationApi, type OperatingBudget as Budget } from '../api/preparation-api'
+import { formatOperatingBudget, operatingBudgetInput, preparationApi, type OperatingBudget as Budget } from '../api/preparation-api'
 import styles from './ManagerWorkspace.module.css'
 
 export function OperatingBudget({
@@ -32,8 +32,7 @@ export function OperatingBudget({
 
   if (loadError instanceof ApiError && loadError.status === 403) return null
   const text = draft?.trim() ?? ''
-  const value = /^[1-9][0-9]{0,2}(\.[0-9]{3})+$/.test(text) ? text.replaceAll('.', '') : text
-  const valid = /^[1-9][0-9]{0,17}$/.test(value)
+  const value = operatingBudgetInput(text)
 
   return (
     <div id="operating-budget" className={styles.budgetInlineCard} aria-label="Ngân sách vận hành">
@@ -56,9 +55,13 @@ export function OperatingBudget({
               {budget.amountVnd ? formatOperatingBudget(budget.amountVnd) : 'Chưa nhập ngân sách'}
             </strong>
             <Badge
-              label={budget.amountVnd ? 'Đã lưu ngân sách' : 'Cần thiết lập'}
-              tone={budget.amountVnd ? 'success' : 'warning'}
+              label={!budget.amountVnd ? 'Cần nhập dự kiến' : {
+                DRAFT: 'Đã lưu dự kiến', SUBMITTED: 'Chờ duyệt ngân sách',
+                APPROVED: 'Ngân sách đã được duyệt', REJECTED: 'Ngân sách cần điều chỉnh',
+              }[budget.status]}
+              tone={budget.status === 'APPROVED' ? 'success' : budget.status === 'DRAFT' && budget.amountVnd ? 'neutral' : 'warning'}
             />
+            {budget.rejectionReason && <span className={styles.sectionMeta}>{budget.rejectionReason}</span>}
             {budget.amountVnd && (
               <span className={styles.sectionMeta}>Chưa gồm thuế và phí cảng</span>
             )}
@@ -84,7 +87,7 @@ export function OperatingBudget({
           noValidate
           onSubmit={async event => {
             event.preventDefault()
-            if (!valid || value === budget.amountVnd || lock.current) return
+            if (!value || value === budget.amountVnd || lock.current) return
             lock.current = true
             setBusy(true)
             setError('')
@@ -108,8 +111,8 @@ export function OperatingBudget({
           <Field
             htmlFor={field}
             label="Số tiền ngân sách vận hành dự kiến (VND)"
-            hint={valid ? formatOperatingBudget(value) : 'Ví dụ 18.000.000'}
-            error={text && !valid ? 'Nhập số tiền nguyên lớn hơn 0, tối đa 18 chữ số.' : undefined}
+            hint={value ? formatOperatingBudget(value) : 'Ví dụ 18.000.000'}
+            error={text && !value ? 'Nhập số tiền nguyên lớn hơn 0, tối đa 18 chữ số.' : undefined}
           >
             <input
               id={field}
@@ -123,7 +126,7 @@ export function OperatingBudget({
             />
           </Field>
           <div className={styles.budgetActions}>
-            <Button type="submit" autoWidth busy={busy} disabled={!valid || value === budget.amountVnd}>
+            <Button type="submit" autoWidth busy={busy} disabled={!value || value === budget.amountVnd}>
               Lưu ngân sách
             </Button>
             <Button
