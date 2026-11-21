@@ -12,12 +12,12 @@ const access = (role, permissions) => ({
 })
 const sections = (role, permissions) => allowedDepartureSections(access(role, permissions)).map(([key]) => key)
 
-test('OPS with read access can reach transaction policy without entering the commercial editing workspace', () => {
-  const permitted = sections('OPERATIONS_MANAGER', ['CRUISE_READ'])
+test('OPS with pricing approval access can reach transaction policy without commercial editing', () => {
+  const permitted = sections('OPERATIONS_MANAGER', ['CRUISE_READ', 'CRUISE_PRICING_APPROVE', 'CRUISE_VALIDATE'])
   assert.ok(permitted.includes('transaction-policy'))
   assert.ok(permitted.includes('checks'))
   assert.ok(!permitted.includes('fare-packages'))
-  assert.ok(!sections('OPERATIONS_MANAGER', []).includes('transaction-policy'))
+  assert.ok(!sections('OPERATIONS_MANAGER', ['CRUISE_READ']).includes('transaction-policy'))
 })
 
 test('CRM has preparation navigation without OPS lifecycle actions', () => {

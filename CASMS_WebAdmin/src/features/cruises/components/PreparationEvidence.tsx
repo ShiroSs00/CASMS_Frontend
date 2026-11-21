@@ -6,7 +6,8 @@ import { businessCopy } from '@/shared/i18n/business-copy'
 import { Badge, Button, Field, Loading, Modal, Notice, Panel } from '@/shared/ui'
 import {
   preparationApi,
-  preparationStatusLabels,
+  preparationActionAllowed,
+  preparationApprovalLabels,
   type PreparationSection as Section,
   type PreparationAction,
   formatOperatingBudget,
@@ -20,6 +21,7 @@ const actions = {
   submit: 'Gửi nhóm hồ sơ xét duyệt',
   confirm: 'Xác nhận nhóm hồ sơ',
   return: 'Yêu cầu bổ sung hồ sơ',
+  reject: 'Từ chối nhóm hồ sơ',
 } as const
 
 const sectionMeta: Record<
@@ -85,11 +87,13 @@ export function PreparationEvidence({
   onChanged,
   refreshKey = 0,
   onNavigateSection,
+  sectionCode,
 }: {
   cruiseId: string
   onChanged: () => void
   refreshKey?: number
   onNavigateSection?: (section: DepartureSection) => void
+  sectionCode?: string
 }) {
   const access = useSessionAccess()
   const availableSections = allowedDepartureSections(access)
@@ -115,7 +119,7 @@ export function PreparationEvidence({
   }
 
   const can = (section: Section, action: PreparationAction) =>
-    section.allowedActions.includes(action.toUpperCase()) &&
+    preparationActionAllowed(section, action, access.userId) &&
     (action === 'submit'
       ? access.has('CRUISE_PREPARATION_SUBMIT') &&
         (section.submitterRole === 'CRUISE_MANAGER'
@@ -126,7 +130,8 @@ export function PreparationEvidence({
   async function execute() {
     if (!selected || lock.current || unknown) return
     const { section, action } = selected
-    if (!can(section, action)) return
+    const latest = query.data?.sections.find(item => item.sectionCode === section.sectionCode)
+    if (!latest || latest.revision !== section.revision || !can(latest, action)) return
     lock.current = true
     setBusy(true)
     setError('')
@@ -137,14 +142,14 @@ export function PreparationEvidence({
       onChanged()
     } catch (e) {
       setError(businessErrorMessage(e instanceof ApiError ? e.code : undefined, ''))
-      if (!(e instanceof ApiError) || e.status === 0 || e.status >= 500) setUnknown(true)
+      if (!(e instanceof ApiError) || e.status === 0 || e.status === 409 || e.status >= 500) setUnknown(true)
     } finally {
       lock.current = false
       setBusy(false)
     }
   }
 
-  const sections = query.data?.sections ?? []
+  const sections = (query.data?.sections ?? []).filter(section => !sectionCode || section.sectionCode === sectionCode)
   const sortedSections = [...sections].sort(
     (a, b) => sectionOrder.indexOf(a.sectionCode) - sectionOrder.indexOf(b.sectionCode),
   )
@@ -172,10 +177,10 @@ export function PreparationEvidence({
 
   return (
     <Panel
-      title={businessCopy('preparation.dashboard.title')}
-      subtitle="Gửi từng nhóm đã chuẩn bị xong cho Quản lý vận hành xét duyệt."
+      title={sectionCode ? 'Hồ sơ kỹ thuật của chuyến' : businessCopy('preparation.dashboard.title')}
+      subtitle={sectionCode ? 'Nộp hồ sơ kỹ thuật cho Quản lý vận hành xét duyệt ở bước riêng.' : 'Gửi từng nhóm đã chuẩn bị xong cho Quản lý vận hành xét duyệt.'}
     >
-      {query.data && (
+      {query.data && !sectionCode && (
         <div className={styles.prepSummaryStrip}>
           <div className={styles.prepSummaryMetric}>
             <span className={styles.prepSummaryLabel}>Điều phối phụ trách</span>
@@ -222,28 +227,31 @@ export function PreparationEvidence({
         </Notice>
       )}
 
-      <div className={styles.prepCardGrid2x2}>
+      <div className={sectionCode ? undefined : styles.prepCardGrid2x2}>
         {sortedSections.map(section => {
           const meta = sectionMeta[section.sectionCode] ?? { title: section.sectionName || 'Hồ sơ' }
-          const missing = section.checkItems.filter(item => item.required && !item.ready)
+          const missing = section.missingRequiredCheckCodes.map(itemCode =>
+            section.checkItems.find(item => item.itemCode === itemCode) ?? { itemCode, evidence: null })
           const passed = section.checkItems.filter(item => item.ready)
-          const allPassed = section.checkItems.length > 0 && missing.length === 0
+          const allPassed = section.dataReadiness === 'READY'
           const target = meta.targetSection
           const canNavigate = target && onNavigateSection && availableSections.some(([key]) => key === target)
           const canReview =
             isOps && access.has('CRUISE_PREPARATION_CONFIRM') && ['SUBMITTED', 'CONFIRMED'].includes(section.status)
           const canSubmit = can(section, 'submit')
 
-          const statusLabel = preparationStatusLabels[section.status]
-          const statusTone = section.status === 'CONFIRMED' ? 'success'
-            : section.status === 'REJECTED' ? 'error'
-              : ['RETURNED', 'SUBMITTED', 'STALE'].includes(section.status) ? 'warning' : 'neutral'
+          const statusTone = section.approvalStatus === 'CONFIRMED' ? 'success'
+            : section.approvalStatus === 'REJECTED' ? 'error'
+              : ['RETURNED', 'PENDING', 'STALE'].includes(section.approvalStatus) ? 'warning' : 'neutral'
           const ownerLabel = operationsStaffRole(section.ownerRole)
           const next = section.status === 'RETURNED' || section.status === 'REJECTED'
             ? `${ownerLabel} rà soát phản hồi rồi bổ sung hồ sơ.`
             : section.status === 'STALE'
               ? `${ownerLabel} đối chiếu thay đổi của chuyến trước khi gửi lại.`
-              : null
+              : section.approvalStatus === 'PENDING'
+                ? 'Tiếp theo: Quản lý vận hành xét duyệt hồ sơ.'
+                : section.submissionStatus === 'NOT_SUBMITTED' && section.approvalStatus !== 'CONFIRMED'
+                  ? `Tiếp theo: ${ownerLabel} chuẩn bị và nộp hồ sơ.` : null
 
           return (
             <section key={section.sectionCode} className={styles.prepCard}>
@@ -255,12 +263,17 @@ export function PreparationEvidence({
                   </div>
                 </div>
                 <div className={styles.prepCardTags}>
-                  <Badge label={statusLabel} tone={statusTone} />
+                  <Badge label={`Dữ liệu: ${allPassed ? 'Đủ điều kiện' : 'Còn thiếu'}`} tone={allPassed ? 'success' : 'warning'} />
+                  <Badge label={section.submissionStatus === 'SUBMITTED' ? 'Đã nộp hồ sơ' : 'Chưa nộp hồ sơ'} />
+                  <Badge label={`Xét duyệt: ${preparationApprovalLabels[section.approvalStatus]}`} tone={statusTone} />
                 </div>
               </header>
 
               <div className={styles.prepCardBody}>
                 {next && <p className={styles.prepCardMeta}>{next}</p>}
+                {section.submittedRevision !== null ? <p className={styles.prepCardMeta}>Phiên bản đã nộp {section.submittedRevision}</p>
+                  : (section.submissionStatus === 'SUBMITTED' || section.approvalStatus !== 'NOT_REVIEWED') &&
+                    <p className={styles.prepCardMeta}>Hồ sơ lịch sử chưa có bằng chứng về phiên bản đã nộp.</p>}
                 {missing.length > 0 && (
                   <ul className={styles.prepCheckList} aria-label="Điều kiện còn thiếu">
                     {missing.map(item => (
@@ -297,10 +310,6 @@ export function PreparationEvidence({
                   </Notice>
                 )}
 
-                {canSubmit && !query.data?.operatingBudgetVnd && (
-                  <p className={styles.prepCardMeta}>Lưu ngân sách ở phần Tổng quan trước khi gửi hồ sơ nhóm.</p>
-                )}
-
                 {((!allPassed && canNavigate) || canReview || canSubmit) && (
                   <div className={styles.prepCardFooter}>
                     <div className={styles.prepCardActions}>
@@ -313,7 +322,7 @@ export function PreparationEvidence({
                         <Button
                           size="compact"
                           autoWidth
-                          disabled={busy || unknown || !query.data?.operatingBudgetVnd}
+                          disabled={busy || unknown}
                           onClick={() => {
                             setSelected({ section, action: 'submit' })
                             setText('')
@@ -325,12 +334,12 @@ export function PreparationEvidence({
                       )}
                       {canReview && (
                         <>
-                          {section.status === 'SUBMITTED' && (
+                          {can(section, 'confirm') && (
                             <Button
                               tone="primary"
                               size="compact"
                               autoWidth
-                              disabled={busy || unknown || !can(section, 'confirm') || !allPassed}
+                              disabled={busy || unknown}
                               onClick={() => {
                                 setSelected({ section, action: 'confirm' })
                                 setText('')
@@ -355,6 +364,13 @@ export function PreparationEvidence({
                               Yêu cầu bổ sung
                             </Button>
                           )}
+                          {can(section, 'reject') && (
+                            <Button tone="text" size="compact" autoWidth disabled={busy || unknown} onClick={() => {
+                              setSelected({ section, action: 'reject' })
+                              setText('')
+                              setError('')
+                            }}>Từ chối</Button>
+                          )}
                           {section.submittedByUserId === access.userId && (
                             <span className={styles.prepCardMeta}>
                               Người nộp hồ sơ không thể tự duyệt. Cần một Quản lý vận hành khác xét duyệt.
@@ -378,7 +394,7 @@ export function PreparationEvidence({
       )}
       {unknown && (
         <Notice title="Hệ thống chưa xác nhận được kết quả">
-          <p>Đối chiếu lại 4 nhóm hồ sơ trước khi tiếp tục. Hạng mục đã gửi sẽ không bị gửi lặp.</p>
+          <p>Tải lại hồ sơ để kiểm tra phiên bản mới nhất trước khi tiếp tục.</p>
           <Button disabled={busy} onClick={() => void reconcile()}>
             Đối chiếu hồ sơ
           </Button>
@@ -397,7 +413,7 @@ export function PreparationEvidence({
                 Hủy
               </Button>
               <Button
-                tone={selected.action === 'return' ? 'danger' : 'primary'}
+                tone={selected.action === 'return' || selected.action === 'reject' ? 'danger' : 'primary'}
                 disabled={busy || unknown || (selected.action !== 'confirm' && !text.trim())}
                 onClick={() => void execute()}
               >
@@ -414,9 +430,9 @@ export function PreparationEvidence({
             label={
               selected.action === 'submit'
                 ? 'Nội dung đã chuẩn bị'
-                : selected.action === 'return'
-                  ? 'Nội dung và lý do cần bổ sung'
-                  : 'Ghi chú xác nhận (tùy chọn)'
+                : selected.action === 'confirm'
+                  ? 'Ghi chú xác nhận (tùy chọn)'
+                  : 'Lý do cần bổ sung hoặc từ chối'
             }
           >
             <textarea

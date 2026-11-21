@@ -1,0 +1,588 @@
+{
+  "shipCount": 2,
+  "cruiseId": "b0c59a8a-d431-4ab7-b2f1-587c8e19dda1",
+  "requestId": "e1118ea1-3bd7-4cad-b8f0-e4c079136bbe",
+  "staffingStatus": "PENDING_SHIP_REVIEW",
+  "http": [
+    {
+      "actor": "cruise_manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "activity_manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "activity_manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ship_manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ship_manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "hr_manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "hr_manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "operations_manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "operations_manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "booking_agent",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "booking_agent",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "booking_agent",
+      "method": "GET",
+      "path": "/cruises/staffing-requests/inbox",
+      "status": 403,
+      "code": "STAFFING_INBOX_FORBIDDEN"
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "GET",
+      "path": "/ports?size=50",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "POST",
+      "path": "/trips",
+      "status": 201,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "PUT",
+      "path": "/trip-schedule-versions/982e62a4-7483-4908-96bf-05986b91fb8e/content",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "POST",
+      "path": "/trip-schedule-versions/982e62a4-7483-4908-96bf-05986b91fb8e/finalize",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "GET",
+      "path": "/ships?size=100",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "POST",
+      "path": "/cruise",
+      "status": 201,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "GET",
+      "path": "/cruise/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/preparation/operating-budget",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "GET",
+      "path": "/cruises/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/staffing-requests",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "POST",
+      "path": "/cruises/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/staffing-requests",
+      "status": 422,
+      "code": "PREPARATION_BUDGET_REQUIRED"
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "PUT",
+      "path": "/cruise/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/preparation/operating-budget",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "GET",
+      "path": "/cruises/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/staffing-requests",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "POST",
+      "path": "/cruises/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/staffing-requests",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "activity_manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "activity_manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ship_manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ship_manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "hr_manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "hr_manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "operations_manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "operations_manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "GET",
+      "path": "/cruises/staffing-requests/e1118ea1-3bd7-4cad-b8f0-e4c079136bbe",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "hr_manager",
+      "method": "POST",
+      "path": "/cruise/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/staff",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "activity_manager",
+      "method": "GET",
+      "path": "/cruise-work/inbox",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "activity_manager",
+      "method": "PUT",
+      "path": "/cruise-work/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/ASM",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "activity_manager",
+      "method": "GET",
+      "path": "/cruise/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/service-locations",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "activity_manager",
+      "method": "GET",
+      "path": "/cruise-plans/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/program-options",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "activity_manager",
+      "method": "PUT",
+      "path": "/cruise-work/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/ASM",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "GET",
+      "path": "/cruises/staffing-requests/e1118ea1-3bd7-4cad-b8f0-e4c079136bbe",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ship_manager",
+      "method": "GET",
+      "path": "/cruises/staffing-requests/e1118ea1-3bd7-4cad-b8f0-e4c079136bbe/review-details",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ship_manager",
+      "method": "POST",
+      "path": "/cruises/staffing-requests/e1118ea1-3bd7-4cad-b8f0-e4c079136bbe/SHIP_CHECKED",
+      "status": 409,
+      "code": "STAFFING_REVISION_CONFLICT"
+    },
+    {
+      "actor": "ship_manager",
+      "method": "POST",
+      "path": "/cruises/staffing-requests/e1118ea1-3bd7-4cad-b8f0-e4c079136bbe/SHIP_CHECKED",
+      "status": 409,
+      "code": "STAFFING_SHIP_PLAN_INCOMPLETE"
+    },
+    {
+      "actor": "ship_manager",
+      "method": "GET",
+      "path": "/cruise/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/preparation",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ship_manager",
+      "method": "POST",
+      "path": "/cruise/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/preparation/TECHNICAL_NAUTICAL/submit",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ship_manager",
+      "method": "POST",
+      "path": "/cruise/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/preparation/TECHNICAL_NAUTICAL/confirm",
+      "status": 403,
+      "code": "ACCESS_DENIED"
+    },
+    {
+      "actor": "operations_manager",
+      "method": "POST",
+      "path": "/cruise/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/preparation/TECHNICAL_NAUTICAL/confirm",
+      "status": 403,
+      "code": "ACCESS_DENIED"
+    },
+    {
+      "actor": "ship_manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ship_manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "operations_manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "operations_manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ops_manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ops_manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ship_manager",
+      "method": "GET",
+      "path": "/cruises/staffing-requests/e1118ea1-3bd7-4cad-b8f0-e4c079136bbe/review-details",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ship_manager",
+      "method": "GET",
+      "path": "/cruise/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/preparation",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "operations_manager",
+      "method": "GET",
+      "path": "/cruise/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/preparation",
+      "status": 403,
+      "code": "ACCESS_DENIED"
+    },
+    {
+      "actor": "operations_manager",
+      "method": "GET",
+      "path": "/cruise-preparation-reviews/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/TECHNICAL_NAUTICAL",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "operations_manager",
+      "method": "POST",
+      "path": "/cruise-preparation-reviews/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/TECHNICAL_NAUTICAL/confirm",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "activity_manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "activity_manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ship_manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ship_manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "operations_manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "operations_manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ship_manager",
+      "method": "GET",
+      "path": "/cruise/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/preparation",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ship_manager",
+      "method": "GET",
+      "path": "/cruises/staffing-requests/e1118ea1-3bd7-4cad-b8f0-e4c079136bbe/review-details",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "ship_manager",
+      "method": "POST",
+      "path": "/cruises/staffing-requests/e1118ea1-3bd7-4cad-b8f0-e4c079136bbe/SHIP_RETURN_ASM",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "activity_manager",
+      "method": "GET",
+      "path": "/cruise-work/inbox",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "activity_manager",
+      "method": "PUT",
+      "path": "/cruise-work/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/ASM",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "activity_manager",
+      "method": "PUT",
+      "path": "/cruise-work/b0c59a8a-d431-4ab7-b2f1-587c8e19dda1/ASM",
+      "status": 200,
+      "code": null
+    },
+    {
+      "actor": "cruise_manager",
+      "method": "GET",
+      "path": "/cruises/staffing-requests/e1118ea1-3bd7-4cad-b8f0-e4c079136bbe",
+      "status": 200,
+      "code": null
+    }
+  ],
+  "asmOptions": {
+    "modelId": null,
+    "activityAreas": 0,
+    "deckBlocker": null
+  },
+  "shipReview": {
+    "shipPlanReady": false,
+    "areas": 0,
+    "services": 0,
+    "modelId": null
+  },
+  "technical": {
+    "dataReadiness": "READY",
+    "submissionStatus": "SUBMITTED",
+    "approvalStatus": "PENDING",
+    "submittedRevision": 1,
+    "allowedActions": []
+  },
+  "qaAccess": {
+    "ship_manager": {
+      "roles": [
+        "SHIP_MANAGER"
+      ],
+      "preparationConfirm": false
+    },
+    "operations_manager": {
+      "roles": [
+        "OPERATIONS_MANAGER"
+      ],
+      "preparationConfirm": true
+    },
+    "ops_manager": {
+      "roles": [
+        "OPERATIONS_MANAGER"
+      ],
+      "preparationConfirm": true
+    }
+  },
+  "technicalAfterReview": {
+    "dataReadiness": "READY",
+    "submissionStatus": "SUBMITTED",
+    "approvalStatus": "CONFIRMED",
+    "submittedRevision": 1
+  },
+  "returnAsm": [
+    "PENDING_ASM",
+    "PENDING_SHIP_REVIEW"
+  ]
+}

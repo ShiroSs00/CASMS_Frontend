@@ -12,6 +12,7 @@ import {businessCopy} from '@/shared/i18n/business-copy'
 import {Button,Field,Loading,Notice,Panel,Modal} from '@/shared/ui'
 import {journeyTime,SHIP_TIME_ZONE} from '@/shared/lib/journey-time'
 import {programInstant} from '../model/program-time'
+import {effectiveActivityAreas,programModelBlocker,programServiceLabel} from '../model/program-options'
 import {mainflowApi,type ProgramIssue} from '../api/mainflow-api'
 import {decodeActivities,type ScopedActivity} from '../api/scoped-activity'
 import {CruiseActivityEditor} from './CruiseActivityEditor'
@@ -24,7 +25,7 @@ import styles from './ManagerWorkspace.module.css'
 type Kind='activities'|'excursions'|'packages'|'serving-windows'
 type Choice={id:string;name:string;sequence?:number;scheduled?:boolean;timeZoneId?:string|null}
 type Program={id:string;cruiseId?:string;sourceActivityId?:string|null;responsibleUserId?:string|null;name:string;ownerCruiseId?:string|null;price?:number|null;currency?:string|null;currencyCode?:string|null;capacity?:number|null;location?:string;startsAt?:string;endsAt?:string;cruiseStopId?:string|null}
-type Options=CruiseVenueOptions&{services:Choice[];suppliers:Choice[];stops:Choice[]}
+type Options=CruiseVenueOptions&{services:(Choice&{configuredOnShip?:boolean})[];suppliers:Choice[];stops:Choice[]}
 const titles:Record<Kind,string>={activities:businessCopy('program.onboardActivity'),excursions:businessCopy('program.SHORE_EXCURSION'),packages:businessCopy('program.TOUR_PACKAGE'),'serving-windows':businessCopy('program.SERVING_WINDOW')}
 type ProgramContext = {planStatus:string;unifiedPackageReview?:boolean;mayConfigure?:boolean;programIssues?:ProgramIssue[];windows:{expectedRevision:number}}
 export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChanged,programWork=false,initialKind,autoOpenCreate=false}:CruiseTimeRange&{cruiseId:string;itineraryMode?:'FIXED'|'CUSTOM';onChanged:()=>void;programWork?:boolean;initialKind?:Kind;autoOpenCreate?:boolean}){
@@ -55,7 +56,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
   const [options,activityRows,excursionRows,packages,windows]=await Promise.all([apiRequest<Options>(root+'/program-options',{signal}),apiRequest<ScopedActivity[]>(root+'/activities',{signal}),apiRequest<ExcursionCommercial[]>(root+'/excursions',{signal}),plan.unifiedPackageReview?Promise.resolve([]):apiRequest<Program[]>(root+'/packages',{signal}),apiRequest<Program[]>(root+'/serving-windows',{signal})])
   const activities=decodeActivities(activityRows,cruiseId)
   const excursions=decodeCommercialExcursions(excursionRows)
-  return {plan,options,activities,excursions,programs:{activities:activities.map(a=>({...a,currency:a.currencyCode})),excursions,packages,'serving-windows':windows}}
+  return {plan,options:{...options,activityAreas:effectiveActivityAreas(options)},activities,excursions,programs:{activities:activities.map(a=>({...a,currency:a.currencyCode})),excursions,packages,'serving-windows':windows}}
  },[allowed,cruiseId,root,readPlan]))
  const data=query.data
  const kind:Kind = manualKind ?? (data ? ((['activities','excursions','serving-windows'] as Kind[]).find(k=>data.programs[k].length>0) ?? 'activities') : 'activities')
@@ -97,7 +98,8 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
  }
  async function saveArea(event:FormEvent<HTMLFormElement>){
   event.preventDefault()
-  if(!areaEditing||!selectedArea||!data||lock.current||uncertain)return
+  if(!areaEditing||!editable||!data||lock.current||uncertain
+    ||!data.options.activityAreas.some(area=>area.id===selectedArea&&(!areaEditing.deckId||area.deckId===areaEditing.deckId)))return
   lock.current=true
   setBusy(true)
   setError('')
@@ -111,6 +113,10 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
    onChanged()
   }catch(reason){
    setError(businessErrorMessage(reason instanceof ApiError?reason.code:undefined,reason instanceof Error?reason.message:''))
+   if(reason instanceof ApiError&&(reason.status===409||reason.code==='ACTIVITY_AREA_REQUIRED')){
+    setSelectedArea('')
+    query.retry()
+   }
    if(mutationOutcomeUnknown(reason))setUncertain(true)
   }finally{
    lock.current=false
@@ -179,6 +185,9 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
   {repairSuccess&&<Notice title="Đã sửa giờ hoạt động" tone="success">Giờ hợp lệ đã được khóa lại theo lịch trình cố định.</Notice>}
   {query.loading&&<Loading label="Đang tải chương trình của chuyến khởi hành…"/>}{query.error&&<Notice title={query.error instanceof ApiError&&query.error.status===403?'Chưa có quyền xem chương trình':'Chưa tải được chương trình'} tone="error"><p>{query.error instanceof ApiError&&query.error.status===403?'Tài khoản hiện tại chưa được cấp đủ quyền đọc chương trình của chuyến khởi hành.':query.error.message}</p><Button onClick={query.retry}>Tải lại dữ liệu</Button></Notice>}
   {data&&<>
+   {kind==='activities'&&programModelBlocker(data.options)&&<Notice title="Chưa thể chọn khu vực hoạt động" tone="warning">
+    {programModelBlocker(data.options)}
+   </Notice>}
    <div className={styles.programKindTabs} role="tablist" aria-label={businessCopy('program.field.content')}>
     {((Object.keys(titles) as Kind[]).filter(k=>!data.plan.unifiedPackageReview||k!=='packages')).map(k=>{
      const active=kind===k
@@ -202,7 +211,8 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
    </div>}
    <ul className={styles.programList}>{data.programs[kind].filter(p=>p.name.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))).map(p=>{
     const activity=kind==='activities'?data.activities.find(a=>a.id===p.id):null
-    const invalidArea=activity&&(!activity.areaId||data.plan.programIssues?.some(issue=>issue.itemId===activity.id&&issue.code==='ACTIVITY_AREA_REQUIRED'))
+    const invalidArea=activity&&(!data.options.activityAreas.some(area=>area.id===activity.areaId)
+      ||data.plan.programIssues?.some(issue=>issue.itemId===activity.id&&issue.code==='ACTIVITY_AREA_REQUIRED'))
     const invalidTime=activity&&data.plan.programIssues?.some(issue=>issue.itemId===activity.id&&issue.code==='ACTIVITY_OUTSIDE_CRUISE')
     const servingWindow=kind==='serving-windows'?data.programs['serving-windows'].find(window=>window.id===p.id):null
     const excursion=kind==='excursions'?data.excursions.find(e=>e.id===p.id):null
@@ -310,7 +320,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
       </Field>
     </>}
     {kind==='packages'&&<Field htmlFor="program-type" label={businessCopy('program.field.type')}><select id="program-type" name="type" required><option value="">Chọn loại gói</option><option value="BASIC">Cơ bản</option><option value="ADD_ON">Dịch vụ bổ sung</option></select></Field>}
-    {kind==='serving-windows'&&<Field htmlFor="program-service" label={businessCopy('program.field.service')}><select id="program-service" name="service" required><option value="">Chọn dịch vụ</option>{data.options.services.filter(s=>s.scheduled).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>}
+    {kind==='serving-windows'&&<Field htmlFor="program-service" label={businessCopy('program.field.service')} hint="Dịch vụ đã gán trên boong vẫn cần Quản lý tàu kiểm tra khu vực và POS."><select id="program-service" name="service" required><option value="">Chọn dịch vụ</option>{data.options.services.filter(s=>s.scheduled).map(s=><option key={s.id} value={s.id}>{programServiceLabel(s)}</option>)}</select></Field>}
     {(kind==='excursions'||kind==='serving-windows')&&<>
      <Field htmlFor="program-stop" label={businessCopy('program.field.stop')}><select id="program-stop" name="stop" required={kind==='excursions'}><option value="">{kind==='excursions'?'Chọn lần ghé':'Trên tàu'}</option>{data.options.stops.map(s=><option key={s.id} value={s.id}>Lần {s.sequence} · {s.name}</option>)}</select></Field>
      <Field htmlFor="program-supplier" label={businessCopy('program.field.supplier')}><select id="program-supplier" name="supplier" required={kind==='excursions'}><option value="">Chọn nhà cung cấp</option>{data.options.suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>

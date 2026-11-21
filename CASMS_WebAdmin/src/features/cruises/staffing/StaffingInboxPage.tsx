@@ -7,6 +7,7 @@ import { formatOperatingBudget } from '../api/preparation-api'
 import { cruiseStaffApi } from '../api/cruise-staff-api'
 import { CruiseStaffAssignments } from '../components/CruiseStaffAssignments'
 import { CruiseFrame } from '../components/CruiseUI'
+import { PreparationEvidence } from '../components/PreparationEvidence'
 import { candidateStatusCopy, positionLabels, staffingApi, staffingError, staffingMissing, staffingStatusLabel, type StaffingAction, type StaffingRequest, type WorkPlan } from './staffing-api'
 import { StaffingV2 } from './StaffingV2'
 import styles from './Staffing.module.css'
@@ -29,7 +30,6 @@ function StaffingInbox({ review }: { review: boolean }) {
   const ship = access.roles.includes('SHIP_MANAGER') && access.has('CRUISE_PREPARATION_READ')
   const operations = access.roles.includes('OPERATIONS_MANAGER') && access.has('CRUISE_VALIDATE')
   const hr = !review
-  const title = hr ? 'Phân công nhân sự' : 'Xét phương án nhân sự'
   const inbox = useReadQuery(`staffing-inbox:${access.userId}`, staffingApi.inbox)
   const [searchParams, setSearchParams] = useSearchParams()
   const [cruiseSearch, setCruiseSearch] = useState('')
@@ -41,6 +41,11 @@ function StaffingInbox({ review }: { review: boolean }) {
     request.status === 'SENT_TO_HR' || (request.workflowVersion !== 'V2' && request.shipReviewWorkflow && request.status === 'SHIP_CONFIRMED')
   ) : (ship && (request.status === 'PENDING_SHIP_REVIEW' || (request.workflowVersion !== 'V2' && request.status === 'HR_SUBMITTED')))
     || (operations && (request.status === 'PLANNER_CONFIRMED' || request.status === 'HR_APPROVED')))
+  const selectedRequest = items.find(item => item.id === selectedId)
+  const shipWorkspace = !hr && ship && (!operations || selectedRequest?.status === 'PENDING_SHIP_REVIEW'
+    || selectedRequest?.status === 'HR_SUBMITTED')
+  const title = hr ? 'Phân công nhân sự' : shipWorkspace ? 'Chuẩn bị phương án tàu'
+    : ship && operations && !selectedId ? 'Phương án tàu và nhân sự' : 'Duyệt phương án nhân sự'
 
   function openRequest(id: string) {
     const next = new URLSearchParams(searchParams)
@@ -54,15 +59,15 @@ function StaffingInbox({ review }: { review: boolean }) {
     return (
       <CruiseFrame>
         <div className={styles.workspace}>
-          <PageHeader
+          <div className={styles.detailHeader}><PageHeader
             breadcrumb=""
             title={title}
             actions={
-              <Button tone="secondary" size="compact" onClick={() => openRequest('')}>
+              <Button tone="secondary" size="compact" autoWidth onClick={() => openRequest('')}>
                 Quay lại danh sách
               </Button>
             }
-          />
+          /></div>
           {canOpen ? (
             <StaffingDetail
               key={selectedId}
@@ -125,7 +130,7 @@ function StaffingInbox({ review }: { review: boolean }) {
             }
           />
           {ship && !hr && (
-            <nav className={styles.shipSwitcher} aria-label="Các đầu việc duyệt của Quản lý tàu">
+            <nav className={styles.shipSwitcher} aria-label="Các đầu việc của Quản lý tàu">
               <Link to="/admin/preparation-requests" className={styles.shipSwitchTab}>
                 1. Xác nhận đáp ứng tàu
               </Link>
@@ -133,14 +138,15 @@ function StaffingInbox({ review }: { review: boolean }) {
                 2. Đề nghị bố trí dịch vụ
               </Link>
               <Link to="/admin/staffing-reviews" aria-current="page" className={`${styles.shipSwitchTab} ${styles.shipSwitchTabActive}`}>
-                3. Xét phương án nhân sự ({items.length})
+                3. Chuẩn bị phương án tàu
               </Link>
             </nav>
           )}
           {hr && access.roles.includes('HR_MANAGER') && access.canDo('CRUISE_STAFF_ASSIGN') && (
             <ShipManagerAssignments key={access.userId} userId={access.userId} />
           )}
-          <Panel title={hr ? 'Chuyến chờ phân công nhân sự' : 'Phương án nhân sự chờ xác nhận'}>
+          <Panel title={hr ? 'Chuyến chờ phân công nhân sự' : shipWorkspace ? 'Chuyến chờ Quản lý tàu xử lý'
+            : ship && operations ? 'Yêu cầu chờ xử lý' : 'Phương án nhân sự chờ duyệt'}>
             <section className={styles.filterBar} aria-label="Bộ lọc yêu cầu nhân sự">
               <Field htmlFor="staffing-cruise-search" label="Tìm kiếm chuyến tour">
                 <input
@@ -351,6 +357,7 @@ function AssignShipManager({ cruiseId, onAssigned }: { cruiseId: string; onAssig
 function StaffingDetail({ requestId, onChanged, onCompleted, review }: {
   requestId: string; onChanged: () => void; onCompleted: () => void; review: boolean
 }) {
+  const access = useSessionAccess()
   const [refreshTick, setRefreshTick] = useState(0)
   const request = useReadQuery(
     'staffing-request:' + requestId,
@@ -374,13 +381,13 @@ function StaffingDetail({ requestId, onChanged, onCompleted, review }: {
     return (
       <div className={styles.stack}>
         <RequestHeader request={request.data} />
-        {review && request.data.status === 'PENDING_SHIP_REVIEW' && (
+        {review && access.roles.includes('SHIP_MANAGER') && request.data.status === 'PENDING_SHIP_REVIEW' && (
           <div className={styles.rowMeta}>
             <ButtonLink tone="secondary" size="compact" autoWidth to={`/admin/service-locations?cruiseId=${encodeURIComponent(request.data.cruiseId)}`}>
               Xem đề nghị bố trí dịch vụ của chuyến
             </ButtonLink>
             <ButtonLink tone="secondary" size="compact" autoWidth to={`/admin/cruises/${encodeURIComponent(request.data.cruiseId)}?section=preparation`}>
-              Hồ sơ chuẩn bị (Kỹ thuật tàu)
+              Xem toàn bộ hồ sơ chuẩn bị
             </ButtonLink>
           </div>
         )}
@@ -393,6 +400,10 @@ function StaffingDetail({ requestId, onChanged, onCompleted, review }: {
             ? <Assignments request={request.data} refresh={syncAll} activityOnly />
             : undefined}
         />
+        {review && access.roles.includes('SHIP_MANAGER') && request.data.status === 'PENDING_SHIP_REVIEW' && (
+          <PreparationEvidence cruiseId={request.data.cruiseId} sectionCode="TECHNICAL_NAUTICAL"
+            refreshKey={refreshTick} onChanged={syncAll} />
+        )}
       </div>
     )
   }

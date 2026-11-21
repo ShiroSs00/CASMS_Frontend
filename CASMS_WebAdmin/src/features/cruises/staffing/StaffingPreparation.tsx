@@ -13,8 +13,8 @@ const v2WaitingCopy: Record<string, string> = {
   PLANNER_CONFIRMED: 'Đã gửi Quản lý vận hành xem xét và phê duyệt phương án nhân sự.',
 }
 
-export function StaffingPreparation({ cruiseId, refreshKey, onStarted }: {
-  cruiseId: string; refreshKey: string; onStarted: () => void
+export function StaffingPreparation({ cruiseId, refreshKey, onStarted, onBudgetRequired }: {
+  cruiseId: string; refreshKey: string; onStarted: () => void; onBudgetRequired: () => void
 }) {
   const query = useReadQuery(
     'staffing-preparation:' + cruiseId + ':' + refreshKey,
@@ -46,11 +46,17 @@ export function StaffingPreparation({ cruiseId, refreshKey, onStarted }: {
     setBusy(true)
     setError('')
     try {
-      await staffingApi.send(cruiseId, data.scheduleRevision)
+      await staffingApi.send(cruiseId)
       onStarted()
       query.retry()
     } catch (cause) {
       setError(staffingError(cause))
+      if (cause instanceof ApiError && cause.code === 'PREPARATION_BUDGET_REQUIRED') {
+        onBudgetRequired()
+        query.retry()
+      } else if (cause instanceof ApiError && cause.status === 409) {
+        query.retry()
+      }
     } finally {
       lock.current = false
       setBusy(false)
@@ -147,6 +153,9 @@ export function StaffingPreparation({ cruiseId, refreshKey, onStarted }: {
       </>}
       {!active && <div className={styles.form}>
         <p className={workspaceStyles.sectionMeta}>Khởi tạo để Quản lý dịch vụ hoàn thiện chương trình và Quản lý tàu xác định khu vực mở cùng số người cần.</p>
+        {!data.hasOperatingBudget && <Notice tone="warning" title="Cần lưu ngân sách vận hành dự kiến">
+          <a href="#operating-budget">Đến mục ngân sách vận hành</a>
+        </Notice>}
         <Button busy={busy} disabled={!data.hasOperatingBudget} autoWidth onClick={() => void start()}>
           Khởi tạo yêu cầu nhân sự
         </Button>

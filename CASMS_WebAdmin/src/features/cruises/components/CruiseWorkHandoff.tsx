@@ -475,7 +475,7 @@ export function CruiseWorkInboxPage() {
                 <>
                   <p>Hiện có <strong>{pendingStaffingCount} phương án nhân sự</strong> đang chờ bạn xét duyệt.</p>
                   <ButtonLink to="/admin/staffing-reviews" autoWidth>
-                    Chuyển tới Xét phương án nhân sự →
+                    Chuẩn bị phương án tàu
                   </ButtonLink>
                 </>
               ) : null}
@@ -632,11 +632,11 @@ function WorkItem({ task, onChanged }: { task: Task; onChanged: () => void }) {
         {task.group === 'ASM' && (task.staffingStatus === 'PENDING_ASM' || task.staffingStatus === 'PENDING_SHIP_REVIEW') && (
           task.shipAssigned === false ? (
             <Notice tone="warning" title="Lưu ý về Quản lý tàu">
-              Chuyến chưa phân công Quản lý tàu. Bạn vẫn thiết lập chương trình bình thường — kết quả sẽ tự chuyển sang mục Xét phương án nhân sự ngay khi chuyến có Quản lý tàu.
+              Chuyến chưa phân công Quản lý tàu. Bạn có thể chuẩn bị chương trình. Khi đã phân công, Quản lý tàu sẽ nhận kết quả trong mục Chuẩn bị phương án tàu.
             </Notice>
           ) : (
             <p className={styles.statusNote}>
-              Sau khi bạn hoàn tất chương trình, Quản lý tàu sẽ nhận được thông tin trong mục Xét phương án nhân sự.
+              Sau khi bạn hoàn tất chương trình, Quản lý tàu sẽ nhận được thông tin trong mục Chuẩn bị phương án tàu.
             </p>
           )
         )}
@@ -697,7 +697,7 @@ function WorkItem({ task, onChanged }: { task: Task; onChanged: () => void }) {
                   )}
                   {canOpenStaffingReview && (
                     <ButtonLink to="/admin/staffing-reviews" tone="secondary" size="compact" autoWidth>
-                      Xét phương án nhân sự
+                      Chuẩn bị phương án tàu
                     </ButtonLink>
                   )}
                 </div>

@@ -53,7 +53,7 @@ export function ServiceLocationInboxPage() {
               2. Đề nghị bố trí dịch vụ ({totalPending})
             </Link>
             <Link to="/admin/staffing-reviews" className={styles.shipSwitchTab}>
-              3. Xét phương án nhân sự
+              3. Chuẩn bị phương án tàu
             </Link>
           </nav>
           <Panel
