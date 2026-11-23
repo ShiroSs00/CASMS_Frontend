@@ -10,18 +10,49 @@ export function BookingReceipt({ booking, headingRef, onNew }: { booking: Bookin
   const access = useSessionAccess()
   const isPassenger = access.status === 'ready' && access.roles.includes('PASSENGER')
   const canPayVnd = booking.bookingStatus !== 'Cancelled' && booking.currency === 'VND' && (booking.outstandingBalance == null || booking.outstandingBalance > 0)
+
   return <div className={styles.flow}>
-    <h1 ref={headingRef} tabIndex={-1}>Đã tiếp nhận đặt chỗ</h1>
-    <section aria-label="Mã đặt chỗ"><h2>{booking.bookingReference}</h2><div className={styles.actions}>
-      <Button onClick={() => { void navigator.clipboard.writeText(booking.bookingReference).then(() => setCopied('Đã sao chép mã đặt chỗ.'), () => setCopied('Bạn có thể chọn và sao chép mã phía trên.')) }}>Sao chép mã đặt chỗ</Button>
-      {canPayVnd && isPassenger && (
-        <ButtonLink to={`/my-bookings/${booking.bookingId}`}>Thanh toán qua VietQR</ButtonLink>
-      )}
-      {canPayVnd && !isPassenger && (
-        <ButtonLink to={`/login?next=${encodeURIComponent(`/my-bookings/${booking.bookingId}`)}&reference=${encodeURIComponent(booking.bookingReference)}`}>Đăng nhập để thanh toán VietQR</ButtonLink>
-      )}
-      <ButtonLink tone="secondary" to={'/booking/lookup?reference=' + encodeURIComponent(booking.bookingReference)}>Tra cứu đặt chỗ</ButtonLink>
-    </div>{copied && <p role="status">{copied}</p>}</section>
+    <section className={styles.receiptHero} aria-label="Xác nhận tiếp nhận đặt chỗ">
+      <div className={styles.receiptHeroTop}>
+        <span className={styles.receiptCheck} aria-hidden="true">✓</span>
+        <div>
+          <h1 ref={headingRef} tabIndex={-1}>Đã tiếp nhận đặt chỗ</h1>
+          <p>Lưu lại mã đặt chỗ bên dưới để tra cứu lịch trình, ký hợp đồng và theo dõi thanh toán.</p>
+        </div>
+      </div>
+
+      <div className={styles.receiptCodeBox}>
+        <div>
+          <span className={styles.receiptCodeLabel}>Mã đặt chỗ của bạn</span>
+          <p className={styles.receiptCodeValue}>{booking.bookingReference}</p>
+        </div>
+        <Button
+          tone="secondary"
+          autoWidth
+          onClick={() => {
+            void navigator.clipboard.writeText(booking.bookingReference).then(
+              () => setCopied('Đã sao chép mã đặt chỗ.'),
+              () => setCopied('Bạn có thể chọn và sao chép mã phía trên.'),
+            )
+          }}
+        >
+          Sao chép mã
+        </Button>
+      </div>
+      {copied && <p role="status">{copied}</p>}
+
+      <div className={styles.receiptActions}>
+        {canPayVnd && isPassenger && (
+          <ButtonLink to={`/my-bookings/${booking.bookingId}`}>Thanh toán qua VietQR</ButtonLink>
+        )}
+        {canPayVnd && !isPassenger && (
+          <ButtonLink to={`/login?next=${encodeURIComponent(`/my-bookings/${booking.bookingId}`)}&reference=${encodeURIComponent(booking.bookingReference)}`}>Đăng nhập để thanh toán VietQR</ButtonLink>
+        )}
+        <ButtonLink tone="secondary" to={'/booking/lookup?reference=' + encodeURIComponent(booking.bookingReference)}>Tra cứu đặt chỗ</ButtonLink>
+        <Button tone="secondary" autoWidth onClick={onNew}>Đặt thêm chuyến khác</Button>
+      </div>
+    </section>
+
     <BookingRecord
       booking={booking}
       paymentAction={
@@ -32,6 +63,5 @@ export function BookingReceipt({ booking, headingRef, onNew }: { booking: Bookin
         ) : null
       }
     />
-    <div><Button tone="secondary" onClick={onNew}>Bắt đầu đặt chỗ khác</Button></div>
   </div>
 }

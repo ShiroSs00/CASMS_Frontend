@@ -3,6 +3,7 @@ import { ApiError, useReadQuery } from '@/shared/api'
 import { Button, Empty, Loading, Notice } from '@/shared/ui'
 import { liveCruiseCatalogApi } from '../api/booking-api'
 import { cruiseDurationLabel } from '../model/cruise-duration'
+import { experiencePhotos, portPhotoForName } from '../model/cruise-port-photos'
 import { cruiseDetailSections } from '../model/live-booking-navigation'
 import { publicContentFailure } from '../model/public-content-feedback'
 import { portLocalDate, portRangeDates } from '../model/itinerary-time'
@@ -68,80 +69,135 @@ export function PublicCruiseItinerary({ query }: { query: PublicItineraryRead })
       </Notice>}
       {data?.days.length === 0 && <Empty title="Chưa có lịch trình để hiển thị" />}
       {data && data.days.length > 0 && <>
-        <p className={styles.timeNote}>Ngày theo giờ Việt Nam. Các mốc tại cảng hiển thị theo giờ địa phương.</p>
-        {/* UX: Miller's Law & Recognition over Recall — persistent day selector rail beside timeline */}
-        <div className={styles.itinerarySplit}>
-          <div className={styles.dayIndexRail} role="region" aria-label="Chọn nhanh ngày hành trình">
-            <p className={styles.dayIndexTitle}>Các chặng hành trình</p>
+        <p className={styles.timeNote}>Ngày theo giờ Việt Nam. Các mốc cập/rời cảng hiển thị theo giờ địa phương từng cảng.</p>
+        {/* UX: Royal Caribbean-inspired horizontal Day Strip + full-width Vertical Connected Timeline */}
+        <div className={styles.dayPillStrip} role="region" aria-label="Chọn nhanh ngày hành trình">
+          <button
+            type="button"
+            className={`${styles.dayPill} ${activeDay === 'overview' ? styles.dayPillActive : ''}`}
+            aria-pressed={activeDay === 'overview'}
+            onClick={() => jumpToDay('overview')}
+          >
+            <span>Tất cả ({data.days.length} ngày)</span>
+          </button>
+          {data.days.map(day => (
             <button
+              key={day.dayNumber}
               type="button"
-              className={`${styles.dayIndexItem} ${activeDay === 'overview' ? styles.dayIndexItemActive : ''}`}
-              aria-pressed={activeDay === 'overview'}
-              onClick={() => jumpToDay('overview')}
+              className={`${styles.dayPill} ${activeDay === day.dayNumber ? styles.dayPillActive : ''}`}
+              aria-pressed={activeDay === day.dayNumber}
+              onClick={() => jumpToDay(day.dayNumber)}
             >
-              <strong>Tổng quan hành trình</strong>
-              <span>{duration || `${data.days.length} ngày`}</span>
+              <strong>Ngày {day.dayNumber}</strong>
+              <span>{dayHeadline(day, data.departurePortName)}</span>
             </button>
-            {data.days.map(day => (
-              <button
-                key={day.dayNumber}
-                type="button"
-                className={`${styles.dayIndexItem} ${activeDay === day.dayNumber ? styles.dayIndexItemActive : ''}`}
-                aria-pressed={activeDay === day.dayNumber}
-                onClick={() => jumpToDay(day.dayNumber)}
-              >
-                <span className={styles.dayIndexMeta}>Ngày {day.dayNumber} · {day.date.split('-').reverse().join('/')}</span>
-                <strong>{dayHeadline(day, data.departurePortName)}</strong>
-              </button>
-            ))}
-          </div>
-          <ol className={styles.timeline} aria-label="Các ngày hành trình">
-            {data.days.map(day => <li
+          ))}
+        </div>
+
+        <ol className={styles.rcTimeline} aria-label="Các ngày hành trình">
+          {data.days.map(day => {
+            const isSeaDay = day.portCalls.length === 0 && !(day.dayNumber === 1 && data.departurePortName)
+            const isEmbark = day.dayNumber === 1 || day.portCalls.some(p => p.isEmbarkation)
+            const isDisembark = day.portCalls.some(p => p.isDisembarkation)
+            return <li
               id={`itinerary-day-${day.dayNumber}`}
-              className={`${styles.day} ${activeDay === day.dayNumber ? styles.dayActive : ''}`}
+              className={`${styles.rcDay} ${activeDay === day.dayNumber ? styles.rcDayActive : ''} ${isSeaDay ? styles.rcDaySea : ''}`}
               key={day.dayNumber}
             >
-              <article className={styles.dayContent}>
+              <div className={styles.rcDayRail} aria-hidden="true">
+                <span className={`${styles.rcDayNode} ${isEmbark || isDisembark ? styles.rcDayNodeAnchor : isSeaDay ? styles.rcDayNodeSea : ''}`}>
+                  {day.dayNumber}
+                </span>
+              </div>
+              <article className={styles.rcDayCard}>
                 <header className={styles.dayHeader}>
-                  <span className={styles.dayBadge}>Ngày {day.dayNumber}</span>
-                  <h3>{dayHeadline(day, data.departurePortName)}</h3>
+                  <div className={styles.rcDayTitleGroup}>
+                    <span className={styles.dayBadge}>Ngày {day.dayNumber}</span>
+                    <h3>{dayHeadline(day, data.departurePortName)}</h3>
+                  </div>
                   <time dateTime={day.date}>{day.date.split('-').reverse().join('/')}</time>
                 </header>
+
                 {day.dayNumber === 1 && data.departurePortName && !day.portCalls.some(port => port.isEmbarkation) &&
                   <div className={styles.port}>
                     <div className={styles.portHeading}>
                       <h4>Khởi hành từ {data.departurePortName}</h4>
                       <span className={styles.portRoleBadge}>Lên tàu</span>
                     </div>
-                    <PortTime instant={data.departureDatetime} zone={day.shipTimeZoneId} day={day.date} />
+                    <div className={styles.rcTimeChips}>
+                      <span className={styles.rcTimeChip}>
+                        <span>Khởi hành dự kiến</span>
+                        <strong><PortTime instant={data.departureDatetime} zone={day.shipTimeZoneId} day={day.date} /></strong>
+                      </span>
+                    </div>
                   </div>}
-                {day.portCalls.length === 0 && !(day.dayNumber === 1 && data.departurePortName) &&
-                  <p className={styles.noStops}>Không có lần ghé cảng trong ngày này.</p>}
+
+                {isSeaDay && (
+                  <div className={styles.rcSeaWithPhoto}>
+                    <div className={styles.rcPortPhoto}>
+                      <img src={experiencePhotos.seaDay} alt="Trải nghiệm trọn ngày trên biển" width="480" height="300" loading="lazy" />
+                    </div>
+                    <div className={styles.rcSeaBanner}>
+                      <strong>Trải nghiệm trọn ngày trên biển</strong>
+                      <p>Thư giãn tại boong hồ bơi vô cực, thưởng thức ẩm thực đa quốc gia và tận hưởng các hoạt động giải trí đặc sắc trên du thuyền (không ghé cảng trong ngày này).</p>
+                    </div>
+                  </div>
+                )}
+
                 {day.portCalls.length > 0 &&
                   <ol className={styles.ports} aria-label="Các mốc tại cảng">
-                    {day.portCalls.map(port => <li className={styles.port} key={port.sequence}>
-                      <div className={styles.portHeading}>
-                        <h4>{port.portName || 'Chưa có tên cảng'}{port.countryCode ? ' · ' + port.countryCode : ''}</h4>
-                        {port.isEmbarkation && <span className={styles.portRoleBadge}>Khởi hành</span>}
-                        {port.isDisembarkation && <span className={styles.portRoleBadge}>Kết thúc</span>}
-                      </div>
-                      <dl className={styles.portTimes}>
-                        {!port.isEmbarkation && <div><dt>Tàu dự kiến cập cảng</dt><dd><PortTime instant={port.arrival} zone={port.portTimeZoneId} day={day.date} /></dd></div>}
-                        {port.isDisembarkation ? <div className={styles.disembarkationTime}><dt>Khách dự kiến xuống tàu</dt><dd>
-                          {port.disembarkationStartsAt && port.disembarkationEndsAt
-                            ? <PortTimeRange start={port.disembarkationStartsAt} end={port.disembarkationEndsAt} zone={port.portTimeZoneId} day={day.date} />
-                            : 'Chưa có giờ xuống tàu'}
-                        </dd></div> : <div><dt>{port.isEmbarkation ? 'Khởi hành dự kiến' : 'Tàu dự kiến rời cảng'}</dt><dd><PortTime instant={port.departure} zone={port.portTimeZoneId} day={day.date} /></dd></div>}
-                      </dl>
-                      {port.destinationVisits.length > 0 && <ul className={styles.visits} aria-label="Điểm tham quan">
-                        {port.destinationVisits.map(visit => <li key={visit.sequence}>{visit.destinationName || 'Chưa có tên điểm tham quan'}</li>)}
-                      </ul>}
-                    </li>)}
+                    {day.portCalls.map(port => {
+                      const portPhoto = portPhotoForName(port.portName)
+                      const roleLabel = port.isEmbarkation ? 'Khởi hành' : port.isDisembarkation ? 'Kết thúc' : 'Ghé cảng'
+                      return <li className={`${styles.port} ${styles.rcPortWithPhoto}`} key={port.sequence}>
+                        <div className={styles.rcPortPhoto}>
+                          <img src={portPhoto.image} alt={port.portName || portPhoto.caption} width="640" height="400" loading="lazy" />
+                          <span className={styles.rcPhotoOverlayBadge}>{roleLabel}</span>
+                        </div>
+                        <div className={styles.rcPortDetails}>
+                          <div className={styles.portHeading}>
+                            <h4>{port.portName || 'Chưa có tên cảng'}{port.countryCode ? ' · ' + port.countryCode : ''}</h4>
+                          </div>
+                          <p className={styles.rcPortStory}>{portPhoto.story}</p>
+                          <div className={styles.rcTimeChips}>
+                            {!port.isEmbarkation && (
+                              <span className={styles.rcTimeChip}>
+                                <span>Cập cảng</span>
+                                <strong><PortTime instant={port.arrival} zone={port.portTimeZoneId} day={day.date} /></strong>
+                              </span>
+                            )}
+                            {port.isDisembarkation ? (
+                              <span className={styles.rcTimeChip}>
+                                <span>Xuống tàu dự kiến</span>
+                                <strong>
+                                  {port.disembarkationStartsAt && port.disembarkationEndsAt
+                                    ? <PortTimeRange start={port.disembarkationStartsAt} end={port.disembarkationEndsAt} zone={port.portTimeZoneId} day={day.date} />
+                                    : 'Theo hướng dẫn khi cập cảng'}
+                                </strong>
+                              </span>
+                            ) : (
+                              <span className={styles.rcTimeChip}>
+                                <span>{port.isEmbarkation ? 'Khởi hành' : 'Rời cảng'}</span>
+                                <strong><PortTime instant={port.departure} zone={port.portTimeZoneId} day={day.date} /></strong>
+                              </span>
+                            )}
+                          </div>
+                          {port.destinationVisits.length > 0 && (
+                            <div className={styles.rcVisitsWrap}>
+                              <span className={styles.rcVisitsLabel}>Điểm tham quan nổi bật:</span>
+                              <ul className={styles.visits} aria-label="Điểm tham quan">
+                                {port.destinationVisits.map(visit => <li key={visit.sequence}>{visit.destinationName || 'Chưa có tên điểm tham quan'}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    })}
                   </ol>}
               </article>
-            </li>)}
-          </ol>
-        </div>
+            </li>
+          })}
+        </ol>
       </>}
     </div>
   </section>

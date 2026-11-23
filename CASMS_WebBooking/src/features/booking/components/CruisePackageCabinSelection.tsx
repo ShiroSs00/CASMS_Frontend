@@ -45,43 +45,62 @@ export function CruisePackageCabinSelection({ catalog, cabins, shipId, render, p
             {index === 0 && <span className={styles.leadTag}>Người đại diện</span>}
           </div>
           {catalog.fareManaged ? <>
-            {catalog.offers.length > 0 && <div className={styles.offerPickGrid} role="group" aria-label={`Chọn nhanh gói cho hành khách ${index + 1}`}>
-              {catalog.offers.map(o => {
-                const selected = p.farePackageOfferId === o.selection.offerId
-                return <button
-                  key={o.selection.offerId}
-                  type="button"
-                  className={`${styles.offerPickCard} ${selected ? styles.offerPickCardSelected : ''}`}
-                  aria-pressed={selected}
-                  onClick={() => update(index, {
-                    farePackageOfferId: o.selection.offerId,
-                    farePackagePriceRevisionId: o.selection.priceRevisionId,
-                    tourPackageId: '',
-                    cabinId: '',
-                  })}
-                >
-                  <span className={styles.offerPickMeta}>{cabinTypeName(o.selection.cabinType)} · {o.selection.logicalCategory}</span>
-                  <strong>{o.selection.templateName}</strong>
-                  <span className={styles.offerPickPrice}>
-                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: o.currencyCode }).format(Number(o.selection.amount))} / người
-                  </span>
-                </button>
-              })}
-            </div>}
-            <Field htmlFor={`person-${index}-farePackageOfferId`} label="Gói du thuyền và hạng cabin *" error={errors[`person-${index}-farePackageOfferId`]}>
-              <select id={`person-${index}-farePackageOfferId`} value={p.farePackageOfferId ?? ''} onChange={e => {
-                const selected = catalog.offers.find(o => o.selection.offerId === e.target.value)?.selection
-                update(index, { farePackageOfferId: selected?.offerId, farePackagePriceRevisionId: selected?.priceRevisionId, tourPackageId: '', cabinId: '' })
-              }}><option value="">Chọn gói du thuyền</option>{p.farePackageOfferId && !fare && <option value={p.farePackageOfferId}>Gói đã chọn cần kiểm tra lại</option>}{catalog.offers.map(o => <option key={o.selection.offerId} value={o.selection.offerId}>{o.selection.templateName} · {o.selection.logicalCategory} · {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: o.currencyCode }).format(Number(o.selection.amount))}/người</option>)}</select>
-            </Field>
-            {fare && <details className={styles.benefitDrawer}><summary>Quyền lợi trong gói ({fare.benefits.length})</summary><ul>{fare.benefits.map(b => <li key={b.sourceBenefitId}>{b.resourceName} · {b.inclusion === 'INCLUDED' ? 'Đã bao gồm' : b.inclusion === 'LIMITED_INCLUDED' ? `Đã bao gồm, giới hạn ${b.quantityLimit} ${b.serviceUnitCode ?? 'lượt'}` : b.inclusion === 'OPTIONAL' ? 'Tùy chọn' : 'Không bao gồm'}{b.requiresReservation && ' · Cần đăng ký riêng'}</li>)}</ul></details>}
-            <Field htmlFor={`person-${index}-cabinSelectionMode`} label="Cách chọn cabin *" error={errors[`person-${index}-cabinSelectionMode`]}>
-              <select id={`person-${index}-cabinSelectionMode`} value={p.cabinSelectionMode ?? ''} onChange={e => update(index, { cabinSelectionMode: e.target.value ? e.target.value as CabinSelectionMode : undefined, cabinId: '' })}>
-                <option value="">Chọn cách nhận cabin</option><option value="PHYSICAL_CABIN">Chọn cabin cụ thể</option><option value="CATEGORY_HOLD">Giữ chỗ theo hạng, chọn cabin sau</option>
-              </select>
-            </Field>
-            {fare && p.cabinSelectionMode && group.members.length > 1 && <Button tone="text" onClick={() => { setApplyFrom(index); setTargets([]) }}>Áp dụng lựa chọn cho người khác trong phòng</Button>}
-            {p.cabinSelectionMode === 'CATEGORY_HOLD' && <p className={styles.muted}>Chưa phân cabin cụ thể. Khả năng giữ chỗ cho cả nhóm được kiểm tra khi gửi.</p>}
+            <div>
+              <p className={styles.choiceGroupLabel}>Chọn gói du thuyền &amp; hạng cabin *</p>
+              {catalog.offers.length > 0 && <div id={`person-${index}-farePackageOfferId`} tabIndex={-1} className={styles.offerPickGrid} role="group" aria-label={`Chọn gói du thuyền cho hành khách ${index + 1}`} aria-invalid={Boolean(errors[`person-${index}-farePackageOfferId`])}>
+                {catalog.offers.map(o => {
+                  const selected = p.farePackageOfferId === o.selection.offerId
+                  const cabinLabel = cabinTypeName(o.selection.cabinType)
+                  return <button
+                    key={o.selection.offerId}
+                    type="button"
+                    className={`${styles.offerPickCard} ${selected ? styles.offerPickCardSelected : ''}`}
+                    aria-pressed={selected}
+                    onClick={() => update(index, {
+                      farePackageOfferId: o.selection.offerId,
+                      farePackagePriceRevisionId: o.selection.priceRevisionId,
+                      tourPackageId: '',
+                      cabinId: '',
+                    })}
+                  >
+                    <span className={styles.offerPickMeta}>{cabinLabel}</span>
+                    <strong>{o.selection.templateName}</strong>
+                    <span className={styles.offerPickPrice}>
+                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: o.currencyCode }).format(Number(o.selection.amount))} / người
+                    </span>
+                  </button>
+                })}
+              </div>}
+              {p.farePackageOfferId && !fare && <Notice title="Gói đã chọn cần kiểm tra lại" tone="warning">Vui lòng chọn một gói du thuyền khả dụng phía trên.</Notice>}
+              {errors[`person-${index}-farePackageOfferId`] && <p className={styles.inlineError} role="alert">{errors[`person-${index}-farePackageOfferId`]}</p>}
+            </div>
+            {fare && <details className={styles.benefitDrawer}><summary>Quyền lợi bao gồm trong gói ({fare.benefits.length})</summary><ul>{fare.benefits.map(b => <li key={b.sourceBenefitId}>{b.resourceName} · {b.inclusion === 'INCLUDED' ? 'Đã bao gồm' : b.inclusion === 'LIMITED_INCLUDED' ? `Đã bao gồm, giới hạn ${b.quantityLimit} ${b.serviceUnitCode ?? 'lượt'}` : b.inclusion === 'OPTIONAL' ? 'Tùy chọn' : 'Không bao gồm'}{b.requiresReservation && ' · Cần đăng ký riêng'}</li>)}</ul></details>}
+            <div>
+              <p className={styles.choiceGroupLabel}>Cách nhận cabin *</p>
+              <div id={`person-${index}-cabinSelectionMode`} tabIndex={-1} className={styles.choiceCardGrid} role="group" aria-label={`Cách nhận cabin cho hành khách ${index + 1}`} aria-invalid={Boolean(errors[`person-${index}-cabinSelectionMode`])}>
+                {([
+                  ['PHYSICAL_CABIN', 'Chọn cabin cụ thể', 'Tự chọn số phòng trên danh sách cabin trống hoặc sơ đồ tàu 3D.'],
+                  ['CATEGORY_HOLD', 'Giữ chỗ theo hạng, chọn phòng sau', 'Hệ thống giữ suất theo hạng cabin đã chọn; số phòng cụ thể sẽ được phân bổ sau.'],
+                ] as const).map(([modeValue, modeTitle, modeDesc]) => {
+                  const active = p.cabinSelectionMode === modeValue
+                  return <button
+                    key={modeValue}
+                    type="button"
+                    className={`${styles.choiceCard} ${active ? styles.choiceCardActive : ''}`}
+                    aria-pressed={active}
+                    onClick={() => update(index, { cabinSelectionMode: modeValue as CabinSelectionMode, cabinId: '' })}
+                  >
+                    <div className={styles.choiceCardHead}>
+                      <span className={styles.choiceCardTitle}>{modeTitle}</span>
+                      <span className={styles.choiceCardCheck} aria-hidden="true">✓</span>
+                    </div>
+                    <span className={styles.choiceCardDesc}>{modeDesc}</span>
+                  </button>
+                })}
+              </div>
+              {errors[`person-${index}-cabinSelectionMode`] && <p className={styles.inlineError} role="alert">{errors[`person-${index}-cabinSelectionMode`]}</p>}
+            </div>
+            {fare && p.cabinSelectionMode && group.members.length > 1 && <Button tone="text" onClick={() => { setApplyFrom(index); setTargets([]) }}>Áp dụng gói &amp; cách chọn phòng này cho khách khác trong phòng</Button>}
           </> : <>
             <Field htmlFor={`person-${index}-tourPackageId`} label="Gói dịch vụ (tùy chọn)" error={errors[`person-${index}-tourPackageId`]}>
               <select id={`person-${index}-tourPackageId`} value={p.tourPackageId} disabled={!packages && !p.tourPackageId} onChange={e => update(index, { tourPackageId: e.target.value })}>

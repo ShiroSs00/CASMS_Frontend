@@ -5,9 +5,9 @@ import { useLiveBooking } from '../model/live-booking-context'
 import styles from './LiveBooking.module.css'
 
 export type BookingModelContext = {
-  shipId: string; cruiseId: string; selectedCabinId?: string
-  cabins: Array<{ cabinId: string; remainingCapacity: number }>
-  onSelectCabin: (id: string) => void
+  shipId: string; cruiseId?: string; selectedCabinId?: string
+  cabins?: Array<{ cabinId: string; remainingCapacity: number }>
+  onSelectCabin?: (id: string) => void
 }
 export type BookingModelRenderer = (context: BookingModelContext) => ReactNode
 

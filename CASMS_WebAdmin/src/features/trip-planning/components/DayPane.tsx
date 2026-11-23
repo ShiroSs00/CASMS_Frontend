@@ -9,6 +9,7 @@ import { stopRoleLabel } from '../model/day-labels'
 
 type Props = {
   departurePorts?: { data: Source[]; loading: boolean; error: string; retry: () => void }
+  departureWindow?: { earliest?: string | null; latest?: string | null }
   onDeparture?: (value: Partial<Pick<Day, 'departurePortId' | 'departurePortName' | 'plannedDepartureTime'>>) => void
   onDisembarkation?: (portId: string | null, times?: Partial<Pick<Stop, 'plannedArrivalTime' | 'plannedDepartureTime'>>) => void
   content: Content
@@ -27,6 +28,7 @@ type Props = {
 
 export function DayPane({
   departurePorts,
+  departureWindow,
   onDeparture,
   onDisembarkation,
   content,
@@ -188,21 +190,31 @@ export function DayPane({
                   }
                 />
               <div className={styles.timeGrid}>
-                <Field
-                  htmlFor="planning-departure-time"
-                  label="Giờ khởi hành (giờ Việt Nam) *"
-                  error={fieldError('planning-departure-time')}
-                >
-                  <input
-                    id="planning-departure-time"
-                    type="time"
-                    step="60"
-                    required
-                    value={day.plannedDepartureTime ?? ''}
-                    disabled={busy}
-                    onChange={event => onDeparture?.({ plannedDepartureTime: event.target.value || null })}
-                  />
-                </Field>
+                {departureWindow?.earliest && departureWindow?.latest ? (
+                  <div className={styles.portSummary}>
+                    <div>
+                      <small>Khung giờ khởi hành cho phép (giờ Việt Nam)</small>
+                      <b>{shortTime(departureWindow.earliest)} – {shortTime(departureWindow.latest)}</b>
+                    </div>
+                    <small>Giờ khởi hành cụ thể sẽ được chọn trong khung này khi tạo tour.</small>
+                  </div>
+                ) : (
+                  <Field
+                    htmlFor="planning-departure-time"
+                    label="Giờ khởi hành (giờ Việt Nam) *"
+                    error={fieldError('planning-departure-time')}
+                  >
+                    <input
+                      id="planning-departure-time"
+                      type="time"
+                      step="60"
+                      required
+                      value={day.plannedDepartureTime ?? ''}
+                      disabled={busy}
+                      onChange={event => onDeparture?.({ plannedDepartureTime: event.target.value || null })}
+                    />
+                  </Field>
+                )}
               </div>
                 </div>)}
             </section>

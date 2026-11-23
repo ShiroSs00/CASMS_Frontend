@@ -1,5 +1,6 @@
 import {businessCopy} from '@/shared/i18n/business-copy'
 const messages:Readonly<Record<string,string>>={
+  PROGRAM_HANDOFF_READ_ONLY:'Chương trình chỉ cho phép xem. Bạn cần được giao việc và đang xử lý để chỉnh sửa. Nếu đã bàn giao, liên hệ Quản lý lịch trình để yêu cầu bổ sung, rồi nhận lại việc.',
   CRUISE_NOT_SALE_READY:'Chuyến khởi hành chưa đủ điều kiện mở bán. Kiểm tra lại các điều kiện với phạm vi gói đang chọn.',
   BUSINESS_POLICY_REQUIRED:'Chưa có đầy đủ chính sách giao dịch hợp lệ. Chưa thể phát hành báo giá, giữ chỗ hoặc xác nhận giao dịch mới.',
   BOOKING_HOLD_POLICY_REQUIRED:'Chưa có cấu hình thời hạn giữ chỗ được ban hành. Chức năng cấu hình chính sách này chưa được hỗ trợ; không dùng thời hạn mặc định.',
@@ -19,6 +20,7 @@ const messages:Readonly<Record<string,string>>={
   CRUISE_PACKAGE_PRICE_SEPARATE:"Giá Gói du thuyền được cấu hình và duyệt riêng. Dùng phần thanh toán, hủy và phí để sửa điều kiện thương mại.",
   ADDON_SALES_WINDOW_INVALID:"Đối chiếu các mốc bán, giai đoạn và cutoff với lịch phục vụ cùng khoảng nhận đặt chỗ hiện hành.",
   ADDON_RESOURCE_INVALID:"Add-on chưa tham chiếu nguồn hoạt động, tour hoặc dịch vụ hợp lệ của chuyến.",
+  ADDON_CURRENCY_INVALID:"Giá dịch vụ mua thêm mới phải dùng VND. Tải lại biểu mẫu; với cấu hình USD cũ, tạo cấu hình VND bằng giá đã được xác nhận, không tự quy đổi.",
   ADDON_OPERATIONAL_SCHEDULE_REQUIRED:"Dịch vụ yêu cầu lịch phục vụ hiện hành của chuyến trước khi cấu hình Add-on.",
   SERVICE_OUTSIDE_WINDOW:"Lịch dịch vụ nằm ngoài khoảng cho phép của chuyến hoặc lần ghé cảng.",
   SERVICE_SUPPLIER_NOT_READY:"Nhà cung cấp của lịch dịch vụ chưa hoạt động và được xác minh.",
@@ -193,6 +195,7 @@ const messages:Readonly<Record<string,string>>={
   PLAN_APPROVAL_CHECK_FAILED:'Kế hoạch Quản lý lịch trình còn thiếu dữ liệu bắt buộc. Kiểm tra các mục được đánh dấu và yêu cầu bổ sung trước khi duyệt.',
   CAPTAIN_REQUIRED:'Chưa phân công thuyền trưởng. Quản lý vận hành cần bổ sung nguồn lực cho chuyến khởi hành.',
   GUIDANCE_PUBLICATION_REQUIRED:'Buổi hướng dẫn chưa được công bố. Quản lý vận hành cần hoàn thiện nội dung và phân công người phụ trách.',
+  GUIDANCE_ATTENDANCE_REQUIRED:'Còn hành khách chưa hoàn thành hướng dẫn an toàn. Đối chiếu điểm danh và hoàn tất buổi hướng dẫn trước xuất bến.',
   PLAN_FROZEN:'Kế hoạch đã gửi xét duyệt. Cần thu hồi hoặc yêu cầu chỉnh sửa trước khi lưu thay đổi.',
   STALE_PREVIEW:'Phiên bản nguồn đã đổi sau khi xem trước. Giữ bản nhập, tải lại nguồn và tạo bản xem trước mới trước khi gửi lại.',
   TRIP_ARCHIVED:'Chuyến đi nguồn đã được lưu trữ. Chọn phiên bản của chuyến đi còn sử dụng.',

@@ -37,7 +37,7 @@ export function InheritedSourcePlan({
     <p className={styles.sourceEyebrow}>TUYẾN MẪU ĐÃ CHỌN</p>
     <h2 className={styles.sourceSummaryTitle}>{source.tripName}</h2>
     <p className={styles.sourceSummaryMeta}>
-     {source.tripCode} · {source.durationDays} ngày{source.durationNights ? ` ${source.durationNights} đêm` : ''}
+     {source.tripCode} · Phiên bản {source.versionNumber} · {source.durationDays} ngày{source.durationNights ? ` ${source.durationNights} đêm` : ''}
     </p>
    </div>
    {onChangeSource&&<Button type="button" tone="secondary" size="compact" autoWidth disabled={disabled} onClick={onChangeSource}>Đổi lịch trình mẫu</Button>}

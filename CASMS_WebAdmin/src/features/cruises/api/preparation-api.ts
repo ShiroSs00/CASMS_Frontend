@@ -15,6 +15,7 @@ export const preparationApprovalLabels: Record<typeof approvalValues[number], st
  RETURNED: 'Cần bổ sung', REJECTED: 'Đã từ chối', STALE: 'Cần đối chiếu lại',
 }
 export type PreparationSection={sectionCode:string;sectionName:string;ownerRole:string;submitterRole:string;allowedActions:string[];status:PreparationStatus;revision:number;submittedByUserId:string|null;submittedAt:string|null;confirmedByUserId:string|null;confirmedAt:string|null;confirmedByUsername:string|null;returnedByUserId:string|null;returnedAt:string|null;evidence:string|null;returnReason:string|null;checkItems:{itemCode:string;ready:boolean;required:boolean;evidence?:string|null;details?:string|null}[]
+ submissionBlockReason?: string | null
  dataReadiness: typeof dataReadinessValues[number]
  submissionStatus: typeof submissionValues[number]
  approvalStatus: typeof approvalValues[number]

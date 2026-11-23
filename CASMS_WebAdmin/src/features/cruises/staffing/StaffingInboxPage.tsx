@@ -102,7 +102,7 @@ function StaffingInbox({ review }: { review: boolean }) {
     if (statusFilter && request.status !== statusFilter) return false
     if (!normalizedQuery) return true
     return request.cruiseName.toLowerCase().includes(normalizedQuery)
-  })
+  }).sort((a, b) => (Date.parse(b.departure) || 0) - (Date.parse(a.departure) || 0) || b.cruiseCode.localeCompare(a.cruiseCode, 'vi', { numeric: true }))
   const hasFilters = Boolean(cruiseSearch.trim() || progressFilter !== 'ALL' || statusFilter)
 
   function resetFilters() {
@@ -248,7 +248,7 @@ function StaffingInbox({ review }: { review: boolean }) {
                     <td>
                       <span className={missing > 0 ? styles.queueGap : styles.queueReady}>
                         {request.status === 'PENDING_SHIP_REVIEW' ? 'Chờ xác nhận nhu cầu'
-                          : missing > 0 ? `Còn thiếu ${missing} người` : 'Đủ theo nhu cầu'}
+                          : missing > 0 ? `Còn thiếu ${missing} người` : request.workflowVersion === 'V2' ? 'Đủ theo nhu cầu khu vực' : 'Đủ dịch vụ · Kiểm tra thêm phân ca'}
                       </span>
                     </td>
                     <td>
@@ -286,7 +286,10 @@ function ShipManagerAssignments({ userId }: { userId: string | null | undefined 
   const [saved, setSaved] = useState('')
   const selected = queue.data?.find(cruise => cruise.cruiseId === cruiseId)
   return (
-    <Panel title="Chuyến cần phân công Quản lý tàu">
+    <Panel
+      title="Chuyến cần phân công Quản lý tàu"
+      subtitle="Gắn Quản lý tàu phụ trách riêng cho chuyến khởi hành này để họ nhận được đề nghị bố trí dịch vụ trên boong và xác nhận kỹ thuật tàu."
+    >
       <div className={styles.section}>
         <div><Button tone="secondary" size="compact" disabled={queue.loading} onClick={queue.retry}>Cập nhật danh sách</Button></div>
         {saved && <Notice tone="success" title="Đã phân công Quản lý tàu">{saved}</Notice>}
@@ -553,7 +556,9 @@ function Assignments({ request, refresh, activityOnly = false }: { request: Staf
   )
 
   const missingServices = request.requirements.filter(item => item.assigned < item.required)
-  const covered = request.requirements.length > 0 && missingServices.length === 0
+  const missingShifts = shifts.filter(shift => shift.userIds.length === 0)
+  const covered = Boolean(plan.data) && (request.requirements.length > 0 || shifts.length > 0)
+    && missingServices.length === 0 && !plan.loading && !plan.error && missingShifts.length === 0
 
   const normalizedStaffQuery = staffSearch.trim().toLowerCase()
   const matchesStaffSearch = (username: string) => !normalizedStaffQuery || username.toLowerCase().includes(normalizedStaffQuery)
@@ -880,7 +885,8 @@ function Assignments({ request, refresh, activityOnly = false }: { request: Staf
               </Button>
               {!covered && (
                 <span className={styles.subtle}>
-                  Cần bố trí thêm {missingServices.map(s => `${s.required - s.assigned} người cho ${s.serviceName}`).join(', ')} trước khi gửi.
+                  {plan.loading ? 'Đang đối chiếu phân ca…' : plan.error ? 'Chưa đọc được phân ca. Tải lại trước khi gửi.'
+                    : <>Cần hoàn thiện trước khi gửi: {[...missingServices.map(s => `${s.required - s.assigned} người cho ${s.serviceName}`), ...missingShifts.map(shift => `phân ca ${shift.name}`)].join('; ') || 'nhu cầu dịch vụ'}.</>}
                 </span>
               )}
             </div>

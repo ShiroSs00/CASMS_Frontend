@@ -110,12 +110,13 @@ export function consecutiveSamePortViolations(content: Pick<Content, 'stops'>): 
   })
 }
 
-export function departureTimingViolations(content: Pick<Content, 'days' | 'stops'>): Violation[] {
+export function departureTimingViolations(content: Pick<Content, 'days' | 'stops'>, fallbackDepartureTime?: string | null): Violation[] {
   const firstDay = content.days.find(day => day.dayNumber === 1)
-  if (!firstDay?.departurePortId || !firstDay.plannedDepartureTime) return []
+  const effectiveDepTime = firstDay?.plannedDepartureTime || fallbackDepartureTime || null
+  if (!firstDay?.departurePortId || !effectiveDepTime) return []
   if (content.stops.some(stop => stop.isEmbarkation)) return []
   const day1Zone = firstDay.shipTimeZoneId ?? SHIP_ZONE
-  const dep1 = timeNumber(1, firstDay.plannedDepartureTime)
+  const dep1 = timeNumber(1, effectiveDepTime)
   const ordered = [...content.stops].sort((first, second) => first.stopOrder - second.stopOrder)
   const conflict = ordered.find(stop =>
     stop.plannedArrivalTime &&
@@ -132,8 +133,8 @@ export function departureTimingViolations(content: Pick<Content, 'days' | 'stops
     field: 'plannedDepartureTime',
     fieldPath: 'days[1].plannedDepartureTime',
     message: arr < dep1
-      ? 'Giờ khởi hành Ngày 1 (' + shortTime(firstDay.plannedDepartureTime) + ') đang muộn hơn giờ đến ' + (conflict.portName || 'cảng kế tiếp') + ' (Ngày ' + conflict.arrivalDayNumber + ' ' + shortTime(conflict.plannedArrivalTime) + ').'
-      : 'Giờ khởi hành Ngày 1 (' + shortTime(firstDay.plannedDepartureTime) + ') phải sớm hơn giờ đến ' + (conflict.portName || 'cảng kế tiếp') + ' để có thời gian di chuyển.',
+      ? 'Giờ khởi hành sớm nhất Ngày 1 (' + shortTime(effectiveDepTime) + ') đang muộn hơn giờ đến ' + (conflict.portName || 'cảng kế tiếp') + ' (Ngày ' + conflict.arrivalDayNumber + ' ' + shortTime(conflict.plannedArrivalTime) + ').'
+      : 'Giờ khởi hành sớm nhất Ngày 1 (' + shortTime(effectiveDepTime) + ') phải sớm hơn giờ đến ' + (conflict.portName || 'cảng kế tiếp') + ' để có thời gian di chuyển.',
   }]
 }
 
@@ -141,13 +142,15 @@ export function routeOrderViolations(
   content: Pick<Content, 'stops'> & {
     days?: readonly Pick<Day, 'dayNumber' | 'departurePortId' | 'departurePortName' | 'plannedDepartureTime' | 'shipTimeZoneId'>[]
   },
+  fallbackDepartureTime?: string | null,
 ): Violation[] {
   const ordered=[...content.stops].sort((first,second)=>first.stopOrder-second.stopOrder)
   const violations: Violation[] = []
   const firstDay = content.days?.find(day => day.dayNumber === 1)
-  if (firstDay?.departurePortId && firstDay.plannedDepartureTime && !ordered.some(stop => stop.isEmbarkation)) {
+  const effectiveDepTime = firstDay?.plannedDepartureTime || fallbackDepartureTime || null
+  if (firstDay?.departurePortId && effectiveDepTime && !ordered.some(stop => stop.isEmbarkation)) {
     const day1Zone = firstDay.shipTimeZoneId ?? SHIP_ZONE
-    const dep1 = timeNumber(1, firstDay.plannedDepartureTime)
+    const dep1 = timeNumber(1, effectiveDepTime)
     for (const stop of ordered) {
       if (!stop.plannedArrivalTime || !samePortClock(day1Zone, stop.timeZoneId)) continue
       const arr = timeNumber(stop.arrivalDayNumber, stop.plannedArrivalTime)

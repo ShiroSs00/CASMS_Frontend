@@ -5,10 +5,11 @@ import { useSessionAccess } from '@/shared/auth'
 import { cabinTypeLabel } from '@/shared/i18n/business-copy'
 import { journeyTime } from '@/shared/lib/journey-time'
 import { canRoleOpenAdminPath } from '@/shared/ui/admin-v3'
-import { Badge, Button, ButtonLink, Empty, Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Badge, Button, ButtonLink, Empty, Field, Loading, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
 import { formatOperatingBudget } from '../api/preparation-api'
 import { staffingApi } from '../staffing/staffing-api'
 import { CruiseFrame } from './CruiseUI'
+import { PreparationEvidence } from './PreparationEvidence'
 import styles from '../staffing/Staffing.module.css'
 import workspaceStyles from './ManagerWorkspace.module.css'
 
@@ -39,7 +40,7 @@ type Task = {
   staffingStatus?: string | null
   shipAssigned?: boolean
 }
-type Work = { canDispatch: boolean; shipAssigned: boolean; tasks: Task[]; staffingRequestId?: string | null }
+type Work = { canDispatch: boolean; shipAssigned: boolean; tasks: Task[]; staffingRequestId?: string | null; canReopenAsm?: boolean }
 const labels = { ASM: 'Hoạt động, dịch vụ và tour bờ', SHIP: 'Cabin, khu vực và khả năng phục vụ' }
 const teams = { ASM: 'Quản lý dịch vụ', SHIP: 'Quản lý tàu' }
 const statuses = {
@@ -120,6 +121,12 @@ export function CruiseWorkHandoff({
                 {task ? <TaskStatus task={task} compact /> : (
                   <p className={workspaceStyles.sectionMeta}>Chưa gửi yêu cầu chuẩn bị.</p>
                 )}
+                {task && group === 'ASM' && read.data?.canReopenAsm && (
+                  <ReopenProgram task={task} onChanged={read.retry} />
+                )}
+                {task && group === 'ASM' && task.status === 'COMPLETED' && read.data?.staffingRequestId && read.data.canDispatch && (
+                  <p className={workspaceStyles.sectionMeta}>Nếu cần bổ sung chương trình, trả phương án qua yêu cầu chuẩn bị tàu và nhân sự để đồng bộ các bộ phận.</p>
+                )}
                 {canSend && budgetAmount && (group === 'ASM' || read.data?.shipAssigned) ? (
                   <details className={styles.handoffCompose} key={task?.revision ?? 0}>
                     <summary>
@@ -142,6 +149,44 @@ export function CruiseWorkHandoff({
       )}
     </>
   )
+}
+
+function ReopenProgram({ task, onChanged }: { task: Task; onChanged: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const lock = useRef(false)
+  const id = useId()
+  async function submit() {
+    if (lock.current || !reason.trim()) return
+    lock.current = true; setBusy(true); setError('')
+    try {
+      const saved = await apiRequest<Work>(`${root}/${encodeURIComponent(task.cruiseId)}/ASM/reopen`, {
+        method: 'POST', body: { expectedRevision: task.revision, reason: reason.trim() },
+      })
+      const actual = await apiRequest<Work>(`${root}/${encodeURIComponent(task.cruiseId)}`)
+      const reopened = actual.tasks.find(item => item.group === 'ASM')
+      if (!saved.tasks.some(item => item.group === 'ASM' && item.status === 'PENDING' && item.revision === task.revision + 1)
+        || !reopened || reopened.status !== 'PENDING' || reopened.revision !== task.revision + 1)
+        throw new Error('Chưa đối chiếu được kết quả trả bổ sung. Tải lại tiến độ trước khi thao tác tiếp.')
+      setOpen(false); setReason(''); onChanged()
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Chưa trả được yêu cầu bổ sung.')
+    } finally { lock.current = false; setBusy(false) }
+  }
+  return <>
+    <Button tone="secondary" autoWidth onClick={() => { setOpen(true); setError('') }}>Yêu cầu bổ sung chương trình</Button>
+    {open && <Modal title="Yêu cầu Quản lý dịch vụ bổ sung" busy={busy} dirty={Boolean(reason)} onClose={() => { if (!busy) setOpen(false) }} footer={<>
+      <Button tone="secondary" disabled={busy} onClick={() => setOpen(false)}>Quay lại</Button>
+      <Button busy={busy} disabled={!reason.trim()} onClick={() => void submit()}>Trả chương trình để bổ sung</Button>
+    </>}>
+      <p>Yêu cầu đã hoàn thành sẽ chuyển về chờ nhận việc. Quản lý dịch vụ cần nhận lại, bổ sung và gửi kết quả mới.</p>
+      <p>Thay đổi lịch phục vụ có thể làm phương án nhân sự cần được kiểm tra lại. Hồ sơ đã gửi xét duyệt phải được mở lại theo quy trình trước khi sửa.</p>
+      <Field htmlFor={id} label="Nội dung cần bổ sung"><textarea id={id} rows={4} maxLength={2000} required disabled={busy} value={reason} onChange={event => setReason(event.target.value)} /></Field>
+      {error && <Notice title="Chưa xác nhận được thao tác" tone="error"><p>{error}</p><Button tone="secondary" onClick={onChanged}>Tải lại tiến độ</Button></Notice>}
+    </Modal>}
+  </>
 }
 
 function TaskStatus({ task, compact = false }: { task: Task; compact?: boolean }) {
@@ -646,6 +691,8 @@ function WorkItem({ task, onChanged }: { task: Task; onChanged: () => void }) {
             Để bàn giao sang luồng phân công nhân sự, Quản lý lịch trình sẽ khởi tạo yêu cầu trong mục Chuẩn bị nhân sự.
           </Notice>
         )}
+
+        {task.group === 'SHIP' && <PreparationEvidence cruiseId={task.cruiseId} sectionCode="TECHNICAL_NAUTICAL" refreshKey={task.revision} onChanged={onChanged} />}
 
         {task.canAccept && (
           <div className={styles.stepBox}>

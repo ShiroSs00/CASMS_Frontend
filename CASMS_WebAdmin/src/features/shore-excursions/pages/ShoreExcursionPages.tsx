@@ -5,7 +5,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router'
 import {cruiseContextReturn} from '@/shared/lib/cruise-context'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, ButtonLink, CollectionSummary, DataTable, Empty, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Button, ButtonLink, CollectionSummary, DataTable, Empty, Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
 import { shoreExcursionApi } from '../api/shore-excursion-api'
 import { excursionContextApi } from '../api/excursion-context-api'
 import { ExcursionActions, ExcursionAvailability } from '../components/ExcursionActions'
@@ -42,9 +42,15 @@ export function ShoreExcursionListPage() {
     <Panel title="Bộ lọc">
       <form key={search.toString()} onSubmit={filter}>
         <div className={styles.filters}>
-          <label>Điểm dừng<select key={`${cruiseStopId}:${stops.data?.length}`} name="cruiseStopId" defaultValue={cruiseStopId} disabled={stops.loading || Boolean(stops.error)}><option value="">Tất cả điểm dừng</option>{stops.data?.map(item => <option key={item.cruiseStopId} value={item.cruiseStopId}>{item.label}</option>)}</select></label>
-          <label>Nhà cung cấp<select key={`${supplierId}:${suppliers.data?.length}`} name="supplierId" defaultValue={supplierId} disabled={suppliers.loading || Boolean(suppliers.error)}><option value="">Tất cả nhà cung cấp</option>{suppliers.data?.map(item => <option key={item.supplierId} value={item.supplierId}>{item.supplierName}</option>)}</select></label>
-          <label>Trạng thái<select name="status" defaultValue={rawStatus ?? ''}><option value="">Tất cả</option>{excursionStatuses.map((value) => <option key={value} value={value}>{statusLabels[value]}</option>)}</select></label>
+          <Field htmlFor="excursion-filter-stop" label="Điểm dừng">
+            <select id="excursion-filter-stop" key={`${cruiseStopId}:${stops.data?.length}`} name="cruiseStopId" defaultValue={cruiseStopId} disabled={stops.loading || Boolean(stops.error)}><option value="">Tất cả điểm dừng</option>{stops.data?.map(item => <option key={item.cruiseStopId} value={item.cruiseStopId}>{item.label}</option>)}</select>
+          </Field>
+          <Field htmlFor="excursion-filter-supplier" label="Nhà cung cấp">
+            <select id="excursion-filter-supplier" key={`${supplierId}:${suppliers.data?.length}`} name="supplierId" defaultValue={supplierId} disabled={suppliers.loading || Boolean(suppliers.error)}><option value="">Tất cả nhà cung cấp</option>{suppliers.data?.map(item => <option key={item.supplierId} value={item.supplierId}>{item.supplierName}</option>)}</select>
+          </Field>
+          <Field htmlFor="excursion-filter-status" label="Trạng thái">
+            <select id="excursion-filter-status" name="status" defaultValue={rawStatus ?? ''}><option value="">Tất cả</option>{excursionStatuses.map((value) => <option key={value} value={value}>{statusLabels[value]}</option>)}</select>
+          </Field>
         </div>
         <div className={styles.actions}><Button type="submit">Áp dụng bộ lọc</Button><Button tone="secondary" onClick={() => setSearch({})}>Xóa bộ lọc</Button><Button tone="secondary" onClick={query.reload}>Tải lại</Button></div>
       </form>
@@ -52,7 +58,7 @@ export function ShoreExcursionListPage() {
     {[stops, suppliers].map((lookup, index) => lookup.error && <Notice key={index} title="Chưa tải được tên trong bộ lọc" tone="warning">{lookup.error.message}<Button onClick={lookup.retry}>Thử lại danh mục</Button></Notice>)}
     {query.loading ? <Loading label="Đang tải chuyến tham quan…" /> : query.error != null ? <ShoreError error={query.error} onRetry={query.reload} /> : query.data && <Panel title={`Danh sách · ${query.data.length}`}>
       {!query.data.length ? <Empty title="Chưa có chuyến tham quan phù hợp"><p>Thử đổi bộ lọc. Khi tạo tour mới, cần chọn nhà cung cấp đã xác minh và lần ghé cảng phù hợp.</p></Empty> : <DataTable label="Danh sách chuyến tham quan bờ" headers={['Mã / tên', 'Nhà cung cấp', 'Bắt đầu', 'Trở về dự kiến', 'Chỗ còn lại', 'Trạng thái']}>
-        {query.data.map((item) => <tr key={item.shoreExcursionId}><td><Link className={styles.link} to={`${root}/${item.shoreExcursionId}`}>{item.excursionName}</Link><div>{item.excursionCode ?? '—'}</div></td><td>{item.supplierName}</td><td>{displayTime(item.startTime)}</td><td>{displayTime(item.plannedReturnTime)}</td><td>{item.availableCapacity} / {item.maximumCapacity}</td><td><ExcursionBadge status={item.status} /></td></tr>)}
+        {[...query.data].sort((a, b) => (Date.parse(b.createdAt ?? b.startTime) || 0) - (Date.parse(a.createdAt ?? a.startTime) || 0)).map((item) => <tr key={item.shoreExcursionId}><td><Link className={styles.link} to={`${root}/${item.shoreExcursionId}`}>{item.excursionName}</Link><div>{item.excursionCode ?? '—'}</div></td><td>{item.supplierName}</td><td>{displayTime(item.startTime)}</td><td>{displayTime(item.plannedReturnTime)}</td><td>{item.availableCapacity} / {item.maximumCapacity}</td><td><ExcursionBadge status={item.status} /></td></tr>)}
       </DataTable>}
     </Panel>}
   </ShoreLayout>

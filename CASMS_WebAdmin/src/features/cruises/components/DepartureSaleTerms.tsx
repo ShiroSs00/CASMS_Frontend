@@ -22,12 +22,12 @@ const errorText: Record<string, string> = {
   SALE_TERMS_SNAPSHOT_STALE: 'Nội dung không còn khớp bản đã gửi duyệt.',
   REASON_REQUIRED: 'Nhập lý do trả về.',
 }
-function validate(draft: Draft, tax: boolean, currency = 'USD'): string {
+function validate(draft: Draft, tax: boolean, currency = 'VND'): string {
   if (!draft.applicability) return 'Chọn có áp dụng hoặc không áp dụng.'
   if (draft.applicability === 'NOT_APPLICABLE') return draft.reason.trim() ? '' : 'Nhập lý do không áp dụng.'
   const value = Number(draft.value)
   if (!draft.value.trim() || !Number.isFinite(value) || value < 0 || tax && value > 1) {
-    return tax ? 'Nhập tỷ lệ từ 0 đến 1.' : `Nhập số ${currency} từ 0 trở lên.`
+    return tax ? 'Nhập tỷ lệ từ 0 đến 1 (VD: 0.1 tương ứng 10%).' : `Nhập số ${currency} từ 0 trở lên.`
   }
   return !tax && currency === 'VND' && !Number.isInteger(value) ? 'Nhập phí cảng theo số đồng nguyên.' : ''
 }
@@ -39,11 +39,14 @@ function payload(draft: Draft): Charge {
     evidence: draft.evidence.trim() || null,
   }
 }
-function ChargeFields({ label, tax, value, onChange, error, currency = 'USD' }: { currency?: string; label: string; tax: boolean; value: Draft; onChange: (value: Draft) => void; error: string }) {
+function ChargeFields({ label, tax, value, onChange, error, currency = 'VND' }: { currency?: string; label: string; tax: boolean; value: Draft; onChange: (value: Draft) => void; error: string }) {
   const id = useId()
   const patch = (change: Partial<Draft>) => onChange({ ...value, ...change })
   const applies = value.applicability === 'APPLICABLE'
   const excluded = value.applicability === 'NOT_APPLICABLE'
+  const numericTax = tax && applies && value.value.trim() !== '' && Number.isFinite(Number(value.value)) && Number(value.value) >= 0 && Number(value.value) <= 1
+    ? new Intl.NumberFormat('vi-VN', { style: 'percent', maximumFractionDigits: 2 }).format(Number(value.value))
+    : null
   return <section className={styles.group}>
     <h3>{label}</h3>
     <Field label="Áp dụng" htmlFor={id + '-applies'}>
@@ -55,7 +58,7 @@ function ChargeFields({ label, tax, value, onChange, error, currency = 'USD' }: 
         <option value="NOT_APPLICABLE">Không áp dụng</option>
       </select>
     </Field>
-    {applies && <Field label={tax ? 'Tỷ lệ thuế (0–1)' : `Phí cảng mỗi khách (${currency})`} htmlFor={id + '-value'}>
+    {applies && <Field label={tax ? 'Tỷ lệ thuế (0–1, VD: 0.1 = 10%)' : `Phí cảng mỗi khách (${currency})`} htmlFor={id + '-value'} hint={numericTax ? `Tương đương ${numericTax} cộng lên giá gói du thuyền.` : tax ? 'Nhập dạng thập phân từ 0 đến 1 (0.08 = 8%, 0.1 = 10%).' : 'Phí cảng biển cố định tính trên mỗi hành khách khi đặt chỗ.'}>
       <input id={id + '-value'} type="number" min="0" max={tax ? 1 : undefined} step={!tax && currency === 'VND' ? '1' : 'any'} value={value.value}
         aria-invalid={Boolean(error)} aria-describedby={error ? id + '-error' : undefined}
         onChange={event => patch({ value: event.target.value })}/>
@@ -157,11 +160,14 @@ export function DepartureSaleTerms({ cruiseId, refreshKey, onChanged, focusOnMou
   const describe = (charge: Charge, tax: boolean) => charge.applicability === 'NOT_APPLICABLE'
     ? `Không áp dụng · ${charge.reason}`
     : tax ? new Intl.NumberFormat('vi-VN', { style: 'percent', maximumFractionDigits: 8 }).format(charge.value!)
-      : `${charge.value} ${terms.data?.currency ?? 'USD'}/khách`
+      : `${new Intl.NumberFormat('vi-VN').format(charge.value!)} ${terms.data?.currency ?? 'VND'}/khách`
 
   if (!allowed) return null
   return <section ref={section} id="departure-sale-terms" tabIndex={-1}>
-    <Panel title={setupOnly ? undefined : "Điều kiện thương mại mở bán"}>
+    <Panel
+      title={setupOnly ? undefined : 'Điều kiện thương mại mở bán (Thuế & Phí cảng)'}
+      subtitle={setupOnly ? undefined : 'Tổng khách trả = Giá gói du thuyền + (Phí cảng × Số khách) + (Thuế suất × Tạm tính). Được Quản lý vận hành phê duyệt trước khi mở bán.'}
+    >
       {terms.loading && <Loading label="Đang tải điều kiện mở bán…"/>}
       {terms.error && <Notice tone="error" title="Chưa tải được điều kiện mở bán">{terms.error.message} <Button onClick={reload}>Tải lại</Button></Notice>}
       {data && !setupOnly && <><Badge label={labels[data.status]} tone={data.status === 'APPROVED' ? 'success' : 'neutral'}/>

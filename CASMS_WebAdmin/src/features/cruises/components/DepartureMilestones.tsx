@@ -17,6 +17,8 @@ export function DepartureMilestones({
   onStepChange,
   operationsStep,
   onOperationsStepChange,
+  canAccessStep2 = true,
+  canAccessStep3 = true,
   sourceConfigured = true,
   canReviewPreparation = true,
 }: {
@@ -26,6 +28,8 @@ export function DepartureMilestones({
   receivingBookings?: boolean
   operationsStep?: 1 | 2 | 3
   onOperationsStepChange?: (step: 1 | 2 | 3) => void
+  canAccessStep2?: boolean
+  canAccessStep3?: boolean
   activeStep?: 2 | 3
   canReviewPreparation?: boolean
   onStepChange?: (step: 2 | 3) => void
@@ -50,26 +54,30 @@ export function DepartureMilestones({
   }
 
   if (operationsStep && onOperationsStepChange) {
+    const stepItems = [
+      { step: 1 as const, label: 'Xét duyệt hồ sơ', locked: false, lockReason: '' },
+      { step: 2 as const, label: 'Xác nhận sẵn sàng', locked: !canAccessStep2, lockReason: 'Cần phê duyệt hồ sơ ở Bước 1 trước' },
+      { step: 3 as const, label: 'Mở bán', locked: !canAccessStep3, lockReason: 'Cần xác nhận sẵn sàng ở Bước 2 trước' },
+    ]
     return (
       <ol
         className={`${styles.departureMilestones} ${styles.interactiveMilestones}`}
         aria-label="Tiến trình xử lý chuyến khởi hành của Quản lý vận hành"
       >
-        {(
-          [
-            [1, 'Xét duyệt hồ sơ'],
-            [2, 'Xác nhận sẵn sàng'],
-            [3, 'Mở bán'],
-          ] as const
-        ).map(([step, label]) => (
+        {stepItems.map(({ step, label, locked, lockReason }) => (
           <li key={step}>
             <button
               type="button"
+              disabled={locked}
+              title={locked ? lockReason : undefined}
               aria-current={operationsStep === step ? 'step' : undefined}
-              onClick={() => onOperationsStepChange(step)}
+              onClick={() => {
+                if (!locked) onOperationsStepChange(step)
+              }}
             >
               <span aria-hidden="true">{step}</span>
               {label}
+              {locked && <small> · Chưa mở khóa</small>}
             </button>
           </li>
         ))}

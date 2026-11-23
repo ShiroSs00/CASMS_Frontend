@@ -3,6 +3,7 @@ import { useReadQuery } from '@/shared/api'
 import type { CapturedCruisePackageBenefit, cruisePackageApi } from '@/domain/cruise-package'
 import { Badge, Button, ButtonLink, Empty, Field, Loading, Notice } from '@/shared/ui'
 import { cabinTypeName } from '../model/booking-presentation'
+import { cabinPhotoForType } from '../model/cruise-port-photos'
 import { cruiseDetailSections } from '../model/live-booking-navigation'
 import { publicContentFailure } from '../model/public-content-feedback'
 import { useUsdReference } from './UsdReference'
@@ -44,15 +45,22 @@ function OfferCard({
   const { selection } = offer
   const included = selection.benefits.filter(benefit =>
     benefit.inclusion === 'INCLUDED' || benefit.inclusion === 'LIMITED_INCLUDED',
-  ).slice(0, 4)
+  ).slice(0, 5)
+  const cabinImage = cabinPhotoForType(selection.cabinType)
+  const cabinCount = selection.physicalCabinIds.length
 
   return <article className={`${styles.offer} ${isLowest ? styles.offerFeatured : ''}`}>
-    <div className={styles.offerTopBand}>
-      <span className={styles.offerCabinBadge}>{cabinTypeName(selection.cabinType)}</span>
-      {isLowest && <span className={styles.lowestPriceTag}>Giá tốt nhất</span>}
+    <div className={styles.offerMedia}>
+      <img src={cabinImage} alt={cabinTypeName(selection.cabinType)} width="800" height="450" loading="lazy" />
+      <div className={styles.offerMediaBadges}>
+        <span className={styles.offerCabinBadge}>{cabinTypeName(selection.cabinType)}</span>
+        {isLowest && <span className={styles.lowestPriceTag}>Giá tốt nhất</span>}
+      </div>
     </div>
     <header className={styles.offerHeader}>
-      <p className={styles.offerCategory}>{selection.logicalCategory}</p>
+      <p className={styles.offerCategory}>
+        {cabinCount > 0 ? `${cabinCount} cabin mở bán` : 'Hạng phòng tiêu chuẩn'}
+      </p>
       <h4>{selection.templateName}</h4>
       {selection.templateDescription && <p className={styles.offerDesc}>{selection.templateDescription}</p>}
     </header>

@@ -15,7 +15,8 @@ import { activityApi } from '../api/activity-api'
 import { ActivityFrame, ActivityState } from '../components/ActivityUI'
 import { validateActivity, type ActivityDraft } from '../model/activity'
 import styles from '../components/Activities.module.css'
-const blank: ActivityDraft = { activityCode: '', activityName: '', cruiseId: '', description: '', startTime: '', endTime: '', location: '', capacity: NaN, price: null, currencyCode: 'USD' }
+import { useActivityProgramAccess } from '../model/useActivityProgramAccess'
+const blank: ActivityDraft = { activityCode: '', activityName: '', cruiseId: '', description: '', startTime: '', endTime: '', location: '', capacity: NaN, price: null, currencyCode: 'VND' }
 function localTime(value:string){return zonedInput(value,SHIP_TIME_ZONE)}
 export function ActivityFormPage() {
   const { activityId } = useParams(), [params] = useSearchParams()
@@ -36,7 +37,7 @@ function ActivityEditor({ activityId }: { activityId: string }) {
   const returnTo=cruiseContextReturn(params.get('returnTo'),requestedCruise)
   const [editable, setEditable] = useState(false)
   const [uncertain,setUncertain]=useState(false)
-  const permitted = access.canDo(activityId ? 'ACTIVITY_UPDATE' : 'ACTIVITY_CREATE')
+  const authorityPermitted = access.canDo(activityId ? 'ACTIVITY_UPDATE' : 'ACTIVITY_CREATE')
   const cruises = useReadQuery('activity-cruises', activityApi.cruises)
   const [draft, setDraft] = useState<ActivityDraft>(()=>({...blank,cruiseId:validCruiseContextId(requestedCruise)?requestedCruise:''})), [errors, setErrors] = useState<Record<string, string>>({})
   const [error, setError] = useState(''), [busy, setBusy] = useState(false), [loadedId, setLoadedId] = useState<string | null>(null), [attempt, setAttempt] = useState(0)
@@ -45,6 +46,8 @@ function ActivityEditor({ activityId }: { activityId: string }) {
   const shipId=venue.data?.ship.id,deckId=draft.deckId
   const cabins=useReadQuery(`activity-venue-cabins:${access.userId}:${shipId??''}:${deckId??''}:${canReadVenue}`,useCallback(signal=>canReadVenue&&shipId&&deckId&&venue.data?.decks.some(deck=>deck.id===deckId)?readShipVenueCabins(shipId,deckId,signal):Promise.resolve(null),[canReadVenue,shipId,deckId,venue.data]))
   const [baseline,setBaseline]=useState<ActivityDraft>(()=>({...blank,cruiseId:validCruiseContextId(requestedCruise)?requestedCruise:''}))
+  const programAccess = useActivityProgramAccess(loadedId === activityId ? baseline.cruiseId : null)
+  const permitted = authorityPermitted && programAccess.editable
   const [savedCabin,setSavedCabin]=useState<{id:string;name:string|null}|null>(null)
   const dirty=(Object.keys({...baseline,...draft}) as (keyof ActivityDraft)[]).some(key=>!Object.is(draft[key],baseline[key])),guard=useUnsavedFormGuard(dirty,busy)
 
@@ -77,14 +80,14 @@ function ActivityEditor({ activityId }: { activityId: string }) {
     catch (reason) { if(mutationOutcomeUnknown(reason))setUncertain(true); setError(mutationOutcomeUnknown(reason) ? 'Chưa xác định kết quả lưu hoạt động. Thông tin đã nhập được giữ lại; đối chiếu danh sách trước khi tạo yêu cầu mới.' : reason instanceof ApiError && reason.message.includes('evaluate expression') ? 'Hệ thống đang gặp lỗi kiểm tra quyền hoạt động. Vui lòng liên hệ quản trị viên.' : reason instanceof Error ? reason.message : 'Chưa lưu được hoạt động.') }
     finally { lock.current = false; setBusy(false) }
   }
-  const input = (name: keyof ActivityDraft) => ({ id: 'activity-' + name, name, 'aria-invalid': Boolean(errors[name]), 'aria-describedby': errors[name] ? `activity-${name}-hint` : undefined })
+  const input = (name: keyof ActivityDraft) => ({ id: 'activity-' + name, name, disabled: !permitted || busy || uncertain || !editable, 'aria-invalid': Boolean(errors[name]), 'aria-describedby': errors[name] ? `activity-${name}-hint` : undefined })
   return <ActivityFrame><PageHeader breadcrumb="DỊCH VỤ TÀU / HOẠT ĐỘNG" title={activityId ? 'Chỉnh sửa hoạt động' : 'Tạo hoạt động trên tàu'} description="Nhập giờ theo giờ tàu Việt Nam. Hoạt động phải nằm trong thời gian chuyến và giới hạn sức chứa." /><ActivityState {...cruises} />
-    {!permitted && <Notice title="Không có quyền lưu hoạt động" tone="warning">Liên hệ quản trị viên để được cấp quyền phù hợp.</Notice>}{activityId && loadedId === activityId && !editable && <Notice title={draft.cruiseId?"Chỉ sửa hoạt động đã lên kế hoạch":"Hoạt động nguồn"} tone="warning">{draft.cruiseId?"Hoạt động đang ở trạng thái không cho phép chỉnh sửa.":"Hoạt động này chưa gắn chuyến khởi hành. Biểu mẫu hiện tại chỉ chỉnh sửa hoạt động của chuyến khởi hành."}</Notice>}{error && <Notice title="Chưa thể thực hiện" tone="error"><p>{error}</p>{activityId && loadedId !== activityId && <Button onClick={() => setAttempt(value => value + 1)}>Tải lại hoạt động</Button>}</Notice>}
+    {!authorityPermitted && <Notice title="Không có quyền lưu hoạt động" tone="warning">Liên hệ quản trị viên để được cấp quyền phù hợp.</Notice>}{programAccess.reason && <Notice title="Quyền sửa chương trình"><p>{programAccess.reason}</p><Button tone="secondary" onClick={programAccess.retry}>Kiểm tra lại quyền sửa</Button></Notice>}{activityId && loadedId === activityId && !editable && <Notice title={draft.cruiseId?"Chỉ sửa hoạt động đã lên kế hoạch":"Hoạt động nguồn"} tone="warning">{draft.cruiseId?"Hoạt động đang ở trạng thái không cho phép chỉnh sửa.":"Hoạt động này chưa gắn chuyến khởi hành. Biểu mẫu hiện tại chỉ chỉnh sửa hoạt động của chuyến khởi hành."}</Notice>}{error && <Notice title="Chưa thể thực hiện" tone="error"><p>{error}</p>{activityId && loadedId !== activityId && <Button onClick={() => setAttempt(value => value + 1)}>Tải lại hoạt động</Button>}</Notice>}
     {cruises.data && !cruises.data.length && <Notice title="Chưa có chuyến du lịch"><p>Tạo chuyến trước khi lập hoạt động trên tàu.</p><ButtonLink to="/admin/cruises/new">Tạo chuyến</ButtonLink></Notice>}
     <EditorLayout ><form ref={form} onSubmit={submit} noValidate><Panel title="Thông tin hoạt động">
           <FormErrorSummary errors={errors} /><div className={styles.form}>
       <FormSection title="Thông tin hoạt động" >
-      <Field htmlFor="activity-cruiseId" label="Chuyến khởi hành *" error={errors.cruiseId}><select disabled={Boolean(activityId||requestedCruise)} {...input('cruiseId')} value={draft.cruiseId} onChange={event=>setDraft(current=>({...current,cruiseId:event.target.value,deckId:null,cabinId:null}))} required><option value="">Chọn chuyến khởi hành</option>{cruises.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}</select></Field>
+      <Field htmlFor="activity-cruiseId" label="Chuyến khởi hành *" error={errors.cruiseId}><select {...input('cruiseId')} disabled={Boolean(activityId||requestedCruise)||!permitted} value={draft.cruiseId} onChange={event=>setDraft(current=>({...current,cruiseId:event.target.value,deckId:null,cabinId:null}))} required><option value="">Chọn chuyến khởi hành</option>{cruises.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}</select></Field>
       {(['activityName', 'location'] as const).map(key => <Field key={key} htmlFor={'activity-' + key} label={{ activityName: 'Tên hoạt động *', location: 'Địa điểm', currencyCode: 'Mã tiền tệ' }[key]} error={errors[key]}><input {...input(key)} maxLength={{ activityName: 200, location: 250, currencyCode: 3 }[key]} value={draft[key]} onChange={event => update(key, event.target.value)} /></Field>)}
       {venue.loading&&<p role="status">Đang đối chiếu vị trí trên tàu…</p>}{venue.error&&<Notice title="Chưa đối chiếu được boong" tone="warning">{venue.error.message}<Button tone="secondary" onClick={venue.retry}>Tải lại boong</Button></Notice>}
       {venue.data&&<ShipVenueDeckField id="activity-deck" error={errors.deckId} options={venue.data} value={draft.deckId??null} disabled={!permitted||busy||uncertain||Boolean(activityId&&!editable)} onChange={deckId=>setDraft(old=>({...old,deckId,cabinId:old.deckId===deckId?old.cabinId:null}))}/>}

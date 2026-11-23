@@ -117,7 +117,7 @@ export function validateBooking(draft: BookingDraft, cruise: BookingCruiseOption
 }
 export const realBookingApi = {
   async list(page: number, status?: string, cruiseId?: string, signal?: AbortSignal): Promise<{ content: BookingListItem[]; totalPages: number; totalElements: number }> {
-    const data = await apiRequest<{ content: unknown[]; number?: number; totalPages: number; totalElements: number }>('/booking', { query: { page, size: 20, status, cruiseId }, signal })
+    const data = await apiRequest<{ content: unknown[]; number?: number; totalPages: number; totalElements: number }>('/booking', { query: { page, size: 20, sort: 'createdAt,desc', status, cruiseId }, signal })
     if (!Array.isArray(data?.content) || !Number.isSafeInteger(data.totalPages) || data.totalPages < 0 || !Number.isSafeInteger(data.totalElements) || data.totalElements < 0) throw new Error('Danh sách đặt chỗ không hợp lệ.')
     if (data.number != null && data.number !== page) throw new Error('Phản hồi không thuộc trang đặt chỗ yêu cầu.')
     return { ...data, content: data.content.map(decodeListItem) }

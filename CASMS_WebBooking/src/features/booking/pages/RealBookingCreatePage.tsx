@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router'
 import { useSessionAccess } from '@/shared/auth'
-import { useReadQuery } from '@/shared/api'
+import { apiRequest, useReadQuery } from '@/shared/api'
 import { Button, ButtonLink, Field, Notice, Panel } from '@/shared/ui'
 import { cruisePackageApi } from '@/domain/cruise-package'
 import { mutationOutcomeUnknown } from '@/shared/lib/mutation-outcome'
 import { bookingCruisePackageSelectionErrors, bookingFieldErrors, bookingPackageErrors, realBookingApi } from '../api/real-booking-api'
-import { createQuotedBooking, requestBookingQuote } from '../api/booking-quote-api'
+import { createQuotedBooking, quoteSelection, requestBookingQuote } from '../api/booking-quote-api'
 import { PassengerDetailsFields } from '../components/LiveBookingFields'
 import { BookingReadState, RealBookingFrame } from '../components/RealBookingUI'
 import { CruisePackageCabinSelection } from '../components/CruisePackageCabinSelection'
@@ -29,15 +29,44 @@ import type { BookingModelRenderer } from '../components/BookingShipModel'
 
 export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: BookingStage; renderShipModel?: BookingModelRenderer }) {
   const [params] = useSearchParams(), navigate = useNavigate(), access = useSessionAccess()
+  const meQuery = useReadQuery(
+    'booking-me:' + (access.userId ?? 'anon'),
+    useCallback(
+      signal => access.userId
+        ? apiRequest<{ fullName?: string | null; email?: string | null; phoneNumber?: string | null }>('/auth/me', { signal }).catch(() => null)
+        : Promise.resolve(null),
+      [access.userId],
+    ),
+  )
+  const customerUser = meQuery.data
   const { draft, setDraft, saved, setSaved, uncertain, setUncertain, busy, setBusy, submitError: error,
     setSubmitError: setError, errors, setErrors, submissionLockRef, quoteIntent, setQuoteIntent,
     quoteUnknown, setQuoteUnknown, partyConfirmed, setPartyConfirmed, setPersonIds } = useLiveBooking()
   const heading = useRef<HTMLHeadingElement>(null), recovery = useRef<HTMLDivElement>(null)
   const [validationAttempt, setValidationAttempt] = useState(0), [clock, setClock] = useState(Date.now)
+  const [quoteLoading, setQuoteLoading] = useState(false)
+  const [quoteError, setQuoteError] = useState('')
+  const [changingCruise, setChangingCruise] = useState(false)
+  const lastAutoQuotedRef = useRef<string>('')
   const state = transactionState({ busy, quoteUnknown, uncertain, saved })
   const locked = state !== 'editable'
   const back = catalogReturn(params.get('from')), requestedCruise = params.get('cruiseId')
   const usable = quoteUsable(draft, quoteIntent, clock)
+  // Auto-prefill logged-in passenger identity on Step 3 so customer does not re-type or trigger 409 mismatch
+  useEffect(() => {
+    if (!customerUser || locked) return
+    setDraft(current => {
+      const lead = current.passengers[0]
+      if (!lead) return current
+      const nextFullName = lead.fullName || customerUser.fullName || ''
+      const nextEmail = lead.email || customerUser.email || ''
+      const nextPhone = lead.phoneNumber || customerUser.phoneNumber || ''
+      if (nextFullName === lead.fullName && nextEmail === lead.email && nextPhone === lead.phoneNumber) return current
+      const nextPassengers = [...current.passengers]
+      nextPassengers[0] = { ...lead, fullName: nextFullName, email: nextEmail, phoneNumber: nextPhone }
+      return { ...current, passengers: nextPassengers }
+    })
+  }, [customerUser, locked, setDraft])
   useEffect(() => {
     if (!quoteIntent?.quote.expiresAt) return
     const remaining = Date.parse(quoteIntent.quote.expiresAt) - Date.now()
@@ -46,7 +75,7 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
   }, [quoteIntent])
   useEffect(() => {
     if (requestedCruise && requestedCruise !== draft.cruiseId && !locked) {
-      setDraft(d => ({ ...d, cruiseId: requestedCruise, currency: 'USD', passengers: d.passengers.map(p => ({ ...p, cabinId: '', tourPackageId: '', cabinSelectionMode: undefined, farePackageOfferId: undefined, farePackagePriceRevisionId: undefined })) }))
+      setDraft(d => ({ ...d, cruiseId: requestedCruise, currency: 'VND', passengers: d.passengers.map(p => ({ ...p, cabinId: '', tourPackageId: '', cabinSelectionMode: undefined, farePackageOfferId: undefined, farePackagePriceRevisionId: undefined })) }))
       setPartyConfirmed(false); setErrors({})
     }
   }, [requestedCruise, draft.cruiseId, locked, setDraft, setErrors, setPartyConfirmed])
@@ -65,13 +94,13 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
   }, [dirty])
-  const cruises = useReadQuery('booking-published-cruises', realBookingApi.cruises)
+  const cruises = useReadQuery('booking-published-cruises:' + (requestedCruise ?? 'all'), realBookingApi.cruises)
   const cabins = useReadQuery('booking-available-cabins:' + draft.cruiseId, useCallback(signal => draft.cruiseId ? realBookingApi.cabins(draft.cruiseId, signal) : Promise.resolve(null), [draft.cruiseId]))
   const packages = useReadQuery('booking-cruise-packages:' + draft.cruiseId, useCallback(signal => realBookingApi.packagesForCruise(draft.cruiseId, signal), [draft.cruiseId]))
   const fares = useReadQuery('booking-fares:' + draft.cruiseId, useCallback(signal => draft.cruiseId ? cruisePackageApi.available(draft.cruiseId, signal) : Promise.resolve(null), [draft.cruiseId]))
   const selected = cruises.data?.find(c => c.cruiseId === draft.cruiseId)
   useEffect(() => {
-    const currency = selected?.saleCurrency === 'VND' ? 'VND' : 'USD'
+    const currency = selected?.saleCurrency === 'USD' ? 'USD' : 'VND'
     if (selected && !locked && draft.currency !== currency) setDraft(current => ({ ...current, currency }))
   }, [selected, locked, draft.currency, setDraft])
   const choicesLoading = cruises.loading || cabins.loading || packages.loading || fares.loading
@@ -116,9 +145,52 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
     catch (value) {
       const failure = bookingMutationFailure(value)
       unknown = failure.uncertain; setUncertain(unknown); setError(failure.message)
-      if (!unknown) { setQuoteIntent(null); cabins.retry(); packages.retry(); cruises.retry(); fares.retry() }
+      if (!unknown) { setQuoteIntent(null); lastAutoQuotedRef.current = ''; cabins.retry(); packages.retry(); cruises.retry(); fares.retry() }
     } finally { submissionLockRef.current = unknown; setBusy(false) }
   }
+
+  const runAutoQuote = useCallback(async (targetDraft: typeof draft) => {
+    if (submissionLockRef.current || locked) return
+    const key = quoteSelection(targetDraft)
+    lastAutoQuotedRef.current = key
+    setQuoteLoading(true)
+    setQuoteError('')
+    try {
+      const nextIntent = await requestBookingQuote(targetDraft)
+      setQuoteIntent(nextIntent)
+      setClock(bookingNow())
+    } catch (value) {
+      const unknown = mutationOutcomeUnknown(value)
+      if (unknown) setQuoteUnknown(true)
+      setQuoteError(bookingTransactionFailure(value))
+    } finally {
+      setQuoteLoading(false)
+    }
+  }, [locked, setQuoteIntent, setQuoteUnknown, submissionLockRef])
+
+  // Auto-fetch authoritative quote when entering Step 4 or switching payment plan — NO manual "Kiểm tra giá" click needed!
+  const currentQuoteKey = quoteSelection(draft)
+  useEffect(() => {
+    if (step !== 4 || locked || choicesLoading || Boolean(readError) || usable || quoteLoading) return
+    if (lastAutoQuotedRef.current === currentQuoteKey) return
+    void runAutoQuote(draft)
+  }, [step, locked, choicesLoading, readError, usable, quoteLoading, currentQuoteKey, draft, runAutoQuote])
+
+  function handleSelectPlanOnReview(plan: typeof draft.paymentPlan) {
+    if (plan === draft.paymentPlan || locked) return
+    const nextDraft = { ...draft, paymentPlan: plan }
+    setDraft(nextDraft)
+    setQuoteIntent(null)
+    lastAutoQuotedRef.current = ''
+  }
+
+  function handleRefreshQuote() {
+    if (locked || quoteLoading) return
+    setQuoteIntent(null)
+    lastAutoQuotedRef.current = ''
+    void runAutoQuote(draft)
+  }
+
   async function next(event: FormEvent) {
     event.preventDefault()
     if (locked || submissionLockRef.current) return
@@ -130,11 +202,7 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
       navigate(path(step + 1)); return
     }
     if (usable) { await submit(); return }
-    submissionLockRef.current = true; setBusy(true); setQuoteIntent(null)
-    let unknown = false
-    try { setQuoteIntent(await requestBookingQuote(draft)); setClock(bookingNow()) }
-    catch (value) { unknown = mutationOutcomeUnknown(value); setQuoteUnknown(unknown); setError(bookingTransactionFailure(value)) }
-    finally { submissionLockRef.current = unknown; setBusy(false) }
+    await runAutoQuote(draft)
   }
   if (saved) return <RealBookingFrame><BookingReceipt booking={saved} headingRef={heading} onNew={() => {
     setDraft(initialLiveBooking()); setPersonIds([crypto.randomUUID()]); setPartyConfirmed(false); setSaved(null); setQuoteIntent(null); setErrors({}); setError(''); setUncertain(false); setQuoteUnknown(false); submissionLockRef.current = false; navigate('/cruises')
@@ -153,29 +221,75 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
       .filter(b => b.inclusion === 'INCLUDED' || b.inclusion === 'LIMITED_INCLUDED')
       .map(b => [b.resourceName, b.resourceName]),
   ).values()]
+  const selectedOfferTotal = draft.passengers.reduce((sum, p) => {
+    const offer = fares.data?.offers.find(o => o.selection.offerId === p.farePackageOfferId)
+    return sum + (offer ? Number(offer.selection.amount) : 0)
+  }, 0)
+  const hasEstimatedTotal = selectedOfferTotal > 0 && draft.passengers.every(p => Boolean(p.farePackageOfferId))
+  const summaryCurrency = quoteIntent?.quote.currency ?? selected?.saleCurrency ?? draft.currency
+  const formatSummaryMoney = (amount: number) =>
+    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: summaryCurrency }).format(amount)
   return <RealBookingFrame><BookingFlowLayout stage={step} available={available} locked={locked} path={path} back={back} headingRef={heading} summary={<>
     {selectedPhoto && <div className={flow.summaryMedia}>
       <img src={selectedPhoto.image} alt={selected?.cruiseName ?? selectedPhoto.caption} width="800" height="500" />
+      <div className={flow.summaryMediaOverlay}>
+        {selected?.shipName && <span className={flow.summaryShipBadge}>{selected.shipName}</span>}
+        {selected?.cruiseCode && <span className={flow.summaryCodeBadge}>{selected.cruiseCode}</span>}
+      </div>
     </div>}
     <div className={flow.summaryBody}>
       <p className={flow.summaryEyebrow}>HÀNH TRÌNH CỦA BẠN</p>
-      <h2>{selected?.cruiseName ?? 'Chưa chọn chuyến'}</h2>
-      <dl className={flow.summaryFacts}>
-        {selected?.departurePortName && <div><dt>Khởi hành từ</dt><dd>{selected.departurePortName}</dd></div>}
-        {selected?.shipName && <div><dt>Trên tàu</dt><dd>{selected.shipName}</dd></div>}
-        <div><dt>Khởi hành · Giờ Việt Nam</dt><dd>{bookingWhen(selected?.departureDatetime)}</dd></div>
-        <div><dt>Trở về · Giờ Việt Nam</dt><dd>{bookingWhen(selected?.returnDatetime)}</dd></div>
-        <div><dt>Người đi &amp; phòng</dt><dd>{draft.passengers.length} khách · {groupPassengers(draft.passengers).length} phòng</dd></div>
-      </dl>
+      <h2>{selected?.cruiseName ?? 'Chọn chuyến khởi hành'}</h2>
+      {selected?.departurePortName && (
+        <p className={flow.summaryRouteLine}>
+          {selected.departurePortName}{selected.returnPortName ? ` → ${selected.returnPortName}` : ''}
+        </p>
+      )}
+      <div className={flow.summaryDateGrid}>
+        <div>
+          <span>Khởi hành</span>
+          <strong>{bookingWhen(selected?.departureDatetime)}</strong>
+        </div>
+        <div>
+          <span>Trở về</span>
+          <strong>{bookingWhen(selected?.returnDatetime)}</strong>
+        </div>
+      </div>
+      <div className={flow.summaryPartyPill}>
+        <span>Hành khách &amp; phòng</span>
+        <strong>{draft.passengers.length} khách · {groupPassengers(draft.passengers).length} phòng</strong>
+      </div>
       {selectedBenefits.length > 0 && <details className={flow.summaryInclusions}>
         <summary>Bao gồm trong gói đã chọn ({selectedBenefits.length})</summary>
         <ul>{selectedBenefits.map(item => <li key={item}>{item}</li>)}</ul>
       </details>}
+      {usable && quoteIntent && <div className={flow.summaryBreakdown}>
+        {quoteIntent.quote.subtotalAmount != null && <div className={flow.summaryBreakdownRow}>
+          <span>Giá gói ({draft.passengers.length} khách)</span>
+          <strong>{formatSummaryMoney(quoteIntent.quote.subtotalAmount)}</strong>
+        </div>}
+        {quoteIntent.quote.taxesAndFeesAmount != null && <div className={flow.summaryBreakdownRow}>
+          <span>Thuế &amp; phí cảng</span>
+          <strong>{formatSummaryMoney(quoteIntent.quote.taxesAndFeesAmount)}</strong>
+        </div>}
+      </div>}
       <div className={flow.summaryTotalCard}>
-        <span>Tổng tiền báo giá</span>
-        <strong>{usable && quoteIntent ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: quoteIntent.quote.currency ?? draft.currency }).format(quoteIntent.quote.totalAmount ?? 0) : 'Chưa có báo giá hiệu lực'}</strong>
+        <span>{usable && quoteIntent ? 'Tổng tiền đặt chỗ' : hasEstimatedTotal ? 'Tạm tính gói du thuyền' : 'Tổng tiền dự kiến'}</span>
+        <strong>
+          {usable && quoteIntent
+            ? formatSummaryMoney(quoteIntent.quote.totalAmount ?? 0)
+            : hasEstimatedTotal
+              ? formatSummaryMoney(selectedOfferTotal)
+              : 'Chọn gói để xem tạm tính'}
+        </strong>
       </div>
-      <p className={flow.muted}>Lựa chọn chưa phải là giữ chỗ.</p>
+      {usable && quoteIntent && quoteIntent.quote.installments.length > 0 && (
+        <div className={flow.summaryDepositPill}>
+          <span>{quoteIntent.quote.installments.length > 1 ? 'Cần đóng Đợt 1 (Đặt cọc)' : 'Cần thanh toán'}</span>
+          <strong>{formatSummaryMoney(quoteIntent.quote.installments[0].amount)}</strong>
+        </div>
+      )}
+      <p className={flow.muted}>{usable && quoteIntent ? 'Đã bao gồm thuế và phí cảng. Chưa thu tiền ở bước này.' : 'Chưa bao gồm thuế & phí cảng. Sẽ tự động tính đầy đủ ở bước Xác nhận.'}</p>
     </div>
   </>}>
     {(uncertain || quoteUnknown) && <div ref={recovery} tabIndex={-1} role="region" aria-label="Cần đối chiếu kết quả"><Notice title={uncertain ? 'Cần kiểm tra kết quả trước khi đặt lại' : 'Chưa nhận được kết quả báo giá'} tone="warning"><p>{uncertain ? 'Hệ thống có thể đã tiếp nhận yêu cầu. Đã khóa gửi lại để tránh tạo trùng. Nếu chưa có mã, liên hệ bộ phận hỗ trợ để kiểm tra bằng thông tin người đại diện.' : 'Chưa có mã báo giá để đối chiếu. Thông tin đã nhập được giữ; vui lòng liên hệ bộ phận hỗ trợ trước khi tiếp tục.'}</p><ButtonLink tone="secondary" to="/booking/lookup">Tra cứu khi đã có mã</ButtonLink></Notice></div>}
@@ -185,7 +299,48 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
       <fieldset disabled={locked} className={styles.draftFields}><div className={flow.section}>
         <BookingReadState {...cruises} publicResource="danh sách hành trình" />
         {step === 1 && <>
-          <Panel title="Chuyến khởi hành"><Field htmlFor="real-booking-cruise" label="Hành trình *" error={errors['real-booking-cruise']}><select id="real-booking-cruise" value={draft.cruiseId} onChange={e => { navigate(path(1, e.target.value)); if (!e.target.value) { setDraft(d => ({ ...d, cruiseId: '', passengers: d.passengers.map(p => ({ ...p, cabinId: '', tourPackageId: '', farePackageOfferId: undefined, farePackagePriceRevisionId: undefined, cabinSelectionMode: undefined })) })); setPartyConfirmed(false); setErrors({}) } }}><option value="">Chọn hành trình</option>{cruises.data?.map(c => <option key={c.cruiseId} value={c.cruiseId}>{c.cruiseName}</option>)}</select></Field></Panel>
+          {selected && !changingCruise ? (
+            <section className={flow.selectedCruiseBanner} aria-label="Chuyến khởi hành đang chọn">
+              {selectedPhoto && (
+                <div className={flow.selectedCruiseThumb}>
+                  <img src={selectedPhoto.image} alt={selected.cruiseName} width="320" height="200" />
+                </div>
+              )}
+              <div className={flow.selectedCruiseInfo}>
+                <div className={flow.selectedCruiseTags}>
+                  {selected.cruiseCode && <span className={flow.selectedCruiseCode}>{selected.cruiseCode}</span>}
+                  {selected.shipName && <span className={flow.selectedCruiseShip}>Tàu {selected.shipName}</span>}
+                </div>
+                <h2>{selected.cruiseName}</h2>
+                <p className={flow.muted}>
+                  {selected.departurePortName ?? ''}{selected.returnPortName ? ` → ${selected.returnPortName}` : ''}
+                  {' · '}Khởi hành {bookingWhen(selected.departureDatetime)}
+                </p>
+              </div>
+              <Button tone="secondary" size="compact" autoWidth onClick={() => setChangingCruise(true)}>
+                Đổi chuyến
+              </Button>
+            </section>
+          ) : (
+            <Panel title="Chọn chuyến khởi hành">
+              <div className={flow.section}>
+                <Field htmlFor="real-booking-cruise" label="Hành trình đang mở bán *" error={errors['real-booking-cruise']}>
+                  <select id="real-booking-cruise" value={draft.cruiseId} onChange={e => {
+                    navigate(path(1, e.target.value))
+                    setChangingCruise(false)
+                    if (!e.target.value) {
+                      setDraft(d => ({ ...d, cruiseId: '', passengers: d.passengers.map(p => ({ ...p, cabinId: '', tourPackageId: '', farePackageOfferId: undefined, farePackagePriceRevisionId: undefined, cabinSelectionMode: undefined })) }))
+                      setPartyConfirmed(false); setErrors({})
+                    }
+                  }}>
+                    <option value="">Chọn hành trình</option>
+                    {cruises.data?.map(c => <option key={c.cruiseId} value={c.cruiseId}>{c.cruiseName} ({c.cruiseCode})</option>)}
+                  </select>
+                </Field>
+                {selected && <Button tone="text" size="compact" autoWidth onClick={() => setChangingCruise(false)}>Giữ nguyên chuyến hiện tại</Button>}
+              </div>
+            </Panel>
+          )}
           <BookingPartyStep />
         </>}
         {step === 2 && <>
@@ -196,14 +351,70 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
         {step === 3 && <>
           <PassengerDetailsFields publicJourney representativeEmailRequired={!access.userId} />
           <Panel title="Kế hoạch thanh toán"><div className={flow.section}>
-            <Field htmlFor="real-booking-plan" label="Kế hoạch thanh toán" error={errors['real-booking-plan']}><select id="real-booking-plan" value={draft.paymentPlan} onChange={e => setDraft(d => ({ ...d, paymentPlan: e.target.value as typeof d.paymentPlan }))}>{Object.entries(bookingPlanLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></Field>
-            <p className={flow.muted}>Bước này chưa thu tiền. Lịch thanh toán áp dụng được hiển thị sau khi tiếp nhận đặt chỗ.</p>
-            <Field htmlFor="real-booking-notes" label="Ghi chú (tùy chọn)" error={errors['real-booking-notes']}><textarea id="real-booking-notes" maxLength={500} value={draft.notes} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} /></Field>
+            <div>
+              <p className={flow.choiceGroupLabel}>Chọn hình thức thanh toán *</p>
+              <div id="real-booking-plan" tabIndex={-1} className={flow.choiceCardGrid} role="group" aria-label="Kế hoạch thanh toán" aria-invalid={Boolean(errors['real-booking-plan'])}>
+                {(Object.entries(bookingPlanLabels) as [typeof draft.paymentPlan, string][]).map(([key, label]) => {
+                  const active = draft.paymentPlan === key
+                  const desc = key === 'FULL'
+                    ? 'Đóng 1 lần (100% tổng giá trị) trong vòng 2 ngày kể từ lúc đặt chỗ.'
+                    : key === 'DEPOSIT'
+                      ? 'Đợt 1: đặt cọc 30% trong 2 ngày để giữ cabin · Đợt 2: đóng 70% còn lại trước ngày đi.'
+                      : 'Chia 3 đợt rõ ràng: Đợt 1 cọc 30% (2 ngày) · Đợt 2 giữa kỳ 40% (30 ngày trước đi) · Đợt 3 tất toán 30%.'
+                  return <button
+                    key={key}
+                    type="button"
+                    className={`${flow.choiceCard} ${active ? flow.choiceCardActive : ''}`}
+                    aria-pressed={active}
+                    onClick={() => setDraft(d => ({ ...d, paymentPlan: key }))}
+                  >
+                    <div className={flow.choiceCardHead}>
+                      <span className={flow.choiceCardTitle}>{label}</span>
+                      <span className={flow.choiceCardCheck} aria-hidden="true">✓</span>
+                    </div>
+                    <span className={flow.choiceCardDesc}>{desc}</span>
+                  </button>
+                })}
+              </div>
+              {errors['real-booking-plan'] && <p className={flow.inlineError} role="alert">{errors['real-booking-plan']}</p>}
+            </div>
+            <p className={flow.muted}>Bước này chưa thu tiền. Sang bước tiếp theo, hệ thống sẽ tự động hiển thị chính xác số tiền và ngày đến hạn của từng đợt.</p>
+            <Field htmlFor="real-booking-notes" label="Ghi chú đặc biệt (tùy chọn)" error={errors['real-booking-notes']}><textarea id="real-booking-notes" maxLength={500} placeholder="Ví dụ: yêu cầu chế độ ăn, kỷ niệm ngày cưới, hỗ trợ di chuyển…" value={draft.notes} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} /></Field>
           </div></Panel>
         </>}
-        {step === 4 && <BookingReviewStep draft={draft} cruise={selected} cabins={cabins.data} fares={fares.data} packages={packages.data} intent={quoteIntent} usable={usable} path={path} />}
+        {step === 4 && (
+          <BookingReviewStep
+            draft={draft}
+            cruise={selected}
+            cabins={cabins.data}
+            fares={fares.data}
+            packages={packages.data}
+            intent={quoteIntent}
+            usable={usable}
+            quoteLoading={quoteLoading}
+            quoteError={quoteError}
+            onSelectPlan={handleSelectPlanOnReview}
+            onRefreshQuote={handleRefreshQuote}
+            path={path}
+          />
+        )}
         {readError && step > 2 && <><BookingReadState {...cabins} publicResource="phòng trống" /><BookingReadState {...fares} publicResource="gói du thuyền" /></>}
-        <div className={flow.actions}>{step > 1 && <Button tone="secondary" onClick={() => navigate(path(step - 1))}>Quay lại</Button>}<Button type="submit" busy={busy} disabled={locked || choicesLoading || Boolean(readError)}>{step === 1 ? 'Tiếp tục chọn gói & cabin' : step === 2 ? 'Tiếp tục nhập thông tin' : step === 3 ? 'Kiểm tra đặt chỗ' : usable ? 'Xác nhận đặt chỗ' : 'Kiểm tra giá'}</Button></div>
+        <div className={flow.actions}>
+          {step > 1 && <Button tone="secondary" onClick={() => navigate(path(step - 1))}>Quay lại</Button>}
+          <Button
+            type="submit"
+            busy={busy || quoteLoading}
+            disabled={locked || choicesLoading || Boolean(readError) || (step === 4 && (quoteLoading || !usable))}
+          >
+            {step === 1
+              ? 'Tiếp tục chọn gói & cabin'
+              : step === 2
+                ? 'Tiếp tục nhập thông tin'
+                : step === 3
+                  ? 'Xem xác nhận & lịch thanh toán'
+                  : 'Xác nhận đặt chỗ'}
+          </Button>
+        </div>
       </div></fieldset>
     </form>
   </BookingFlowLayout></RealBookingFrame>

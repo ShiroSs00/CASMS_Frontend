@@ -32,9 +32,9 @@
 .badge_info { background:#eaf3ff; color:#185abd; }
 .badge_error { background:#fff0ef; color:#b42318; }
 .tableScroll { width:100%; overflow-x:auto; }
-.table { width:100%; min-width:920px; border-collapse:collapse; text-align:left; }
-.table thead th { padding:14px 12px; background:#f5f7f9; color:var(--text-secondary); font-size:12px; font-weight:600; line-height:18px; }
-.table td { padding:14px 12px; border-bottom:1px solid var(--border-default); font-size:13px; line-height:20px; vertical-align:top; }
+.table { width:100%; min-width:680px; border-collapse:collapse; text-align:left; }
+.table thead th { padding:12px 10px; background:#f5f7f9; color:var(--text-secondary); font-size:12px; font-weight:600; line-height:18px; }
+.table td { padding:12px 10px; border-bottom:1px solid var(--border-default); font-size:13px; line-height:20px; vertical-align:top; }
 .table tbody tr:last-child td { border:0; }
 .empty { display:flex; flex-direction:column; gap:12px; min-height:160px; align-items:center; justify-content:center; padding:24px; text-align:center; color:var(--text-secondary); }
 .spinner { width:28px; height:28px; border:3px solid var(--border-default); border-top-color:var(--brand-navy); border-radius:50%; animation:spin .8s linear infinite; }

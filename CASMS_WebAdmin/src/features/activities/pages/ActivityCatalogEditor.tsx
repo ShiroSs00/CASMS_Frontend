@@ -20,7 +20,7 @@ export function ActivityCatalogEditor({ initial }: { initial?: ActivityCatalogEn
   const access = useSessionAccess(), navigate = useNavigate()
   const [draft, setDraft] = useState({
     activityName: initial?.name ?? '', description: initial?.description ?? '', category: initial?.category ?? '',
-    capacity: initial?.capacity?.toString() ?? '', price: initial?.price?.toString() ?? '', currencyCode: initial?.currencyCode ?? 'USD',
+    capacity: initial?.capacity?.toString() ?? '', price: initial?.price?.toString() ?? '', currencyCode: initial?.currencyCode ?? 'VND',
   })
   const [baseline] = useState(draft)
   const lock = useRef(false)

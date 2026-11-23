@@ -108,7 +108,7 @@ export function TripListPage() {
             label="Danh sách chuyến đi"
             headers={['Chuyến đi', 'Thời lượng / phạm vi', 'Trạng thái', 'Thao tác']}
           >
-            {list.data.content.map(trip => (
+            {[...list.data.content].sort((a, b) => b.tripCode.localeCompare(a.tripCode, 'vi', { numeric: true })).map(trip => (
               <TripListRow key={trip.tripId} trip={trip} />
             ))}
           </DataTable>

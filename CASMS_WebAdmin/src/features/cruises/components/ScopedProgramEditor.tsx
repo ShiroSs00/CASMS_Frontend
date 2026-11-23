@@ -27,7 +27,7 @@ export function ScopedProgramEditor({cruiseId,kind,entry,revision,options,onClos
   if(!shore&&!options.services.some(s=>s.id===text('service')&&s.scheduled)){setError('Chọn dịch vụ khả dụng trên tàu. Quản lý tàu cần cập nhật nếu dịch vụ đang dùng đã bị gỡ.');return}
   let start:string,end:string
   try{const tz=stopId?options.stops.find(s=>s.id===stopId)?.timeZoneId:undefined;start=programInstant(text('start'),Boolean(stopId),tz);end=programInstant(text('end'),Boolean(stopId),tz)}catch{setError('Kiểm tra giờ bắt đầu, kết thúc và múi giờ cảng.');return}
-  const body=shore?{cruiseStopId:stopId,supplierId:text('supplier'),excursionName:text('name'),meetingPoint:text('location'),startTime:start,plannedReturnTime:end,minimumParticipants:tour?.minimumParticipants??null,maximumCapacity:Number(text('capacity')),price:tour?.price??0,currencyCode:tour?.currencyCode??'USD'}:{serviceId:text('service'),cruiseStopId:stopId,supplierId:text('supplier')||null,startsAt:start,endsAt:end,location:text('location'),capacity:Number(text('capacity'))}
+  const body=shore?{cruiseStopId:stopId,supplierId:text('supplier'),excursionName:text('name'),meetingPoint:text('location'),startTime:start,plannedReturnTime:end,minimumParticipants:tour?.minimumParticipants??null,maximumCapacity:Number(text('capacity')),price:tour?.price??null,currencyCode:tour?.currencyCode??'VND'}:{serviceId:text('service'),cruiseStopId:stopId,supplierId:text('supplier')||null,startsAt:start,endsAt:end,location:text('location'),capacity:Number(text('capacity'))}
   lock.current=true;setBusy(true);setError('')
   try{
    const saved=await apiRequest<{id?:string;shoreExcursionId?:string}>(root+'/'+encodeURIComponent(entry.id),{method:'PUT',ifMatch:revision,body})

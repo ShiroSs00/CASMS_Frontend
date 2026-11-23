@@ -34,6 +34,7 @@ const explicitMessages:Readonly<Record<string,string>>={
 }
 
 export function readinessMessage(code:string|null|undefined,message?:string|null):string {
+ if(code==='GUIDANCE_ATTENDANCE_REQUIRED')return message?.trim()||'Còn hành khách chưa hoàn thành hướng dẫn an toàn. Đối chiếu điểm danh và hoàn tất buổi hướng dẫn trước xuất bến.'
  if(code==='MISSING_ONBOARD_STAFF'||code==='ONBOARD_STAFF_REQUIRED')return 'Chưa phân công nhân viên trên tàu cho chuyến khởi hành.'
  if(code&&explicitMessages[code])return explicitMessages[code]
  if(code&&keys[code])return businessCopy(keys[code])

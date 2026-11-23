@@ -136,7 +136,15 @@ function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) 
     else query.delete('step')
     setParams(query,{preventScrollReset:true})
   }
-  const goOperationsStep=(step:1|2|3)=>{const query=new URLSearchParams(params);query.delete('focus');query.set('section',step===1?'overview':'checks');if(step===1){query.set('step','review');query.delete('stage')}else{query.delete('step');query.set('stage',step===2?'ready':'sale')}setParams(query,{preventScrollReset:true})}
+  const opsPlanApproved = salePlan.data?.planStatus === 'APPROVED'
+  const opsReady = opsPlanApproved && salePlan.data?.readyStatus === 'READY'
+  const canOpsStep2 = !salePlan.data || opsPlanApproved
+  const canOpsStep3 = !salePlan.data || opsReady
+  const goOperationsStep=(step:1|2|3)=>{
+    if(step===2&&!canOpsStep2)return
+    if(step===3&&!canOpsStep3)return
+    const query=new URLSearchParams(params);query.delete('focus');query.set('section',step===1?'overview':'checks');if(step===1){query.set('step','review');query.delete('stage')}else{query.delete('step');query.set('stage',step===2?'ready':'sale')}setParams(query,{preventScrollReset:true})
+  }
   const reload=()=>{setCheckEpoch(value=>value+1);salePlan.retry();sellability.retry();return refresh()}
   const [lifecycleAction, setLifecycleAction] = useState<'publish' | 'complete' | 'cancel' | null>(null)
   const [cancelReason, setCancelReason] = useState('')
@@ -246,13 +254,18 @@ function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) 
             )}
 
             {asmTab === 'packages' && (
-              <DepartureCruisePackages
-                key={cruise.cruiseId}
-                shipName={detail.ship?.shipName}
-                cruiseId={cruise.cruiseId}
-                onChanged={() => void reload()}
-                renderAssignment={onChanged => <DeparturePackageManager cruiseId={cruise.cruiseId} onChanged={onChanged} />}
-              />
+              <>
+                <Notice tone="info" title="Luồng duyệt giá gói du thuyền">
+                  Quản lý dịch vụ tạo gói và lập phiên bản giá (VND) tại đây → Quản lý lịch trình chọn gói đưa vào hồ sơ → Quản lý vận hành phê duyệt gộp cùng kế hoạch chuyến.
+                </Notice>
+                <DepartureCruisePackages
+                  key={cruise.cruiseId}
+                  shipName={detail.ship?.shipName}
+                  cruiseId={cruise.cruiseId}
+                  onChanged={() => void reload()}
+                  renderAssignment={onChanged => <DeparturePackageManager cruiseId={cruise.cruiseId} onChanged={onChanged} />}
+                />
+              </>
             )}
 
             {isProgramWork && (
@@ -282,11 +295,11 @@ function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) 
             </dl>
           )}
           {operations&&<OperationsStatus id={cruise.cruiseId} refreshKey={checkEpoch}/>}
-          {(cruise.sourceVersionId||manager||operations)&&<div id="departure-steps" className={preparationStyles.stepNavigation}><DepartureMilestones sourceConfigured={Boolean(cruise.sourceVersionId)} operationsStep={operations?operationsStep:undefined} onOperationsStepChange={operations?goOperationsStep:undefined} receivingBookings={detail.itinerary?.status==='OPEN_FOR_SALE'} activeStep={manager?(reviewStep?3:2):undefined} onStepChange={manager?goPreparationStep:undefined} canReviewPreparation={canReviewPreparation}/></div>}
+          {(cruise.sourceVersionId||manager||operations)&&<div id="departure-steps" className={preparationStyles.stepNavigation}><DepartureMilestones sourceConfigured={Boolean(cruise.sourceVersionId)} operationsStep={operations?operationsStep:undefined} onOperationsStepChange={operations?goOperationsStep:undefined} canAccessStep2={canOpsStep2} canAccessStep3={canOpsStep3} receivingBookings={detail.itinerary?.status==='OPEN_FOR_SALE'} activeStep={manager?(reviewStep?3:2):undefined} onStepChange={manager?goPreparationStep:undefined} canReviewPreparation={canReviewPreparation}/></div>}
           {operations?<details className={preparationStyles.secondarySection}><summary>Tra cứu thông tin chuyến (Lịch trình, Tàu, Cabin)</summary><div className={preparationStyles.secondaryBody}><DepartureTabs section={section} onChange={goSection} excludeKeys={['checks','departure-start']}/></div></details>:!reviewStep&&section!=='changes'&&<DepartureTabs section={section} onChange={goSection} excludeKeys={['departure-start']}/>}
           {operations&&!reviewStep&&section!=='checks'&&<Button tone="secondary" onClick={()=>goOperationsStep(operationsStep)}>Quay lại {operationsStep===1?'xét duyệt hồ sơ':operationsStep===2?'xác nhận sẵn sàng':'mở bán'}</Button>}
           <div id="departure-content">
-          {reviewStep?(operations?<section className={preparationStyles.content} aria-label="Xét duyệt hồ sơ"><CruisePlanReview itineraryMode={cruise.itineraryMode} cruiseId={cruise.cruiseId} refreshKey={`${checkEpoch}:${cruise.revision}`} onChanged={()=>void reload()} mode="review" onSection={goSection}/>{canReadSaleTerms&&salePlan.loading&&<Loading label="Đang xác định điều kiện mở bán…"/>}{canReadSaleTerms&&salePlan.error&&<Notice title="Chưa tải được thông tin chuyến" tone="error"><Button onClick={salePlan.retry}>Tải lại</Button></Notice>}{showSaleTerms&&<DepartureSaleTerms key={`${access.userId}:${cruise.cruiseId}`} cruiseId={cruise.cruiseId} refreshKey={`${checkEpoch}:${cruise.revision}`} onChanged={()=>void reload()} unified={salePlan.data?.unifiedPackageReview} focusOnMount={params.get('focus')==='sale-terms'}/>}{salePlan.data&&!salePlan.data.unifiedPackageReview&&<DeparturePricingPolicy packageManaged={showSaleTerms} cruiseId={cruise.cruiseId} refreshKey={`${checkEpoch}:${cruise.revision}`} onChanged={()=>void reload()}/>}<Button tone="secondary" onClick={()=>goOperationsStep(2)}>Tiếp tục: Xác nhận sẵn sàng</Button></section>:<CruisePlanSubmission detail={detail} refreshKey={`${checkEpoch}:${cruise.revision}`} onChanged={()=>void reload()} onPrepare={()=>goPreparationStep(2)} onSection={goSection}/>):<>
+          {reviewStep?(operations?<section className={preparationStyles.content} aria-label="Xét duyệt hồ sơ"><CruisePlanReview itineraryMode={cruise.itineraryMode} cruiseId={cruise.cruiseId} refreshKey={`${checkEpoch}:${cruise.revision}`} onChanged={()=>void reload()} mode="review" onSection={goSection}/>{canReadSaleTerms&&salePlan.loading&&<Loading label="Đang xác định điều kiện mở bán…"/>}{canReadSaleTerms&&salePlan.error&&<Notice title="Chưa tải được thông tin chuyến" tone="error"><Button onClick={salePlan.retry}>Tải lại</Button></Notice>}{showSaleTerms&&<DepartureSaleTerms key={`${access.userId}:${cruise.cruiseId}`} cruiseId={cruise.cruiseId} refreshKey={`${checkEpoch}:${cruise.revision}`} onChanged={()=>void reload()} unified={salePlan.data?.unifiedPackageReview} focusOnMount={params.get('focus')==='sale-terms'}/>}{salePlan.data&&!salePlan.data.unifiedPackageReview&&<DeparturePricingPolicy packageManaged={showSaleTerms} cruiseId={cruise.cruiseId} refreshKey={`${checkEpoch}:${cruise.revision}`} onChanged={()=>void reload()}/>}{opsPlanApproved&&<Button tone="secondary" onClick={()=>goOperationsStep(2)}>Tiếp tục Bước 2: Xác nhận sẵn sàng</Button>}</section>:<CruisePlanSubmission detail={detail} refreshKey={`${checkEpoch}:${cruise.revision}`} onChanged={()=>void reload()} onPrepare={()=>goPreparationStep(2)} onSection={goSection}/>):<>
             {section==='departure-start'&&(showDepartureStart?<DepartureStart
               key={JSON.stringify([access.userId, cruise.cruiseId])}
               cruise={cruise} refreshKey={checkEpoch}

@@ -51,17 +51,17 @@ export function ActivityListPage() {
   }, [cruises.data])
 
   const normalizedSearch = search.trim().toLocaleLowerCase('vi')
-  const catalogItems = catalog.data?.filter(item =>
+  const catalogItems = [...(catalog.data?.filter(item =>
     `${item.code} ${item.name}`.toLocaleLowerCase('vi').includes(normalizedSearch),
-  ) ?? []
+  ) ?? [])].sort((a, b) => b.code.localeCompare(a.code, 'vi', { numeric: true }))
 
-  const items = query.data?.filter(item => {
+  const items = [...(query.data?.filter(item => {
     if (status && item.status !== status) return false
     if (cruiseFilter && item.cruiseId !== cruiseFilter) return false
     const cruiseInfo = item.cruiseId ? cruiseMap.get(item.cruiseId) : undefined
     const hay = `${item.code} ${item.name} ${cruiseInfo?.code ?? ''} ${cruiseInfo?.name ?? ''}`.toLocaleLowerCase('vi')
     return hay.includes(normalizedSearch)
-  }) ?? []
+  }) ?? [])].sort((a, b) => (Date.parse(b.startTime ?? '') || 0) - (Date.parse(a.startTime ?? '') || 0))
 
   const pickerCruises = useMemo(() => {
     const q = pickerSearch.trim().toLocaleLowerCase('vi')

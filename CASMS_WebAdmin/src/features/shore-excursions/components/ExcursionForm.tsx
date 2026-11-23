@@ -1,5 +1,4 @@
 import { journeyTime, validTimeZone, wallTimeToInstant, zonedInput } from '@/shared/lib/journey-time'
-import {businessCopy} from '@/shared/i18n/business-copy'
 import { EditorLayout,useUnsavedFormGuard } from '@/shared/ui'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useCallback, useState, type FormEvent } from 'react'
@@ -21,7 +20,7 @@ const fields: { key: keyof ExcursionFormValues; label: string; type?: string; ma
   { key: 'plannedReturnTime', label: 'Thời gian trở về dự kiến', type: 'datetime-local', required: true },
   { key: 'maximumCapacity', label: 'Sức chứa tối đa', type: 'number', required: true },
   { key: 'minimumParticipants', label: 'Số khách tối thiểu để tổ chức', type: 'number' },
-  { key: 'price', label: businessCopy('program.field.priceUsd'), type: 'text', required:true },
+  { key: 'price', label: 'Giá bán (VND)', type: 'text', required:true },
 ]
 export function ExcursionForm({ initial, busy, pending=busy, onSave }: { initial?: ShoreExcursion; busy: boolean;pending?:boolean; onSave: (request: ExcursionRequest,allowLeave:()=>void) => Promise<void> }) {
   const access = useSessionAccess()
@@ -30,7 +29,7 @@ export function ExcursionForm({ initial, busy, pending=busy, onSave }: { initial
   const stops = useReadQuery('excursion-stop-options:'+requestedCruise, useCallback(signal=>excursionContextApi.stops(signal,validCruiseContextId(requestedCruise)?requestedCruise:undefined),[requestedCruise]))
   const suppliers = useReadQuery('excursion-supplier-options', excursionContextApi.suppliers)
   const [contextError, setContextError] = useState('')
-  const [values, setValues] = useState(() => initial ? {...excursionToForm(initial),startTime:'',plannedReturnTime:'',currencyCode:'USD',price:initial.currencyCode==='USD'?initial.price?.toString()??'':''} : { ...emptyExcursionForm,currencyCode:'USD',...(validCruiseContextId(requestedStop)?{cruiseStopId:requestedStop}:{}) })
+  const [values, setValues] = useState(() => initial ? {...excursionToForm(initial),startTime:'',plannedReturnTime:'',currencyCode:initial.currencyCode??'VND',price:initial.price?.toString()??''} : { ...emptyExcursionForm,currencyCode:'VND',...(validCruiseContextId(requestedStop)?{cruiseStopId:requestedStop}:{}) })
   const [timeEdits, setTimeEdits] = useState<Partial<Record<'startTime' | 'plannedReturnTime', string>>>({})
   const [baseline]=useState(()=>structuredClone(values))
   const dirty=Object.keys(timeEdits).length>0||(Object.keys(values) as (keyof ExcursionFormValues)[]).some(key=>!Object.is(values[key],baseline[key]))

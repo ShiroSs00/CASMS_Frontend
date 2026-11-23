@@ -1,4 +1,5 @@
 [
+  {"method": "POST", "path": "/cruise-work/{cruiseId}/ASM/reopen", "mode": "ALL", "permissions": ["CRUISE_PREPARATION_SUBMIT"], "roles": ["CRUISE_MANAGER"]},
   {"method": "GET", "path": "/payment/sepay/reconciliation", "mode": "ANY", "permissions": ["PAYMENT_REPORT", "PAYMENT_PROCESS"], "roles": ["FINANCE_OFFICER"]},
   {"method": "GET", "path": "/payment/sepay/reconciliation/{transactionId}", "mode": "ANY", "permissions": ["PAYMENT_REPORT", "PAYMENT_PROCESS"], "roles": ["FINANCE_OFFICER"]},
   {"method": "POST", "path": "/payment/sepay/reconciliation/{transactionId}/resolve", "mode": "ALL", "permissions": ["PAYMENT_PROCESS"], "roles": ["FINANCE_OFFICER"]},
@@ -687,6 +688,20 @@
     ],
     "roles": [
       "ACTIVITY_SERVICE_MANAGER"
+    ],
+    "source": "farepackage/controller"
+  },
+  {
+    "method": "PATCH",
+    "path": "/cruise/{cruiseId}/cruise-package-offers/{offerId}/sales-window",
+    "mode": "ANY",
+    "permissions": [
+      "TOUR_PACKAGE_MANAGE",
+      "CRUISE_UPDATE_DRAFT"
+    ],
+    "roles": [
+      "ACTIVITY_SERVICE_MANAGER",
+      "CRUISE_MANAGER"
     ],
     "source": "farepackage/controller"
   },
@@ -4273,7 +4288,8 @@
     "path": "/servicepackage/services",
     "mode": "ANY",
     "permissions": [
-      "SERVICE_READ"
+      "SERVICE_READ",
+      "POS_MANAGE"
     ],
     "source": "com/casms/servicepackage/controller/ServicepackageController.java:46"
   },
@@ -5487,5 +5503,44 @@
       "SHIP_CREATE"
     ],
     "source": "com/casms/ship/controller/ShipModelController.java:115"
+  },
+  {
+    "method": "GET",
+    "path": "/employees/assignable-roles",
+    "mode": "ANY",
+    "permissions": [
+      "USER_CREATE"
+    ],
+    "roles": [
+      "ADMIN",
+      "HR_MANAGER"
+    ],
+    "source": "com/casms/identity/controller/EmployeeAccountController.java:33"
+  },
+  {
+    "method": "GET",
+    "path": "/employees",
+    "mode": "ANY",
+    "permissions": [
+      "USER_READ"
+    ],
+    "roles": [
+      "ADMIN",
+      "HR_MANAGER"
+    ],
+    "source": "com/casms/identity/controller/EmployeeAccountController.java:47"
+  },
+  {
+    "method": "POST",
+    "path": "/employees",
+    "mode": "ANY",
+    "permissions": [
+      "USER_CREATE"
+    ],
+    "roles": [
+      "ADMIN",
+      "HR_MANAGER"
+    ],
+    "source": "com/casms/identity/controller/EmployeeAccountController.java:39"
   }
 ]

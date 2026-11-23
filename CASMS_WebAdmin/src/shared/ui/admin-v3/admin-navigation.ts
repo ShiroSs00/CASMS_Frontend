@@ -209,9 +209,8 @@ export function roleNavigationItems(roles: readonly string[], access: AdminAcces
   const sections = [...new Set(orderedRoles.flatMap(role => ROLE_WORK_MODULES[role] ?? []))]
   const ordered = sections.flatMap(section => tools.filter(item => item.to === '/admin/' + section))
   return ordered.filter(item=>canOpenAdminItem(item,access)&&canRoleOpenAdminPath(currentRoles,item.to!,'',access))
-    .map(item=>primaryRole==='SHIP_MANAGER'&&item.to==='/admin/fleet-dashboard'?{...item,label:'Tàu được phân công'}:primaryRole==='SHIP_MANAGER'&&item.to==='/admin/decks'?{...item,label:'Boong và phòng'}:item)
-    .map(item=>primaryRole==='SHIP_MANAGER'&&item.to==='/admin/staffing-reviews'?{...item,label:'Chuẩn bị phương án tàu'}:item)
-    .filter(item=>primaryRole!=='SHIP_MANAGER'||!['/admin/fleet-dashboard','/admin/decks','/admin/cabins'].includes(item.to!))
+    .map(item=>primaryRole==='SHIP_MANAGER'&&item.to==='/admin/fleet-dashboard'?{...item,label:'Tàu được phân công'}:primaryRole==='SHIP_MANAGER'&&item.to==='/admin/decks'?{...item,label:'Boong và phòng'}:primaryRole==='SHIP_MANAGER'&&item.to==='/admin/preparation-requests'?{...item,label:'Phối hợp & duyệt chuyến'}:item)
+    .filter(item=>primaryRole!=='SHIP_MANAGER'||!['/admin/fleet-dashboard','/admin/decks','/admin/cabins','/admin/service-locations','/admin/staffing-reviews'].includes(item.to!))
 }
 export type AdminNavigationGroup = { id: string; label: string; items: AdminNavigationItem[]; direct?: boolean }
 const navigationGroups = [

@@ -158,7 +158,8 @@ function BookingPaymentActionCardContent({
         installmentId: selectedInstallmentId,
         sequenceNo: selectedSequenceNo,
         idempotencyKey,
-        expectedOutstandingBalance: options.outstandingBalance,
+        expectedOutstandingBalance:
+          booking.currency === 'VND' ? options.outstandingBalanceVnd : options.outstandingBalance,
         expectedAmountVnd: selectedAmountVnd,
       })
       vietQrAttemptStorage.clear(userId, booking.bookingId)

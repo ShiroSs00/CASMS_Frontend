@@ -1,8 +1,15 @@
-import { useCallback, useMemo, useState, type KeyboardEvent } from 'react'
+import { Fragment, useCallback, useMemo, useState, type KeyboardEvent } from 'react'
 import { ApiError, apiRequest, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { journeyTime } from '@/shared/lib/journey-time'
 import { Badge, Button, DataTable, Empty, Field, Loading, Modal, Notice, Panel } from '@/shared/ui'
+import {
+  collectShipOptions,
+  groupItemsByShip,
+  shipDisplayName,
+  shipGroupKey,
+} from '../model/ship-grouping'
+import { CruiseShipTag, ShipHullIcon } from './CruiseShipTag'
 import styles from './Cruises.module.css'
 
 const root = '/cruise-preparation-reviews'
@@ -11,7 +18,7 @@ type GroupStatus = keyof typeof statuses
 type GroupTab = 'SUBMITTED' | 'CONFIRMED' | 'RETURNED'
 const statusOrder: GroupTab[] = ['SUBMITTED', 'CONFIRMED', 'RETURNED']
 const tabForStatus = (value: GroupStatus): GroupTab => value === 'REJECTED' || value === 'STALE' ? 'RETURNED' : value
-type GroupSortKey = 'oldest' | 'newest' | 'cruise'
+type GroupSortKey = 'newest' | 'oldest' | 'ship' | 'cruise'
 
 export type SubmittedGroupItem = {
   cruiseId: string
@@ -21,6 +28,9 @@ export type SubmittedGroupItem = {
   sectionName: string
   status: GroupStatus
   submittedAt: string
+  shipId?: string | null
+  shipName?: string | null
+  departureDatetime?: string | null
 }
 
 type GroupDetail = {
@@ -107,15 +117,19 @@ export function SubmittedPreparationGroups({
 
   const [selected, setSelected] = useState<SubmittedGroupItem | null>(null)
   const [status, setStatus] = useState<GroupTab>('SUBMITTED')
+  const [shipFilter, setShipFilter] = useState('ALL')
+  const [groupByShip, setGroupByShip] = useState(true)
   const [search, setSearch] = useState('')
   const [sectionFilter, setSectionFilter] = useState('ALL')
   const [cruiseFilter, setCruiseFilter] = useState('ALL')
-  const [sortBy, setSortBy] = useState<GroupSortKey>('oldest')
+  const [sortBy, setSortBy] = useState<GroupSortKey>('newest')
   const [pageSize, setPageSize] = useState(20)
   const [page, setPage] = useState(1)
   const [feedback, setFeedback] = useState('')
 
   const tabGroups = useMemo(() => allGroups.filter(group => tabForStatus(group.status) === status), [allGroups, status])
+
+  const shipOptions = useMemo(() => collectShipOptions(tabGroups), [tabGroups])
 
   const sectionOptions = useMemo(() => {
     const map = new Map<string, string>()
@@ -126,26 +140,35 @@ export function SubmittedPreparationGroups({
   }, [allGroups])
 
   const cruiseOptions = useMemo(() => {
-    const map = new Map<string, { code: string; name: string }>()
-    for (const item of allGroups) {
+    const map = new Map<string, { code: string; name: string; shipName?: string | null }>()
+    for (const item of tabGroups) {
+      if (shipFilter !== 'ALL' && shipGroupKey(item.shipName) !== shipFilter) continue
       if (!map.has(item.cruiseId)) {
-        map.set(item.cruiseId, { code: item.cruiseCode, name: item.cruiseName })
+        map.set(item.cruiseId, { code: item.cruiseCode, name: item.cruiseName, shipName: item.shipName })
       }
     }
     return Array.from(map.entries())
-  }, [allGroups])
+  }, [tabGroups, shipFilter])
 
   const normalizedSearch = search.trim().toLowerCase()
 
   const filteredGroups = useMemo(() => {
     const matched = tabGroups.filter(group => {
+      if (shipFilter !== 'ALL' && shipGroupKey(group.shipName) !== shipFilter) return false
       if (sectionFilter !== 'ALL' && group.sectionCode !== sectionFilter) return false
       if (cruiseFilter !== 'ALL' && group.cruiseId !== cruiseFilter) return false
       if (!normalizedSearch) return true
-      return [group.cruiseName, group.cruiseCode, group.sectionName].join(' ').toLowerCase().includes(normalizedSearch)
+      return [group.shipName ?? '', group.cruiseName, group.cruiseCode, group.sectionName]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedSearch)
     })
 
     return [...matched].sort((a, b) => {
+      if (sortBy === 'ship') {
+        const shipCmp = shipDisplayName(a.shipName).localeCompare(shipDisplayName(b.shipName), 'vi')
+        if (shipCmp !== 0) return shipCmp
+      }
       if (sortBy === 'cruise') {
         return a.cruiseCode.localeCompare(b.cruiseCode, 'vi')
       }
@@ -153,27 +176,69 @@ export function SubmittedPreparationGroups({
       const timeB = Date.parse(b.submittedAt) || 0
       return sortBy === 'oldest' ? timeA - timeB : timeB - timeA
     })
-  }, [tabGroups, sectionFilter, cruiseFilter, normalizedSearch, sortBy])
+  }, [tabGroups, shipFilter, sectionFilter, cruiseFilter, normalizedSearch, sortBy])
 
   const totalPages = Math.max(1, Math.ceil(filteredGroups.length / pageSize))
   const safePage = Math.min(page, totalPages)
   const startIndex = (safePage - 1) * pageSize
   const pagedGroups = filteredGroups.slice(startIndex, startIndex + pageSize)
-  const hasActiveFilters = Boolean(normalizedSearch || sectionFilter !== 'ALL' || cruiseFilter !== 'ALL')
+  const groupedPagedItems = useMemo(() => groupItemsByShip(pagedGroups), [pagedGroups])
+  const hasActiveFilters = Boolean(
+    normalizedSearch || shipFilter !== 'ALL' || sectionFilter !== 'ALL' || cruiseFilter !== 'ALL',
+  )
 
   const resetFilters = () => {
+    setShipFilter('ALL')
     setSearch('')
     setSectionFilter('ALL')
     setCruiseFilter('ALL')
     setPage(1)
   }
 
+  const renderGroupRow = (group: SubmittedGroupItem) => (
+    <tr key={groupPath(group)}>
+      <td>
+        <CruiseShipTag shipName={group.shipName} />
+      </td>
+      <td>
+        <div className={styles.queuePrimaryCell}>
+          <strong>{group.cruiseName}</strong>
+          <div className={styles.queueMetaRow}>
+            <span className={styles.queueCodeBadge}>{group.cruiseCode}</span>
+            {group.departureDatetime && (
+              <span className={styles.queueDepDate}>KH: {journeyTime(group.departureDatetime)}</span>
+            )}
+          </div>
+        </div>
+      </td>
+      <td>
+        <strong>{group.sectionName}</strong>
+      </td>
+      <td>
+        <div className={styles.queueStatusStack}>
+          <Badge label={statuses[group.status]} tone={badgeTone(group.status)} />
+          <span className={styles.queueTime}>Gửi: {journeyTime(group.submittedAt)}</span>
+        </div>
+      </td>
+      <td className={styles.queueActionCell}>
+        <Button
+          tone={group.status === 'SUBMITTED' ? 'primary' : 'secondary'}
+          size="compact"
+          autoWidth
+          onClick={() => setSelected(group)}
+        >
+          {group.status === 'SUBMITTED' ? 'Xác nhận' : 'Xem chi tiết'}
+        </Button>
+      </td>
+    </tr>
+  )
+
   return (
     <Panel
       title="Nhóm hồ sơ bộ phận đã gửi"
-      subtitle="Bước 1: Kiểm tra và xác nhận từng nhóm hồ sơ chuyên môn (Lịch trình, Dịch vụ, Nhân sự, Tàu) trước khi phê duyệt hồ sơ toàn tour."
+      subtitle="Kiểm tra và xác nhận từng phân mục chuyên môn (Lịch trình, Dịch vụ, Nhân sự, Tàu) theo từng tàu trước khi xuất bến."
     >
-      {/* Status Tabs */}
+      {/* Status Tabs & Ship Grouping Toggle */}
       <div className={styles.queueStatusBar}>
         <div className={styles.queueTabs} role="tablist" aria-label="Lọc nhóm hồ sơ theo trạng thái">
           {statusOrder.map((key, index) => {
@@ -205,16 +270,47 @@ export function SubmittedPreparationGroups({
             )
           })}
         </div>
+
+        <div className={styles.queueToolbarRight}>
+          <button
+            type="button"
+            className={styles.queueGroupToggle}
+            aria-pressed={groupByShip}
+            onClick={() => setGroupByShip(prev => !prev)}
+          >
+            <ShipHullIcon />
+            <span>{groupByShip ? 'Đang gom theo tàu' : 'Gom nhóm theo tàu'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Multi-criteria Filter & Sort Bar */}
       <div className={styles.queueFilterGrid}>
+        <Field htmlFor="ops-group-ship-filter" label="Lọc theo tàu">
+          <select
+            id="ops-group-ship-filter"
+            value={shipFilter}
+            onChange={event => {
+              setShipFilter(event.target.value)
+              setCruiseFilter('ALL')
+              setPage(1)
+            }}
+          >
+            <option value="ALL">Tất cả tàu ({shipOptions.length})</option>
+            {shipOptions.map(ship => (
+              <option key={ship.key} value={ship.key}>
+                {ship.label} ({ship.count})
+              </option>
+            ))}
+          </select>
+        </Field>
+
         <div className={styles.queueFilterSearch}>
           <Field htmlFor="ops-group-search" label="Tìm kiếm nhanh">
             <input
               id="ops-group-search"
               type="search"
-              placeholder="Mã chuyến, tên chuyến hoặc tên nhóm…"
+              placeholder="Tên tàu, mã chuyến, tên chuyến hoặc phân mục…"
               value={search}
               onChange={event => {
                 setSearch(event.target.value)
@@ -233,7 +329,7 @@ export function SubmittedPreparationGroups({
               setPage(1)
             }}
           >
-            <option value="ALL">Tất cả phân mục ({sectionOptions.length})</option>
+            <option value="ALL">Tất cả ({sectionOptions.length})</option>
             {sectionOptions.map(([code, name]) => (
               <option key={code} value={code}>
                 {name}
@@ -260,7 +356,7 @@ export function SubmittedPreparationGroups({
           </select>
         </Field>
 
-        <Field htmlFor="ops-group-sort" label="Thứ tự ưu tiên xử lý">
+        <Field htmlFor="ops-group-sort" label="Sắp xếp">
           <select
             id="ops-group-sort"
             value={sortBy}
@@ -269,8 +365,9 @@ export function SubmittedPreparationGroups({
               setPage(1)
             }}
           >
-            <option value="oldest">Chờ lâu nhất trước</option>
             <option value="newest">Mới gửi gần đây nhất</option>
+            <option value="oldest">Chờ lâu nhất trước</option>
+            <option value="ship">Theo tên tàu (A → Z)</option>
             <option value="cruise">Theo mã chuyến (A → Z)</option>
           </select>
         </Field>
@@ -320,37 +417,28 @@ export function SubmittedPreparationGroups({
           <>
             <DataTable
               label="Nhóm hồ sơ đã gửi"
-              headers={['Chuyến khởi hành', 'Phân mục chuyên môn', 'Thời điểm gửi', 'Trạng thái', 'Thao tác']}
+              headers={['Tàu', 'Chuyến khởi hành', 'Phân mục chuyên môn', 'Trạng thái & Thời điểm', 'Thao tác']}
             >
-              {pagedGroups.map(group => (
-                <tr key={groupPath(group)}>
-                  <td>
-                    <div className={styles.queuePrimaryCell}>
-                      <strong>{group.cruiseName}</strong>
-                      <span className={styles.queueCodeBadge}>{group.cruiseCode}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <strong>{group.sectionName}</strong>
-                  </td>
-                  <td>
-                    <span className={styles.queueTime}>{journeyTime(group.submittedAt)}</span>
-                  </td>
-                  <td>
-                    <Badge label={statuses[group.status]} tone={badgeTone(group.status)} />
-                  </td>
-                  <td>
-                    <Button
-                      tone={group.status === 'SUBMITTED' ? 'primary' : 'secondary'}
-                      size="compact"
-                      autoWidth
-                      onClick={() => setSelected(group)}
-                    >
-                      {group.status === 'SUBMITTED' ? 'Kiểm tra & xác nhận' : 'Xem chi tiết'}
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+              {groupByShip
+                ? groupedPagedItems.map(bucket => (
+                    <Fragment key={bucket.key}>
+                      <tr className={styles.shipGroupRow}>
+                        <td colSpan={5}>
+                          <div className={styles.shipGroupHeader}>
+                            <span className={styles.shipGroupTitle}>
+                              <ShipHullIcon />
+                              <span>{bucket.label}</span>
+                            </span>
+                            <span className={styles.shipGroupMeta}>
+                              {bucket.items.length} nhóm hồ sơ
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                      {bucket.items.map(renderGroupRow)}
+                    </Fragment>
+                  ))
+                : pagedGroups.map(renderGroupRow)}
             </DataTable>
 
             {/* Pagination Controls */}
