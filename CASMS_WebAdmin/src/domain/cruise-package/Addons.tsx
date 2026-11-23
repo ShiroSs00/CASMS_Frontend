@@ -5,7 +5,8 @@ import { useSessionAccess } from '@/shared/auth'
 import { Badge, Button, Empty, Field, Modal, Notice, useFormChanges } from '@/shared/ui'
 import { QueryState } from './Workspace'
 import { useCruisePackageMutation } from './useCruisePackageMutation'
-import { fareObject, fareText, fareUuid, fareAmount } from './purchase-contract'
+import { fareObject, fareText, fareUuid } from './purchase-contract'
+import { addonPrice, addonPriceLabel, sameAddonAmount } from './addon-price'
 import { cruisePackageApi, type ResourceType } from './api'
 import { journeyTime, wallTimeToInstant, zonedInput, SHIP_TIME_ZONE } from '@/shared/lib/journey-time'
 
@@ -17,6 +18,7 @@ type Addon = {
   shipId: string
   resourceName: string
   amount: string
+  currencyCode: 'VND' | 'USD'
   pricingUnit: 'PERSON' | 'SERVICE_UNIT'
   serviceUnitCode: string | null
   salesWindows: Window[]
@@ -46,7 +48,7 @@ function toInputDateTime(iso?: string | null): string {
 
 function decode(value: unknown, cruiseId: string): Addon {
   const r = fareObject(value)
-  if (r.cruiseId !== cruiseId || r.currencyCode !== 'USD' || !['PERSON', 'SERVICE_UNIT'].includes(String(r.pricingUnit)) || !Number.isSafeInteger(r.revision) || !Array.isArray(r.salesWindows)) {
+  if (r.cruiseId !== cruiseId || !['PERSON', 'SERVICE_UNIT'].includes(String(r.pricingUnit)) || !Number.isSafeInteger(r.revision) || !Array.isArray(r.salesWindows)) {
     throw new Error('Nội dung Add-on không khớp chuyến, giá hoặc giai đoạn bán.')
   }
   const salesWindows = r.salesWindows.map(value => {
@@ -69,7 +71,7 @@ function decode(value: unknown, cruiseId: string): Addon {
     cruiseId,
     shipId: fareUuid(r.shipId),
     resourceName: fareText(r.resourceName),
-    amount: fareAmount(r.amount),
+    ...addonPrice(r),
     pricingUnit: r.pricingUnit as Addon['pricingUnit'],
     serviceUnitCode: r.serviceUnitCode == null ? null : fareText(r.serviceUnitCode),
     salesWindows,
@@ -145,12 +147,11 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
       })
     }
     const expected = fareObject(operation.body)
-    const equalDecimal = (a: unknown, b: unknown) => String(a).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '') === String(b).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '')
     const matches = raw.filter(value => {
       const row = fareObject(value)
       const saved = decode(value, cruiseId)
       const source = expected.resourceType === 'SERVICE' ? row.serviceId : expected.resourceType === 'ACTIVITY' ? row.onboardActivityId : row.shoreExcursionId
-      return !operation.ids.includes(saved.id) && source === expected.resourceId && equalDecimal(saved.amount, expected.amount) && saved.eligibility === expected.eligibility && Array.isArray(expected.windows) && saved.salesWindows.length === expected.windows.length && saved.salesWindows.every(w => {
+      return !operation.ids.includes(saved.id) && source === expected.resourceId && saved.currencyCode === expected.currencyCode && sameAddonAmount(saved.amount, fareText(expected.amount)) && saved.eligibility === expected.eligibility && Array.isArray(expected.windows) && saved.salesWindows.length === expected.windows.length && saved.salesWindows.every(w => {
         const expectedWindow = (expected.windows as unknown[]).map(fareObject).find(v => v.stage === w.stage)
         return expectedWindow && (['startsAt', 'endsAt', 'operationalCutoff'] as const).every(key => Date.parse(w[key]) === Date.parse(String(expectedWindow[key])))
       })
@@ -211,7 +212,8 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
       )}
       {query.data?.map(a => (
         <article key={a.id}>
-          <h4>{a.resourceName} · {a.amount} USD/{a.pricingUnit === 'PERSON' ? 'người' : a.serviceUnitCode ?? 'chưa xác định đơn vị'}</h4>
+          <h4>{a.resourceName} · {addonPriceLabel(a.amount, a.currencyCode)}/{a.pricingUnit === 'PERSON' ? 'người' : a.serviceUnitCode ?? 'chưa xác định đơn vị'}</h4>
+          {a.currencyCode === 'USD' && <p>Cấu hình USD cũ được giữ nguyên, không tự quy đổi sang VND.{!a.publishedAt && ' Tạo cấu hình VND với giá đã được xác nhận để phát hành mới.'}</p>}
           <p>{a.publishedAt ? 'Đã phát hành cấu hình dịch vụ mua thêm' : 'Cấu hình nháp'} · Phiên bản {a.revision}</p>
           <p>{a.eligibility}</p>
           <ul>
@@ -221,7 +223,7 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
               </li>
             ))}
           </ul>
-          {canWrite && !a.publishedAt && (
+          {canWrite && !a.publishedAt && a.currencyCode === 'VND' && (
             <Button
               disabled={disabled}
               onClick={() => {
@@ -279,7 +281,7 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
                 return
               }
               if (!/^\d{1,15}(\.\d{1,4})?$/.test(amount)) {
-                setError('Nhập giá USD hợp lệ, tối đa bốn chữ số thập phân.')
+                setError('Nhập số tiền VND không âm, tối đa 15 chữ số nguyên và 4 chữ số thập phân; dùng dấu chấm cho phần thập phân, không nhập dấu phân cách hàng nghìn.')
                 return
               }
               if (type === 'SERVICE' && !unit) {
@@ -289,12 +291,16 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
               pending.current = {
                 kind: 'create',
                 ids: query.data?.map(a => a.id) ?? [],
-                body: { resourceType: type, resourceId: resource, amount, windows, eligibility: eligibility.trim() }
+                body: { resourceType: type, resourceId: resource, amount, currencyCode: 'VND', windows, eligibility: eligibility.trim() }
               }
               const ok = await mutation.run(
-                () => apiRequestRaw(root(cruiseId), value => decode(response(value), cruiseId), {
+                () => apiRequestRaw(root(cruiseId), value => {
+                  const saved = decode(response(value), cruiseId)
+                  if (saved.currencyCode !== 'VND' || !sameAddonAmount(saved.amount, amount)) throw new Error('Chưa xác nhận đúng giá VND đã lưu. Đọc lại dữ liệu trước khi tiếp tục.')
+                  return saved
+                }, {
                   method: 'POST',
-                  body: { resourceType: type, resourceId: resource, amount, windows, eligibility: eligibility.trim() }
+                  body: { resourceType: type, resourceId: resource, amount, currencyCode: 'VND', windows, eligibility: eligibility.trim() }
                 }),
                 'Đã lưu cấu hình dịch vụ mua thêm nháp. Chưa tạo giao dịch mua hoặc quyền sử dụng.'
               )
@@ -391,7 +397,7 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
                 </h4>
               </div>
 
-              <Field htmlFor="addon-amount" label={`Giá USD / ${type === 'SERVICE' ? unit ?? 'chưa có đơn vị nguồn' : 'người'}`}>
+              <Field htmlFor="addon-amount" label={`Giá dịch vụ mua thêm (VND/${type === 'SERVICE' ? unit ?? 'chưa có đơn vị nguồn' : 'người'})`} hint="Nhập giá bằng VND, không nhập dấu phân cách hàng nghìn. Giá này dùng cho dịch vụ mua thêm; tổng đặt chỗ được tính riêng.">
                 <input
                   id="addon-amount"
                   required
@@ -401,6 +407,8 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
                   onChange={e => setAmount(e.target.value)}
                 />
               </Field>
+
+              {/^\d{1,15}(\.\d{1,4})?$/.test(amount) && <p role="status">Giá dịch vụ nháp: {addonPriceLabel(amount, 'VND')}/{type === 'SERVICE' ? unit ?? 'chưa có đơn vị nguồn' : 'người'}</p>}
 
               <Field htmlFor="addon-eligibility" label="Điều kiện sử dụng">
                 <textarea

@@ -120,9 +120,10 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew,creatingRevision}:Ed
   const ports=useSources('ports',{tripId:trip.tripId},editable,trip.revision)
   const scopeIssues=editable&&!ports.loading&&!ports.error?portScopeViolations(content,trip.info,ports.data):[]
   const departureDay=content.days.find(day=>day.dayNumber===1)
+  const hasTripWindow=Boolean(trip.info.earliestDeparture&&trip.info.latestDeparture)
   const departureIssues:Violation[]=departureDay&&!content.stops.some(stop=>stop.isEmbarkation)?[
     ...(!departureDay.departurePortId?[{code:'DEPARTURE_PORT_REQUIRED',severity:'ERROR' as const,entityType:'DAY',dayNumber:1,fieldPath:'days[1].departurePortId',message:'Chọn cảng khởi hành cho ngày 1.'}]:[]),
-    ...(!departureDay.plannedDepartureTime?[{code:'DEPARTURE_TIME_REQUIRED',severity:'ERROR' as const,entityType:'DAY',dayNumber:1,fieldPath:'days[1].plannedDepartureTime',message:'Nhập giờ khởi hành dự kiến theo giờ Việt Nam.'}]:[]),
+    ...(!hasTripWindow&&!departureDay.plannedDepartureTime?[{code:'DEPARTURE_TIME_REQUIRED',severity:'ERROR' as const,entityType:'DAY',dayNumber:1,fieldPath:'days[1].plannedDepartureTime',message:'Nhập giờ khởi hành dự kiến theo giờ Việt Nam.'}]:[]),
   ]:[]
   const terminalIssues:Violation[]=content.stops.flatMap(stop=>{
     if(!stop.isDisembarkation)return []
@@ -136,7 +137,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew,creatingRevision}:Ed
     else if(stop.allAboardDayNumber!=null&&stop.allAboardTime&&stop.plannedArrivalTime&&stop.plannedDepartureTime&&(timeNumber(stop.allAboardDayNumber,stop.allAboardTime)<=timeNumber(stop.arrivalDayNumber,stop.plannedArrivalTime)||timeNumber(stop.allAboardDayNumber,stop.allAboardTime)>timeNumber(stop.departureDayNumber,stop.plannedDepartureTime)))issues.push(add('allAboardTime','Hạn trở lại phải nằm trong khoảng ghé cảng.'))
     return issues
   })
-  const timingIssues=[...departureIssues,...departureTimingViolations(content),...terminalIssues,...consecutiveSamePortViolations(content),...callsAfterTerminal(content.stops),...stopTimingViolations(content),...routeOrderViolations(content),...content.stops.flatMap(stop=>linkedTourViolations(stop,content)),...scopeIssues]
+  const timingIssues=[...departureIssues,...departureTimingViolations(content,trip.info.earliestDeparture),...terminalIssues,...consecutiveSamePortViolations(content),...callsAfterTerminal(content.stops),...stopTimingViolations(content),...routeOrderViolations(content,trip.info.earliestDeparture),...content.stops.flatMap(stop=>linkedTourViolations(stop,content)),...scopeIssues]
   const visibleTimingIssues=showMissingFields ? timingIssues : timingIssues.filter(issue => !['DEPARTURE_PORT_REQUIRED','DEPARTURE_TIME_REQUIRED'].includes(issue.code) && !(issue.code==='CLIENT_TERMINAL_FIELD'&&issue.message.startsWith('Nhập')))
   const violationRows=mergePlanningViolations(fault?.violations.length?fault.violations:report?.violations??[],visibleTimingIssues)
   const structureAllowed=editable&&!locked&&!trip.durationIssue&&Boolean(limits)
@@ -364,7 +365,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew,creatingRevision}:Ed
           {!gateway.supportsMiddleDayRemoval&&content.days.length>(limits?.[0]??0)&&!canRemoveDay&&<small>Mở Ngày {content.days.length} để xóa ngày cuối.</small>}
         </details>}
       </nav>
-      <section id="planning-day-panel" aria-label="Ngày đang xem">{day?<DayPane key={day.key} content={content} day={day} editable={canEdit} busy={Boolean(busy)||uncertain} violation={located} violations={violationRows} departurePorts={{...ports,data:ports.data.filter(port=>portMatchesScope(port,trip.info))}} onDeparture={value=>edit({...content,days:content.days.map(d=>d.key===day.key?{...d,...value}:d)})} onDisembarkation={handleDisembarkation}
+      <section id="planning-day-panel" aria-label="Ngày đang xem">{day?<DayPane key={day.key} content={content} day={day} editable={canEdit} busy={Boolean(busy)||uncertain} violation={located} violations={violationRows} departurePorts={{...ports,data:ports.data.filter(port=>portMatchesScope(port,trip.info))}} departureWindow={{earliest:trip.info.earliestDeparture,latest:trip.info.latestDeparture}} onDeparture={value=>edit({...content,days:content.days.map(d=>d.key===day.key?{...d,...value}:d)})} onDisembarkation={handleDisembarkation}
         onTitle={title=>edit({...content,days:content.days.map(d=>d.key===day.key?{...d,title}:d)})}
         onType={dayType=>{if(dayType==='SEA_DAY'&&content.stops.some(s=>s.arrivalDayNumber<=day.dayNumber&&s.departureDayNumber>=day.dayNumber)){setMessage('Ngày còn lần ghé cảng. Hãy xử lý lần ghé và tham quan liên quan trước khi chuyển thành ngày trên biển.');return}edit({...content,days:content.days.map(d=>d.key===day.key?{...d,dayType}:d)})}}
         onStop={(stop,allAboardOnly)=>setStopDrawer({stop,allAboardOnly})} onEntry={(kind,entry,stopClientKey)=>setEntryDrawer({kind,entry,stopClientKey})}

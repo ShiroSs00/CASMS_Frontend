@@ -6,7 +6,7 @@ export type Terms = { tax: Charge; portFee: Charge }
 export type Action = 'submit' | 'approve' | 'return'
 const states = ['MISSING', 'DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'RETURNED'] as const
 export type SaleTerms = { currency?: 'VND' | 'USD'; planStatus?: string; revision: number; status: typeof states[number]; terms: Terms | null; submittedBy: string | null; submittedAt: string | null; reviewedAt: string | null }
-export type SaleTermsSetup = { cruiseId: string; cruiseCode: string; cruiseName: string; departurePort: string; returnPort: string; ports: string[] }
+export type SaleTermsSetup = { cruiseId: string; cruiseCode: string; cruiseName: string; departurePort: string; returnPort: string; ports: string[]; shipId?: string | null; shipName?: string | null; departureDatetime?: string | null }
 type History = { actorId: string; action: string; recordedAt: string; evidence: { snapshot: SaleTerms; reason: string } }
 
 const invalid = () => new ApiError('Phản hồi điều kiện mở bán chưa đầy đủ.', 502)

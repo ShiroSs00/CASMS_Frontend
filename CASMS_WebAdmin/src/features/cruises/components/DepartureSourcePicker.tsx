@@ -26,8 +26,8 @@ export function DepartureSourcePicker({
     {query.loading?<Loading label="Đang tải mẫu lịch trình…"/>:query.error?<Notice title="Chưa tải được lịch trình nguồn" tone="error">{query.error.message}<Button tone="secondary" onClick={query.retry}>Tải lại</Button></Notice>:query.data&&<>
       {query.data.content.length > 0 && <ul className={styles.sourceOptions} aria-label="Mẫu lịch trình có thể dùng">
         {query.data.content.map(source => <li key={source.versionId}>
-          <div><strong>{source.tripName}</strong><small>{source.durationDays} ngày · {source.tripCode}</small></div>
-          {value === source.versionId ? <span>Mẫu đang dùng</span> : <Button tone="secondary" size="compact" disabled={disabled} aria-label={`Dùng mẫu ${source.tripName} · ${source.tripCode}`} onClick={() => onChange(source.versionId, source.tripName)}>Dùng mẫu này</Button>}
+          <div><strong>{source.tripName}</strong><small>{source.tripCode} · Phiên bản {source.versionNumber} · {source.durationDays} ngày</small></div>
+          {value === source.versionId ? <span>Mẫu đang dùng</span> : <Button tone="secondary" size="compact" disabled={disabled} aria-label={`Dùng mẫu ${source.tripName} · ${source.tripCode} · Phiên bản ${source.versionNumber}`} onClick={() => onChange(source.versionId, source.tripName)}>Dùng phiên bản {source.versionNumber}</Button>}
         </li>)}
       </ul>}
       {!query.data.content.length && (

@@ -20,6 +20,7 @@ import {preparationWallTime,preparationInstant} from '../model/preparation-time'
 import {journeyTime,SHIP_TIME_ZONE,validTimeZone} from '@/shared/lib/journey-time'
 import styles from './ManagerWorkspace.module.css'
 import {planReviewActions,planReviewStates} from '../model/plan-review'
+import {planConditionMessage,planConditionTitle} from '../model/plan-condition-copy'
 import {coordinatorDossierSections,preparationApi,preparationStatusLabels} from '../api/preparation-api'
 const actionKeys={submit:'cruise.plan.SUBMIT_ACTION',withdraw:'cruise.plan.WITHDRAW_ACTION',approve:'cruise.plan.APPROVE_ACTION',reject:'cruise.plan.REJECT_ACTION','request-revision':'cruise.plan.REQUEST_REVISION_ACTION',ready:'cruise.ready.SET_READY_ACTION'} as const
 const safeError=(error:unknown)=>error instanceof ApiError&&error.code==='SELF_APPROVAL_FORBIDDEN'?'Bạn đã tham gia chuẩn bị hồ sơ hoặc điều khoản. Cần người xét duyệt khác.':businessErrorMessage(error instanceof ApiError?error.code:undefined,'')
@@ -51,6 +52,16 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
  }):[]
  const approvalNeedsReview=data?.planStatus==='APPROVED'&&(data.planBlockers.length>0||data.readyBlockers.includes('PLAN_APPROVAL_REQUIRED'))
  const readyToSubmit=Boolean(data&&availableActions.includes('submit')&&data.planBlockers.length===0)
+ async function reconcile(){
+  if(lock.current)return
+  lock.current=true;setBusy(true);setError('')
+  try{
+   const actual=await mainflowApi.get(cruiseId)
+   if(access.has('CRUISE_PREPARATION_READ'))await preparationApi.get(cruiseId)
+   setAction(null);setUncertain(false);setEpoch(n=>n+1);query.retry();onChanged?.()
+   setSuccess(['SUBMITTED','APPROVED'].includes(actual.planStatus)?'Đã đối chiếu: hồ sơ đã được hệ thống tiếp nhận.':'Đã đối chiếu trạng thái mới nhất. Kiểm tra hồ sơ trước khi gửi tiếp.')
+  }catch(e){setError(safeError(e))}finally{lock.current=false;setBusy(false)}
+ }
  async function execute(){
   if(!data||!action||lock.current||uncertain||query.loading||query.error||!availableActions.includes(action)||action==='approve'&&evidenceMissing)return
   if(action==='ready'?!(access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_VALIDATE')):['submit','withdraw'].includes(action)?!crm:!ops)return
@@ -61,20 +72,20 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
  }
  const blockers = data ? uniqueConditionCodes(data.planBlockers) : []
  const planConditions = data && blockers.length > 0 && (
-  <div className={styles.blockerChecklist} role="region" aria-label={businessCopy('cruise.plan.missingInputs')}>
+  <div className={styles.blockerChecklist} role="region" aria-label={planConditionTitle(manager,data.planStatus)}>
    <div className={styles.blockerChecklistHead}>
-    <strong>{businessCopy('cruise.plan.missingInputs')}</strong>
+    <strong>{planConditionTitle(manager,data.planStatus)}</strong>
     <Badge label={`Còn ${blockers.length} mục`} tone="warning" />
    </div>
    <ol className={styles.conditionList}>
     {blockers.map((code, index) => {
      const target = manager ? operationsConditionTarget(code) : null
      const destination = target && target !== 'review' && target !== 'overview' ? allowedDepartureSections(access).find(([key]) => key === target) : null
+     const message = planConditionMessage(code,manager,data.planStatus)
      return (
       <li key={code}>
        <span className={styles.conditionStepNumber} aria-hidden="true">{index + 1}</span>
-       {manager && code === 'FARE_PLAN_SELECTION_REQUIRED' ? <div className={styles.conditionBody}><p>Chọn một gói du thuyền đủ điều kiện để đưa vào hồ sơ gửi duyệt.</p></div>
-        : manager && code === 'SALE_TERMS_REQUIRED' ? <div className={styles.conditionBody}><p>Quản lý vận hành cần cấu hình thuế và phí cảng trước khi gửi hồ sơ.</p></div>
+       {message ? <div className={styles.conditionBody}><p>{message}</p></div>
         : <ProgramBlocker code={code} data={data} fixed={itineraryMode === 'FIXED'} />}
        {destination && onSection && <Button size="compact" autoWidth tone="secondary" onClick={() => onSection(destination[0])}>{destination[0] === 'fare-packages' ? 'Xem cấu hình gói' : `Mở ${destination[1].toLocaleLowerCase('vi-VN')}`}</Button>}
        {crm && manager && code === 'SALE_TERMS_REQUIRED' && <SaleTermsSetupButton key={cruiseId} cruiseId={cruiseId} />}
@@ -120,11 +131,16 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
     </>}
     <p>{data?.unifiedPackageReview?'Quản lý vận hành duyệt kế hoạch, giá các gói đã chọn và thuế/phí trong cùng hồ sơ.':'Quản lý vận hành xét duyệt kế hoạch và các điều kiện thương mại.'} Gửi hồ sơ chưa mở bán chuyến.</p>
    </>}
-   {action==='ready'&&<p>Ghi nhận chuyến đã đạt các điều kiện để chuyển sang bước mở bán. Thao tác này cho phép tiếp tục sang Bước 3 để chính thức mở bán gói du thuyền.</p>}
+   {action==='ready'&&<>
+    <p>Xác nhận sẵn sàng thương mại trên bản kế hoạch, gói giá và thuế/phí đã được duyệt. Sau bước này vẫn cần quyết định mở bán riêng.</p>
+    <Notice title="Chưa xác nhận điều kiện xuất bến">
+     Nhân sự thực tế, xác nhận các nhóm hồ sơ vận hành và hướng dẫn hành khách được kiểm tra riêng trước xuất bến. Thao tác này không xác nhận các mục đó đã hoàn tất và không cho phép khởi hành.
+    </Notice>
+   </>}
    {action==='approve'&&<p>{data?.unifiedPackageReview?'Phê duyệt kế hoạch, các phiên bản giá gói đã chọn và thuế/phí trong bản hồ sơ này.':'Phê duyệt kế hoạch đã gửi.'} Thao tác này chưa xác nhận sẵn sàng hoặc mở bán.</p>}
    {action==='request-revision'&&data?.planStatus==='APPROVED'&&<p>Kế hoạch sẽ mở lại cho Quản lý lịch trình chỉnh sửa và gửi duyệt lại. Xác nhận sẵn sàng trước đó sẽ mất hiệu lực; quyết định giá đã lưu vẫn được giữ riêng.</p>}
    {error&&<Notice title="Chưa hoàn tất thao tác" tone="error">{error}</Notice>}
-   {uncertain&&<Notice title="Chưa xác định kết quả">Đóng hộp thoại và tải lại dữ liệu để đối chiếu trước khi gửi tiếp.</Notice>}
+   {uncertain&&<Notice title="Chưa xác định kết quả"><p>Đọc lại trạng thái đã lưu trước khi gửi tiếp để tránh nộp trùng.</p><Button tone="secondary" disabled={busy} onClick={()=>void reconcile()}>Đối chiếu kết quả</Button></Notice>}
    <p>{businessCopy('cruise.plan.revision')}: {data?.revision}</p>{['reject','request-revision'].includes(action)&&<Field htmlFor="plan-reason" label={businessCopy(action==='reject'?'cruise.plan.rejectReason':'cruise.plan.revisionFeedback')}><textarea id="plan-reason" value={reason} onChange={e=>setReason(e.target.value)} required/></Field>}
   </Modal>
  if(mode==='ready'){
@@ -148,7 +164,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
     {isReady ? (
      <Notice title="Chuyến khởi hành đã sẵn sàng mở bán" tone="success">
       <p>Kế hoạch khởi hành và chính sách giá đã được Quản lý vận hành xác nhận. Chuyến khởi hành đủ điều kiện để tiến hành mở bán vé.</p>
-      {onNextStep && <div className={styles.planActions}><Button tone="primary" onClick={onNextStep}>Tiếp tục: Mở bán</Button></div>}
+      {onNextStep && <div className={styles.planActions}><Button tone="primary" onClick={onNextStep}>Xem bước 3: Mở bán</Button></div>}
       {data.readyNeedsRefresh&&availableActions.includes('ready')&&
        <Button tone="secondary" disabled={busy||uncertain} onClick={()=>{setAction('ready');setReason('');setSuccess('')}}>
         Cập nhật xác nhận sẵn sàng
@@ -228,7 +244,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
       </div>
 
       <p className={styles.sectionMeta}>
-       Phân công nhân sự, 4 nhóm hồ sơ kỹ thuật – dịch vụ và buổi hướng dẫn an toàn được kiểm tra ở khâu chuẩn bị trước ngày xuất bến.
+       Ready xác nhận điều kiện mở bán. Nhân sự thực tế, xác nhận hồ sơ vận hành và hoàn thành hướng dẫn an toàn của hành khách được kiểm tra riêng tại bước Xuất bến.
       </p>
 
       {/* Các điều kiện khác nếu có */}
@@ -250,8 +266,8 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
       )}
 
       {data.readyBlockers.length === 0 && (
-       <Notice title="Tất cả điều kiện mở bán đã hoàn tất" tone="success">
-        <p>Kế hoạch và chính sách giá thương mại đã sẵn sàng. Bấm nút bên dưới để chính thức xác nhận sẵn sàng mở bán.</p>
+       <Notice title="Không có mục cần xử lý trong kết quả kiểm tra sẵn sàng" tone="success">
+        <p>Đối chiếu hồ sơ trước khi xác nhận sẵn sàng. Xác nhận này không tự mở bán; bước mở bán còn kiểm tra điều kiện theo phạm vi gói đã chọn.</p>
        </Notice>
       )}
 
@@ -273,7 +289,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
     )}
    </>}
    {success&&<Notice title={success} tone="success">Đã ghi nhận xác nhận sẵn sàng.</Notice>}{error&&!action&&<Notice title="Chưa xác nhận được chuyến sẵn sàng" tone="error">{error}</Notice>}
-   {uncertain&&!action&&<Notice title="Chưa xác định kết quả">Tải lại trang để đối chiếu trước khi thao tác tiếp.</Notice>}
+   {uncertain&&!action&&<Notice title="Chưa xác định kết quả"><p>Đọc lại trạng thái đã lưu trước khi thao tác tiếp.</p><Button tone="secondary" disabled={busy} onClick={()=>void reconcile()}>Đối chiếu kết quả</Button></Notice>}
    {actionDialog}
   </Panel>
  }
@@ -327,8 +343,8 @@ function PlanWindows({data,onSaved,editable=true}:{data:PlanView;onSaved:()=>voi
  for(const [key] of fields)if(!windows[key])errors[key]='Nhập đầy đủ ngày và giờ.'
  if(windows.bookingOpensAt&&windows.bookingClosesAt&&Date.parse(windows.bookingOpensAt)>=Date.parse(windows.bookingClosesAt))errors.bookingClosesAt='Đóng nhận đặt chỗ phải sau thời điểm mở nhận đặt chỗ.'
  if(departureAt!==null&&windows.bookingClosesAt&&Date.parse(windows.bookingClosesAt)>=departureAt)errors.bookingClosesAt='Đóng nhận đặt chỗ phải trước giờ khởi hành: '+precise(departure.data!)+'.'
- if(windows.guidanceOpensAt&&windows.guidanceClosesAt&&Date.parse(windows.guidanceOpensAt)>=Date.parse(windows.guidanceClosesAt))errors.guidanceClosesAt='Kết thúc hướng dẫn phải sau thời điểm bắt đầu hướng dẫn.'
- if(windows.bookingClosesAt&&windows.guidanceOpensAt&&Date.parse(windows.guidanceOpensAt)<Date.parse(windows.bookingClosesAt))errors.guidanceOpensAt='Buổi hướng dẫn phải bắt đầu sau khi đóng nhận đặt chỗ: '+precise(windows.bookingClosesAt)+'.'
+ if(windows.guidanceOpensAt&&windows.guidanceClosesAt&&Date.parse(windows.guidanceOpensAt)>=Date.parse(windows.guidanceClosesAt))errors.guidanceClosesAt='Kết thúc thời gian hướng dẫn phải sau thời điểm bắt đầu.'
+ if(windows.bookingClosesAt&&windows.guidanceOpensAt&&Date.parse(windows.guidanceOpensAt)<Date.parse(windows.bookingClosesAt))errors.guidanceOpensAt='Thời gian hướng dẫn không được bắt đầu trước khi đóng nhận đặt chỗ: '+precise(windows.bookingClosesAt)+'.'
  if(departureAt!==null&&windows.guidanceClosesAt&&Date.parse(windows.guidanceClosesAt)>departureAt)errors.guidanceClosesAt='Kết thúc hướng dẫn không được sau giờ khởi hành: '+precise(departure.data!)+'.'
  if(departureAt!==null&&windows.bookingOpensAt&&Date.parse(windows.bookingOpensAt)>=departureAt)errors.bookingOpensAt='Mở nhận đặt chỗ phải trước giờ khởi hành.'
  if(departureAt!==null&&windows.guidanceOpensAt&&Date.parse(windows.guidanceOpensAt)>=departureAt)errors.guidanceOpensAt='Bắt đầu hướng dẫn phải trước giờ khởi hành.'
@@ -343,7 +359,7 @@ function PlanWindows({data,onSaved,editable=true}:{data:PlanView;onSaved:()=>voi
   finally{lock.current=false;setBusy(false)}
  }
  return <>
-  <p className={styles.sectionMeta}>Khung thời gian được thiết lập tự động theo giờ khởi hành (đóng nhận đặt chỗ trước 2–3 ngày để chuyển sang hướng dẫn trước chuyến; đóng cổng trước 2 giờ tàu chạy).</p>
+  <p className={styles.sectionMeta}>Các mốc nhận đặt chỗ và hướng dẫn hiện tại do hệ thống cung cấp, hiển thị theo giờ Việt Nam (UTC+7). Thời gian hướng dẫn là khung tổ chức buổi hướng dẫn trước chuyến.</p>
   <RecordFacts entries={fields.map(([key,label])=>[businessCopy(label),data.windows[key]?journeyTime(data.windows[key]!,SHIP_TIME_ZONE):'Chưa thiết lập'] as const)}/>
   {editable&&<Button tone="secondary" disabled={busy||uncertain} onClick={()=>{setWindows(data.windows);setError('');setAttempted(false);setTouched({});setOpen(true)}}>Tùy chỉnh thời gian nhận đặt chỗ và hướng dẫn</Button>}
   {open&&<Modal wide busy={busy} title={businessCopy('cruise.window.title')} description="Tất cả ngày giờ bên dưới theo giờ Việt Nam." onClose={()=>setOpen(false)} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setOpen(false)} data-overlay-dismiss>Hủy</Button><Button type="submit" form="plan-windows-form" disabled={busy||uncertain||departure.loading||Boolean(departure.error)||!departure.data}>{busy?'Đang lưu…':businessCopy('cruise.window.save')}</Button></>}>
@@ -351,10 +367,10 @@ function PlanWindows({data,onSaved,editable=true}:{data:PlanView;onSaved:()=>voi
    {departure.error&&<Notice title="Chưa tải được giờ khởi hành" tone="error"><Button tone="secondary" onClick={departure.retry}>Tải lại giờ khởi hành</Button></Notice>}
    {departure.data&&!departure.loading&&!departure.error&&<p><strong>Khởi hành: {precise(departure.data)} · Giờ Việt Nam</strong></p>}
    <form id="plan-windows-form" noValidate onSubmit={event=>{event.preventDefault();void save()}}>
-    <fieldset className={styles.windowFields} disabled={busy||uncertain}><legend>Lịch nhận đặt chỗ và hướng dẫn</legend>{([['Nhận đặt chỗ',fields.slice(0,2)],['Buổi hướng dẫn trước chuyến',fields.slice(2)]] as const).map(([title,group])=><section className={styles.windowGroup} key={title}><h3>{title}</h3><div className={styles.fieldGrid}>{group.map(([key,label])=>{
+    <fieldset className={styles.windowFields} disabled={busy||uncertain}><legend>Lịch nhận đặt chỗ và hướng dẫn</legend>{([['Nhận đặt chỗ',fields.slice(0,2)],['Khung hướng dẫn trước chuyến',fields.slice(2)]] as const).map(([title,group])=><section className={styles.windowGroup} key={title}><h3>{title}</h3><div className={styles.fieldGrid}>{group.map(([key,label])=>{
      const fieldError=attempted||touched[key]?errors[key]:undefined
-     const hint=key==='guidanceOpensAt'?'Sau khi đóng nhận đặt chỗ.':key==='guidanceClosesAt'?'Hoàn tất trước khi khởi hành.':undefined
-     return <Field key={key} htmlFor={key} label={key==='guidanceOpensAt'?'Bắt đầu buổi hướng dẫn':key==='guidanceClosesAt'?'Kết thúc buổi hướng dẫn':businessCopy(label)} error={fieldError} hint={hint}><input id={key} type="datetime-local" required step={1} max={departure.data?preparationWallTime(departure.data):undefined} value={preparationWallTime(windows[key])} onBlur={()=>setTouched(current=>({...current,[key]:true}))} onChange={e=>{try{setWindows({...windows,[key]:preparationInstant(e.target.value)});setTouched(current=>({...current,[key]:true}));setError('')}catch{setError(businessCopy('program.time.invalid'))}}}/></Field>
+     const hint=key==='guidanceOpensAt'?'Không sớm hơn thời điểm đóng nhận đặt chỗ.':key==='guidanceClosesAt'?'Không muộn hơn giờ khởi hành.':undefined
+     return <Field key={key} htmlFor={key} label={businessCopy(label)} error={fieldError} hint={hint}><input id={key} type="datetime-local" required step={1} max={departure.data?preparationWallTime(departure.data):undefined} value={preparationWallTime(windows[key])} onBlur={()=>setTouched(current=>({...current,[key]:true}))} onChange={e=>{try{setWindows({...windows,[key]:preparationInstant(e.target.value)});setTouched(current=>({...current,[key]:true}));setError('')}catch{setError(businessCopy('program.time.invalid'))}}}/></Field>
     })}</div></section>)}</fieldset>
    </form>
    {error&&<Notice title="Chưa lưu được khung thời gian" tone="error">{error}</Notice>}
@@ -366,7 +382,7 @@ function PlanWindows({data,onSaved,editable=true}:{data:PlanView;onSaved:()=>voi
 function ProgramBlocker({code,data,fixed}:{code:string;data:PlanView;fixed:boolean}){
  const issues=data.programIssues?.filter(issue=>issue.code===code)??[]
  const timeIssue=['ACTIVITY_OUTSIDE_CRUISE','EXCURSION_OUTSIDE_PORT_CALL','SERVICE_OUTSIDE_WINDOW'].includes(code)
- return <div className={styles.conditionBody}><p>{businessErrorMessage(code,'')}</p>
+ return <div className={styles.conditionBody}><p>{planConditionMessage(code,false,data.planStatus)??businessErrorMessage(code,'')}</p>
   {issues.length>0&&<ul className={styles.issueDetails}>{issues.map(issue=>{
    const showTime=(instant:string|null)=>instant&&validTimeZone(issue.timeZoneId)?new Intl.DateTimeFormat('vi-VN',{timeZone:issue.timeZoneId,dateStyle:'short',timeStyle:'medium'}).format(new Date(instant)):'Chưa đủ thời gian hoặc múi giờ'
    return <li key={issue.itemId}><strong>{issue.name}</strong>{timeIssue&&<>

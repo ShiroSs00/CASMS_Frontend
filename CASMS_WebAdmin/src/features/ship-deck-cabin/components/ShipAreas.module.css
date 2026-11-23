@@ -8,7 +8,16 @@
 .list { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;list-style:none;padding:0;margin:0; }
 .list>li { display:flex;flex-direction:column;align-items:flex-start;gap:16px;min-width:0;padding:20px;border:1px solid var(--ui-border);border-radius:8px;background:var(--ui-surface);animation:areaEnter 180ms var(--ease-out) both; }
 .list h3 { margin:0;font-size:16px;line-height:1.6;overflow-wrap:anywhere; }
+.configGrid { display:grid;gap:20px;min-width:0; }
+.configCard { display:grid;gap:16px;min-width:0;padding:20px;border:1px solid var(--ui-border);border-radius:8px;background:var(--ui-surface); }
+.configHeader { display:grid;gap:4px; }
+.configHeader h3 { margin:0;font-size:16px;line-height:1.4; }
+.configHint { margin:0;color:var(--ui-muted);font-size:14px;line-height:1.5; }
+.assignedList { display:grid;gap:8px;list-style:none;padding:0;margin:0; }
+.assignedRow { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--ui-border);border-radius:6px;background:var(--ui-canvas); }
+.posFormGrid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;min-width:0; }
+.posFormGrid>* { min-width:0; }
 @keyframes areaEnter { from { opacity:0; } to { opacity:1; } }
-@media(max-width:1100px) { .list { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-@media(max-width:650px) { .list,.filters { grid-template-columns:1fr; } }
+@media(max-width:1100px) { .list,.posFormGrid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:650px) { .list,.filters,.posFormGrid { grid-template-columns:1fr; } }
 @media(prefers-reduced-motion:reduce) { .list>li { animation:none; } }

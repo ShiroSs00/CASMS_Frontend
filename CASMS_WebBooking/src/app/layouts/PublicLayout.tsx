@@ -55,7 +55,6 @@ export function PublicLayout() {
         <nav ref={desktopNav} aria-label="Điều hướng chính" className={styles.desktopNav}>
           {navigationLinks.map(([to, label]) => <NavLink key={to} to={to}>{label}</NavLink>)}
           {authStatus === 'authenticated' && <NavLink to="/my-bookings">Đặt chỗ của tôi</NavLink>}
-          <PublicContact variant="nav" id="nav-contact" />
         </nav>
       </div>
       <div className={styles.accountNav}>

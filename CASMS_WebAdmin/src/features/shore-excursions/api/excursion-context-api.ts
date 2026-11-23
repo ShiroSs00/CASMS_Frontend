@@ -22,16 +22,22 @@ export const excursionContextApi = {
   async stops(signal?: AbortSignal,cruiseId?:string): Promise<StopOption[]> {
     const [itineraries, ports] = await Promise.all([plans(signal), apiRequest<{ portId: string; portName: string; timeZoneId?: string | null }[]>('/ports/active', { signal })])
     if (!Array.isArray(ports)) throw new Error('Không đọc được tên cảng.')
-    return (await Promise.all(itineraries.filter(item=>!cruiseId||item.cruiseId===cruiseId).map(async itinerary => {
+    const targets = itineraries.filter(item => !cruiseId || item.cruiseId === cruiseId)
+    const settled = await Promise.allSettled(targets.map(async itinerary => {
       const rows = await apiRequest<(Omit<StopOption, 'label'> & { portId: string; stopOrder: number })[]>(`/cruise-stops/by-itinerary/${encodeURIComponent(itinerary.itineraryId)}`, { signal })
-      if (!Array.isArray(rows) || rows.some(item => !item?.cruiseStopId || !Number.isFinite(Date.parse(item.plannedArrival)) || !Number.isFinite(Date.parse(item.plannedDeparture)))) throw new Error('Thông tin điểm dừng chưa đầy đủ.')
-      return rows.map(item => {
-        const port = ports.find(port => port.portId === item.portId)
-        const zone = port?.timeZoneId
-        return { ...item, cruiseId: itinerary.cruiseId, timeZoneId: zone,
-          label: `${itinerary.itineraryName} · Lần ghé ${item.stopOrder ?? 'chưa có thứ tự'} · ${port?.portName ?? 'Chưa tải được tên cảng'}` }
-      })
-    }))).flat()
+      if (!Array.isArray(rows)) return [] as StopOption[]
+      return rows
+        .filter(item => Boolean(item?.cruiseStopId) && Number.isFinite(Date.parse(item.plannedArrival)) && Number.isFinite(Date.parse(item.plannedDeparture)))
+        .map(item => {
+          const port = ports.find(port => port.portId === item.portId)
+          const zone = port?.timeZoneId
+          return { ...item, cruiseId: itinerary.cruiseId, timeZoneId: zone,
+            label: `${itinerary.itineraryName} · Lần ghé ${item.stopOrder ?? 'chưa có thứ tự'} · ${port?.portName ?? 'Chưa tải được tên cảng'}` }
+        })
+    }))
+    return settled
+      .flatMap(result => result.status === 'fulfilled' ? result.value : [])
+      .sort((a, b) => Date.parse(b.plannedArrival) - Date.parse(a.plannedArrival))
   },
 }
 

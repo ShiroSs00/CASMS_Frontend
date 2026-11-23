@@ -69,7 +69,23 @@ export function ServiceLocationRequests({ cruiseId, onChanged }: { cruiseId: str
     )
   }
 
-  if (query.error instanceof ApiError && query.error.status === 403) return null
+  if (query.error instanceof ApiError && query.error.status === 403) {
+    const isAsm = access.roles.includes('ACTIVITY_SERVICE_MANAGER')
+    return (
+      <Panel title="Danh sách bố trí dịch vụ trên tàu">
+        <Notice tone="warning" title="Chưa thể thao tác bố trí dịch vụ trên chuyến này">
+          <p>
+            {isAsm
+              ? 'Bạn cần mở Yêu cầu chuẩn bị chương trình và bấm Tiếp nhận yêu cầu của chuyến này trước khi đề nghị vị trí boong cho dịch vụ.'
+              : 'Chỉ Quản lý tàu được phân công cho chuyến này mới có quyền duyệt đề nghị bố trí dịch vụ trên boong.'}
+          </p>
+          <ButtonLink to="/admin/preparation-requests" tone="secondary" size="compact" autoWidth>
+            Mở Yêu cầu chuẩn bị chương trình
+          </ButtonLink>
+        </Notice>
+      </Panel>
+    )
+  }
 
   const pendingCount = view?.requests.filter(item => item.status === 'PENDING').length ?? 0
   const confirmedCount = view?.requests.filter(item => item.status === 'CONFIRMED').length ?? 0

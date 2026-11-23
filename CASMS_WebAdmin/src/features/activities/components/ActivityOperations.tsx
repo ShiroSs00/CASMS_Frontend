@@ -6,6 +6,7 @@ import { activityApi, type ActivityCatalogEntry } from '../api/activity-api'
 import { activityActions } from '../model/activity-actions'
 import type { Activity } from '../model/activity'
 import styles from './Activities.module.css'
+import { useActivityProgramAccess } from '../model/useActivityProgramAccess'
 const labels = { open: 'Mở đăng ký', start: 'Bắt đầu hoạt động', complete: 'Hoàn thành hoạt động', cancel: 'Hủy hoạt động', delete: 'Xóa hoạt động chưa sử dụng' }
 export function ActivityOperations({ activity, onChanged, renderCatalogHeader }: {
   activity: Activity | ActivityCatalogEntry
@@ -15,9 +16,10 @@ export function ActivityOperations({ activity, onChanged, renderCatalogHeader }:
   const access = useSessionAccess(), navigate = useNavigate(), lock = useRef(false)
   const [action, setAction] = useState<keyof typeof labels | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState('')
   const occurrence = activity.catalogEntry === true ? null : activity
+  const programAccess = useActivityProgramAccess(occurrence?.cruiseId, !occurrence)
   const canDelete = !occurrence || occurrence.status === 'PLANNED'
   const lifecycle = occurrence ? activityActions(occurrence) : []
-  const allowed = (action: keyof typeof labels) => access.canDo(action === 'delete' ? 'ACTIVITY_UPDATE' : 'ACTIVITY_LIFECYCLE') && (action === 'delete' ? canDelete : lifecycle.includes(action))
+  const allowed = (action: keyof typeof labels) => access.canDo(action === 'delete' ? 'ACTIVITY_UPDATE' : 'ACTIVITY_LIFECYCLE') && (action === 'delete' ? canDelete && programAccess.editable : lifecycle.includes(action))
   async function confirm() {
     if (!action || lock.current || !allowed(action)) return
     lock.current = true; setBusy(true); setError('')
@@ -25,7 +27,7 @@ export function ActivityOperations({ activity, onChanged, renderCatalogHeader }:
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa thực hiện được thay đổi.') }
     finally { lock.current = false; setBusy(false) }
   }
-  const canUpdate = access.canDo('ACTIVITY_UPDATE')
+  const canUpdate = access.canDo('ACTIVITY_UPDATE') && programAccess.editable
   const canManageLifecycle = access.canDo('ACTIVITY_LIFECYCLE')
   const deleteNote = 'Chỉ xóa hoạt động chưa có đăng ký và chưa được tham chiếu.'
   function openAction(item: keyof typeof labels) {
@@ -35,6 +37,7 @@ export function ActivityOperations({ activity, onChanged, renderCatalogHeader }:
   const deleteAction = canUpdate && canDelete && <Button tone="danger" disabled={busy} onClick={() => openAction('delete')}>{labels.delete}</Button>
 
   return <>
+    {programAccess.reason && <Notice title="Quyền sửa chương trình"><p>{programAccess.reason}</p><Button tone="secondary" onClick={programAccess.retry}>Kiểm tra lại quyền sửa</Button></Notice>}
     {renderCatalogHeader ? renderCatalogHeader(deleteAction) : (canUpdate || canManageLifecycle) && <Panel title="Điều hành hoạt động">
       <div className={styles.actions}>
         {occurrence?.status === 'PLANNED' && canUpdate && <ButtonLink tone="secondary" to={`/admin/activities/${activity.id}/edit`}>Chỉnh sửa</ButtonLink>}

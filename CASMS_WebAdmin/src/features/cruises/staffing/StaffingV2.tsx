@@ -27,6 +27,62 @@ const v2Steps = [
   { id: 'approval', title: 'Kiểm tra & phê duyệt', owner: 'Quản lý lịch trình → Quản lý vận hành', statuses: ['HR_SUBMITTED', 'PLANNER_CONFIRMED', 'OPS_APPROVED'] },
 ] as const
 
+const stageGuideCopy: Readonly<Record<string, { actor: string; next: string; title: string; detail: string }>> = {
+  PENDING_ASM: {
+    actor: 'Quản lý dịch vụ',
+    next: 'Quản lý tàu',
+    title: 'Hoàn thiện chương trình & dịch vụ của chuyến',
+    detail: 'Sau khi Quản lý dịch vụ chốt chương trình, yêu cầu sẽ tự động chuyển sang Quản lý tàu để mở khu vực và lập định biên.',
+  },
+  PENDING_SHIP_REVIEW: {
+    actor: 'Quản lý tàu',
+    next: 'Quản lý lịch trình',
+    title: 'Mở khu vực phục vụ, gán máy POS offline và lập định biên',
+    detail: 'Thực hiện lần lượt 3 bước bên dưới: (1) Chọn khu vực mở & số người cần → (2) Gán máy POS cho khu vực mở → (3) Bố trí dịch vụ vào khu vực đã có POS.',
+  },
+  SHIP_REVIEWED: {
+    actor: 'Quản lý lịch trình',
+    next: 'Quản lý nhân sự',
+    title: 'Rà soát phương án tàu và chuyển sang Nhân sự phân công',
+    detail: 'Kiểm tra lại danh sách khu vực mở, máy POS và định biên từ Quản lý tàu trước khi gửi sang Quản lý nhân sự.',
+  },
+  SENT_TO_HR: {
+    actor: 'Quản lý nhân sự',
+    next: 'Quản lý lịch trình',
+    title: 'Phân công nhân sự cụ thể vào từng vị trí khu vực và ca hoạt động',
+    detail: 'Chọn nhân viên đủ điều kiện cho từng vị trí đến khi đạt 100% định biên, sau đó gửi phương án lại cho Quản lý lịch trình.',
+  },
+  HR_SUBMITTED: {
+    actor: 'Quản lý lịch trình',
+    next: 'Quản lý vận hành',
+    title: 'Kiểm tra tổng hợp nhân sự và trình Quản lý vận hành phê duyệt',
+    detail: 'Đối chiếu danh sách nhân sự đã phân công theo từng khu vực và ca hoạt động trước khi trình duyệt cuối cùng.',
+  },
+  PLANNER_CONFIRMED: {
+    actor: 'Quản lý vận hành',
+    next: 'Hoàn tất duyệt',
+    title: 'Phê duyệt phương án tàu và nhân sự cho chuyến khởi hành',
+    detail: 'Xác nhận phương án nhân sự đáp ứng đủ điều kiện vận hành trước khi xuất bến.',
+  },
+  OPS_APPROVED: {
+    actor: 'Đã phê duyệt',
+    next: 'Sẵn sàng vận hành',
+    title: 'Phương án tàu và nhân sự đã được phê duyệt hoàn tất',
+    detail: 'Khu vực mở, máy POS offline và nhân sự phụ trách đã được chốt cho chuyến khởi hành này.',
+  },
+}
+
+function staffInitials(label: string) {
+  const parts = label.replace(/[_.-]+/g, ' ').trim().split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+  return label.slice(0, 2).toUpperCase()
+}
+
+function progressPercent(done: number, total: number) {
+  if (total <= 0) return 0
+  return Math.max(0, Math.min(100, Math.round((done / total) * 100)))
+}
+
 function formatShipStatus(status: string) {
   return staffingShipStatusLabels[status] ?? status
 }
@@ -168,6 +224,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
   const draftHeadcount = working.needs.reduce((sum, item) => sum + (/^\d+$/.test(item.count) ? Number(item.count) : 0), 0)
 
   const currentStepIndex = v2Steps.findIndex(step => (step.statuses as readonly string[]).includes(current.status))
+  const stageGuide = stageGuideCopy[current.status]
   const workflowSteps = (
     <ol className={styles.workflowStepper} aria-label="Tiến độ quy trình chuẩn bị nhân sự">
       {v2Steps.map((step, index) => {
@@ -177,8 +234,11 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
         return (
           <li key={step.id} aria-current={active ? 'step' : undefined}
             className={`${styles.workflowStep} ${done ? styles.workflowStepDone : active ? styles.workflowStepCurrent : ''}`}>
-            <strong>{index + 1}. {step.title}</strong>
-            <span>{step.owner}</span>
+            <span className={styles.workflowStepMarker} aria-hidden="true">{done ? '✓' : index + 1}</span>
+            <div className={styles.workflowStepBody}>
+              <strong>{step.title}</strong>
+              <span>{step.owner}</span>
+            </div>
           </li>
         )
       })}
@@ -208,14 +268,26 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
       {ship && !legacyShip && hasAreaPlanning && (
         <fieldset disabled={disabled} className={styles.fieldsetBox}>
           <legend>Bước 1: Khu vực mở và số người cần</legend>
+          <div className={styles.stepSectionHead}>
+            <div className={styles.stepSectionTitleGroup}>
+              <span className={`${styles.stepBadgeNum} ${activeAreas.length > 0 && !draft ? styles.stepBadgeDone : ''}`} aria-hidden="true">
+                {activeAreas.length > 0 && !draft ? '✓' : '1'}
+              </span>
+              <strong>Chọn khu vực mở và nhập định biên nhân sự</strong>
+            </div>
+            <Badge
+              label={draft ? 'Có thay đổi chưa lưu' : activeAreas.length > 0 ? `Đã lưu ${activeAreas.length} khu vực · ${totalRequired} người` : 'Chưa chọn khu vực'}
+              tone={draft ? 'warning' : activeAreas.length > 0 ? 'success' : 'neutral'}
+            />
+          </div>
           <p className={styles.statusNote}>
-            Chọn khu vực hoạt động trong chuyến và nhập số người cho vị trí cần dùng (để trống vị trí không cần).
+            Tick chọn khu vực hoạt động trong chuyến và nhập số người cho vị trí cần dùng (để trống vị trí không cần).
             {working.areas.length > 0 && ` Đang chọn ${working.areas.length} khu vực · Tổng định biên: ${draftHeadcount} người.`}
           </p>
           <div className={styles.areaGrid}>
             {state.areas.length === 0 && (
-              <Notice tone="warning" title="Tàu chưa có khu vực dịch vụ">
-                Tàu này chưa được cấu hình khu vực dịch vụ hoặc máy POS. Cần hoàn thiện cấu hình khu vực dịch vụ trên hồ sơ tàu trước khi chọn khu vực mở và lập định biên nhân sự.
+              <Notice tone="warning" title="Tàu chưa có khu vực dịch vụ hoặc máy POS offline">
+                Tàu này chưa được gắn dịch vụ vào khu vực 3D hoặc chưa đăng ký máy POS offline. Quản trị hệ thống cần vào Hồ sơ tàu → Khu vực dịch vụ để cấu hình trước khi Quản lý tàu chọn khu vực mở và lập định biên nhân sự.
               </Notice>
             )}
             {state.areas.map(area => {
@@ -325,9 +397,19 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
 
       {activeAreas.length > 0 && (
         <div className={styles.subSection}>
-          <div className={styles.sectionHeadingRow}>
-            <h3>{editingPlacement ? 'Bước 2: Gán máy POS cho từng khu vực mở' : 'Khu vực mở và máy POS phục vụ'}</h3>
-            <span className={styles.subtle}>{posCoveredCount}/{activeAreas.length} khu vực đã gắn POS</span>
+          <div className={styles.stepSectionHead}>
+            <div className={styles.stepSectionTitleGroup}>
+              {editingPlacement && (
+                <span className={`${styles.stepBadgeNum} ${posCoveredCount === activeAreas.length ? styles.stepBadgeDone : ''}`} aria-hidden="true">
+                  {posCoveredCount === activeAreas.length ? '✓' : '2'}
+                </span>
+              )}
+              <h3>{editingPlacement ? 'Gán máy POS offline cho từng khu vực mở' : 'Khu vực mở và máy POS phục vụ'}</h3>
+            </div>
+            <Badge
+              label={`${posCoveredCount}/${activeAreas.length} khu vực đã gắn POS`}
+              tone={posCoveredCount === activeAreas.length ? 'success' : 'warning'}
+            />
           </div>
           <ul className={styles.rows}>
             {activeAreas.map(area => {
@@ -382,9 +464,19 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
 
       {state.plannedServices.length > 0 && (
         <div className={styles.subSection}>
-          <div className={styles.sectionHeadingRow}>
-            <h3>{editingPlacement ? 'Bước 3: Bố trí dịch vụ trên tàu vào khu vực đã có POS' : 'Dịch vụ trên tàu'}</h3>
-            <span className={styles.subtle}>{servicesCoveredCount}/{state.plannedServices.length} dịch vụ đã bố trí</span>
+          <div className={styles.stepSectionHead}>
+            <div className={styles.stepSectionTitleGroup}>
+              {editingPlacement && (
+                <span className={`${styles.stepBadgeNum} ${servicesCoveredCount === state.plannedServices.length ? styles.stepBadgeDone : ''}`} aria-hidden="true">
+                  {servicesCoveredCount === state.plannedServices.length ? '✓' : '3'}
+                </span>
+              )}
+              <h3>{editingPlacement ? 'Bố trí dịch vụ trên tàu vào khu vực đã có POS' : 'Dịch vụ trên tàu'}</h3>
+            </div>
+            <Badge
+              label={`${servicesCoveredCount}/${state.plannedServices.length} dịch vụ đã bố trí`}
+              tone={servicesCoveredCount === state.plannedServices.length ? 'success' : 'warning'}
+            />
           </div>
           <ul className={styles.rows}>
             {state.plannedServices.map(service => {
@@ -440,9 +532,14 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                         {blocker ?? 'Chưa có cặp khu vực và POS đủ điều kiện.'}
                       </small>
                     )}
-                    {configuredLabels.length > 0 && <small className={styles.subtle}>
-                      Cặp đã cấu hình: {configuredLabels.join(', ')}
-                    </small>}
+                    {configuredLabels.length > 0 && (
+                      <div className={styles.flowTagRow}>
+                        <span className={styles.flowTag}>Cặp đủ điều kiện</span>
+                        {configuredLabels.map(label => (
+                          <span key={label} className={`${styles.flowTag} ${styles.flowTagAccent}`}>{label}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className={styles.rowControl}>
                     <Field htmlFor={`service-${service.serviceId}`} label="Khu vực và máy POS">
@@ -497,25 +594,45 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                         tone={gap === 0 ? 'success' : 'warning'}
                       />
                     </div>
-                    {assigned.length > 0 && (
-                      <div className={styles.assignedList}>
-                        {assigned.map(userId => (
-                          <div className={styles.assignedChip} key={userId}>
-                            <span>{name(userId)}</span>
-                            {canAssignNeeds && (
-                              <Button
-                                size="compact"
-                                tone="text"
-                                autoWidth
-                                disabled={disabled}
-                                onClick={() => void mutate(() => staffingApi.assignNeed(current, need.needId, userId, false))}
-                              >
-                                Bỏ khỏi vị trí
-                              </Button>
-                            )}
-                          </div>
-                        ))}
+                    <div className={styles.needProgressWrap} aria-hidden="true">
+                      <div className={styles.progressTrack}>
+                        <div
+                          className={`${styles.progressFill} ${gap === 0 ? styles.progressFillSuccess : styles.progressFillWarn}`}
+                          style={{ width: `${progressPercent(assigned.length, need.requiredCount)}%` }}
+                        />
                       </div>
+                    </div>
+                    {assigned.length > 0 && (
+                      <>
+                        <div className={styles.assignedList}>
+                          {assigned.map(userId => {
+                            const displayName = name(userId)
+                            return (
+                              <div className={styles.assignedChip} key={userId}>
+                                <span className={styles.staffAvatar} aria-hidden="true">{staffInitials(displayName)}</span>
+                                <span>{displayName}</span>
+                                {canAssignNeeds && (
+                                  <Button
+                                    size="compact"
+                                    tone="text"
+                                    autoWidth
+                                    title="Chỉ gỡ khỏi nhu cầu khu vực này; nhân sự vẫn thuộc danh sách thành viên chuyến."
+                                    disabled={disabled}
+                                    onClick={() => void mutate(() => staffingApi.assignNeed(current, need.needId, userId, false))}
+                                  >
+                                    Bỏ khỏi nhu cầu
+                                  </Button>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                        {canAssignNeeds && (
+                          <small className={styles.subtle}>
+                            “Bỏ khỏi nhu cầu” chỉ gỡ nhân sự khỏi vị trí khu vực này; để gỡ hẳn khỏi chuyến, thao tác ở mục Nhân sự đã phân công vào chuyến bên dưới.
+                          </small>
+                        )}
+                      </>
                     )}
                   </div>
                   {canAssignNeeds && assigned.length < need.requiredCount && (
@@ -538,6 +655,11 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                           {candidates.map(user => <option key={user.userId} value={user.userId}>{user.username}</option>)}
                         </select>
                       </Field>
+                      {candidates.length === 0 && access.canDo('USER_CREATE') && (
+                        <ButtonLink to="/admin/system" tone="secondary" size="compact" autoWidth>
+                          Bổ sung nhân viên mới →
+                        </ButtonLink>
+                      )}
                     </div>
                   )}
                 </li>
@@ -590,6 +712,20 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
             </summary>
             {workflowSteps}
           </details>
+          {stageGuide && (
+            <div className={styles.stageGuideBanner} role="region" aria-label="Hướng dẫn thao tác bước hiện tại">
+              <div className={styles.stageGuideMain}>
+                <span className={styles.stageGuideEyebrow}>Thao tác ở bước hiện tại · {stageGuide.actor}</span>
+                <p className={styles.stageGuideTitle}>{stageGuide.title}</p>
+                <p className={styles.stageGuideText}>{stageGuide.detail}</p>
+              </div>
+              <div className={styles.stageRoutePill}>
+                <span>{stageGuide.actor}</span>
+                <span className={styles.stageRouteArrow} aria-hidden="true">→</span>
+                <span>{stageGuide.next}</span>
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -605,6 +741,14 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
               />
             )}
           </div>
+          {totalCabins > 0 && (
+            <div className={styles.progressTrack} aria-hidden="true">
+              <div
+                className={`${styles.progressFill} ${availableCabins === totalCabins ? styles.progressFillSuccess : ''}`}
+                style={{ width: `${progressPercent(availableCabins, totalCabins)}%` }}
+              />
+            </div>
+          )}
           <span className={styles.summarySub}>
             {state.ship ? `${availableCabins}/${totalCabins} cabin sẵn sàng phục vụ` : 'Cần gán tàu trước khi kiểm tra'}
           </span>
@@ -641,6 +785,14 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
               }
             />
           </div>
+          {!placementNotApplicable && (activeAreas.length + state.plannedServices.length) > 0 && (
+            <div className={styles.progressTrack} aria-hidden="true">
+              <div
+                className={`${styles.progressFill} ${posCoveredCount === activeAreas.length && servicesCoveredCount === state.plannedServices.length ? styles.progressFillSuccess : styles.progressFillWarn}`}
+                style={{ width: `${progressPercent(posCoveredCount + servicesCoveredCount, activeAreas.length + state.plannedServices.length)}%` }}
+              />
+            </div>
+          )}
           {!placementNotApplicable && <span className={styles.summarySub}>
             {posCoveredCount}/{activeAreas.length} khu vực đã gắn POS · {servicesCoveredCount}/{state.plannedServices.length} dịch vụ trên tàu đã bố trí
           </span>}
@@ -674,6 +826,14 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
               }
             />
           </div>
+          {!noStaffingDemand && totalRequired > 0 && (
+            <div className={styles.progressTrack} aria-hidden="true">
+              <div
+                className={`${styles.progressFill} ${missingStaffCount === 0 && missingActivitiesCount === 0 ? styles.progressFillSuccess : styles.progressFillWarn}`}
+                style={{ width: `${progressPercent(totalAssigned, totalRequired)}%` }}
+              />
+            </div>
+          )}
           {!noStaffingDemand && <span className={styles.summarySub}>
             {state.activities.length > 0
               ? `${needs.length} vị trí khu vực · ${activitiesCoveredCount}/${state.activities.length} ca hoạt động/tour bờ`
@@ -727,7 +887,79 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
       )}
 
       {action && (
-        <div className={styles.section}>
+        <div className={styles.handoffCard} role="region" aria-label="Xác nhận và chuyển bước xét duyệt">
+          <div className={styles.handoffCardHeader}>
+            <h3 className={styles.handoffCardTitle}>
+              {returning ? 'Trả phương án về bộ phận trước' : 'Xác nhận & chuyển bước tiếp theo'}
+            </h3>
+            {stageGuide && !returning && (
+              <div className={styles.stageRoutePill}>
+                <span>{stageGuide.actor}</span>
+                <span className={styles.stageRouteArrow} aria-hidden="true">→</span>
+                <span>{stageGuide.next}</span>
+              </div>
+            )}
+          </div>
+          {!returning && (ship || hr) && (
+            <ul className={styles.readinessChecklist} aria-label="Điều kiện hoàn tất bước hiện tại">
+              {ship && !legacyShip && (
+                <>
+                  <li className={styles.readinessItem}>
+                    <span className={state.ship && state.ship.modelId ? styles.readinessIconOk : styles.readinessIconPending} aria-hidden="true">
+                      {state.ship && state.ship.modelId ? '✓' : '•'}
+                    </span>
+                    <span>{state.ship && state.ship.modelId ? 'Tàu & mô hình 3D sẵn sàng' : 'Chưa có tàu hoặc mô hình 3D sẵn sàng'}</span>
+                  </li>
+                  <li className={styles.readinessItem}>
+                    <span className={!draft && activeAreas.length > 0 ? styles.readinessIconOk : styles.readinessIconPending} aria-hidden="true">
+                      {!draft && activeAreas.length > 0 ? '✓' : '•'}
+                    </span>
+                    <span>{draft ? 'Cần lưu thay đổi ở Bước 1 trước' : `Đã lưu ${activeAreas.length} khu vực mở (${totalRequired} người)`}</span>
+                  </li>
+                  <li className={styles.readinessItem}>
+                    <span className={posCoveredCount === activeAreas.length && activeAreas.length > 0 ? styles.readinessIconOk : styles.readinessIconPending} aria-hidden="true">
+                      {posCoveredCount === activeAreas.length && activeAreas.length > 0 ? '✓' : '•'}
+                    </span>
+                    <span>Gắn máy POS offline: {posCoveredCount}/{activeAreas.length} khu vực</span>
+                  </li>
+                  {state.plannedServices.length > 0 && (
+                    <li className={styles.readinessItem}>
+                      <span className={servicesCoveredCount === state.plannedServices.length ? styles.readinessIconOk : styles.readinessIconPending} aria-hidden="true">
+                        {servicesCoveredCount === state.plannedServices.length ? '✓' : '•'}
+                      </span>
+                      <span>Bố trí dịch vụ vào khu vực có POS: {servicesCoveredCount}/{state.plannedServices.length} dịch vụ</span>
+                    </li>
+                  )}
+                </>
+              )}
+              {hr && (
+                <>
+                  <li className={styles.readinessItem}>
+                    <span className={missingStaffCount === 0 ? styles.readinessIconOk : styles.readinessIconPending} aria-hidden="true">
+                      {missingStaffCount === 0 ? '✓' : '•'}
+                    </span>
+                    <span>
+                      {missingStaffCount === 0
+                        ? `Đủ định biên khu vực (${totalAssigned}/${totalRequired} nhân sự)`
+                        : `Còn thiếu ${missingStaffCount} nhân sự theo định biên khu vực`}
+                    </span>
+                  </li>
+                  {state.activities.length > 0 && (
+                    <li className={styles.readinessItem}>
+                      <span className={missingActivitiesCount === 0 ? styles.readinessIconOk : styles.readinessIconPending} aria-hidden="true">
+                        {missingActivitiesCount === 0 ? '✓' : '•'}
+                      </span>
+                      <span>
+                        {missingActivitiesCount === 0
+                          ? `Đủ nhân sự phụ trách ca (${activitiesCoveredCount}/${state.activities.length} ca)`
+                          : `Còn thiếu ${missingActivitiesCount} ca hoạt động / tour bờ`}
+                      </span>
+                    </li>
+                  )}
+                </>
+              )}
+            </ul>
+          )}
           {Boolean(draft) && (
             <p className={styles.blockerHint}>
               Lưu hoặc hủy thay đổi ở mục &ldquo;Bước 1: Khu vực mở và số người cần&rdquo; trước khi xác nhận phương án tàu.
@@ -764,18 +996,26 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
             </Notice>
           )}
           {returning && (
-            <Field
-              htmlFor="staffing-v2-return"
-              label="Lý do trả yêu cầu"
-              hint="Ghi rõ khu vực, vị trí, số người thiếu hoặc nội dung cần bộ phận trước kiểm tra lại."
-            >
-              <textarea
-                id="staffing-v2-return"
-                value={reason}
-                onChange={event => setReason(event.target.value)}
-                disabled={disabled}
-              />
-            </Field>
+            <>
+              {action.back && ['SHIP_RETURN_ASM', 'HR_RETURN_SHIP', 'CRM_RETURN_SHIP'].includes(action.back) && (
+                <Notice tone="warning" title="Lưu ý phạm vi ảnh hưởng khi trả phương án">
+                  {resetImpactCopy(current, action.back) || 'Trả phương án về sẽ xóa toàn bộ phân bổ nhân sự theo nhu cầu của chuyến này.'}{' '}
+                  Nhân sự vẫn giữ tư cách thành viên chuyến và ca hoạt động riêng (nếu có); Quản lý nhân sự sẽ cần phân bổ lại sau khi phương án mới được gửi sang.
+                </Notice>
+              )}
+              <Field
+                htmlFor="staffing-v2-return"
+                label="Lý do trả yêu cầu"
+                hint="Ghi rõ khu vực, vị trí, số người thiếu hoặc nội dung cần bộ phận trước kiểm tra lại."
+              >
+                <textarea
+                  id="staffing-v2-return"
+                  value={reason}
+                  onChange={event => setReason(event.target.value)}
+                  disabled={disabled}
+                />
+              </Field>
+            </>
           )}
           <div className={styles.actions}>
             {action.approve && !returning && (

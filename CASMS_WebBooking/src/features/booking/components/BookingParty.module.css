@@ -33,10 +33,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Persistent Left Summary Rail + Right Workspace (Images 5 & 6 inspired) */
+/* Main Stepper Workspace (Left) + Sticky Booking Summary Card (Right) */
 .layout {
   display: grid;
-  grid-template-columns: minmax(270px, 320px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
   gap: var(--space-6);
   align-items: start;
 }
@@ -525,7 +525,660 @@
 .review { list-style: none; padding: 0; margin: 0; }
 .review li { padding-block: var(--space-4); border-bottom: 1px solid var(--border-default); overflow-wrap: anywhere; }
 .review p { margin-block: var(--space-2); }
-.price { font-size: var(--text-2xl); font-variant-numeric: tabular-nums; }
+.price { font-size: var(--text-2xl); font-weight: 700; color: var(--brand-navy); font-variant-numeric: tabular-nums; margin: 0; }
+
+/* OceVie Booking Redesign: Segmented choice cards, structured review cards, itemized quote breakdown, and confirmation hero */
+.choiceGroupLabel {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.choiceCardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--space-3);
+}
+.choiceCard {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-default);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-standard), background-color var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard);
+}
+.choiceCard:hover {
+  border-color: var(--brand-teal);
+  background: var(--surface-tinted);
+}
+.choiceCardActive {
+  border-color: var(--brand-navy);
+  background: var(--surface-tinted);
+  box-shadow: 0 0 0 1px var(--brand-navy);
+}
+.choiceCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.choiceCardTitle {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--brand-navy);
+}
+.choiceCardCheck {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid var(--border-control);
+  font-size: 11px;
+  font-weight: 700;
+  color: transparent;
+  flex-shrink: 0;
+}
+.choiceCardActive .choiceCardCheck {
+  background: var(--brand-navy);
+  border-color: var(--brand-navy);
+  color: var(--accent-on);
+}
+.choiceCardDesc {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+.inlineError {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.reviewHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+.reviewEditLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.reviewEditLinks a {
+  color: var(--brand-teal);
+  text-decoration: none;
+}
+.reviewEditLinks a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.reviewGuestGrid {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.reviewGuestCard {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--surface-tinted);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+}
+.reviewGuestTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.reviewGuestIdentity {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.guestAvatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--brand-navy);
+  color: var(--accent-on);
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.reviewMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-default);
+}
+.reviewMetaGrid div {
+  display: grid;
+  gap: 2px;
+}
+.reviewMetaGrid dt {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+.reviewMetaGrid dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.quoteBreakdown {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+}
+.quoteRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.quoteRow dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.quoteTotalRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  margin-top: var(--space-1);
+  border-top: 1px solid var(--border-default);
+}
+.quoteTotalRow dt {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--brand-navy);
+}
+.quoteTotalRow dd {
+  margin: 0;
+}
+.quoteDepositBox {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-warm, #f3ebdd);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--brand-teal);
+  border-radius: var(--radius-control);
+}
+.quoteDepositItem {
+  display: grid;
+  gap: 2px;
+}
+.quoteDepositItem span {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+.quoteDepositItem strong {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--brand-navy);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Transparent Payment Milestone Timeline (Royal Caribbean / MSC inspired) */
+.planTimeline {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-3) 0 0;
+  display: grid;
+  gap: var(--space-3);
+}
+.planMilestone {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+.planMilestoneRail {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+.planMilestoneRail::after {
+  content: '';
+  position: absolute;
+  top: 30px;
+  bottom: calc(-1 * var(--space-3));
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--border-default);
+}
+.planMilestone:last-child .planMilestoneRail::after { display: none; }
+.planMilestoneNode {
+  position: relative;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-default);
+  border: 2px solid var(--border-control);
+  color: var(--brand-navy);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.planMilestoneFirst .planMilestoneNode {
+  background: var(--brand-navy);
+  border-color: var(--brand-gold);
+  color: var(--accent-on);
+}
+.planMilestoneBody {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-default);
+}
+.planMilestoneFirst .planMilestoneBody {
+  background: var(--surface-tinted);
+  border-color: var(--brand-teal);
+}
+.planMilestoneTitle {
+  display: grid;
+  gap: 2px;
+}
+.planMilestoneTitle strong {
+  font-size: var(--text-sm);
+  color: var(--brand-navy);
+}
+.planMilestoneTitle span {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+.planMilestoneAmount {
+  text-align: right;
+  display: grid;
+  gap: 2px;
+}
+.planMilestoneAmount strong {
+  font-size: var(--text-base);
+  color: var(--brand-navy);
+  font-variant-numeric: tabular-nums;
+}
+.planMilestoneAmount span {
+  font-size: var(--text-xs);
+  color: var(--brand-teal);
+  font-weight: 600;
+}
+.planRuleNote {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+  border-left: 3px solid var(--brand-gold);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+.choiceCardDisabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: var(--surface-subtle);
+}
+.summaryBreakdown {
+  display: grid;
+  gap: 6px;
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--border-default);
+  font-size: var(--text-xs);
+}
+.summaryBreakdownRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+}
+.summaryBreakdownRow strong {
+  color: var(--brand-navy);
+  font-variant-numeric: tabular-nums;
+}
+.summaryDepositPill {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--surface-warm, #fbf6ea);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  font-size: var(--text-xs);
+  color: var(--brand-navy);
+}
+.summaryDepositPill strong {
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Royal Caribbean / MSC Inspired Step 1 & Summary Card Upgrades */
+.selectedCruiseBanner {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-default);
+  border-left: 4px solid var(--brand-gold);
+  border-radius: var(--radius-panel);
+  background: var(--surface-default);
+}
+.selectedCruiseThumb {
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-control);
+  overflow: hidden;
+  background: var(--brand-midnight);
+}
+.selectedCruiseThumb > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.selectedCruiseInfo {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.selectedCruiseInfo h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  color: var(--brand-navy);
+}
+.selectedCruiseTags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.selectedCruiseCode {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-navy);
+  color: var(--accent-on);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.selectedCruiseShip {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--brand-teal);
+}
+.presetGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+.presetCard {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-default);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-standard), background-color var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard);
+}
+.presetCard:hover {
+  border-color: var(--brand-teal);
+  background: var(--surface-tinted);
+}
+.presetCardActive {
+  border-color: var(--brand-navy);
+  background: var(--brand-navy);
+  color: var(--accent-on);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgb(6 26 43 / 12%));
+}
+.presetCard strong {
+  font-size: var(--text-sm);
+  color: var(--brand-navy);
+}
+.presetCard span {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+.presetCardActive strong,
+.presetCardActive span {
+  color: var(--accent-on);
+}
+.presetCardActive span {
+  opacity: 0.85;
+}
+.roomList {
+  display: grid;
+  gap: var(--space-3);
+}
+.roomCardMeta {
+  display: grid;
+  gap: 4px;
+}
+.roomTitleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.roomIndexBadge {
+  font-family: var(--font-heading);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--brand-navy);
+}
+.roomCardRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.summaryMedia {
+  position: relative;
+}
+.summaryMediaOverlay {
+  position: absolute;
+  inset: auto var(--space-3) var(--space-3) var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.summaryShipBadge,
+.summaryCodeBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+}
+.summaryShipBadge {
+  background: rgb(6 26 43 / 82%);
+  color: #fff;
+}
+.summaryCodeBadge {
+  background: var(--brand-gold);
+  color: var(--brand-navy);
+}
+.summaryRouteLine {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--brand-teal);
+}
+.summaryDateGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-default);
+}
+.summaryDateGrid span {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.summaryDateGrid strong {
+  font-size: var(--text-xs);
+  color: var(--brand-navy);
+  font-variant-numeric: tabular-nums;
+}
+.summaryPartyPill {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--surface-tinted);
+  font-size: var(--text-xs);
+  color: var(--brand-navy);
+}
+@media (max-width: 720px) {
+  .selectedCruiseBanner { grid-template-columns: 1fr; }
+  .presetGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.receiptHero {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--brand-navy);
+  color: var(--accent-on);
+  border-radius: var(--radius-panel, 12px);
+}
+.receiptHeroTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.receiptCheck {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--success);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.receiptHero h1 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(1.4rem, 2.2vw, 1.85rem);
+  color: var(--accent-on);
+}
+.receiptHero p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: var(--text-sm);
+}
+.receiptCodeBox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: var(--radius-control);
+}
+.receiptCodeLabel {
+  display: block;
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ocevie-brand-gold, #d4af37);
+}
+.receiptCodeValue {
+  margin: 2px 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.04em;
+}
+.receiptActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.receiptActions > a:first-child {
+  background: var(--ocevie-brand-gold, #d4af37);
+  color: var(--brand-navy);
+  border-color: var(--ocevie-brand-gold, #d4af37);
+  font-weight: 700;
+}
+.receiptActions > a:first-child:hover {
+  background: #e0be4c;
+  border-color: #e0be4c;
+  color: var(--brand-navy);
+}
+.receiptActions > a:not(:first-child),
+.receiptActions > button {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.receiptActions > a:not(:first-child):hover,
+.receiptActions > button:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.55);
+  color: #fff;
+}
 
 .flow :is(input:not([type='radio']):not([type='checkbox']),select,textarea) {
   width: 100%;

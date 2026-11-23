@@ -3,9 +3,9 @@
  * Reference API reads deliberately remain independent of workspace membership.
  */
 export const ROLE_WORK_MODULES: Readonly<Record<string, readonly string[]>> = {
-  ADMIN: ['system', 'ship-types', 'ship-import', 'ship-models'],
+  ADMIN: ['system', 'ships', 'ship-types', 'ship-import', 'ship-models'],
   SHIP_MANAGER: ['fleet-dashboard', 'ships', 'decks', 'cabins', 'passenger-tracking', 'ship-regulations', 'service-locations', 'preparation-requests', 'staffing-reviews'],
-  HR_MANAGER: ['staffing'],
+  HR_MANAGER: ['staffing', 'system'],
   CRUISE_MANAGER: ['trips', 'cruises', 'itineraries', 'itinerary-history', 'cruise-regulations'],
   OPERATIONS_MANAGER: ['cruise-plan-reviews', 'staffing-reviews', 'issues', 'regulations', 'destinations', 'ports', 'ship-regulations', 'cruise-regulations'],
   ACTIVITY_SERVICE_MANAGER: ['preparation-requests','activities', 'shore-excursions', 'tour-groups', 'suppliers', 'services', 'products', 'service-packages', 'cruise-package-templates', 'fare-package-templates', 'service-requests', 'activity-registrations', 'cruises'],
@@ -24,14 +24,14 @@ export function hasWorkScope(roles: readonly string[], module: string): boolean 
 // These are reference/inspection authorities, not permission to manage a module.
 const referencePermission = /(?:_READ(?:_|$)|_VIEW$|_REPORT$|_SEARCH$|_AVAILABILITY$|_HISTORY$|_SUMMARY$|_READINESS$|_CHECK$|_CURRENT_CRUISE$|_AFFECTED_CRUISES$)/
 const actionPatterns: Readonly<Record<string, readonly RegExp[]>> = {
-  ADMIN: [/^USER_/, /^SHIP_MODEL_/, /^SHIP_CONFIGURATION_/, /^BLE_ANCHOR_/, /^SHIP_(CREATE|UPDATE)$/],
+  ADMIN: [/^USER_/, /^SHIP_MODEL_/, /^SHIP_CONFIGURATION_/, /^BLE_ANCHOR_/, /^SHIP_(CREATE|UPDATE)$/, /^POS_MANAGE$/],
   SHIP_MANAGER: [
     /^SHIP_(ARCHIVE|STATUS_CHANGE|VALIDATE|CABIN_CATEGORY_MAPPING_CONFIRM|CONFIGURATION_VALIDATE|REGULATION_ASSIGN|REGULATION_REMOVE)$/,
     /^DECK_VALIDATE$/,
     /^CABIN_(STATUS_CHANGE|BLOCK|RELEASE|VALIDATE)$/,
     /^BLE_ANCHOR_(ACTIVATE|DEACTIVATE|RETIRE|VALIDATE)$/,
   ],
-  HR_MANAGER: [/^CRUISE_STAFF_(ASSIGN|REMOVE)$/],
+  HR_MANAGER: [/^CRUISE_STAFF_(ASSIGN|REMOVE)$/, /^USER_(CREATE|UPDATE|STATUS_CHANGE)$/],
   // Aligned with RolePermissionInitializer.CRUISE_MANAGER. /auth/me remains mandatory.
   // Source-version review is intentionally absent; legacy ITINERARY_PUBLISH is a different authority.
   CRUISE_MANAGER: [

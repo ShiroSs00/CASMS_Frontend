@@ -98,13 +98,20 @@ function ManualRefundAction({ record, onChanged }: { record: RefundRecord; onCha
   const options: RefundAction[] = record.status === 'Requested' ? ['approve', 'reject']
     : record.status === 'Approved' ? ['complete', 'reject'] : []
   if (!options.length) return null
+  const isVnd = record.currency.trim().toUpperCase() === 'VND'
   async function submit() {
     const input = value.trim()
     if (lock.current || !action || !options.includes(action) || !input) return
-    if (action === 'approve' && (!/^\d+(\.\d{1,4})?$/.test(input)
-        || Number(input) <= 0 || Number(input) > record.requestedAmount)) {
-      setError('Nhập số tiền dương trong giới hạn yêu cầu, tối đa 4 chữ số thập phân.')
-      return
+    if (action === 'approve') {
+      const formatOk = isVnd ? /^\d+(\.0+)?$/.test(input) : /^\d+(\.\d{1,4})?$/.test(input)
+      if (!formatOk || Number(input) <= 0 || Number(input) > record.requestedAmount) {
+        setError(
+          isVnd
+            ? 'Số tiền hoàn bằng VND phải là số nguyên dương trong giới hạn yêu cầu (không chứa phần thập phân).'
+            : 'Nhập số tiền dương trong giới hạn yêu cầu, tối đa 4 chữ số thập phân.',
+        )
+        return
+      }
     }
     lock.current = true; setBusy(true); setError('')
     try {
@@ -133,9 +140,9 @@ function ManualRefundAction({ record, onChanged }: { record: RefundRecord; onCha
         </select>
       </Field>
       {action && <Field htmlFor={id + '-value'} label={label} error={error || undefined}
-        hint={action === 'complete' ? 'Dùng mã trên chứng từ của giao dịch đã thực hiện.' : undefined}>
+        hint={action === 'complete' ? 'Dùng mã trên chứng từ của giao dịch đã thực hiện.' : action === 'approve' && isVnd ? 'Nhập số nguyên VND (ví dụ: 500000).' : undefined}>
         <input id={id + '-value'} required value={value} maxLength={action === 'reject' ? 1000 : 255}
-          inputMode={action === 'approve' ? 'decimal' : undefined} onChange={event => setValue(event.target.value)}/>
+          inputMode={action === 'approve' ? (isVnd ? 'numeric' : 'decimal') : undefined} onChange={event => setValue(event.target.value)}/>
       </Field>}
     </div>
     {action && <div className={styles.formActions}><Button type="submit" size="compact" autoWidth tone={action === 'reject' ? 'danger' : 'primary'} busy={busy}>{refundActionLabels[action]}</Button></div>}

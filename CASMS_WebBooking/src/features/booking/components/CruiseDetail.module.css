@@ -508,75 +508,412 @@
   font-weight: 600;
 }
 
-/* Split Itinerary + Sticky Day Index Rail */
-.itinerarySplit {
-  display: grid;
-  grid-template-columns: minmax(12rem, 15.5rem) minmax(0, 1fr);
-  gap: var(--space-5);
-  align-items: start;
-}
-
-.dayIndexRail {
-  display: grid;
+/* Royal Caribbean-inspired Horizontal Day Pill Strip + Connected Vertical Timeline */
+.dayPillStrip {
+  display: flex;
+  flex-wrap: nowrap;
   gap: var(--space-2);
-  padding: var(--space-3);
-  background: var(--surface-default);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+  scrollbar-width: thin;
+}
+.dayPill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  min-height: 38px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-panel);
-}
-
-@media (min-width: 960px) and (min-height: 621px) {
-  .dayIndexRail {
-    position: sticky;
-    top: calc(86px + 54px);
-  }
-}
-
-.dayIndexTitle {
-  font-size: var(--text-xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-secondary);
-  padding: var(--space-1) var(--space-2);
-}
-
-.dayIndexItem {
-  display: grid;
-  gap: 2px;
-  width: 100%;
-  min-height: var(--control-height-default);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid transparent;
-  border-radius: var(--radius-control);
-  background: transparent;
+  background: var(--surface-default);
   color: var(--brand-navy);
   font: inherit;
-  font-size: var(--text-sm);
-  text-align: left;
+  font-size: var(--text-xs);
   cursor: pointer;
   transition: background-color var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard);
 }
-
-.dayIndexItem:hover {
+.dayPill:hover {
   background: var(--surface-tinted);
-  border-color: var(--border-default);
+  border-color: var(--brand-teal);
 }
-
-.dayIndexItemActive {
+.dayPillActive {
   background: var(--brand-navy);
   color: var(--accent-on);
-  border-left: 3px solid var(--brand-gold);
+  border-color: var(--brand-navy);
 }
-
-.dayIndexItemActive:hover {
+.dayPillActive:hover {
   background: var(--brand-navy);
 }
 
-.dayIndexMeta {
+.rcTimeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+.rcDay {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: var(--space-3);
+  scroll-margin-top: var(--public-anchor-offset, var(--space-5));
+}
+.rcDayRail {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+.rcDayRail::after {
+  content: '';
+  position: absolute;
+  top: 34px;
+  bottom: calc(-1 * var(--space-4));
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--border-default);
+}
+.rcDay:last-child .rcDayRail::after { display: none; }
+
+.rcDayNode {
+  position: relative;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-default);
+  border: 2px solid var(--brand-teal);
+  color: var(--brand-navy);
   font-size: var(--text-xs);
-  opacity: 0.8;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+.rcDayNodeAnchor {
+  background: var(--brand-navy);
+  border-color: var(--brand-gold);
+  color: var(--accent-on);
+}
+.rcDayNodeSea {
+  background: var(--surface-tinted);
+  border-color: var(--border-control);
+  color: var(--brand-teal);
+}
+
+.rcDayCard {
+  display: grid;
+  gap: var(--space-3);
+  background: var(--surface-default);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-panel);
+  padding: var(--space-4) var(--space-5);
+  transition: border-color var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard);
+}
+.rcDayActive .rcDayCard {
+  border-color: var(--brand-teal);
+  box-shadow: var(--shadow-panel);
+}
+.rcDaySea .rcDayCard {
+  background: var(--surface-subtle);
+}
+.rcDayTitleGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1 1 auto;
+}
+.rcTimeChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.rcTimeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 12px;
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-default);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+.rcTimeChip strong {
+  color: var(--brand-navy);
+  font-variant-numeric: tabular-nums;
+}
+.rcSeaBanner {
+  display: grid;
+  gap: 4px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--surface-tinted);
+  border-left: 3px solid var(--brand-teal);
+}
+.rcSeaBanner strong {
+  color: var(--brand-navy);
+  font-size: var(--text-sm);
+}
+.rcSeaBanner p {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+.rcVisitsWrap {
+  display: grid;
+  gap: var(--space-2);
+}
+.rcVisitsLabel {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.summaryPerks {
+  list-style: none;
+  padding: var(--space-2) 0 0;
+  margin: var(--space-2) 0 0;
+  border-top: 1px dashed var(--border-default);
+  display: grid;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--brand-navy);
+}
+
+/* Visual Cabin Photo Banner on Offer Cards & Port Thumbnails on Day Cards */
+.offerMedia {
+  position: relative;
+  margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) var(--space-2);
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: calc(var(--radius-panel) - 1px) calc(var(--radius-panel) - 1px) 0 0;
+  background: var(--brand-midnight);
+}
+.offerMedia > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.offerMediaBadges {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  right: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.rcPortWithPhoto {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+.rcPortPhoto {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-control);
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  background: var(--brand-midnight);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgb(6 26 43 / 8%));
+}
+.rcPortPhoto > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.rcPhotoOverlayBadge {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: rgb(6 26 43 / 82%);
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.rcPortStory {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+.rcPortDetails {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+@media (max-width: 640px) {
+  .rcPortWithPhoto { grid-template-columns: 1fr; }
+}
+
+/* Dedicated Onboard Services, Activities & Shore Excursions Catalog (Royal Caribbean inspired) */
+.expGrid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+.expCard {
+  display: grid;
+  align-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-panel);
+  background: var(--surface-default);
+}
+.expCardTop {
+  display: grid;
+  gap: var(--space-2);
+}
+.expBadges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.expCategoryTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-tinted);
+  color: var(--brand-teal);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+.expDeckTag {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.expCard h3 {
+  font-size: var(--text-base);
+  color: var(--brand-navy);
+}
+.expDesc {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+.expCardFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--border-default);
+  font-size: var(--text-xs);
+}
+.expPrice {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--brand-navy);
+  font-variant-numeric: tabular-nums;
+}
+.expExcursionCard {
+  overflow: hidden;
+  padding: 0;
+}
+.expExcursionPhoto {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--brand-midnight);
+}
+.expExcursionPhoto > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.expExcursionBody {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+.expEmptyBox {
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-panel);
+  border: 1px dashed var(--border-control);
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+.rcSeaWithPhoto {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: stretch;
+}
+.shipVisualStrip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+.shipVisualCard {
+  position: relative;
+  border-radius: var(--radius-control);
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  background: var(--brand-midnight);
+  aspect-ratio: 16 / 10;
+}
+.shipVisualCard > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.shipVisualCard > figcaption {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: var(--space-2) var(--space-3);
+  background: linear-gradient(180deg, transparent 0%, rgb(6 26 43 / 86%) 100%);
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+@media (max-width: 640px) {
+  .rcSeaWithPhoto { grid-template-columns: 1fr; }
+  .shipVisualStrip { grid-template-columns: 1fr; }
+}
+.shipModelWrap {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-default);
+}
+.shipModelHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.shipModelHeader h3 {
+  font-size: var(--text-lg);
+  color: var(--brand-navy);
+}
+.shipModelCanvasBox {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-panel);
+  padding: var(--space-4);
+  background: var(--surface-subtle);
+  overflow: hidden;
 }
 
 .readResult, .offerGroup {

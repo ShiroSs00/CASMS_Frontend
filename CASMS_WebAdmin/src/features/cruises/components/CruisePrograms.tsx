@@ -27,7 +27,7 @@ type Choice={id:string;name:string;sequence?:number;scheduled?:boolean;timeZoneI
 type Program={id:string;cruiseId?:string;sourceActivityId?:string|null;responsibleUserId?:string|null;name:string;ownerCruiseId?:string|null;price?:number|null;currency?:string|null;currencyCode?:string|null;capacity?:number|null;location?:string;startsAt?:string;endsAt?:string;cruiseStopId?:string|null}
 type Options=CruiseVenueOptions&{services:(Choice&{configuredOnShip?:boolean})[];suppliers:Choice[];stops:Choice[]}
 const titles:Record<Kind,string>={activities:businessCopy('program.onboardActivity'),excursions:businessCopy('program.SHORE_EXCURSION'),packages:businessCopy('program.TOUR_PACKAGE'),'serving-windows':businessCopy('program.SERVING_WINDOW')}
-type ProgramContext = {planStatus:string;unifiedPackageReview?:boolean;mayConfigure?:boolean;programIssues?:ProgramIssue[];windows:{expectedRevision:number}}
+type ProgramContext = {planStatus:string;unifiedPackageReview?:boolean;mayConfigure?:boolean;completionIssues?:{code:string;kind:string;id:string;message:string}[];programIssues?:ProgramIssue[];windows:{expectedRevision:number}}
 export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChanged,programWork=false,initialKind,autoOpenCreate=false}:CruiseTimeRange&{cruiseId:string;itineraryMode?:'FIXED'|'CUSTOM';onChanged:()=>void;programWork?:boolean;initialKind?:Kind;autoOpenCreate?:boolean}){
  const access=useSessionAccess(),crm=access.roles.includes('CRUISE_MANAGER')&&access.has('CRUISE_UPDATE_DRAFT'),ops=access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_READ'),allowed=crm||ops||programWork,root=`/cruise-plans/${cruiseId}`
  const readPlan=useCallback((signal?:AbortSignal):Promise<ProgramContext> =>
@@ -150,9 +150,9 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
   if(fromCatalog&&capacity!==null&&(!Number.isSafeInteger(capacity)||capacity<1||capacity>2147483647)){setError('Nhập sức chứa nguyên dương.');return}
   if(fromCatalog&&capacity===null&&source?.capacity==null){setError('Hoạt động nguồn chưa có sức chứa. Nhập sức chứa cho lần phục vụ này.');return}
   if(fromCatalog)body={sourceActivityId:sourceId,...activityVenue,startTime:instant('start'),endTime:instant('end'),capacity}
-  else if(kind==='activities')body={cruiseId,activityName:text('name'),...activityVenue,description:text('description'),startTime:instant('start'),endTime:instant('end'),capacity:Number(text('capacity')),price:0,currencyCode:'USD'}
-  else if(kind==='excursions')body={cruiseStopId:text('stop'),supplierId:text('supplier'),excursionName:text('name'),meetingPoint:text('location'),startTime:instant('start'),plannedReturnTime:instant('end'),maximumCapacity:Number(text('capacity')),price:0,currencyCode:'USD'}
-  else if(kind==='packages')body={name:text('name'),description:text('description'),type:text('type'),price:Number(text('price')),currency:'USD'}
+  else if(kind==='activities')body={cruiseId,activityName:text('name'),...activityVenue,description:text('description'),startTime:instant('start'),endTime:instant('end'),capacity:Number(text('capacity')),price:null,currencyCode:'VND'}
+  else if(kind==='excursions')body={cruiseStopId:text('stop'),supplierId:text('supplier'),excursionName:text('name'),meetingPoint:text('location'),startTime:instant('start'),plannedReturnTime:instant('end'),maximumCapacity:Number(text('capacity')),price:null,currencyCode:'VND'}
+  else if(kind==='packages')body={name:text('name'),description:text('description'),type:text('type'),price:Number(text('price')),currency:'VND'}
   else body={serviceId:text('service'),cruiseStopId:text('stop')||null,supplierId:text('supplier')||null,startsAt:instant('start'),endsAt:instant('end'),location:text('location'),capacity:Number(text('capacity'))}
   lock.current=true;setBusy(true);setError('')
   let written=false
@@ -182,9 +182,14 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
  }
  if(!allowed)return null
  return <Panel className={styles.programPanel} title={ops?'Chương trình và dịch vụ đã cấu hình':businessCopy('program.configuration')}>
+  {data?.plan.completionIssues && data.plan.completionIssues.length > 0 && <Notice title="Cần bổ sung trước khi hoàn tất chương trình" tone="warning">
+    <ul>{data.plan.completionIssues.map((issue,index)=><li key={`${issue.code}:${issue.id}:${index}`}>{issue.message}</li>)}</ul>
+    {data.plan.completionIssues.some(issue=>issue.kind==='SERVICE_WINDOW')&&<Button tone="secondary" autoWidth onClick={()=>{setKind('serving-windows');setSearch('')}}>Xem khung giờ phục vụ</Button>}
+  </Notice>}
   {repairSuccess&&<Notice title="Đã sửa giờ hoạt động" tone="success">Giờ hợp lệ đã được khóa lại theo lịch trình cố định.</Notice>}
   {query.loading&&<Loading label="Đang tải chương trình của chuyến khởi hành…"/>}{query.error&&<Notice title={query.error instanceof ApiError&&query.error.status===403?'Chưa có quyền xem chương trình':'Chưa tải được chương trình'} tone="error"><p>{query.error instanceof ApiError&&query.error.status===403?'Tài khoản hiện tại chưa được cấp đủ quyền đọc chương trình của chuyến khởi hành.':query.error.message}</p><Button onClick={query.retry}>Tải lại dữ liệu</Button></Notice>}
   {data&&<>
+   {programWork&&!data.plan.mayConfigure&&<Notice title="Chương trình chỉ cho phép xem">Bạn cần được giao việc và đang xử lý để chỉnh sửa. Nếu đã bàn giao, liên hệ Quản lý lịch trình để yêu cầu bổ sung, rồi nhận lại việc.</Notice>}
    {kind==='activities'&&programModelBlocker(data.options)&&<Notice title="Chưa thể chọn khu vực hoạt động" tone="warning">
     {programModelBlocker(data.options)}
    </Notice>}
@@ -226,7 +231,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
         : 'Chưa phân công'}</p>}
       {activity&&<><p>{journeyTime(activity.startTime)} → {journeyTime(activity.endTime)} · Giờ Việt Nam</p>{activity.meetingPoint&&<p>Điểm tập trung · {activity.meetingPoint}</p>}</>}
       {activity&&<p>Khu vực hoạt động · {invalidArea?'Chưa có khu vực hợp lệ':data.options.activityAreas?.find(area=>area.id===activity.areaId)?.name??'Đã chọn khu vực'}</p>}
-      <div className={styles.programMeta}>{p.price!=null?<span>{new Intl.NumberFormat('vi-VN').format(p.price)} {p.currency??'Chưa xác định tiền tệ'}</span>:kind==='activities'?<span>Chưa có giá</span>:null}{p.capacity!=null?<span>{p.capacity} chỗ</span>:kind==='activities'?<span>Chưa có sức chứa</span>:null}</div>{ops&&kind==='packages'&&<PackageContents cruiseId={cruiseId} packageId={p.id}/>}</div>
+      <div className={styles.programMeta}>{p.price!=null&&p.price>0?<span>{new Intl.NumberFormat('vi-VN').format(p.price)} {p.currency??'VND'}</span>:(kind==='activities'||kind==='excursions')?<span>Chưa thiết lập giá riêng · Theo gói du thuyền</span>:null}{p.capacity!=null?<span>{p.capacity} chỗ</span>:kind==='activities'?<span>Chưa có sức chứa</span>:null}</div>{ops&&kind==='packages'&&<PackageContents cruiseId={cruiseId} packageId={p.id}/>}</div>
       {editable&&<div className={styles.sectionActions}>
        {(activity||servingWindow)&&canReadStaff&&<Button tone="secondary" disabled={busy||uncertain} onClick={()=>{
         setError('');setResponsibleUserId((p as Program).responsibleUserId??'');setCoordinator({kind:activity?'activities':'serving-windows',row:p as Program,revision:data.plan.windows.expectedRevision})
@@ -306,8 +311,8 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
     </Field>
     {catalog.loading&&<p className={styles.activitySourcePrice} role="status">Đang tải kho hoạt động mẫu…</p>}
     {catalog.error&&<Button tone="secondary" autoWidth onClick={catalog.retry}>Tải lại kho mẫu</Button>}
-    {source&&<p className={styles.activitySourcePrice}>Giá từ mẫu: <strong>{source.price == null ? 'Chưa cấu hình' :
-      new Intl.NumberFormat('vi-VN', {maximumFractionDigits:4}).format(source.price)+' '+(source.currencyCode??'USD')}</strong></p>}
+    {source&&<p className={styles.activitySourcePrice}>Giá từ mẫu: <strong>{source.price == null || source.price === 0 ? 'Chưa thiết lập giá riêng · Theo gói du thuyền' :
+      new Intl.NumberFormat('vi-VN', {maximumFractionDigits:4}).format(source.price)+' '+(source.currencyCode??'VND')}</strong></p>}
     </div>}
     {kind!=='serving-windows'&&!(kind==='activities'&&(sourceId||fixedActivity))&&<Field htmlFor="program-name" label={businessCopy('program.field.name')}><input id="program-name" name="name" required/></Field>}
     {(kind==='activities'&&!sourceId&&!fixedActivity||kind==='packages')&&<Field htmlFor="program-description" label={businessCopy('program.field.description')}><textarea id="program-description" name="description"/></Field>}

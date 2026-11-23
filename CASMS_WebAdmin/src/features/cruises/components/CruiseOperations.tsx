@@ -20,7 +20,7 @@ export function CruiseOperations({ cruiseId, view='all', onChanged }: { cruiseId
 }
 
 function Guidance({ cruiseId }: { cruiseId: string }) {
-  const access=useSessionAccess(),canUpdate=access.canDo('CHECKIN_UPDATE')
+  const access=useSessionAccess(),canUpdate=access.canDo('CHECKIN_UPDATE')&&access.roles.some(role=>['BOOKING_AGENT','OPERATIONS_MANAGER','ONBOARD_STAFF'].includes(role))&&!access.roles.includes('POS')
   const sessions=useReadQuery(`guidance:${cruiseId}`,useCallback(signal=>guidanceAttendanceApi.sessions(cruiseId,signal),[cruiseId]))
   const [selected,setSelected]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[success,setSuccess]=useState(''),[uncertain,setUncertain]=useState(false)
   const [confirm,setConfirm]=useState<{sessionId:string;action:GuidanceAttendanceAction;label:string}|null>(null),lock=useRef(false)

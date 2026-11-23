@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type KeyboardEvent } from 'react'
+import { Fragment, useCallback, useMemo, useState, type KeyboardEvent } from 'react'
 import { apiRequest, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { domainStatus } from '@/shared/i18n/business-copy'
@@ -6,14 +6,21 @@ import { journeyTime } from '@/shared/lib/journey-time'
 import { Badge, Button, ButtonLink, DataTable, Empty, Field, Loading, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
 import { mainflowApi, type PlanView } from '../api/mainflow-api'
 import { saleTermsApi, type SaleTermsSetup } from '../api/sale-terms'
+import { CruiseShipTag, ShipHullIcon } from '../components/CruiseShipTag'
 import { CruiseFrame } from '../components/CruiseUI'
 import { DepartureSaleTerms } from '../components/DepartureSaleTerms'
 import { SubmittedPreparationGroups, type SubmittedGroupItem } from '../components/SubmittedPreparationGroups'
+import {
+  collectShipOptions,
+  groupItemsByShip,
+  shipDisplayName,
+  shipGroupKey,
+} from '../model/ship-grouping'
 import styles from '../components/Cruises.module.css'
 
 type QueueMode = 'tour-dossiers' | 'section-groups' | 'port-fees'
 type FilterKey = 'pending' | 'reviewed' | 'returned'
-type SortKey = 'oldest' | 'newest' | 'code'
+type SortKey = 'newest' | 'oldest' | 'ship' | 'code'
 type ReadinessFilter = 'ALL' | 'CLEAN' | 'HAS_BLOCKERS'
 type TimeWindowFilter = 'ALL' | '24H' | '7D' | '30D'
 
@@ -135,11 +142,14 @@ export function CruisePlanQueuePage() {
   const [selected, setSelected] = useState<SaleTermsSetup | null>(null)
   const [saved, setSaved] = useState('')
   const [filter, setFilter] = useState<FilterKey>('pending')
+  const [shipFilter, setShipFilter] = useState('ALL')
+  const [groupByShip, setGroupByShip] = useState(false)
   const [search, setSearch] = useState('')
   const [senderFilter, setSenderFilter] = useState('ALL')
   const [readinessFilter, setReadinessFilter] = useState<ReadinessFilter>('ALL')
   const [timeWindow, setTimeWindow] = useState<TimeWindowFilter>('ALL')
-  const [sortBy, setSortBy] = useState<SortKey>('oldest')
+  const [sortBy, setSortBy] = useState<SortKey>('newest')
+  const [feeShipFilter, setFeeShipFilter] = useState('ALL')
   const [pageSize, setPageSize] = useState(20)
   const [page, setPage] = useState(1)
 
@@ -151,6 +161,37 @@ export function CruisePlanQueuePage() {
   const pendingGroupsCount = useMemo(() => allGroups.filter(g => g.status === 'SUBMITTED').length, [allGroups])
   const pendingFeesCount = feeRequests.length
 
+  const queueTabs = useMemo(() => {
+    const items: { id: QueueMode; label: string; icon: 'tour' | 'groups' | 'fees'; badge: string; pending: boolean }[] = [
+      {
+        id: 'tour-dossiers',
+        label: 'Hồ sơ toàn tour',
+        icon: 'tour',
+        badge: pendingPlansCount > 0 ? `${pendingPlansCount} chờ duyệt` : `${allPlans.length} hồ sơ`,
+        pending: pendingPlansCount > 0,
+      },
+    ]
+    if (canConfirmGroups) {
+      items.push({
+        id: 'section-groups',
+        label: 'Nhóm hồ sơ bộ phận',
+        icon: 'groups',
+        badge: pendingGroupsCount > 0 ? `${pendingGroupsCount} chờ xác nhận` : `${allGroups.length} nhóm`,
+        pending: pendingGroupsCount > 0,
+      })
+    }
+    if (canSetFees) {
+      items.push({
+        id: 'port-fees',
+        label: 'Thuế và phí cảng',
+        icon: 'fees',
+        badge: pendingFeesCount > 0 ? `${pendingFeesCount} yêu cầu` : '0 yêu cầu',
+        pending: pendingFeesCount > 0,
+      })
+    }
+    return items
+  }, [allPlans.length, allGroups.length, canConfirmGroups, canSetFees, pendingPlansCount, pendingGroupsCount, pendingFeesCount])
+
   // Smart default queue selection: prioritize whichever queue has pending work, defaulting to 'tour-dossiers' when equal
   const activeMode: QueueMode = useMemo(() => {
     if (manualMode) return manualMode
@@ -160,6 +201,14 @@ export function CruisePlanQueuePage() {
     return 'tour-dossiers'
   }, [manualMode, pendingPlansCount, canConfirmGroups, pendingGroupsCount, canSetFees, pendingFeesCount])
 
+  const tabPlans = useMemo(() => allPlans.filter(plan => matchesFilter(plan, filter)), [allPlans, filter])
+  const shipOptions = useMemo(() => collectShipOptions(tabPlans), [tabPlans])
+  const feeShipOptions = useMemo(() => collectShipOptions(feeRequests), [feeRequests])
+  const filteredFeeRequests = useMemo(
+    () => (feeShipFilter === 'ALL' ? feeRequests : feeRequests.filter(item => shipGroupKey(item.shipName) === feeShipFilter)),
+    [feeRequests, feeShipFilter],
+  )
+
   const senderOptions = useMemo(() => {
     const set = new Set<string>()
     for (const plan of allPlans) {
@@ -168,7 +217,6 @@ export function CruisePlanQueuePage() {
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'vi'))
   }, [allPlans])
 
-  const tabPlans = useMemo(() => allPlans.filter(plan => matchesFilter(plan, filter)), [allPlans, filter])
   const normalizedSearch = search.trim().toLowerCase()
 
   const filteredPlans = useMemo(() => {
@@ -178,6 +226,7 @@ export function CruisePlanQueuePage() {
     }, 0)
 
     const matched = tabPlans.filter(plan => {
+      if (shipFilter !== 'ALL' && shipGroupKey(plan.shipName) !== shipFilter) return false
       if (senderFilter !== 'ALL' && (plan.submittedByName ?? '') !== senderFilter) return false
 
       const blockerCount = (plan.planBlockers?.length ?? 0) + (plan.programIssues?.length ?? 0)
@@ -196,13 +245,17 @@ export function CruisePlanQueuePage() {
       }
 
       if (!normalizedSearch) return true
-      return [plan.cruiseCode, plan.submittedByName ?? '', plan.reason ?? '']
+      return [plan.shipName ?? '', plan.cruiseName ?? '', plan.cruiseCode, plan.submittedByName ?? '', plan.reason ?? '']
         .join(' ')
         .toLowerCase()
         .includes(normalizedSearch)
     })
 
     return [...matched].sort((a, b) => {
+      if (sortBy === 'ship') {
+        const shipCmp = shipDisplayName(a.shipName).localeCompare(shipDisplayName(b.shipName), 'vi')
+        if (shipCmp !== 0) return shipCmp
+      }
       if (sortBy === 'code') {
         return a.cruiseCode.localeCompare(b.cruiseCode, 'vi')
       }
@@ -210,22 +263,96 @@ export function CruisePlanQueuePage() {
       const timeB = b.submittedAt ? Date.parse(b.submittedAt) : 0
       return sortBy === 'oldest' ? timeA - timeB : timeB - timeA
     })
-  }, [allPlans, tabPlans, senderFilter, readinessFilter, timeWindow, normalizedSearch, sortBy])
+  }, [allPlans, tabPlans, shipFilter, senderFilter, readinessFilter, timeWindow, normalizedSearch, sortBy])
 
   const totalPages = Math.max(1, Math.ceil(filteredPlans.length / pageSize))
   const safePage = Math.min(page, totalPages)
   const startIndex = (safePage - 1) * pageSize
   const pagedPlans = filteredPlans.slice(startIndex, startIndex + pageSize)
+  const groupedPagedPlans = useMemo(() => groupItemsByShip(pagedPlans), [pagedPlans])
   const hasActiveFilters = Boolean(
-    normalizedSearch || senderFilter !== 'ALL' || readinessFilter !== 'ALL' || timeWindow !== 'ALL',
+    normalizedSearch || shipFilter !== 'ALL' || senderFilter !== 'ALL' || readinessFilter !== 'ALL' || timeWindow !== 'ALL',
   )
 
   const resetFilters = () => {
+    setShipFilter('ALL')
     setSearch('')
     setSenderFilter('ALL')
     setReadinessFilter('ALL')
     setTimeWindow('ALL')
     setPage(1)
+  }
+
+  function handleModeTabKeys(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    let nextIndex = -1
+    if (event.key === 'ArrowRight') nextIndex = (index + 1) % queueTabs.length
+    else if (event.key === 'ArrowLeft') nextIndex = (index - 1 + queueTabs.length) % queueTabs.length
+    else if (event.key === 'Home') nextIndex = 0
+    else if (event.key === 'End') nextIndex = queueTabs.length - 1
+    if (nextIndex < 0) return
+    event.preventDefault()
+    setManualMode(queueTabs[nextIndex].id)
+    const list = event.currentTarget.closest('[role="tablist"]')
+    list?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[nextIndex]?.focus()
+  }
+
+  const renderPlanRow = (plan: PlanView) => {
+    const blockerCount = (plan.planBlockers?.length ?? 0) + (plan.programIssues?.length ?? 0)
+    const revNumber = plan.submittedRevision ?? plan.revision
+    return (
+      <tr key={plan.cruiseId}>
+        <td>
+          <CruiseShipTag shipName={plan.shipName} />
+        </td>
+        <td>
+          <div className={styles.queuePrimaryCell}>
+            <strong>{plan.cruiseName?.trim() || plan.cruiseCode}</strong>
+            <div className={styles.queueMetaRow}>
+              <span className={styles.queueCodeBadge}>
+                {plan.cruiseCode} · Bản #{revNumber}
+              </span>
+              {plan.departureDatetime && (
+                <span className={styles.queueDepDate}>KH: {journeyTime(plan.departureDatetime)}</span>
+              )}
+            </div>
+          </div>
+        </td>
+        <td>
+          <div className={styles.queuePrimaryCell}>
+            <strong>{plan.submittedByName ?? '—'}</strong>
+            <span className={styles.queueTime}>
+              {plan.submittedAt ? journeyTime(plan.submittedAt) : '—'}
+            </span>
+          </div>
+        </td>
+        <td>
+          <div className={styles.queueStatusStack}>
+            <div className={styles.queueStatusBadges}>
+              <Badge
+                label={domainStatus('cruise.plan', plan.planStatus)}
+                tone={statusTone(plan.planStatus)}
+              />
+              {blockerCount === 0 ? (
+                <Badge label="Đạt kiểm tra" tone="success" />
+              ) : (
+                <Badge label={`${blockerCount} lưu ý`} tone="warning" />
+              )}
+            </div>
+            {plan.reason && <span className={styles.muted}>Ghi chú: {plan.reason}</span>}
+          </div>
+        </td>
+        <td className={styles.queueActionCell}>
+          <ButtonLink
+            tone={filter === 'pending' ? 'primary' : 'secondary'}
+            size="compact"
+            autoWidth
+            to={`/admin/cruises/${encodeURIComponent(plan.cruiseId)}?work=review&step=review&section=overview`}
+          >
+            {filter === 'pending' ? 'Xét duyệt' : 'Mở hồ sơ'}
+          </ButtonLink>
+        </td>
+      </tr>
+    )
   }
 
   function refreshAll() {
@@ -256,72 +383,32 @@ export function CruisePlanQueuePage() {
           <>
             {saved && <Notice tone="success" title={`Đã lưu thuế và phí cảng cho ${saved}`}>{null}</Notice>}
 
-            {/* BỘ CHUYỂN HÀNG ĐỢI NGHIỆP VỤ (KHÔNG XẾP CHỒNG NHIỀU BẢNG DÀI) */}
-            <nav className={styles.opsQueueSwitcher} aria-label="Trình tự nghiệp vụ xét duyệt hồ sơ">
-              {canConfirmGroups && (
-                <button
-                  type="button"
-                  className={`${styles.opsQueueSwitchBtn} ${activeMode === 'section-groups' ? styles.opsQueueSwitchBtnActive : ''}`}
-                  aria-current={activeMode === 'section-groups' ? 'page' : undefined}
-                  onClick={() => setManualMode('section-groups')}
-                >
-                  <div className={styles.opsQueueSwitchTop}>
-                    <span className={styles.opsQueueStepBadge}>Bước 1</span>
-                    <QueueStepIcon kind="groups" />
-                    <strong>Nhóm hồ sơ bộ phận</strong>
-                    <Badge
-                      label={pendingGroupsCount > 0 ? `${pendingGroupsCount} chờ xác nhận` : `${allGroups.length} nhóm`}
-                      tone={pendingGroupsCount > 0 ? 'warning' : 'neutral'}
-                    />
-                  </div>
-                  <span className={styles.opsQueueSwitchDesc}>
-                    Xác nhận từng nhóm chuyên môn (Lịch trình, Dịch vụ, Nhân sự, Tàu) trước khi duyệt toàn tour
-                  </span>
-                </button>
-              )}
-
-              <button
-                type="button"
-                className={`${styles.opsQueueSwitchBtn} ${activeMode === 'tour-dossiers' ? styles.opsQueueSwitchBtnActive : ''}`}
-                aria-current={activeMode === 'tour-dossiers' ? 'page' : undefined}
-                onClick={() => setManualMode('tour-dossiers')}
-              >
-                <div className={styles.opsQueueSwitchTop}>
-                  <span className={styles.opsQueueStepBadge}>{canConfirmGroups ? 'Bước 2' : 'Bước 1'}</span>
-                  <QueueStepIcon kind="tour" />
-                  <strong>Hồ sơ toàn tour</strong>
-                  <Badge
-                    label={pendingPlansCount > 0 ? `${pendingPlansCount} chờ xét duyệt` : `${allPlans.length} hồ sơ`}
-                    tone={pendingPlansCount > 0 ? 'warning' : 'neutral'}
-                  />
-                </div>
-                <span className={styles.opsQueueSwitchDesc}>
-                  Xét duyệt tổng thể kế hoạch chuyến khởi hành để cho phép mở bán thương mại
-                </span>
-              </button>
-
-              {canSetFees && (
-                <button
-                  type="button"
-                  className={`${styles.opsQueueSwitchBtn} ${activeMode === 'port-fees' ? styles.opsQueueSwitchBtnActive : ''}`}
-                  aria-current={activeMode === 'port-fees' ? 'page' : undefined}
-                  onClick={() => setManualMode('port-fees')}
-                >
-                  <div className={styles.opsQueueSwitchTop}>
-                    <span className={styles.opsQueueStepBadge}>Phụ trợ</span>
-                    <QueueStepIcon kind="fees" />
-                    <strong>Thuế và phí cảng</strong>
-                    <Badge
-                      label={pendingFeesCount > 0 ? `${pendingFeesCount} yêu cầu` : '0 yêu cầu'}
-                      tone={pendingFeesCount > 0 ? 'warning' : 'neutral'}
-                    />
-                  </div>
-                  <span className={styles.opsQueueSwitchDesc}>
-                    Cấu hình biểu phí cảng đi, cảng về và thuế áp dụng theo yêu cầu của chuyến
-                  </span>
-                </button>
-              )}
-            </nav>
+            {/* THANH TAB CHUYỂN NHÓM CÔNG VIỆC GỌN GÀNG (CHUẨN OCEVIE) */}
+            <div className={styles.opsQueueTabBar} role="tablist" aria-label="Nhóm công việc xét duyệt hồ sơ">
+              {queueTabs.map((tab, index) => {
+                const active = activeMode === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    className={styles.opsQueueTabBtn}
+                    aria-selected={active}
+                    tabIndex={active ? 0 : -1}
+                    onClick={() => setManualMode(tab.id)}
+                    onKeyDown={event => handleModeTabKeys(event, index)}
+                  >
+                    <QueueStepIcon kind={tab.icon} />
+                    <span>{tab.label}</span>
+                    <span
+                      className={`${styles.opsQueueTabBadge} ${tab.pending ? styles.opsQueueTabBadgePending : ''}`}
+                    >
+                      {tab.badge}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
 
             {/* HÀNG ĐỢI 1: NHÓM HỒ SƠ BỘ PHẬN */}
             {activeMode === 'section-groups' && canConfirmGroups && (
@@ -337,9 +424,9 @@ export function CruisePlanQueuePage() {
             {activeMode === 'tour-dossiers' && (
               <Panel
                 title="Hồ sơ toàn tour"
-                subtitle="Bước 2: Xét duyệt hồ sơ tổng thể của chuyến khởi hành sau khi các bộ phận đã hoàn tất chuẩn bị."
+                subtitle="Xét duyệt tổng thể kế hoạch, gói giá và điều kiện thương mại theo từng tàu trước khi mở bán."
               >
-                {/* Status Tabs */}
+                {/* Status Tabs & Ship Grouping Toggle */}
                 <div className={styles.queueStatusBar}>
                   <div className={styles.queueTabs} role="tablist" aria-label="Lọc theo tiến độ xét duyệt">
                     {filterOrder.map((key, index) => {
@@ -373,16 +460,46 @@ export function CruisePlanQueuePage() {
                       )
                     })}
                   </div>
+
+                  <div className={styles.queueToolbarRight}>
+                    <button
+                      type="button"
+                      className={styles.queueGroupToggle}
+                      aria-pressed={groupByShip}
+                      onClick={() => setGroupByShip(prev => !prev)}
+                    >
+                      <ShipHullIcon />
+                      <span>{groupByShip ? 'Đang gom theo tàu' : 'Gom nhóm theo tàu'}</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Multi-criteria Filter & Sort Grid */}
                 <div className={styles.queueFilterGrid}>
+                  <Field htmlFor="ops-plan-ship" label="Lọc theo tàu">
+                    <select
+                      id="ops-plan-ship"
+                      value={shipFilter}
+                      onChange={event => {
+                        setShipFilter(event.target.value)
+                        setPage(1)
+                      }}
+                    >
+                      <option value="ALL">Tất cả tàu ({shipOptions.length})</option>
+                      {shipOptions.map(ship => (
+                        <option key={ship.key} value={ship.key}>
+                          {ship.label} ({ship.count})
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
                   <div className={styles.queueFilterSearch}>
                     <Field htmlFor="ops-plan-search" label="Tìm kiếm hồ sơ">
                       <input
                         id="ops-plan-search"
                         type="search"
-                        placeholder="Nhập mã chuyến, người gửi hoặc ghi chú…"
+                        placeholder="Tên tàu, mã chuyến, tên chuyến, người gửi…"
                         value={search}
                         onChange={event => {
                           setSearch(event.target.value)
@@ -401,7 +518,7 @@ export function CruisePlanQueuePage() {
                         setPage(1)
                       }}
                     >
-                      <option value="ALL">Tất cả người gửi ({senderOptions.length})</option>
+                      <option value="ALL">Tất cả ({senderOptions.length})</option>
                       {senderOptions.map(sender => (
                         <option key={sender} value={sender}>
                           {sender}
@@ -419,9 +536,9 @@ export function CruisePlanQueuePage() {
                         setPage(1)
                       }}
                     >
-                      <option value="ALL">Tất cả tình trạng</option>
-                      <option value="CLEAN">Đạt kiểm tra tự động</option>
-                      <option value="HAS_BLOCKERS">Có cảnh báo / Cần kiểm tra</option>
+                      <option value="ALL">Tất cả</option>
+                      <option value="CLEAN">Đạt kiểm tra</option>
+                      <option value="HAS_BLOCKERS">Có điểm lưu ý</option>
                     </select>
                   </Field>
 
@@ -435,13 +552,13 @@ export function CruisePlanQueuePage() {
                       }}
                     >
                       <option value="ALL">Mọi thời điểm</option>
-                      <option value="24H">Trong 24 giờ gần nhất</option>
+                      <option value="24H">24 giờ gần nhất</option>
                       <option value="7D">7 ngày gần nhất</option>
                       <option value="30D">30 ngày gần nhất</option>
                     </select>
                   </Field>
 
-                  <Field htmlFor="ops-plan-sort" label="Thứ tự ưu tiên xử lý">
+                  <Field htmlFor="ops-plan-sort" label="Sắp xếp">
                     <select
                       id="ops-plan-sort"
                       value={sortBy}
@@ -450,8 +567,9 @@ export function CruisePlanQueuePage() {
                         setPage(1)
                       }}
                     >
-                      <option value="oldest">Chờ lâu nhất trước</option>
                       <option value="newest">Mới gửi gần đây nhất</option>
+                      <option value="oldest">Chờ lâu nhất trước</option>
+                      <option value="ship">Theo tên tàu (A → Z)</option>
                       <option value="code">Theo mã chuyến (A → Z)</option>
                     </select>
                   </Field>
@@ -501,62 +619,33 @@ export function CruisePlanQueuePage() {
                     <DataTable
                       label="Hồ sơ chuyến khởi hành"
                       headers={[
+                        'Tàu',
                         'Chuyến khởi hành',
-                        'Người gửi hồ sơ',
-                        'Thời điểm gửi',
-                        'Kiểm tra điều kiện',
-                        'Trạng thái xét duyệt',
+                        'Người gửi & Thời gian',
+                        'Điều kiện & Trạng thái',
                         'Thao tác',
                       ]}
                     >
-                      {pagedPlans.map(plan => {
-                        const blockerCount = (plan.planBlockers?.length ?? 0) + (plan.programIssues?.length ?? 0)
-                        const revNumber = plan.submittedRevision ?? plan.revision
-                        return (
-                          <tr key={plan.cruiseId}>
-                            <td>
-                              <div className={styles.queuePrimaryCell}>
-                                <strong>{plan.cruiseCode}</strong>
-                                <span className={styles.queueCodeBadge}>Lần gửi #{revNumber}</span>
-                              </div>
-                            </td>
-                            <td>
-                              <strong>{plan.submittedByName ?? '—'}</strong>
-                            </td>
-                            <td>
-                              <span className={styles.queueTime}>
-                                {plan.submittedAt ? journeyTime(plan.submittedAt) : '—'}
-                              </span>
-                            </td>
-                            <td>
-                              {blockerCount === 0 ? (
-                                <Badge label="Đạt kiểm tra tự động" tone="success" />
-                              ) : (
-                                <Badge label={`${blockerCount} điểm cần lưu ý`} tone="warning" />
-                              )}
-                            </td>
-                            <td>
-                              <div className={styles.queuePrimaryCell}>
-                                <Badge
-                                  label={domainStatus('cruise.plan', plan.planStatus)}
-                                  tone={statusTone(plan.planStatus)}
-                                />
-                                {plan.reason && <span className={styles.muted}>Ghi chú: {plan.reason}</span>}
-                              </div>
-                            </td>
-                            <td>
-                              <ButtonLink
-                                tone={filter === 'pending' ? 'primary' : 'secondary'}
-                                size="compact"
-                                autoWidth
-                                to={`/admin/cruises/${encodeURIComponent(plan.cruiseId)}?work=review&step=review&section=overview`}
-                              >
-                                {filter === 'pending' ? 'Xét duyệt hồ sơ' : 'Mở hồ sơ'}
-                              </ButtonLink>
-                            </td>
-                          </tr>
-                        )
-                      })}
+                      {groupByShip
+                        ? groupedPagedPlans.map(bucket => (
+                            <Fragment key={bucket.key}>
+                              <tr className={styles.shipGroupRow}>
+                                <td colSpan={5}>
+                                  <div className={styles.shipGroupHeader}>
+                                    <span className={styles.shipGroupTitle}>
+                                      <ShipHullIcon />
+                                      <span>{bucket.label}</span>
+                                    </span>
+                                    <span className={styles.shipGroupMeta}>
+                                      {bucket.items.length} hồ sơ
+                                    </span>
+                                  </div>
+                                </td>
+                              </tr>
+                              {bucket.items.map(renderPlanRow)}
+                            </Fragment>
+                          ))
+                        : pagedPlans.map(renderPlanRow)}
                     </DataTable>
 
                     {/* Pagination Controls */}
@@ -643,29 +732,57 @@ export function CruisePlanQueuePage() {
                   <Empty title="Chưa có yêu cầu cấu hình thuế và phí cảng nào đang chờ" />
                 )}
                 {feeRequests.length > 0 && (
-                  <DataTable
-                    label="Yêu cầu cấu hình thuế và phí cảng"
-                    headers={['Chuyến khởi hành', 'Cảng đi và cảng về', 'Thao tác']}
-                  >
-                    {feeRequests.map(item => (
-                      <tr key={item.cruiseId}>
-                        <td>
-                          <div className={styles.queuePrimaryCell}>
-                            <strong>{item.cruiseName}</strong>
-                            <span className={styles.queueCodeBadge}>{item.cruiseCode}</span>
-                          </div>
-                        </td>
-                        <td>
-                          {item.departurePort} · {item.returnPort}
-                        </td>
-                        <td>
-                          <Button tone="primary" size="compact" autoWidth onClick={() => setSelected(item)}>
-                            Cấu hình thuế và phí
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </DataTable>
+                  <>
+                    {feeShipOptions.length > 1 && (
+                      <div className={styles.queueFilterGrid}>
+                        <Field htmlFor="ops-fees-ship" label="Lọc theo tàu">
+                          <select
+                            id="ops-fees-ship"
+                            value={feeShipFilter}
+                            onChange={event => setFeeShipFilter(event.target.value)}
+                          >
+                            <option value="ALL">Tất cả tàu ({feeShipOptions.length})</option>
+                            {feeShipOptions.map(ship => (
+                              <option key={ship.key} value={ship.key}>
+                                {ship.label} ({ship.count})
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+                      </div>
+                    )}
+                    <DataTable
+                      label="Yêu cầu cấu hình thuế và phí cảng"
+                      headers={['Tàu', 'Chuyến khởi hành', 'Cảng đi và cảng về', 'Thao tác']}
+                    >
+                      {filteredFeeRequests.map(item => (
+                        <tr key={item.cruiseId}>
+                          <td>
+                            <CruiseShipTag shipName={item.shipName} />
+                          </td>
+                          <td>
+                            <div className={styles.queuePrimaryCell}>
+                              <strong>{item.cruiseName}</strong>
+                              <div className={styles.queueMetaRow}>
+                                <span className={styles.queueCodeBadge}>{item.cruiseCode}</span>
+                                {item.departureDatetime && (
+                                  <span className={styles.queueDepDate}>KH: {journeyTime(item.departureDatetime)}</span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            {item.departurePort} · {item.returnPort}
+                          </td>
+                          <td>
+                            <Button tone="primary" size="compact" autoWidth onClick={() => setSelected(item)}>
+                              Cấu hình thuế và phí
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </DataTable>
+                  </>
                 )}
               </Panel>
             )}

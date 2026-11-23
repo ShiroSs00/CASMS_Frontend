@@ -35,7 +35,7 @@ export function StaffingPreparation({ cruiseId, refreshKey, onStarted, onBudgetR
     )
   }
   const current = data.request
-  const active = current && current.status !== 'RETURNED'
+  const active = current && !['RETURNED', 'CANCELLED'].includes(current.status)
   const v2 = current?.workflowVersion === 'V2'
   const actionable = current?.status === 'SHIP_REVIEWED' || current?.status === 'HR_SUBMITTED'
     || current?.status === 'OPS_APPROVED' || (current?.shipPlanStale && current.status === 'PLANNER_CONFIRMED')
@@ -73,7 +73,7 @@ export function StaffingPreparation({ cruiseId, refreshKey, onStarted, onBudgetR
           )}
         </div>
         <Badge
-          label={current ? staffingStatusLabel(current) : 'Chưa khởi tạo'}
+          label={current ? staffingStatusLabel(current) : data.requiresReplanning ? 'Cần lập lại phương án' : 'Chưa khởi tạo'}
           tone={
             current?.status === 'OPS_APPROVED'
               ? 'success'
@@ -152,12 +152,15 @@ export function StaffingPreparation({ cruiseId, refreshKey, onStarted, onBudgetR
           }}>Gửi phương án cho Quản lý vận hành</Button>}
       </>}
       {!active && <div className={styles.form}>
+        {data.requiresReplanning && <Notice title="Phương án trước không còn hiệu lực" tone="warning">
+          Chuyến đã có yêu cầu nhân sự bị hủy hiệu lực. Khởi tạo phương án mới để Quản lý tàu kiểm tra khu vực, POS và nhu cầu; HR phân công theo chương trình hiện tại.
+        </Notice>}
         <p className={workspaceStyles.sectionMeta}>Khởi tạo để Quản lý dịch vụ hoàn thiện chương trình và Quản lý tàu xác định khu vực mở cùng số người cần.</p>
         {!data.hasOperatingBudget && <Notice tone="warning" title="Cần lưu ngân sách vận hành dự kiến">
           <a href="#operating-budget">Đến mục ngân sách vận hành</a>
         </Notice>}
         <Button busy={busy} disabled={!data.hasOperatingBudget} autoWidth onClick={() => void start()}>
-          Khởi tạo yêu cầu nhân sự
+          {data.requiresReplanning ? 'Lập lại phương án tàu và nhân sự' : 'Khởi tạo yêu cầu nhân sự'}
         </Button>
       </div>}
       {error && <Notice tone="error" title="Chưa hoàn tất thao tác">{error}</Notice>}

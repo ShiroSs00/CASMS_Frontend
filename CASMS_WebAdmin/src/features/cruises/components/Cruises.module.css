@@ -312,76 +312,78 @@
   color: currentColor;
 }
 
-.opsQueueSwitcher {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.opsQueueSwitchBtn {
+/* Compact OceVie Horizontal Queue Tab Bar (replaces tall 3-card switcher) */
+.opsQueueTabBar {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 16px 18px;
-  border: 1px solid var(--cruise-border, #dce4ec);
-  border-radius: var(--ui-panel-radius, 8px);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  margin-bottom: 14px;
   background: var(--ui-surface, #ffffff);
-  color: var(--cruise-navy, #0b2a4a);
+  border: 1px solid var(--cruise-border, #d5e0e4);
+  border-radius: var(--radius-md, 10px);
+}
+
+.opsQueueTabBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: var(--cruise-muted, #506777);
   font: inherit;
-  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: border-color var(--motion-fast) var(--ease-standard), background-color var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard);
+  transition: background-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard);
 }
 
-.opsQueueSwitchBtn:hover {
-  border-color: var(--color-teal, #007788);
-  background: #f8fbfc;
+.opsQueueTabBtn:hover {
+  background: var(--surface-warm, #f3ebdd);
+  color: var(--cruise-navy, #0b2a4a);
 }
 
-.opsQueueSwitchBtnActive {
-  border-color: var(--cruise-navy, #0b2a4a);
-  background: #f0f7fa;
-  box-shadow: 0 2px 6px rgb(11 42 74 / 8%);
+.opsQueueTabBtn[aria-selected=true] {
+  background: var(--cruise-navy, #0b2a4a);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgb(6 26 43 / 14%);
 }
 
-.opsQueueSwitchBtn:focus-visible {
-  outline: 2px solid var(--ui-focus, #007788);
+.opsQueueTabBtn:focus-visible {
+  outline: 2px solid var(--fg-2, #0e6b7a);
   outline-offset: 2px;
 }
 
-.opsQueueSwitchTop {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 10px;
-  width: 100%;
-}
-
-.opsQueueSwitchTop strong {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--cruise-navy, #0b2a4a);
-  margin-right: auto;
-}
-
-.opsQueueStepBadge {
+.opsQueueTabBadge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
+  padding: 1px 8px;
   border-radius: 999px;
-  background: var(--cruise-navy, #0b2a4a);
-  color: #ffffff;
   font-size: 12px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: rgb(11 42 74 / 8%);
+  color: var(--cruise-navy, #0b2a4a);
 }
 
-.opsQueueSwitchDesc {
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--cruise-muted, #506777);
+.opsQueueTabBadgePending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.opsQueueTabBtn[aria-selected=true] .opsQueueTabBadge {
+  background: rgb(255 255 255 / 20%);
+  color: #ffffff;
+}
+
+.opsQueueTabBtn[aria-selected=true] .opsQueueTabBadgePending {
+  background: var(--ocevie-brand-gold, #d4af37);
+  color: #061a2b;
 }
 
 .queueStatusBar {
@@ -389,25 +391,25 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  border-bottom: 1px solid var(--cruise-border, #dce4ec);
-  padding-bottom: 12px;
+  gap: 10px 12px;
+  border-bottom: 1px solid var(--cruise-border, #d5e0e4);
+  padding-bottom: 10px;
 }
 
 .queueTabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .queueTab {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 38px;
-  padding: 6px 14px;
-  border: 1px solid var(--cruise-border, #dce4ec);
-  border-radius: var(--ui-radius, 6px);
+  gap: 7px;
+  min-height: 36px;
+  padding: 5px 12px;
+  border: 1px solid var(--cruise-border, #d5e0e4);
+  border-radius: var(--radius-sm, 6px);
   background: var(--ui-surface, #ffffff);
   color: var(--cruise-muted, #506777);
   font: inherit;
@@ -430,14 +432,14 @@
 }
 
 .queueTab:focus-visible {
-  outline: 2px solid var(--ui-focus, #007788);
+  outline: 2px solid var(--fg-2, #0e6b7a);
   outline-offset: 2px;
 }
 
 .queueTabCount {
   font-variant-numeric: tabular-nums;
   font-size: 12px;
-  padding: 1px 8px;
+  padding: 1px 7px;
   border-radius: 999px;
   background: rgb(11 42 74 / 8%);
   color: inherit;
@@ -447,15 +449,56 @@
   background: rgb(255 255 255 / 22%);
 }
 
+.queueToolbarRight {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.queueGroupToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 5px 12px;
+  border: 1px solid var(--border, #718391);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--ui-surface, #ffffff);
+  color: var(--cruise-navy, #0b2a4a);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard);
+}
+
+.queueGroupToggle:hover {
+  background: #f0f7fa;
+  border-color: var(--fg-2, #0e6b7a);
+}
+
+.queueGroupToggle[aria-pressed=true] {
+  background: #e6f4f6;
+  border-color: var(--fg-2, #0e6b7a);
+  color: #094b56;
+  font-weight: 600;
+}
+
+.queueGroupToggle:focus-visible {
+  outline: 2px solid var(--fg-2, #0e6b7a);
+  outline-offset: 2px;
+}
+
 .queueFilterGrid {
   display: grid;
-  grid-template-columns: minmax(220px, 1.5fr) repeat(auto-fit, minmax(170px, 1fr));
-  gap: 14px 16px;
+  grid-template-columns: minmax(185px, 1.15fr) minmax(200px, 1.35fr) repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px 12px;
   align-items: end;
-  padding: 16px;
+  padding: 12px 14px;
   background: var(--ui-subtle, #f8fafc);
-  border: 1px solid var(--cruise-border, #dce4ec);
-  border-radius: var(--ui-radius, 8px);
+  border: 1px solid var(--cruise-border, #d5e0e4);
+  border-radius: var(--radius-sm, 6px);
 }
 
 .queueFilterSearch {
@@ -467,7 +510,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
 .queueCount {
@@ -479,24 +522,153 @@
 
 .queuePrimaryCell {
   display: grid;
-  gap: 4px;
+  gap: 3px;
   justify-items: start;
+}
+
+.queueMetaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.queueDepDate {
+  font-size: 12px;
+  color: var(--cruise-muted, #506777);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .queueCodeBadge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
+  padding: 1px 7px;
   border-radius: 4px;
   background: var(--ui-subtle, #f1f5f9);
-  border: 1px solid var(--cruise-border, #dce4ec);
+  border: 1px solid var(--cruise-border, #d5e0e4);
   font-size: 12px;
   color: var(--cruise-muted, #506777);
   font-variant-numeric: tabular-nums;
 }
 
 .queueTime {
+  font-size: 12px;
+  color: var(--cruise-muted, #506777);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Ship identity badge — OceVie high-contrast semantic surface tints */
+.shipTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 210px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.shipTag span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shipTagIcon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+}
+
+.shipTagNavy {
+  background: #eaf1f8;
+  border-color: #c5d7ea;
+  color: #0b2a4a;
+}
+
+.shipTagTeal {
+  background: #e6f4f6;
+  border-color: #b7dfe5;
+  color: #094b56;
+}
+
+.shipTagSand {
+  background: #f6efe2;
+  border-color: #dec9a4;
+  color: #6b4719;
+}
+
+.shipTagSlate {
+  background: #edf2f6;
+  border-color: #cbd7e2;
+  color: #2c4356;
+}
+
+.shipTagSage {
+  background: #e8f4ee;
+  border-color: #b8dec9;
+  color: #145736;
+}
+
+.shipTagMuted {
+  background: #f3f5f7;
+  border-color: #d5e0e4;
+  color: #506777;
+  font-weight: 500;
+}
+
+/* Ship Group Header Row inside DataTable */
+.shipGroupRow td {
+  background: #f3f7fa;
+  border-top: 2px solid #cbd7e2;
+  border-bottom: 1px solid #d5e0e4;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.shipGroupHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.shipGroupTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--cruise-navy, #0b2a4a);
+}
+
+.shipGroupMeta {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--cruise-muted, #506777);
+  font-variant-numeric: tabular-nums;
+}
+
+.queueStatusStack {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+
+.queueStatusBadges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.queueActionCell {
   white-space: nowrap;
 }
 

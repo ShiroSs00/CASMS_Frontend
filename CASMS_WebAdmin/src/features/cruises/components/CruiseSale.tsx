@@ -35,12 +35,12 @@ const scopeLabels={WHOLE_CRUISE:'Bán kèm tất cả gói tour đang hoạt đ�
 const scopeEffects={WHOLE_CRUISE:'Bật bán tất cả gói tour đang hoạt động đã gắn với chuyến.',CABIN_ONLY:'Chuyến mở bán các gói du thuyền đã chọn ở trên.',SELECTED_PACKAGES:'Tích chọn các gói tour muốn bán kèm chuyến.'} as const
 type Scope='WHOLE_CRUISE'|'CABIN_ONLY'|'SELECTED_PACKAGES'
 const offerAmount=(value:string|number)=>new Intl.NumberFormat('vi-VN',{maximumFractionDigits:4}).format(Number(value))
+const sortedCsv=(values:readonly string[])=>[...values].sort().join(',')
 export function CruiseSale({cruise,onSection,onReview,onReady,onChanged}:{cruise:CruiseRecord;onSection?:(section:DepartureSection)=>void;onReview?:()=>void;onReady?:()=>void;onChanged?:()=>void}){
  const access=useSessionAccess(),[scope,setScope]=useState<Scope>('WHOLE_CRUISE'),[selected,setSelected]=useState<string[]>([]),[epoch,setEpoch]=useState(0),[confirm,setConfirm]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false),[success,setSuccess]=useState(''),lock=useRef(false),operation=useRef<{key:string;id:string}|null>(null)
  const [stopSaleOpen, setStopSaleOpen] = useState(false), [stopSaleSuccess, setStopSaleSuccess] = useState('')
- const [selectedFares,setSelectedCruisePackages]=useState<string[]>([])
+ const [selectedFaresOverride,setSelectedCruisePackages]=useState<string[]|null>(null)
  const fares=useReadQuery(`sale-fare-offers:${access.userId}:${access.status}:${cruise.cruiseId}:${epoch}`,useCallback(signal=>cruisePackageApi.offers(cruise.cruiseId,signal),[cruise.cruiseId]))
- const offerSelection=[...selectedFares].sort().join(','),selection=scope==='SELECTED_PACKAGES'?[...selected].sort().join(','):undefined,key=JSON.stringify([cruise.cruiseId,scope,selection,offerSelection,epoch,cruise.revision])
  const sellability=useReadQuery(`scoped-sale-state:${cruise.cruiseId}:${epoch}`,useCallback(signal=>departureApi.publicSellability(cruise.cruiseId,signal),[cruise.cruiseId]))
  const plan=usePlanQuery(cruise.cruiseId,`${epoch}:${cruise.revision}`,access.has('CRUISE_READ'))
  const windows=approvedPlanWindows(plan.data)
@@ -49,7 +49,12 @@ export function CruiseSale({cruise,onSection,onReview,onReady,onChanged}:{cruise
  const packages=useReadQuery(`scoped-sale-packages:${cruise.cruiseId}:${useLegacyPackages}`,useCallback(signal=>useLegacyPackages?cruiseApi.listPackages(cruise.cruiseId,signal):Promise.resolve([]),[cruise.cruiseId,useLegacyPackages]))
  const approvedSelections=planEvidence(plan.data?.submittedSnapshot).packages
  const eligibleFares=fares.data?.filter(f=>!unified||approvedSelections.some(p=>p.valid&&p.offerId===f.offer.id&&p.priceId===f.currentApprovedPriceRevisionId))
- const query=useReadQuery(`scoped-sale:${access.userId}:${plan.data?.revision}:${key}`,useCallback(signal=>plan.data&&!plan.loading&&!plan.error&&(!unified||selectedFares.length>0)?apiRequest(`/cruise/${cruise.cruiseId}/sale-readiness`,{query:{saleScope:scope,selectedPackageIds:selection,selectedCruisePackageOfferIds:offerSelection},signal}).then(value=>decodeSaleReadiness(value,cruise.cruiseId)):Promise.resolve(null),[cruise.cruiseId,scope,selection,offerSelection,plan.data,plan.loading,plan.error,unified,selectedFares.length]))
+ const defaultFares=eligibleFares?.filter(f=>f.eligibility.eligible).map(f=>f.offer.id)??[]
+ const selectedFares=selectedFaresOverride??defaultFares
+ const hasSelectedFares=selectedFares.length>0
+ const canQuerySale=Boolean(plan.data&&!plan.loading&&!plan.error&&(!unified||hasSelectedFares))
+ const offerSelection=sortedCsv(selectedFares),selection=scope==='SELECTED_PACKAGES'?sortedCsv(selected):undefined,key=JSON.stringify([cruise.cruiseId,scope,selection,offerSelection,epoch,cruise.revision])
+ const query=useReadQuery(`scoped-sale:${access.userId}:${plan.data?.revision}:${key}`,signal=>canQuerySale?apiRequest(`/cruise/${cruise.cruiseId}/sale-readiness`,{query:{saleScope:scope,selectedPackageIds:selection,selectedCruisePackageOfferIds:offerSelection},signal}).then(value=>decodeSaleReadiness(value,cruise.cruiseId)):Promise.resolve(null))
  const saleRecord=useReadQuery(`sale-record:${cruise.cruiseId}:${epoch}:${cruise.revision}`,useCallback(signal=>apiRequest<SaleRecord>(`/cruise/${cruise.cruiseId}`,{signal}).then(value=>decodeSaleRecord(value,cruise.cruiseId)),[cruise.cruiseId]))
  const publicUrl=externalAppUrl(import.meta.env.VITE_BOOKING_APP_URL,'/cruises/'+encodeURIComponent(cruise.cruiseId))
  const activated=Boolean(saleRecord.data?.cruiseId===cruise.cruiseId&&saleRecord.data.openedForSaleAt&&Number.isFinite(Date.parse(saleRecord.data.openedForSaleAt))&&saleRecord.data.status==='PUBLISHED')
@@ -96,12 +101,12 @@ export function CruiseSale({cruise,onSection,onReview,onReady,onChanged}:{cruise
   )}
   {cruise.stoppedAt && <ResumeSale key={cruise.revision} cruise={cruise} plan={plan.loading || plan.error ? null : plan.data} onReady={onReady} onChanged={()=>{setEpoch(n=>n+1);plan.retry();onChanged?.()}}/>}
   {saleRecord.data&&!saleRecord.loading&&!saleRecord.error&&<RecordFacts entries={[["Quyết định mở bán",activated?'Đã xác nhận':'Chưa ghi nhận quyết định mở bán'],["Thời điểm xác nhận",activated?journeyTime(saleRecord.data.openedForSaleAt!,SHIP_TIME_ZONE):'Chưa có thông tin']]}/>}
-  {!activated&&plan.data&&!plan.loading&&!plan.error&&plan.data.readyStatus!=='READY'&&<Notice title="Chuyến khởi hành chưa được xác nhận sẵn sàng mở bán" tone="warning"><p>Để mở bán, chuyến khởi hành cần hoàn tất Bước 2 (Xác nhận sẵn sàng mở bán) sau khi kế hoạch và giá đã được Quản lý vận hành duyệt.</p>{onReview&&<Button tone="secondary" onClick={onReview}>Quay lại Bước 2: Xác nhận sẵn sàng mở bán</Button>}</Notice>}
+  {!activated&&plan.data&&!plan.loading&&!plan.error&&plan.data.readyStatus!=='READY'&&<Notice title="Chuyến khởi hành chưa được xác nhận sẵn sàng mở bán" tone="warning"><p>Để mở bán, chuyến khởi hành cần hoàn tất Bước 2 (Xác nhận sẵn sàng mở bán) sau khi kế hoạch và giá đã được Quản lý vận hành duyệt.</p>{(onReady||onReview)&&<Button tone="secondary" onClick={onReady??onReview}>Quay lại Bước 2: Xác nhận sẵn sàng mở bán</Button>}</Notice>}
   {!activated&&needsFares&&fares.loading&&<Loading label="Đang đối chiếu gói du thuyền…"/>}
   {!activated&&needsFares&&fares.error&&<Notice title="Chưa đọc được gói du thuyền" tone="error"><p>{fares.error.message}</p><Button onClick={fares.retry}>Tải lại gói du thuyền</Button></Notice>}
   {!activated&&needsFares&&!fares.loading&&!fares.error&&!plan.loading&&!plan.error&&plan.data&&<fieldset className={styles.salePackages}><legend>Gói du thuyền được mở bán</legend>
    {eligibleFares?.length===0&&<p>Chưa có gói du thuyền đủ điều kiện mở bán. Quản lý hoạt động và dịch vụ cần cấu hình gói và gửi giá để Quản lý vận hành xét duyệt.</p>}
-   {eligibleFares?.map(f=><div key={f.offer.id}><label><input type="checkbox" checked={activated?f.offer.saleEnabled:selectedFares.includes(f.offer.id)} disabled={busy||uncertain||activated||!f.eligibility.eligible} onChange={e=>{operation.current=null;setSelectedCruisePackages(old=>e.target.checked?[...old,f.offer.id]:old.filter(id=>id!==f.offer.id));setConfirm(false)}}/>{f.template.version.name} — {f.offer.logicalCategory}{!f.eligibility.eligible?' — Chưa đủ điều kiện bán':''}</label>
+   {eligibleFares?.map(f=><div key={f.offer.id}><label><input type="checkbox" checked={activated?f.offer.saleEnabled:selectedFares.includes(f.offer.id)} disabled={busy||uncertain||activated||!f.eligibility.eligible} onChange={e=>{operation.current=null;setSelectedCruisePackages(old=>{const base=old??defaultFares;return e.target.checked?[...base,f.offer.id]:base.filter(id=>id!==f.offer.id)});setConfirm(false)}}/>{f.template.version.name} — {f.offer.logicalCategory}{!f.eligibility.eligible?' — Chưa đủ điều kiện bán':''}</label>
     {(()=>{const price=f.prices.find(p=>p.id===f.currentApprovedPriceRevisionId);return <p>{price?`${offerAmount(price.amount)} ${price.currencyCode}/người · Giá phiên bản ${price.revisionNumber}`:'Chưa có giá đã duyệt hiện hành'}</p>})()}
     {f.eligibility.blockers.length>0&&<ul>{f.eligibility.blockers.map((blocker,index)=><li key={`${blocker.code}:${index}`}>{blocker.message}</li>)}</ul>}
    </div>)}

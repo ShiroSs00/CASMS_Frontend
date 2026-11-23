@@ -30,7 +30,7 @@ function PackageForms({cruiseId,initial,onSaved,onClose}:{cruiseId:string;initia
   const f=new FormData(event.currentTarget),value=(key:string)=>String(f.get(key)??'').trim()
   lock.current=true;setBusy(true);setError('')
   try{
-   if(mode==='details')await updateScopedPackage(cruiseId,base.pkg,base.revision,{name:value('name'),description:value('description'),price:Number(value('price')),currency:'USD'})
+   if(mode==='details')await updateScopedPackage(cruiseId,base.pkg,base.revision,{name:value('name'),description:value('description'),price:Number(value('price')),currency:base.pkg.currency??'VND'})
    else await addScopedPackageComponent(cruiseId,base.pkg.id,base.revision,{kind,referenceId:value('referenceId'),benefitType:value('benefitType') as 'INCLUDED'|'OPTIONAL'})
    onSaved()
   }catch(reason){setError(businessErrorMessage(reason instanceof ApiError?reason.code:undefined,''));if(!(reason instanceof ApiError)||reason.status===0||reason.status>=500)setUncertain(true)}finally{lock.current=false;setBusy(false)}
@@ -43,7 +43,7 @@ function PackageForms({cruiseId,initial,onSaved,onClose}:{cruiseId:string;initia
    {mode==='details'?<>
     <Field htmlFor="package-edit-name" label={businessCopy('program.field.name')}><input id="package-edit-name" name="name" defaultValue={base.pkg.name} required/></Field>
     <Field htmlFor="package-edit-description" label={businessCopy('program.field.description')}><textarea id="package-edit-description" name="description" defaultValue={base.pkg.description??''}/></Field>
-    <Field htmlFor="package-edit-price" label={businessCopy('program.field.priceUsd')}><input id="package-edit-price" name="price" type="number" min={0} step="any" defaultValue={base.pkg.currency==='USD'?base.pkg.price:''} required/></Field>
+    <Field htmlFor="package-edit-price" label={`Giá gói (${base.pkg.currency??'VND'})`}><input id="package-edit-price" name="price" type="number" min={0} step="any" defaultValue={base.pkg.price??''} required/></Field>
    </>:<>
     <Field htmlFor="package-component-kind" label={businessCopy('program.package.componentKind')}><select id="package-component-kind" value={kind} onChange={e=>setKind(e.target.value as ComponentKind)}><option value="services">{businessCopy('program.package.kind.services')}</option><option value="activities">{businessCopy('program.onboardActivity')}</option><option value="excursions">{businessCopy('program.SHORE_EXCURSION')}</option></select></Field>
     {kind==='services'&&base.choices.services.length===0&&<Notice title="Tàu chưa có dịch vụ khả dụng">Quản lý tàu cần gán dịch vụ cho tàu trước khi Quản lý lịch trình thêm quyền lợi dịch vụ vào gói.</Notice>}

@@ -11,7 +11,7 @@ import { readinessMessage } from '../model/readiness-copy'
 const preparationSteps = [
   { section: 'preparation', label: 'Xác nhận bốn nhóm hồ sơ', codes: ['PREPARATION_CONFIRMATION_REQUIRED', 'PREPARATION_SECTIONS_NOT_CONFIRMED'] },
   { section: 'staff', label: 'Phân công nhân sự trên tàu', codes: ['ONBOARD_STAFF_REQUIRED', 'MISSING_ONBOARD_STAFF'] },
-  { section: 'guidance', label: 'Công bố hướng dẫn an toàn', codes: ['GUIDANCE_PUBLICATION_REQUIRED'] },
+  { section: 'guidance', label: 'Hoàn thành hướng dẫn an toàn', codes: ['GUIDANCE_PUBLICATION_REQUIRED', 'GUIDANCE_ATTENDANCE_REQUIRED'] },
 ] as const
 
 export function DepartureStart({ cruise, refreshKey, sections, onSection, onChanged }: {
@@ -122,7 +122,7 @@ export function DepartureStart({ cruise, refreshKey, sections, onSection, onChan
           const status = blocked ? 'Chưa đạt' : ready || (section === 'preparation' && gate.data?.preparationSectionsConfirmed === true) ? 'Đạt' : 'Chưa xác định'
           return <li key={section}>
             <strong>{label}</strong> · {status}
-            {section === 'guidance' && <p>Buổi hướng dẫn đã công bố cần có nội dung và người phụ trách.</p>}
+            {section === 'guidance' && <p>Hành khách có đặt chỗ đã xác nhận còn hiệu lực phải được ghi nhận tham dự buổi hướng dẫn đã hoàn tất. Nhân viên đặt chỗ có quyền điểm danh thực hiện tại mục Cabin và hành khách. Công bố nội dung chưa đủ điều kiện xuất bến.</p>}
             {sections.includes(section) && <Button tone="text" onClick={() => onSection(section)}>Mở mục {label.toLocaleLowerCase('vi-VN')}</Button>}
           </li>
         })}</ul>

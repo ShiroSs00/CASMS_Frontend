@@ -26,9 +26,12 @@ export function frozenResource(snapshot: unknown, reference: EvidenceRow): { id:
   }
   return { id: null, kind: 'Quyền lợi', name: null, row: {} }
 }
-export function chargeText(value: unknown, tax: boolean) {
+export function chargeText(value: unknown, tax: boolean, currency?: unknown) {
   const c = evidenceRow(value), amount = evidenceNumber(c.value)
   if (c.applicability === 'NOT_APPLICABLE') return 'Không áp dụng'
   if (c.applicability !== 'APPLICABLE' || amount === null) return 'Chưa có dữ liệu xác nhận'
-  return tax ? `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 4 }).format(amount * 100)}%` : `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 4 }).format(amount)} USD/người`
+  if (tax) return `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 4 }).format(amount * 100)}%`
+  const formatted = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 4 }).format(amount)
+  return typeof currency === 'string' && /^[A-Z]{3}$/.test(currency)
+    ? `${formatted} ${currency}/người` : `${formatted} · Chưa xác định tiền tệ`
 }

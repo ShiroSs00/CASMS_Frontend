@@ -5,8 +5,13 @@ export type ExcursionOption = GroupExcursion
 export async function listExcursionOptions(signal?: AbortSignal): Promise<ExcursionOption[]> {
   return apiRequestRaw('/shore-excursions', value => {
     const invalid = () => new Error('Danh mục chuyến tham quan không đúng định dạng.')
-    if (!Array.isArray(value)) throw invalid()
-    return value.map((item: unknown): ExcursionOption => {
+    const list = Array.isArray(value)
+      ? value
+      : value && typeof value === 'object' && 'data' in value && Array.isArray((value as { data: unknown }).data)
+        ? (value as { data: unknown[] }).data
+        : null
+    if (!list) throw invalid()
+    return list.map((item: unknown): ExcursionOption => {
       if (!item || typeof item !== 'object' || Array.isArray(item)) throw invalid()
       const row = item as Record<string, unknown>
       if (typeof row.shoreExcursionId !== 'string' || !isUuid(row.shoreExcursionId) || typeof row.excursionName !== 'string' || !row.excursionName.trim() || typeof row.status !== 'string' || !['PLANNED', 'OPEN', 'FULL', 'CLOSED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].includes(row.status)) throw invalid()
@@ -28,6 +33,6 @@ export async function listExcursionOptions(signal?: AbortSignal): Promise<Excurs
         maximumCapacity: capacity == null ? null : capacity as number, meetingPoint: optionalText('meetingPoint'),
         startTime: optionalTime('startTime'), plannedReturnTime: optionalTime('plannedReturnTime'),
       }
-    })
+    }).sort((a, b) => (Date.parse(b.startTime ?? '') || 0) - (Date.parse(a.startTime ?? '') || 0))
   }, { signal })
 }

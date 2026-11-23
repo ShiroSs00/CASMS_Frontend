@@ -33,12 +33,66 @@ function project<T>(decode: () => T) {
   }
 }
 
+export type PublicCruiseService = {
+  serviceId: string
+  serviceName: string
+  categoryName: string | null
+  deckName: string | null
+  deckNumber: number | null
+  description: string | null
+  price: number | null
+  currencyCode: string
+  operatingPeriods: string | null
+  canBuyPreCruise: boolean | null
+  canBuyOnboard: boolean | null
+}
+export type PublicCruiseActivity = {
+  activityId: string
+  activityName: string
+  category: string | null
+  location: string | null
+  deckName: string | null
+  startTime: string | null
+  endTime: string | null
+  description: string | null
+  price: number | null
+  currencyCode: string
+  capacity: number | null
+}
+export type PublicCruiseExcursion = {
+  excursionId: string
+  excursionName: string
+  portName: string | null
+  startTime: string | null
+  plannedReturnTime: string | null
+  meetingPoint: string | null
+  price: number | null
+  currencyCode: string
+  maximumCapacity: number | null
+  notes: string | null
+}
+export type PublicCruiseExperiences = {
+  cruiseId: string
+  services: PublicCruiseService[]
+  activities: PublicCruiseActivity[]
+  shoreExcursions: PublicCruiseExcursion[]
+}
+
 export const liveCruiseCatalogApi = {
  async publicSaleState(id:string,signal?:AbortSignal) {
   return decodePublicSale(await readSellability(id, signal), id)
  },
  async publicItinerary(id:string,signal?:AbortSignal) {
   return decodePublicItinerary(await apiRequest<unknown>(`/cruise/${encodeURIComponent(id)}/public-itinerary`,{signal}),id)
+ },
+ async publicExperiences(id:string,signal?:AbortSignal): Promise<PublicCruiseExperiences> {
+  const data = await apiRequest<PublicCruiseExperiences>(`/cruise/${encodeURIComponent(id)}/public-experiences`, { signal })
+  return {
+    cruiseId: id,
+    services: Array.isArray(data?.services) ? data.services : [],
+    activities: Array.isArray(data?.activities) ? data.activities : [],
+    shoreExcursions: Array.isArray(data?.shoreExcursions) ? data.shoreExcursions : [],
+  }
  },
  async saleState(id:string,signal?:AbortSignal) {
   if(!UUID_REGEX.test(id))throw new ApiError('Không xác định được chuyến khởi hành.',400)

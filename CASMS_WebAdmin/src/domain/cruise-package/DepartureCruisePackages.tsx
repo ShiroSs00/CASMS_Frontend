@@ -1,6 +1,6 @@
 import {CruisePackageAddons} from './Addons'
 import {CruisePackageMappingEvidence} from './cabin-mapping'
-import { useCallback, useState, type ReactNode } from 'react'
+import { useCallback, useState, type FormEvent, type ReactNode } from 'react'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { cabinTypeLabel } from '@/shared/i18n/business-copy'
@@ -90,7 +90,8 @@ function OfferForm({
 
   const minSalesStart = toInputDateTime(context?.bookingOpensAt)
   const maxSalesEnd = toInputDateTime(context?.bookingClosesAt ?? context?.departureDatetime)
-  const start = editedStart ?? (existing ? toInputDateTime(existing.offer.salesStart) : minSalesStart)
+  const todayStart = toInputDateTime(new Date().toISOString())
+  const start = editedStart ?? (existing ? toInputDateTime(existing.offer.salesStart) : (minSalesStart || todayStart))
   const end = editedEnd ?? (existing ? toInputDateTime(existing.offer.salesEnd) : maxSalesEnd)
   useFormChanges(Boolean(versionId || logical) || editedStart !== null || editedEnd !== null)
 
@@ -393,9 +394,34 @@ function BenefitBinding({item,benefit,cruiseId,disabled,run}:{item:CruisePackage
   </div>
 }
 function OfferCard({item,context,disabled,run,shipName,feedback,templates}:{shipName?:string|null;item:CruisePackageOffer;context:CruisePackageContext;disabled:boolean;run:Run;feedback:ReactNode;templates:ReturnType<typeof useShipPackageTemplates>}) {
-  const access=useSessionAccess(),[amount,setAmount]=useState(''),[upgrade,setUpgrade]=useState(false),[addingPrice,setAddingPrice]=useState(false),[reasons,setReasons]=useState<Record<string,string>>({})
-  useFormChanges(Boolean(amount||item.prices.some(price=>price.status==='SUBMITTED'&&reasons[price.id]?.trim())))
+  const access=useSessionAccess(),[amount,setAmount]=useState(''),[upgrade,setUpgrade]=useState(false),[editingWindow,setEditingWindow]=useState(false),[winStart,setWinStart]=useState(''),[winEnd,setWinEnd]=useState(''),[winError,setWinError]=useState(''),[addingPrice,setAddingPrice]=useState(false),[reasons,setReasons]=useState<Record<string,string>>({})
+  useFormChanges(Boolean(amount||editingWindow||item.prices.some(price=>price.status==='SUBMITTED'&&reasons[price.id]?.trim())))
   const configure=context.canConfigure,checker=context.canReviewPrice,cruiseId=context.cruiseId,unified=context.unifiedPackageReview
+  const canEditWindow=(configure||access.canDo('CRUISE_UPDATE_DRAFT'))&&!item.offer.saleEnabled&&context.planStatus!=='SUBMITTED'&&context.planStatus!=='APPROVED'
+  function openWindowEditor(){
+    setWinStart(toInputDateTime(item.offer.salesStart))
+    setWinEnd(toInputDateTime(item.offer.salesEnd))
+    setWinError('')
+    setEditingWindow(true)
+  }
+  async function saveSalesWindow(e:FormEvent){
+    e.preventDefault()
+    setWinError('')
+    let s:string,endIso:string
+    try{
+      s=wallTimeToInstant(winStart,SHIP_TIME_ZONE)
+      endIso=wallTimeToInstant(winEnd,SHIP_TIME_ZONE)
+    }catch{
+      setWinError('Nhập thời gian bán hợp lệ theo giờ Việt Nam.')
+      return
+    }
+    if(Date.parse(s)>=Date.parse(endIso)){
+      setWinError('Thời điểm bắt đầu bán phải trước thời điểm kết thúc.')
+      return
+    }
+    const ok=await run(()=>cruisePackageApi.updateSalesWindow(cruiseId,item.offer.id,item.offer.revision,s,endIso),'Đã cập nhật thời gian mở bán của gói du thuyền.')
+    if(ok) setEditingWindow(false)
+  }
   const templateId=item.template.version.templateId
   const canUpgrade=configure&&Boolean(templates.data?.some(template =>
     template.templateId === templateId && template.templateVersionId !== item.offer.templateVersionId))
@@ -429,7 +455,23 @@ function OfferCard({item,context,disabled,run,shipName,feedback,templates}:{ship
         <div className={styles.offerBody}>
           <p className={styles.offerMeta}>{cabinTypeLabel(item.offer.proposedCabinType)} · {journeyTime(item.offer.salesStart)} – {journeyTime(item.offer.salesEnd)} (giờ Việt Nam)</p>
           <CruisePackageMappingEvidence shipName={context.shipId===item.offer.shipId?shipName:null} mapping={item.cabinMapping}/>
-          {canUpgrade&&<Button autoWidth tone="secondary" onClick={()=>setUpgrade(true)}>Áp dụng phiên bản mẫu khác</Button>}
+          <div className={styles.listActions}>
+            {canEditWindow&&!editingWindow&&<Button autoWidth tone="secondary" onClick={openWindowEditor}>Chỉnh sửa thời gian bán</Button>}
+            {canUpgrade&&<Button autoWidth tone="secondary" onClick={()=>setUpgrade(true)}>Áp dụng phiên bản mẫu khác</Button>}
+          </div>
+          {editingWindow&&<form className={styles.form} onSubmit={e=>void saveSalesWindow(e)}>
+            <div className={styles.listActions}>
+              <Button type="button" autoWidth size="compact" tone="secondary" onClick={()=>setWinStart(toInputDateTime(new Date().toISOString()))}>Bắt đầu từ hôm nay</Button>
+              {context.bookingOpensAt&&<Button type="button" autoWidth size="compact" tone="secondary" onClick={()=>{setWinStart(toInputDateTime(context.bookingOpensAt));if(context.bookingClosesAt)setWinEnd(toInputDateTime(context.bookingClosesAt))}}>Theo lịch đặt chỗ chuyến</Button>}
+            </div>
+            <Field htmlFor={`win-start-${item.offer.id}`} label="Bắt đầu bán (giờ Việt Nam) *"><input id={`win-start-${item.offer.id}`} type="datetime-local" required value={winStart} onChange={e=>setWinStart(e.target.value)}/></Field>
+            <Field htmlFor={`win-end-${item.offer.id}`} label="Kết thúc bán (giờ Việt Nam) *"><input id={`win-end-${item.offer.id}`} type="datetime-local" required value={winEnd} onChange={e=>setWinEnd(e.target.value)}/></Field>
+            {winError&&<Notice title="Kiểm tra thời gian bán" tone="warning">{winError}</Notice>}
+            <div className={styles.actions}>
+              <Button type="submit" autoWidth>Lưu thời gian bán</Button>
+              <Button type="button" autoWidth tone="secondary" onClick={()=>setEditingWindow(false)}>Hủy</Button>
+            </div>
+          </form>}
         </div>
       </details>
       <details className={styles.offerSection}>
@@ -446,7 +488,7 @@ function OfferCard({item,context,disabled,run,shipName,feedback,templates}:{ship
       <Button autoWidth tone="secondary" onClick={()=>setAddingPrice(true)}>{price?'Tạo giá thay thế':'Tạo giá nháp'}</Button>
     </div>}
     {!item.prices.length&&!context.canCreatePrice&&<p>Chưa có phiên bản giá.</p>}
-    {item.prices.map(price=><div key={price.id} className={styles.card}><strong>Phiên bản giá {price.revisionNumber}: {price.amount} {price.currencyCode}/người</strong><p>{lifecycle[price.status]}{price.id===item.currentApprovedPriceRevisionId?' · Giá hiện hành đã duyệt':''}{price.templateVersionId!==item.offer.templateVersionId||price.offerCommercialRevision!==item.offer.commercialRevision?' · Thuộc cấu hình thương mại trước':''}</p>{price.reviewReason&&<p>Lý do xét duyệt: {price.reviewReason}</p>}
+    {item.prices.map(price=><div key={price.id} className={styles.card}><strong>Phiên bản giá {price.revisionNumber}: {new Intl.NumberFormat('vi-VN',{maximumFractionDigits:4}).format(Number(price.amount))} {price.currencyCode}/người</strong><p>{lifecycle[price.status]}{price.id===item.currentApprovedPriceRevisionId?' · Giá hiện hành đã duyệt':''}{price.templateVersionId!==item.offer.templateVersionId||price.offerCommercialRevision!==item.offer.commercialRevision?' · Thuộc cấu hình thương mại trước':''}</p>{price.reviewReason&&<p>Lý do xét duyệt: {price.reviewReason}</p>}
       {context.canCreatePrice&&price.status==='DRAFT'&&price.templateVersionId===item.offer.templateVersionId&&price.offerCommercialRevision===item.offer.commercialRevision&&<Button onClick={()=>void run(()=>cruisePackageApi.reviewPrice(cruiseId,item.offer.id,price.id,price.revision,'submit'),unified?'Đã gửi phiên bản giá để Quản lý lịch trình chọn vào hồ sơ chuyến.':'Đã gửi phiên bản giá để Quản lý vận hành xét duyệt.')}>{unified?'Gửi giá vào hồ sơ':'Gửi duyệt phiên bản giá'} {price.revisionNumber}</Button>}
       {checker&&price.createdBy!==access.userId&&price.submittedBy!==access.userId&&price.status==='SUBMITTED'&&price.templateVersionId===item.offer.templateVersionId&&price.offerCommercialRevision===item.offer.commercialRevision&&<div className={styles.form}>
         <Field htmlFor={`fare-review-${price.id}`} label="Lý do xét duyệt (bắt buộc khi trả lại)"><textarea id={`fare-review-${price.id}`} maxLength={4000} value={reasons[price.id]??''} onChange={e=>setReasons(v=>({...v,[price.id]:e.target.value}))}/></Field>

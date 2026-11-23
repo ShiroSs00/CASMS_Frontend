@@ -143,7 +143,7 @@ export function serializeCabinSelection(person: BookingPersonDraft, quote = fals
         farePackageOfferId: person.farePackageOfferId, farePackagePriceRevisionId: person.farePackagePriceRevisionId };
 }
 export function serializeBooking(draft: BookingDraft) {
-    return { cruiseId: draft.cruiseId, currency: draft.currency, paymentPlan: draft.paymentPlan, notes: draft.notes.trim() || undefined, passengers: draft.passengers.map(person => ({ fullName: person.fullName.trim(), ...serializeCabinSelection(person), dateOfBirth: person.dateOfBirth || undefined, nationality: person.nationality.trim() || undefined, documentType: person.documentType || undefined, documentNumber: person.documentNumber.trim() || undefined, email: person.email.trim() || undefined, phoneNumber: person.phoneNumber.trim() || undefined })) };
+    return { cruiseId: draft.cruiseId, currency: draft.currency, paymentPlan: draft.paymentPlan, notes: draft.notes.trim() || undefined, passengers: draft.passengers.map(person => ({ fullName: person.fullName.trim(), ...serializeCabinSelection(person), dateOfBirth: person.dateOfBirth || undefined, nationality: person.nationality.trim() || undefined, documentType: person.documentType || undefined, documentNumber: person.documentNumber.trim() || undefined, email: person.email.trim() || undefined, phoneNumber: person.phoneNumber.replace(/[\s-]/g, '') || undefined })) };
 }
 export function bookingCruisePackageSelectionErrors(draft: BookingDraft, catalog: CruisePackageCatalog | null | undefined): Record<string, string> {
     const errors: Record<string, string> = {};
@@ -232,7 +232,7 @@ export function bookingFieldErrors(draft: BookingDraft, cruise: BookingCruiseOpt
                 field('fullName', 'Họ tên cần từ 2 đến 100 ký tự.');
             if (person.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(person.email.trim()))
                 field('email', 'Email chưa đúng định dạng.');
-            if (person.phoneNumber.trim() && !/^(\+?[0-9]{8,15})$/.test(person.phoneNumber.trim()))
+            if (person.phoneNumber.trim() && !/^(\+?[0-9]{8,15})$/.test(person.phoneNumber.replace(/[\s-]/g, '')))
                 field('phoneNumber', 'Số điện thoại cần 8–15 chữ số, có thể bắt đầu bằng +.');
             if (person.dateOfBirth) {
                 const birth = Date.parse(person.dateOfBirth);
@@ -310,13 +310,13 @@ export const realBookingApi = {
             const data = await apiRequest<{
                 content: BookingCruiseOption[];
                 totalPages: number;
-            }>('/cruise', { query: { page, size: 100, status: 'PUBLISHED' }, signal });
+            }>('/cruise', { query: { page, size: 100, status: 'PUBLISHED', saleState: 'OPEN_FOR_SALE' }, signal });
             if (!Array.isArray(data?.content) || !Number.isSafeInteger(data.totalPages) || data.totalPages < 0 || data.content.some(item => !item || !item.cruiseId || !item.cruiseName || item.status !== 'PUBLISHED' || !Number.isFinite(Date.parse(item.departureDatetime))))
                 throw new Error('Không tải được chuyến đã công bố.');
             items.push(...data.content);
             pages = data.totalPages;
         }
-        const available = await Promise.all(items.map(async (item) => {
+        const settled = await Promise.allSettled(items.map(async (item) => {
             const state = await apiRequest<{
                 cruiseId: string;
                 sellable: boolean;
@@ -326,7 +326,7 @@ export const realBookingApi = {
                 throw new ApiError('', 502);
             return { ...item, sellable: state.sellable && state.transactionReady !== false };
         }));
-        return available.filter(item => item.sellable === true);
+        return settled.flatMap(r => r.status === 'fulfilled' && r.value.sellable ? [r.value] : []);
     },
     async packages(signal?: AbortSignal) { const data = await apiRequest<{
         id: string;

@@ -548,7 +548,7 @@ export function CruiseFormPage() {
                 value={draft.departureDatetime} error={departureWindowError ?? errors.departureDatetime}
                 minClock={windowBounds.earliestDeparture || undefined}
                 maxClock={windowBounds.latestDeparture || undefined}
-                templateClock={source.data.days.find(day => day.dayNumber === 1)?.plannedDepartureTime ?? undefined}
+                templateClock={hasDepartureWindow ? undefined : (source.data.days.find(day => day.dayNumber === 1)?.plannedDepartureTime ?? undefined)}
                 onChange={value => update('departureDatetime', value)} onIncompleteChange={setDateFieldsIncomplete} />
 
               <div className={styles.fullWidthField}>

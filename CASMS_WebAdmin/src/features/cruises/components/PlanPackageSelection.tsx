@@ -19,6 +19,8 @@ export function PlanPackageSelection({ cruiseId, onSaved }: { cruiseId: string; 
   const lock = useRef(false)
   const data = query.data
   const selected = draft ?? data?.selections ?? []
+  const hasChanges = draft !== null && Boolean(data) && (draft.length !== data!.selections.length
+    || draft.some(choice => !data!.selections.some(saved => saved.offerId === choice.offerId && saved.priceRevisionId === choice.priceRevisionId)))
 
   async function save() {
     if (!editable || !data || !draft || lock.current || query.loading || query.error) return
@@ -80,9 +82,12 @@ export function PlanPackageSelection({ cruiseId, onSaved }: { cruiseId: string; 
     })}
     {selected.filter(choice => !data?.offers.some(candidate => candidate.product.offer.id === choice.offerId)).map(choice =>
       <p key={choice.offerId}>Gói đã chọn không còn khả dụng. <Button tone="secondary" disabled={busy} onClick={() => setDraft(selected.filter(item => item.offerId !== choice.offerId))}>Bỏ gói khỏi hồ sơ</Button></p>)}
-    {terms.data?.terms && <p>Thuế: {chargeText(terms.data.terms.tax, true)} · Phí cảng: {chargeText(terms.data.terms.portFee, false)}</p>}
+    {terms.data?.terms && <p>Thuế: {chargeText(terms.data.terms.tax, true)} · Phí cảng: {chargeText(terms.data.terms.portFee, false, terms.data.currency)}</p>}
     {terms.error && <div className={styles.selectionActions}><Button tone="secondary" size="compact" autoWidth onClick={terms.retry}>Tải lại thuế và phí cảng</Button></div>}
-    <div className={styles.selectionActions}><Button autoWidth disabled={!editable || !draft || busy || Boolean(error) || query.loading || Boolean(query.error)} onClick={() => void save()}>Lưu lựa chọn gói</Button></div>
+    <div className={styles.selectionActions}>
+      {!hasChanges && !query.loading && !query.error && selected.length > 0 && <p role="status">Đã lưu lựa chọn gói vào hồ sơ. Tiếp tục đến bước nộp hồ sơ tour.</p>}
+      <Button autoWidth disabled={!editable || !hasChanges || busy || Boolean(error) || query.loading || Boolean(query.error)} onClick={() => void save()}>Lưu lựa chọn gói</Button>
+    </div>
   </Panel>
 }
 
@@ -136,7 +141,7 @@ export function FrozenPlanPackages({ snapshot }: { snapshot: unknown }) {
           {(['tax', 'portFee'] as const).map(key => {
             const charge = evidenceRow(frozen.terms[key])
             return <div key={key} className={styles.termItem}>
-              <strong>{key === 'tax' ? 'Thuế áp dụng' : 'Phí cảng'}: {chargeText(charge, key === 'tax')}</strong>
+              <strong>{key === 'tax' ? 'Thuế áp dụng' : 'Phí cảng'}: {chargeText(charge, key === 'tax', evidenceRow(frozen.source.cruise).sale_currency)}</strong>
               {evidenceText(charge.reason) && <p>Lý do: {String(charge.reason)}</p>}
               {evidenceText(charge.evidence) && <p className={styles.reference}>Căn cứ: {String(charge.evidence)}</p>}
             </div>

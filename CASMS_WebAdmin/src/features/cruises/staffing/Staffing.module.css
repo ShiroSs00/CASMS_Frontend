@@ -53,13 +53,50 @@
 .actions { display:flex; flex-wrap:wrap; gap:var(--space-3); padding-top:var(--space-4); border-top:1px solid var(--ui-border); align-items:center; }
 @media(max-width:480px){ .fields { grid-template-columns:minmax(0,1fr); } }
 
-/* Staffing V2 operational workspace: workflow stepper, summary strip, area cards, and assignment rows. */
-.workflowStepper { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:var(--space-2); list-style:none; margin:0; padding:var(--space-3); background:var(--surface-subtle, #f4f7f8); border:1px solid var(--ui-border, #d5e0e4); border-radius:var(--radius-panel, 8px); }
-.workflowStep { display:grid; gap:2px; padding:var(--space-2) var(--space-3); border-radius:var(--radius-control, 6px); border:1px solid transparent; font-size:var(--text-xs, 12px); color:var(--ui-muted, #506777); min-width:0; }
-.workflowStep strong { font-size:var(--text-sm, 13px); font-weight:600; color:var(--ui-ink, #0b2a4a); display:block; }
-.workflowStepDone { background:var(--ui-surface, #fff); border-color:var(--ui-border, #d5e0e4); }
+/* Staffing V2 operational workspace: visual pipeline stepper, KPI progress cards, guided step headers, staff avatars, and handoff card. */
+.workflowStepper { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:var(--space-2); list-style:none; margin:0; padding:var(--space-3) var(--space-4); background:var(--ui-surface, #fff); border:1px solid var(--ui-border, #d5e0e4); border-radius:var(--radius-md, 10px); }
+.workflowStep { position:relative; display:flex; align-items:flex-start; gap:var(--space-2); padding:var(--space-2) var(--space-3); border-radius:var(--radius-control, 6px); border:1px solid transparent; font-size:var(--text-xs, 12px); color:var(--ui-muted, #506777); min-width:0; }
+.workflowStepMarker { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:999px; flex-shrink:0; font-size:12px; font-weight:700; background:var(--surface-subtle, #f4f7f8); border:1px solid var(--ui-border, #d5e0e4); color:var(--ui-muted, #506777); margin-top:1px; }
+.workflowStepBody { display:grid; gap:2px; min-width:0; }
+.workflowStep strong { font-size:var(--text-sm, 13px); font-weight:600; color:var(--ui-ink, #0b2a4a); display:block; line-height:1.3; }
+.workflowStepDone { background:var(--surface-subtle, #f4f7f8); border-color:var(--ui-border, #d5e0e4); }
+.workflowStepDone .workflowStepMarker { background:var(--success, #167347); border-color:var(--success, #167347); color:#fff; }
 .workflowStepDone strong { color:var(--success, #167347); }
-.workflowStepCurrent { background:var(--surface-warm, #f3ebdd); border-color:var(--fg-2, #0e6b7a); color:var(--ui-ink, #0b2a4a); }
+.workflowStepCurrent { background:var(--surface-warm, #f3ebdd); border-color:var(--fg-2, #0e6b7a); color:var(--ui-ink, #0b2a4a); box-shadow:0 0 0 1px var(--fg-2, #0e6b7a); }
+.workflowStepCurrent .workflowStepMarker { background:var(--accent, #0b2a4a); border-color:var(--accent, #0b2a4a); color:#fff; }
+
+.stageGuideBanner { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-3); padding:var(--space-3) var(--space-4); background:linear-gradient(90deg, rgba(11,42,74,0.04) 0%, rgba(14,107,122,0.06) 100%); border:1px solid var(--ui-border, #d5e0e4); border-left:4px solid var(--accent, #0b2a4a); border-radius:var(--radius-sm, 6px); }
+.stageGuideMain { display:grid; gap:2px; min-width:0; }
+.stageGuideEyebrow { font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--fg-2, #0e6b7a); }
+.stageGuideTitle { margin:0; font-size:var(--text-base, 14px); font-weight:600; color:var(--ui-ink, #0b2a4a); }
+.stageGuideText { margin:0; font-size:var(--text-sm, 13px); color:var(--ui-muted, #506777); line-height:1.45; }
+.stageRoutePill { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:999px; background:var(--ui-surface, #fff); border:1px solid var(--ui-border, #d5e0e4); font-size:var(--text-xs, 12px); font-weight:600; color:var(--ui-ink, #0b2a4a); white-space:nowrap; }
+.stageRouteArrow { color:var(--fg-2, #0e6b7a); font-weight:700; }
+
+.progressTrack { width:100%; height:6px; border-radius:999px; background:var(--ui-border, #d5e0e4); overflow:hidden; margin-top:4px; }
+.progressFill { height:100%; border-radius:999px; background:var(--fg-2, #0e6b7a); transition:width var(--motion-fast, 150ms) var(--ease-standard, ease); }
+.progressFillSuccess { background:var(--success, #167347); }
+.progressFillWarn { background:var(--warn, #995700); }
+
+.stepSectionHead { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-2) var(--space-3); }
+.stepSectionTitleGroup { display:inline-flex; align-items:center; gap:var(--space-2); }
+.stepBadgeNum { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:999px; background:var(--accent, #0b2a4a); color:#fff; font-size:12px; font-weight:700; flex-shrink:0; }
+.stepBadgeDone { background:var(--success, #167347); }
+
+.flowTagRow { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:4px; }
+.flowTag { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:4px; background:var(--surface-subtle, #f4f7f8); border:1px solid var(--ui-border, #d5e0e4); font-size:var(--text-xs, 12px); font-weight:500; color:var(--ui-ink, #0b2a4a); }
+.flowTagAccent { background:rgba(14,107,122,0.08); border-color:rgba(14,107,122,0.28); color:var(--fg-2, #0e6b7a); font-weight:600; }
+
+.staffAvatar { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:999px; background:var(--accent, #0b2a4a); color:#fff; font-size:11px; font-weight:700; letter-spacing:0.02em; flex-shrink:0; text-transform:uppercase; }
+.needProgressWrap { display:grid; gap:4px; width:min(100%, 16rem); margin-top:4px; }
+
+.handoffCard { display:grid; gap:var(--space-3); padding:var(--space-4); background:var(--ui-surface, #fff); border:1px solid var(--ui-border, #d5e0e4); border-top:3px solid var(--accent, #0b2a4a); border-radius:var(--radius-md, 10px); }
+.handoffCardHeader { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-2) var(--space-4); }
+.handoffCardTitle { margin:0; font-size:var(--text-base, 15px); font-weight:600; color:var(--ui-ink, #0b2a4a); }
+.readinessChecklist { display:grid; grid-template-columns:repeat(auto-fit, minmax(14rem, 1fr)); gap:var(--space-2); list-style:none; margin:0; padding:var(--space-3); background:var(--surface-subtle, #f4f7f8); border:1px solid var(--ui-border, #d5e0e4); border-radius:var(--radius-sm, 6px); }
+.readinessItem { display:flex; align-items:flex-start; gap:8px; font-size:var(--text-xs, 12.5px); line-height:1.45; color:var(--ui-ink, #0b2a4a); }
+.readinessIconOk { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:999px; background:var(--success, #167347); color:#fff; font-size:11px; font-weight:700; flex-shrink:0; margin-top:1px; }
+.readinessIconPending { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:999px; background:var(--surface-warm, #f3ebdd); border:1px solid var(--warn, #995700); color:var(--warn, #995700); font-size:11px; font-weight:700; flex-shrink:0; margin-top:1px; }
 .mobileWorkflow { display:none; }
 @media (max-width:900px) {
   .desktopWorkflow { display:none; }

@@ -54,6 +54,7 @@ export const candidateStatusCopy: Record<CandidateStatus,string> = {
 type Preparation = {
   scheduleRevision: number; request: StaffingRequest | null; services: { id: string; name: string }[]
   hasOperatingBudget: boolean
+  requiresReplanning?: boolean
 }
 const path = '/cruises/staffing-requests'
 const planPath = (id: string) => `/cruises/${encodeURIComponent(id)}/staffing-requests`
@@ -133,6 +134,7 @@ export const staffingApi = {
 }
 
 const errors: Record<string,string> = {
+  STAFFING_ACTIVITY_COVERAGE_REQUIRED:'Còn ca hoạt động hoặc tour bờ chưa phân công người đủ điều kiện. Hoàn thiện phân ca trước khi gửi phương án.',
   PREPARATION_BUDGET_REQUIRED:'Lưu ngân sách vận hành dự kiến trước khi gửi yêu cầu nhân sự.',
   STAFFING_REVISION_CONFLICT:'Yêu cầu đã được cập nhật. Tải lại trước khi gửi.',
   STAFFING_SOURCE_REVISION_STALE:'Tour đã thay đổi. Tải lại yêu cầu trước khi gửi.',

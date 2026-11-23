@@ -8,6 +8,7 @@ import {useFleetQuery} from '../hooks/useFleetQuery'
 import {serviceAreaName,serviceType} from '@/shared/i18n/service-area-copy'
 import {paginateFleet} from '../model/fleet-pagination'
 import {FleetPagination} from './FleetPagination'
+import {ShipAreaPosConfig} from './ShipAreaPosConfig'
 import styles from './ShipAreas.module.css'
 
 const areaKindLabel=(kind:string|null)=>kind?serviceType(kind):'Chưa phân loại'
@@ -78,7 +79,7 @@ export function ShipAreas({shipId,initialDeck=''}:{shipId:string;initialDeck?:st
  const decks=useFleetQuery(`area-decks:${shipId}`,loadDecks,access.canDo('DECK_READ'))
  const selected=decks.data?.find(value=>value.id===deck)
  const loadAreas=useCallback((signal:AbortSignal)=>readShipServiceAreas(shipId,signal),[shipId])
- const areas=useFleetQuery(`service-areas:${shipId}`,loadAreas,access.canDo('SHIP_CONFIGURATION_READ')&&Boolean(selected))
+ const areas=useFleetQuery(`service-areas:${shipId}`,loadAreas,access.canDo('SHIP_CONFIGURATION_READ'))
  const onDeck=areas.data?.filter(area=>area.deckId===selected?.id)??[]
  const term=search.normalize('NFD').replace(/\p{M}/gu,'').replace(/[đĐ]/g,'d').toLocaleLowerCase('vi').trim()
  const rows=onDeck.filter(area=>(!kind||area.kind===kind)&&(!term||`${displayName(area)} ${area.name??''} ${areaKindLabel(area.kind)}`.normalize('NFD').replace(/\p{M}/gu,'').replace(/[đĐ]/g,'d').toLocaleLowerCase('vi').includes(term)))
@@ -87,6 +88,9 @@ export function ShipAreas({shipId,initialDeck=''}:{shipId:string;initialDeck?:st
  return <Panel title="Khu vực dịch vụ">
   <div className={styles.stack}>
    <div className={styles.deckPicker}><Field htmlFor="service-area-deck" label="Boong"><select id="service-area-deck" value={selected?.id??''} disabled={decks.loading||!decks.data?.length} onChange={event=>{setDeck(event.target.value);setSearch('');setKind('');setPage(1)}}><option value="">{decks.loading?'Đang tải boong…':'Chọn boong'}</option>{decks.data?.map(value=><option key={value.id} value={value.id}>Boong {value.number} · {value.name}</option>)}</select></Field></div>
+   {access.canDo('POS_MANAGE')
+    ?<ShipAreaPosConfig shipId={shipId} deckId={selected?.id??''} areasOnDeck={onDeck} allAreas={areas.data??[]}/>
+    :<Notice title="Cấu hình dịch vụ theo khu vực 3D & máy POS offline">Để mở khu vực và lập định biên nhân sự trong Kế hoạch chuyến, Quản trị hệ thống cần gắn dịch vụ vào khu vực 3D và đăng ký máy POS offline cho tàu tại màn hình này.</Notice>}
    {selected&&access.roles.includes('SHIP_MANAGER')&&access.has('SHIP_MODEL_OBJECT_UPDATE')&&<ActivityAreaSetup key={selected.id} shipId={shipId} deckId={selected.id}/>}
    {decks.error&&<Notice title="Không tải được danh sách boong" tone="error">{decks.error}</Notice>}
    {!access.canDo('DECK_READ')&&<Empty title="Chưa có quyền xem boong"/>}

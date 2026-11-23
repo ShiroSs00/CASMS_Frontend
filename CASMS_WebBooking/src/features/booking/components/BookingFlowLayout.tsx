@@ -13,9 +13,8 @@ export function BookingFlowLayout({ stage, available, locked, path, back, headin
       <Link to={back} className={styles.backLink}>← Về danh mục hành trình</Link>
       <span className={styles.stepCounter}>Bước {stage} / {bookingStageLabels.length}</span>
     </div>
-    {/* UX: Persistent Left Summary Rail + Main Stepper Workspace (Royal Caribbean inspired) */}
+    {/* UX: Main Stepper Workspace (Left) + Sticky Booking & Cost Summary Rail (Right) */}
     <div className={styles.layout}>
-      <aside className={styles.summary} aria-label="Tóm tắt hành trình đang đặt">{summary}</aside>
       <div className={styles.workspace}>
         <BookingJourneyProgress labels={bookingStageLabels} stage={stage} available={available} locked={locked} path={path} />
         <header className={styles.stepHeader}>
@@ -23,6 +22,7 @@ export function BookingFlowLayout({ stage, available, locked, path, back, headin
         </header>
         <div className={styles.main}>{children}</div>
       </div>
+      <aside className={styles.summary} aria-label="Tóm tắt hành trình đang đặt">{summary}</aside>
     </div>
   </div>
 }
