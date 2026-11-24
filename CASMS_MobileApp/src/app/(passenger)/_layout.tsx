@@ -1,21 +1,23 @@
 import { motion } from '@/constants/motion';
 import { useMotionPreference } from '@/components/passenger/useMotionPreference';
-import { Redirect, Tabs } from 'expo-router';
+import { Redirect, Tabs, usePathname } from 'expo-router';
 import { ActivityIndicator, Easing, View } from 'react-native';
 
 import { PassengerTabBar } from '@/components/passenger/PassengerNavigation';
 import { passengerLightColors as colors } from '@/constants/passenger-light-theme';
 import { useAuth } from '@/features/auth/session-store';
-import { posDestination } from '@/features/pos/pos-access';
+import { loginLink, workspaceDestination } from '@/features/auth/workspace-navigation';
 
 export const unstable_settings = { anchor: 'home' };
 
 export default function PassengerTabsLayout() {
   const auth = useAuth();
   const reduced = useMotionPreference();
+  const path = usePathname();
   if (auth.status === 'restoring') return <View style={{ flex: 1, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator accessibilityLabel="Đang khôi phục phiên" /></View>;
-  if (auth.status !== 'authenticated' || !auth.session) return <Redirect href={{ pathname: '/login', params: { state: auth.status === 'expired' ? 'expired' : 'default' } }} />;
-  if (posDestination(auth.session.user)) return <Redirect href="/staff-pos" />;
+  if (auth.status !== 'authenticated' || !auth.session) return <Redirect href={loginLink(auth.status, path)} />;
+  const workspace = workspaceDestination(auth.session.user);
+  if (workspace !== '/home') return <Redirect href={workspace ?? '/loading'} />;
   return (
     <Tabs backBehavior="history" tabBar={props => <PassengerTabBar {...props} />}
       screenOptions={{

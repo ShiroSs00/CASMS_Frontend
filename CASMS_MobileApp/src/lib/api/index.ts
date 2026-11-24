@@ -1,8 +1,18 @@
-import Constants from 'expo-constants';
-import { Platform } from 'react-native';
-import { createApiClient, resolveApiUrl } from './api-client';
+import { ApiError, createApiClient, resolveApiUrl } from './api-client';
 
-export const getApiUrl = () => resolveApiUrl(process.env.EXPO_PUBLIC_API_URL,
-  Constants.expoConfig?.hostUri ?? (Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.hostname : undefined), __DEV__);
+function readApiConfiguration(): { url: string; error: null } | { url: null; error: ApiError } {
+  try {
+    return { url: resolveApiUrl(process.env.EXPO_PUBLIC_API_URL), error: null };
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error;
+    return { url: null, error };
+  }
+}
+
+export const apiConfiguration = readApiConfiguration();
+export function getApiUrl() {
+  if (apiConfiguration.url === null) throw apiConfiguration.error;
+  return apiConfiguration.url;
+}
 export const api = createApiClient({ baseUrl: getApiUrl });
 export { ApiError, readSection, readErrorMessage } from './api-client';

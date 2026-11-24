@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from 'react';
-import { Redirect } from 'expo-router';
+import { Redirect, useLocalSearchParams, usePathname } from 'expo-router';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { type PassengerTab, PassengerScaffold } from '@/components/passenger/PassengerScaffold';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
@@ -9,6 +9,7 @@ import { statusText } from './passenger-model';
 import { usePassengerContext, type useBookingSelection } from './passenger-hooks';
 import { ApiError } from '@/lib/api';
 import { MaterialIcon, type MaterialIconName } from '@/components/passenger/MaterialIcon';
+import { loginLink, workspaceDestination } from '@/features/auth/workspace-navigation';
 
 export function PageIntro({ title, description }: {
   eyebrow?: string; title: string; description?: string; icon?: MaterialIconName;
@@ -36,9 +37,10 @@ export function errorText(error: unknown) {
   return error instanceof Error ? error.message : 'Không xử lý được yêu cầu. Vui lòng thử lại.';
 }
 export function ErrorNotice({ error, retry }: { error: unknown; retry?: () => void }) {
-  if (!error) return null;
-  const message = retry && error instanceof ApiError ? error.status >= 500 ? 'Không tải được dữ liệu. Vui lòng thử lại.' : error.status === 0 ? error.message : errorText(error) : errorText(error);
-  return <View accessibilityLiveRegion="polite" style={styles.error}><Text accessibilityRole="alert" style={styles.errorText}>{message}</Text>{retry && <PassengerButton label="Tải lại" variant="text" onPress={retry} />}</View>;
+  if (!error || (error instanceof Error && error.name === 'AbortError')) return null;
+  const message = retry && error instanceof ApiError && (error.status === 0 || error.status >= 500)
+    ? error.message : errorText(error);
+  return <View accessibilityLiveRegion="polite" style={styles.error}><Text selectable accessibilityRole="alert" style={styles.errorText}>{message}</Text>{retry && <PassengerButton label="Tải lại" variant="text" onPress={retry} />}</View>;
 }
 export function Loading({ text = 'Đang tải dữ liệu…' }: { text?: string }) { return <View style={styles.row}><ActivityIndicator color={brand.teal} /><Text style={ui.body}>{text}</Text></View>; }
 export function LivePage({ title, permission, children, detail = true, selected = 'services', onRefresh, refreshing = false }: {
@@ -46,13 +48,21 @@ export function LivePage({ title, permission, children, detail = true, selected 
   onRefresh?: () => void; refreshing?: boolean;
 }) {
   const context = usePassengerContext();
-  if (context.auth.status !== 'restoring' && context.auth.status !== 'authenticated') return <Redirect href={{ pathname: '/login', params: { state: context.auth.status } }} />;
+  const pathname = usePathname();
+  const { bookingId } = useLocalSearchParams<{ bookingId?: string }>();
+  if (context.auth.status !== 'restoring' && context.auth.status !== 'authenticated') {
+    return <Redirect href={loginLink(context.auth.status, pathname, bookingId)} />;
+  }
+  if (context.auth.session && !context.live) {
+    return <Redirect href={workspaceDestination(context.auth.session.user) ?? '/loading'} />;
+  }
   return <PassengerScaffold detail={detail} selected={detail ? 'account' : selected} title={title}><ScrollView automaticallyAdjustKeyboardInsets
     keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={ui.content}
     refreshControl={onRefresh && context.ready ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={brand.teal} /> : undefined}>
     {context.auth.status === 'restoring' ? <Loading text="Đang khôi phục phiên…" /> : !context.live ? <EmptyState title="Đăng nhập tài khoản hành khách" description="Vui lòng đăng nhập tài khoản hành khách để tiếp tục." />
       : context.error ? <ErrorNotice error={context.error} retry={() => { void context.me.refetch(); }} />
-        : !context.ready ? <Loading text="Đang xác minh tài khoản…" />
+        : context.me.fetchStatus === 'paused' && !context.ready ? <EmptyState title="Đang chờ kết nối" description="Kiểm tra kết nối mạng để tiếp tục xác minh tài khoản." />
+          : !context.ready ? <Loading text="Đang xác minh tài khoản…" />
           : permission && !context.can(permission) ? <EmptyState title="Chưa có quyền truy cập" description="Vui lòng liên hệ đội ngũ hỗ trợ nếu bạn cần sử dụng tính năng này." /> : children}
   </ScrollView></PassengerScaffold>;
 }

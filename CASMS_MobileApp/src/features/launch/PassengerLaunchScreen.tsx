@@ -12,13 +12,13 @@ import { VoyageEntrance } from '@/components/passenger/VoyageEntrance';
 import { OceVieBrand } from '@/components/passenger/OceVieBrand';
 import { voyage } from '@/constants/voyage';
 
-export function PassengerLaunchScreen() {
+export function PassengerLaunchScreen({ restoringOnly = false }: { restoringOnly?: boolean }) {
   const status = useAuth(state => state.status);
   useEffect(() => {
-    if (status === 'restoring') return;
+    if (status === 'restoring' || restoringOnly) return;
     router.replace(status === 'authenticated' ? '/loading'
       : { pathname: '/login', params: { state: status } });
-  }, [status]);
+  }, [status, restoringOnly]);
   return (
     <SafeAreaView
       style={styles.screen}

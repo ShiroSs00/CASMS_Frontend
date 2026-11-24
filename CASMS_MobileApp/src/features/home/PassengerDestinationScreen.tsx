@@ -12,6 +12,7 @@ import { dateTime } from '@/features/passenger-actions/passenger-model';
 export function PassengerDestinationScreen() {
   const catalog = useSelectedItinerary();
   const { voyage, cruise, context } = catalog;
+  const cabin = catalog.person;
   const shipId = cruise?.shipId ?? '';
   const decks = usePassengerQuery(['decks', shipId], signal => passengerApi.decks(shipId, signal), 'DECK_READ', !!shipId);
   const refresh = () => {
@@ -28,6 +29,8 @@ export function PassengerDestinationScreen() {
       <Text accessibilityRole="header" style={ui.title}>{voyage.cruiseName}</Text>
       {!!cruise?.shipName && <Text style={ui.sectionTitle}>{cruise.shipName}</Text>}
       <Facts items={[
+        ['Phòng', cabin?.cabinNumber ?? (cabin?.cabinId ? 'Đã gán, chưa có số phòng' : cabin ? 'Chưa được gán' : 'Chưa xác minh được')],
+        ...(cabin?.deckNumber != null ? [['Tầng', String(cabin.deckNumber)] as [string, string]] : []),
         ['Khởi hành', cruise?.departureDatetime ? dateTime(cruise.departureDatetime) : voyage.startDate ? formatDay(voyage.startDate) : 'Chưa cập nhật'],
         ['Kết thúc', cruise?.returnDatetime ? dateTime(cruise.returnDatetime) : voyage.endDate ? formatDay(voyage.endDate) : 'Chưa cập nhật'],
         ['Trạng thái', statusLabel(cruise?.status ?? voyage.cruiseStatus)],
@@ -46,7 +49,8 @@ export function PassengerDestinationScreen() {
           </View>)}
         {decks.isSuccess && !decks.data?.some(deck => deck.shipId === shipId) && <Text style={ui.body}>Thông tin tầng đang được cập nhật.</Text>}
       </>}
-    </> : catalog.isSuccess && <EmptyState title="Chưa có chuyến đi đã xác nhận"
-      action="Chuyến đi của tôi" onPress={() => router.dismissTo('/passenger-bookings')} />}
+    </> : catalog.isSuccess && <EmptyState title={catalog.voyages.length ? 'Hãy chọn chuyến đi để xem chi tiết' : 'Chưa có chuyến đi đã xác nhận'}
+      action={catalog.voyages.length ? 'Về trang chủ' : 'Chuyến đi của tôi'}
+      onPress={() => router.dismissTo(catalog.voyages.length ? '/home' : '/passenger-bookings')} />}
   </LivePage>;
 }

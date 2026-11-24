@@ -6,11 +6,10 @@ import { PassengerButton } from '@/components/passenger/PassengerButton';
 import { PassengerListItem } from '@/components/passenger/PassengerListItem';
 import { PassengerSheet, EmptyState, ui } from '@/components/passenger/PassengerUI';
 import { ErrorNotice, LivePage, Loading } from '@/features/passenger-actions/PassengerActionUI';
-import { passengerApi, usePassengerAction, usePassengerQuery } from '@/features/passenger-actions/passenger-hooks';
+import { passengerApi, passengerKey, usePassengerAction, usePassengerQuery } from '@/features/passenger-actions/passenger-hooks';
 import { dateTime } from '@/features/passenger-actions/passenger-model';
 import type { PassengerNotification } from '@/features/passenger-actions/passenger-api';
 import { useAuth } from '@/features/auth/session-store';
-import { getApiUrl } from '@/lib/api';
 
 export function PassengerNotificationsScreen({ embedded = false }: { embedded?: boolean }) {
   const inbox = usePassengerQuery(['notifications'], passengerApi.notifications, 'NOTIFICATION_READ');
@@ -27,7 +26,7 @@ export function PassengerNotificationsScreen({ embedded = false }: { embedded?: 
       const { result, owner } = await read.mutateAsync(() => passengerApi.markNotificationRead(notificationId));
       const current = useAuth.getState().session;
       if (current && current.user.id === owner && current.signedInAt === original?.signedInAt) {
-        cache.setQueryData<PassengerNotification[]>(['passenger', getApiUrl(), owner, 'notifications'], items =>
+        cache.setQueryData<PassengerNotification[]>(passengerKey(owner, current.signedInAt, 'notifications'), items =>
           items?.map(item => item.notificationId === result.notificationId ? { ...item, readAt: result.readAt } : item));
       }
     }

@@ -1,22 +1,27 @@
 import assert from 'node:assert/strict';
 import { before, test } from 'node:test';
 import { registerHooks } from 'node:module';
-import { createApiClient } from '../../src/lib/api/api-client.ts';
+import { loginQa, qaReadOnlyDatabase, qaTransport, readQaConfig, verifyQaFixture, verifyQaReadiness } from './qa-environment.mjs';
 registerHooks({ resolve(specifier, context, next) { return next(specifier === './staff-model' ? './staff-model.ts' : specifier, context); } });
 const { createStaffApi } = await import('../../src/features/staff-pos/staff-api.ts');
-const transport = createApiClient({ baseUrl: () => 'http://127.0.0.1:18080/api' });
-const passenger = createApiClient({ baseUrl: () => 'http://127.0.0.1:18080/api' });
+const url = readQaConfig();
+const transport = qaTransport(url);
+const passenger = qaTransport(url);
 const staff = createStaffApi(transport);
 const owner = 'b1000000-0000-4000-8000-000000000001';
 before(async () => {
-  const login = await transport.request('/auth/login', { method: 'POST', authenticated: false, body: { username: 'ocevie.staff.qa', password: 'OcevieStaffQa@2026' } });
-  transport.setToken(login.accessToken);
-  const me = await transport.request('/auth/me');
-  assert.equal(me.userId, owner); assert.deepEqual(me.roles, ['ONBOARD_STAFF']);
-  assert.ok(me.effectivePermissions.includes('PRODUCT_MANAGE'));
-  const session = await passenger.request('/auth/login', { method: 'POST', authenticated: false, body: { username: 'ocevie.mobile.qa', password: 'OcevieQa@2026' } });
-  passenger.setToken(session.accessToken);
-  assert.equal((await passenger.request('/auth/me')).userId, 'a1000000-0000-4000-8000-000000000001');
+  await verifyQaReadiness(url);
+  qaReadOnlyDatabase();
+  const me = await loginQa(transport, 'STAFF');
+  const guest = await loginQa(passenger, 'PASSENGER');
+  await verifyQaFixture(async () => {
+    assert.equal(me.userId, owner); assert.deepEqual(me.roles, ['ONBOARD_STAFF']);
+    assert.ok(me.effectivePermissions.includes('PRODUCT_MANAGE'));
+    assert.equal(guest.userId, 'a1000000-0000-4000-8000-000000000001');
+    assert.deepEqual(guest.roles, ['PASSENGER']);
+    const booking = await passenger.request('/booking/a1000000-0000-4000-8000-000000000061');
+    assert.ok(booking.passengers.some(person => person.bookingPassengerId === 'a1000000-0000-4000-8000-000000000071'));
+  });
 });
 test('staff creates, edits and discontinues real products; passengers cannot read them', async () => {
   const form = { code: `QA-STAFF-${Date.now()}`, name: 'QA Tea', type: 'DRINK', description: 'Staff API verification', price: '12.5', currency: 'USD' };

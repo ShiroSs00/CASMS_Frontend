@@ -11,6 +11,10 @@ This screen serves passengers after booking. It uses the existing service-reques
 - Service creation does not mean payment or an issued invoice. There are no cart, charge-to-cabin or payment calls.
 - Pending actions cannot be dismissed or submitted twice. Mutations do not automatically retry; errors remain visible and successful writes refresh personal queries.
 
-Validation on 21 October 2026: 53 unit tests passed; the six real HTTP integration tests passed on unchanged upstream BE e6978f7 with isolated PostgreSQL QA, including service creation, editing, cancellation and SQL persistence verification. The new service input and missing booking-link rules have regression coverage.
+## A0-FE validation
 
-Browser verification of the updated screen was attempted, but the in-app browser timed out at navigation and accessibility operations, including a separate temporary tab. No updated UI screenshot or native-device interaction verification is claimed.
+Unit tests cover validation, scheduled requests and operation-key recovery.
+Run `npm test` independently. Run the real service lifecycle suite only after the
+QA team confirms the API and fixture, as described in [real-api-qa.md](real-api-qa.md).
+Passenger service request cancellation continues to use its own API. Booking
+cancellation is handled outside Mobile and has separate contact guidance.

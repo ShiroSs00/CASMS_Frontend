@@ -4,7 +4,7 @@ export type LoginCredentials = { username: string; password: string };
 export function validateLogin({ username, password }: LoginCredentials) {
   return {
     username: !username.trim() ? 'Vui lòng nhập tên đăng nhập.' : undefined,
-    password: !password.length ? 'Vui lòng nhập mật khẩu.' : undefined,
+    password: !password.trim() ? 'Vui lòng nhập mật khẩu.' : undefined,
   };
 }
 

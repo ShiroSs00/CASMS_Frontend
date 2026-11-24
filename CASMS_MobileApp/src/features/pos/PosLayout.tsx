@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Redirect, Stack } from 'expo-router';
+import { Redirect, Stack, usePathname } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform, Text, View } from 'react-native';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
@@ -8,6 +8,7 @@ import { useMotionPreference } from '@/components/passenger/useMotionPreference'
 import { brand, lightTheme } from '@/constants/ocevie';
 import { authActions, useAuth } from '@/features/auth/session-store';
 import { Loading } from '@/features/passenger-actions/PassengerActionUI';
+import { isPassengerWorkspace, loginLink } from '@/features/auth/workspace-navigation';
 import { ApiError, getApiUrl } from '@/lib/api';
 import { useNow } from '@/hooks/use-now';
 import { employeeRole, eligibleEmployee } from './pos-access';
@@ -56,14 +57,15 @@ export default function PosLayout() {
   const status = useAuth(state => state.status);
   const login = useAuth(state => state.session);
   const employee = login?.user;
+  const pathname = usePathname();
   if (status === 'restoring') return <PosPage title="OceVie POS" standalone><Loading /></PosPage>;
-  if (!login || !employee) return <Redirect href={status === 'expired' ? { pathname: '/login', params: { state: 'expired' } } : '/login'} />;
+  if (!login || !employee) return <Redirect href={loginLink(status, pathname)} />;
   if (!employeeRole(employee.roles) || Platform.OS === 'web') {
     return <PosPage title="OceVie POS" standalone>
       <Notice tone="warning">{employee.roles.includes('POS')
         ? 'Đây là tài khoản thiết bị. Hãy đăng xuất và đăng nhập bằng tài khoản nhân viên.'
         : Platform.OS === 'web' ? 'Mở POS trong ứng dụng OceVie.' : 'Tài khoản này chưa có quyền sử dụng POS.'}</Notice>
-      {employee.roles.includes('PASSENGER') ? <Redirect href="/home" /> :
+      {isPassengerWorkspace(employee) ? <Redirect href="/home" /> :
         <PassengerButton label="Đăng xuất" onPress={() => { void authActions.logout(); }} />}
     </PosPage>;
   }

@@ -1,10 +1,9 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
 import { EmptyState, ui } from '@/components/passenger/PassengerUI';
-import { ConfirmAction, ErrorNotice, Input, LivePage, Loading, StatusBadge } from './PassengerActionUI';
-import { passengerApi, usePassengerAction, usePassengerContext, usePassengerQuery } from './passenger-hooks';
+import { ErrorNotice, LivePage, Loading, StatusBadge } from './PassengerActionUI';
+import { passengerApi, usePassengerContext, usePassengerQuery } from './passenger-hooks';
 import { dateTime, statusText } from './passenger-model';
 import { PassengerBookingFinancialSummary } from './PassengerBookingFinancialSummary';
 import { bookingFinancialMoney } from './booking-financials';
@@ -31,8 +30,6 @@ export function PassengerBookingDetailScreen() {
   const context = usePassengerContext();
   const booking = usePassengerQuery(['booking', bookingId], signal => passengerApi.booking(bookingId, signal), 'BOOKING_READ', !!bookingId);
   const payments = usePassengerQuery(['booking-payments', bookingId], signal => passengerApi.payments(bookingId, signal), 'PAYMENT_READ', !!booking.data && !booking.error);
-  const action = usePassengerAction(); const [cancel, setCancel] = useState(false); const [reason, setReason] = useState('');
-  const cancelling = useRef(false);
   const data = booking.data;
   return <LivePage title="Chi tiết chuyến đi" permission="BOOKING_READ">
     {!bookingId && <Text style={ui.body}>Liên kết đặt chỗ không hợp lệ.</Text>}
@@ -69,16 +66,9 @@ export function PassengerBookingDetailScreen() {
         {context.can('SERVICE_READ') && <PassengerButton label="Yêu cầu dịch vụ trên tàu" variant="secondary" onPress={() => router.push({ pathname: '/passenger-services', params: { bookingId } })} />}
       </>}
       {data.cancellationReason && <Text style={ui.body}>Lý do hủy: {data.cancellationReason}</Text>}
-      {data.bookingStatus !== 'Cancelled' && context.can('BOOKING_CANCEL') && <PassengerButton label="Hủy đặt chỗ" variant="text" onPress={() => { action.reset(); setCancel(true); }} />}
+      {data.bookingStatus !== 'Cancelled' && <Text selectable style={ui.body}>Để yêu cầu hủy đặt chỗ, vui lòng liên hệ nhân viên đặt chỗ.</Text>}
       <PassengerButton label="Cập nhật thông tin đặt chỗ" variant="text" loading={booking.isFetching || payments.isFetching}
         onPress={() => { void booking.refetch(); if (context.can('PAYMENT_READ')) void payments.refetch(); }} />
     </>}
-    <ConfirmAction visible={cancel} title="Xác nhận hủy đặt chỗ" description="Các hành khách trong đơn sẽ bị hủy và phòng được giải phóng. Thao tác này không tự xử lý hoàn tiền." pending={action.isPending} disabled={!reason.trim()} error={action.error} onClose={() => setCancel(false)} onConfirm={() => {
-      if (!reason.trim() || cancelling.current || booking.error || booking.isFetching || !data
-        || data.bookingStatus === 'Cancelled' || !context.can('BOOKING_CANCEL')) return;
-      cancelling.current = true;
-      void action.mutateAsync(() => passengerApi.cancelBooking(bookingId, reason))
-        .then(() => setCancel(false)).catch(() => {}).finally(() => { cancelling.current = false; });
-    }}><Input label="Lý do hủy bắt buộc" value={reason} onChange={setReason} multiline maxLength={500} disabled={action.isPending} />{!reason.trim() && <Text style={ui.caption}>Nhập lý do để tiếp tục.</Text>}</ConfirmAction>
   </LivePage>;
 }

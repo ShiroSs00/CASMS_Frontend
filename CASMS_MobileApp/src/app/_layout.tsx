@@ -4,17 +4,28 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { AppState, Platform } from 'react-native';
+import { AppState, Platform, ScrollView } from 'react-native';
 
+import { PassengerScaffold } from '@/components/passenger/PassengerScaffold';
+import { EmptyState, ui } from '@/components/passenger/PassengerUI';
 import { passengerColors } from '@/constants/passenger-theme';
 import { passengerLightColors } from '@/constants/passenger-light-theme';
 import { queryClient } from '@/lib/query-client';
 import { syncAppQueryFocus } from '@/lib/app-query-focus';
-import { authActions, useAuth } from '@/features/auth/session-store';
+import { authActions } from '@/features/auth/session-store';
+import { apiConfiguration } from '@/lib/api';
 
 void SplashScreen.preventAutoHideAsync().catch(console.warn);
 
 export default function RootLayout() {
+  if (apiConfiguration.error) {
+    return <PassengerScaffold title="Kết nối OceVie">
+      <StatusBar style="dark" />
+      <ScrollView contentContainerStyle={ui.content}>
+        <EmptyState title="Chưa thể kết nối" description="Địa chỉ máy chủ chưa được cấu hình đúng. Vui lòng liên hệ đội ngũ hỗ trợ để kiểm tra bản ứng dụng." />
+      </ScrollView>
+    </PassengerScaffold>;
+  }
   return <MotionPreferenceProvider><RootContent /></MotionPreferenceProvider>;
 }
 function RootContent() {
@@ -23,9 +34,8 @@ function RootContent() {
     void authActions.restore();
     syncAppQueryFocus(AppState.currentState, Platform.OS);
     const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') authActions.resume();
       syncAppQueryFocus(state, Platform.OS);
-      const session = useAuth.getState().session;
-      if (state === 'active' && session && session.expiresAt - Date.now() < 60000) void authActions.refresh();
     });
     return () => subscription.remove();
   }, []);

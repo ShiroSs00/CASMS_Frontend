@@ -47,7 +47,6 @@ export function PassengerLoginScreen({ initialStatus = 'default', signIn = ({ us
     try {
       await signIn({ username: username.trim(), password });
       setPassword('');
-      router.replace('/loading');
     } catch (error) {
       setApiMessage(error instanceof ApiError && error.status >= 500 ? 'Chưa đăng nhập được. Vui lòng thử lại.'
         : error instanceof Error ? error.message : 'Đăng nhập thất bại. Vui lòng thử lại.');
