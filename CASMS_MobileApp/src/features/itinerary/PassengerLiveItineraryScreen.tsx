@@ -7,16 +7,17 @@ import { PassengerSheet } from '@/components/passenger/PassengerSheet';
 import { motion } from '@/constants/motion';
 
 import { PassengerButton } from '@/components/passenger/PassengerButton';
-import { Choice, errorText } from '@/features/passenger-actions/PassengerActionUI';
+import { errorText } from '@/features/passenger-actions/PassengerActionUI';
 import { PassengerScaffold } from '@/components/passenger/PassengerScaffold';
 import { passengerLightColors as colors } from '@/constants/passenger-light-theme';
-import { passengerApi, usePassengerContext, usePassengerQuery } from '@/features/passenger-actions/passenger-hooks';
+import { passengerApi, passengerKey, usePassengerContext, usePassengerQuery } from '@/features/passenger-actions/passenger-hooks';
 import { dateTime } from '@/features/passenger-actions/passenger-model';
 import { useAuth } from '@/features/auth/session-store';
 import { queryClient } from '@/lib/query-client';
-import { ApiError, getApiUrl, readErrorMessage } from '@/lib/api';
+import { ApiError, readErrorMessage } from '@/lib/api';
 import { dateAt, formatDay, formatTime, statusLabel, stopsForDay, timeZoneLabel, validTimeZone } from './api-format';
-import { itineraryApi, selectVoyage, useLiveItinerary, type StopDto, type TourDto } from './itinerary-api';
+import { itineraryApi, useLiveItinerary, type StopDto, type TourDto } from './itinerary-api';
+import { PassengerVoyageChooser } from '@/features/home/PassengerVoyageChooser';
 import { Facts, InfoRow, Notice, SheetHeading, SmallButton, styles } from './ItineraryUI';
 
 type Sheet = 'port' | 'tour' | 'groups' | 'group' | 'history' | 'clock';
@@ -35,9 +36,11 @@ export function PassengerLiveItineraryScreen() {
   const [groupId, setGroupId] = useState<string>();
   const [layout, setLayout] = useState<'daily' | 'ports'>('daily');
   const [localSheet, setSheet] = useState<Sheet | null>(null);
-  const [selectedItinerary, setSelectedItinerary] = useState(catalog.itineraryId);
-  if (selectedItinerary !== catalog.itineraryId) {
-    setSelectedItinerary(catalog.itineraryId);
+  const [choosing, setChoosing] = useState(false);
+  const selectedScope = `${catalog.itineraryId}:${catalog.voyage?.bookingPassengerId ?? ''}`;
+  const [selectedItinerary, setSelectedItinerary] = useState(selectedScope);
+  if (selectedItinerary !== selectedScope) {
+    setSelectedItinerary(selectedScope);
     setDayId(undefined); setStopId(undefined); setTourId(undefined); setGroupId(undefined); setSheet(null);
   }
   const data = detail.data;
@@ -66,14 +69,14 @@ export function PassengerLiveItineraryScreen() {
   const inactiveStop = stop?.status === 'OMITTED' || stop?.status === 'SUBSTITUTED';
   const canLoadTours = context.can('EXCURSION_READ') && !!data && !!stop && !inactiveStop && !cancelled && day?.dayType !== 'SEA_DAY';
   const selectedStopId = stop?.cruiseStopId ?? '';
-  const tours = useQuery({ queryKey: ['live', auth.session?.user.id, getApiUrl(), 'tours', stop?.cruiseStopId], queryFn: ({ signal }) => itineraryApi.tours(selectedStopId, signal), enabled: canLoadTours && !!auth.session });
+  const tours = useQuery({ queryKey: passengerKey(auth.session?.user.id, auth.session?.signedInAt, 'itinerary', catalog.voyage?.cruiseId, catalog.itineraryId, 'tours', selectedStopId), queryFn: ({ signal }) => itineraryApi.tours(selectedStopId, signal), enabled: canLoadTours && !!auth.session });
   const tour = tours.error ? undefined : tours.data?.find(value => value.shoreExcursionId === tourId);
   const sheet = localSheet ?? (detailParam === 'history' ? 'history' : null);
   const inbox = usePassengerQuery(['notifications'], passengerApi.notifications, 'NOTIFICATION_READ', sheet === 'history');
   const changes = inbox.data?.filter(item => item.notificationType === 'CRUISE_SCHEDULE_CHANGE') ?? [];
   // Group browsing is read-only and does not establish a passenger assignment.
   const selectedTourId = tour?.shoreExcursionId ?? '';
-  const groups = useQuery({ queryKey: ['live', auth.session?.user.id, getApiUrl(), 'groups', tour?.shoreExcursionId], queryFn: ({ signal }) => itineraryApi.groups(selectedTourId, signal), enabled: canReadGroups && !!tour && !!auth.session && (sheet === 'groups' || sheet === 'group') });
+  const groups = useQuery({ queryKey: passengerKey(auth.session?.user.id, auth.session?.signedInAt, 'itinerary', catalog.voyage?.cruiseId, catalog.itineraryId, 'groups', selectedTourId), queryFn: ({ signal }) => itineraryApi.groups(selectedTourId, signal), enabled: canReadGroups && !!tour && !!auth.session && (sheet === 'groups' || sheet === 'group') });
   const group = groups.error ? undefined : groups.data?.find(value => value.tourGroupId === groupId);
   function close() { setSheet(null); if (detailParam) router.setParams({ detail: '' }); }
   function openStop(value: StopDto) { setDayId(value.arrivalItineraryDayId); setStopId(value.cruiseStopId); setTourId(undefined); setGroupId(undefined); setSheet('port'); }
@@ -81,7 +84,7 @@ export function PassengerLiveItineraryScreen() {
   function refresh() {
     void context.me.refetch();
     if (context.can('BOOKING_READ')) void catalog.refetch();
-    void queryClient.invalidateQueries({ queryKey: ['live', auth.session?.user.id] });
+    void queryClient.invalidateQueries({ queryKey: passengerKey(auth.session?.user.id, auth.session?.signedInAt, 'itinerary') });
   }
   const heading = (title: string, subtitle: string) => <SheetHeading title={title} subtitle={subtitle} />;
   function modalContent(): ReactNode {
@@ -145,9 +148,9 @@ export function PassengerLiveItineraryScreen() {
   return <PassengerScaffold selected="itinerary">
     <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={catalog.isRefetching || detail.isRefetching} onRefresh={refresh} tintColor={colors.primary} />}>
       {error && <><Notice tone="error" text={`${errorText(error)}${data ? ' Đang hiển thị dữ liệu đã tải trước đó.' : ''}`} /><PassengerButton label="Thử lại" onPress={refresh} /></>}
-      {(catalog.voyages.length > 1 || (catalog.voyages.length === 1 && !catalog.voyage)) && <Choice label="Chuyến đi" value={catalog.voyage?.bookingPassengerId ?? ''}
-        items={catalog.voyages.map(item => ({ id: item.bookingPassengerId, label: `${item.cruiseName} · ${item.bookingReference}${catalog.voyages.filter(row => row.bookingId === item.bookingId).length > 1 ? ` · Hồ sơ …${item.bookingPassengerId.slice(-6)}` : ''}` }))}
-        onChange={passengerId => { const item = catalog.voyages.find(row => row.bookingPassengerId === passengerId); if (catalog.userId && item) selectVoyage(catalog.userId, item.bookingId, item.bookingPassengerId); }} />}
+      {(catalog.voyages.length > 1 || (catalog.voyages.length === 1 && !catalog.voyage)) && <PassengerButton
+        label={catalog.voyage ? 'Đổi chuyến đi' : 'Chọn chuyến đi'} variant="secondary" onPress={() => setChoosing(true)} />}
+      <PassengerVoyageChooser catalog={catalog} visible={choosing} onClose={() => setChoosing(false)} />
       {!error && (auth.status === 'restoring' || (context.live && !context.ready)
         || (context.can('BOOKING_READ') && catalog.isPending) || (catalog.itineraryId && canRead && detail.isPending))
         ? <Notice text="Đang tải hải trình…" />

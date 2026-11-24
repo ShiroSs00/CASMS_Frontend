@@ -26,13 +26,16 @@ const { authActions, useAuth } = await import('../src/features/auth/session-stor
 const { queryClient } = await import('../src/lib/query-client.ts');
 const { savePosSession, restorePosSession, savePendingSale, readPendingSale } = await import('../src/features/pos/pos-storage.ts');
 const { scopedPos } = await import('../src/features/pos/pos-api.ts');
+const { chooseVoyage, useVoyageSelection } = await import('../src/features/passenger-actions/voyage-selection.ts');
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const pos = { sessionToken: 'bound-pos-token', expiresAt: '2099-01-01T00:00:00Z', cruiseId: id(4), staffAssignmentId: null,
   terminal: { terminalId: id(1), shipId: id(2), areaId: id(3), enabled: true, permissions: [], code: 'POS', name: 'POS' } };
 let user = 5;
+let refreshStatus;
 const requests = [];
 globalThis.fetch = async (url, options) => {
   requests.push({ url, ...options });
+  if (url.endsWith('/auth/refresh') && refreshStatus) return new Response(null, { status: refreshStatus });
   if (url.endsWith('/auth/login') || url.endsWith('/auth/refresh')) return Response.json({ success: true, data: {
     accessToken: `employee-${user}`, tokenType: 'Bearer', expiresIn: 3600, userId: id(user), username: `staff-${user}`, roles: ['ONBOARD_STAFF'], effectivePermissions: ['POS_ACCESS'],
   } });
@@ -40,6 +43,18 @@ globalThis.fetch = async (url, options) => {
   throw new Error(`Unexpected test request ${url}`);
 };
 after(async () => { await authActions.logout(); queryClient.clear(); });
+
+test('restore ignores a persisted token scoped to a different API URL', async () => {
+  const key = 'aurora.auth.v1';
+  values.set(key, JSON.stringify({ backend: 'https://other.invalid/api', session: {
+    accessToken: 'previous-environment-token', expiresAt: Date.now() + 3600000, signedInAt: 1,
+    user: { id: id(5), username: 'staff-5', roles: ['ONBOARD_STAFF'] },
+  } }));
+  await authActions.restore();
+  assert.equal(useAuth.getState().status, 'anonymous');
+  assert.equal(useAuth.getState().session, null);
+  assert.equal(requests.length, 0);
+});
 
 test('logout revokes POS with outgoing employee JWT and clears auth, POS storage and query cache', async () => {
   user = 5;
@@ -105,4 +120,46 @@ test('same-owner refresh preserves the login epoch and current account cache', a
   assert.equal(refreshed.user.id, original.user.id);
   assert.equal(refreshed.signedInAt, original.signedInAt);
   assert.deepEqual(queryClient.getQueryData(['current-account']), { owner: id(5) });
+});
+
+test('403 during refresh preserves unexpired auth and account data', async () => {
+  user = 5; await authActions.login('staff-5', 'test-only-password');
+  const original = useAuth.getState().session;
+  queryClient.setQueryData(['current-account'], { owner: id(5) });
+  refreshStatus = 403;
+  try {
+    await authActions.refresh();
+    assert.equal(useAuth.getState().status, 'authenticated');
+    assert.equal(useAuth.getState().session, original);
+    assert.deepEqual(queryClient.getQueryData(['current-account']), { owner: id(5) });
+  } finally {
+    refreshStatus = undefined;
+    await authActions.logout();
+  }
+});
+
+test('selection persists beside the active JWT, survives refresh, and clears on logout', async () => {
+  user = 5; await authActions.login('staff-5', 'test-only-password');
+  const original = useAuth.getState().session;
+  const selected = { bookingId: id(10), bookingPassengerId: id(11), bookingStatus: 'Confirmed', cruiseStatus: 'PUBLISHED', participationStatus: 'Active' };
+  assert.equal(chooseVoyage({ owner: original.user.id, signedInAt: original.signedInAt, apiUrl: process.env.EXPO_PUBLIC_API_URL },
+    [selected], selected.bookingId, selected.bookingPassengerId), true);
+  await authActions.refresh();
+  const saved = JSON.parse(values.get('aurora.auth.v1'));
+  assert.deepEqual(saved.voyage, { bookingId: selected.bookingId, bookingPassengerId: selected.bookingPassengerId });
+  assert.equal(saved.session.accessToken, useAuth.getState().session.accessToken);
+  await authActions.logout();
+  assert.equal(useAuth.getState().status, 'signed-out');
+  assert.equal(useVoyageSelection.getState().selection, null);
+  assert.equal(values.has('aurora.auth.v1'), false);
+});
+
+test('resume expires the session before any request when the clock passed expiry', async () => {
+  await authActions.login('staff-5', 'test-only-password');
+  const session = useAuth.getState().session;
+  useAuth.setState({ session: { ...session, expiresAt: Date.now() - 1 } });
+  const calls = requests.length;
+  authActions.resume();
+  assert.equal(useAuth.getState().status, 'expired');
+  assert.equal(requests.length, calls);
 });

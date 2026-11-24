@@ -1,29 +1,15 @@
-# OceVie mobile navigation and experience
+# OceVie Mobile
 
-The application uses the existing OceVie logo, pearl/navy/teal/gold palette,
-shared safe-area scaffold, 20 px cards, 14 px buttons and Vietnamese system fonts.
-Copy is concise; technical API labels and implementation explanations are excluded
-from passenger flows.
+Nền tảng dùng logo OceVie, màu pearl/navy/teal/gold, token trong `src/constants/ocevie.ts` và các primitive Passenger hiện có. Scaffold dùng safe area. Sheet xử lý keyboard, khóa thao tác khi pending và theo tùy chọn giảm chuyển động cấp hệ thống.
 
-| Destination | Route | Purpose |
-| --- | --- | --- |
-| Trang chủ | /home | API voyage summary and supported actions |
-| Hải trình | /itinerary | API days, ports, excursions and history |
-| Đặt chỗ | /bookings | Own booking list, cabin/passenger detail and draft creation |
-| Khám phá | /services | Service catalogue and personal requests |
-| Cá nhân | /account | Actual session identity, activities/packages and support |
+| Tab Passenger | Route | Mục đích |
+|---|---|---|
+| Trang chủ | `/home` | Chuyến hiện tại và lối tắt |
+| Lịch trình | `/itinerary` | Ngày, cảng, hoạt động và thay đổi |
+| Dịch vụ | `/services` | Danh mục và yêu cầu trên tàu |
+| Thông báo | `/notifications` | Danh sách, chi tiết và trạng thái đã đọc |
+| Tài khoản | `/account` | Ngữ cảnh phiên, đặt chỗ đã có, hoạt động/gói và hỗ trợ |
 
-The centered destination is Bookings. QR, check-in and spending placeholders have
-been removed from navigation until usable backend contracts exist. No demo session
-or mock data can be enabled in the app. Historical fixtures are test-only.
+`/passenger-bookings` và chi tiết là màn companion. `/bookings` và `/passenger-bookings/new` chuyển về danh sách, `/explore` chuyển về dịch vụ. `/cruise` đọc thông tin chuyến đã chọn. Check-in, hướng dẫn thẻ và hướng dẫn sao kê là màn riêng. POS dùng điều hướng và phiên scoped riêng.
 
-Detail screens have a back action and retain tab state. Sheets share one cancellable
-opacity/transform transition, retained exit content, a scrollable body and native
-keyboard avoidance. Pending writes lock submission and dismissal. Expanded itinerary
-sheets reset scroll position when switching their nested view. Reduce Motion is
-observed through one application-level OS subscription.
-
-Asian port names and day-specific ship zones come from the API. Currency follows
-the server response. See [passenger-live-api.md](passenger-live-api.md) for contracts,
-[ocevie-motion-qa.md](ocevie-motion-qa.md) for motion findings and
-[real-api-qa.md](real-api-qa.md) for the PostgreSQL integration workflow.
+Hiển thị loading khi đang xác minh, trạng thái rỗng khi dữ liệu đã tải, phản hồi lỗi có hành động tải lại và hướng dẫn khi cấu hình thiếu. Chi tiết đặt chỗ giữ trạng thái và lý do Backend trả, cùng hướng dẫn liên hệ nhân viên khi người dùng cần hủy. Xem [Passenger API](passenger-live-api.md) và [Staff POS](onboard-staff-pos.md).

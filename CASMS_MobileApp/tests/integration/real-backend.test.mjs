@@ -1,26 +1,31 @@
 import assert from 'node:assert/strict';
 import { before, test } from 'node:test';
 import { registerHooks } from 'node:module';
-import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-import { createApiClient } from '../../src/lib/api/api-client.ts';
+import { loginQa, qaReadOnlyDatabase, qaTransport, readQaConfig, verifyQaFixture, verifyQaReadiness } from './qa-environment.mjs';
 import '../register-typescript.mjs';
 const { createPassengerApi } = await import('../../src/features/passenger-actions/passenger-api.ts');
 registerHooks({ resolve(specifier, context, nextResolve) {
   return nextResolve(specifier === '../../lib/api/api-client' ? `${specifier}.ts` : specifier, context);
 } });
 const { createItineraryApi } = await import('../../src/features/itinerary/itinerary-client.ts');
-const transport = createApiClient({ baseUrl: () => 'http://127.0.0.1:18080/api' });
+const url = readQaConfig();
+const transport = qaTransport(url);
 const api = createPassengerApi(transport);
 const itinerary = createItineraryApi(transport);
 const id = suffix => `a1000000-0000-4000-8000-${String(suffix).padStart(12, '0')}`;
+let database;
 
 before(async () => {
-  const login = await transport.request('/auth/login', { method: 'POST', authenticated: false, body: { username: 'ocevie.mobile.qa', password: 'OcevieQa@2026' } });
-  transport.setToken(login.accessToken);
-  const me = await api.me();
-  assert.equal(me.userId, id(1), 'Run only against the explicitly seeded QA identity');
-  assert.deepEqual(me.roles, ['PASSENGER']);
+  await verifyQaReadiness(url);
+  database = qaReadOnlyDatabase();
+  const me = await loginQa(transport, 'PASSENGER');
+  await verifyQaFixture(async () => {
+    assert.equal(me.userId, id(1), 'Run only against the explicitly seeded QA identity');
+    assert.deepEqual(me.roles, ['PASSENGER']);
+    const booking = await api.booking(id(61));
+    assert.equal(booking.bookingStatus, 'Confirmed');
+    assert.ok(booking.passengers.some(person => person.bookingPassengerId === id(71)));
+  });
 });
 
 test('real JWT /auth/me and own booking and assigned cabin reads match mobile adapters', async () => {
@@ -47,8 +52,7 @@ test('real service request create/edit/cancel is persisted in PostgreSQL', async
   assert.equal((await api.updateRequest(created.id, 2, 'Updated through mobile adapter')).quantity, 2);
   assert.equal((await api.cancelRequest(created.id)).status, 'CANCELLED');
   assert.ok((await api.requests()).some(r => r.id === created.id && r.status === 'CANCELLED'));
-  const script = fileURLToPath(new URL('./qa_database.py', import.meta.url));
-  const value = execFileSync('python', [script, '--query', `SELECT status FROM "ServiceRequest" WHERE service_request_id='${created.id}'`], { encoding: 'utf8' }).trim();
+  const value = database.requestStatus(created.id);
   assert.equal(value, 'CANCELLED');
 });
 

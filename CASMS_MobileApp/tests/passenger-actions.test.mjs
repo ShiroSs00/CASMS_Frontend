@@ -75,22 +75,29 @@ test('personal screens reject mismatched, disabled and mixed staff identities', 
 });
 test('API uses all booking pages and rejects incomplete or duplicate results', async () => {
   const pages = [];
+  const summary = { ...details, passengerCount: 1 };
   const api = createPassengerApi({ async request(path, options) {
     pages.push(options.query.page);
-    return { number: options.query.page, totalPages: 2, totalElements: 2, content: [{ bookingId: options.query.page ? other : booking }] };
+    return { number: options.query.page, totalPages: 2, totalElements: 2, content: [{ ...summary, bookingId: options.query.page ? other : booking }] };
   } });
   assert.equal((await api.bookings()).length, 2); assert.deepEqual(pages, [0, 1]);
   await assert.rejects(createPassengerApi({ async request() { return { number: 0, totalPages: 1, totalElements: 2, content: [{ bookingId: booking }] }; } }).bookings(), /Chưa tải đủ/);
   await assert.rejects(createPassengerApi({ async request() { return { number: 0, totalPages: 1, totalElements: 2, content: [{ bookingId: booking }, { bookingId: booking }] }; } }).bookings(), /trùng/);
 });
-test('existing booking cancellation uses the supported post-booking route', async () => {
+test('an already cancelled booking remains readable without exposing booking writes', async () => {
   const calls = [];
-  const api = createPassengerApi({ async request(path, options) { calls.push({ path, ...options }); return { ...details, cruiseId: shipCruise, bookedByUserId: user, bookingStatus: path.endsWith('/cancel') ? 'Cancelled' : 'Draft' }; } });
-  await api.cancelBooking(booking, '  Đổi kế hoạch  ');
-  assert.equal(calls[0].path, `/booking/${booking}/cancel`); assert.deepEqual(calls[0].body, { reason: 'Đổi kế hoạch' });
+  const api = createPassengerApi({ async request(path, options) {
+    calls.push({ path, ...options });
+    return { ...details, cruiseId: shipCruise, bookedByUserId: user, bookingStatus: 'Cancelled', cancellationReason: 'Đổi kế hoạch' };
+  } });
+  const result = await api.booking(booking);
+  assert.equal(result.bookingStatus, 'Cancelled');
+  assert.equal(result.cancellationReason, 'Đổi kế hoạch');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].path, `/booking/${booking}`);
+  assert.equal(calls[0].method ?? 'GET', 'GET');
   assert.equal('confirmBooking' in api, false);
-  for (const removed of ['createBooking', 'bookingQuote', 'recoverBooking', 'cabins', 'cruises']) assert.equal(removed in api, false);
-  await assert.rejects(api.cancelBooking(booking, ' '));
+  for (const removed of ['cancelBooking', 'createBooking', 'bookingQuote', 'recoverBooking', 'cabins', 'cruises']) assert.equal(removed in api, false);
   await assert.rejects(api.booking('../all'));
 });
 test('services support authenticated PUT and POST cancel without staff-only action routes', async () => {

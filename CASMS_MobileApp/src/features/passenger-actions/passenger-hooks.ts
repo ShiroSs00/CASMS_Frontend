@@ -5,14 +5,18 @@ import { createPassengerApi } from './passenger-api';
 import { useEffect, useId, useMemo, useState } from 'react';
 import { availableVoyages, chooseVoyage, forgetVoyageRoute, resolveVoyage, scopedSelection, useVoyageSelection, voyageScopeKey } from './voyage-selection';
 import { personalPermissions, usablePassengers } from './passenger-model';
+import { isPassengerWorkspace } from '@/features/auth/workspace-navigation';
 
 export const passengerApi = createPassengerApi(api);
+export function passengerKey(owner?: string, signedInAt?: number, ...parts: readonly unknown[]) {
+  return ['passenger', getApiUrl(), owner, signedInAt, ...parts];
+}
 export function usePassengerContext() {
   const auth = useAuth(); const owner = auth.session?.user.id;
   // Staff endpoints can return all passengers. These screens are personal views.
-  const personal = !!auth.session && auth.session.user.roles.length > 0 && auth.session.user.roles.every(r => r === 'PASSENGER');
+  const personal = isPassengerWorkspace(auth.session?.user);
   const live = auth.status === 'authenticated' && auth.mode === 'live' && personal;
-  const me = useQuery({ queryKey: ['passenger', getApiUrl(), owner, 'me'], queryFn: ({ signal }) => passengerApi.me(signal), enabled: live });
+  const me = useQuery({ queryKey: passengerKey(owner, auth.session?.signedInAt, 'me'), queryFn: ({ signal }) => passengerApi.me(signal), enabled: live });
   const permissions = personalPermissions(owner, me.data);
   const error = me.error ?? (me.data && permissions === null ? new Error('Thông tin phiên không còn khớp tài khoản hành khách. Vui lòng đăng nhập lại.') : null);
   return { auth, owner, me, error, live, ready: live && permissions !== null && !error, can: (permission: string) => live && !error && !!permissions?.includes(permission) };
@@ -20,7 +24,7 @@ export function usePassengerContext() {
 export function usePassengerQuery<T>(key: readonly unknown[], fetcher: (signal: AbortSignal) => Promise<T>, permission: string | readonly string[], enabled = true) {
   const context = usePassengerContext();
   const allowed = context.ready && (typeof permission === 'string' ? context.can(permission) : permission.some(context.can));
-  const query = useQuery({ queryKey: ['passenger', getApiUrl(), context.owner, ...key], queryFn: ({ signal }) => fetcher(signal), enabled: allowed && enabled });
+  const query = useQuery({ queryKey: passengerKey(context.owner, context.auth.session?.signedInAt, ...key), queryFn: ({ signal }) => fetcher(signal), enabled: allowed && enabled });
   const denied = query.error instanceof ApiError && [401, 403, 404].includes(query.error.status);
   return { ...query, data: allowed && enabled && !denied ? query.data : undefined };
 }
@@ -45,7 +49,7 @@ export function usePassengerAction<T = unknown>() {
     onSettled: async () => {
       const session = useAuth.getState().session;
       if (session?.user.id === owner && session?.signedInAt === signedInAt) {
-        await client.invalidateQueries({ queryKey: ['passenger', getApiUrl(), owner] });
+        await client.invalidateQueries({ queryKey: passengerKey(owner, signedInAt) });
       }
     },
   });
@@ -58,16 +62,17 @@ export function useBookingSelection(mode: 'confirmed' | 'draft', initialId = '')
   const scope = useMemo(() => owner && signedInAt !== undefined ? { owner, apiUrl, signedInAt } : null, [owner, apiUrl, signedInAt]);
   const routeId = useId(), routeKey = `${routeId}:${initialId}`;
   const appliedScope = useVoyageSelection(state => state.handledRoutes[routeKey]);
-  const [selection, setSelection] = useState({ initialId, chosen: initialId, person: '' });
-  const local = selection.initialId === initialId ? selection : { chosen: initialId, person: '' };
+  const routeScope = voyageScopeKey(scope);
+  const [selection, setSelection] = useState<{ initialId: string; routeScope: string; chosen: string; person: string }>();
+  const local = selection?.initialId === initialId && selection.routeScope === routeScope ? selection : undefined;
   const bookings = usePassengerQuery(['bookings'], passengerApi.bookings, 'BOOKING_READ');
   const voyages = usePassengerQuery(['voyages'], passengerApi.voyages, 'BOOKING_READ', mode === 'confirmed');
   const confirmed = useMemo(() => availableVoyages(voyages.data ?? []), [voyages.data]);
   const routePending = mode === 'confirmed' && !!initialId && appliedScope !== voyageScopeKey(scope);
   const selected = resolveVoyage(scope, globalSelection, confirmed);
   const bound = scopedSelection(scope, globalSelection);
-  const chosen = mode === 'draft' ? local.chosen : routePending ? initialId : selected?.bookingId ?? bound?.bookingId ?? '';
-  const person = mode === 'draft' ? local.person : routePending ? '' : selected?.bookingPassengerId ?? bound?.bookingPassengerId ?? '';
+  const chosen = mode === 'draft' ? local?.chosen ?? initialId : local?.chosen ?? (routePending ? initialId : selected?.bookingId ?? bound?.bookingId ?? '');
+  const person = mode === 'draft' ? local?.person ?? '' : local?.person ?? (routePending ? '' : selected?.bookingPassengerId ?? bound?.bookingPassengerId ?? '');
   useEffect(() => {
     if (routePending && scope && context.ready && !voyages.error && !voyages.isFetching) {
       chooseVoyage(scope, confirmed, initialId, undefined, routeKey);
@@ -94,11 +99,11 @@ export function useBookingSelection(mode: 'confirmed' | 'draft', initialId = '')
     : !!activeVoyage && !['COMPLETED', 'CANCELLED'].includes(activeVoyage.cruiseStatus));
   return { bookings, source, options, bookingId, booking, ownBooking, cruiseId, ready, people, bookingPassengerId, invalidSelection: !!chosen && !bookingId,
     choose: (id: string, selectedPerson = '') => {
-      if (mode === 'confirmed' && scope) chooseVoyage(scope, confirmed, id, selectedPerson || undefined, initialId ? routeKey : undefined);
-      setSelection({ initialId, chosen: id, person: selectedPerson });
+      const applied = mode === 'confirmed' && scope && chooseVoyage(scope, confirmed, id, selectedPerson || undefined, initialId ? routeKey : undefined);
+      setSelection(applied ? undefined : { initialId, routeScope, chosen: id, person: selectedPerson });
     },
     choosePerson: (id: string) => {
-      if (mode === 'confirmed' && scope) chooseVoyage(scope, confirmed, bookingId, id, initialId ? routeKey : undefined);
-      setSelection({ initialId, chosen: bookingId, person: id });
+      const applied = mode === 'confirmed' && scope && chooseVoyage(scope, confirmed, bookingId, id, initialId ? routeKey : undefined);
+      setSelection(applied ? undefined : { initialId, routeScope, chosen: bookingId, person: id });
     } };
 }

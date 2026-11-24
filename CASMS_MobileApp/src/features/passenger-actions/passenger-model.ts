@@ -1,8 +1,21 @@
 import type { BookingDetail, BookingPassenger, Package, Registration, Service, UserMe } from './passenger-types';
+import type { PersonalVoyage } from './passenger-api';
 
 export function personalPermissions(owner: string | undefined, me: UserMe | undefined): string[] | null {
   if (!owner || !me || me.userId !== owner || me.status !== 'ACTIVE' || !me.roles.length || !me.roles.every(r => r === 'PASSENGER')) return null;
   return me.effectivePermissions;
+}
+
+export function voyagePassenger(voyage: PersonalVoyage | undefined, booking: BookingDetail | undefined, passengerId?: string | null) {
+  if (!voyage || !booking || booking.bookingId !== voyage.bookingId || booking.cruiseId !== voyage.cruiseId
+    || booking.bookingStatus !== 'Confirmed') return undefined;
+  return booking.passengers.find(person => person.bookingPassengerId === voyage.bookingPassengerId
+    && person.participationStatus === 'Active' && person.ownedByCurrentUser !== false
+    && (!passengerId || person.passengerId === passengerId));
+}
+
+export function voyageAllowsActions(status?: PersonalVoyage['cruiseStatus']) {
+  return !!status && status !== 'COMPLETED' && status !== 'CANCELLED';
 }
 export function positiveQuantity(value: string): number {
   if (!/^\d+$/.test(value.trim())) throw new Error('Số lượng phải là số nguyên dương.');

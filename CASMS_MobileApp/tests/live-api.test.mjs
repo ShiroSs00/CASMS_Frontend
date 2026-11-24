@@ -55,12 +55,46 @@ test('section permission handling propagates expiry and server/network failures'
     await assert.rejects(readSection(Promise.reject(failure), 'điểm dừng'), error => error === failure);
   }
 });
-test('iPhone resolves backend from Metro host, with explicit environment override', () => {
-  assert.equal(resolveApiUrl(undefined, '192.168.1.7:8082', true), 'http://192.168.1.7:8080/api');
-  assert.equal(resolveApiUrl('https://api.example/api/', '192.168.1.7:8082', true), 'https://api.example/api');
-  assert.throws(() => resolveApiUrl(undefined, undefined, false));
-  assert.throws(() => resolveApiUrl('file:///secret', undefined, true));
-  assert.throws(() => resolveApiUrl('https://user:password@api.example/api', undefined, false));
+test('normalizes explicit API URLs without a Metro, QA or production fallback', () => {
+  assert.equal(resolveApiUrl(' http://127.0.0.1:8080 '), 'http://127.0.0.1:8080/api');
+  assert.equal(resolveApiUrl('http://10.0.2.2:8080/api/'), 'http://10.0.2.2:8080/api');
+  assert.equal(resolveApiUrl('https://api.example/gateway/api/api///'), 'https://api.example/gateway/api');
+  assert.equal(resolveApiUrl('http://[::1]:8080/'), 'http://[::1]:8080/api');
+  for (const value of [undefined, '', 'api.example/api', 'file:///secret', 'https://user:password@api.example/api', 'https://api.example/?']) {
+    assert.throws(() => resolveApiUrl(value), error => error.code === 'API_CONFIGURATION');
+  }
+});
+test('transport distinguishes intentional void responses from invalid payloads', async () => {
+  for (const response of [new Response(null, { status: 204 }), new Response(null, { status: 205 }), Response.json({ success: true })]) {
+    assert.equal(await make(async () => response).request('/logout'), undefined);
+  }
+  for (const response of [new Response(null), new Response('<html>debug</html>'), Response.json(null)]) {
+    await assert.rejects(make(async () => response).request('/booking'), error => error.status === 502 && error.code === 'INVALID_RESPONSE');
+  }
+});
+test('HTTP errors preserve codes and status while hiding backend implementation messages', async () => {
+  for (const status of [400, 401, 403, 404, 409, 422, 429, 500]) {
+    const client = make(async () => Response.json({ success: false, message: 'Hibernate stack trace', code: 'KNOWN_CODE' }, { status }));
+    await assert.rejects(client.request('/booking'), error => error.status === status && error.code === 'KNOWN_CODE'
+      && !error.message.includes('Hibernate'));
+  }
+});
+test('an aborted request cannot invalidate a session even if a stale 401 arrives', async () => {
+  const controller = new AbortController();
+  let respond, attempts = 0, expired = false;
+  const client = make(async () => {
+    attempts++;
+    return new Promise(resolve => { respond = resolve; });
+  });
+  client.setToken('token');
+  client.onUnauthorized(() => { expired = true; });
+  const pending = client.request('/booking', { signal: controller.signal });
+  controller.abort();
+  respond(new Response(null, { status: 401 }));
+  await assert.rejects(pending, { name: 'AbortError' });
+  await assert.rejects(client.request('/booking', { signal: controller.signal }), { name: 'AbortError' });
+  assert.equal(attempts, 1);
+  assert.equal(expired, false);
 });
 test('login posts username/password without sending a previous bearer token', async () => {
   const client = make(async (url, options) => {
@@ -100,11 +134,15 @@ test('late 401 from an old token cannot expire a newly signed-in session', async
   await assert.rejects(pending); assert.equal(expired, false);
 });
 test('a valid session stores only token, expiry and identity, never credentials', () => {
-  const session = toSession({ accessToken: 'token', tokenType: 'Bearer', expiresIn: 3600, userId: 'u1', username: 'p1', roles: ['PASSENGER'], password: 'must-not-persist' });
+  const payload = { accessToken: 'token', tokenType: 'Bearer', expiresIn: 3600, userId: '00000000-0000-4000-8000-000000000001', username: 'p1', roles: ['PASSENGER'], password: 'must-not-persist' };
+  const session = toSession(payload);
   assert.equal(JSON.stringify(session).includes('password'), false);
-  assert.equal(readSession(JSON.stringify(session)).user.id, 'u1');
+  assert.equal(readSession(JSON.stringify(session)).user.id, payload.userId);
   assert.equal(readSession(JSON.stringify({ ...session, expiresAt: 1 })), null);
   assert.throws(() => toSession({ accessToken: 'token', tokenType: 'Bearer', expiresIn: -1, userId: 'u1', username: 'p1', roles: [] }));
+  assert.throws(() => toSession({ ...payload, tokenType: 42 }), /Phản hồi đăng nhập không hợp lệ/);
+  assert.throws(() => toSession({ ...payload, email: {} }), /Phản hồi đăng nhập không hợp lệ/);
+  assert.throws(() => toSession({ ...payload, userId: 'u1' }), /Phản hồi đăng nhập không hợp lệ/);
 });
 test('time formatting honors ship timezone and never invents missing times', () => {
   assert.equal(formatTime('2026-10-19T03:00:00Z', 'Asia/Ho_Chi_Minh'), '10:00');

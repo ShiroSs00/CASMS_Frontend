@@ -11,10 +11,16 @@ const nullableAmount = z.number().finite().nonnegative().nullable().default(null
 // At 2^39, binary64 spacing exceeds the Backend NUMERIC(19,4) unit of 0.0001.
 const requiredFinancialAmount = z.number().finite().nonnegative().lt(2 ** 39);
 const financialAmount = requiredFinancialAmount.nullable().default(null);
-const bookingDetail = z.object({
+const cruiseStatus = z.enum(['DRAFT', 'PUBLISHED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']);
+const bookingStatus = z.enum(['Draft', 'Confirmed', 'Cancelled']);
+const participationStatus = z.enum(['Active', 'Cancelled']);
+const bookingSummary = z.object({
   bookingId: uuid, bookingReference: z.string().min(1), cruiseId: uuid, cruiseCode: z.string(), cruiseName: z.string(),
-  bookingStatus: z.enum(['Draft', 'Confirmed', 'Cancelled']), departureDatetime: date, returnDatetime: date, createdAt: date,
-  agreedFareAmount: financialAmount, currency: nullableText, shipName: nullableText, requiredDepositAmount: financialAmount,
+  bookingStatus, departureDatetime: date, createdAt: date, agreedFareAmount: financialAmount, currency: nullableText,
+  passengerCount: z.number().int().nonnegative(),
+});
+const bookingDetail = bookingSummary.omit({ passengerCount: true }).extend({
+  returnDatetime: date, shipName: nullableText, requiredDepositAmount: financialAmount,
   totalPaidAmount: financialAmount, outstandingBalance: financialAmount, fullyPaid: z.boolean().nullable().default(null),
   contractReference: nullableText, contractStatus: z.enum(['Draft', 'Accepted', 'Cancelled']).nullable().default(null), contractSigningInstructions: nullableText, cancellationReason: nullableText,
   paymentPlan: z.enum(['FULL', 'DEPOSIT', 'STAGES']).nullable().default(null),
@@ -25,11 +31,20 @@ const bookingDetail = z.object({
   })),
   passengers: z.array(z.object({
     bookingPassengerId: uuid, passengerId: uuid, fullName: z.string().min(1), email: nullableText,
-    participationStatus: z.enum(['Active', 'Cancelled']), ownedByCurrentUser: z.boolean().optional(),
+    participationStatus, ownedByCurrentUser: z.boolean().optional(),
     cabinId: uuid.nullable().default(null), cabinNumber: nullableText, cabinType: nullableText,
     deckNumber: z.number().int().nullable().default(null), tourPackageId: uuid.nullable().default(null),
     tourPackageName: nullableText, agreedPackagePrice: nullableAmount,
   })),
+});
+const userMe = z.object({
+  userId: uuid, username: z.string().min(1), email: nullableText,
+  status: z.enum(['ACTIVE', 'LOCKED', 'DISABLED']), roles: z.array(z.string()),
+  effectivePermissions: z.array(z.string()), passengerId: uuid.nullish(), fullName: nullableText, phoneNumber: nullableText,
+});
+const voyageCruise = z.object({
+  cruiseId: uuid, cruiseCode: z.string(), cruiseName: z.string().min(1), status: cruiseStatus,
+  shipId: uuid.nullish(), shipName: nullableText, departureDatetime: date, returnDatetime: date,
 });
 const notification = z.object({
   notificationId: uuid, title: z.string(), content: z.string(), notificationType: z.string(),
@@ -48,12 +63,12 @@ const payment = z.object({
   requestedAt: date.nullish(), confirmedAt: date.nullish(), status: z.enum(['Pending', 'Confirmed', 'Failed', 'Cancelled']),
 });
 const personalVoyage = z.object({
-  bookingId: uuid, bookingReference: z.string(), bookingPassengerId: uuid, cruiseId: uuid, cruiseName: z.string(), cruiseStatus: z.string(),
-  bookingStatus: z.enum(['Confirmed', 'Cancelled']), participationStatus: z.string(), itineraryId: uuid.nullish(),
-  itineraryStatus: z.string().nullish(), startDate: z.iso.date().nullish(), endDate: z.iso.date().nullish(),
+  bookingId: uuid, bookingReference: z.string(), bookingPassengerId: uuid, cruiseId: uuid, cruiseName: z.string(), cruiseStatus,
+  bookingStatus: z.enum(['Confirmed', 'Cancelled']), participationStatus, itineraryId: uuid.nullish(),
+  itineraryStatus: z.enum(['OPEN_FOR_SALE', 'ACTIVE', 'COMPLETED', 'CANCELLED']).nullish(), startDate: z.iso.date().nullish(), endDate: z.iso.date().nullish(),
   registeredActivities: z.array(z.object({
     registrationId: uuid, name: z.string(), startTime: date.nullish(), endTime: date.nullish(),
-    location: z.string().nullish(), registrationStatus: z.string(), activityStatus: z.string(),
+    location: z.string().nullish(), registrationStatus: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED']), activityStatus: z.string(),
   })).default([]),
 });
 export type PassengerNotification = z.infer<typeof notification>;
@@ -104,13 +119,22 @@ export function createPassengerApi(client: Transport) {
     throw new Error('Danh sách quá lớn. Vui lòng liên hệ hỗ trợ.');
   }
   return {
-    async me(signal?: AbortSignal) {
-      const value = await client.request<UserMe>('/auth/me', { signal });
-      if (!value || !uuidPattern.test(value.userId) || !Array.isArray(value.roles) || !value.roles.every(r => typeof r === 'string') || !Array.isArray(value.effectivePermissions) || !value.effectivePermissions.every(p => typeof p === 'string')) throw new Error('Không xác minh được quyền tài khoản.');
+    async me(signal?: AbortSignal): Promise<UserMe> {
+      return decode(userMe, await client.request('/auth/me', { signal }));
+    },
+    async bookings(signal?: AbortSignal): Promise<BookingSummary[]> {
+      return decode(z.array(bookingSummary), await pages<BookingSummary>('/booking', 'bookingId', signal));
+    },
+    async voyages(signal?: AbortSignal) {
+      const rows = decode(z.array(personalVoyage), await client.request('/itineraries/mine', { signal }));
+      if (new Set(rows.map(row => row.bookingPassengerId)).size !== rows.length) throw new Error('Danh sách chuyến đi bị trùng hồ sơ hành khách.');
+      return rows;
+    },
+    async voyageCruise(cruiseId: string, signal?: AbortSignal) {
+      const value = decode(voyageCruise, await client.request(`/cruise/${id(cruiseId)}`, { signal }));
+      if (value.cruiseId !== cruiseId.toLowerCase()) throw new Error('Thông tin chuyến đi không khớp đặt chỗ.');
       return value;
     },
-    bookings: (signal?: AbortSignal) => pages<BookingSummary>('/booking', 'bookingId', signal),
-    async voyages(signal?: AbortSignal) { return decode(z.array(personalVoyage), await client.request('/itineraries/mine', { signal })); },
     async notifications(signal?: AbortSignal) { return decode(z.array(notification), await client.request('/notifications', { signal })); },
     async markNotificationRead(notificationId: string) {
       const result = decode(notification, await client.request(`/notifications/${id(notificationId)}/read`, { method: 'PATCH' }));
@@ -144,12 +168,6 @@ export function createPassengerApi(client: Transport) {
     async booking(bookingId: string, signal?: AbortSignal) {
       const value = detail(await client.request(`/booking/${id(bookingId)}`, { signal }));
       if (value.bookingId !== bookingId.toLowerCase()) throw new Error('Thông tin không khớp đặt chỗ.');
-      return value;
-    },
-    async cancelBooking(bookingId: string, reason: string) {
-      if (!reason.trim()) throw new Error('Vui lòng nhập lý do hủy.');
-      const value = detail(await client.request(`/booking/${id(bookingId)}/cancel`, { method: 'POST', body: { reason: reason.trim() } }));
-      if (value.bookingId !== bookingId.toLowerCase() || value.bookingStatus !== 'Cancelled') throw new Error('Chưa xác nhận được việc hủy đặt chỗ.');
       return value;
     },
     async services(signal?: AbortSignal) { return array<Service>(await client.request('/servicepackage/services', { signal }), 'id'); },

@@ -4,10 +4,12 @@ import { passengerLightColors as colors } from '@/constants/passenger-light-them
 import { statusColors } from '@/constants/ocevie';
 import { voyage } from '@/constants/voyage';
 
-export function InfoRow({ title, subtitle, icon, onPress, timeline = false }: { title: string; subtitle: string; icon: MaterialIconName; onPress?: () => void; timeline?: boolean }) {
+export function InfoRow({ title, subtitle, icon, onPress, timeline = false, selected }: { title: string; subtitle: string; icon: MaterialIconName; onPress?: () => void; timeline?: boolean; selected?: boolean }) {
   const content = <>{timeline ? <View accessible={false} style={styles.timelineTrack}><View style={styles.timelineDot} /><View style={styles.timelineLine} /></View>
     : <View style={styles.rowIcon}><MaterialIcon name={icon} color={colors.secondary} size={22} /></View>}<View style={styles.grow}><Text style={styles.rowTitle}>{title}</Text><Text style={styles.small}>{subtitle}</Text></View>{onPress && <MaterialIcon name="chevron_right" color={colors.onSurfaceVariant} size={20} />}</>;
-  return onPress ? <Pressable accessibilityRole="button" onPress={onPress} android_ripple={{ color: colors.secondaryContainer }} style={({ pressed }) => [styles.row, timeline && styles.timelineRow, pressed && styles.pressed]}>{content}</Pressable> : <View style={[styles.row, timeline && styles.timelineRow]}>{content}</View>;
+  return onPress ? <Pressable accessibilityRole="button" accessibilityLabel={[title, subtitle].filter(Boolean).join('. ')}
+    accessibilityState={selected === undefined ? undefined : { selected }} onPress={onPress} android_ripple={{ color: colors.secondaryContainer }}
+    style={({ pressed }) => [styles.row, timeline && styles.timelineRow, pressed && styles.pressed]}>{content}</Pressable> : <View style={[styles.row, timeline && styles.timelineRow]}>{content}</View>;
 }
 export function SmallButton({ label, icon, onPress }: { label: string; icon: MaterialIconName; onPress: () => void }) {
   return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.tool, pressed && styles.pressed]}><MaterialIcon name={icon} color={colors.onSurface} size={18} /><Text style={styles.small}>{label}</Text></Pressable>;

@@ -16,4 +16,4 @@ export type Registration = { id: string; passengerId: string; bookingPassengerId
 export type Package = { id: string; code: string; name: string; description: string | null; type: string; price: number | null; currency: string | null; status: string; startDate: string | null; endDate: string | null };
 export type PackageAssignment = { bookingPassengerId: string; packageId: string; agreedPrice: number; currency: string; assignedAt: string };
 export type PackageBenefits = { packageInfo: Package; services: { serviceId: string; benefitType: string }[]; activities: { activityId: string; benefitType: string }[]; excursions: { excursionId: string; benefitType: string }[] };
-export type UserMe = { userId: string; username: string; email: string | null; status: string; roles: string[]; effectivePermissions: string[]; passengerId?: string | null };
+export type UserMe = { userId: string; username: string; email: string | null; status: string; roles: string[]; effectivePermissions: string[]; passengerId?: string | null; fullName?: string | null; phoneNumber?: string | null };

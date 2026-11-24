@@ -9,7 +9,7 @@ export function VoyageSummaryCard({ title, ship, dates, returnDate, label, cabin
     <Text style={homeStyles.voyageTitle}>{title}</Text><Text style={homeStyles.ship}>{ship}</Text>
     <View style={homeStyles.facts}><View style={homeStyles.fact}><MaterialIcon name="explore" color={brand.tealLight} size={18} /><Text style={homeStyles.factText}>Khởi hành {dates}</Text></View>
       {!!returnDate && <View style={homeStyles.fact}><MaterialIcon name="sailing" color={brand.tealLight} size={18} /><Text style={homeStyles.factText}>Kết thúc {returnDate}</Text></View>}
-      {!!cabin && <View style={homeStyles.fact}><MaterialIcon name="assignment_ind" color={brand.tealLight} size={18} /><Text style={homeStyles.factText}>Phòng {cabin}</Text></View>}</View>
+      {!!cabin && <View style={homeStyles.fact}><MaterialIcon name="assignment_ind" color={brand.tealLight} size={18} /><Text style={homeStyles.factText}>{cabin}</Text></View>}</View>
     <Pressable accessibilityRole="button" accessibilityLabel="Xem thông tin chuyến đi" onPress={onPress} style={({ pressed }) => [homeStyles.voyageAction, pressed && { opacity: .7 }]}>
       <Text style={homeStyles.voyageActionText}>Thông tin chuyến đi</Text><MaterialIcon name="arrow_forward" color={brand.pearl} size={20} />
     </Pressable>

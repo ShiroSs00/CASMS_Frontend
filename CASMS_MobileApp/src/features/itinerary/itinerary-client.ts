@@ -1,4 +1,5 @@
 import { ApiError, readSection, readErrorMessage, type createApiClient } from '../../lib/api/api-client';
+import { z } from 'zod';
 
 export type CruiseDto = { cruiseId: string; cruiseCode: string; cruiseName: string; shipId?: string | null; shipName?: string | null; departureDatetime: string; returnDatetime: string; status: string };
 export type ItineraryDto = { itineraryId: string; cruiseId: string; itineraryName: string; startDate: string; endDate: string; status: string };
@@ -7,6 +8,23 @@ export type StopDto = { cruiseStopId: string; itineraryId?: string; arrivalItine
 export type TourDto = { shoreExcursionId: string; cruiseStopId?: string; excursionCode: string; excursionName: string; supplierName?: string | null; startTime?: string | null; plannedReturnTime?: string | null; meetingPoint?: string | null; status: string; cancellationReason?: string | null; price?: number | null; currencyCode?: string | null; availableCapacity?: number | null };
 export type GroupDto = { tourGroupId: string; groupCode: string; assignedPassengers: number; maximumCapacity: number; guideId?: string | null; meetingPoint?: string | null; assemblyTime?: string | null; plannedDepartureTime?: string | null; plannedReturnTime?: string | null; actualDepartureTime?: string | null; actualReturnTime?: string | null; status: string };
 export type HistoryDto = { changeHistoryId: string; changeSummary?: string | null; reason?: string | null; changeType: string; changedAt: string };
+
+const itineraryShape = z.object({
+  itineraryId: z.guid(), cruiseId: z.guid(), itineraryName: z.string(),
+  startDate: z.iso.date(), endDate: z.iso.date(),
+  status: z.enum(['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'OPEN_FOR_SALE', 'ACTIVE', 'COMPLETED', 'REJECTED', 'SUSPENDED', 'CANCELLED']),
+});
+const dayShape = z.object({
+  itineraryDayId: z.guid(), itineraryId: z.guid(), dayNumber: z.number().int().positive(), date: z.iso.date(),
+  dayType: z.enum(['PORT_DAY', 'SEA_DAY']), shipTimeZoneId: z.string().nullish(), description: z.string().nullish(),
+});
+const time = z.iso.datetime({ offset: true });
+const stopShape = z.object({
+  cruiseStopId: z.guid(), itineraryId: z.guid(), arrivalItineraryDayId: z.guid(), departureItineraryDayId: z.guid(),
+  stopOrder: z.number().int(), plannedArrival: time, plannedDeparture: time, actualArrival: time.nullish(),
+  actualDeparture: time.nullish(), allAboardTime: time.nullish(), status: z.string(), portName: z.string().nullish(),
+  destinationName: z.string().nullish(), shipTimeZoneId: z.string().nullish(), cancellationReason: z.string().nullish(), notes: z.string().nullish(),
+});
 
 export function createItineraryApi(api: Pick<ReturnType<typeof createApiClient>, 'request'>) {
   type Page<T> = { content: T[]; number: number; totalPages: number; totalElements: number; last?: boolean };
@@ -33,7 +51,8 @@ export function createItineraryApi(api: Pick<ReturnType<typeof createApiClient>,
     },
     async detail(id: string, signal?: AbortSignal, options: { history?: boolean; cruise?: boolean; expectedCruiseId?: string } = {}) {
       const itinerary = await api.request<ItineraryDto>(`/itineraries/${idPath(id)}`, { signal });
-      if (options.expectedCruiseId && (itinerary?.itineraryId !== id || itinerary.cruiseId !== options.expectedCruiseId)) {
+      if (options.expectedCruiseId && (!itineraryShape.safeParse(itinerary).success
+        || itinerary?.itineraryId !== id || itinerary.cruiseId !== options.expectedCruiseId)) {
         throw new ApiError('Hải trình không khớp chuyến trong đặt chỗ.', 502);
       }
       const [days, stops, cruise, history] = await Promise.all([
@@ -46,8 +65,8 @@ export function createItineraryApi(api: Pick<ReturnType<typeof createApiClient>,
         }),
       ]);
       if ((!days.error && !Array.isArray(days.data)) || (!stops.error && !Array.isArray(stops.data))) throw new ApiError('Dữ liệu ngày/điểm dừng không đúng định dạng.', 200);
-      if (options.expectedCruiseId && ((days.data ?? []).some(day => day.itineraryId !== id)
-        || (stops.data ?? []).some(stop => stop.itineraryId !== id)
+      if (options.expectedCruiseId && ((days.data ?? []).some(day => !dayShape.safeParse(day).success || day.itineraryId !== id)
+        || (stops.data ?? []).some(stop => !stopShape.safeParse(stop).success || stop.itineraryId !== id)
         || (cruise.data && cruise.data.cruiseId !== options.expectedCruiseId))) {
         throw new ApiError('Dữ liệu lịch trình không khớp chuyến đã chọn.', 502);
       }
