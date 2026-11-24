@@ -112,11 +112,12 @@ export const authSession = {
     if (logoutInFlight) return logoutInFlight
     generation += 1
     stopTimers()
-    const pending = authApi.logout()
-    clear('anonymous')
     logoutInFlight = (async () => {
-      try { await pending } catch { /* BE logout is stateless; local session is already cleared. */ }
-      finally { logoutInFlight = null }
+      try { await authApi.logout() } catch { /* BE logout is stateless; local session will still be cleared. */ }
+      finally {
+        clear('anonymous')
+        logoutInFlight = null
+      }
     })()
     return logoutInFlight
   },

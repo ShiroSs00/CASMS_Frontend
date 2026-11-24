@@ -6,15 +6,14 @@ export function IssueOverview({ issue }: { issue: OperationalIssue }) {
     <section className={styles.panel}>
       <h2>Tóm tắt sự cố</h2>
       <p className={styles.overviewText}>{issue.description}</p>
-      <h3>Phạm vi impact</h3>
+      <h3>Phạm vi ảnh hưởng</h3>
       <ul className={styles.bulletList}>
-        <li>Ship: {issue.ship.name}</li>
+        <li>Tàu: {issue.ship.name}</li>
         <li>
-          Cruise:{' '}
+          Chuyến khởi hành:{' '}
           {issue.cruise ? `${issue.cruise.code} · ${issue.cruise.name}` : 'Không áp dụng'}
         </li>
         <li>Cabin: {issue.cabin ?? 'Không áp dụng'}</li>
-        <li>Không có link CruiseStop/Excursion/ServiceRequest trong SQL</li>
       </ul>
     </section>
   )

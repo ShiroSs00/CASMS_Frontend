@@ -54,7 +54,8 @@ export function CruiseSale({cruise,onSection,onReview,onReady,onChanged}:{cruise
  const hasSelectedFares=selectedFares.length>0
  const canQuerySale=Boolean(plan.data&&!plan.loading&&!plan.error&&(!unified||hasSelectedFares))
  const offerSelection=sortedCsv(selectedFares),selection=scope==='SELECTED_PACKAGES'?sortedCsv(selected):undefined,key=JSON.stringify([cruise.cruiseId,scope,selection,offerSelection,epoch,cruise.revision])
- const query=useReadQuery(`scoped-sale:${access.userId}:${plan.data?.revision}:${key}`,signal=>canQuerySale?apiRequest(`/cruise/${cruise.cruiseId}/sale-readiness`,{query:{saleScope:scope,selectedPackageIds:selection,selectedCruisePackageOfferIds:offerSelection},signal}).then(value=>decodeSaleReadiness(value,cruise.cruiseId)):Promise.resolve(null))
+ const fetchSaleReadiness=useCallback((signal:AbortSignal)=>canQuerySale?apiRequest(`/cruise/${cruise.cruiseId}/sale-readiness`,{query:{saleScope:scope,selectedPackageIds:selection,selectedCruisePackageOfferIds:offerSelection},signal}).then(value=>decodeSaleReadiness(value,cruise.cruiseId)):Promise.resolve(null),[canQuerySale,cruise.cruiseId,scope,selection,offerSelection])
+ const query=useReadQuery(`scoped-sale:${access.userId}:${plan.data?.revision}:${key}`,fetchSaleReadiness)
  const saleRecord=useReadQuery(`sale-record:${cruise.cruiseId}:${epoch}:${cruise.revision}`,useCallback(signal=>apiRequest<SaleRecord>(`/cruise/${cruise.cruiseId}`,{signal}).then(value=>decodeSaleRecord(value,cruise.cruiseId)),[cruise.cruiseId]))
  const publicUrl=externalAppUrl(import.meta.env.VITE_BOOKING_APP_URL,'/cruises/'+encodeURIComponent(cruise.cruiseId))
  const activated=Boolean(saleRecord.data?.cruiseId===cruise.cruiseId&&saleRecord.data.openedForSaleAt&&Number.isFinite(Date.parse(saleRecord.data.openedForSaleAt))&&saleRecord.data.status==='PUBLISHED')

@@ -190,24 +190,24 @@
 .choiceOption:has(input:checked) { border-color: var(--brand-teal); background: #edf7f5; }
 .choiceOption input { width: 18px; height: 18px; accent-color: var(--brand-teal); flex: none; }
 
-.qrModalBody { display: grid; gap: 18px; min-width: 0; }
-.qrHeaderMeta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #dde6e4; }
-.qrStageTitle { display: block; font-size: 17px; color: var(--brand-navy); }
-.qrDeadlines { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px 18px; margin: 0; padding: 12px 14px; border-radius: 8px; background: #f5f8f7; border: 1px solid #dce5e3; }
-.qrDeadlines dt { font-size: 12px; color: var(--text-secondary); margin-bottom: 3px; }
-.qrDeadlines dd { margin: 0; font-size: 14px; font-weight: 600; color: var(--brand-navy); font-variant-numeric: tabular-nums; }
+.qrModalBody { display: grid; gap: 12px; min-width: 0; }
+.qrHeaderMeta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid #dde6e4; }
+.qrStageTitle { display: block; font-size: 16px; color: var(--brand-navy); }
+.qrDeadlines { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px 14px; margin: 0; padding: 8px 12px; border-radius: 8px; background: #f5f8f7; border: 1px solid #dce5e3; }
+.qrDeadlines dt { font-size: 11px; color: var(--text-secondary); margin-bottom: 2px; }
+.qrDeadlines dd { margin: 0; font-size: 13px; font-weight: 600; color: var(--brand-navy); font-variant-numeric: tabular-nums; }
 
-.qrLayout { display: grid; grid-template-columns: minmax(210px, 250px) minmax(0, 1fr); gap: 20px; align-items: start; }
+.qrLayout { display: grid; grid-template-columns: minmax(180px, 210px) minmax(0, 1fr); gap: 16px; align-items: start; }
 @media(max-width: 720px) { .qrLayout { grid-template-columns: minmax(0, 1fr); } }
-.qrVisualPane { display: grid; justify-items: center; gap: 10px; padding: 16px; border: 1px solid #d5e2df; border-radius: 10px; background: #fff; text-align: center; }
-.qrImage { width: 100%; max-width: 220px; height: auto; aspect-ratio: 1; object-fit: contain; border-radius: 6px; border: 1px solid #e6eeec; background: #fff; }
-.qrFallback { display: grid; gap: 8px; padding: 18px 14px; border: 1px dashed #b9c9c5; border-radius: 8px; background: #f8fbfa; }
+.qrVisualPane { display: grid; justify-items: center; gap: 8px; padding: 10px; border: 1px solid #d5e2df; border-radius: 10px; background: #fff; text-align: center; }
+.qrImage { width: 100%; max-width: 176px; height: auto; aspect-ratio: 1; object-fit: contain; border-radius: 6px; border: 1px solid #e6eeec; background: #fff; }
+.qrFallback { display: grid; gap: 8px; padding: 14px 12px; border: 1px dashed #b9c9c5; border-radius: 8px; background: #f8fbfa; }
 
-.qrDetailsPane { display: grid; gap: 12px; min-width: 0; }
-.qrBankFacts { display: grid; gap: 10px; margin: 0; }
-.qrBankFacts > div { padding: 10px 12px; border: 1px solid #e0e9e7; border-radius: 8px; background: #fbfdfc; min-width: 0; }
-.qrBankFacts dt { font-size: 12px; color: var(--text-secondary); margin-bottom: 3px; }
-.qrBankFacts dd { margin: 0; font-size: 15px; font-weight: 600; color: var(--brand-navy); overflow-wrap: anywhere; }
+.qrDetailsPane { display: grid; gap: 8px; min-width: 0; }
+.qrBankFacts { display: grid; gap: 6px; margin: 0; }
+.qrBankFacts > div { padding: 7px 10px; border: 1px solid #e0e9e7; border-radius: 8px; background: #fbfdfc; min-width: 0; }
+.qrBankFacts dt { font-size: 11px; color: var(--text-secondary); margin-bottom: 2px; }
+.qrBankFacts dd { margin: 0; font-size: 14px; font-weight: 600; color: var(--brand-navy); overflow-wrap: break-word; }
 .qrCopyRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 .qrAmountValue { font-size: 18px; color: var(--brand-teal); font-variant-numeric: tabular-nums; }
 .qrTransferHighlight { border-color: var(--brand-teal); background: #edf7f5; }

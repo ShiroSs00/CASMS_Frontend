@@ -265,7 +265,7 @@ export function AdminSystemPage() {
             <Field htmlFor="emp-role" label="Vai trò phân công *">
               <select id="emp-role" required value={role} disabled={saving || rolesQuery.loading} onChange={e => setRole(e.target.value)}>
                 <option value="">{rolesQuery.loading ? 'Đang tải vai trò…' : 'Chọn vai trò'}</option>
-                {(rolesQuery.data ?? []).map(item => (
+                {(rolesQuery.data ?? []).filter(item => item !== 'PASSENGER' && item !== 'POS').map(item => (
                   <option key={item} value={item}>
                     {roleLabels[item] ?? item}
                   </option>

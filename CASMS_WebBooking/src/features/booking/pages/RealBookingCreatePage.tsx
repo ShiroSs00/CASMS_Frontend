@@ -33,7 +33,15 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
     'booking-me:' + (access.userId ?? 'anon'),
     useCallback(
       signal => access.userId
-        ? apiRequest<{ fullName?: string | null; email?: string | null; phoneNumber?: string | null }>('/auth/me', { signal }).catch(() => null)
+        ? apiRequest<{
+            fullName?: string | null
+            email?: string | null
+            phoneNumber?: string | null
+            dateOfBirth?: string | null
+            nationality?: string | null
+            documentType?: 'Passport' | 'NationalID' | null
+            documentNumber?: string | null
+          }>('/auth/me', { signal }).catch(() => null)
         : Promise.resolve(null),
       [access.userId],
     ),
@@ -52,21 +60,43 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
   const locked = state !== 'editable'
   const back = catalogReturn(params.get('from')), requestedCruise = params.get('cruiseId')
   const usable = quoteUsable(draft, quoteIntent, clock)
-  // Auto-prefill logged-in passenger identity on Step 3 so customer does not re-type or trigger 409 mismatch
+  // Auto-prefill full verified passenger profile on Step 3 so returning customers do not trigger 409 mismatch
   useEffect(() => {
-    if (!customerUser || locked) return
+    if (!customerUser || locked || draft.bookForOthers) return
     setDraft(current => {
+      if (current.bookForOthers) return current
       const lead = current.passengers[0]
       if (!lead) return current
       const nextFullName = lead.fullName || customerUser.fullName || ''
       const nextEmail = lead.email || customerUser.email || ''
       const nextPhone = lead.phoneNumber || customerUser.phoneNumber || ''
-      if (nextFullName === lead.fullName && nextEmail === lead.email && nextPhone === lead.phoneNumber) return current
+      const nextDob = lead.dateOfBirth || customerUser.dateOfBirth || ''
+      const nextNationality = lead.nationality || customerUser.nationality || ''
+      const nextDocType = lead.documentType || customerUser.documentType || ''
+      const nextDocNumber = lead.documentNumber || customerUser.documentNumber || ''
+      if (
+        nextFullName === lead.fullName
+        && nextEmail === lead.email
+        && nextPhone === lead.phoneNumber
+        && nextDob === lead.dateOfBirth
+        && nextNationality === lead.nationality
+        && nextDocType === lead.documentType
+        && nextDocNumber === lead.documentNumber
+      ) return current
       const nextPassengers = [...current.passengers]
-      nextPassengers[0] = { ...lead, fullName: nextFullName, email: nextEmail, phoneNumber: nextPhone }
+      nextPassengers[0] = {
+        ...lead,
+        fullName: nextFullName,
+        email: nextEmail,
+        phoneNumber: nextPhone,
+        dateOfBirth: nextDob,
+        nationality: nextNationality,
+        documentType: nextDocType,
+        documentNumber: nextDocNumber,
+      }
       return { ...current, passengers: nextPassengers }
     })
-  }, [customerUser, locked, setDraft])
+  }, [customerUser, locked, draft.bookForOthers, setDraft])
   useEffect(() => {
     if (!quoteIntent?.quote.expiresAt) return
     const remaining = Date.parse(quoteIntent.quote.expiresAt) - Date.now()
@@ -146,6 +176,7 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
       const failure = bookingMutationFailure(value)
       unknown = failure.uncertain; setUncertain(unknown); setError(failure.message)
       if (!unknown) { setQuoteIntent(null); lastAutoQuotedRef.current = ''; cabins.retry(); packages.retry(); cruises.retry(); fares.retry() }
+      requestAnimationFrame(() => heading.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
     } finally { submissionLockRef.current = unknown; setBusy(false) }
   }
 
@@ -157,6 +188,21 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
     setQuoteError('')
     try {
       const nextIntent = await requestBookingQuote(targetDraft)
+      const eligible = nextIntent.quote.eligiblePaymentPlans
+      if (eligible.length > 0 && !eligible.includes(targetDraft.paymentPlan)) {
+        const fallbackPlan = eligible.includes('DEPOSIT')
+          ? 'DEPOSIT'
+          : eligible.includes('FULL')
+            ? 'FULL'
+            : eligible[0]
+        const adjustedDraft = { ...targetDraft, paymentPlan: fallbackPlan }
+        setDraft(current => (current.paymentPlan === fallbackPlan ? current : { ...current, paymentPlan: fallbackPlan }))
+        const adjustedIntent = await requestBookingQuote(adjustedDraft)
+        lastAutoQuotedRef.current = quoteSelection(adjustedDraft)
+        setQuoteIntent(adjustedIntent)
+        setClock(bookingNow())
+        return
+      }
       setQuoteIntent(nextIntent)
       setClock(bookingNow())
     } catch (value) {
@@ -166,7 +212,7 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
     } finally {
       setQuoteLoading(false)
     }
-  }, [locked, setQuoteIntent, setQuoteUnknown, submissionLockRef])
+  }, [locked, setDraft, setQuoteIntent, setQuoteUnknown, submissionLockRef])
 
   // Auto-fetch authoritative quote when entering Step 4 or switching payment plan — NO manual "Kiểm tra giá" click needed!
   const currentQuoteKey = quoteSelection(draft)
@@ -228,7 +274,7 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
   const hasEstimatedTotal = selectedOfferTotal > 0 && draft.passengers.every(p => Boolean(p.farePackageOfferId))
   const summaryCurrency = quoteIntent?.quote.currency ?? selected?.saleCurrency ?? draft.currency
   const formatSummaryMoney = (amount: number) =>
-    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: summaryCurrency }).format(amount)
+    `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: summaryCurrency === 'VND' ? 0 : 2 }).format(amount)} ${summaryCurrency}`
   return <RealBookingFrame><BookingFlowLayout stage={step} available={available} locked={locked} path={path} back={back} headingRef={heading} summary={<>
     {selectedPhoto && <div className={flow.summaryMedia}>
       <img src={selectedPhoto.image} alt={selected?.cruiseName ?? selectedPhoto.caption} width="800" height="500" />
@@ -349,7 +395,33 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
           {!choicesLoading && !readError && fares.data && cabins.data && <CruisePackageCabinSelection catalog={fares.data} cabins={cabins.data} shipId={selected?.shipId} render={renderShipModel} packages={packages.data} />}
         </>}
         {step === 3 && <>
-          <PassengerDetailsFields publicJourney representativeEmailRequired={!access.userId} />
+          <PassengerDetailsFields
+            publicJourney
+            representativeEmailRequired={!access.userId || Boolean(draft.bookForOthers)}
+            canSwitchLeadProfile={Boolean(access.userId)}
+            usingOwnProfile={!draft.bookForOthers}
+            onSelectLeadMode={useOwn => {
+              if (locked) return
+              setDraft(current => {
+                const nextPassengers = [...current.passengers]
+                if (nextPassengers[0]) {
+                  nextPassengers[0] = useOwn
+                    ? {
+                        ...nextPassengers[0],
+                        fullName: customerUser?.fullName || '',
+                        email: customerUser?.email || '',
+                        phoneNumber: customerUser?.phoneNumber || '',
+                        dateOfBirth: customerUser?.dateOfBirth || '',
+                        nationality: customerUser?.nationality || '',
+                        documentType: customerUser?.documentType || '',
+                        documentNumber: customerUser?.documentNumber || '',
+                      }
+                    : { ...nextPassengers[0], fullName: '', email: '', phoneNumber: '', dateOfBirth: '', nationality: '', documentType: '', documentNumber: '' }
+                }
+                return { ...current, bookForOthers: !useOwn, passengers: nextPassengers }
+              })
+            }}
+          />
           <Panel title="Kế hoạch thanh toán"><div className={flow.section}>
             <div>
               <p className={flow.choiceGroupLabel}>Chọn hình thức thanh toán *</p>

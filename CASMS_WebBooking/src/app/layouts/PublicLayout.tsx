@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, ScrollRestoration, useLocation, useNavigation } from 'react-router'
 import { PublicFooter } from './PublicFooter'
 import { PublicContact } from './PublicContact'
+import { NotificationBell } from '@/features/notifications/NotificationBell'
 import styles from './PublicLayout.module.css'
 import experience from '@/shared/ui/Experience.module.css'
 
@@ -59,6 +60,7 @@ export function PublicLayout() {
       </div>
       <div className={styles.accountNav}>
         <PublicContact variant="button" id="header-contact" />
+        {authStatus === 'authenticated' && <NotificationBell />}
         {authStatus === 'authenticated' ? (
           <Button
             tone="secondary"

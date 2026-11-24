@@ -30,6 +30,8 @@ export class ApiError extends Error {
 let accessToken: string | null = null
 let sessionGeneration = 0
 const activeRequests = new Set<AbortController>()
+export function getApiAccessToken() { return accessToken }
+export function getApiBaseUrl() { return baseUrl }
 export function setApiAccessToken(token: string | null) {
   if (token === accessToken) return
   accessToken = token

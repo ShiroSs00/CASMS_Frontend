@@ -62,7 +62,7 @@ function InfoForm({trip:initial}:{trip?:Trip}) {
     <header className={styles.heading}><div><h1>{trip?'Thông tin khung chuyến':'Tạo khung chuyến'}</h1><p className={styles.muted}>{trip?.tripCode??'Chọn phạm vi và thời lượng để bắt đầu lập tuyến cảng.'}</p></div><Link to={root}>Về danh sách</Link></header><TripSteps stage="info" tripId={trip?.tripId}/>
     {!full&&<Notice title={trip?'Phạm vi chỉnh sửa hiện có':'Chức năng tạo đang chờ cập nhật'} tone="warning">{trip?'Chế độ hiện tại chỉ lưu tên và giới thiệu. Thời lượng, nhiều miền/quốc gia của biểu mẫu mới chưa có hợp đồng lưu đầy đủ.':'Chưa thể tạo khung chuyến ở đây. Bạn có thể quay lại danh sách và mở lịch trình của chuyến đã có.'}</Notice>}
     {!permitted&&<Notice title="Chỉ xem thông tin chuyến">Tài khoản hoặc trạng thái chuyến hiện tại không cho phép chỉnh sửa.</Notice>}
-    {trip?.durationIssue&&<Notice title="Cần đối soát thời lượng" tone="warning">{trip.durationIssue}</Notice>}{locked&&<Notice title="Thời lượng đã khóa">Chuyến đi có mẫu đã chốt nên không thể đổi số ngày. Hãy nhân bản chuyến.</Notice>}
+    {trip?.durationIssue&&<Notice title="Cần đối soát thời lượng" tone="warning">{trip.durationIssue}</Notice>}{locked&&<Notice title="Thời lượng đã khóa">Chuyến đi có mẫu đã chốt nên không thể đổi số ngày. Nếu cần đổi thời lượng, hãy <Link to={`${root}/new`}>tạo khung chuyến mới</Link>.</Notice>}
     {recovery&&<OperationRecovery operation={operation} onClose={()=>setRecovery(false)}/>}<Panel title="Thiết lập khung chuyến"><form id="trip-info" className={styles.single} onSubmit={e=>void save(e)} noValidate>
       <section className={styles.infoSection} aria-labelledby="trip-identity-heading">
         <h3 id="trip-identity-heading">Nhận diện chuyến</h3>
@@ -78,7 +78,17 @@ function InfoForm({trip:initial}:{trip?:Trip}) {
       </section>
       <section className={styles.infoSection} aria-labelledby="trip-duration-heading">
         <h3 id="trip-duration-heading">Thời lượng</h3>
-      <Field htmlFor="trip-band" label="Thời lượng *" error={durations.error||show('durationBand')}><select id="trip-band" value={form.durationBand} disabled={!permitted||busy||locked||durations.loading||Boolean(durations.error)||(gateway.mode==='api'&&Boolean(trip))} aria-invalid={Boolean(show('durationBand'))} onBlur={()=>setTouched(t=>({...t,durationBand:true}))} onChange={e=>change('durationBand',e.target.value as TripInfo['durationBand'])}><option value="">{durations.loading?'Đang tải thời lượng…':'Chọn thời lượng'}</option>{durations.data.filter(item=>supportedDuration(item.id)).map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select>{durations.error&&<Button type="button" tone="text" onClick={durations.retry}>Tải lại thời lượng</Button>}{gateway.mode==='api'&&trip&&!locked&&<small>Chuyến đang có giữ nhóm thời lượng để bảo toàn số ngày và nội dung. Chọn nhóm khác khi tạo chuyến mới.</small>}</Field>
+      {(() => {
+        const durationOptions = durations.data.filter(item => supportedDuration(item.id))
+        const effectiveOptions = durationOptions.length
+          ? durationOptions
+          : [
+              { id: 'SHORT', label: 'Ngắn ngày · 1–2 ngày' },
+              { id: 'LONG', label: 'Dài ngày · 3–5 ngày' },
+            ]
+        const fallbackBand = form.durationBand || (trip ? (trip.durationDays <= 2 ? 'SHORT' : 'LONG') : '')
+        return <Field htmlFor="trip-band" label="Thời lượng *" error={durations.error||show('durationBand')}><select id="trip-band" value={fallbackBand} disabled={!permitted||busy||locked||(durations.loading&&!trip)||Boolean(durations.error)||(gateway.mode==='api'&&Boolean(trip))} aria-invalid={Boolean(show('durationBand'))} onBlur={()=>setTouched(t=>({...t,durationBand:true}))} onChange={e=>change('durationBand',e.target.value as TripInfo['durationBand'])}><option value="">{durations.loading&&!trip?'Đang tải thời lượng…':'Chọn thời lượng'}</option>{effectiveOptions.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select>{durations.error&&<Button type="button" tone="text" onClick={durations.retry}>Tải lại thời lượng</Button>}{gateway.mode==='api'&&trip&&!locked&&<small>Chuyến đang có giữ nhóm thời lượng để bảo toàn số ngày và nội dung. Chọn nhóm khác khi tạo chuyến mới.</small>}</Field>
+      })()}
       {trip
         ? <p>Khung hiện có {trip.durationDays} ngày.</p>
         : supportedDuration(form.durationBand) && <p>Lịch trình bắt đầu với {durationRules[form.durationBand].defaultDays} ngày. Bạn có thể thêm ngày ở bước lập lịch trình, trong nhóm thời lượng đã chọn.</p>}

@@ -66,7 +66,7 @@ export function CruisePackageCabinSelection({ catalog, cabins, shipId, render, p
                     <span className={styles.offerPickMeta}>{cabinLabel}</span>
                     <strong>{o.selection.templateName}</strong>
                     <span className={styles.offerPickPrice}>
-                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: o.currencyCode }).format(Number(o.selection.amount))} / người
+                      {`${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: o.currencyCode === 'VND' ? 0 : 2 }).format(Number(o.selection.amount))} ${o.currencyCode}`} / người
                     </span>
                   </button>
                 })}

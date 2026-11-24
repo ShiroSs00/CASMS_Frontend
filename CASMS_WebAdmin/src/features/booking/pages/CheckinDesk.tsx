@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ApiError, apiRequest } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { Button, DataTable, Empty, Field, Modal, Notice, Panel } from '@/shared/ui'
@@ -18,6 +18,7 @@ function decodeCheckin(value: unknown): Checkin {
 export function PassengerCheckinActions({ passengerId, fullName, bookingStatus, onChanged }: { passengerId:string; fullName:string; bookingStatus:string; onChanged?:()=>void }) {
   const access=useSessionAccess(),lock=useRef(false)
   const [result,setResult]=useState<Checkin|null>(null),[action,setAction]=useState<'start'|'complete'|null>(null)
+  const [emergencyName,setEmergencyName]=useState(''),[emergencyPhone,setEmergencyPhone]=useState('')
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[canStart,setCanStart]=useState(false),[uncertain,setUncertain]=useState(false)
   async function status() {
     if(lock.current||!access.canDo('CHECKIN_READ'))return
@@ -26,29 +27,39 @@ export function PassengerCheckinActions({ passengerId, fullName, bookingStatus, 
     catch(reason) { if(reason instanceof ApiError&&reason.status===404){setCanStart(true);setUncertain(false)}else setError(reason instanceof Error?reason.message:'Chưa đọc được trạng thái check-in.') }
     finally {lock.current=false;setBusy(false)}
   }
+  useEffect(() => {
+    void status()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [passengerId])
   async function submit() {
     if(!action||lock.current||uncertain||bookingStatus!=='Confirmed'||!access.canDo(action==='start'?'CHECKIN_CREATE':'CHECKIN_UPDATE'))return
+    if(action==='start'&&(!emergencyName.trim()||!emergencyPhone.trim())){setError('Vui lòng nhập đầy đủ tên và số điện thoại người liên hệ khẩn cấp.');return}
     lock.current=true;setBusy(true);setError('')
     try {
-      const row=decodeCheckin(await apiRequest(`/checkin/passenger/${encodeURIComponent(passengerId)}/${action}`,{method:'POST'}))
+      const query=action==='start'?{emergencyContactName:emergencyName.trim(),emergencyContactPhone:emergencyPhone.trim()}:undefined
+      const row=decodeCheckin(await apiRequest(`/checkin/passenger/${encodeURIComponent(passengerId)}/${action}`,{method:'POST',query}))
       if(row.checkinStatus!==(action==='start'?'InProgress':'BoardingReady'))throw new Error('Chưa xác nhận được kết quả. Hãy đọc lại trạng thái trước khi gửi lại.')
-      setResult(row);setCanStart(false);setAction(null);onChanged?.()
+      setResult(row);setCanStart(false);setAction(null);setEmergencyName('');setEmergencyPhone('');onChanged?.()
     } catch(reason) {setUncertain(true);setAction(null);setError(reason instanceof Error?reason.message:'Chưa cập nhật được check-in.')}
     finally {lock.current=false;setBusy(false)}
   }
   return <Panel title={`Check-in · ${fullName}`}>
     {bookingStatus!=='Confirmed'&&<Notice title="Đặt chỗ chưa được xác nhận" tone="warning">Chỉ đặt chỗ đã xác nhận mới được làm thủ tục.</Notice>}
     {access.canDo('CHECKIN_READ')?<Button tone="secondary" disabled={busy} onClick={()=>void status()}>Đọc lại trạng thái hành khách</Button>:<Notice title="Chưa có quyền đọc hồ sơ Check-in">Không thể xác nhận trạng thái thủ tục khi chưa có quyền đọc hồ sơ.</Notice>}
-    <p>{result?checkinLabels[result.checkinStatus]:canStart?'Chưa bắt đầu Check-in':'Chưa đọc trạng thái thủ tục'}</p>
+    <p>{result?checkinLabels[result.checkinStatus]:canStart?'Chưa bắt đầu Check-in':'Đang đọc trạng thái thủ tục…'}</p>
     {result?.boardingBlockReason&&<Notice title="Điều kiện còn thiếu" tone="warning">{result.boardingBlockReason}</Notice>}
     {error&&<Notice title="Chưa thực hiện được" tone="error">{error}</Notice>}
     {uncertain&&<Notice title="Cần đối chiếu hồ sơ Check-in" tone="warning">Đọc lại trạng thái hành khách trước khi tiếp tục; chưa gửi lại thao tác.</Notice>}
-    {access.canDo('CHECKIN_CREATE')&&canStart&&<Button disabled={busy||uncertain||bookingStatus!=='Confirmed'} onClick={()=>setAction('start')}>Bắt đầu Check-in</Button>}
-    {access.canDo('CHECKIN_UPDATE')&&result?.checkinStatus==='InProgress'&&<Button disabled={busy||uncertain||bookingStatus!=='Confirmed'} onClick={()=>setAction('complete')}>Xác nhận hoàn tất kiểm tra</Button>}
+    {access.canDo('CHECKIN_CREATE')&&canStart&&<Button disabled={busy||uncertain||bookingStatus!=='Confirmed'} onClick={()=>{setError('');setAction('start')}}>Bắt đầu Check-in</Button>}
+    {access.canDo('CHECKIN_UPDATE')&&result?.checkinStatus==='InProgress'&&<Button disabled={busy||uncertain||bookingStatus!=='Confirmed'} onClick={()=>{setError('');setAction('complete')}}>Xác nhận hoàn tất kiểm tra</Button>}
     {action&&<Modal quiet title={action==='start'?'Bắt đầu Check-in':'Hoàn tất kiểm tra'} description={fullName} busy={busy}
       onClose={()=>setAction(null)}
-      footer={<><Button tone="secondary" autoWidth data-overlay-dismiss onClick={()=>setAction(null)}>Quay lại</Button><Button autoWidth disabled={uncertain} busy={busy} onClick={()=>void submit()}>Xác nhận</Button></>}>
+      footer={<><Button tone="secondary" autoWidth data-overlay-dismiss onClick={()=>setAction(null)}>Quay lại</Button><Button autoWidth disabled={uncertain||(action==='start'&&(!emergencyName.trim()||!emergencyPhone.trim()))} busy={busy} onClick={()=>void submit()}>Xác nhận</Button></>}>
       <p>Đối chiếu hành khách, hợp đồng, chứng từ và yêu cầu an toàn tại quầy trước khi xác nhận.</p>
+      {action==='start'&&<div className={styles.deskLookup}>
+        <Field htmlFor="checkin-emergency-name" label="Tên người liên hệ khẩn cấp *"><input id="checkin-emergency-name" required disabled={busy} value={emergencyName} onChange={e=>setEmergencyName(e.target.value)} placeholder="Ví dụ: Lê Văn B"/></Field>
+        <Field htmlFor="checkin-emergency-phone" label="Số điện thoại liên hệ khẩn cấp *"><input id="checkin-emergency-phone" required disabled={busy} value={emergencyPhone} onChange={e=>setEmergencyPhone(e.target.value)} placeholder="Ví dụ: 0901112223"/></Field>
+      </div>}
       {error&&<Notice title="Chưa cập nhật được" tone="error">{error}</Notice>}
     </Modal>}
   </Panel>

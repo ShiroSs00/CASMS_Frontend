@@ -6,14 +6,19 @@ import {cabinTypeLabel} from '@/shared/i18n/business-copy'
 import {realBookingApi,type BookingDetail} from '../api/real-booking-api'
 
 export function CruisePackageBookingHistory({booking}:{booking:BookingDetail}) {
-  return <>{booking.passengers.filter(p=>p.purchasedFare||p.selectedFare).map(p=><Panel key={p.bookingPassengerId} title={`Gói du thuyền · ${p.fullName}`}>
-    <p>{p.purchasedFare?.fare.templateName??p.selectedFare?.templateName} · {p.purchasedFare?.fare.logicalCategory??p.selectedFare?.logicalCategory} · {p.purchasedFare?.fare.amount??p.selectedFare?.amount} {p.purchasedFare?.fare.currencyCode??p.selectedFare?.currencyCode}/người</p>
+  return <>{booking.passengers.filter(p=>p.purchasedFare||p.selectedFare).map(p=>{
+    const fare=p.purchasedFare?.fare??p.selectedFare
+    const rawAmount=fare?.amount
+    const formattedAmount=rawAmount!=null&&Number.isFinite(Number(rawAmount))?new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(Number(rawAmount)):String(rawAmount??'')
+    const categoryText=fare?.logicalCategory?cabinTypeLabel(fare.logicalCategory):''
+    return <Panel key={p.bookingPassengerId} title={`Gói du thuyền · ${p.fullName}`}>
+    <p>{fare?.templateName}{categoryText?` · ${categoryText}`:''}{formattedAmount?` · ${formattedAmount} ${fare?.currencyCode??'VND'}/người`:''}</p>
     <p>{p.purchasedFare?'Nội dung gói du thuyền đã mua được lưu tại thời điểm xác nhận.':'Lựa chọn theo báo giá đã chốt; đặt chỗ chưa xác nhận mua.'}</p>
     <details><summary>Tham chiếu phiên bản gói và giá</summary><p>Phiên bản mẫu: {p.purchasedFare?.fare.templateVersionId??p.selectedFare?.templateVersionId}</p><p>Phiên bản giá: {p.purchasedFare?.fare.priceRevisionId??p.selectedFare?.priceRevisionId}</p>{p.purchasedFare&&<p>Mua lúc: {new Date(p.purchasedFare.fare.purchasedAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'})} (giờ tàu)</p>}</details>
-    <p>{p.cabinSelectionMode==='CATEGORY_HOLD'?`Chưa phân Cabin · giữ nguyên nhóm theo hạng ${p.purchasedFare?.fare.logicalCategory??p.selectedFare?.logicalCategory??cabinTypeLabel(p.fareCabinCategory??'')}`:`Cabin vật lý: ${p.cabinNumber??'Chưa phân Cabin'}`}</p>
+    <p>{p.cabinSelectionMode==='CATEGORY_HOLD'?`Chưa phân Cabin · giữ nguyên nhóm theo hạng ${categoryText||cabinTypeLabel(p.fareCabinCategory??'')}`:`Cabin vật lý: ${p.cabinNumber??'Chưa phân Cabin'}`}</p>
     <ul>{(p.purchasedFare?.benefits??p.selectedFare?.benefits)?.map(b=><li key={b.sourceBenefitId}>{b.resourceName} · {({INCLUDED:'Đã bao gồm',LIMITED_INCLUDED:'Bao gồm có giới hạn',OPTIONAL:'Tùy chọn mua thêm',NOT_INCLUDED:'Không bao gồm'})[b.inclusion]}{b.quantityLimit!=null&&` · ${b.quantityLimit} ${b.usageUnit==='PARTICIPATION'?'lượt tham gia':b.serviceUnitCode??'đơn vị chưa xác định'}`} · {b.eligibility}</li>)}</ul>
     <p>Mua gói du thuyền không tự giữ chỗ hoạt động/dịch vụ. Cần đăng ký riêng theo chỗ phục vụ còn trống.</p>
-  </Panel>)}</>
+  </Panel>})}</>
 }
 export function CruisePackageBookingCabin({booking,onChanged}:{booking:BookingDetail;onChanged:()=>void}) {
   const renderModel=useBookingModelRenderer()

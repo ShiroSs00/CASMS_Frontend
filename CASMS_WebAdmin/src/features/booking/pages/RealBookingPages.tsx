@@ -48,7 +48,7 @@ export function RealBookingList() {
     const [openPanel, setOpenPanel] = useState<'lookup' | 'sale' | null>(null);
     return <RealBookingFrame><div className={agentStyles.workspace}>
     <PageHeader title="Quản lý đặt chỗ" breadcrumb="" description="Theo dõi và xử lý đặt chỗ theo chuyến khởi hành." actions={<>{!bookingAgent && <><ButtonLink tone="secondary" to={root + '/cruises'}>Chuyến đang mở bán</ButtonLink><ButtonLink tone="secondary" to={root + '/lookup'}>Tra cứu bằng mã</ButtonLink></>}
-        {access.canDo('BOOKING_CREATE') && <ButtonLink to={root + '/new'}>Tạo đặt chỗ</ButtonLink>}</>}/>
+        {access.roles.includes('BOOKING_AGENT') && access.canDo('BOOKING_CREATE') && <ButtonLink to={root + '/new'}>Đặt hộ tại quầy</ButtonLink>}</>}/>
     <section className={`${agentStyles.register} ${agentStyles.bookingTable}`} aria-labelledby="booking-register-heading">
       <div className={agentStyles.registerHeading}>
         <div><h2 id="booking-register-heading">Danh sách đặt chỗ</h2>{!list.loading && !list.error && list.data && <p aria-live="polite">{list.data.totalElements.toLocaleString('vi-VN')} đặt chỗ</p>}</div>
@@ -150,9 +150,9 @@ export function RealBookingDetail({ related }: { related?: (bookingId: string) =
           <BookingContractAcceptance booking={booking} onRefresh={detail.retry} onChanged={() => actionCompleted('Đã ghi nhận hợp đồng')} />
         } />
         <aside id="booking-actions" aria-label="Xử lý đặt chỗ" className={agentStyles.sections}>
-          <BookingOperations key={bookingId} booking={booking} legacyCancelAllowed={legacyCancelId === bookingId} onChanged={actionCompleted}
+          <BookingOperations key={`ops:${bookingId}`} booking={booking} legacyCancelAllowed={legacyCancelId === bookingId} onChanged={actionCompleted}
             onRead={latest => { if (detail.data) setReadback({ source: detail.data, booking: latest }); }} />
-          <StaffCancellation confirmRequest key={bookingId} bookingId={bookingId} bookingStatus={booking.bookingStatus} formatDate={bookingWhen}
+          <StaffCancellation confirmRequest key={`cancel:${bookingId}`} bookingId={bookingId} bookingStatus={booking.bookingStatus} formatDate={bookingWhen}
             onChanged={detail.retry} onLegacyAvailable={setLegacyCancelId} />
           <CruisePackageBookingHistory booking={booking} />
           {hasFare && <CruisePackageEntitlements bookingId={bookingId} passengers={booking.passengers} />}

@@ -343,7 +343,7 @@ function PaymentLedgerContent({
                   onChange={event => setMethod(event.target.value)}
                 >
                   <option value="Cash">Tiền mặt tại quầy</option>
-                  <option value="GatewaySandbox">GatewaySandbox (mô phỏng)</option>
+                  <option value="GatewaySandbox">Cổng thanh toán mô phỏng (Sandbox)</option>
                 </select>
               </Field>
             </div>

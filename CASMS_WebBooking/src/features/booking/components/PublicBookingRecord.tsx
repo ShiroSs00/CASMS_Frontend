@@ -40,7 +40,9 @@ export function PublicBookingRecord({
       )}
       {booking.bookingStatus === 'Confirmed' && (
         <Notice title="Đặt chỗ đã được xác nhận" tone="success">
-          Bạn có thể nhận email xác nhận kèm tên đăng nhập và hướng dẫn thiết lập mật khẩu cho tài khoản mới. Nếu chưa nhận được email, vui lòng liên hệ hỗ trợ. Tài khoản đã có giữ nguyên mật khẩu.
+          {showPassengerDetails
+            ? 'Đặt chỗ của bạn đã được xác nhận. Bạn có thể theo dõi lịch thanh toán, hợp đồng và thực hiện check-in trực tuyến ngay trên trang này.'
+            : 'Bạn có thể nhận email xác nhận kèm thông tin truy cập tài khoản. Nếu chưa nhận được email, vui lòng liên hệ hỗ trợ.'}
           {booking.fullyPaid === false && booking.outstandingBalance != null && booking.outstandingBalance > 0 && (
             <> Đặt chỗ vẫn còn số dư {bookingMoney(booking.outstandingBalance, booking.currency)} theo lịch thanh toán bên dưới.</>
           )}

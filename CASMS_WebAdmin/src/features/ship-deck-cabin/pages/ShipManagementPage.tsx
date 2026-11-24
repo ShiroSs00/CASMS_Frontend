@@ -55,7 +55,7 @@ function ShipManagementContent({ id }: { id: string }) {
     cabins: access.canDo('CABIN_READ'), model: canViewModel, schedule: !archived && canViewSchedule,
   }
   const tab = requested && availableTabs[requested] ? requested : 'overview'
-  const backToDesign = admin && listQuery === null
+  const backToDesign = admin && listQuery === null && tab === 'model'
   const back = backToDesign ? (ship.shipTypeId ? '/admin/ship-types/' + ship.shipTypeId : '/admin/ship-models') : fleetPath
   const sections = [
     { key: 'overview', label: 'Thông tin chung', visible: true },

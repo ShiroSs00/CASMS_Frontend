@@ -27,6 +27,6 @@ export function CruisePackageEntitlements({bookingId,passengers,grantId}:{bookin
       {row.blockers.length>0&&<Notice title="Chưa thể sử dụng quyền lợi" tone="warning"><ul>{row.blockers.map((b,i)=><li key={`${b.code}:${i}`}>{b.message}</li>)}</ul></Notice>}
       {row.canRegister&&<p>Quyền lợi đủ điều kiện cấu trúc để đăng ký. Backend kiểm tra lại lịch và chỗ phục vụ khi gửi đăng ký; chưa giữ chỗ hoặc tiêu thụ lượt.</p>}
     </article>)}
-    <p>Đăng ký chưa đồng nghĩa đã sử dụng. Chỉ fulfillment thành công được ghi nhận; luồng này không xác minh tuổi hoặc sức khỏe từ mô tả.</p>
+    <p>Đăng ký chưa đồng nghĩa đã sử dụng. Chỉ dịch vụ đã thực hiện thành công mới được ghi nhận; luồng này không xác minh tuổi hoặc sức khỏe từ mô tả.</p>
   </Panel>
 }

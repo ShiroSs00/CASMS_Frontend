@@ -50,7 +50,7 @@ function startingPrice(offers: NonNullable<CruisePackageRead['data']>['offers'])
     const units = BigInt(whole + fraction.padEnd(4, '0'))
     if (!lowest || units < lowest.units) lowest = { amount, currency: currencyCode, units }
   }
-  return lowest && new Intl.NumberFormat('vi-VN', { style: 'currency', currency: lowest.currency }).format(Number(lowest.amount))
+  return lowest && `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: lowest.currency === 'VND' ? 0 : 2 }).format(Number(lowest.amount))} ${lowest.currency}`
 }
 
 function routeStops(cruise: LiveCruise, ports: ReturnType<typeof journeyFacts>['ports']) {
@@ -262,7 +262,8 @@ export function UnavailableCruise({ back }: { back: string }) {
 function formatExpMoney(price: number | null, currencyCode: string) {
   if (price == null || price === 0) return 'Miễn phí / Theo gói'
   try {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: currencyCode || 'VND' }).format(price)
+    const curr = currencyCode || 'VND'
+  return `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: curr === 'VND' ? 0 : 2 }).format(price)} ${curr}`
   } catch {
     return `${price.toLocaleString('vi-VN')} ${currencyCode || 'VND'}`
   }

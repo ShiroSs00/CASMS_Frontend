@@ -40,7 +40,19 @@ export function CabinPassengerFields({ cabins, packages, publicJourney = false }
   </div>
 }
 
-export function PassengerDetailsFields({ publicJourney = false, representativeEmailRequired = false }: { publicJourney?: boolean; representativeEmailRequired?: boolean }) {
+export function PassengerDetailsFields({
+  publicJourney = false,
+  representativeEmailRequired = false,
+  canSwitchLeadProfile = false,
+  usingOwnProfile = true,
+  onSelectLeadMode,
+}: {
+  publicJourney?: boolean
+  representativeEmailRequired?: boolean
+  canSwitchLeadProfile?: boolean
+  usingOwnProfile?: boolean
+  onSelectLeadMode?: (useOwnProfile: boolean) => void
+}) {
   const { draft, setDraft, errors, setErrors, personIds } = useLiveBooking()
   function update(index: number, key: keyof BookingPersonDraft, value: string) {
     setDraft(current => ({ ...current, passengers: current.passengers.map((person, i) => i === index ? { ...person, [key]: value } : person) }))
@@ -52,6 +64,30 @@ export function PassengerDetailsFields({ publicJourney = false, representativeEm
     ['phoneNumber', 'Số điện thoại', 'tel', 16], ['documentNumber', 'Số giấy tờ (tùy chọn)', 'text', 30],
   ] as const
   return <div className={styles.stack}>{draft.passengers.map((person, index) => <Panel className={styles.passengerCard} key={personIds[index] ?? index} title={`Hành khách ${index + 1}${index === 0 ? ' · Người đại diện' : ''}`}>
+    {index === 0 && canSwitchLeadProfile && onSelectLeadMode && (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '4px' }} role="group" aria-label="Nguồn thông tin hành khách 1">
+        <Button
+          type="button"
+          size="compact"
+          autoWidth
+          tone={usingOwnProfile ? 'primary' : 'secondary'}
+          aria-pressed={usingOwnProfile}
+          onClick={() => onSelectLeadMode(true)}
+        >
+          Dùng hồ sơ của tôi
+        </Button>
+        <Button
+          type="button"
+          size="compact"
+          autoWidth
+          tone={!usingOwnProfile ? 'primary' : 'secondary'}
+          aria-pressed={!usingOwnProfile}
+          onClick={() => onSelectLeadMode(false)}
+        >
+          Nhập hành khách khác
+        </Button>
+      </div>
+    )}
     <div className={styles.fields}>{fields.map(([key, label, type, maxLength]) => {
       const id = `person-${index}-${key}`
       const autoComplete = ({ fullName: 'name', dateOfBirth: 'bday', email: 'email', phoneNumber: 'tel' } as Record<string, string>)[key]
