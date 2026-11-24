@@ -291,7 +291,7 @@ export function PreparationEvidence({
                   : section.submitterRole === 'SHIP_MANAGER'
                     ? 'Chưa được phép nộp. Kiểm tra tài khoản có được phân công Quản lý tàu đang hoạt động cho chuyến này.'
                     : section.submitterRole === 'OPERATIONS_MANAGER'
-                      ? 'Chưa được phép nộp. Kiểm tra hồ sơ Cruise Plan đã được chuyển đến Quản lý vận hành và tải lại hồ sơ.'
+                      ? 'Chưa được phép nộp. Kiểm tra hồ sơ kế hoạch chuyến đã được chuyển đến Quản lý vận hành và tải lại hồ sơ.'
                       : 'Chưa được phép nộp nhóm hồ sơ. Tải lại để kiểm tra quyền và trạng thái mới nhất.'
             : null
           const next = section.status === 'RETURNED' || section.status === 'REJECTED'
@@ -443,7 +443,7 @@ export function PreparationEvidence({
       })}
 
       {query.data && !sectionCode && access.roles.includes('CRUISE_MANAGER') && onNavigateSection && (
-        <Notice title="Hồ sơ Cruise Plan còn có điều kiện riêng">
+        <Notice title="Hồ sơ kế hoạch chuyến còn có điều kiện riêng">
           <p>Kiểm tra gói, phiên bản giá và các mục cần hoàn thiện ở Tổng quan trước khi nộp hồ sơ tour cho Quản lý vận hành.</p>
           <Button tone="secondary" autoWidth onClick={() => onNavigateSection('overview')}>
             Xem gói giá và điều kiện gửi

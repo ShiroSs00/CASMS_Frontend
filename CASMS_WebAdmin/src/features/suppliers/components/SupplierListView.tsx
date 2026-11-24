@@ -16,6 +16,17 @@ type Props = {
   onRetry?: () => void
 }
 
+const supplierTypeLabels: Record<string, string> = {
+  TOUR_OPERATOR: 'Đơn vị tổ chức tour',
+  TRANSPORT: 'Vận chuyển',
+  FOOD_BEVERAGE: 'Ẩm thực & đồ uống',
+  ENTERTAINMENT: 'Giải trí & sự kiện',
+  PORT_AGENT: 'Đại lý cảng',
+  LOGISTICS: 'Hậu cần & cung ứng',
+  ACTIVITY_PROVIDER: 'Đơn vị hoạt động',
+  OTHER: 'Khác',
+}
+
 export function SupplierListView({ rows, filters, totalCount, loading = false, error, onFiltersChange, onReset, onRetry }: Props) {
   const [selected, setSelected] = useState<SupplierListItem|null>(null)
   const changed = useRef(false)
@@ -40,7 +51,7 @@ export function SupplierListView({ rows, filters, totalCount, loading = false, e
         <DataTable label="Danh sách nhà cung cấp" headers={['Nhà cung cấp', 'Loại', 'Liên hệ', 'Trạng thái', 'Xác minh', 'Cập nhật', 'Thao tác']}>
           {rows.map(row => <tr key={row.id}>
             <td><Button tone="text" autoWidth className={styles.name} onClick={() => openDetail(row)}>{row.supplierName}</Button></td>
-            <td><span className={styles.type}>{row.supplierType || 'Chưa phân loại'}</span></td>
+            <td><span className={styles.type}>{row.supplierType ? (supplierTypeLabels[row.supplierType] ?? row.supplierType) : 'Chưa phân loại'}</span></td>
             <td><div className={styles.contact}>
               {row.contactName && <strong>{row.contactName}</strong>}
               {row.contactEmail && <span>{row.contactEmail}</span>}

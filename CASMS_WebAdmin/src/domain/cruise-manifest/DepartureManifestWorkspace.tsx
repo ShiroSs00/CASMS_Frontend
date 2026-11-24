@@ -37,6 +37,6 @@ export function DepartureManifestWorkspace({renderCheckin,renderDeparture}:{rend
         </ListFooter>}
       </>}
     </Panel>}
-    {cruiseId&&allowed&&<div className={styles.manifest}><Button tone="secondary" autoWidth onClick={()=>choose('')}>Quay lại danh sách chuyến</Button><CruisePassengerManifest key={cruiseId} cruiseId={cruiseId} refreshKey={refresh} onSelectPassenger={renderCheckin&&access.canDo('CHECKIN_READ')?person=>setSelection({cruiseId,person}):undefined}/>{selection?.cruiseId===cruiseId&&renderCheckin&&renderCheckin(selection.person,()=>setRefresh(value=>value+1))}{renderDeparture?.(cruiseId)}</div>}
+    {cruiseId&&allowed&&<div className={styles.manifest}><Button tone="secondary" autoWidth onClick={()=>choose('')}>Quay lại danh sách chuyến</Button><CruisePassengerManifest key={`manifest:${cruiseId}`} cruiseId={cruiseId} refreshKey={refresh} onSelectPassenger={renderCheckin&&access.canDo('CHECKIN_READ')?person=>setSelection({cruiseId,person}):undefined}/>{selection?.cruiseId===cruiseId&&renderCheckin&&renderCheckin(selection.person,()=>setRefresh(value=>value+1))}{renderDeparture?.(cruiseId)}</div>}
   </>
 }

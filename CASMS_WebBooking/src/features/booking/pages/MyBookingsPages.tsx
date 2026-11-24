@@ -6,6 +6,7 @@ import { Badge, Button, ButtonLink, DataTable, Empty, Notice, PageHeader, Panel 
 import { realBookingApi } from '../api/real-booking-api'
 import { BookingPaymentActionCard } from '../components/BookingPaymentActionCard'
 import { CustomerCancellation } from '../components/CustomerCancellation'
+import { OnlineCheckinPanel } from '../components/OnlineCheckinPanel'
 import { PublicBookingRecord } from '../components/PublicBookingRecord'
 import { BookingReadState, RealBookingFrame } from '../components/RealBookingUI'
 import { bookingMoney } from '../model/booking-presentation'
@@ -95,7 +96,7 @@ export function MyBookingsPage() {
                         <td>{bookingWhen(item.createdAt)}</td>
                         <td>
                           <ButtonLink tone="secondary" size="compact" autoWidth to={`/my-bookings/${item.bookingId}`}>
-                            Chi tiết & thanh toán
+                            {item.bookingStatus === 'Confirmed' ? 'Xem chi tiết' : 'Chi tiết & thanh toán'}
                           </ButtonLink>
                         </td>
                       </tr>
@@ -161,7 +162,7 @@ export function MyBookingDetailPage() {
         <PageHeader
           breadcrumb="ĐẶT CHỖ CỦA TÔI / CHI TIẾT"
           title={detailQuery.data?.bookingReference ?? 'Chi tiết đặt chỗ'}
-          description="Kiểm tra số dư, lịch thanh toán từng đợt, tình trạng hợp đồng và thanh toán trực tuyến qua VietQR."
+          description="Kiểm tra thông tin chuyến, lịch thanh toán, tình trạng hợp đồng và thực hiện thủ tục trước khởi hành."
         />
 
         {access.status === 'loading' && <p role="status">Đang kiểm tra phiên đăng nhập…</p>}
@@ -193,6 +194,7 @@ export function MyBookingDetailPage() {
                 <BookingPaymentActionCard booking={detailQuery.data} onBookingReload={detailQuery.retry} />
               }
             />
+            <OnlineCheckinPanel booking={detailQuery.data} />
             <CustomerCancellation
               key={detailQuery.data.bookingId}
               bookingId={detailQuery.data.bookingId}

@@ -22,7 +22,7 @@ export type CruisePackageRead = ReturnType<typeof useReadQuery<Catalog>>
 
 type DisplayRate = { effectiveOn: string; vndPerUsd: number; source: string }
 const money = (amount: number, currency: string) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency }).format(amount)
+  `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: currency === 'VND' ? 0 : 2 }).format(amount)} ${currency}`
 
 function amountUnits(amount: string) {
   const [whole, fraction = ''] = amount.split('.')

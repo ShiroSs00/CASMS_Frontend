@@ -9,33 +9,38 @@
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:24px;
+  gap:16px;
   background:white;
-  padding:18px max(32px,calc((100% - 1280px)/2));
-  min-height:86px;
+  padding:14px max(24px,calc((100% - 1280px)/2));
+  min-height:80px;
   border-bottom:1px solid #D8E0E4;
   box-shadow:0 2px 16px rgba(6,26,43,0.04);
   flex-wrap:wrap;
 }
 
 @media(min-width:960px) {
-  .pageShell { --public-anchor-offset:160px; }
-  .header { position:sticky; top:0; z-index:40; }
+  .pageShell { --public-anchor-offset:120px; }
+  .header { position:sticky; top:0; z-index:40; flex-wrap:nowrap; padding:12px max(20px,calc((100% - 1320px)/2)); min-height:72px; }
+  .brandNav { gap:18px; flex-wrap:nowrap; }
+  .brand img { width:124px; }
+  .brandNav nav { gap:14px; flex-wrap:nowrap; }
+  .accountNav { gap:10px; }
   .pageShell > main :where(section[id]) { scroll-margin-top:var(--public-anchor-offset); }
 }
 
-.brandNav { display:flex; gap:40px; align-items:center; min-width:0; flex-wrap:wrap; }
+.brandNav { display:flex; gap:24px; align-items:center; min-width:0; flex-wrap:wrap; }
 .brand { display:inline-flex; align-items:center; flex-shrink:0; text-decoration:none; color:var(--brand-navy); }
-.brand img { width:160px; }
+.brand img { width:148px; }
 
-.brandNav nav { display:flex; gap:28px; align-items:center; flex-wrap:wrap; }
+.brandNav nav { display:flex; gap:18px; align-items:center; flex-wrap:wrap; }
 .header nav a {
   display:inline-flex;
   align-items:center;
-  min-height:48px;
+  min-height:44px;
   color:var(--brand-navy);
   font-size:13px;
   font-weight:600;
+  white-space:nowrap;
   border-bottom:2px solid transparent;
   text-decoration:none;
   transition:all 0.15s ease;
@@ -48,8 +53,9 @@
   display:flex;
   align-items:center;
   justify-content:flex-end;
-  gap:20px;
+  gap:12px;
   flex:none;
+  white-space:nowrap;
 }
 
 .loginLink {

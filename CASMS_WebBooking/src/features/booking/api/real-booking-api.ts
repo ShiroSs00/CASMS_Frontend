@@ -79,6 +79,7 @@ export type BookingDraft = {
     currency: string;
     paymentPlan: 'FULL' | 'DEPOSIT' | 'STAGES';
     notes: string;
+    bookForOthers?: boolean;
     passengers: BookingPersonDraft[];
 };
 export type BookingCruiseOption = {
@@ -143,7 +144,7 @@ export function serializeCabinSelection(person: BookingPersonDraft, quote = fals
         farePackageOfferId: person.farePackageOfferId, farePackagePriceRevisionId: person.farePackagePriceRevisionId };
 }
 export function serializeBooking(draft: BookingDraft) {
-    return { cruiseId: draft.cruiseId, currency: draft.currency, paymentPlan: draft.paymentPlan, notes: draft.notes.trim() || undefined, passengers: draft.passengers.map(person => ({ fullName: person.fullName.trim(), ...serializeCabinSelection(person), dateOfBirth: person.dateOfBirth || undefined, nationality: person.nationality.trim() || undefined, documentType: person.documentType || undefined, documentNumber: person.documentNumber.trim() || undefined, email: person.email.trim() || undefined, phoneNumber: person.phoneNumber.replace(/[\s-]/g, '') || undefined })) };
+    return { cruiseId: draft.cruiseId, currency: draft.currency, paymentPlan: draft.paymentPlan, notes: draft.notes.trim() || undefined, ...(draft.bookForOthers ? { bookForOthers: true } : {}), passengers: draft.passengers.map(person => ({ fullName: person.fullName.trim(), ...serializeCabinSelection(person), dateOfBirth: person.dateOfBirth || undefined, nationality: person.nationality.trim() || undefined, documentType: person.documentType || undefined, documentNumber: person.documentNumber.trim() || undefined, email: person.email.trim() || undefined, phoneNumber: person.phoneNumber.replace(/[\s-]/g, '') || undefined })) };
 }
 export function bookingCruisePackageSelectionErrors(draft: BookingDraft, catalog: CruisePackageCatalog | null | undefined): Record<string, string> {
     const errors: Record<string, string> = {};

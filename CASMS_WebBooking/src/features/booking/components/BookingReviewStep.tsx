@@ -43,7 +43,7 @@ export function BookingReviewStep({
 }) {
   const quote = usable && intent ? intent.quote : null
   const currency = quote?.currency ?? draft.currency
-  const fmt = (amount: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency }).format(amount)
+  const fmt = (amount: number) => `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: currency === 'VND' ? 0 : 2 }).format(amount)} ${currency}`
   const eligiblePlans = quote?.eligiblePaymentPlans?.length ? quote.eligiblePaymentPlans : null
   const milestones = quote?.installments ?? []
 

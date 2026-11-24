@@ -8,6 +8,7 @@ import { Link, useLocation } from 'react-router'
 import styles from './AdminShell.module.css'
 import experience from '../Experience.module.css'
 import { AdminAccountContext, AdminRoleContext } from './admin-account-context'
+import { NotificationBell } from '@/features/notifications/NotificationBell'
 
 const bookingNavigation = [
   { to: '/admin/bookings', label: 'Danh sách đặt chỗ', icon: 'bookings' },
@@ -84,7 +85,10 @@ export function AdminShell({ children, className = '', topbar, contextNavigation
     <header className={styles.masthead} aria-label="Thanh thông tin quản trị">
       <Link to="/admin" className={styles.brand} aria-label="Trang chủ OceVie"><BrandLogo variant="dark" /></Link>
       {topbar ?? <div className={styles.context}><span className={styles.contextEyebrow}>Điều hành OceVie</span><p>{pageLabel}</p></div>}
-      {account}
+      <div style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
+        <NotificationBell variant="dark" />
+        {account}
+      </div>
       <div className={styles.mobileBar}><button ref={menuButton} type="button" aria-expanded={menuOpen} aria-controls="admin-navigation" onClick={() => setMenu({ path: pathname, open: !menuOpen })}>{menuOpen ? 'Đóng menu' : 'Mở menu'}</button></div>
     </header>
     <aside id="admin-navigation" className={`${styles.sidebar} ${menuOpen ? styles.sidebarOpen : ''} ${contextNavigation ? styles.sidebarContextual : ''}`} aria-label="Điều hướng quản trị">
