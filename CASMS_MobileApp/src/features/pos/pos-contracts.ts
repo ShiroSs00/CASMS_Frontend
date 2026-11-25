@@ -56,10 +56,15 @@ export const saleInput = z.object({
   scheduleId: uuid.optional(), quantity: z.literal(1),
   idempotencyKey: text.min(1).max(100).refine(value => value.trim() === value),
 });
+// A local confirmation snapshot, never a new field in the Backend sale request.
+export const salePrice = z.object({
+  amount: amount.positive().refine(value => Number(value.toFixed(4)) === value),
+  currency: z.enum(['USD', 'VND']),
+});
 export const sale = z.object({
   saleId: uuid, terminalId: uuid, areaId: uuid, serviceId: uuid, onboardAccountId: uuid, bookingPassengerId: uuid, employeeId: uuid,
   serviceRequestId: uuid, chargeId: uuid, unitPrice: amount.positive(),
-  quantity: z.literal(1), amount: amount.positive(), currency: text.regex(/^[A-Z]{3}$/), createdAt: instant, reversedAt: optionalInstant,
+  quantity: z.literal(1), amount: amount.positive(), currency: z.enum(['USD', 'VND']), createdAt: instant, reversedAt: optionalInstant,
 });
 export const statement = z.object({
   budget: z.object({
@@ -80,6 +85,7 @@ export type PosParticipation = z.infer<typeof participation>;
 export type PosRegistration = z.infer<typeof registration>;
 export type SaleInput = z.infer<typeof saleInput>;
 export type Sale = z.infer<typeof sale>;
+export type SalePrice = z.infer<typeof salePrice>;
 export type PosStatement = z.infer<typeof statement>;
 export type RequestAction = 'assign' | 'accept' | 'reject' | 'start' | 'complete' | 'cancel';
 export type AttendanceAction = 'check-in' | 'checkout' | 'complete' | 'no-show';

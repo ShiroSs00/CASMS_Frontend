@@ -1,4 +1,4 @@
-import type { ActivityAction, PosActivity, PosRequest, RequestAction, PosParticipation, AttendanceAction, PosRegistration, Sale, SaleInput } from './pos-contracts';
+import { salePrice, type ActivityAction, type PosActivity, type PosRequest, type RequestAction, type PosParticipation, type AttendanceAction, type PosRegistration, type Sale, type SaleInput, type SalePrice, type PosStatement } from './pos-contracts';
 import { ApiError } from '../../lib/api/api-client';
 
 export function fulfillmentInput(row: PosRequest, value: string) {
@@ -51,9 +51,28 @@ export function verifyAttendanceOutcome(before: PosParticipation, after: PosPart
   if (after.id !== before.id || after.registrationId !== before.registrationId || after.status !== status) invalidOutcome();
   return after;
 }
-export function verifySaleIntent(result: Sale, input: SaleInput, scope?: { terminalId: string; areaId: string; owner: string }) {
+export function verifySalePreflight(service: { unitPrice: number | null; currency: string | null }, budget: PosStatement['budget'], reviewed: SalePrice | undefined, replay = false) {
+  const expected = salePrice.safeParse(reviewed);
+  if (!expected.success) throw new ApiError('Hồ sơ chưa có đơn giá và loại tiền đã xác nhận. Cần quản lý đối soát.', 409, 'POS_PRICE_CONFIRMATION_REQUIRED');
+  const current = salePrice.safeParse({ amount: service.unitPrice, currency: service.currency });
+  if (!current.success || current.data.currency !== budget.currency) {
+    throw new ApiError('Đơn giá và hạn mức chưa cùng loại tiền được hỗ trợ. Chưa gửi giao dịch.', 409, 'POS_CURRENCY_MISMATCH');
+  }
+  if (current.data.currency !== expected.data.currency || current.data.amount !== expected.data.amount) {
+    throw new ApiError('Đơn giá hoặc loại tiền đã thay đổi. Cần đối soát trước khi gửi.', 409, 'POS_PRICE_CHANGED');
+  }
+  // A previous attempt may already have consumed the allowance. Its exact-key
+  // reconciliation must not be mistaken for a second purchase/funds check.
+  if (!replay && (expected.data.amount > budget.accountRemaining || expected.data.amount > budget.remainingAmount)) {
+    throw new ApiError('Cần kiểm tra lại hạn mức.', 409, 'POS_ALLOWANCE_RECHECK');
+  }
+  return expected.data;
+}
+
+export function verifySaleIntent(result: Sale, input: SaleInput, scope?: { terminalId: string; areaId: string; owner: string }, reviewed?: SalePrice) {
   if (result.serviceId !== input.serviceId || result.bookingPassengerId !== input.bookingPassengerId || result.onboardAccountId !== input.onboardAccountId
     || result.quantity !== input.quantity || result.amount !== result.unitPrice
+    || (reviewed && (result.currency !== reviewed.currency || result.amount !== reviewed.amount || result.unitPrice !== reviewed.amount))
     || (scope && (result.terminalId !== scope.terminalId || result.areaId !== scope.areaId || result.employeeId !== scope.owner))) invalidOutcome();
   return result;
 }

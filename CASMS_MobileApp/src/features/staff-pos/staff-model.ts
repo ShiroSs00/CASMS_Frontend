@@ -25,7 +25,9 @@ export function productInput(form: ProductForm) {
   if (!type || type.length > 50) throw new Error('Loại sản phẩm từ 1 đến 50 ký tự.');
   if (description.length > 1000) throw new Error('Mô tả tối đa 1000 ký tự.');
   const raw = form.price.trim().replace(',', '.');
-  if (!/^\d{1,9}(\.\d{1,4})?$/.test(raw)) throw new Error('Đơn giá phải là số không âm, tối đa 9 chữ số nguyên và 4 chữ số thập phân.');
-  if (!/^[A-Z]{3}$/.test(currency)) throw new Error('Nhập mã tiền tệ gồm 3 chữ cái, ví dụ VND hoặc USD.');
-  return { productCode: code, productName: name, description: description || null, productType: type, unitPrice: Number(raw), currencyCode: currency };
+  if (!/^\d{1,12}(\.\d{1,4})?$/.test(raw)) throw new Error('Đơn giá phải là số không âm, tối đa 12 chữ số nguyên và 4 chữ số thập phân.');
+  const unitPrice = Number(raw);
+  if (!Number.isFinite(unitPrice) || unitPrice >= 2 ** 39) throw new Error('Đơn giá vượt giới hạn chính xác được hỗ trợ. Cần đối soát trước khi nhập.');
+  if (!['VND', 'USD'].includes(currency)) throw new Error('Loại tiền được hỗ trợ là VND hoặc USD.');
+  return { productCode: code, productName: name, description: description || null, productType: type, unitPrice, currencyCode: currency };
 }

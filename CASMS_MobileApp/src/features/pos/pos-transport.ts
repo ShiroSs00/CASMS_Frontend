@@ -2,7 +2,7 @@ import { verifySaleIntent } from './pos-lifecycle';
 import { z } from 'zod';
 import { cardPreview, cardAssignment, claimCode, cardIdentifier } from '../passenger-actions/card-contracts';
 import { ApiError, type RequestOptions } from '../../lib/api/api-client';
-import { uuid, decode, context, service, request, activity, activityEntry, registration, participation, sale, statement, saleInput, posSession, loginInput, type SaleInput, type RequestAction, type AttendanceAction, type Credential, type ActivityAction } from './pos-contracts';
+import { uuid, decode, context, service, request, activity, activityEntry, registration, participation, sale, statement, saleInput, salePrice, posSession, loginInput, type SaleInput, type SalePrice, type RequestAction, type AttendanceAction, type Credential, type ActivityAction } from './pos-contracts';
 type Transport = { request<T>(path: string, options?: RequestOptions): Promise<T> };
 
 export async function openPosWithClient(client: Transport, terminalId: string, value: Credential & { areaId?: string; cruiseId?: string }) {
@@ -62,7 +62,11 @@ export function createScopedPosApi(client: Transport, sessionToken: string) {
       decode(z.array(participation), await call(`/activities/${uuid.parse(id)}/participations`, { signal })),
     attendance: async (id: string, action: AttendanceAction) =>
       decode(participation, await call(`/activity-participations/${uuid.parse(id)}/actions/${action}`, { method: 'POST' })),
-    recordSale: async (input: SaleInput) => { const parsed = saleInput.parse(input); return verifySaleIntent(decode(sale, await call('/sales', { method: 'POST', body: parsed })), parsed); },
+    recordSale: async (input: SaleInput, reviewed?: SalePrice) => {
+      const parsed = saleInput.parse(input);
+      const expected = reviewed === undefined ? undefined : salePrice.parse(reviewed);
+      return verifySaleIntent(decode(sale, await call('/sales', { method: 'POST', body: parsed })), parsed, undefined, expected);
+    },
     sale: async (id: string, signal?: AbortSignal) => {
       const result = decode(sale, await call(`/sales/${uuid.parse(id)}`, { signal }));
       if (result.saleId !== id.toLowerCase()) throw new ApiError('Bản ghi không khớp giao dịch.', 502, 'POS_INVALID_RESPONSE');

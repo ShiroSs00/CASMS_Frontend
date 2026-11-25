@@ -1,5 +1,5 @@
 import { samePosScope, usePosScopeGuard } from './pos-scope';
-import { verifySaleIntent } from './pos-lifecycle';
+import { verifySaleIntent, verifySalePreflight } from './pos-lifecycle';
 import { PosCardAction } from './PosCardAction';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -12,7 +12,7 @@ import { dateTime } from '@/features/passenger-actions/passenger-model';
 import { ApiError } from '@/lib/api';
 import { usePos, usePosRequests } from './PosLayout';
 import { passengersFromRequests } from './pos-access';
-import { uuid, type Sale } from './pos-api';
+import { uuid, salePrice, type Sale } from './pos-api';
 import { clearPendingSale, readPendingSale, savePendingSale, type PendingRecord, type PendingSale } from './pos-storage';
 import { Field, Notice, PosPage, PosReveal, QueryState, posError, uncertainWrite, usePosConfirmation } from './pos-ui';
 
@@ -64,14 +64,15 @@ export function PosUsage() {
   const validIds = uuid.safeParse(accountId).success && uuid.safeParse(bookingPassengerId).success;
   const matched = lookup?.account === accountId && lookup?.passenger === bookingPassengerId;
   const recovery = pending.data?.kind === 'own' ? pending.data.sale : undefined;
-  const canReplay = !!recovery && sellable.some(item => item.serviceId === recovery.input.serviceId);
+  const canReplay = !!recovery?.reviewPrice && sellable.some(item => item.serviceId === recovery.input.serviceId);
   const budget = matched && !statement.error ? statement.data?.budget : undefined;
   const price = service?.unitPrice;
+  const selectedPrice = salePrice.safeParse({ amount: price, currency: service?.currency });
   const fundsIssue = budget && service && price != null && price > 0 && (
     service.currency !== budget.currency ? 'Đơn giá và hạn mức dùng khác loại tiền.'
       : price > budget.accountRemaining || price > budget.remainingAmount ? 'Hạn mức còn lại không đủ cho một lượt sử dụng.' : undefined
   );
-  const canReview = !!service && service.unitPrice !== null && service.unitPrice > 0 && !!service.currency
+  const canReview = !!service && selectedPrice.success
     && validIds && !!budget && !fundsIssue && !statement.isFetching
     && pending.data === null && !pending.error && !pending.isFetching && (!schedule.trim() || uuid.safeParse(schedule.trim()).success);
   const confirm = usePosConfirmation(pos.refreshSession, pos.verified && !pending.error && !pending.isFetching && (canReplay || canReview), false);
@@ -80,8 +81,7 @@ export function PosUsage() {
     if (cache.getQueryState(pendingKey)) cache.setQueryData(pendingKey, work);
   }
 
-  async function submit(work: PendingSale, reviewPrice?: { amount: number; currency: string }) {
-    const replay = !reviewPrice;
+  async function submit(work: PendingSale, replay = false) {
     if (saleLocks.has(terminalId)) throw new ApiError('Giao dịch đang được xử lý.', 409, 'POS_SALE_BUSY');
     saleLocks.add(terminalId);
     setIssue(undefined);
@@ -96,25 +96,17 @@ export function PosUsage() {
         void pending.refetch();
         throw new ApiError('Hồ sơ chờ đã thay đổi.', 409, 'POS_SALE_BUSY');
       }
+      const input = saved?.kind === 'own' ? saved.sale : work;
+      if (!input.reviewPrice) throw new ApiError('Hồ sơ cũ chưa có đơn giá và loại tiền đã xác nhận. Liên hệ quản lý để đối soát; hồ sơ vẫn được giữ.', 409, 'POS_PRICE_CONFIRMATION_REQUIRED');
       const context = await pos.client.context(); assertScope();
       if (!samePosScope(context, pos.scope)) throw new ApiError('Ngữ cảnh đã thay đổi.', 409, 'POS_REVERIFY');
       cache.setQueryData([...pos.key, 'context'], context);
       const current = context.services.find(item => item.serviceId === work.input.serviceId);
       if (!current?.permissions.includes('SERVICE_SALE')) throw new ApiError('Quyền sử dụng dịch vụ đã thay đổi.', 403);
-      if (reviewPrice && (current.unitPrice !== reviewPrice.amount || current.currency !== reviewPrice.currency)) {
-        throw new ApiError('Đơn giá đã thay đổi.', 409, 'POS_PRICE_CHANGED');
-      }
-      if (reviewPrice) {
-        const latest = await pos.client.statement(work.input.onboardAccountId, work.input.bookingPassengerId); assertScope();
-        cache.setQueryData([...pos.key, 'statement', work.input.onboardAccountId, work.input.bookingPassengerId], latest);
-        const checked = latest.budget;
-        if (checked.currency !== reviewPrice.currency || reviewPrice.amount > checked.accountRemaining
-          || reviewPrice.amount > checked.remainingAmount) {
-          throw new ApiError('Cần kiểm tra lại hạn mức.', 409, 'POS_ALLOWANCE_RECHECK');
-        }
-      }
+      const latest = await pos.client.statement(input.input.onboardAccountId, input.input.bookingPassengerId); assertScope();
+      cache.setQueryData([...pos.key, 'statement', input.input.onboardAccountId, input.input.bookingPassengerId], latest);
+      verifySalePreflight(current, latest.budget, input.reviewPrice, replay);
       // Replaying an older record promotes it to the terminal journal before sending.
-      const input = saved?.kind === 'own' ? saved.sale : work;
       try { await savePendingSale(saleScope, input); }
       catch {
         void pending.refetch();
@@ -124,8 +116,8 @@ export function PosUsage() {
       let result: Sale;
       try {
         assertScope();
-        result = await pos.client.recordSale(input.input);
-        verifySaleIntent(result, input.input, { terminalId, areaId, owner: pos.owner });
+        result = await pos.client.recordSale(input.input, input.reviewPrice);
+        verifySaleIntent(result, input.input, { terminalId, areaId, owner: pos.owner }, input.reviewPrice);
         assertScope();
       } catch (error) {
         if (replay || uncertainWrite(error) || (error instanceof ApiError && error.code === 'POS_REVERIFY') || (error instanceof ApiError && error.code === 'POS_IDEMPOTENCY_CONFLICT')) {
@@ -153,20 +145,20 @@ export function PosUsage() {
   }
 
   function review() {
-    if (!canReview || !service || service.unitPrice === null || !service.currency) return;
+    if (!canReview || !service || !selectedPrice.success) return;
     const work: PendingSale = {
       serviceName: service.name,
+      reviewPrice: selectedPrice.data,
       input: {
         serviceId, onboardAccountId: accountId, bookingPassengerId, quantity: 1,
         scheduleId: schedule.trim() || undefined,
         idempotencyKey: nativeUuid.v4(),
       },
     };
-    const reviewPrice = { amount: service.unitPrice, currency: service.currency };
     confirm.open({
       title: 'Bán dịch vụ mới',
-      description: `${work.serviceName} · 1 lượt · ${money(service.unitPrice, service.currency)} theo danh mục hiện tại.\nHành khách ${work.input.bookingPassengerId}\nTài khoản ${work.input.onboardAccountId}${work.input.scheduleId ? `\nLịch dịch vụ ${work.input.scheduleId}` : ''}`,
-      run: () => submit(work, reviewPrice),
+      description: `${work.serviceName} · 1 lượt · ${money(selectedPrice.data.amount, selectedPrice.data.currency)} theo danh mục hiện tại.\nHành khách ${work.input.bookingPassengerId}\nTài khoản ${work.input.onboardAccountId}${work.input.scheduleId ? `\nLịch dịch vụ ${work.input.scheduleId}` : ''}`,
+      run: () => submit(work),
     });
   }
 
@@ -174,7 +166,7 @@ export function PosUsage() {
     confirm.open({
       title: 'Gửi lại cùng mã giao dịch',
       description: `${work.serviceName} · 1 lượt · Hành khách ${work.input.bookingPassengerId}. Gửi lại đúng giao dịch đang chờ để đối soát kết quả.`,
-      run: () => submit(work),
+      run: () => submit(work, true),
     });
   }
 
@@ -208,7 +200,8 @@ export function PosUsage() {
       <Text style={ui.sectionTitle}>Giao dịch chờ đối soát</Text>
       <Text style={ui.sectionTitle}>{recovery.serviceName}</Text>
       <Disclosure title="Chi tiết đối soát"><Text selectable style={ui.caption}>Hành khách: {recovery.input.bookingPassengerId}{'\n'}Mã giao dịch: {recovery.input.idempotencyKey}</Text></Disclosure>
-      {!canReplay && <Notice tone="warning">Quyền ghi nhận dịch vụ này đã thay đổi. Liên hệ quản lý để đối soát.</Notice>}
+      {!recovery.reviewPrice && <Notice tone="warning">Hồ sơ cũ chưa có đơn giá và loại tiền đã xác nhận. Liên hệ quản lý để đối soát; hồ sơ vẫn được giữ.</Notice>}
+      {!!recovery.reviewPrice && !canReplay && <Notice tone="warning">Quyền ghi nhận dịch vụ này đã thay đổi. Liên hệ quản lý để đối soát.</Notice>}
       <PassengerButton label="Gửi lại cùng mã" disabled={!pos.verified || !canReplay || confirm.pending || pending.isFetching}
         onPress={() => reconcile(recovery)} />
     </View>}
@@ -239,6 +232,7 @@ export function PosUsage() {
       <Disclosure title="Nhập mã lịch phục vụ"><Field label="Mã lịch phục vụ (tùy chọn)" value={schedule} onChangeText={setSchedule} maxLength={36}
         editable={!!service && !pending.data && !confirm.pending} /></Disclosure>
       {!!fundsIssue && <Notice tone="warning">{fundsIssue}</Notice>}
+      {!!service && !selectedPrice.success && <Notice tone="warning">Đơn giá hoặc loại tiền chưa được xác nhận để ghi nhận giao dịch. Không tự quy đổi tiền tệ.</Notice>}
       <PassengerButton label="Xem lại giao dịch bán mới" disabled={!canReview || !pos.verified || confirm.pending} onPress={review} />
     </View>
     {lookup && <>
