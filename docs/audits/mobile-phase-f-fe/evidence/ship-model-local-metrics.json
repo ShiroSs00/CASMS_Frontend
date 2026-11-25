@@ -1,0 +1,74 @@
+[
+  {
+    "local_reference": "carnival-conquest",
+    "manifest_name": "Carnival Conquest",
+    "revision": "v11-casms-draft",
+    "units": "metre",
+    "decks": 13,
+    "cabins": 305,
+    "areas": 102,
+    "glb_file_count": 17,
+    "glb_total_bytes": 595625024,
+    "full_glb_bytes": 280894644,
+    "largest_glb_bytes": 280894644,
+    "publication_for_selected_ship": "NOT_VERIFIED",
+    "device_benchmark": "NOT_RUN",
+    "gltf_version": "2.0",
+    "meshes": 1872,
+    "textures": 2,
+    "images": 2,
+    "buffer_bytes": 278965692,
+    "image_metadata": [
+      {
+        "mimeType": "image/png",
+        "encoded_bytes": 232813,
+        "width": 512,
+        "height": 512,
+        "rgba8_bytes_without_mipmaps": 1048576
+      },
+      {
+        "mimeType": "image/png",
+        "encoded_bytes": 211947,
+        "width": 512,
+        "height": 512,
+        "rgba8_bytes_without_mipmaps": 1048576
+      }
+    ]
+  },
+  {
+    "local_reference": "zaandam",
+    "manifest_name": "MS Zaandam",
+    "revision": "v11-casms-draft",
+    "units": "metre",
+    "decks": 10,
+    "cabins": 291,
+    "areas": 64,
+    "glb_file_count": 14,
+    "glb_total_bytes": 379886892,
+    "full_glb_bytes": 182231588,
+    "largest_glb_bytes": 182231588,
+    "publication_for_selected_ship": "NOT_VERIFIED",
+    "device_benchmark": "NOT_RUN",
+    "gltf_version": "2.0",
+    "meshes": 1376,
+    "textures": 2,
+    "images": 2,
+    "buffer_bytes": 180753684,
+    "image_metadata": [
+      {
+        "mimeType": "image/png",
+        "encoded_bytes": 232813,
+        "width": 512,
+        "height": 512,
+        "rgba8_bytes_without_mipmaps": 1048576
+      },
+      {
+        "mimeType": "image/png",
+        "encoded_bytes": 211947,
+        "width": 512,
+        "height": 512,
+        "rgba8_bytes_without_mipmaps": 1048576
+      }
+    ]
+  }
+]

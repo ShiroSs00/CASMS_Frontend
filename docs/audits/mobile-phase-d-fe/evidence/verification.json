@@ -1,0 +1,94 @@
+{
+  "date": "2026-11-25",
+  "timezone": "Asia/Saigon",
+  "frontend_head": "a6bd1d6b4078d33dd1cf9e23c63bcaa1fc812b43",
+  "backend_head": "0bc2b3831301a0d67d45bacc120a161dbacec026",
+  "branch": "main",
+  "upstream": "origin/main",
+  "typecheck": {
+    "exit_code": 0
+  },
+  "lint": {
+    "exit_code": 0,
+    "warnings": 0,
+    "errors": 0
+  },
+  "unit_contract": {
+    "total": 164,
+    "pass": 164,
+    "fail": 0,
+    "skip": 0
+  },
+  "doctor": {
+    "checks": 20,
+    "pass": 19,
+    "exit_code": 1,
+    "reason": "11 pre-existing SDK dependency mismatches"
+  },
+  "dependency_compatibility": {
+    "exit_code": 1,
+    "mismatches": 11,
+    "changed_dependencies_in_D": false
+  },
+  "export": {
+    "command": "npx expo export --platform all --output-dir dist/phase-d",
+    "status": "PASS",
+    "platforms": [
+      "android",
+      "ios",
+      "web"
+    ],
+    "exit_code": 0,
+    "static_routes": 36,
+    "output_directory": "CASMS_MobileApp/dist/phase-d",
+    "bundle_fixture_check": {
+      "status": "PASS",
+      "scanned_artifacts": 77,
+      "native_bytecode_files": 2,
+      "fixture_localhost_matches": []
+    },
+    "artifacts": [
+      {
+        "path": "_expo/static/js/android/entry-42daab23f65dde412e4a41090f3de30c.hbc",
+        "bytes": 6142252,
+        "sha256": "7e9c0605eebb5472074717dae0e5077e76911122591356ead0852a8ff1febd2a"
+      },
+      {
+        "path": "_expo/static/js/ios/entry-ca6422784128885e9d8f6fa012024f73.hbc",
+        "bytes": 5922791,
+        "sha256": "6c3539eb30effc91bd107beb084e7b6ea4340b1d5c6438608a7bda21f896a43b"
+      }
+    ]
+  },
+  "rendered_ui": "NOT_RUN; no attached ADB device, prior browser runtime blockers documented",
+  "real_api": "NOT_RUN; no confirmed QA readiness or mutation permission",
+  "cross_app_e2e": "NOT_RUN",
+  "device_e2e": "NOT_RUN",
+  "backend_changes_in_D": false,
+  "database_mutations": false,
+  "web_changes_in_D": false,
+  "commit_push": false,
+  "source_sha256": {
+    "CASMS_MobileApp/src/features/pos/card-reader.ts": "4691f8f643176c7a71c7f10883dadfd24dd9e41e75d0a3d5870f7a8198a5519c",
+    "CASMS_MobileApp/src/features/pos/nfc-reader.ts": "773d950f21838a6ea1dd0d763c6fb533eaa7e24186bca16733238a741f0d4f18",
+    "CASMS_MobileApp/src/features/pos/pos-access.ts": "d502bd5b87fd24f38df6285bdce1299ea6dade6650a86a23966c5b9be3d7b012",
+    "CASMS_MobileApp/src/features/pos/pos-api.ts": "21dca4fe6559704c7ee3f03dbc6619ae74d3faec69c8b2675f9b090afcb922b7",
+    "CASMS_MobileApp/src/features/pos/pos-contracts.ts": "a68cef595d5524e022097ed7ee5b23882e856ed6252baadfc2a86bf9d39cdf9f",
+    "CASMS_MobileApp/src/features/pos/pos-lifecycle.ts": "6280a506715df67144b25cb55b2669e9a34a983c446737c18232e084e0f0a65b",
+    "CASMS_MobileApp/src/features/pos/pos-scope.ts": "1f924034cc31323812e468fee4f0e8182648f22cc22d48790133b504ad43868a",
+    "CASMS_MobileApp/src/features/pos/pos-storage.ts": "8c7274f364267840fec01d6e8b90ee0245339eb5c0bc11ea6fded5e0a355ab1a",
+    "CASMS_MobileApp/src/features/pos/pos-transport.ts": "fab4d68222da626c59d641241f134d114903640ed6c5c92c8e3117c61ef65668",
+    "CASMS_MobileApp/src/features/pos/pos-ui.tsx": "de9f4c9e6b2a88e52081fde91efb5d8fcee4ef66599e453b31142be3567c8eb5",
+    "CASMS_MobileApp/src/features/pos/PosActivities.tsx": "1ac6cea8c17f6755052c4191b9c280e3c87b8c83a9de610098e84e1c05c98193",
+    "CASMS_MobileApp/src/features/pos/PosCardAction.tsx": "40641e75273433c00abdae16d4395a258d91d1adaf7ae6e533ad2d6d6eb6d232",
+    "CASMS_MobileApp/src/features/pos/PosDashboard.tsx": "5773a92c846df86cd6b9ed0381ad520cf0186471038119afe04fa1e2a6177fa0",
+    "CASMS_MobileApp/src/features/pos/PosLayout.tsx": "bd12599f3900a886711abe2b606a4d54990f6d48d15f76860a78c20827bda896",
+    "CASMS_MobileApp/src/features/pos/PosScanner.tsx": "2f8d052527657d3487cfde074150397f0bcf0bd4c60a396d0d8dd69938fe226e",
+    "CASMS_MobileApp/src/features/pos/PosServices.tsx": "93716d211762a7d6171d41da27dcdb76c40e76bf5dae6be22fa47fe9a85aa12b",
+    "CASMS_MobileApp/src/features/pos/PosUsage.tsx": "61a5d7dd272c02fbff82b13d19af2b9a501398aaf5da17485d90d6cf5f242a31"
+  },
+  "git_diff_check": {
+    "exit_code": 0,
+    "warnings": "LF/CRLF notices on pre-existing B files only"
+  }
+}

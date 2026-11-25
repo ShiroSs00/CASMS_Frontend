@@ -7,18 +7,19 @@ import { ui } from '@/components/passenger/PassengerUI';
 import { useMotionPreference } from '@/components/passenger/useMotionPreference';
 import { brand, lightTheme } from '@/constants/ocevie';
 import { authActions, useAuth } from '@/features/auth/session-store';
-import { Loading } from '@/features/passenger-actions/PassengerActionUI';
+import { Choice, Loading } from '@/features/passenger-actions/PassengerActionUI';
 import { isPassengerWorkspace, loginLink } from '@/features/auth/workspace-navigation';
 import { ApiError, getApiUrl } from '@/lib/api';
 import { useNow } from '@/hooks/use-now';
 import { employeeRole, eligibleEmployee } from './pos-access';
-import { deviceCredential, openPos, readEmployee, scopedPos, uuid, matchesPosSession, type PosContext, type PosSession } from './pos-api';
+import { deviceCredential, openPos, readEmployee, readTerminals, scopedPos, uuid, matchesPosSession, type PosContext, type PosSession } from './pos-api';
 import { clearPosSession, restorePosSession, savePosSession } from './pos-storage';
 import { Field, Notice, PosPage, QueryState, posError } from './pos-ui';
 
 type Workspace = {
   owner: string;
   username: string;
+  signedInAt: number;
   employeePermissions: string[];
   scope: PosContext;
   client: ReturnType<typeof scopedPos>;
@@ -122,15 +123,20 @@ function SessionGate({ owner, signedInAt, username, employeePermissions }: {
     <PassengerButton label="Đăng xuất" variant="text" onPress={() => { void authActions.logout(); }} />
   </PosPage>;
 
-  if (!session) return <PairTerminal owner={owner} signedInAt={signedInAt} username={username} message={message} onOpened={setSession} />;
+  if (!session) return <PairTerminal owner={owner} signedInAt={signedInAt} username={username} employeePermissions={employeePermissions} message={message} onOpened={setSession} />;
   return <ActiveSession owner={owner} signedInAt={signedInAt} username={username} employeePermissions={employeePermissions} session={session}
     onEnd={note => { setMessage(note); setSession(null); }} />;
 }
 
-function PairTerminal({ owner, signedInAt, username, message, onOpened }: {
-  owner: string; signedInAt: number; username: string; message?: string; onOpened: (session: PosSession) => void;
+function PairTerminal({ owner, signedInAt, username, employeePermissions, message, onOpened }: {
+  owner: string; signedInAt: number; username: string; employeePermissions: string[]; message?: string; onOpened: (session: PosSession) => void;
 }) {
   const [terminal, setTerminal] = useState('');
+  const [ship, setShip] = useState('');
+  const [selectedShip, setSelectedShip] = useState('');
+  const canList = employeePermissions.includes('POS_MANAGE');
+  const terminals = useQuery({ queryKey: ['pos-terminals', getApiUrl(), owner, signedInAt, selectedShip],
+    queryFn: ({ signal }) => readTerminals(selectedShip, signal), enabled: canList && !!selectedShip, retry: false });
   const [area, setArea] = useState('');
   const [cruise, setCruise] = useState('');
   const [legacy, setLegacy] = useState(false);
@@ -174,6 +180,15 @@ function PairTerminal({ owner, signedInAt, username, message, onOpened }: {
     <Text style={ui.body}>{username}</Text>
     {!!message && <Notice tone="warning">{message}</Notice>}
     <View style={ui.card}>
+      {canList && <>
+        <Field label="Mã tàu để tra thiết bị" value={ship} onChangeText={setShip} maxLength={36} editable={!pending} />
+        <PassengerButton label="Tra thiết bị của tàu" variant="secondary" disabled={pending || !uuid.safeParse(ship.trim()).success}
+          onPress={() => { setTerminal(''); if (selectedShip === ship.trim()) void terminals.refetch(); else setSelectedShip(ship.trim()); }} />
+        {selectedShip && <QueryState query={terminals} empty={terminals.data?.length === 0 ? 'Chưa có thiết bị trên tàu này.' : undefined} />}
+        {!terminals.error && !!terminals.data?.length && <Choice label="Thiết bị POS" value={terminal} onChange={setTerminal} disabled={pending}
+          items={terminals.data.filter(row => row.enabled).map(row => ({ id: row.terminalId, label: `${row.name} · ${row.code}` }))} />}
+      </>}
+      {!canList && <Text style={ui.caption}>Nhập mã POS do quản lý cung cấp. Hệ thống kiểm tra phân công khi mở phiên.</Text>}
       <Field label="Mã thiết bị POS" value={terminal} onChangeText={setTerminal} maxLength={36} editable={!pending} />
       <Field label="Mã khu vực (tùy chọn)" value={area} onChangeText={setArea} maxLength={36} editable={!pending} />
       <Field label="Mã chuyến (tùy chọn)" value={cruise} onChangeText={setCruise} maxLength={36} editable={!pending} />
@@ -248,9 +263,14 @@ function ActiveSession({ owner, signedInAt, username, employeePermissions, sessi
     if (closed.current) throw new Error('POS session is closing');
     closed.current = true;
     setEnding(true);
+    setCloseError(undefined);
     let note: string | undefined;
     try { await client.close(); }
-    catch { note = 'Đã kết thúc phiên trên thiết bị. Chưa xác nhận được việc thu hồi phiên.'; }
+    catch (error) {
+      closed.current = false; setEnding(false); setCloseError(error);
+      void refetch();
+      throw error;
+    }
     try { await clearPosSession(owner, signedInAt, session.sessionToken); }
     catch {
       closed.current = false;
@@ -281,9 +301,9 @@ function ActiveSession({ owner, signedInAt, username, employeePermissions, sessi
     </PosPage>;
   }
   return <WorkspaceContext.Provider value={{
-    owner, username, employeePermissions, scope: data, client, key, verified: active && !error && !query.isFetching && !ending
+    owner, username, signedInAt, employeePermissions, scope: data, client, key, verified: active && !error && !query.isFetching && !ending
       && Date.parse(session.expiresAt) > now,
-    sessionError: error, refreshSession: () => { void refetch(); }, assertReady, end,
+    sessionError: closeError ?? error, refreshSession: () => { void refetch(); }, assertReady, end,
   }}>
     <Stack screenOptions={{
       headerStyle: { backgroundColor: lightTheme.background }, headerTintColor: brand.navy,

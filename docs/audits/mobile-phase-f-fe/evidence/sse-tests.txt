@@ -1,0 +1,21 @@
+(node:29396) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/notifications/notification-stream.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ SSE parser handles arbitrary CRLF boundaries, multiline data, comments and UTF-8 text (4.6864ms)
+✔ malformed or unknown SSE events never become business state (2.67ms)
+✔ stream connects once using header auth and GET only, coalesces duplicates and ignores malformed frames (56.9197ms)
+✔ authorization denial stops reconnect and polling without logging out a valid session (1.2044ms)
+✔ network retry is bounded with exponential backoff, then foreground REST fallback (1.3963ms)
+✔ idle connection timeout aborts, revalidates and schedules a bounded retry (0.8588ms)
+✔ late response after account, epoch, environment or background change cannot invalidate the new context (2.2124ms)
+✔ token refresh replaces the old stream and cleanup prevents late event callbacks (0.7351ms)
+✔ invalidation predicate isolates owner/API/epoch and excludes financial, POS and pending journal queries (0.501ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 620.2516

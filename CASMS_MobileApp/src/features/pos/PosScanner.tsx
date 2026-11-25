@@ -1,36 +1,45 @@
+import { claimCode, cardPreview } from '../passenger-actions/card-contracts';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, StyleSheet, Text, View } from 'react-native';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
 import { ui } from '@/components/passenger/PassengerUI';
 import { brand, layout } from '@/constants/ocevie';
-import { usePos, usePosActivities } from './PosLayout';
+import { usePos } from './PosLayout';
 import { Notice, PosPage, posError } from './pos-ui';
+import { PosCardAction } from './PosCardAction';
 
 export function PosScanner() {
   const pos = usePos();
-  const activities = usePosActivities();
-  const canUse = pos.scope.services.some(service => service.permissions.includes('SERVICE_SALE'));
-  const canRegister = !activities.error && activities.data?.some(item => item.permissions.includes('ACTIVITY_REGISTRATION'));
+  const [mode, setMode] = useState<'issue' | 'lookup'>('issue');
+
+  const canUse = pos.employeePermissions.includes('POS_ACCESS') && pos.employeePermissions.includes('CHECKIN_BOARDING');
+
   return <PosPage title="Quét QR hành khách">
-    {canUse || canRegister ? <>
+    {canUse ? <>
       {!!pos.sessionError && <Notice tone="error" retry={pos.refreshSession}>{posError(pos.sessionError)}</Notice>}
-      <Notice tone="warning">Chưa thể xác minh hành khách bằng QR. Chọn hồ sơ để tiếp tục.</Notice>
-      <ScannerCamera enabled={pos.verified} />
-      {canUse && <PassengerButton label="Chọn hồ sơ và tra sao kê" variant="secondary" onPress={() => router.navigate('/staff-pos/usage')} />}
-      {canRegister && <PassengerButton label="Mở đăng ký hoạt động" variant="text" onPress={() => router.navigate('/staff-pos/activities')} />}
+
+      <PassengerButton label="Cấp thẻ bằng QR" variant={mode === 'issue' ? 'secondary' : 'text'} onPress={() => setMode('issue')} />
+      <PassengerButton label="Tra cứu thẻ NFC" variant={mode === 'lookup' ? 'secondary' : 'text'} onPress={() => setMode('lookup')} />
+      {mode === 'issue' ? <ScannerCamera key={JSON.stringify([pos.key, pos.verified])} enabled={pos.verified} preview={code => { pos.assertReady(); return pos.client.previewCard(code); }} />
+        : pos.verified ? <PosCardAction key={JSON.stringify(pos.key)} /> : <Notice>Cần xác minh phiên POS trước khi đọc thẻ.</Notice>}
+
     </> : <Notice tone="neutral">Phiên này chưa có nghiệp vụ cần dùng mã hành khách.</Notice>}
   </PosPage>;
 }
 
-function ScannerCamera({ enabled }: { enabled: boolean }) {
+function ScannerCamera({ enabled, preview }: { enabled: boolean; preview: (code: string) => Promise<unknown> }) {
   const [permission, requestPermission, getPermission] = useCameraPermissions({ get: false });
   const [focused, setFocused] = useState(false);
   const [active, setActive] = useState(AppState.currentState === 'active');
   const [requested, setRequested] = useState(false);
   const [failure, setFailure] = useState<'permission' | 'camera'>();
-  const [result, setResult] = useState<'unverified' | 'empty'>();
+  const [result, setResult] = useState<'pending' | 'verified' | 'empty' | 'error'>();
+  const [name, setName] = useState<string>();
+  const [claim, setClaim] = useState<{ code: string; bookingPassengerId: string; passengerName: string }>();
+  const [error, setError] = useState<unknown>();
+  const generation = useRef(0);
   const locked = useRef(false);
   const refreshPermission = useCallback(async () => {
     try { await getPermission(); setFailure(current => current === 'permission' ? undefined : current); }
@@ -39,17 +48,20 @@ function ScannerCamera({ enabled }: { enabled: boolean }) {
   useFocusEffect(useCallback(() => {
     setFocused(true);
     void refreshPermission();
-    return () => setFocused(false);
+    return () => { generation.current++; locked.current = false; setResult(undefined); setName(undefined); setClaim(undefined); setFocused(false); };
   }, [refreshPermission]));
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
+      generation.current++; locked.current = false; setResult(undefined); setName(undefined); setClaim(undefined);
       setActive(state === 'active');
       if (state === 'active' && focused) void refreshPermission();
     });
     return () => subscription.remove();
   }, [focused, refreshPermission]);
 
+
   function reset() {
+    generation.current++; setName(undefined); setError(undefined); setClaim(undefined);
     locked.current = false;
     setFailure(undefined);
     setResult(undefined);
@@ -74,20 +86,35 @@ function ScannerCamera({ enabled }: { enabled: boolean }) {
   </View>;
   if (failure) return <Notice tone="error" retry={reset}>Không mở được camera. Kiểm tra quyền và thử lại.</Notice>;
   if (result) return <>
-    <Notice tone={result === 'unverified' ? 'warning' : 'error'}>{result === 'unverified'
-      ? 'Đã đọc mã QR. Chưa xác minh được hành khách.'
-      : 'Mã QR không có nội dung. Hãy thử quét lại.'}</Notice>
-    <PassengerButton label="Quét mã khác" onPress={reset} />
+    <Notice tone={result === 'verified' ? 'success' : result === 'error' ? 'error' : 'info'}>
+      {result === 'pending' ? 'Đang xác minh mã nhận thẻ…' : result === 'verified'
+        ? 'Mã nhận thẻ đã được xác minh. Thẻ chưa được cấp.'
+        : result === 'error' ? posError(error) : 'Mã này không phải mã nhận thẻ hợp lệ.'}
+    </Notice>
+    {name && <Text style={ui.sectionTitle}>{name}</Text>}
+    {result === 'verified' && claim && <PosCardAction preview={claim} />}
+    <PassengerButton label={result === 'pending' ? 'Hủy xác minh' : 'Quét mã khác'} onPress={reset} />
   </>;
   return <>
     <View style={styles.preview}>
       {focused && active && <CameraView style={StyleSheet.absoluteFill} facing="back"
         barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
         onMountError={() => setFailure('camera')}
-        onBarcodeScanned={({ data }) => {
-          if (locked.current) return;
+        onBarcodeScanned={async ({ data }) => {
+          if (locked.current || !enabled || !focused || !active) return;
           locked.current = true;
-          setResult(data.trim() ? 'unverified' : 'empty');
+          const parsed = claimCode.safeParse(data);
+          if (!parsed.success) { setResult('empty'); return; }
+          const version = ++generation.current;
+          setResult('pending');
+          try {
+            const value = cardPreview.parse(await preview(parsed.data));
+            if (version !== generation.current) return;
+            setName(value.passengerName); setClaim({ ...value, code: parsed.data }); setResult('verified');
+          } catch (failure) {
+            if (version !== generation.current) return;
+            setError(failure); setResult('error');
+          }
         }} />}
       <View pointerEvents="none" accessible={false} style={styles.frame} />
     </View>

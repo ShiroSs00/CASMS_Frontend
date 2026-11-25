@@ -2,7 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { z } from 'zod';
 import { registerSessionCleanup, useAuth } from '@/features/auth/session-store';
-import { api, getApiUrl } from '@/lib/api';
+import { api, ApiError, getApiUrl } from '@/lib/api';
 import { posSession, saleInput, uuid, type PosSession } from './pos-api';
 
 const sessionKey = 'ocevie.pos.session.v1';
@@ -27,17 +27,18 @@ function changeSession(work: () => Promise<void>) {
 }
 
 export function savePosSession(owner: string, session: PosSession, signedInAt: number) {
+  const backend = getApiUrl();
   return changeSession(async () => {
     const employee = useAuth.getState().session;
-    if (employee?.user.id !== owner || employee.signedInAt !== signedInAt) throw new Error('Phiên nhân viên đã thay đổi.');
+    if (getApiUrl() !== backend || employee?.user.id !== owner || employee.signedInAt !== signedInAt) throw new Error('Phiên nhân viên đã thay đổi.');
     await SecureStore.setItemAsync(sessionKey,
-      JSON.stringify({ owner, signedInAt: employee.signedInAt, backend: getApiUrl(), session }), accessibility);
+      JSON.stringify({ owner, signedInAt: employee.signedInAt, backend, session }), accessibility);
     const current = useAuth.getState().session;
-    if (current?.user.id !== owner || current.signedInAt !== signedInAt) {
+    if (getApiUrl() !== backend || current?.user.id !== owner || current.signedInAt !== signedInAt) {
       await SecureStore.deleteItemAsync(sessionKey);
       throw new Error('Phiên nhân viên đã thay đổi.');
     }
-    activeSession = { owner, signedInAt, backend: getApiUrl(), session };
+    activeSession = { owner, signedInAt, backend, session };
   });
 }
 
@@ -88,36 +89,64 @@ useAuth.subscribe((next, previous) => {
 
 const pendingSale = z.object({ backend: z.string(), input: saleInput, serviceName: z.string() });
 export type PendingSale = Omit<z.infer<typeof pendingSale>, 'backend'>;
-const journal = pendingSale.extend({ owner: uuid, areaId: uuid, cruiseId: uuid });
-export type SaleScope = { owner: string; terminalId: string; areaId: string; cruiseId: string };
-export type PendingRecord = { kind: 'own'; sale: PendingSale } | { kind: 'blocked' };
+const journal = pendingSale.extend({ owner: uuid, areaId: uuid, cruiseId: uuid, signedInAt: z.number().optional() });
+export type SaleScope = { owner: string; terminalId: string; areaId: string; cruiseId: string; signedInAt?: number };
+export type PendingRecord = { kind: 'own'; sale: PendingSale; previousSession?: boolean } | { kind: 'blocked' };
 
 const terminalKey = (terminalId: string) => `ocevie.pos.pending-terminal.${terminalId}`;
 const legacyKey = ({ owner, terminalId, areaId, cruiseId }: SaleScope) => `ocevie.pos.pending.${owner}.${terminalId}.${areaId}.${cruiseId}`;
 
-export async function readPendingSale(scope: SaleScope): Promise<PendingRecord | null> {
+export async function readPendingSale(scope: SaleScope, backend = getApiUrl()): Promise<PendingRecord | null> {
   const rawJournal = await SecureStore.getItemAsync(terminalKey(scope.terminalId));
   if (rawJournal) {
     const saved = journal.parse(JSON.parse(rawJournal));
-    if (saved.backend !== getApiUrl() || saved.owner !== scope.owner
+    if (saved.backend !== backend || saved.owner !== scope.owner
       || saved.areaId !== scope.areaId || saved.cruiseId !== scope.cruiseId) return { kind: 'blocked' };
-    return { kind: 'own', sale: { input: saved.input, serviceName: saved.serviceName } };
+    const legacy = await SecureStore.getItemAsync(legacyKey(scope));
+    if (legacy) {
+      const prior = pendingSale.parse(JSON.parse(legacy));
+      if (prior.backend !== backend || !sameSaleInput(prior.input, saved.input)) return { kind: 'blocked' };
+    }
+    return { kind: 'own', sale: { input: saved.input, serviceName: saved.serviceName },
+      ...(scope.signedInAt !== undefined && saved.signedInAt !== scope.signedInAt ? { previousSession: true } : {}) };
   }
   const raw = await SecureStore.getItemAsync(legacyKey(scope));
   if (!raw) return null;
   const saved = pendingSale.parse(JSON.parse(raw));
-  if (saved.backend !== getApiUrl()) return { kind: 'blocked' };
-  return { kind: 'own', sale: { input: saved.input, serviceName: saved.serviceName } };
+  if (saved.backend !== backend) return { kind: 'blocked' };
+  return { kind: 'own', sale: { input: saved.input, serviceName: saved.serviceName },
+    ...(scope.signedInAt !== undefined ? { previousSession: true } : {}) };
 }
 
-export async function savePendingSale(scope: SaleScope, sale: PendingSale) {
-  const { owner, terminalId, areaId, cruiseId } = scope;
-  await SecureStore.setItemAsync(terminalKey(terminalId),
-    JSON.stringify({ ...sale, owner, areaId, cruiseId, backend: getApiUrl() }), accessibility);
+
+// Serialize compare/write/clear in this runtime; a different employee/environment stays blocked.
+let journalWrites: Promise<unknown> = Promise.resolve();
+function serializeJournal<T>(work: () => Promise<T>) {
+  const result = journalWrites.catch(() => {}).then(work); journalWrites = result; return result;
+}
+export function savePendingSale(scope: SaleScope, sale: PendingSale) {
+  const backend = getApiUrl();
+  return serializeJournal(async () => {
+    const current = await readPendingSale(scope, backend);
+    if (current && (current.kind !== 'own' || !sameSaleInput(current.sale.input, sale.input)))
+      throw new ApiError('Còn giao dịch khác cần đối soát.', 409, 'POS_SALE_BUSY');
+    await SecureStore.setItemAsync(terminalKey(scope.terminalId),
+      JSON.stringify({ ...sale, ...scope, backend }), accessibility);
+  });
+}
+export function clearPendingSale(scope: SaleScope, expectedKey?: string) {
+  const backend = getApiUrl();
+  return serializeJournal(async () => {
+    const current = await readPendingSale(scope, backend);
+    if (!current) return;
+    if (current.kind !== 'own' || expectedKey && current.sale.input.idempotencyKey !== expectedKey)
+      throw new ApiError('Giao dịch chờ đã thay đổi.', 409, 'POS_SALE_BUSY');
+    await SecureStore.deleteItemAsync(legacyKey(scope));
+    await SecureStore.deleteItemAsync(terminalKey(scope.terminalId));
+  });
 }
 
-export async function clearPendingSale(scope: SaleScope) {
-  // Keep the terminal lock until both records are gone, including records from the original flow.
-  await SecureStore.deleteItemAsync(legacyKey(scope));
-  await SecureStore.deleteItemAsync(terminalKey(scope.terminalId));
+function sameSaleInput(a: PendingSale['input'], b: PendingSale['input']) {
+  return a.idempotencyKey === b.idempotencyKey && a.serviceId === b.serviceId && a.bookingPassengerId === b.bookingPassengerId
+    && a.onboardAccountId === b.onboardAccountId && a.scheduleId === b.scheduleId && a.quantity === b.quantity;
 }

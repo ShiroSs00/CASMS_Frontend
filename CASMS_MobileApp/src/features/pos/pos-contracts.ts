@@ -5,18 +5,19 @@ export const uuid = z.guid();
 const text = z.string();
 const permissions = z.array(text);
 const instant = z.iso.datetime({ offset: true });
-const amount = z.number().finite();
+// Binary64 must retain the Backend NUMERIC(19,4) unit. Signed ledger rows remain signed.
+const amount = z.number().finite().gt(-(2 ** 39)).lt(2 ** 39);
 // Jackson omits null fields on this backend.
 const optionalId = uuid.nullable().default(null);
 const optionalText = text.nullable().default(null);
 const optionalInstant = instant.nullable().default(null);
-const terminal = z.object({
+export const terminal = z.object({
   terminalId: uuid, shipId: uuid, areaId: uuid, code: text, name: text,
   enabled: z.boolean(), permissions,
 });
 export const service = z.object({
-  serviceId: uuid, code: text, name: text, unitPrice: amount.nullable().default(null),
-  currency: optionalText, permissions,
+  serviceId: uuid, code: text, name: text, unitPrice: amount.nonnegative().nullable().default(null),
+  currency: text.regex(/^[A-Z]{3}$/).nullable().default(null), permissions,
 });
 export const posSession = z.object({
   sessionToken: text.min(1).max(128), expiresAt: instant, terminal,
@@ -26,22 +27,28 @@ export const context = z.object({
   terminal, cruiseId: uuid, staffAssignmentId: optionalId, services: z.array(service),
 });
 export const request = z.object({
-  id: uuid, serviceId: uuid, quantity: z.number().int(), status: text,
+  id: uuid, serviceId: uuid, quantity: z.number().int().positive().max(2147483647), status: z.enum(['REQUESTED','ACCEPTED','IN_PROGRESS','COMPLETED','REJECTED','CANCELLED']),
   assignedUserId: optionalId, requestTime: instant, note: optionalText,
   bookingPassengerId: optionalId, scheduleId: optionalId,
+  passengerId: optionalId, bookingId: optionalId, completedAt: optionalInstant,
+  usageMode: z.enum(['PRE_CRUISE','ONBOARD']).nullable().default(null),
+  unitPriceSnapshot: amount.nullable().default(null), currencySnapshot: optionalText,
   fareBenefitSnapshotId: optionalId, fulfillmentUnitCode: optionalText,
   fulfilledQuantity: z.number().int().nonnegative().nullable().default(null),
 });
 export const activity = z.object({
   id: uuid, name: text, code: text, startTime: instant, endTime: instant,
-  location: optionalText, status: text,
+  location: optionalText, status: z.enum(['PLANNED','OPEN','FULL','IN_PROGRESS','COMPLETED','CANCELLED']),
+  cruiseId: optionalId, capacity: z.number().int().nonnegative().nullable().default(null), meetingPoint: optionalText,
 });
 export const activityEntry = z.object({ activity, permissions });
 export const registration = z.object({
-  id: uuid, bookingPassengerId: uuid, quantity: z.number().int(), status: text,
+  id: uuid, bookingPassengerId: uuid, quantity: z.number().int().positive().max(2147483647),
+  status: z.enum(['PENDING','CONFIRMED','CANCELLED','COMPLETED']), activityId: uuid, excursionId: optionalId,
+  registeredAt: optionalInstant, notes: optionalText,
 });
 export const participation = z.object({
-  id: uuid, registrationId: uuid, status: text,
+  id: uuid, registrationId: uuid, status: z.enum(['REGISTERED','CHECKED_IN','IN_PROGRESS','COMPLETED','NO_SHOW','CANCELLED']),
   checkInTime: optionalInstant, checkOutTime: optionalInstant,
 });
 export const saleInput = z.object({
@@ -51,12 +58,13 @@ export const saleInput = z.object({
 });
 export const sale = z.object({
   saleId: uuid, terminalId: uuid, areaId: uuid, serviceId: uuid, onboardAccountId: uuid, bookingPassengerId: uuid, employeeId: uuid,
-  quantity: z.literal(1), amount, currency: text, createdAt: instant, reversedAt: optionalInstant,
+  serviceRequestId: uuid, chargeId: uuid, unitPrice: amount.positive(),
+  quantity: z.literal(1), amount: amount.positive(), currency: text.regex(/^[A-Z]{3}$/), createdAt: instant, reversedAt: optionalInstant,
 });
 export const statement = z.object({
   budget: z.object({
     accountId: uuid, passengerId: uuid, allocatedAmount: amount, usedAmount: amount,
-    accountRemaining: amount, remainingAmount: amount, currency: text,
+    accountRemaining: amount, remainingAmount: amount, currency: text.regex(/^[A-Z]{3}$/),
   }),
   history: z.array(z.object({
     transactionId: uuid, type: text, amount, sourceType: optionalText,
@@ -93,4 +101,10 @@ export function decode<T>(schema: z.ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);
   if (!result.success) throw new ApiError('Dữ liệu POS trả về không hợp lệ.', 502, 'POS_INVALID_RESPONSE');
   return result.data;
+}
+
+export function samePosScope(a: PosContext, b: PosContext) {
+  return a.terminal.enabled && b.terminal.enabled && a.terminal.terminalId === b.terminal.terminalId
+    && a.terminal.shipId === b.terminal.shipId && a.terminal.areaId === b.terminal.areaId
+    && a.cruiseId === b.cruiseId && a.staffAssignmentId === b.staffAssignmentId;
 }

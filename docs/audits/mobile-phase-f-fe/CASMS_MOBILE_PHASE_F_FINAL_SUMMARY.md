@@ -1,0 +1,13 @@
+# CASMS Mobile Phase F — FINAL_SUMMARY
+
+Ngày 25/11/2026. FE a6bd1d6b4078d33dd1cf9e23c63bcaa1fc812b43, main/origin/main + working tree B/C/D/E0 được giữ; BE0bc2b3831301a0d67d45bacc120a161dbacec026 chỉ đọc (?? qa/ từ trước). Baseline171 tests, typecheck/lint/export pass, Doctor19/20 và11 mismatch nền. Đọc AGENTS/OceVie Mobile, báo cáo0/A0/A/B/C/D/E0, handoff và source hiện tại; không dùng báo cáo thay contract. Chỉ sửa Mobile/tài liệu, không BE/DB/Web, SQL/seed/Maven, dependency mới, commit/push hoặc Folio/checkout. Áp dụng7 skill bắt buộc và frontend-testing-debugging, chi tiết SKILL_USAGE. Evidence là source/unit/contract/export trừ khi ghi rõ rendered; chưa có QA BE/DB xác nhận.
+
+Kết luận **FE_READY_WITH_EXTERNAL_BLOCKERS** cho các module có contract. Đã triển khai Notification REST list/read/unread/read-all, foreground SSE có kiểm session và bounded fallback, scoped GET invalidation/navigation; Today/timeline/removed identity, on-demand public model metadata/text và Support guidance. ACK từng notification và canonical published change history không được mở khi contract chưa an toàn.
+
+189/189 tests pass (171 baseline+18), SSE subset9/9, typecheck/lint/export Android/iOS/Web và diff check pass. Doctor19/20 giữ11 mismatch cũ. Source files liệt kê FE_IMPLEMENTATION; test logs/verification.json ở evidence. Áp dụng đủ7 skill bắt buộc và frontend-testing-debugging. Không sửa BE/DB/Web/POS/financial workflow, không dependency mới/commit/push. Shared test fixture mở rộng chỉ local, không dùng production.
+
+SSE: FE implementation STATIC_VERIFIED qua Backend source, SDK58 docs và tests; native/QA/proxy connection chưa pass. AVD boot được nhưng SystemUI ANR/ExpoGo failed remote update, chưa load product UI. Không REALTIME_INTEGRATION_PASSED/DEVICE_E2E_PASSED. No heartbeat/replay và impact producer thiếu SSE/BP được bù bằng bounded REST freshness, BE-10 vẫn mở.
+
+3D: metadata endpoint đã tích hợp theo selected ship khi user yêu cầu; không GLB auto-download/render. Local full model khoảng281MB/182MB, buffers/meshes cần benchmark; M15 OPEN, không lấy local draft làm published asset. Push BE-23 và support API BE-24 chặn riêng; Support guidance vẫn dùng được. ACK BE-21 và schedule published/identity BE-22 chặn riêng. Giữ M06/M07/M08/M09/M13/M17, BE-08…20 và toàn finding trước; BE/DB handoff và maintenance backlog được bổ sung.
+
+Có thể chuyển sang **chuẩn bị Phase G-FE** cho kiểm thử/hardening phần khả thi khi được giao. Chưa đủ điều kiện đóng Full Mobile E2E hoặc financial chain: cần QA URL/accounts/dataset/mutation permission, đúng native build/connectivity, published schedule/notifications/model mappings, fix ACK/identity và các blocker E0/B/D cũ. Không triển khai G/M/H trong F.

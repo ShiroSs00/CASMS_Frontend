@@ -4,9 +4,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
 import { ActionRow, Disclosure, ui } from '@/components/passenger/PassengerUI';
 import { brand, layout } from '@/constants/ocevie';
-import { usePos, usePosActivities } from './PosLayout';
+import { usePos, usePosActivities, usePosRequests } from './PosLayout';
 import { readAreaLabel, readCruiseLabel, readShipLabel } from './pos-api';
-import { Notice, PosPage, QueryState, posError, usePosConfirmation } from './pos-ui';
+import { Notice, PosColumns, posPane, PosPage, QueryState, posError, usePosConfirmation } from './pos-ui';
 
 export function PosDashboard() {
   const pos = usePos();
@@ -30,10 +30,11 @@ export function PosDashboard() {
   const activities = usePosActivities();
   const confirm = usePosConfirmation(() => {}, true, false);
   const can = (permission: string) => scope.services.some(service => service.permissions.includes(permission));
+  const requests = usePosRequests(pos, can('SERVICE_REQUEST_READ'));
   const canActivities = scope.terminal.permissions.includes('ACTIVITY_READ');
   const hasActivities = canActivities && !activities.error && !!activities.data?.length;
   const hasUsage = can('SERVICE_SALE');
-  const hasRegistration = hasActivities && activities.data?.some(item => item.permissions.includes('ACTIVITY_REGISTRATION'));
+
   function end(signOut: boolean) {
     confirm.open({
       title: signOut ? 'Đăng xuất nhân viên' : 'Kết thúc phiên POS',
@@ -42,9 +43,10 @@ export function PosDashboard() {
     });
   }
 
-  return <PosPage title="Ca làm việc" standalone refresh={pos.refreshSession} refreshing={!pos.verified && !pos.sessionError}>
+  return <PosPage title="Ca làm việc" standalone wide refresh={pos.refreshSession} refreshing={!pos.verified && !pos.sessionError}>
+    <PosColumns><View style={posPane}>
     <View style={styles.context}>
-      <Text style={styles.title}>{scope.terminal.name}</Text>
+      <Text accessibilityRole="header" style={styles.title}>{scope.terminal.name}</Text>
       <Text style={styles.detail}>{scope.terminal.code} · {pos.username}</Text>
       <Text style={styles.detail}>{cruiseLabel?.shipName ?? shipLabel ?? 'Tàu đã phân công'}</Text>
       {!!area.data && !area.error && <Text style={styles.detail}>{area.data}</Text>}
@@ -52,21 +54,27 @@ export function PosDashboard() {
     </View>
     <Disclosure title="Chi tiết ca làm việc"><Text selectable style={ui.caption}>Tàu: {shipId}{'\n'}Khu vực: {areaId}{'\n'}Chuyến: {scope.cruiseId}</Text></Disclosure>
     {!!pos.sessionError && <Notice tone="error" retry={pos.refreshSession}>{posError(pos.sessionError)}</Notice>}
+    </View><View style={posPane}>
     <Text accessibilityRole="header" style={ui.sectionTitle}>Công việc</Text>
+    {can('SERVICE_REQUEST_READ') && <>
+      <QueryState query={requests} />
+      {!!requests.data && !requests.error && <Text style={ui.body}>Yêu cầu chờ tiếp nhận: {requests.data.filter(row => row.status === 'REQUESTED').length} · Đang xử lý: {requests.data.filter(row => ['ACCEPTED','IN_PROGRESS'].includes(row.status)).length}</Text>}
+    </>}
     {(can('SERVICE_READ') || can('SERVICE_REQUEST_READ') || hasActivities || hasUsage) && <View style={ui.actionList}>
     {can('SERVICE_READ') && <ActionRow title="Danh mục dịch vụ" icon="room_service" onPress={() => router.navigate('/staff-pos/services')} />}
     {can('SERVICE_REQUEST_READ') && <ActionRow title="Yêu cầu dịch vụ" icon="assignment_ind" onPress={() => router.navigate('/staff-pos/requests')} />}
-    {hasActivities && <ActionRow title="Hoạt động trên tàu" icon="explore" onPress={() => router.navigate('/staff-pos/activities')} />}
-    {hasUsage && <ActionRow title="Hạn mức và sao kê" icon="restaurant" onPress={() => router.navigate('/staff-pos/usage')} />}
+    {canActivities && <ActionRow title="Hoạt động trên tàu" icon="explore" onPress={() => router.navigate('/staff-pos/activities')} />}
+    {hasUsage && <ActionRow title="Bán dịch vụ và sao kê" icon="restaurant" onPress={() => router.navigate('/staff-pos/usage')} />}
     </View>}
     {canActivities && <QueryState query={activities} empty={activities.data?.length === 0 ? 'Chưa có hoạt động được phân công.' : undefined} />}
-    {(hasUsage || hasRegistration) && <PassengerButton compact label="Quét QR" variant="text" onPress={() => router.navigate('/staff-pos/scanner')} />}
+    {(pos.employeePermissions.includes('POS_ACCESS') && pos.employeePermissions.includes('CHECKIN_BOARDING')) && <PassengerButton compact label="Quét QR" variant="text" onPress={() => router.navigate('/staff-pos/scanner')} />}
     {!scope.services.length && !hasActivities && (!canActivities || activities.data?.length === 0) &&
       <Notice tone="neutral">Chưa có công việc được phân công cho thiết bị và chuyến này.</Notice>}
     <View>
       <PassengerButton label="Kết thúc phiên POS" variant="text" onPress={() => end(false)} />
       <PassengerButton label="Đăng xuất nhân viên" variant="text" onPress={() => end(true)} />
     </View>
+    </View></PosColumns>
     {confirm.ui}
   </PosPage>;
 }

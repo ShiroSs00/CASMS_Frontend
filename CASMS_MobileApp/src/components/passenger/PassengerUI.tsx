@@ -1,6 +1,6 @@
 import { type ReactNode, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { brand, controls, lightTheme, spacing, typeScale } from '@/constants/ocevie';
+import { brand, contentLayout, controls, lightTheme, spacing, typeScale } from '@/constants/ocevie';
 import { MaterialIcon, type MaterialIconName } from './MaterialIcon';
 import { PassengerButton } from './PassengerButton';
 
@@ -33,11 +33,11 @@ export function ActionRow({ title, icon, onPress }: { title: string; icon: Mater
 }
 export function SearchField({ value, onChangeText, placeholder }: { value: string; onChangeText: (value: string) => void; placeholder: string }) {
   const [focused, setFocused] = useState(false);
-  return <View style={[ui.search, focused && { borderColor: brand.teal }]}><MaterialIcon name="search" color={lightTheme.textSecondary} size={22} />
+  return <View style={{ gap: spacing.sm }}><Text style={ui.caption}>{placeholder}</Text><View style={[ui.search, focused && { borderColor: brand.teal }]}><MaterialIcon name="search" color={lightTheme.textSecondary} size={22} />
     <TextInput accessibilityLabel={placeholder} placeholder={placeholder} placeholderTextColor={lightTheme.placeholder}
       value={value} onChangeText={onChangeText} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={ui.searchInput} returnKeyType="search" autoCorrect={false} />
     {!!value && <Pressable accessibilityRole="button" accessibilityLabel="Xóa tìm kiếm" onPress={() => onChangeText('')} style={ui.clear}><Text style={ui.link}>Xóa</Text></Pressable>}
-  </View>;
+  </View></View>;
 }
 export function FilterChips<T extends string>({ items, selected, onSelect }: { items: readonly { key: T; label: string }[]; selected: T; onSelect: (key: T) => void }) {
   return <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={ui.chips}>
@@ -49,9 +49,9 @@ export function FilterChips<T extends string>({ items, selected, onSelect }: { i
 }
 export { PassengerSheet } from './PassengerSheet';
 export const ui = StyleSheet.create({
-  content: { flexGrow: 1, width: '100%', maxWidth: 600, alignSelf: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.xl },
+  content: { flexGrow: 1, width: '100%', maxWidth: contentLayout.passenger, alignSelf: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.xl },
   card: { backgroundColor: lightTheme.surface, borderRadius: controls.cardRadius, borderWidth: 1, borderColor: lightTheme.divider, padding: spacing.lg, gap: spacing.md },
-  sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  sectionHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   sectionTitle: { ...typeScale.section, color: brand.navy, flexShrink: 1 },
   title: { ...typeScale.title, color: brand.navy },
   body: { ...typeScale.body, color: lightTheme.textSecondary },
@@ -69,8 +69,8 @@ export const ui = StyleSheet.create({
   emptyIcon: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: lightTheme.surfaceHover },
   emptyTitle: { fontSize: 20, lineHeight: 28, color: brand.navy, fontWeight: '600', textAlign: 'center' },
   emptyCopy: { fontSize: 14, lineHeight: 23, color: lightTheme.textSecondary, textAlign: 'center', maxWidth: 340 },
-  search: { minHeight: 52, borderRadius: 14, backgroundColor: lightTheme.surface, borderWidth: 1, borderColor: lightTheme.border, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 10 },
-  searchInput: { outlineWidth: 0, flex: 1, minWidth: 0, paddingVertical: 14, fontSize: 14, color: brand.navy },
+  search: { minHeight: controls.buttonHeight, borderRadius: controls.radius, backgroundColor: lightTheme.surface, borderWidth: 1, borderColor: lightTheme.controlBorder, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, gap: spacing.md },
+  searchInput: { outlineWidth: 0, flex: 1, minWidth: 0, paddingVertical: spacing.md, fontSize: 16, color: brand.navy },
   clear: { minHeight: controls.touch, minWidth: controls.touch, alignItems: 'center', justifyContent: 'center' },
   chips: { flexDirection: 'row', gap: 8 },
   chip: { minHeight: controls.touch, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: lightTheme.surface, borderWidth: 1, borderColor: lightTheme.divider, alignItems: 'center', justifyContent: 'center' },

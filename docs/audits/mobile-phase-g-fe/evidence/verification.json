@@ -1,0 +1,255 @@
+{
+  "date": "2026-11-25",
+  "timezone": "Asia/Saigon",
+  "acceptance": "UI_UX_SOURCE_READY_RUNTIME_QA_BLOCKED",
+  "frontend_head": "a6bd1d6b4078d33dd1cf9e23c63bcaa1fc812b43",
+  "branch": "main",
+  "upstream": "origin/main",
+  "backend_head": "0bc2b3831301a0d67d45bacc120a161dbacec026",
+  "backend_status": "?? qa/",
+  "tests": {
+    "baseline": 189,
+    "total": 198,
+    "pass": 198,
+    "fail": 0,
+    "skipped": 0,
+    "new": 9
+  },
+  "sse_tests": {
+    "pass": 13,
+    "subset_of_full_suite": true,
+    "mode": "FAKE_STREAM_TIMERS_UNIT_CONTROLLER"
+  },
+  "typecheck": {
+    "exit_code": 0
+  },
+  "lint": {
+    "exit_code": 0,
+    "errors": 0,
+    "warnings": 0
+  },
+  "dependency_check": {
+    "exit_code": 1,
+    "mismatches": 11,
+    "online": true,
+    "changed_in_G": false
+  },
+  "doctor": {
+    "exit_code": 1,
+    "checks_pass": 19,
+    "checks_total": 20,
+    "failure": "11 pre-existing version mismatches"
+  },
+  "export": {
+    "exit_code": 0,
+    "platforms": [
+      "android",
+      "ios",
+      "web"
+    ],
+    "static_routes": 36,
+    "modules": {
+      "android": 2239,
+      "ios": 2133,
+      "web": 1529,
+      "renderer": 1617
+    },
+    "source_freeze": "2026-11-25T14:09:42.8374306+07:00",
+    "initial_export": "FAILED mid-edit new-file map; retained export-initial.txt; --clear rerun passed; final export rerun after POS pane auto-basis change passed"
+  },
+  "git_diff_check": {
+    "exit_code": 0
+  },
+  "rendered_ui": "RENDERED_UI_BLOCKED",
+  "native_sse": "NOT_RUN",
+  "real_api": "NOT_RUN",
+  "nfc_device": "NOT_RUN",
+  "talkback_voiceover": "NOT_RUN",
+  "runtime_performance": "NOT_MEASURED",
+  "G0": "BLOCKER_IDENTIFIED_HANDOFF_READY_RENDERED_GATE_BLOCKED",
+  "G1": "SOURCE_READY_RENDERED_ACCEPTANCE_PENDING",
+  "G2": "SOURCE_LOGIC_READY_DEVICE_BENCHMARK_PENDING",
+  "screen_inventory": {
+    "route_layout_files": 32,
+    "screen_redirect_entries": 29,
+    "layouts": 3
+  },
+  "reports": 15,
+  "changed_mobile_source_test_docs": [
+    {
+      "path": "CASMS_MobileApp/src/constants/ocevie.ts",
+      "sha256": "e79665210c24f631697fb0c9ca07b7d18bec3af6963632b692549186517e393e"
+    },
+    {
+      "path": "CASMS_MobileApp/src/hooks/foreground-clock.ts",
+      "sha256": "e6b16a3abcebf469d1d9ec30f7fdecad32a7d2b20b423194c8daf02d4a322bf1"
+    },
+    {
+      "path": "CASMS_MobileApp/src/hooks/use-now.ts",
+      "sha256": "98d7c95bcc062e19d839a991bb6fe87ac47419f67e078ce2830820337443639f"
+    },
+    {
+      "path": "CASMS_MobileApp/src/features/home/PassengerDestinationScreen.tsx",
+      "sha256": "d7db467b30d281cc35da638da115b96dc3111b04e4e7b36bf74436533ab6a715"
+    },
+    {
+      "path": "CASMS_MobileApp/src/features/home/VoyageHomeParts.tsx",
+      "sha256": "87d06c824e10fe722cc59626e065cb356692bbdabf26e1cbcbdcb2aa6e57d0f4"
+    },
+    {
+      "path": "CASMS_MobileApp/src/features/notifications/notification-stream.ts",
+      "sha256": "f83227b54964cb851950f61d838d036200e458eb1e465fd55651a17acb3e513d"
+    },
+    {
+      "path": "CASMS_MobileApp/src/features/notifications/PassengerNotificationsScreen.tsx",
+      "sha256": "1e546bfdfc9fbb080b623fb3c2708fef126edbcca21d15d63fc755effdab8897"
+    },
+    {
+      "path": "CASMS_MobileApp/src/features/passenger-actions/PassengerActionUI.tsx",
+      "sha256": "c29bb1f21a9fed759c22cb881da6e9e1a015599c7d1e62493801d858423afbc7"
+    },
+    {
+      "path": "CASMS_MobileApp/src/features/passenger-actions/PassengerActivitiesScreen.tsx",
+      "sha256": "d99a1c3029a20283eccd73167cac2c96ed0bdc3d8d3e420db07b0593af92107e"
+    },
+    {
+      "path": "CASMS_MobileApp/src/features/passenger-actions/PassengerBookingScreens.tsx",
+      "sha256": "bd6c39cee69d6a5686b56cf9b3270bb48723802e7fcfde4a7fee7e1e3da64a2e"
+    },
+    {
+      "path": "CASMS_MobileApp/src/features/passenger-actions/PassengerCheckInScreen.tsx",
+      "sha256": "5c0822e5cd6f7e3ba79fc66eaa7f991fa44c5659fbf089f4ad05f9767973eb54"
+    },
+    {
+      "path": "CASMS_MobileApp/src/features/passenger-actions/PassengerServiceRequestsScreen.tsx",
+      "sha256": "31ee823780dc2f8b144aa05e64ddc30d4cccafa4814501e065b6a88d91ba8217"
+    },
+    {
+      "path": "CASMS_MobileApp/src/features/pos/pos-layout-metrics.ts",
+      "sha256": "b82972eb02f87477b33e99c73f6d4f188c6caa35c4f9087cd2f90a818c7b5d73"
+    },
+    {
+      "path": "CASMS_MobileApp/src/features/pos/pos-ui.tsx",
+      "sha256": "4809a312f3603b04e405f4cc46c2db3588df4d3c4052a3a26fa7532530480a53"
+    },
+    {
+      "path": "CASMS_MobileApp/src/features/pos/PosDashboard.tsx",
+      "sha256": "21d75fd30ed3c9955af8cdc886a46dd5da807da0ffde82df66b4526dbec248c9"
+    },
+    {
+      "path": "CASMS_MobileApp/src/features/pos/PosServices.tsx",
+      "sha256": "0e0e789af27c48ce04240ccbfc94fc939a23f2e544f1ea8cc8e87739c9ad842a"
+    },
+    {
+      "path": "CASMS_MobileApp/src/components/passenger/MaterialIcon.tsx",
+      "sha256": "2dde66f288d05c739307995649f1174964313ca9c498d5182ec02bcc732ac687"
+    },
+    {
+      "path": "CASMS_MobileApp/src/components/passenger/OutlinedField.tsx",
+      "sha256": "2c5f40afa825ba40672bca0f592b0a5dd3fe799cb966a547e288eae252419127"
+    },
+    {
+      "path": "CASMS_MobileApp/src/components/passenger/PassengerButton.tsx",
+      "sha256": "f233640bf9955cae5bdf92a17d4a6cf9ff7858c8baf015b28343ea102028e35d"
+    },
+    {
+      "path": "CASMS_MobileApp/src/components/passenger/PassengerNavigation.tsx",
+      "sha256": "d29efbffbe94fe1d706921b6e6791fe52a7fa72a89b57346d005efaab22ea422"
+    },
+    {
+      "path": "CASMS_MobileApp/src/components/passenger/PassengerScaffold.tsx",
+      "sha256": "cd334fb52638902e73a49012900bd407466c72e8db3c308e911636de5c562b68"
+    },
+    {
+      "path": "CASMS_MobileApp/src/components/passenger/PassengerSheet.tsx",
+      "sha256": "b5f94f5cedcf2a50b3f05aca4afa104793057ab516013a9ef1290376fcd3cb5b"
+    },
+    {
+      "path": "CASMS_MobileApp/src/components/passenger/PassengerUI.tsx",
+      "sha256": "f8f7b28a8bc4a59269cea03fa97f9547d2ef3ad07f3eb3a1a1dbaeeedbdc2821"
+    },
+    {
+      "path": "CASMS_MobileApp/tests/native-ui-hardening.test.mjs",
+      "sha256": "568f40507fafe3e014d9471912e431e3be7a417372b69d4204f90ae806ef4d5e"
+    },
+    {
+      "path": "CASMS_MobileApp/tests/notification-realtime.test.mjs",
+      "sha256": "619e74aca1ab336405841600eb33b99e9510bf4d7104de6776a6f284b35d99af"
+    },
+    {
+      "path": "CASMS_MobileApp/docs/ocevie-mobile-ux.md",
+      "sha256": "bff5b8761194f7be983b1ead439f941ba7fc064fd2d5d30176b06f771012e2d2"
+    }
+  ],
+  "protected_baseline_files_unchanged": {
+    "CASMS_MobileApp/src/features/auth/session-store.ts": true,
+    "CASMS_MobileApp/src/features/notifications/notification-queries.ts": true,
+    "CASMS_MobileApp/src/features/notifications/NotificationSync.tsx": true,
+    "CASMS_MobileApp/src/features/passenger-actions/booking-financials.ts": true,
+    "CASMS_MobileApp/src/features/passenger-actions/PassengerCardScreen.tsx": true,
+    "CASMS_MobileApp/src/features/passenger-actions/PassengerSpendingScreen.tsx": true,
+    "CASMS_MobileApp/src/features/passenger-actions/service-operation-store.ts": true,
+    "CASMS_MobileApp/src/features/passenger-actions/spending-foundation.ts": true,
+    "CASMS_MobileApp/src/features/pos/card-reader.ts": true,
+    "CASMS_MobileApp/src/features/pos/nfc-reader.ts": true,
+    "CASMS_MobileApp/src/features/pos/pos-api.ts": true,
+    "CASMS_MobileApp/src/features/pos/pos-contracts.ts": true,
+    "CASMS_MobileApp/src/features/pos/pos-lifecycle.ts": true,
+    "CASMS_MobileApp/src/features/pos/pos-scope.ts": true,
+    "CASMS_MobileApp/src/features/pos/pos-storage.ts": true,
+    "CASMS_MobileApp/src/features/pos/pos-transport.ts": true,
+    "CASMS_MobileApp/src/features/pos/PosActivities.tsx": true,
+    "CASMS_MobileApp/src/features/pos/PosCardAction.tsx": true,
+    "CASMS_MobileApp/src/features/pos/PosLayout.tsx": true,
+    "CASMS_MobileApp/src/features/pos/PosScanner.tsx": true,
+    "CASMS_MobileApp/src/features/pos/PosUsage.tsx": true
+  },
+  "package_config_hashes": {
+    "package_json_sha256": "ae997379f8ccfe071f85bbca1e7f5bd522a8800a49fd9ad7160021ed7caf93e5",
+    "package_lock_sha256": "9b858b0a9150f46b5a8debcc70fcb58ede9e1666ee2e3cc390dac7ab72cc21a5",
+    "app_json_sha256": "de0df2c7250b012cc0fa5cdb32267e4ce602d1486afcf635c8dd33a1312be86c",
+    "note": "G did not mutate these baseline B files; their existing uncommitted changes are preserved."
+  },
+  "production_fixture_scan": {
+    "suffixes": [
+      ".js",
+      ".html",
+      ".json",
+      ".hbc"
+    ],
+    "markers": [
+      "(127.0.0.1|localhost|10.0.2.2):1808[56]",
+      "__ui/emit"
+    ],
+    "matches": [],
+    "note": "Bare 18086 was verified in Reanimated __workletHash=9106121518086, not an endpoint. URL-aware scan excludes that false positive."
+  },
+  "web_modified_in_G": false,
+  "backend_modified_in_G": false,
+  "database_mutated": false,
+  "commit_push": false,
+  "helpers": "AVD and known fixture/Metro helper PIDs stopped; no unrelated user apps stopped",
+  "log_sha256": {
+    "android-runtime.txt": "d31042bbb2bdee2b6e7267eea54644d5eb4f9554aeb84c9648cdf7f686ef71a0",
+    "browser-runtime.txt": "d3b0990cb26ba1769f90229c4b6524090863180fd27ab80eff7ebc3f27161e3e",
+    "changed-existing-files.txt": "bc443a13dc5ecae6f23978aef3b50a3a8b04304bb440aa68fce149c272d8b251",
+    "dependency-check.txt": "5bdf87b88b6cbe97113967a67eaf70dc37fbe05a76db3899a5c34453d787879b",
+    "dependency-exit.txt": "f1b2f662800122bed0ff255693df89c4487fbdcf453d3524a42d4ec20c3d9c04",
+    "doctor-exit.txt": "f1b2f662800122bed0ff255693df89c4487fbdcf453d3524a42d4ec20c3d9c04",
+    "doctor.txt": "38395a03a0c8b591579beb9864e13f19a7c73b1c698006f911577342d1628fab",
+    "export-initial.txt": "70ed13d95b4b25ec7d5fdd5900429ff12b704efbd69d8f4f34d425264c6681b0",
+    "export.txt": "bc281a66e1deb9f2453fde429db7d546566c22d8c7facf3f2f853a9a001531a0",
+    "git-diff-check.txt": "49afdaea9be9f1173915ed3d2adedafe0912cbaab2d823687f145e1db8354d87",
+    "lint.txt": "0ff577be774e33551afe2a77fc2dc3d07fb3af2107841ac5cd05b3eddf1f3465",
+    "metro-startup.txt": "78cd1059297377e8fa5d744dfafaff8111742b99d63b3261085a4dabf90f3243",
+    "runtime-inventory.txt": "8daad4db07d2d1f793fa8c145895f4e37c20cfbfdecec0f79249a474648a37ae",
+    "source-freeze.txt": "14a1f7c83cbeda622f95383d910a65d684b203135a2e8349f0223a690a348f2e",
+    "tests.txt": "6d343dec230a2c6e37cbfac64918e7c07ed7f9d0f5e254e7908ae70d98024a67",
+    "typecheck.txt": "719d1dde2113c3c9879501676e3bf45706adaad603675c0eaf0d07ec5f5e8a67"
+  },
+  "phase_M_readiness": "Handoff ready for approved native build/connectivity/rendered/accessibility/performance work; no M/H executed.",
+  "publication": {
+    "whitespace_only_cleanup": "git-publication-normalization.json",
+    "note": "Audit results remain unchanged. Historical source hashes describe audit-time bytes; publication mapping documents trailing-whitespace/EOF cleanup. No runtime behavior or test assertion change."
+  }
+}

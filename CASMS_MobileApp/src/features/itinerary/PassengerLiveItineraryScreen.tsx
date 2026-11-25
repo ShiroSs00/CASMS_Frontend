@@ -1,3 +1,5 @@
+import { useNow } from '@/hooks/use-now';
+import { itineraryDaySelection } from '@/features/home/voyage-home-model';
 import { VoyageEntrance } from '@/components/passenger/VoyageEntrance';
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -37,16 +39,18 @@ export function PassengerLiveItineraryScreen() {
   const [layout, setLayout] = useState<'daily' | 'ports'>('daily');
   const [localSheet, setSheet] = useState<Sheet | null>(null);
   const [choosing, setChoosing] = useState(false);
-  const selectedScope = `${catalog.itineraryId}:${catalog.voyage?.bookingPassengerId ?? ''}`;
+  const selectedScope = JSON.stringify(passengerKey(context.owner, auth.session?.signedInAt, catalog.itineraryId, catalog.voyage?.bookingPassengerId));
   const [selectedItinerary, setSelectedItinerary] = useState(selectedScope);
   if (selectedItinerary !== selectedScope) {
     setSelectedItinerary(selectedScope);
     setDayId(undefined); setStopId(undefined); setTourId(undefined); setGroupId(undefined); setSheet(null);
   }
+  const now = useNow(60000);
   const data = detail.data;
-  const day = data?.days.find(value => value.itineraryDayId === dayId) ?? data?.days[0];
+  const { today, day, removedDay } = itineraryDaySelection(data?.days ?? [], dayId, now);
   const dayStops = day && data ? stopsForDay(day, data.stops) : [];
-  const stop = dayStops.find(value => value.cruiseStopId === stopId) ?? dayStops[0];
+  const stop = stopId ? dayStops.find(value => value.cruiseStopId === stopId) : dayStops[0];
+  const removedStop = !!stopId && !!data && !data.stops.some(value => value.cruiseStopId === stopId);
   const zone = validTimeZone(day?.shipTimeZoneId);
   const personalActivities = day ? (catalog.voyage?.registeredActivities ?? []).filter(item => dateAt(item.startTime, zone) === day.date) : [];
   const zoneLabel = timeZoneLabel(zone, day?.date ? `${day.date}T12:00:00Z` : undefined);
@@ -73,7 +77,7 @@ export function PassengerLiveItineraryScreen() {
   const tour = tours.error ? undefined : tours.data?.find(value => value.shoreExcursionId === tourId);
   const sheet = localSheet ?? (detailParam === 'history' ? 'history' : null);
   const inbox = usePassengerQuery(['notifications'], passengerApi.notifications, 'NOTIFICATION_READ', sheet === 'history');
-  const changes = inbox.data?.filter(item => item.notificationType === 'CRUISE_SCHEDULE_CHANGE') ?? [];
+  const changes = inbox.data?.filter(item => item.notificationType === 'CRUISE_SCHEDULE_CHANGE' && !!item.bookingPassengerId && item.bookingPassengerId === catalog.voyage?.bookingPassengerId) ?? [];
   // Group browsing is read-only and does not establish a passenger assignment.
   const selectedTourId = tour?.shoreExcursionId ?? '';
   const groups = useQuery({ queryKey: passengerKey(auth.session?.user.id, auth.session?.signedInAt, 'itinerary', catalog.voyage?.cruiseId, catalog.itineraryId, 'groups', selectedTourId), queryFn: ({ signal }) => itineraryApi.groups(selectedTourId, signal), enabled: canReadGroups && !!tour && !!auth.session && (sheet === 'groups' || sheet === 'group') });
@@ -89,7 +93,8 @@ export function PassengerLiveItineraryScreen() {
   const heading = (title: string, subtitle: string) => <SheetHeading title={title} subtitle={subtitle} />;
   function modalContent(): ReactNode {
     if (sheet === 'history') return <>
-      {heading('Cập nhật lịch trình', 'Thông báo gửi riêng cho tài khoản của bạn')}
+      {heading('Cập nhật lịch trình', 'Thông báo đã gửi cho hồ sơ hành khách đang chọn')}
+      <Notice text="Thông báo không xác định được chuyến được xem trong Trung tâm thông báo. Lịch sử thay đổi nội bộ không được hiển thị tại đây." />
       {!context.can('NOTIFICATION_READ') ? <Notice text="Bạn chưa xem được thông báo trên tài khoản này." />
         : inbox.error ? <><Notice tone="error" text="Chưa tải được thông báo thay đổi." /><PassengerButton label="Tải lại" onPress={() => { void inbox.refetch(); }} /></>
           : inbox.isPending ? <Notice text="Đang tải thông báo…" />
@@ -160,6 +165,8 @@ export function PassengerLiveItineraryScreen() {
             ? 'Lịch trình của chuyến này đang được cập nhật.' : catalog.voyages.length
               ? 'Chọn chuyến đi.' : 'Chưa có chuyến đi đã xác nhận.'} />}
       {data && <>
+        {removedStop && <Notice tone="warning" text="Điểm dừng đang xem không còn trong lịch mới. Chọn lại điểm dừng trước khi xem tour." />}
+        {removedDay && <Notice tone="warning" text="Ngày đang xem không còn trong lịch mới. Đang hiển thị ngày khả dụng; hãy chọn lại ngày cần xem." />}
         {data.accessErrors.map(message => <Notice key={message} text={message} />)}
         <View style={styles.cruise}><Text style={styles.ship}>{data.itinerary.itineraryName}</Text><Text style={styles.cruiseText}>{data.cruise?.shipName ?? data.cruise?.cruiseName ?? 'Thông tin chuyến tàu chưa khả dụng'}</Text><Text style={styles.cruiseText}>{formatDay(data.itinerary.startDate)} – {formatDay(data.itinerary.endDate)}</Text><Text style={styles.chip}>{statusLabel(data.itinerary.status)}</Text></View>
         <View style={styles.tools}>{context.can('NOTIFICATION_READ') && <SmallButton label="Cập nhật lịch" icon="notifications" onPress={() => setSheet('history')} />}<SmallButton label={zoneLabel} icon="explore" onPress={() => setSheet('clock')} /></View>
@@ -167,14 +174,14 @@ export function PassengerLiveItineraryScreen() {
         {cancelled ? <Notice tone="warning" text="Hải trình/chuyến đi đã hủy. Không sử dụng lịch cũ để rời tàu. Vui lòng xem thông báo thay đổi và liên hệ nhân sự hỗ trợ." />
           : layout === 'ports' ? data.stops.length ? data.stops.map(value => <InfoRow key={value.cruiseStopId} title={value.portName ?? value.destinationName ?? 'Điểm dừng'} subtitle={stopSummary(value)} icon="directions_boat" onPress={() => openStop(value)} />) : data.stopsDenied ? null : <Notice text="Hải trình chưa có điểm dừng." />
             : <>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} accessibilityRole="tablist" accessibilityLabel="Chọn ngày hải trình">{data.days.map(value => <Pressable key={value.itineraryDayId} accessibilityRole="tab" aria-selected={day?.itineraryDayId === value.itineraryDayId} accessibilityState={{ selected: day?.itineraryDayId === value.itineraryDayId }} onPress={() => { setDayId(value.itineraryDayId); setStopId(undefined); setTourId(undefined); }} style={[styles.dayInner, { minWidth: 82, borderRadius: 14, backgroundColor: day?.itineraryDayId === value.itineraryDayId ? colors.secondaryContainer : colors.surfaceContainerLow }]}><Text style={[styles.rowTitle, day?.itineraryDayId === value.itineraryDayId && { color: colors.onSecondaryContainer }]}>Ngày {value.dayNumber}</Text><Text style={[styles.small, day?.itineraryDayId === value.itineraryDayId && { color: colors.onSecondaryContainer }]}>{formatDay(value.date)}</Text></Pressable>)}</ScrollView>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} accessibilityRole="tablist" accessibilityLabel="Chọn ngày hải trình">{data.days.map(value => <Pressable key={value.itineraryDayId} accessibilityRole="tab" aria-selected={day?.itineraryDayId === value.itineraryDayId} accessibilityState={{ selected: day?.itineraryDayId === value.itineraryDayId }} onPress={() => { setDayId(value.itineraryDayId); setStopId(undefined); setTourId(undefined); }} style={[styles.dayInner, { minWidth: 82, borderRadius: 14, backgroundColor: day?.itineraryDayId === value.itineraryDayId ? colors.secondaryContainer : colors.surfaceContainerLow }]}><Text style={[styles.rowTitle, day?.itineraryDayId === value.itineraryDayId && { color: colors.onSecondaryContainer }]}>Ngày {value.dayNumber}</Text><Text style={[styles.small, day?.itineraryDayId === value.itineraryDayId && { color: colors.onSecondaryContainer }]}>{formatDay(value.date)}{today?.itineraryDayId === value.itineraryDayId ? ' · Hôm nay' : ''}</Text></Pressable>)}</ScrollView>
               {!day ? data.daysDenied ? null : <Notice text="Lịch từng ngày chưa được cập nhật." /> : <VoyageEntrance key={day.itineraryDayId} duration={motion.content}><View style={styles.panel}>
                 <Text style={styles.sectionTitle}>{day.dayType === 'SEA_DAY' ? 'Ngày trên biển' : `Ngày ${day.dayNumber} · ${formatDay(day.date)}`}</Text>
                 {!!day.description && <Text style={styles.bodyText}>{day.description}</Text>}
                 {personalActivities.length > 0 && <>
                   <Text style={styles.sectionTitle}>Trải nghiệm bạn đã đăng ký</Text>
                   {personalActivities.map(item => <InfoRow key={item.registrationId} title={item.name} icon="explore"
-                    subtitle={`${time(item.startTime)} – ${time(item.endTime)} · ${statusLabel(item.activityStatus === 'CANCELLED' ? 'CANCELLED' : item.registrationStatus)}${item.location ? ` · ${item.location}` : ''}`} />)}
+                    subtitle={`${item.kind === 'SHORE_EXCURSION' ? 'Tour tham quan' : 'Hoạt động'} · ${time(item.startTime)} – ${time(item.endTime)} · ${statusLabel(item.activityStatus === 'CANCELLED' ? 'CANCELLED' : item.registrationStatus)}${item.location ? ` · ${item.location}` : ''}`} />)}
                 </>}
                 {day.dayType === 'SEA_DAY' ? <Notice text="Tàu di chuyển trên biển. Không ghé cảng trong ngày này." /> : <>
                   {dayStops.length ? dayStops.map(value => <InfoRow timeline key={value.cruiseStopId} title={value.portName ?? value.destinationName ?? 'Điểm dừng'} subtitle={stopSummary(value)} icon="directions_boat" onPress={() => openStop(value)} />) : data.stopsDenied ? null : <Notice text="Chưa có điểm dừng trong ngày." />}

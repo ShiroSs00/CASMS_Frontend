@@ -1,0 +1,13 @@
+# CASMS Mobile E0 — SPENDING_UI
+
+Ngày 25/11/2026. FE `a6bd1d6b4078d33dd1cf9e23c63bcaa1fc812b43`, main, origin/main + working tree B/C/D được giữ nguyên; BE `0bc2b3831301a0d67d45bacc120a161dbacec026`, chỉ đọc, giữ ?? qa/ cũ. Baseline D:164 tests, typecheck/lint/export pass, Doctor19/20. Đã đối chiếu AGENTS gốc/Mobile, OceVie Mobile, báo cáo0/A0/A/B/C/D và handoff. E0 không sửa Backend/DB/Web, không SQL/seed/migration/Maven/API write thật, dependency, commit/push. Contract STATIC_VERIFIED từ source, chưa QA. Áp dụng7 skill bắt buộc và frontend-testing-debugging; xem SKILL_USAGE.
+
+Trước E0: route Spending có hướng dẫn quầy và CTA “Xem đặt chỗ và thanh toán”, chưa có trạng thái context. Sau: route chỉ re-export PassengerSpendingScreen; màn dùng useSelectedItinerary của Phase A và LivePage permission BOOKING_READ, shared EmptyState/Loading/PassengerButton, ui/OceVie. Không tạo primitive/palette/animation hoặc financial dashboard.
+
+Màn chỉ đọc Voyage Context và nhãn chuyến từ API đã xác minh. Không gọi Folio, POS statement, account discovery phỏng đoán, invoice hoặc settlement. Khi context pending/refetch/error/offline/denied, không hiện nhãn chuyến cũ. Selected trip gắn owner/API/epoch/booking/BP/cruise qua context sẵn có; không tạo store hoặc accountId riêng. Không cache số dư/tài khoản/lịch sử vì chưa có contract phù hợp.
+
+Các trạng thái: loading; paused/offline; forbidden; error có tải lại chuyến; missing voyage có CTA chọn chuyến; unavailable có hướng dẫn quầy; ended/cancelled nhắc không suy ra quyết toán. missing-account và empty copy chỉ chuẩn bị cho response API tương lai xác nhận rõ; model hiện tại KHÔNG phát hai trạng thái này từ dữ liệu thiếu. 404 trong Voyage Context là lỗi chuyến, không bị diễn giải “chưa có tài khoản”. Không hiển thị zero/amount/account/status tài chính giả.
+
+CTA chính xem/chọn đặt chỗ; quyền lợi gói và hỗ trợ là secondary/text. Màn giải thích hạn mức khác tiền phải trả, quota khác tiền mặt. Booking detail chỉ là thông tin vé đã có, không tạo flow thanh toán booking ban đầu. Chuyến kết thúc vẫn có hướng dẫn quầy, không nút settlement/checkout. Reuse safe area, native Stack, ScrollView keyboard/reduced motion từ Scaffold/LivePage.
+
+UI source/state tests pass; rendered phone/tablet/font lớn/screen reader chưa nghiệm thu. D đã kiểm ADB không có target và browser runtime bị chặn; E0 không cài tool/dependency hay đổi network/security để vượt hạn chế. Frontend-testing-debugging ghi rõ giới hạn; export không thay visual QA. Runbook: đổi chuyến/BP/account/logout/resume, mất mạng/refetch/403/404, chuyến completed, font scaling và hardware Back; không được lộ nhãn/số liệu cũ. Acceptance SPENDING_FOUNDATION_READY_FOLIO_BLOCKED, UI_RENDERED_NOT_RUN.

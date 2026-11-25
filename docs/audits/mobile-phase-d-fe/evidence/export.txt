@@ -1,0 +1,112 @@
+env: load .env.local
+env: export EXPO_PUBLIC_API_URL
+Using src/app as the root directory for Expo Router.
+React Compiler enabled
+Starting Metro Bundler
+
+| (node:31796) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:31796) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:31796) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:31796) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:31796) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:31796) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:31796) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:31796) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+Android Bundled 98097ms node_modules\expo-router\entry.js (2230 modules)
+iOS Bundled 117971ms node_modules\expo-router\entry.js (2124 modules)
+Static rendering is enabled. Learn more: https://docs.expo.dev/router/web/static-rendering/
+λ Bundled 76454ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1605 modules)
+Web Bundled 77143ms node_modules\expo-router\entry.js (1516 modules)
+
+› android bundles (1):
+_expo/static/js/android/entry-42daab23f65dde412e4a41090f3de30c.hbc (6.1MB)
+
+› ios bundles (1):
+_expo/static/js/ios/entry-ca6422784128885e9d8f6fa012024f73.hbc (5.9MB)
+
+› web bundles (37):
+_expo/static/js/web/__common-8551f3aca0af36e8507d5a0a9a07ee36.js (1.7MB)
+_expo/static/js/web/__expo-metro-runtime-9f1a7b6acd20011e290bc79f0164ae37.js (9.9KB)
+_expo/static/js/web/_layout-250d2dfb256261dcd689886a67b235e3.js (5.8KB)
+_expo/static/js/web/_layout-3edb3db0f5823a8669baa27dc2af3268.js (355B)
+_expo/static/js/web/_layout-e0f5889b9c5b6724f550cafcab966181.js (3.2KB)
+_expo/static/js/web/[bookingId]-2b1226c2538c453774396a06410556f4.js (425B)
+_expo/static/js/web/account-117a03e54e02466b2d2dc0539232d860.js (9.8KB)
+_expo/static/js/web/activities-b79bb41e58a49d2c1ceee99d4e6d63cc.js (18KB)
+_expo/static/js/web/bookings-02d8a92dbaec32892bd674b64083f2f6.js (385B)
+_expo/static/js/web/check-in-d610544641563f57fc1c7d67e803d5df.js (9.6KB)
+_expo/static/js/web/cruise-31f5bd9d6eea8776e453ef6f0be1903f.js (4.4KB)
+_expo/static/js/web/entry-e75d559fd8c8443d899f72726846f65b.js (1.1MB)
+_expo/static/js/web/explore-8a27eeca1e4495179ad9d18216e71e75.js (375B)
+_expo/static/js/web/forgot-password-bc1cbd7f9cfe4c1e310cd9ada552c610.js (385B)
+_expo/static/js/web/home-b655bddcf193b1dfe8db9ef53d5f9662.js (18KB)
+_expo/static/js/web/index-1aa2c1563a253c7c799ae21a3289e913.js (45KB)
+_expo/static/js/web/index-2b1199c286f64717636015db811a8d60.js (8.3KB)
+_expo/static/js/web/index-2f36d7934bae9273a2ba4de2e9b0ccf8.js (373B)
+_expo/static/js/web/index-5133dd3da02324d3c996cc3e72b7000d.js (420B)
+_expo/static/js/web/index-730f57ecb6a2f7a3531dc8a78010ed83.js (35KB)
+_expo/static/js/web/itinerary-db48a768b106e73219e372d2f2e1d8a9.js (21KB)
+_expo/static/js/web/loading-b93c60758a0c84088e76d910171a43a4.js (7.1KB)
+_expo/static/js/web/login-56af607962dcb546ddcd350fcf6277e7.js (11KB)
+_expo/static/js/web/new-2da1585ab9d25154f6e06d7dfbb255ff.js (385B)
+_expo/static/js/web/notifications-13354b198a092ee1a0a3ec9169b2ff29.js (3.2KB)
+_expo/static/js/web/passenger-activities-b348af4ebe2ac7709db88e27e6fb2cad.js (17KB)
+_expo/static/js/web/passenger-packages-5bff9cab523e2a5fcb25de98ec4715b9.js (3.5KB)
+_expo/static/js/web/passenger-qr-3e1a9861130be85c6a57665a06667f96.js (35KB)
+_expo/static/js/web/passenger-services-be01bca4f58ade2f480b4726552122eb.js (427B)
+_expo/static/js/web/requests-d39b367104fea19ef26820438c7e2c16.js (206B)
+_expo/static/js/web/scanner-3001f7143ad9228629c615eb0916fadd.js (30KB)
+_expo/static/js/web/services-0f78f442f8f50a763c8e33229a744e3b.js (772B)
+_expo/static/js/web/services-894383eff7b14aa9921acdb594f58c32.js (206B)
+_expo/static/js/web/spending-3e0d9eab1bec1937d4c649e44e573c04.js (963B)
+_expo/static/js/web/splash-0a2ac800ad8fc31c63eeb22d230aa9dc.js (373B)
+_expo/static/js/web/support-18e81572f204cc29711ea7ad90d7804f.js (374B)
+_expo/static/js/web/usage-4300da704151ef570721bcd17fee642c.js (15KB)
+
+› Static routes (36):
+/home (29KB)
+/ (index) (28KB)
+/login (32KB)
+/cruise (30KB)
+/splash (32KB)
+/explore (28KB)
+/loading (32KB)
+/support (34KB)
+/account (29KB)
+/bookings (28KB)
+/check-in (30KB)
+/spending (30KB)
+/_sitemap (26KB)
+/services (29KB)
+/itinerary (29KB)
+/+not-found (26KB)
+/passenger-qr (30KB)
+/notifications (29KB)
+/forgot-password (35KB)
+/staff-pos (30KB)
+/staff-pos/usage (30KB)
+/(passenger)/home (29KB)
+/staff-pos/scanner (30KB)
+/passenger-packages (30KB)
+/passenger-services (30KB)
+/staff-pos/requests (30KB)
+/staff-pos/services (30KB)
+/(passenger)/account (29KB)
+/passenger-activities (30KB)
+/(passenger)/services (29KB)
+/staff-pos/activities (30KB)
+/(passenger)/itinerary (29KB)
+/passenger-bookings/new (28KB)
+/passenger-bookings (30KB)
+/(passenger)/notifications (29KB)
+/passenger-bookings/[bookingId] (30KB)
+
+Exported: dist/phase-d

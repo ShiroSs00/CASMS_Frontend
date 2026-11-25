@@ -1,0 +1,6 @@
+
+> casms_mobileapp@1.0.0 lint
+> expo lint
+
+env: load .env.local
+env: export EXPO_PUBLIC_API_URL

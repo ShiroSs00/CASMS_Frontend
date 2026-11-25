@@ -1,0 +1,106 @@
+[
+  {
+    "path": "CASMS_MobileApp/src/constants/ocevie.ts",
+    "sha256": "e79665210c24f631697fb0c9ca07b7d18bec3af6963632b692549186517e393e"
+  },
+  {
+    "path": "CASMS_MobileApp/src/hooks/foreground-clock.ts",
+    "sha256": "e6b16a3abcebf469d1d9ec30f7fdecad32a7d2b20b423194c8daf02d4a322bf1"
+  },
+  {
+    "path": "CASMS_MobileApp/src/hooks/use-now.ts",
+    "sha256": "98d7c95bcc062e19d839a991bb6fe87ac47419f67e078ce2830820337443639f"
+  },
+  {
+    "path": "CASMS_MobileApp/src/features/home/PassengerDestinationScreen.tsx",
+    "sha256": "d7db467b30d281cc35da638da115b96dc3111b04e4e7b36bf74436533ab6a715"
+  },
+  {
+    "path": "CASMS_MobileApp/src/features/home/VoyageHomeParts.tsx",
+    "sha256": "87d06c824e10fe722cc59626e065cb356692bbdabf26e1cbcbdcb2aa6e57d0f4"
+  },
+  {
+    "path": "CASMS_MobileApp/src/features/notifications/notification-stream.ts",
+    "sha256": "f83227b54964cb851950f61d838d036200e458eb1e465fd55651a17acb3e513d"
+  },
+  {
+    "path": "CASMS_MobileApp/src/features/notifications/PassengerNotificationsScreen.tsx",
+    "sha256": "1e546bfdfc9fbb080b623fb3c2708fef126edbcca21d15d63fc755effdab8897"
+  },
+  {
+    "path": "CASMS_MobileApp/src/features/passenger-actions/PassengerActionUI.tsx",
+    "sha256": "c29bb1f21a9fed759c22cb881da6e9e1a015599c7d1e62493801d858423afbc7"
+  },
+  {
+    "path": "CASMS_MobileApp/src/features/passenger-actions/PassengerActivitiesScreen.tsx",
+    "sha256": "d99a1c3029a20283eccd73167cac2c96ed0bdc3d8d3e420db07b0593af92107e"
+  },
+  {
+    "path": "CASMS_MobileApp/src/features/passenger-actions/PassengerBookingScreens.tsx",
+    "sha256": "bd6c39cee69d6a5686b56cf9b3270bb48723802e7fcfde4a7fee7e1e3da64a2e"
+  },
+  {
+    "path": "CASMS_MobileApp/src/features/passenger-actions/PassengerCheckInScreen.tsx",
+    "sha256": "5c0822e5cd6f7e3ba79fc66eaa7f991fa44c5659fbf089f4ad05f9767973eb54"
+  },
+  {
+    "path": "CASMS_MobileApp/src/features/passenger-actions/PassengerServiceRequestsScreen.tsx",
+    "sha256": "31ee823780dc2f8b144aa05e64ddc30d4cccafa4814501e065b6a88d91ba8217"
+  },
+  {
+    "path": "CASMS_MobileApp/src/features/pos/pos-layout-metrics.ts",
+    "sha256": "b82972eb02f87477b33e99c73f6d4f188c6caa35c4f9087cd2f90a818c7b5d73"
+  },
+  {
+    "path": "CASMS_MobileApp/src/features/pos/pos-ui.tsx",
+    "sha256": "4809a312f3603b04e405f4cc46c2db3588df4d3c4052a3a26fa7532530480a53"
+  },
+  {
+    "path": "CASMS_MobileApp/src/features/pos/PosDashboard.tsx",
+    "sha256": "21d75fd30ed3c9955af8cdc886a46dd5da807da0ffde82df66b4526dbec248c9"
+  },
+  {
+    "path": "CASMS_MobileApp/src/features/pos/PosServices.tsx",
+    "sha256": "0e0e789af27c48ce04240ccbfc94fc939a23f2e544f1ea8cc8e87739c9ad842a"
+  },
+  {
+    "path": "CASMS_MobileApp/src/components/passenger/MaterialIcon.tsx",
+    "sha256": "2dde66f288d05c739307995649f1174964313ca9c498d5182ec02bcc732ac687"
+  },
+  {
+    "path": "CASMS_MobileApp/src/components/passenger/OutlinedField.tsx",
+    "sha256": "2c5f40afa825ba40672bca0f592b0a5dd3fe799cb966a547e288eae252419127"
+  },
+  {
+    "path": "CASMS_MobileApp/src/components/passenger/PassengerButton.tsx",
+    "sha256": "f233640bf9955cae5bdf92a17d4a6cf9ff7858c8baf015b28343ea102028e35d"
+  },
+  {
+    "path": "CASMS_MobileApp/src/components/passenger/PassengerNavigation.tsx",
+    "sha256": "d29efbffbe94fe1d706921b6e6791fe52a7fa72a89b57346d005efaab22ea422"
+  },
+  {
+    "path": "CASMS_MobileApp/src/components/passenger/PassengerScaffold.tsx",
+    "sha256": "cd334fb52638902e73a49012900bd407466c72e8db3c308e911636de5c562b68"
+  },
+  {
+    "path": "CASMS_MobileApp/src/components/passenger/PassengerSheet.tsx",
+    "sha256": "b5f94f5cedcf2a50b3f05aca4afa104793057ab516013a9ef1290376fcd3cb5b"
+  },
+  {
+    "path": "CASMS_MobileApp/src/components/passenger/PassengerUI.tsx",
+    "sha256": "f8f7b28a8bc4a59269cea03fa97f9547d2ef3ad07f3eb3a1a1dbaeeedbdc2821"
+  },
+  {
+    "path": "CASMS_MobileApp/tests/native-ui-hardening.test.mjs",
+    "sha256": "568f40507fafe3e014d9471912e431e3be7a417372b69d4204f90ae806ef4d5e"
+  },
+  {
+    "path": "CASMS_MobileApp/tests/notification-realtime.test.mjs",
+    "sha256": "619e74aca1ab336405841600eb33b99e9510bf4d7104de6776a6f284b35d99af"
+  },
+  {
+    "path": "CASMS_MobileApp/docs/ocevie-mobile-ux.md",
+    "sha256": "bff5b8761194f7be983b1ead439f941ba7fc064fd2d5d30176b06f771012e2d2"
+  }
+]

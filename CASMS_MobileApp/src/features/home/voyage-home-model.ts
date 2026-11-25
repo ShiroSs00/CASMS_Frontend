@@ -24,3 +24,9 @@ export function nextRegisteredActivity(voyage: PersonalVoyage | undefined, now: 
     && !['CANCELLED', 'COMPLETED'].includes(item.activityStatus));
   return upcoming.sort((a, b) => Date.parse(a.startTime ?? '') - Date.parse(b.startTime ?? ''))[0];
 }
+
+export function itineraryDaySelection(days: readonly DayDto[], requested: string | undefined, now: number) {
+  const today = itineraryToday(days, now);
+  const selected = days.find(day => day.itineraryDayId === requested);
+  return { today, day: selected ?? today ?? days[0], removedDay: !!requested && !selected };
+}

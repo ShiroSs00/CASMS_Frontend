@@ -13,7 +13,8 @@ export function PassengerBookingsScreen() {
   const bookings = usePassengerQuery(['bookings'], passengerApi.bookings, 'BOOKING_READ');
   return <LivePage title="Chuyến đi của tôi" permission="BOOKING_READ">
     <ErrorNotice error={bookings.error} retry={() => { void bookings.refetch(); }} />
-    {bookings.isPending ? <Loading /> : !bookings.error && !bookings.data?.length ? <EmptyState title="Chưa có chuyến đi" action="Liên hệ hỗ trợ" onPress={() => router.push('/support')} /> : null}
+    {bookings.fetchStatus === 'paused' && <Text style={ui.body}>Đang chờ kết nối để cập nhật chuyến đi của bạn.</Text>}
+    {bookings.isLoading ? <Loading /> : bookings.isSuccess && !bookings.error && !bookings.data?.length ? <EmptyState title="Chưa có chuyến đi" action="Liên hệ hỗ trợ" onPress={() => router.push('/support')} /> : null}
     {bookings.data?.map(booking => <View key={booking.bookingId} style={ui.card}>
       <Text style={ui.eyebrow}>{booking.bookingReference}</Text><StatusBadge status={booking.bookingStatus} />
       <Text style={ui.sectionTitle}>{booking.cruiseName}</Text><Text style={ui.body}>{dateTime(booking.departureDatetime)} · {booking.passengerCount} hành khách</Text>
@@ -34,7 +35,8 @@ export function PassengerBookingDetailScreen() {
   return <LivePage title="Chi tiết chuyến đi" permission="BOOKING_READ">
     {!bookingId && <Text style={ui.body}>Liên kết đặt chỗ không hợp lệ.</Text>}
     <ErrorNotice error={booking.error} retry={() => { void booking.refetch(); }} />
-    {!!bookingId && booking.isPending && <Loading />}
+    {!!bookingId && booking.isLoading && <Loading />}
+    {!!bookingId && booking.fetchStatus === 'paused' && <Text style={ui.body}>Đang chờ kết nối để tải chi tiết đặt chỗ.</Text>}
     {data && <>
       <Text style={ui.eyebrow}>{data.bookingReference} · {statusText(data.bookingStatus)}</Text>
       <Text style={ui.title}>{data.cruiseName}</Text><Text style={ui.body}>{data.shipName ?? 'Tàu chưa cập nhật'}</Text>
@@ -43,7 +45,8 @@ export function PassengerBookingDetailScreen() {
       {context.can('PAYMENT_READ') && <>
         <Text accessibilityRole="header" style={ui.sectionTitle}>Lịch sử thanh toán chuyến đi</Text>
         <ErrorNotice error={payments.error} retry={() => { void payments.refetch(); }} />
-        {payments.isPending && !booking.error && <Loading text="Đang tải lịch sử thanh toán…" />}
+        {payments.isLoading && !booking.error && <Loading text="Đang tải lịch sử thanh toán…" />}
+        {payments.fetchStatus === 'paused' && <Text style={ui.body}>Đang chờ kết nối để cập nhật lịch sử thanh toán.</Text>}
         {payments.isSuccess && !payments.data?.length && <Text style={ui.body}>Chưa ghi nhận giao dịch thanh toán.</Text>}
         {payments.data?.map(payment => <View key={payment.paymentId} style={ui.card}>
           <Text style={ui.sectionTitle}>{payment.operationType === 'Void' ? 'Hủy khoản thanh toán' : 'Thanh toán chuyến đi'}</Text>
@@ -59,8 +62,9 @@ export function PassengerBookingDetailScreen() {
         <Text style={ui.body}>{person.tourPackageName ?? 'Chưa chọn gói dịch vụ'}</Text>
       </View>)}
       {data.contractSigningInstructions && <View style={ui.card}><Text style={ui.sectionTitle}>Hướng dẫn hợp đồng</Text><Text style={ui.body}>{data.contractSigningInstructions}</Text></View>}
-      {data.bookingStatus === 'Draft' && context.can('TOUR_PACKAGE_ASSIGN') && <PassengerButton label="Chọn hoặc thay đổi gói dịch vụ" variant="secondary" onPress={() => router.push({ pathname: '/passenger-packages', params: { bookingId } })} />}
+      {data.bookingStatus === 'Draft' && <Text style={ui.caption}>Thay đổi gói dịch vụ cần được xác nhận với nhân viên đặt chỗ.</Text>}
       {data.bookingStatus === 'Confirmed' && <>
+        <PassengerButton label="Quyền lợi đã mua" variant="secondary" onPress={() => router.push({ pathname: '/passenger-packages', params: { bookingId } })} />
         {context.can('CHECKIN_READ') && <PassengerButton label="Check-in trước chuyến" onPress={() => router.push({ pathname: '/check-in', params: { bookingId } })} />}
         {(context.can('ACTIVITY_READ') || context.can('EXCURSION_READ')) && <PassengerButton label="Hoạt động và tour của chuyến đi" variant="secondary" onPress={() => router.push({ pathname: '/passenger-activities', params: { bookingId } })} />}
         {context.can('SERVICE_READ') && <PassengerButton label="Yêu cầu dịch vụ trên tàu" variant="secondary" onPress={() => router.push({ pathname: '/passenger-services', params: { bookingId } })} />}

@@ -3,9 +3,9 @@ import test from 'node:test';
 import './register-typescript.mjs';
 const { createPassengerApi } = await import('../src/features/passenger-actions/passenger-api.ts');
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
-const request = { id: id(1), serviceId: id(2), bookingPassengerId: id(3), quantity: 2,
+const request = { id: id(1), serviceId: id(2), bookingPassengerId: id(3), passengerId: id(8), bookingId: id(9), status: 'REQUESTED', requestTime: '2026-01-01T00:00:00Z', completedAt: null, note: null, usageTimeZoneSnapshot: null, quantity: 2,
   usageMode: 'PRE_CRUISE', fareBenefitSnapshotId: id(4), fulfilledQuantity: 0, fulfillmentUnitCode: 'VISIT',
-  unitPriceSnapshot: 10, usageLimitSnapshot: 2, usagePolicySnapshot: 'PER_DAY' };
+  unitPriceSnapshot: 10, currencySnapshot: 'USD', usageLimitSnapshot: 2, usagePolicySnapshot: 'PER_DAY' };
 
 test('service request recovery uses operation-key endpoint and preserves fare/usage snapshots', async () => {
   const api = createPassengerApi({ request: async (path, options) => {
@@ -32,7 +32,7 @@ test('scheduled requests keep schedule/key contract and reject schedules for ano
     return { ...request, scheduleId: id(5) };
   } });
   assert.equal((await api.createRequest(id(2), id(3), 2, '', id(5), 'persisted-operation')).scheduleId, id(5));
-  const schedule = { id: id(5), serviceId: id(2), cruiseId: id(6), status: 'OPEN', remainingCapacity: 2,
+  const schedule = { id: id(5), serviceId: id(2), cruiseId: id(6), status: 'OPEN', remainingCapacity: 2, capacity: 3, location: 'QA location', portName: null,
     startsAt: '2099-01-01T00:00:00Z', endsAt: '2099-01-01T01:00:00Z', timeZoneId: 'Asia/Saigon' };
   assert.equal((await createPassengerApi({ request: async () => [schedule] }).serviceSchedules(id(2)))[0].timeZoneId, 'Asia/Saigon');
   await assert.rejects(createPassengerApi({ request: async () => [{ ...schedule, serviceId: id(7) }] }).serviceSchedules(id(2)));

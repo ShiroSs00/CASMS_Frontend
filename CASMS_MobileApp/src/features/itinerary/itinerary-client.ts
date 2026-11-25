@@ -52,7 +52,8 @@ export function createItineraryApi(api: Pick<ReturnType<typeof createApiClient>,
     async detail(id: string, signal?: AbortSignal, options: { history?: boolean; cruise?: boolean; expectedCruiseId?: string } = {}) {
       const itinerary = await api.request<ItineraryDto>(`/itineraries/${idPath(id)}`, { signal });
       if (options.expectedCruiseId && (!itineraryShape.safeParse(itinerary).success
-        || itinerary?.itineraryId !== id || itinerary.cruiseId !== options.expectedCruiseId)) {
+        || itinerary?.itineraryId !== id || itinerary.cruiseId !== options.expectedCruiseId
+        || !['OPEN_FOR_SALE','ACTIVE','COMPLETED','CANCELLED'].includes(itinerary.status))) {
         throw new ApiError('Hải trình không khớp chuyến trong đặt chỗ.', 502);
       }
       const [days, stops, cruise, history] = await Promise.all([

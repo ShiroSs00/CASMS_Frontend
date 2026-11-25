@@ -1,0 +1,80 @@
+{
+  "note": "Publishing whitespace-only cleanup after G audit. Historical run/source hashes refer to original bytes; this mapping preserves provenance. No test assertions or runtime behavior changed.",
+  "files": [
+    {
+      "path": "CASMS_MobileApp/src/features/pos/PosCardAction.tsx",
+      "original_sha256": "40641e75273433c00abdae16d4395a258d91d1adaf7ae6e533ad2d6d6eb6d232",
+      "published_sha256": "7bd9e9bd886734902eaaedcc700aea90ae2bc31a89682f449ea8c7de38eae35d"
+    },
+    {
+      "path": "CASMS_MobileApp/tests/onboard-services.test.mjs",
+      "original_sha256": "11b38d86b27a69083dd3120b5f825b75a694f9a41fb9c596412d85058216458b",
+      "published_sha256": "c2785853fba4a285b442ccefb23e302ed277e207a317e4d0be47d38c34b47f36"
+    },
+    {
+      "path": "docs/audits/mobile-phase-d-fe/evidence/typecheck.txt",
+      "original_sha256": "2693c8e648be5709ddaece29b0be80ba9acabc372bc9f9f1474954e4c81d3807",
+      "published_sha256": "719d1dde2113c3c9879501676e3bf45706adaad603675c0eaf0d07ec5f5e8a67"
+    },
+    {
+      "path": "docs/audits/mobile-phase-e0-fe/evidence/doctor.txt",
+      "original_sha256": "81d782c0cefb6efcb9e979522be4be2e2ae472e0073b9dca17520c278ef3a368",
+      "published_sha256": "38395a03a0c8b591579beb9864e13f19a7c73b1c698006f911577342d1628fab"
+    },
+    {
+      "path": "docs/audits/mobile-phase-e0-fe/evidence/typecheck.txt",
+      "original_sha256": "2693c8e648be5709ddaece29b0be80ba9acabc372bc9f9f1474954e4c81d3807",
+      "published_sha256": "719d1dde2113c3c9879501676e3bf45706adaad603675c0eaf0d07ec5f5e8a67"
+    },
+    {
+      "path": "docs/audits/mobile-phase-f-fe/evidence/doctor.txt",
+      "original_sha256": "81d782c0cefb6efcb9e979522be4be2e2ae472e0073b9dca17520c278ef3a368",
+      "published_sha256": "38395a03a0c8b591579beb9864e13f19a7c73b1c698006f911577342d1628fab"
+    },
+    {
+      "path": "docs/audits/mobile-phase-f-fe/evidence/typecheck.txt",
+      "original_sha256": "2693c8e648be5709ddaece29b0be80ba9acabc372bc9f9f1474954e4c81d3807",
+      "published_sha256": "719d1dde2113c3c9879501676e3bf45706adaad603675c0eaf0d07ec5f5e8a67"
+    },
+    {
+      "path": "docs/audits/mobile-phase-g-fe/CASMS_MOBILE_PHASE_G_FE_IMPLEMENTATION.md",
+      "original_sha256": "1256b4271ca42aa995f5dbb390530b47590c02f461b7c172df9b32dd91ff10bb",
+      "published_sha256": "a52983755a8437e2f57cf878318263410ce1764572ff98ec0e1f86a64a9ca58c"
+    },
+    {
+      "path": "docs/audits/mobile-phase-g-fe/CASMS_MOBILE_PHASE_G_PASSENGER_UI_UX_AUDIT.md",
+      "original_sha256": "55891b63740713c8811a1ebb4cad77ce1d1b27ce757f8085010a1eb8caef2550",
+      "published_sha256": "1ab333de781c250195f94ea94f619aff8a5779de970df48e0bcfbc56d3dc3076"
+    },
+    {
+      "path": "docs/audits/mobile-phase-g-fe/CASMS_MOBILE_PHASE_G_STAFF_POS_UI_UX_AUDIT.md",
+      "original_sha256": "1ddea345ca0cc5c8b17c975985355eeecb3f699ec190637f1c7e43d9fe75e702",
+      "published_sha256": "545c0bf2e06602a0e1e1ffdd9fcf177ddd89eaed9a3f204bb1a318cd9a14726d"
+    },
+    {
+      "path": "docs/audits/mobile-phase-g-fe/evidence/android-runtime.txt",
+      "original_sha256": "566a6dfec6fabb5b28469eca2fd49d314bfd2f142ed54517546a2114592cd5e4",
+      "published_sha256": "d31042bbb2bdee2b6e7267eea54644d5eb4f9554aeb84c9648cdf7f686ef71a0"
+    },
+    {
+      "path": "docs/audits/mobile-phase-g-fe/evidence/doctor.txt",
+      "original_sha256": "81d782c0cefb6efcb9e979522be4be2e2ae472e0073b9dca17520c278ef3a368",
+      "published_sha256": "38395a03a0c8b591579beb9864e13f19a7c73b1c698006f911577342d1628fab"
+    },
+    {
+      "path": "docs/audits/mobile-phase-g-fe/evidence/export-initial.txt",
+      "original_sha256": "cab8207b715bd8c7a567646eac9f76e487b3ac5dfe5ba89d1c8eefbab1da9d59",
+      "published_sha256": "70ed13d95b4b25ec7d5fdd5900429ff12b704efbd69d8f4f34d425264c6681b0"
+    },
+    {
+      "path": "docs/audits/mobile-phase-g-fe/evidence/runtime-inventory.txt",
+      "original_sha256": "498ab3090a975c5c866f2655d0de306a4144372c76190903787d332e98e79688",
+      "published_sha256": "8daad4db07d2d1f793fa8c145895f4e37c20cfbfdecec0f79249a474648a37ae"
+    },
+    {
+      "path": "docs/audits/mobile-phase-g-fe/evidence/typecheck.txt",
+      "original_sha256": "2693c8e648be5709ddaece29b0be80ba9acabc372bc9f9f1474954e4c81d3807",
+      "published_sha256": "719d1dde2113c3c9879501676e3bf45706adaad603675c0eaf0d07ec5f5e8a67"
+    }
+  ]
+}
