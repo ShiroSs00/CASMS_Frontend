@@ -37,7 +37,7 @@ export function ActivityCatalogEditor({ initial }: { initial?: ActivityCatalogEn
     const capacity = Number(draft.capacity), price = draft.price === '' ? null : Number(draft.price)
     const invalid: Record<string, string> = {}
     if (!draft.activityName.trim()) invalid.activityName = 'Nhập tên hoạt động.'
-    if (!Number.isSafeInteger(capacity) || capacity < 1 || capacity > 2147483647) invalid.capacity = 'Nhập sức chứa là số nguyên dương, tối đa 2.147.483.647.'
+    if (!Number.isSafeInteger(capacity) || capacity < 1 || capacity > 2147483647) invalid.capacity = 'Nhập sức chứa là số nguyên dương hợp lệ.'
     if (price != null && (!Number.isFinite(price) || price < 0)) invalid.price = 'Nhập giá là số không âm.'
     const currency = draft.currencyCode
     if (!isActivityCurrency(currency)) invalid.currencyCode = 'Chọn VND hoặc USD.'

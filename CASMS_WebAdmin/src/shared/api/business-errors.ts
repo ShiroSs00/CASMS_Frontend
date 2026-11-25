@@ -1,6 +1,7 @@
 import {businessCopy} from '@/shared/i18n/business-copy'
 const messages:Readonly<Record<string,string>>={
   PROGRAM_HANDOFF_READ_ONLY:'Chương trình chỉ cho phép xem. Bạn cần được giao việc và đang xử lý để chỉnh sửa. Nếu đã bàn giao, liên hệ Quản lý lịch trình để yêu cầu bổ sung, rồi nhận lại việc.',
+  PASSENGER_IDENTITY_MISMATCH:'Thông tin định danh (họ tên, ngày sinh hoặc số giấy tờ) không khớp với hồ sơ hành khách đã lưu. Để trống ngày sinh/giấy tờ nếu dùng lại hồ sơ cũ, hoặc xác minh cập nhật hồ sơ trước khi tạo đặt chỗ.',
   CRUISE_NOT_SALE_READY:'Chuyến khởi hành chưa đủ điều kiện mở bán. Kiểm tra lại các điều kiện với phạm vi gói đang chọn.',
   BUSINESS_POLICY_REQUIRED:'Chưa có đầy đủ chính sách giao dịch hợp lệ. Chưa thể phát hành báo giá, giữ chỗ hoặc xác nhận giao dịch mới.',
   BOOKING_HOLD_POLICY_REQUIRED:'Chưa có cấu hình thời hạn giữ chỗ được ban hành. Chức năng cấu hình chính sách này chưa được hỗ trợ; không dùng thời hạn mặc định.',

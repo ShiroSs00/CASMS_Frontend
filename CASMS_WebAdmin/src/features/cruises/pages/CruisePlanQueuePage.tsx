@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useMemo, useState, type KeyboardEvent } from 'react'
+import { useSearchParams } from 'react-router'
 import { apiRequest, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { domainStatus } from '@/shared/i18n/business-copy'
@@ -138,10 +139,35 @@ export function CruisePlanQueuePage() {
     useCallback(signal => (canSetFees ? saleTermsApi.setupRequests(signal) : Promise.resolve(null)), [canSetFees]),
   )
 
-  const [manualMode, setManualMode] = useState<QueueMode | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialModeParam = searchParams.get('mode')
+  const initialFilterParam = searchParams.get('filter')
+  const [manualMode, setManualMode] = useState<QueueMode | null>(
+    initialModeParam === 'tour-dossiers' || initialModeParam === 'section-groups' || initialModeParam === 'port-fees'
+      ? initialModeParam
+      : null,
+  )
   const [selected, setSelected] = useState<SaleTermsSetup | null>(null)
   const [saved, setSaved] = useState('')
-  const [filter, setFilter] = useState<FilterKey>('pending')
+  const [filter, setFilter] = useState<FilterKey>(
+    initialFilterParam === 'pending' || initialFilterParam === 'reviewed' || initialFilterParam === 'returned'
+      ? initialFilterParam
+      : 'pending',
+  )
+  const selectMode = (next: QueueMode) => {
+    setManualMode(next)
+    const q = new URLSearchParams(searchParams)
+    q.set('mode', next)
+    setSearchParams(q, { replace: true })
+  }
+  const selectFilter = (next: FilterKey) => {
+    setFilter(next)
+    setPage(1)
+    const q = new URLSearchParams(searchParams)
+    q.set('mode', 'tour-dossiers')
+    q.set('filter', next)
+    setSearchParams(q, { replace: true })
+  }
   const [shipFilter, setShipFilter] = useState('ALL')
   const [groupByShip, setGroupByShip] = useState(false)
   const [search, setSearch] = useState('')
@@ -292,6 +318,7 @@ export function CruisePlanQueuePage() {
     if (nextIndex < 0) return
     event.preventDefault()
     setManualMode(queueTabs[nextIndex].id)
+    selectMode(queueTabs[nextIndex].id)
     const list = event.currentTarget.closest('[role="tablist"]')
     list?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[nextIndex]?.focus()
   }
@@ -395,7 +422,7 @@ export function CruisePlanQueuePage() {
                     className={styles.opsQueueTabBtn}
                     aria-selected={active}
                     tabIndex={active ? 0 : -1}
-                    onClick={() => setManualMode(tab.id)}
+                    onClick={() => selectMode(tab.id)}
                     onKeyDown={event => handleModeTabKeys(event, index)}
                   >
                     <QueueStepIcon kind={tab.icon} />
@@ -440,15 +467,9 @@ export function CruisePlanQueuePage() {
                           className={styles.queueTab}
                           aria-selected={active}
                           tabIndex={active ? 0 : -1}
-                          onClick={() => {
-                            setFilter(key)
-                            setPage(1)
-                          }}
+                          onClick={() => selectFilter(key)}
                           onKeyDown={event =>
-                            handleTabKeys(event, index, nextKey => {
-                              setFilter(nextKey)
-                              setPage(1)
-                            })
+                            handleTabKeys(event, index, nextKey => selectFilter(nextKey))
                           }
                         >
                           <QueueStepIcon

@@ -59,7 +59,7 @@
 .close { background:transparent; color:white; border-color:#7895A3; border-radius:var(--radius-control); }
 .close:hover:not(:disabled) { background:#ffffff18; }
 .close:focus-visible { outline-color:var(--brand-gold); }
-.body { padding:28px; }
+.body { padding:24px 28px 36px; }
 .footer { background:#EEF3F0; padding:20px 28px; }
 @media(max-width:600px) { .header,.body { padding:24px 20px; } .footer { padding:20px; } }
 

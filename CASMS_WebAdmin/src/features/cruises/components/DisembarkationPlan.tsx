@@ -54,8 +54,16 @@ export function DisembarkationPlan({ cruiseId }: { cruiseId: string }) {
 function PlanForm({ plan, path, onSaved }: { plan: Plan; path: string; onSaved: () => void }) {
   const zone = validTimeZone(plan.timeZone) ? plan.timeZone : null
   const id = useId()
-  const [start, setStart] = useState(plan.startsAt && zone ? zonedInput(plan.startsAt, zone).slice(0, 16) : '')
-  const [minutes, setMinutes] = useState(plan.durationMinutes?.toString() ?? '')
+  const arrival = Date.parse(plan.arrival)
+  const endLimit = Date.parse(plan.scheduledEnd)
+  const arrivalWall = zone && Number.isFinite(arrival) ? zonedInput(plan.arrival, zone).slice(0, 16) : ''
+  const endLimitWall = zone && Number.isFinite(endLimit) ? zonedInput(plan.scheduledEnd, zone).slice(0, 16) : ''
+  const availableMinutes = Number.isFinite(arrival) && Number.isFinite(endLimit) && endLimit > arrival
+    ? Math.floor((endLimit - arrival) / 60_000)
+    : 0
+  const suggestedMinutes = availableMinutes > 0 ? Math.min(60, availableMinutes) : ''
+  const [start, setStart] = useState(plan.startsAt && zone ? zonedInput(plan.startsAt, zone).slice(0, 16) : arrivalWall)
+  const [minutes, setMinutes] = useState(plan.durationMinutes?.toString() ?? (suggestedMinutes ? String(suggestedMinutes) : ''))
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const lock = useRef(false)
@@ -68,8 +76,6 @@ function PlanForm({ plan, path, onSaved }: { plan: Plan; path: string; onSaved: 
       fieldError = cause instanceof Error ? cause.message : 'Kiểm tra lại ngày giờ.'
     }
   }
-  const arrival = Date.parse(plan.arrival)
-  const endLimit = Date.parse(plan.scheduledEnd)
   const duration = Number(minutes)
   const finish = Date.parse(startsAt) + duration * 60_000
   const valid =
@@ -129,6 +135,7 @@ function PlanForm({ plan, path, onSaved }: { plan: Plan; path: string; onSaved: 
       {plan.canEdit && !zone && <p>Cập nhật múi giờ của cảng trước khi lập khung trả khách.</p>}
       {plan.canEdit && zone && (
         <form
+          noValidate
           onSubmit={async event => {
             event.preventDefault()
             if (!valid || !changed || lock.current) return
@@ -156,21 +163,25 @@ function PlanForm({ plan, path, onSaved }: { plan: Plan; path: string; onSaved: 
           }}
         >
           <div className={styles.fieldGrid}>
-            <Field htmlFor={id + '-start'} label="Bắt đầu trả khách" hint="Theo giờ địa phương của cảng." error={fieldError}>
+            <Field htmlFor={id + '-start'} label="Bắt đầu trả khách *" hint="Mặc định lấy theo giờ tàu cập cảng (giờ địa phương cảng)." error={fieldError}>
               <input
                 id={id + '-start'}
                 type="datetime-local"
+                step={60}
+                min={arrivalWall || undefined}
+                max={endLimitWall || undefined}
                 value={start}
                 required
                 disabled={busy}
                 onChange={event => setStart(event.target.value)}
               />
             </Field>
-            <Field htmlFor={id + '-minutes'} label="Thời lượng dự kiến (phút)">
+            <Field htmlFor={id + '-minutes'} label="Thời lượng dự kiến (phút) *" hint={availableMinutes > 0 ? `Tối đa ${availableMinutes} phút trong khung lịch cảng.` : undefined}>
               <input
                 id={id + '-minutes'}
                 type="number"
                 min="1"
+                max={availableMinutes > 0 ? availableMinutes : undefined}
                 step="1"
                 value={minutes}
                 required

@@ -78,7 +78,11 @@ export function ActivityListPage() {
       <PageHeader
         breadcrumb="QUẢN LÝ HOẠT ĐỘNG VÀ DỊCH VỤ"
         title="Hoạt động trên tàu"
-        description="Tạo mẫu hoạt động một lần trong Kho hoạt động mẫu, sau đó chọn mẫu để xếp ngày giờ & khu vực cụ thể cho từng chuyến khởi hành."
+        description={
+          canCreate
+            ? 'Tạo mẫu hoạt động một lần trong Kho hoạt động mẫu, sau đó chọn mẫu để xếp ngày giờ & khu vực cụ thể cho từng chuyến khởi hành.'
+            : 'Theo dõi danh mục hoạt động mẫu và lịch các buổi hoạt động đã xếp trên từng chuyến khởi hành.'
+        }
         actions={
           <>
             <ButtonLink tone="secondary" to="/admin/activity-registrations">
@@ -205,7 +209,11 @@ export function ActivityListPage() {
               <div className={styles.modeBannerText}>
                 <strong>Lịch hoạt động theo chuyến khác gì Kho mẫu?</strong>
                 <span>
-                  Đây là các buổi hoạt động đã được xếp ngày giờ và khu vực cụ thể trên từng chuyến khởi hành. Để thêm buổi mới, bấm <strong>+ Xếp lịch hoạt động cho chuyến</strong> và chọn chuyến cần cấu hình.
+                  {canCreate ? (
+                    <>Đây là các buổi hoạt động đã được xếp ngày giờ và khu vực cụ thể trên từng chuyến khởi hành. Để thêm buổi mới, bấm <strong>+ Xếp lịch hoạt động cho chuyến</strong> và chọn chuyến cần cấu hình.</>
+                  ) : (
+                    'Đây là các buổi hoạt động đã được xếp ngày giờ và khu vực cụ thể trên từng chuyến khởi hành để theo dõi và điểm danh hành khách.'
+                  )}
                 </span>
               </div>
               {canCreate && (

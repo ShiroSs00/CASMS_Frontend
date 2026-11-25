@@ -173,7 +173,7 @@ function PaymentLedgerContent({
   return (
     <Panel
       title="Thu tiền & lịch sử giao dịch"
-      subtitle="Hiển thị đầy đủ khoản thu tiền mặt, sandbox và VietQR (SePay). Nút Xác nhận đã thu chỉ áp dụng cho khoản chờ của luồng thu thủ công."
+      subtitle="Hiển thị đầy đủ khoản thu tiền mặt, chuyển khoản VietQR (SePay) và các giao dịch thanh toán. Nút Xác nhận đã thu chỉ áp dụng cho khoản chờ của luồng thu thủ công."
     >
       {frozen && (
         <Notice title="Cần đối chiếu khoản thu trước khi tiếp tục" tone="warning">
@@ -207,7 +207,7 @@ function PaymentLedgerContent({
             </span>
             {bookingTotalPaid != null && ['USD', 'VND'].includes(currency) ? (
               <span>
-                Đã thu ròng (máy chủ): <strong>{bookingMoney(bookingTotalPaid, currency)}</strong>
+                Tổng đã thu: <strong>{bookingMoney(bookingTotalPaid, currency)}</strong>
               </span>
             ) : (
               currencyEntries.map(([curr, total]) => (
@@ -317,7 +317,11 @@ function PaymentLedgerContent({
         </Notice>
       )}
 
-      {canWrite && ['USD', 'VND'].includes(currency) && (
+      {canWrite && ['USD', 'VND'].includes(currency) && (bookingOutstanding != null && bookingOutstanding <= 0 && !intent.record ? (
+        <Notice title="Đặt chỗ đã thanh toán đủ" tone="success">
+          Số tiền còn phải thu là {bookingMoney(0, currency)}. Không cần tạo thêm giao dịch thu tiền thủ công.
+        </Notice>
+      ) : (
         <div className={styles.financeFormSection}>
           <h3 className={styles.financeSubheading}>Ghi nhận giao dịch thu thủ công</h3>
           <form onSubmit={create} className={styles.financePaymentForm}>
@@ -343,7 +347,7 @@ function PaymentLedgerContent({
                   onChange={event => setMethod(event.target.value)}
                 >
                   <option value="Cash">Tiền mặt tại quầy</option>
-                  <option value="GatewaySandbox">Cổng thanh toán mô phỏng (Sandbox)</option>
+                  <option value="GatewaySandbox">Cổng thanh toán thử nghiệm</option>
                 </select>
               </Field>
             </div>
@@ -354,7 +358,7 @@ function PaymentLedgerContent({
             </div>
           </form>
         </div>
-      )}
+      ))}
 
       <p className={styles.helper}>
         Giao dịch VietQR được hệ thống ghi nhận tự động khi tiền vào khớp chính xác lệnh thu; mọi khoản sai lệch được

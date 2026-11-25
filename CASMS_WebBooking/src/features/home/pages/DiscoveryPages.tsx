@@ -52,7 +52,7 @@ function DiscoveryHeading({ kind }: { kind: keyof typeof discoveryCopy }) {
         <Link className={styles.action} to={copy.target}>{copy.action} <span aria-hidden="true">↗</span></Link>
       )}
     </div>
-    <figure><img src={photo.image} alt={photo.alt} width="1600" height="1000" fetchPriority="high" style={{ objectPosition: photo.position }} /><figcaption>Ảnh cảm hứng · {photo.location} · {photo.country}</figcaption></figure>
+    <figure><img src={photo.image} alt={photo.alt} width="1600" height="1000" fetchPriority="high" style={{ objectPosition: photo.position }} /><figcaption>Ảnh cảm hứng · {photo.location === photo.country ? photo.location : `${photo.location} · ${photo.country}`}</figcaption></figure>
   </header>
 }
 
@@ -84,16 +84,16 @@ export function DealsPage() {
       </section>
       <section className={styles.tripChoices} aria-label="Khám phá theo loại hành trình ưu đãi">
         <Link to="/cruises?cruiseType=ONE_DAY">
-          <span>01 · ƯU ĐÃI CHUYẾN NGẮN NGÀY</span>
-          <h2>Đổi gió cuối tuần (1–2 ngày)</h2>
-          <p>Hành trình nghỉ dưỡng ngắn ngày linh hoạt với dịch vụ phòng và ẩm thực trọn gói.</p>
-          <strong>Xem các chuyến ngắn ngày <span aria-hidden="true">↗</span></strong>
+          <span>01 · HẢI TRÌNH TRONG NGÀY</span>
+          <h2>Trải nghiệm du thuyền trong ngày</h2>
+          <p>Hành trình nghỉ dưỡng gọn nhẹ trong ngày với ẩm thực và tiện ích trọn gói trên vịnh.</p>
+          <strong>Xem các chuyến trong ngày <span aria-hidden="true">↗</span></strong>
         </Link>
         <Link to="/cruises?cruiseType=MULTI_DAYS">
-          <span>02 · ƯU ĐÃI CHUYẾN DÀI NGÀY</span>
-          <h2>Hải trình trọn vẹn (3–5 ngày)</h2>
+          <span>02 · HẢI TRÌNH NHIỀU NGÀY</span>
+          <h2>Hải trình nghỉ dưỡng nhiều ngày</h2>
           <p>Thêm thời gian khám phá các thành phố cảng châu Á với mức giá ưu đãi đặt sớm.</p>
-          <strong>Xem các chuyến dài ngày <span aria-hidden="true">↗</span></strong>
+          <strong>Xem các chuyến nhiều ngày <span aria-hidden="true">↗</span></strong>
         </Link>
       </section>
       <FinalCta />

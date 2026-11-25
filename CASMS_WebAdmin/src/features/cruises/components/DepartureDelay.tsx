@@ -7,6 +7,16 @@ import { delayFieldErrors, type DelayPreview } from '../model/departure-delay-co
 import { useDepartureDelay } from '../model/useDepartureDelay'
 import { ReadState, ScheduleContents } from './DepartureData'
 
+const DELAY_CATEGORIES = [
+  ['WEATHER_CONDITION', 'Điều kiện thời tiết / thủy triều'],
+  ['PORT_OPERATION', 'Điều phối cảng / cầu bến'],
+  ['TECHNICAL_MAINTENANCE', 'Kiểm tra kỹ thuật / bảo trì tàu'],
+  ['CREW_OPERATIONS', 'Điều phối thủy thủ đoàn / nhân sự'],
+  ['PASSENGER_BOARDING', 'Đón khách / hoàn tất thủ tục lên tàu'],
+  ['OTHER', 'Lý do vận hành khác'],
+] as const
+const DELAY_PRESET_MINUTES = [15, 30, 60, 120] as const
+
 const reasons: Record<string, string> = {
   CRUISE_NOT_PUBLISHED: 'Chuyến chưa được phát hành.',
   ACTUAL_DEPARTURE_RECORDED: 'Chuyến đã ghi nhận giờ khởi hành thực tế.',
@@ -84,14 +94,26 @@ export function DepartureDelay({ id, userId, revision, eligible, refreshKey, onC
         <p>Yêu cầu dời {pending.request.delayMinutes} phút đã được giữ trong tab này. Kiểm tra lại yêu cầu trước khi tạo yêu cầu mới.</p>
         {canRead && <Button tone="text" disabled={busy} onClick={delay.checkHistory}>Đối soát trong lịch sử</Button>}
       </Notice> : delay.success ? <Notice title="Đã xác nhận dời giờ" tone="success">Bạn có thể đóng hộp thoại để xem lịch mới.</Notice> : <>
-        <Field htmlFor="delay-minutes" label="Số phút dời giờ" error={fieldError('delayMinutes', draft.minutes)}>
-          <input type="number" min={1} step={1} required value={draft.minutes} disabled={busy} onChange={event => delay.change('minutes', event.target.value)} />
+        <Field htmlFor="delay-minutes" label="Số phút dời giờ *" error={fieldError('delayMinutes', draft.minutes)}>
+          <input id="delay-minutes" type="number" min={1} step={1} required value={draft.minutes} disabled={busy} onChange={event => delay.change('minutes', event.target.value)} />
         </Field>
-        <Field htmlFor="delay-category" label="Mã nhóm lý do" hint="Ví dụ WEATHER_CONDITION hoặc PORT_OPERATION." error={fieldError('category', draft.category)}>
-          <input required maxLength={50} value={draft.category} disabled={busy} onChange={event => delay.change('category', event.target.value)} />
+        <div style={{display:'flex',flexWrap:'wrap',gap:'8px',marginBottom:'12px'}} role="group" aria-label="Chọn nhanh số phút dời">
+          {DELAY_PRESET_MINUTES.map(min => (
+            <Button key={min} type="button" tone={draft.minutes === String(min) ? 'primary' : 'secondary'} size="compact" autoWidth disabled={busy} onClick={() => delay.change('minutes', String(min))}>
+              +{min} phút
+            </Button>
+          ))}
+        </div>
+        <Field htmlFor="delay-category" label="Nhóm lý do *" error={fieldError('category', draft.category)}>
+          <select id="delay-category" required value={draft.category} disabled={busy} onChange={event => delay.change('category', event.target.value)}>
+            <option value="">Chọn nhóm lý do dời giờ</option>
+            {DELAY_CATEGORIES.map(([code, label]) => (
+              <option key={code} value={code}>{label}</option>
+            ))}
+          </select>
         </Field>
-        <Field htmlFor="delay-reason" label="Lý do dời giờ" error={fieldError('reason', draft.reason)}>
-          <textarea required rows={3} maxLength={1000} value={draft.reason} disabled={busy} onChange={event => delay.change('reason', event.target.value)} />
+        <Field htmlFor="delay-reason" label="Lý do chi tiết *" error={fieldError('reason', draft.reason)}>
+          <textarea id="delay-reason" required rows={3} maxLength={1000} placeholder="Mô tả ngắn lý do dời giờ để lưu lịch sử và thông báo nội bộ…" value={draft.reason} disabled={busy} onChange={event => delay.change('reason', event.target.value)} />
         </Field>
         {preview && <>
           {stale ? <Notice title="Bản xem trước đã hết hiệu lực" tone="warning">Xem trước lại nếu chuyến vẫn còn đủ điều kiện dời giờ.</Notice>

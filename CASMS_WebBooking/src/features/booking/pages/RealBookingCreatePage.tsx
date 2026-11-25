@@ -237,6 +237,7 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
     void runAutoQuote(draft)
   }
 
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   async function next(event: FormEvent) {
     event.preventDefault()
     if (locked || submissionLockRef.current) return
@@ -246,6 +247,10 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
     if (step < 4) {
       if (step === 1) setPartyConfirmed(true)
       navigate(path(step + 1)); return
+    }
+    if (!acceptedTerms) {
+      setError('Vui lòng xác nhận đã kiểm tra thông tin hành khách và đồng ý điều kiện đặt chỗ trước khi gửi.')
+      return
     }
     if (usable) { await submit(); return }
     await runAutoQuote(draft)
@@ -455,20 +460,31 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
           </div></Panel>
         </>}
         {step === 4 && (
-          <BookingReviewStep
-            draft={draft}
-            cruise={selected}
-            cabins={cabins.data}
-            fares={fares.data}
-            packages={packages.data}
-            intent={quoteIntent}
-            usable={usable}
-            quoteLoading={quoteLoading}
-            quoteError={quoteError}
-            onSelectPlan={handleSelectPlanOnReview}
-            onRefreshQuote={handleRefreshQuote}
-            path={path}
-          />
+          <>
+            <BookingReviewStep
+              draft={draft}
+              cruise={selected}
+              cabins={cabins.data}
+              fares={fares.data}
+              packages={packages.data}
+              intent={quoteIntent}
+              usable={usable}
+              quoteLoading={quoteLoading}
+              quoteError={quoteError}
+              onSelectPlan={handleSelectPlanOnReview}
+              onRefreshQuote={handleRefreshQuote}
+              path={path}
+            />
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px 16px', background: 'var(--ui-surface, #fff)', border: '1px solid var(--ui-border, #d5e0e4)', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', lineHeight: 1.55 }}>
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={e => { setAcceptedTerms(e.target.checked); if (e.target.checked) setError('') }}
+                style={{ marginTop: '2px' }}
+              />
+              <span>Tôi xác nhận thông tin hành khách là chính xác và đồng ý với điều kiện đặt chỗ, lịch thanh toán và chính sách hợp đồng của OceVie Cruises.</span>
+            </label>
+          </>
         )}
         {readError && step > 2 && <><BookingReadState {...cabins} publicResource="phòng trống" /><BookingReadState {...fares} publicResource="gói du thuyền" /></>}
         <div className={flow.actions}>
@@ -476,7 +492,7 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
           <Button
             type="submit"
             busy={busy || quoteLoading}
-            disabled={locked || choicesLoading || Boolean(readError) || (step === 4 && (quoteLoading || !usable))}
+            disabled={locked || choicesLoading || Boolean(readError) || (step === 4 && (quoteLoading || !usable || !acceptedTerms))}
           >
             {step === 1
               ? 'Tiếp tục chọn gói & cabin'

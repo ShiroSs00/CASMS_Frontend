@@ -6,7 +6,7 @@ import { useLocation, useParams, useSearchParams } from 'react-router'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
 import { ApiError } from '@/shared/api'
-import { Badge, Button, Empty, Loading, Notice } from '@/shared/ui'
+import { Badge, Button, ButtonLink, Empty, Loading, Notice } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { useFleetQuery } from '../hooks/useFleetQuery'
@@ -72,6 +72,7 @@ function ShipManagementContent({ id }: { id: string }) {
       <div className={styles.detailToolbar}>
         <Link className={styles.backToFleet} to={back}><span aria-hidden="true">←</span> {backToDesign && ship.shipTypeId ? 'Chi tiết loại tàu' : backToDesign ? 'Thiết lập định vị' : 'Danh sách tàu'}</Link>
         <div className={styles.shipActions}>
+          {access.canDo('SHIP_REGULATION_READ') && <ButtonLink tone="secondary" to={`/admin/ships/${id}/regulations`}>Quy định áp dụng</ButtonLink>}
           {!archived && manager && !admin && ship.status === 'DRAFT' && access.canDo('SHIP_ARCHIVE') && <ShipArchiveAction ship={ship} />}
           {!archived && access.canDo('SHIP_STATUS_CHANGE')&&<Button tone="secondary" autoWidth disabled={query.loading} onClick={()=>setDialog({type:'operation',kind:'ships',item:ship,operation:'status'})}>Cập nhật trạng thái</Button>}
           {!archived && manager && ship.shipTypeId && !access.canDo('SHIP_UPDATE') && <Button autoWidth onClick={() => setRenaming(true)}>Đổi tên tàu</Button>}

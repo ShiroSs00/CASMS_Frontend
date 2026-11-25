@@ -20,7 +20,8 @@ export function validateCatalogDraft(kind: CatalogKind, draft: CatalogDraft): Re
   if (!draft.type.trim() || (kind === 'packages' ? !Object.hasOwn(packageTypes, draft.type) : draft.type.trim().length > 50)) errors.type = 'Chọn hoặc nhập loại hợp lệ, tối đa 50 ký tự.'
   if (draft.description.length > 1000) errors.description = 'Mô tả tối đa 1000 ký tự.'
   if ((kind !== 'services' && !draft.price.trim()) || (draft.price.trim() && (!Number.isFinite(Number(draft.price)) || Number(draft.price) < 0))) errors.price = 'Giá phải là số không âm.'
-  if (draft.currency.trim() && !/^[A-Z]{3}$/.test(draft.currency.trim())) errors.currency = 'Mã tiền tệ gồm 3 chữ cái in hoa.'
+  else if (draft.price.trim() && Number(draft.price) > 999999999999) errors.price = 'Giá vượt quá giới hạn cho phép.'
+  if (draft.currency.trim() && !['VND', 'USD'].includes(draft.currency.trim().toUpperCase())) errors.currency = 'Chỉ hỗ trợ đơn vị tiền tệ VND hoặc USD.'
   if (kind === 'services' && draft.capacity.trim() && (!Number.isSafeInteger(Number(draft.capacity)) || Number(draft.capacity) < 1 || Number(draft.capacity) > 2147483647)) errors.capacity = 'Sức chứa là số nguyên lớn hơn 0.'
   if (kind === 'packages') {
     for (const field of ['startDate', 'endDate'] as const) if (draft[field] && (!/^\d{4}-\d{2}-\d{2}$/.test(draft[field]) || !Number.isFinite(Date.parse(draft[field])) || new Date(draft[field]).toISOString().slice(0, 10) !== draft[field])) errors[field] = 'Chọn ngày hợp lệ.'

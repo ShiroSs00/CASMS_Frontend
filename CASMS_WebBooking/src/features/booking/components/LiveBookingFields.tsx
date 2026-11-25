@@ -65,27 +65,34 @@ export function PassengerDetailsFields({
   ] as const
   return <div className={styles.stack}>{draft.passengers.map((person, index) => <Panel className={styles.passengerCard} key={personIds[index] ?? index} title={`Hành khách ${index + 1}${index === 0 ? ' · Người đại diện' : ''}`}>
     {index === 0 && canSwitchLeadProfile && onSelectLeadMode && (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '4px' }} role="group" aria-label="Nguồn thông tin hành khách 1">
-        <Button
-          type="button"
-          size="compact"
-          autoWidth
-          tone={usingOwnProfile ? 'primary' : 'secondary'}
-          aria-pressed={usingOwnProfile}
-          onClick={() => onSelectLeadMode(true)}
-        >
-          Dùng hồ sơ của tôi
-        </Button>
-        <Button
-          type="button"
-          size="compact"
-          autoWidth
-          tone={!usingOwnProfile ? 'primary' : 'secondary'}
-          aria-pressed={!usingOwnProfile}
-          onClick={() => onSelectLeadMode(false)}
-        >
-          Nhập hành khách khác
-        </Button>
+      <div style={{ display: 'grid', gap: '6px', marginBottom: '4px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }} role="group" aria-label="Nguồn thông tin hành khách 1">
+          <Button
+            type="button"
+            size="compact"
+            autoWidth
+            tone={usingOwnProfile ? 'primary' : 'secondary'}
+            aria-pressed={usingOwnProfile}
+            onClick={() => onSelectLeadMode(true)}
+          >
+            Dùng hồ sơ của tôi
+          </Button>
+          <Button
+            type="button"
+            size="compact"
+            autoWidth
+            tone={!usingOwnProfile ? 'primary' : 'secondary'}
+            aria-pressed={!usingOwnProfile}
+            onClick={() => onSelectLeadMode(false)}
+          >
+            Nhập hành khách khác
+          </Button>
+        </div>
+        <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>
+          {usingOwnProfile
+            ? 'Đang dùng hồ sơ đã lưu của tài khoản — có thể để trống ngày sinh/giấy tờ nếu không đổi; nếu cần sửa giấy tờ định danh, vui lòng cập nhật hồ sơ trước khi đặt.'
+            : 'Đang nhập thông tin cho người đại diện khác. Nếu hành khách đã từng đặt chuyến, giữ đúng họ tên và để trống trường tùy chọn để tránh lệch hồ sơ.'}
+        </p>
       </div>
     )}
     <div className={styles.fields}>{fields.map(([key, label, type, maxLength]) => {

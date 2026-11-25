@@ -1,5 +1,5 @@
 
-.shell { --surface-brand:var(--brand-navy); --surface-default:#fff; --surface-subtle:#F3F5F4; --text-primary:var(--brand-navy); --text-inverse:var(--brand-pearl); --action-secondary:var(--brand-teal); --status-success:#167347; --status-success-bg:#EAF6EF; --status-warning:#995700; --status-warning-bg:#FFF4DD; --status-danger:#B42318; --status-danger-bg:#FFF0EF; --font-body:var(--font-family-body); --font-heading:var(--font-family-heading); display:grid; grid-template-columns:248px minmax(0,1fr); grid-template-rows:80px 1fr; min-height:100dvh; background:#F3F5F4; color:var(--text-primary); font:400 14px/1.6 var(--font-body); }
+.shell { --surface-brand:var(--brand-navy); --surface-default:#fff; --surface-subtle:#F3F5F4; --text-primary:var(--brand-navy); --text-inverse:var(--brand-pearl); --action-secondary:var(--brand-teal); --status-success:#167347; --status-success-bg:#EAF6EF; --status-warning:#995700; --status-warning-bg:#FFF4DD; --status-danger:#B42318; --status-danger-bg:#FFF0EF; --font-body:var(--font-family-body); --font-heading:var(--font-family-heading); display:grid; grid-template-columns:236px minmax(0,1fr); grid-template-rows:80px 1fr; min-height:100dvh; background:#F3F5F4; color:var(--text-primary); font:400 14px/1.6 var(--font-body); }
 .masthead { grid-column:1/-1; position:sticky; top:0; z-index:30; display:flex; align-items:center; gap:32px; padding:14px 32px; background:var(--brand-midnight); color:var(--brand-pearl); border-bottom:2px solid var(--brand-gold); }
 .brand { display:inline-flex; flex:0 0 184px; align-items:center; min-height:44px; }
 .brand img { width:170px; }
@@ -45,7 +45,7 @@
 .sidebarFooter { display:grid; gap:4px; margin-top:auto; padding:28px 12px 0; color:var(--text-secondary); font-size:12px; }
 .sidebarFooter span:last-child { font-size:10px; }
 .mainColumn { display:flex; flex-direction:column; min-width:0; }
-.main { flex:1; min-width:0; width:100%; max-width:1640px; margin-inline:auto; padding:40px 44px 64px; }
+.main { flex:1; min-width:0; width:100%; max-width:1640px; margin-inline:auto; padding:28px 32px 56px; }
 .skipLink { position:fixed; top:8px; left:8px; z-index:100; transform:translateY(-180%); padding:12px; background:white; color:var(--brand-navy); }
 .skipLink:focus { transform:none; }
 .mobileBar { display:none; }

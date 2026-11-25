@@ -31,14 +31,45 @@ const explicitMessages:Readonly<Record<string,string>>={
  BOOKING_WINDOW_NOT_OPEN:'Chưa đến thời gian mở nhận đặt chỗ theo kế hoạch.',
  SALE_TAX_APPROVAL_REQUIRED:'Thuế trong hồ sơ chưa được phê duyệt.',
  SALE_PORT_FEE_APPROVAL_REQUIRED:'Phí cảng trong hồ sơ chưa được phê duyệt.',
+ PREPARATION_CONFIRMATION_REQUIRED:'Cần Quản lý vận hành xác nhận đủ 4 nhóm hồ sơ chuẩn bị trước xuất bến.',
+ PREPARATION_SECTIONS_NOT_CONFIRMED:'Còn nhóm hồ sơ chuẩn bị chưa được Quản lý vận hành xác nhận.',
+ GUIDANCE_PUBLICATION_REQUIRED:'Chưa công bố buổi hướng dẫn an toàn trước chuyến.',
+ GUIDANCE_SESSION_NOT_PUBLISHED:'Chưa công bố buổi hướng dẫn an toàn trước chuyến.',
+ STAFFING_NOT_APPROVED:'Phương án tàu và nhân sự chưa được Quản lý vận hành phê duyệt.',
+ STAFFING_PLAN_NOT_APPROVED:'Phương án tàu và nhân sự chưa được Quản lý vận hành phê duyệt.',
+ MANIFEST_NOT_LOCKED:'Danh sách hành khách chưa được khóa trước giờ xuất bến.',
+ DISEMBARKATION_PLAN_REQUIRED:'Chưa thiết lập khung giờ trả khách tại cảng cuối.',
+ OPERATIONAL_ISSUES_OPEN:'Còn sự cố vận hành đang mở cần xử lý trước khi xuất bến.',
+ UNRESOLVED_OPERATIONAL_ISSUES:'Còn sự cố vận hành chưa được xử lý.',
+ DEPARTURE_WINDOW_NOT_OPEN:'Chưa đến khung giờ cho phép xác nhận xuất bến (trong vòng 2 giờ trước khởi hành).',
+}
+
+const rawSectionReplacements: ReadonlyArray<[RegExp, string]> = [
+ [/\bTECHNICAL_NAUTICAL\b/g, 'Kỹ thuật & hàng hải'],
+ [/\bHOTEL_CABIN\b/g, 'Khách sạn & cabin'],
+ [/\bSAFETY_CREW\b/g, 'An toàn & thủy thủ đoàn'],
+ [/\bENTERTAINMENT_SHORE\b/g, 'Giải trí & tour bờ'],
+ [/\bNOT_STARTED\b/g, 'Chưa bắt đầu'],
+ [/\bIN_PROGRESS\b/g, 'Đang chuẩn bị'],
+ [/\bSUBMITTED\b/g, 'Đã gửi chờ xác nhận'],
+ [/\bCONFIRMED\b/g, 'Đã xác nhận'],
+ [/\bRETURNED\b/g, 'Đã trả bổ sung'],
+]
+
+export function localizeReadinessText(text: string): string {
+ let next = text.trim()
+ for (const [pattern, replacement] of rawSectionReplacements) {
+  next = next.replace(pattern, replacement)
+ }
+ return next
 }
 
 export function readinessMessage(code:string|null|undefined,message?:string|null):string {
- if(code==='GUIDANCE_ATTENDANCE_REQUIRED')return message?.trim()||'Còn hành khách chưa hoàn thành hướng dẫn an toàn. Đối chiếu điểm danh và hoàn tất buổi hướng dẫn trước xuất bến.'
+ if(code==='GUIDANCE_ATTENDANCE_REQUIRED')return message?.trim()?localizeReadinessText(message):'Còn hành khách chưa hoàn thành hướng dẫn an toàn. Đối chiếu điểm danh và hoàn tất buổi hướng dẫn trước xuất bến.'
  if(code==='MISSING_ONBOARD_STAFF'||code==='ONBOARD_STAFF_REQUIRED')return 'Chưa phân công nhân viên trên tàu cho chuyến khởi hành.'
  if(code&&explicitMessages[code])return explicitMessages[code]
  if(code&&keys[code])return businessCopy(keys[code])
- if(message&&message.trim()&&!message.includes('Exception')&&!message.includes('Error:'))return message.trim()
+ if(message&&message.trim()&&!message.includes('Exception')&&!message.includes('Error:'))return localizeReadinessText(message)
  return businessCopy('cruise.readiness.unknown')
 }
 

@@ -11,7 +11,7 @@ function formatDate(value: string) {
 export function IssueResolution({ issue }: { issue: OperationalIssue }) {
   return (
     <section className={styles.panel}>
-      <h2>Resolution</h2>
+      <h2>Kết quả xử lý</h2>
       {issue.resolution ? (
         <dl className={styles.resolutionList}>
           <div>
@@ -27,7 +27,7 @@ export function IssueResolution({ issue }: { issue: OperationalIssue }) {
           </div>
         </dl>
       ) : (
-        <p>Chưa có resolution được ghi nhận.</p>
+        <p>Chưa ghi nhận kết quả xử lý.</p>
       )}
     </section>
   )

@@ -1,12 +1,12 @@
 import type { Placement, PlacementBlocker, ReviewDetails, StaffingAction, StaffingRequest } from './staffing-api'
 
 export const placementGuidance: Record<PlacementBlocker, string> = {
-  SERVICE_INACTIVE: 'Quản lý danh mục cần kiểm tra trạng thái hoạt động của dịch vụ.',
-  SHIP_MODEL_REQUIRED: 'Quản lý tàu cần hoàn tất mô hình tàu sẵn sàng sử dụng.',
-  DECK_SERVICE_REQUIRED: 'Quản lý tàu cần gán dịch vụ cho boong phù hợp.',
-  AREA_SERVICE_REQUIRED: 'Quản lý tàu cần gán dịch vụ cho khu vực phục vụ trên boong.',
-  SERVICE_AREA_POS_REQUIRED: 'Quản lý tàu cần liên kết máy POS đang hoạt động với khu vực phục vụ.',
-  SERVICE_POS_PERMISSION_REQUIRED: 'Người phụ trách cấu hình POS cần cấp quyền đọc dịch vụ cho máy tại khu vực.',
+  SERVICE_INACTIVE: 'Quản lý hoạt động và dịch vụ cần kiểm tra trạng thái hoạt động của dịch vụ.',
+  SHIP_MODEL_REQUIRED: 'Quản trị hệ thống cần nhập và kích hoạt mô hình 3D cho tàu trước khi lập phương án khu vực.',
+  DECK_SERVICE_REQUIRED: 'Quản lý tàu hoặc Quản trị hệ thống cần gán dịch vụ cho boong phù hợp trong hồ sơ tàu.',
+  AREA_SERVICE_REQUIRED: 'Quản trị hệ thống cần gắn dịch vụ vào khu vực phục vụ trong mô hình 3D của tàu.',
+  SERVICE_AREA_POS_REQUIRED: 'Quản trị hệ thống cần đăng ký và liên kết máy POS đang hoạt động cho khu vực phục vụ.',
+  SERVICE_POS_PERMISSION_REQUIRED: 'Quản trị hệ thống cần cấp quyền đọc/phục vụ dịch vụ cho máy POS tại khu vực.',
   ACTIVE_AREA_POS_SELECTION_REQUIRED: 'Quản lý tàu cần mở khu vực và chọn đúng máy POS đã cấu hình cho dịch vụ.',
 }
 

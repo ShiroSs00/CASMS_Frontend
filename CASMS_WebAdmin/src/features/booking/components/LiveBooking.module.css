@@ -203,10 +203,14 @@
 @media(max-width: 680px) { .financePaymentFields { grid-template-columns: minmax(0, 1fr); } }
 
 .financeRateBanner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border: 1px solid #d6e0df; border-radius: 8px; background: #f5f8f7; }
+.financeRateActions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .financeRateValue { margin: 0; font-size: 18px; font-weight: 600; color: var(--brand-navy); font-variant-numeric: tabular-nums; }
 .financeRateMeta { margin: 4px 0 0; font-size: 13px; color: var(--text-secondary); }
 .financeRateForm { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
 @media(max-width: 900px) { .financeRateForm { grid-template-columns: minmax(0, 1fr); } }
+.financeRateOverride { border: 1px solid #d6e0df; border-radius: 8px; padding: 12px 16px; background: #fbfdfc; }
+.financeRateOverride summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--brand-navy); }
+.financeRateOverride[open] summary { margin-bottom: 14px; }
 
 .financeReportForm { display: grid; grid-template-columns: repeat(2, minmax(180px, 240px)) auto; gap: 16px; align-items: end; }
 @media(max-width: 860px) { .financeReportForm { grid-template-columns: minmax(0, 1fr); align-items: stretch; } }

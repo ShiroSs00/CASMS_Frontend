@@ -32,6 +32,6 @@ export function CruisePassengerManifest({cruiseId,onSelectPassenger,refreshKey=0
       {query.data.passengers.map(p=><tr key={p.bookingPassengerId}><td>{p.fullName}</td><td>{p.bookingCode}</td><td>{bookingLabels[p.bookingStatus]??'Trạng thái chưa được hỗ trợ'}</td><td>{!p.cabinNumber||p.cabinNumber==='UNASSIGNED'?'Chưa phân Cabin':p.cabinNumber==='ASSIGNED'?'Đã phân Cabin · chưa có số':p.cabinNumber}</td><td>{!p.deckName||['N/A','MAIN'].includes(p.deckName)?'Chưa có thông tin boong':p.deckName}</td><td>{p.checkinStatus?checkinLabels[p.checkinStatus]??'Trạng thái chưa được hỗ trợ':'Chưa có trạng thái'}</td>{onSelectPassenger&&<td><Button tone="secondary" onClick={()=>onSelectPassenger(p)}>Xem thủ tục</Button></td>}</tr>)}
     </DataTable>:<Empty title="Chưa có hành khách trong chuyến"/>}</>}
     <Button tone="secondary" disabled={query.loading} onClick={query.retry}>Tải lại danh sách</Button>
-    <p>Check-in, sẵn sàng lên tàu và đã lên tàu là các bước riêng. API manifest hiện chưa trả trạng thái boarding của từng hành khách.</p>
+    <p>Check-in, sẵn sàng lên tàu và xác nhận lên tàu được theo dõi theo từng bước trong hồ sơ thủ tục hành khách.</p>
   </Panel>
 }

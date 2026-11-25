@@ -645,7 +645,7 @@ function ReconciliationDetailModal({
                       <span>{bookingWhen(entry.createdAt)}</span>
                     </div>
                     <p className={styles.helper}>
-                      Người thực hiện: {entry.actorUsername ?? 'Hệ thống'}
+                      Người thực hiện: {entry.actorUsername === 'SYSTEM_SEPAY_WEBHOOK' ? 'Hệ thống tự động (SePay)' : entry.actorUsername ?? 'Hệ thống'}
                       {entry.evidenceReference ? ` · Chứng từ: ${entry.evidenceReference}` : ''}
                     </p>
                     {entry.reason && <p>{entry.reason.replace(/^\[[A-Z0-9_]+\]\s*/, '')}</p>}

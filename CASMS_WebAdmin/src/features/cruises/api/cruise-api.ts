@@ -223,6 +223,26 @@ export const cruiseApi = {
       const result = ships[shipIds.indexOf(item.cruise.shipId ?? '')]
       if (result?.status === 'fulfilled') item.ship = result.value
     }
+    const access = getSessionAccess()
+    const canReadPlans = access.roles.some(role => role === 'CRUISE_MANAGER' || role === 'OPERATIONS_MANAGER')
+    const draftItems = canReadPlans ? items.filter(item => item.cruise.status === 'DRAFT') : []
+    if (draftItems.length > 0) {
+      const plans = await Promise.allSettled(
+        draftItems.map(item =>
+          apiRequest<{ planStatus?: CruiseListItem['planStatus']; readyStatus?: CruiseListItem['readyStatus'] }>(
+            `/cruise-plans/${encodeURIComponent(item.cruise.cruiseId)}`,
+            { signal },
+          ),
+        ),
+      )
+      draftItems.forEach((item, index) => {
+        const result = plans[index]
+        if (result?.status === 'fulfilled' && result.value) {
+          item.planStatus = result.value.planStatus ?? null
+          item.readyStatus = result.value.readyStatus ?? null
+        }
+      })
+    }
     // BE has no batch readiness contract. Read it on detail, never once per list row.
     return {
       items,

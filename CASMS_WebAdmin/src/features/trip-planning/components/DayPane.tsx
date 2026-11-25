@@ -196,7 +196,7 @@ export function DayPane({
                       <small>Khung giờ khởi hành cho phép (giờ Việt Nam)</small>
                       <b>{shortTime(departureWindow.earliest)} – {shortTime(departureWindow.latest)}</b>
                     </div>
-                    <small>Giờ khởi hành cụ thể sẽ được chọn trong khung này khi tạo tour.</small>
+                    <small>Giờ khởi hành cụ thể sẽ được chọn trong khung này khi tạo chuyến khởi hành.</small>
                   </div>
                 ) : (
                   <Field

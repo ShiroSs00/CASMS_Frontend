@@ -29,7 +29,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
  const navigate=useNavigate()
  const allowed=['CRUISE_MANAGER','OPERATIONS_MANAGER','SHIP_MANAGER'].some(role=>access.roles.includes(role))&&access.has('CRUISE_READ')
  const query=usePlanQuery(cruiseId,`${epoch}:${refreshKey}`,allowed)
- const [action,setAction]=useState<MainflowAction|null>(null),[reason,setReason]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[success,setSuccess]=useState('')
+ const [action,setAction]=useState<MainflowAction|null>(null),[reason,setReason]=useState(''),[recallPackages,setRecallPackages]=useState(false),[recallSaleTerms,setRecallSaleTerms]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[success,setSuccess]=useState('')
  const [uncertain,setUncertain]=useState(false),lock=useRef(false)
  const [evidence,setEvidence]=useState('')
  const readDossier=allowed&&action==='submit'&&access.has('CRUISE_PREPARATION_READ')
@@ -67,7 +67,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
   if(action==='ready'?!(access.roles.includes('OPERATIONS_MANAGER')&&access.has('CRUISE_VALIDATE')):['submit','withdraw'].includes(action)?!crm:!ops)return
   if(action==='submit'&&!dossierValid)return
   lock.current=true;setBusy(true);setError('');setSuccess('')
-  try{const actual=await mainflowApi.action(data,action,reason,action==='submit'&&dossier.data?{preparationEvidence:evidence.trim(),pendingPreparationCodes:pendingSections.map(section=>section.sectionCode),preparationRevisions:Object.fromEntries(coordinatorSections.map(section=>[section.sectionCode,section.revision]))}:undefined);setAction(null);if(action==='submit')setEvidence('');if(action==='request-revision'&&mode==='review'){void navigate('/admin/cruise-plan-reviews');return}setSuccess(action==='submit'?'Đã gửi hồ sơ chuyến khởi hành':action==='ready'?domainStatus('cruise.ready',actual.readyStatus):domainStatus('cruise.plan',actual.planStatus));setEpoch(n=>n+1);query.retry();onChanged?.()}
+  try{const actual=await mainflowApi.action(data,action,reason,action==='submit'&&dossier.data?{preparationEvidence:evidence.trim(),pendingPreparationCodes:pendingSections.map(section=>section.sectionCode),preparationRevisions:Object.fromEntries(coordinatorSections.map(section=>[section.sectionCode,section.revision]))}:undefined,action==='request-revision'?{recallPackages,recallSaleTerms}:undefined);setAction(null);if(action==='submit')setEvidence('');if(action==='request-revision'){setRecallPackages(false);setRecallSaleTerms(false)}if(action==='request-revision'&&mode==='review'){void navigate('/admin/cruise-plan-reviews?mode=tour-dossiers&filter=returned');return}setSuccess(action==='submit'?'Đã gửi hồ sơ chuyến khởi hành':action==='ready'?domainStatus('cruise.ready',actual.readyStatus):domainStatus('cruise.plan',actual.planStatus));setEpoch(n=>n+1);query.retry();onChanged?.()}
   catch(e){setError(safeError(e));if(e instanceof ApiError&&e.status===409){setAction(null);query.retry()}if(!(e instanceof ApiError)||e.status===0||e.status>=500)setUncertain(true)}finally{lock.current=false;setBusy(false)}
  }
  const blockers = data ? uniqueConditionCodes(data.planBlockers) : []
@@ -127,7 +127,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
       section.sectionName,
       `${operationsStaffRole(section.ownerRole)} · ${preparationStatusLabels[section.status]}${section.returnReason ? ` (${section.returnReason})` : ''}`,
      ] as const)}/>
-     {pendingSections.length>0&&<Field htmlFor="departure-dossier-evidence" label={supplement?'Nội dung bổ sung hồ sơ':'Nội dung và bằng chứng chuẩn bị'}><textarea id="departure-dossier-evidence" rows={5} value={evidence} onChange={event=>setEvidence(event.target.value)} required disabled={busy||uncertain}/></Field>}
+     {pendingSections.length>0&&<Field htmlFor="departure-dossier-evidence" label={supplement?'Nội dung bổ sung hồ sơ *':'Nội dung và bằng chứng chuẩn bị *'} hint="Bắt buộc nhập tóm tắt chuẩn bị trước khi nộp hồ sơ cho Quản lý vận hành."><textarea id="departure-dossier-evidence" rows={5} value={evidence} onChange={event=>setEvidence(event.target.value)} required disabled={busy||uncertain}/></Field>}
     </>}
     <p>{data?.unifiedPackageReview?'Quản lý vận hành duyệt kế hoạch, giá các gói đã chọn và thuế/phí trong cùng hồ sơ.':'Quản lý vận hành xét duyệt kế hoạch và các điều kiện thương mại.'} Gửi hồ sơ chưa mở bán chuyến.</p>
    </>}
@@ -138,7 +138,20 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
     </Notice>
    </>}
    {action==='approve'&&<p>{data?.unifiedPackageReview?'Phê duyệt kế hoạch, các phiên bản giá gói đã chọn và thuế/phí trong bản hồ sơ này.':'Phê duyệt kế hoạch đã gửi.'} Thao tác này chưa xác nhận sẵn sàng hoặc mở bán.</p>}
-   {action==='request-revision'&&data?.planStatus==='APPROVED'&&<p>Kế hoạch sẽ mở lại cho Quản lý lịch trình chỉnh sửa và gửi duyệt lại. Xác nhận sẵn sàng trước đó sẽ mất hiệu lực; quyết định giá đã lưu vẫn được giữ riêng.</p>}
+   {action==='request-revision'&&<>
+    <p>{data?.planStatus==='APPROVED'?'Kế hoạch sẽ mở lại cho Quản lý lịch trình chỉnh sửa và gửi duyệt lại. Xác nhận sẵn sàng trước đó sẽ mất hiệu lực.':'Hồ sơ sẽ được trả về Quản lý lịch trình chỉnh sửa. Mặc định các phiên bản giá gói và thuế/phí cảng đã hợp lệ sẽ được giữ nguyên.'}</p>
+    {data?.unifiedPackageReview&&<fieldset style={{border:'1px solid var(--border-soft, #D5E0E4)',borderRadius:'8px',padding:'12px 14px',margin:'8px 0',display:'grid',gap:'8px'}}>
+     <legend style={{fontSize:'13px',fontWeight:600,padding:'0 6px'}}>Phạm vi cần lập lại (tùy chọn)</legend>
+     <label style={{display:'flex',alignItems:'center',gap:'8px',fontSize:'13px',cursor:'pointer'}}>
+      <input type="checkbox" checked={recallPackages} disabled={busy} onChange={e=>setRecallPackages(e.target.checked)}/>
+      <span>Yêu cầu Quản lý hoạt động và dịch vụ lập lại phiên bản giá gói</span>
+     </label>
+     <label style={{display:'flex',alignItems:'center',gap:'8px',fontSize:'13px',cursor:'pointer'}}>
+      <input type="checkbox" checked={recallSaleTerms} disabled={busy} onChange={e=>setRecallSaleTerms(e.target.checked)}/>
+      <span>Yêu cầu rà soát lại thuế và phí cảng</span>
+     </label>
+    </fieldset>}
+   </>}
    {error&&<Notice title="Chưa hoàn tất thao tác" tone="error">{error}</Notice>}
    {uncertain&&<Notice title="Chưa xác định kết quả"><p>Đọc lại trạng thái đã lưu trước khi gửi tiếp để tránh nộp trùng.</p><Button tone="secondary" disabled={busy} onClick={()=>void reconcile()}>Đối chiếu kết quả</Button></Notice>}
    <p>{businessCopy('cruise.plan.revision')}: {data?.revision}</p>{['reject','request-revision'].includes(action)&&<Field htmlFor="plan-reason" label={businessCopy(action==='reject'?'cruise.plan.rejectReason':'cruise.plan.revisionFeedback')}><textarea id="plan-reason" value={reason} onChange={e=>setReason(e.target.value)} required/></Field>}
@@ -244,7 +257,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
       </div>
 
       <p className={styles.sectionMeta}>
-       Ready xác nhận điều kiện mở bán. Nhân sự thực tế, xác nhận hồ sơ vận hành và hoàn thành hướng dẫn an toàn của hành khách được kiểm tra riêng tại bước Xuất bến.
+       Bước xác nhận sẵn sàng chỉ xác nhận điều kiện thương mại để mở bán. Nhân sự thực tế, xác nhận hồ sơ vận hành và hoàn thành hướng dẫn an toàn của hành khách được kiểm tra riêng tại bước Xuất bến.
       </p>
 
       {/* Các điều kiện khác nếu có */}
@@ -339,7 +352,28 @@ function PlanWindows({data,onSaved,editable=true}:{data:PlanView;onSaved:()=>voi
  },[open,data.cruiseId]))
  const errors:Partial<Record<WindowField,string>>={}
  const departureAt=departure.data?Date.parse(departure.data):null
- const precise=(instant:string)=>new Intl.DateTimeFormat('vi-VN',{timeZone:SHIP_TIME_ZONE,dateStyle:'short',timeStyle:'medium'}).format(new Date(instant))
+ const precise=(instant:string)=>new Intl.DateTimeFormat('vi-VN',{timeZone:SHIP_TIME_ZONE,dateStyle:'short',timeStyle:'short'}).format(new Date(instant))
+ const wallMinute=(instant:string|null)=>instant?preparationWallTime(instant).slice(0,16):''
+ function applySuggestedWindows(){
+  if(departureAt===null)return
+  const now=Date.now()
+  const hour=3600_000,day=24*hour
+  const defaultOpen=Math.min(Math.max(now,departureAt-30*day),departureAt-3*hour)
+  const defaultClose=Math.max(defaultOpen+hour,departureAt-day)
+  const bookingClose=Math.min(defaultClose,departureAt-2*hour)
+  const bookingOpen=Math.min(defaultOpen,bookingClose-hour)
+  const guidanceOpen=bookingClose
+  const guidanceClose=Math.max(guidanceOpen+30*60_000,departureAt-hour)
+  const clampedGuidanceClose=Math.min(guidanceClose,departureAt)
+  setWindows(current=>({
+   ...current,
+   bookingOpensAt:new Date(bookingOpen).toISOString(),
+   bookingClosesAt:new Date(bookingClose).toISOString(),
+   guidanceOpensAt:new Date(guidanceOpen).toISOString(),
+   guidanceClosesAt:new Date(clampedGuidanceClose).toISOString(),
+  }))
+  setError('')
+ }
  for(const [key] of fields)if(!windows[key])errors[key]='Nhập đầy đủ ngày và giờ.'
  if(windows.bookingOpensAt&&windows.bookingClosesAt&&Date.parse(windows.bookingOpensAt)>=Date.parse(windows.bookingClosesAt))errors.bookingClosesAt='Đóng nhận đặt chỗ phải sau thời điểm mở nhận đặt chỗ.'
  if(departureAt!==null&&windows.bookingClosesAt&&Date.parse(windows.bookingClosesAt)>=departureAt)errors.bookingClosesAt='Đóng nhận đặt chỗ phải trước giờ khởi hành: '+precise(departure.data!)+'.'
@@ -365,12 +399,17 @@ function PlanWindows({data,onSaved,editable=true}:{data:PlanView;onSaved:()=>voi
   {open&&<Modal wide busy={busy} title={businessCopy('cruise.window.title')} description="Tất cả ngày giờ bên dưới theo giờ Việt Nam." onClose={()=>setOpen(false)} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setOpen(false)} data-overlay-dismiss>Hủy</Button><Button type="submit" form="plan-windows-form" disabled={busy||uncertain||departure.loading||Boolean(departure.error)||!departure.data}>{busy?'Đang lưu…':businessCopy('cruise.window.save')}</Button></>}>
    {departure.loading&&<Loading label="Đang tải giờ khởi hành để đối chiếu…"/>}
    {departure.error&&<Notice title="Chưa tải được giờ khởi hành" tone="error"><Button tone="secondary" onClick={departure.retry}>Tải lại giờ khởi hành</Button></Notice>}
-   {departure.data&&!departure.loading&&!departure.error&&<p><strong>Khởi hành: {precise(departure.data)} · Giờ Việt Nam</strong></p>}
+   {departure.data&&!departure.loading&&!departure.error&&<div className={styles.sectionActions} style={{alignItems:'center',justifyContent:'space-between'}}>
+    <p style={{margin:0}}><strong>Khởi hành: {precise(departure.data)} · Giờ Việt Nam</strong></p>
+    <Button type="button" tone="secondary" size="compact" autoWidth disabled={busy||uncertain} onClick={applySuggestedWindows}>Gợi ý mốc chuẩn trước giờ khởi hành</Button>
+   </div>}
    <form id="plan-windows-form" noValidate onSubmit={event=>{event.preventDefault();void save()}}>
     <fieldset className={styles.windowFields} disabled={busy||uncertain}><legend>Lịch nhận đặt chỗ và hướng dẫn</legend>{([['Nhận đặt chỗ',fields.slice(0,2)],['Khung hướng dẫn trước chuyến',fields.slice(2)]] as const).map(([title,group])=><section className={styles.windowGroup} key={title}><h3>{title}</h3><div className={styles.fieldGrid}>{group.map(([key,label])=>{
      const fieldError=attempted||touched[key]?errors[key]:undefined
      const hint=key==='guidanceOpensAt'?'Không sớm hơn thời điểm đóng nhận đặt chỗ.':key==='guidanceClosesAt'?'Không muộn hơn giờ khởi hành.':undefined
-     return <Field key={key} htmlFor={key} label={businessCopy(label)} error={fieldError} hint={hint}><input id={key} type="datetime-local" required step={1} max={departure.data?preparationWallTime(departure.data):undefined} value={preparationWallTime(windows[key])} onBlur={()=>setTouched(current=>({...current,[key]:true}))} onChange={e=>{try{setWindows({...windows,[key]:preparationInstant(e.target.value)});setTouched(current=>({...current,[key]:true}));setError('')}catch{setError(businessCopy('program.time.invalid'))}}}/></Field>
+     const minBound=key==='bookingClosesAt'?wallMinute(windows.bookingOpensAt):key==='guidanceOpensAt'?wallMinute(windows.bookingClosesAt):key==='guidanceClosesAt'?wallMinute(windows.guidanceOpensAt):undefined
+     const maxBound=departure.data?wallMinute(departure.data):undefined
+     return <Field key={key} htmlFor={key} label={businessCopy(label)} error={fieldError} hint={hint}><input id={key} type="datetime-local" required step={60} min={minBound||undefined} max={maxBound||undefined} value={wallMinute(windows[key])} onBlur={()=>setTouched(current=>({...current,[key]:true}))} onChange={e=>{try{setWindows({...windows,[key]:preparationInstant(e.target.value)});setTouched(current=>({...current,[key]:true}));setError('')}catch{setError(businessCopy('program.time.invalid'))}}}/></Field>
     })}</div></section>)}</fieldset>
    </form>
    {error&&<Notice title="Chưa lưu được khung thời gian" tone="error">{error}</Notice>}

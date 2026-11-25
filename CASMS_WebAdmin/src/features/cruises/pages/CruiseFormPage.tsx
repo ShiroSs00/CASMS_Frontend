@@ -454,25 +454,25 @@ export function CruiseFormPage() {
 
   return <CruiseFrame>
     <div className={styles.content}>
-      {uncertain && <Notice title={createIntent.record?.status === 'succeeded' ? 'Đã tạo tour' : editing ? 'Chưa xác nhận được thay đổi' : 'Chưa rõ tour đã được tạo hay chưa'} tone="warning">
-        {createIntent.record?.status !== 'succeeded' && <p>{editing ? 'Mở lại tour để kiểm tra thông tin đã lưu.' : 'Thông tin bạn đã nhập vẫn ở đây. Kiểm tra Danh sách tour trước khi thử lại.'}</p>}
+      {uncertain && <Notice title={createIntent.record?.status === 'succeeded' ? 'Đã tạo chuyến khởi hành' : editing ? 'Chưa xác nhận được thay đổi' : 'Chưa rõ chuyến khởi hành đã được tạo hay chưa'} tone="warning">
+        {createIntent.record?.status !== 'succeeded' && <p>{editing ? 'Mở lại chuyến khởi hành để kiểm tra thông tin đã lưu.' : 'Thông tin bạn đã nhập vẫn ở đây. Kiểm tra Danh sách chuyến khởi hành trước khi thử lại.'}</p>}
         <ButtonLink tone="secondary" to={createIntent.record?.cruiseId ? '/admin/cruises/' + createIntent.record.cruiseId : editing ? '/admin/cruises/' + cruiseId : '/admin/cruises'}>
-          {createIntent.record?.status === 'succeeded' && createIntent.record.cruiseId ? 'Mở tour vừa tạo' : editing ? 'Mở chi tiết tour' : 'Mở Danh sách tour'}
+          {createIntent.record?.status === 'succeeded' && createIntent.record.cruiseId ? 'Mở chuyến vừa tạo' : editing ? 'Mở chi tiết chuyến' : 'Mở Danh sách chuyến khởi hành'}
         </ButtonLink>
-        {!editing && createIntent.record?.status === 'unknown' && access.canDo('CRUISE_CREATE') && <Button disabled={busy || createIntent.storageError} onClick={() => void saveDraft(true)}>Thử tạo tour lại</Button>}
+        {!editing && createIntent.record?.status === 'unknown' && access.canDo('CRUISE_CREATE') && <Button disabled={busy || createIntent.storageError} onClick={() => void saveDraft(true)}>Thử tạo lại</Button>}
         {!editing && createIntent.record?.status === 'succeeded' && <Button disabled={busy} onClick={() => {
           if (createIntent.startNew()) {
             setDraft(EMPTY_DRAFT); setDateFieldsGeneration(generation => generation + 1); setDateFieldsIncomplete(false); setNameEdited(false); setAppliedPreview(''); setPreviewRevision(null); setUncertain(false); setErrors({}); setSubmitError('')
           }
-        }}>Tạo tour khác</Button>}
+        }}>Tạo chuyến khởi hành khác</Button>}
       </Notice>}
-      <PageHeader breadcrumb="" title={editing ? 'Chỉnh sửa chuyến khởi hành' : businessCopy('cruise.source.create')}
-        actions={!editing && access.canDo('CRUISE_READ') && <ButtonLink tone="secondary" to="/admin/cruises">Về danh sách tour</ButtonLink>} />
+      <PageHeader breadcrumb="" title={editing ? 'Chỉnh sửa chuyến khởi hành' : 'Tạo chuyến khởi hành'}
+        actions={!editing && access.canDo('CRUISE_READ') && <ButtonLink tone="secondary" to="/admin/cruises">Về danh sách chuyến khởi hành</ButtonLink>} />
       {!editing && !sourceId && <DepartureSourcePicker value={sourceId} disabled={busy || uncertain} onChange={chooseSource} />}
       {changeSourceOpen && <Modal large title="Đổi lịch trình mẫu đã chọn" onClose={() => setChangeSourceOpen(false)} footer={<Button tone="secondary" onClick={() => setChangeSourceOpen(false)}>Đóng</Button>}>
         <DepartureSourcePicker value={sourceId} disabled={busy || uncertain} hidePreviewButton asPanel={false} onChange={(id, name) => { chooseSource(id, name); setChangeSourceOpen(false) }} />
       </Modal>}
-      {invalidSource && <Notice title="Chưa chọn mẫu lịch trình" tone="error">Chọn mẫu ở trên để tiếp tục tạo tour.</Notice>}
+      {invalidSource && <Notice title="Chưa chọn mẫu lịch trình" tone="error">Chọn mẫu ở trên để tiếp tục tạo chuyến khởi hành.</Notice>}
       {storedCruise && <CruiseSourceDetails cruise={storedCruise} />}
       {sourceId && source.loading && <Loading label="Đang tải mẫu lịch trình…" />}
       {sourceId && source.error && <Notice title="Chưa tải được mẫu lịch trình" tone="error">{source.error.message}<Button tone="secondary" onClick={source.retry}>Thử lại</Button><Button disabled={busy || uncertain} onClick={() => chooseSource('')}>Chọn mẫu khác</Button></Notice>}
@@ -552,13 +552,18 @@ export function CruiseFormPage() {
                 onChange={value => update('departureDatetime', value)} onIncompleteChange={setDateFieldsIncomplete} />
 
               <div className={styles.fullWidthField}>
-                <Field htmlFor="cruise-name" label="Tên tour *" error={errors.cruiseName}>
+                <Field htmlFor="cruise-name" label="Tên chuyến khởi hành *" error={errors.cruiseName}>
                   <input id="cruise-name" value={displayName} aria-invalid={Boolean(errors.cruiseName)} onChange={event => update('cruiseName', event.target.value)} />
                 </Field>
               </div>
 
               {source.data.days.find(day => day.dayNumber === 1)?.dayType === 'SEA_DAY' && !source.data.days.find(day => day.dayNumber === 1)?.departurePortId && (
-                <Field htmlFor="source-departure-port" label="Cảng khởi hành *" error={errors.departurePortId}>
+                <Field
+                  htmlFor="source-departure-port"
+                  label="Cảng khởi hành *"
+                  hint="Ngày 1 của mẫu lịch trình là ngày trên biển (chưa gắn cảng đi), vui lòng chọn cảng xuất phát thực tế."
+                  error={errors.departurePortId}
+                >
                   <select id="source-departure-port" disabled={portsLoading || Boolean(portsError)} value={draft.departurePortId} onChange={event => update('departurePortId', event.target.value)}>
                     <option value="">Chọn cảng khởi hành</option>
                     {portOptions.filter(port => port.status === 'ACTIVE').map(port => <option value={port.portId} key={port.portId}>{port.portName}</option>)}
@@ -571,6 +576,14 @@ export function CruiseFormPage() {
                 <RecordFacts entries={[
                   ['Khởi hành (giờ Việt Nam)', calendarLabel(draft.departureDatetime)],
                   ['Kết thúc dự kiến (giờ Việt Nam)', calendarLabel(previewScheduleData.returnDatetime ? localCruiseInput(previewScheduleData.returnDatetime) : '')],
+                  ...(previewScheduleData.departurePortName
+                    ? [['Cảng khởi hành', `${previewScheduleData.departurePortName} (Kế thừa từ mẫu lịch trình)`] as const]
+                    : draft.departurePortId
+                      ? [['Cảng khởi hành', portOptions.find(p => p.portId === draft.departurePortId)?.portName ?? 'Đã chọn thủ công'] as const]
+                      : []),
+                  ...(previewScheduleData.returnPortName
+                    ? [['Cảng trở về', `${previewScheduleData.returnPortName} (Kế thừa từ mẫu lịch trình)`] as const]
+                    : []),
                 ]} />
                 <Button type="button" disabled={applyingSchedule} onClick={handleOpenScheduleDetail}>Xem lịch theo ngày khởi hành</Button>
               </div>}
@@ -590,7 +603,7 @@ export function CruiseFormPage() {
                   }} />
                 </Field>
                 <div className={styles.shipPickerBlock}>
-                  <Field htmlFor="departure-ship-search" label="Tàu cho tour *" error={errors.shipId}
+                  <Field htmlFor="departure-ship-search" label="Tàu cho chuyến *" error={errors.shipId}
                     hint={
                       !draft.departureDatetime || !validPassengerCount
                         ? 'Chọn ngày khởi hành và nhập số khách để tìm tàu theo tên.'
@@ -702,10 +715,10 @@ export function CruiseFormPage() {
             {portsLoading && !source.error && !invalidSource && <Loading label="Đang tải danh sách cảng…" />}
             {portsError && <Notice title="Không tải được danh sách cảng" tone="error"><p>{portsError}</p><Button type="button" tone="secondary" onClick={() => { setPortsLoading(true); setPortsError(''); setPortsAttempt(value => value + 1) }}>Tải lại danh sách cảng</Button></Notice>}
             {!portsLoading && !portsError && !ports.length && <Notice title="Chưa có cảng hoạt động" tone="warning">Cần tạo hoặc kích hoạt cảng trước khi lập chuyến mới.</Notice>}
-            {submitError && !uncertain && <div className={styles.departureCheckError} role="alert"><strong>Chưa tạo được tour</strong><p>{submitError}</p></div>}
+            {submitError && !uncertain && <div className={styles.departureCheckError} role="alert"><strong>Chưa tạo được chuyến khởi hành</strong><p>{submitError}</p></div>}
             <div className={styles.formActions}>
               {access.canDo('TRIP_READ') && <Button type="button" tone="secondary" disabled={busy} onClick={returnToSelectedSchedule}>Về lịch trình đã chọn</Button>}
-              {access.canDo('CRUISE_CREATE') && <Button type="submit" tone="primary" value="draft" disabled={busy || !canSave}>{busy ? 'Đang tạo tour…' : 'Tạo tour'}</Button>}
+              {access.canDo('CRUISE_CREATE') && <Button type="submit" tone="primary" value="draft" disabled={busy || !canSave}>{busy ? 'Đang tạo chuyến khởi hành…' : 'Tạo chuyến khởi hành'}</Button>}
             </div>
           </Panel>
           </div>

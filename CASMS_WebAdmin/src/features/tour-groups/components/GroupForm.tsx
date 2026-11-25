@@ -79,7 +79,7 @@ export function GroupForm({ initial, initialExcursionId = '', busy, onSave }: { 
     {excursions.error && <Notice title="Không tải được chuyến tham quan" tone="error">{excursions.error.message}<Button tone="secondary" onClick={excursions.retry}>Thử lại</Button></Notice>}
     {!excursions.loading && excursions.data?.length === 0 && <Notice title="Chưa có chuyến tham quan">Cần có chuyến tham quan trước khi tạo nhóm. <Link to="/admin/shore-excursions">Mở chuyến tham quan</Link></Notice>}
     {contextError && <Notice title="Kiểm tra chuyến tham quan" tone="error">{contextError}</Notice>}
-    <p className={styles.hint}>Thời gian theo múi giờ trình duyệt: {Intl.DateTimeFormat().resolvedOptions().timeZone}. Các trường có dấu * là bắt buộc.</p>
+    <p className={styles.hint}>Giờ hiển thị theo múi giờ hiện tại trên thiết bị của bạn. Các trường có dấu * là bắt buộc.</p>
     <form className={styles.form} onSubmit={submit} noValidate><fieldset disabled={busy}>
       <div className={styles.fullRow}><FormErrorSummary errors={errors} /></div>
       <div className={styles.fullRow}><Field htmlFor="group-shoreExcursionId" label="Chuyến tham quan *" error={errors.shoreExcursionId} hint="Khi đổi chuyến tham quan, sức chứa, điểm tập trung và lịch trình của nhóm sẽ lấy theo chuyến mới.">

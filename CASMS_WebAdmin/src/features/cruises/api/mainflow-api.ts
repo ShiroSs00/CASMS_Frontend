@@ -2,6 +2,7 @@ import {planEvidence} from '../model/plan-evidence'
 import { ApiError, apiRequest } from '@/shared/api'
 import {coordinatorDossierSections, preparationApi, type PreparationDashboard} from './preparation-api'
 export type DossierSubmission={preparationEvidence:string;preparationRevisions:Record<string,number>;pendingPreparationCodes:string[]}
+export type RevisionOptions={recallPackages?:boolean;recallSaleTerms?:boolean}
 export type MainflowAction='submit'|'withdraw'|'approve'|'reject'|'request-revision'|'ready'
 export type ProgramIssue={code:string;kind:'ACTIVITY'|'EXCURSION'|'SERVICE';itemId:string;name:string;startsAt:string|null;endsAt:string|null;earliestStart:string|null;latestEnd:string|null;timeZoneId:string|null}
 export type PlanView={unifiedPackageReview?:boolean;cruisePackagePricing?:boolean;cruiseId:string;revision:number;submittedRevision:number|null;cruiseCode:string;cruiseName?:string|null;shipId?:string|null;shipName?:string|null;departureDatetime?:string|null;submittedByName:string|null;planStatus:'DRAFT'|'SUBMITTED'|'APPROVED'|'REJECTED'|'REVISION_REQUESTED'|'WITHDRAWN';submittedBy:string|null;submittedAt:string|null;reviewedBy:string|null;reviewedAt:string|null;reason:string|null;submittedSnapshot:unknown;fingerprint:string;readyStatus:'NOT_READY'|'READY'|'INVALIDATED';readyNeedsRefresh?:boolean;readyBy:string|null;readyAt:string|null;programIssues?:ProgramIssue[];planBlockers:string[];readyBlockers:string[];allowedActions:string[];windows:{expectedRevision:number;bookingOpensAt:string|null;bookingClosesAt:string|null;guidanceOpensAt:string|null;guidanceClosesAt:string|null}}
@@ -24,9 +25,9 @@ export function decodePlan(value:PlanView,id:string):PlanView{
 export const mainflowApi={
  async get(id:string,signal?:AbortSignal){return decodePlan(await apiRequest<PlanView>(path(id),{signal}),id)},
  async queue(signal?:AbortSignal,includeReviewed=false){const rows=await apiRequest<PlanView[]>('/cruise-plans',{signal,query:{includeReviewed}});if(!Array.isArray(rows)||rows.some(row=>!row||typeof row.cruiseId!=='string'||!row.cruiseId))throw new ApiError('Chưa đọc được danh sách kế hoạch khởi hành.',502);return rows.map(row=>decodePlan(row,row.cruiseId))},
- async action(view:PlanView,action:MainflowAction,reason:string,dossier?:DossierSubmission){
+ async action(view:PlanView,action:MainflowAction,reason:string,dossier?:DossierSubmission,revisionOptions?:RevisionOptions){
   if(action==='submit'&&!dossier)throw new ApiError('Tải lại hồ sơ trước khi gửi.',422,'PREPARATION_REVISIONS_REQUIRED')
-  const saved=decodePlan(await apiRequest<PlanView>(`${path(view.cruiseId)}/${action}`,{method:'POST',body:{expectedRevision:view.revision,reason,fingerprint:view.fingerprint,...(action==='submit'&&dossier?{preparationEvidence:dossier.preparationEvidence,preparationRevisions:dossier.preparationRevisions}:{})}}),view.cruiseId)
+  const saved=decodePlan(await apiRequest<PlanView>(`${path(view.cruiseId)}/${action}`,{method:'POST',body:{expectedRevision:view.revision,reason,fingerprint:view.fingerprint,...(action==='submit'&&dossier?{preparationEvidence:dossier.preparationEvidence,preparationRevisions:dossier.preparationRevisions}:{}),...(action==='request-revision'&&revisionOptions?{recallPackages:Boolean(revisionOptions.recallPackages),recallSaleTerms:Boolean(revisionOptions.recallSaleTerms)}:{})}}),view.cruiseId)
   if(action==='request-revision'&&saved.planStatus==='REVISION_REQUESTED')return saved
   let readback:PlanView
   try{readback=await this.get(view.cruiseId)}catch{throw new ApiError('Chưa đối chiếu được kết quả. Tải lại hồ sơ trước khi tiếp tục.',502)}

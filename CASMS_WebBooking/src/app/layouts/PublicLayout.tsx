@@ -27,6 +27,10 @@ export function PublicLayout() {
   const adminUrl = externalAppUrl(import.meta.env.VITE_ADMIN_APP_URL, '/login')
 
   useEffect(() => {
+    if (!location.hash) window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [location.pathname, location.hash])
+
+  useEffect(() => {
     if (!menuOpen) return
     const desktop = matchMedia('(min-width: 881px)')
     const closeMenu = () => setMenuLocation(null)
@@ -75,7 +79,7 @@ export function PublicLayout() {
         ) : (
           <NavLink to="/login" className={styles.loginLink}>Đăng nhập</NavLink>
         )}
-        {adminUrl && <a href={adminUrl} className={styles.loginLink}>Dành cho nhân viên</a>}
+        {authStatus !== 'authenticated' && adminUrl && <a href={adminUrl} className={styles.loginLink}>Dành cho nhân viên</a>}
         <Button tone="secondary" autoWidth className={styles.menuTrigger} aria-label="Mở menu điều hướng"
           aria-haspopup="dialog" aria-expanded={menuOpen} onClick={event => {
             event.currentTarget.focus({ preventScroll: true })

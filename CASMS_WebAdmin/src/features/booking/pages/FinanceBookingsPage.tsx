@@ -62,22 +62,57 @@ function FinanceWorkspace() {
     setRequestedTab('payments')
   }
 
-  function openLedger(event: FormEvent) {
+  async function openLedger(event: FormEvent) {
     event.preventDefault()
     if (!canPayments) return
-    const id = bookingId.trim()
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-      setError('Nhập ID đặt chỗ hợp lệ từ hồ sơ bàn giao.')
+    const queryText = bookingId.trim()
+    if (!queryText) {
+      setError('Nhập mã đặt chỗ (ví dụ: DEMO-PAY-01) hoặc ID đặt chỗ để tra cứu.')
       return
     }
-    const known = list.data?.content.find(row => row.bookingId.toLowerCase() === id.toLowerCase())
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(queryText)
+    const known = list.data?.content.find(row =>
+      row.bookingId.toLowerCase() === queryText.toLowerCase()
+      || row.bookingReference.toLowerCase() === queryText.toLowerCase()
+    )
+    if (known) {
+      selectBooking({
+        id: known.bookingId,
+        reference: known.bookingReference,
+        currency: known.currency ?? '',
+        cruiseName: known.cruiseName,
+        status: known.bookingStatus,
+        fareAmount: known.agreedFareAmount,
+      })
+      return
+    }
+    if (!isUuid && canBookings) {
+      try {
+        const found = await realBookingApi.list(0, undefined, queryText)
+        const exact = found.content.find(row => row.bookingReference.toLowerCase() === queryText.toLowerCase()) ?? found.content[0]
+        if (exact) {
+          selectBooking({
+            id: exact.bookingId,
+            reference: exact.bookingReference,
+            currency: exact.currency ?? '',
+            cruiseName: exact.cruiseName,
+            status: exact.bookingStatus,
+            fareAmount: exact.agreedFareAmount,
+          })
+          return
+        }
+      } catch { /* fall through to error */ }
+      setError(`Không tìm thấy đặt chỗ với mã “${queryText}”. Kiểm tra lại mã đặt chỗ hoặc chọn trực tiếp từ danh sách bên dưới.`)
+      return
+    }
+    if (!isUuid) {
+      setError('Nhập mã đặt chỗ chính xác hoặc ID đặt chỗ hợp lệ.')
+      return
+    }
     selectBooking({
-      id,
-      reference: known?.bookingReference ?? 'Đặt chỗ được tra cứu',
-      currency: known?.currency ?? '',
-      cruiseName: known?.cruiseName,
-      status: known?.bookingStatus,
-      fareAmount: known?.agreedFareAmount,
+      id: queryText,
+      reference: 'Đặt chỗ được tra cứu',
+      currency: '',
     })
   }
 
@@ -135,10 +170,10 @@ function FinanceWorkspace() {
         aria-labelledby={tabs.length > 1 ? `${baseId}-tab-payments` : undefined}
         className={styles.financeTabPanel}
       >
-        {canPayments && <Panel title="Tra cứu nhanh khoản thu" subtitle="Nhập ID đặt chỗ từ hồ sơ bàn giao nếu bạn muốn mở thẳng một hồ sơ cụ thể.">
-          <form className={styles.financeQuickLookupForm} onSubmit={openLedger}>
-            <Field htmlFor="finance-booking-id" label="ID đặt chỗ (UUID)">
-              <input id="finance-booking-id" required placeholder="Ví dụ: 3fa85f64-5717-4562-b3fc-2c963f66afa6" value={bookingId} onChange={event => setBookingId(event.target.value)} />
+        {canPayments && <Panel title="Tra cứu nhanh khoản thu" subtitle="Nhập mã đặt chỗ (ví dụ: DEMO-PAY-01) hoặc ID đặt chỗ để mở thẳng hồ sơ thu tiền.">
+          <form className={styles.financeQuickLookupForm} noValidate onSubmit={event => void openLedger(event)}>
+            <Field htmlFor="finance-booking-id" label="Mã đặt chỗ hoặc ID">
+              <input id="finance-booking-id" required placeholder="Ví dụ: DEMO-PAY-01" value={bookingId} onChange={event => setBookingId(event.target.value)} />
             </Field>
             <div className={styles.financeQuickLookupAction}>
               <Button type="submit" autoWidth>Mở khoản thu</Button>

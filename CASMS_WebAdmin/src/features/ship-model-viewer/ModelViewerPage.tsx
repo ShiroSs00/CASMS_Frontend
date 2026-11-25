@@ -227,7 +227,8 @@ export function ModelViewerPage() {
           {ships.map(row => <option key={row.shipId} value={row.shipId}>{row.shipCode} · {row.shipName}</option>)}
         </select>
       </Field>
-      {shipId && <ButtonLink to={listPath} tone="secondary" autoWidth><span aria-hidden="true">←</span> Về danh sách tàu</ButtonLink>}
+      {shipId && <ButtonLink to={listPath} tone="secondary" autoWidth><span aria-hidden="true">←</span> Chọn tàu khác</ButtonLink>}
+      <ButtonLink to="/admin/ships" tone="secondary" autoWidth><span aria-hidden="true">←</span> Danh sách tàu</ButtonLink>
     </div>
   </div>
   return <AdminShell><div className={styles.page}>

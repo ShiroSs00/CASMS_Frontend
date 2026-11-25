@@ -425,10 +425,10 @@ export function CruiseWorkInboxPage() {
 
               <div className={`${styles.hubCard} ${pendingStaffingCount > 0 ? styles.hubCardAlert : ''}`}>
                 <div className={styles.hubCardTop}>
-                  <h2 className={styles.hubCardTitle}>3. Phương án nhân sự</h2>
+                  <h2 className={styles.hubCardTitle}>3. Chuẩn bị phương án tàu</h2>
                   <Badge
                     tone={pendingStaffingCount > 0 ? 'warning' : 'success'}
-                    label={pendingStaffingCount > 0 ? `${pendingStaffingCount} chờ xét` : 'Đã xử lý hết'}
+                    label={pendingStaffingCount > 0 ? `${pendingStaffingCount} chờ xử lý` : 'Đã xử lý hết'}
                   />
                 </div>
                 <div className={styles.hubCardCount}>
@@ -436,8 +436,8 @@ export function CruiseWorkInboxPage() {
                 </div>
                 <p className={styles.hubCardDesc}>
                   {pendingStaffingCount > 0
-                    ? `Có ${pendingStaffingCount} phương án nhân sự theo khu vực trên tàu chờ bạn xác nhận.`
-                    : 'Chưa có phương án nhân sự nào chờ Quản lý tàu xét duyệt.'}
+                    ? `Có ${pendingStaffingCount} phương án khu vực, POS và định biên nhân sự chờ bạn xác nhận.`
+                    : 'Chưa có phương án tàu nào chờ bạn xử lý. Các chuyến mới xong chương trình cần HR gắn Quản lý tàu trước khi hiển thị tại đây.'}
                 </p>
                 <div className={styles.hubCardFoot}>
                   <ButtonLink
@@ -446,7 +446,7 @@ export function CruiseWorkInboxPage() {
                     size="compact"
                     autoWidth
                   >
-                    {pendingStaffingCount > 0 ? `Mở ${pendingStaffingCount} phương án →` : 'Xem phương án nhân sự'}
+                    {pendingStaffingCount > 0 ? `Mở ${pendingStaffingCount} phương án →` : 'Xem phương án tàu'}
                   </ButtonLink>
                 </div>
               </div>
@@ -518,11 +518,13 @@ export function CruiseWorkInboxPage() {
                 </>
               ) : isShipManager && pendingStaffingCount > 0 ? (
                 <>
-                  <p>Hiện có <strong>{pendingStaffingCount} phương án nhân sự</strong> đang chờ bạn xét duyệt.</p>
+                  <p>Hiện có <strong>{pendingStaffingCount} phương án tàu</strong> đang chờ bạn xác nhận.</p>
                   <ButtonLink to="/admin/staffing-reviews" autoWidth>
-                    Chuẩn bị phương án tàu
+                    Mở Chuẩn bị phương án tàu →
                   </ButtonLink>
                 </>
+              ) : isShipManager ? (
+                <p>Chuyến mới hoàn tất chương trình cần Quản lý nhân sự phân công bạn làm Quản lý tàu phụ trách trước khi xuất hiện tại đây.</p>
               ) : null}
             </Empty>
           )}

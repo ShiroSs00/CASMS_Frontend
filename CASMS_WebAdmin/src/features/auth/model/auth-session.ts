@@ -30,8 +30,15 @@ function clear(status: 'anonymous' | 'expired') {
 }
 function persist(session: AuthSession) {
   if (!canSignIn(session.user)) {
+    const roles = session.user.roles
     clear('anonymous')
-    throw new Error('Đăng nhập dành cho quản trị viên, quản lý và nhân viên đặt chỗ. Hành khách có thể đặt chỗ và tra cứu bằng mã, không cần tài khoản.')
+    if (roles.length === 0) {
+      throw new Error('Tài khoản chưa được phân vai trò trên Cổng quản trị. Vui lòng liên hệ Quản trị hệ thống để được cấp quyền.')
+    }
+    if (roles.every((role) => role === 'POS')) {
+      throw new Error('Tài khoản thiết bị POS chỉ sử dụng trên ứng dụng POS tại quầy/trên tàu, không có quyền đăng nhập Cổng quản trị.')
+    }
+    throw new Error('Tài khoản hành khách không sử dụng cho Cổng quản trị. Vui lòng đăng nhập tại trang Đặt chuyến hoặc tra cứu bằng mã đặt chỗ.')
   }
   // Do not silently promise browser-session persistence when storage is unavailable.
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session))

@@ -38,13 +38,13 @@ export function LoginForm({ expired, login, onSuccess }: {
   return <div className={styles.loginCard}>
     <p className={styles.eyebrow}>{expired ? 'PHIÊN ĐĂNG NHẬP' : 'OCEVIE · CỔNG QUẢN TRỊ'}</p>
     <h1>{expired ? 'Phiên của bạn đã hết hạn' : 'Không gian điều hành'}</h1>
-    <p>{expired ? 'Đăng nhập lại để tiếp tục.' : 'Đăng nhập dành cho quản trị viên, quản lý và nhân viên đặt chỗ.'}</p>
+    <p>{expired ? 'Đăng nhập lại để tiếp tục.' : 'Đăng nhập dành cho quản trị viên, quản lý các bộ phận và nhân viên điều hành.'}</p>
     <form className={styles.loginForm} onSubmit={(event) => void submit(event)} noValidate>
       <Field htmlFor="auth-username" label="Tên đăng nhập" error={attempted && !username.trim() ? 'Nhập tên đăng nhập.' : undefined}><input id="auth-username" name="username" autoComplete="username" value={username} disabled={busy} required aria-invalid={attempted && !username.trim()} aria-describedby={attempted && !username.trim() ? 'auth-username-hint' : undefined} onChange={(event) => setUsername(event.target.value)} /></Field>
       <Field htmlFor="auth-password" label="Mật khẩu" error={attempted && !password ? 'Nhập mật khẩu.' : undefined}>
         <div className={styles.passwordControl}>
           <input id="auth-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} disabled={busy} required aria-invalid={attempted && !password} aria-describedby={attempted && !password ? 'auth-password-hint' : undefined} onChange={(event) => setPassword(event.target.value)} />
-          <button type="button" className={styles.passwordToggle} aria-label="Hiện mật khẩu" aria-pressed={showPassword} aria-controls="auth-password" title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} disabled={busy} onClick={() => setShowPassword((visible) => !visible)}>
+          <button type="button" className={styles.passwordToggle} aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} aria-pressed={showPassword} aria-controls="auth-password" title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} disabled={busy} onClick={() => setShowPassword((visible) => !visible)}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
               <circle cx="12" cy="12" r="3" />

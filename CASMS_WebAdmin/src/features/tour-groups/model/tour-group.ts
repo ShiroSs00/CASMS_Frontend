@@ -99,7 +99,7 @@ export function validateGroupForm(values: GroupFormValues, excursion?: GroupExcu
   if (!isUuid(values.shoreExcursionId.trim())) errors.shoreExcursionId = 'Nhập ID UUID chuyến tham quan hợp lệ.'
   for (const key of ['guideId', 'vehicleId'] as const) if (values[key].trim() && !isUuid(values[key].trim())) errors[key] = 'Nhập ID UUID hợp lệ.'
   if (values.groupCode.trim().length > 50) errors.groupCode = 'Mã nhóm tối đa 50 ký tự.'
-  if (!/^\d+$/.test(values.maximumCapacity) || Number(values.maximumCapacity) < 1 || Number(values.maximumCapacity) > 2147483647) errors.maximumCapacity = 'Nhập sức chứa tối đa là số nguyên từ 1 đến 2147483647.'
+  if (!/^\d+$/.test(values.maximumCapacity) || Number(values.maximumCapacity) < 1 || Number(values.maximumCapacity) > 2147483647) errors.maximumCapacity = 'Nhập sức chứa tối đa là số nguyên dương hợp lệ.'
   // BE inherits the excursion meeting point when this field is omitted.
   if (values.meetingPoint.trim().length > 250) errors.meetingPoint = 'Điểm tập trung tối đa 250 ký tự.'
   if (values.notes.length > 500) errors.notes = 'Ghi chú tối đa 500 ký tự.'

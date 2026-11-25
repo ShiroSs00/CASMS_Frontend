@@ -16,4 +16,47 @@ export const catalogConfig = {
 } satisfies Record<CatalogKind, { label: string; route: string }>
 export const statusLabels: Record<string, string> = { ACTIVE: 'Đang hoạt động', INACTIVE: 'Ngừng hoạt động', SUSPENDED: 'Tạm ngừng', CANCELLED: 'Đã hủy', REQUESTED: 'Đã yêu cầu', ACCEPTED: 'Đã tiếp nhận', IN_PROGRESS: 'Đang thực hiện', COMPLETED: 'Hoàn thành', REJECTED: 'Đã từ chối', DRAFT: 'Nháp', PUBLISHED: 'Đã công bố', DISCONTINUED: 'Ngừng cung cấp', OUT_OF_STOCK: 'Hết hàng', AVAILABLE: 'Còn cung cấp' }
 export const benefitLabels: Record<string, string> = { INCLUDED: 'Đã bao gồm', OPTIONAL: 'Tùy chọn', LIMITED: 'Theo định mức', DISCOUNT: 'Giảm giá', NOT_INCLUDED: 'Không bao gồm' }
+export const unitCodeLabels: Record<string, string> = {
+  MEAL: 'bữa ăn', GLASS: 'ly', DRINK: 'đồ uống', SESSION: 'buổi', DAY: 'ngày', NIGHT: 'đêm',
+  HOUR: 'giờ', ITEM: 'sản phẩm', USE: 'lượt', VISIT: 'lượt', TIME: 'lần', PERSON: 'khách',
+  CABIN: 'phòng', PACKAGE: 'gói', SERVICE: 'dịch vụ', PHOTO: 'ảnh', GB: 'GB', MB: 'MB',
+}
+export function formatUnitCode(code?: string | null) {
+  if (!code) return ''
+  const key = code.trim().toUpperCase()
+  return unitCodeLabels[key] ?? code
+}
+export const catalogTypeLabels: Record<string, string> = {
+  DINING: 'Ẩm thực',
+  BEVERAGE: 'Đồ uống',
+  WELLNESS: 'Chăm sóc sức khỏe',
+  SPA_WELLNESS: 'Spa & Sức khỏe',
+  PHOTOGRAPHY: 'Chụp ảnh',
+  CABIN_SERVICE: 'Dịch vụ phòng',
+  LAUNDRY: 'Giặt ủi',
+  MEDICAL_ASSISTANCE: 'Hỗ trợ y tế',
+  TRANSPORTATION: 'Đưa đón & Di chuyển',
+  INTERNET: 'Internet & Wi-Fi',
+  ENTERTAINMENT: 'Giải trí',
+  ENTERTAINMENT_ACTIVITY: 'Giải trí & Hoạt động',
+  CHILDCARE_FAMILY: 'Gia đình & Trẻ em',
+  RETAIL: 'Bán lẻ',
+  SOUVENIR: 'Quà lưu niệm',
+  EXCURSION: 'Tham quan trên bờ',
+  SHORE_EXCURSION: 'Tour tham quan trên bờ',
+  'SHORE EXCURSIONS': 'Tour tham quan trên bờ',
+  BASIC: 'Cơ bản',
+  STANDARD: 'Tiêu chuẩn',
+  ADVANCED: 'Nâng cao',
+  ADD_ON: 'Bổ sung (Extra)',
+  PLUS: 'Nâng cao',
+  PREMIUM: 'Cao cấp',
+  PREMIUM_PLUS: 'Cao cấp+',
+  VIP: 'VIP',
+}
+export function formatCatalogType(type?: string | null) {
+  if (!type) return 'Chưa phân loại'
+  const key = type.trim().toUpperCase()
+  return catalogTypeLabels[key] ?? type
+}
 export function catalogTime(value: string | null) { return value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString('vi-VN') : 'Chưa có thông tin' }

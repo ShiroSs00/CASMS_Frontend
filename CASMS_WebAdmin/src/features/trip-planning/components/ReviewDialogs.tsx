@@ -55,7 +55,7 @@ export function ValidationPanel({report,violations,onLocate,serverErrors=false}:
       <ul>{warnings.map((row, index) => <li key={row.code + ':' + index}>{row.dayNumber ? 'Ngày ' + row.dayNumber + ' · ' : ''}{row.message}</li>)}</ul>
     </details>}
     {Boolean(report?.deferredChecks.length) && <details className={styles.validationNotes}>
-      <summary>Kiểm tra khi tạo tour</summary>
+      <summary>Kiểm tra khi tạo chuyến khởi hành</summary>
       <p>Các mục này cần ngày khởi hành hoặc tàu thực tế và không chặn chốt mẫu.</p>
       <ul>{report!.deferredChecks.map(value => <li key={value}>{deferredLabels[value] ?? 'Chưa đánh giá kiểm tra: ' + value}</li>)}</ul>
     </details>}

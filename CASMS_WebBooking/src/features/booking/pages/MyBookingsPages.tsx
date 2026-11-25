@@ -71,12 +71,12 @@ export function MyBookingsPage() {
                   >
                     {listQuery.data.content.map(item => (
                       <tr key={item.bookingId}>
-                        <td className={styles.monoCode}>{item.bookingReference}</td>
+                        <td className={styles.monoCode} style={{ whiteSpace: 'nowrap' }}>{item.bookingReference}</td>
                         <td>
                           <strong>{item.cruiseName}</strong>
                           {item.departureDatetime && <small>Khởi hành: {bookingWhen(item.departureDatetime)}</small>}
                         </td>
-                        <td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
                           <Badge
                             label={bookingStatusName[item.bookingStatus] ?? item.bookingStatus}
                             tone={
@@ -88,13 +88,13 @@ export function MyBookingsPage() {
                             }
                           />
                         </td>
-                        <td className={styles.numericCell}>
+                        <td className={styles.numericCell} style={{ whiteSpace: 'nowrap' }}>
                           {item.agreedFareAmount != null && item.currency
                             ? bookingMoney(item.agreedFareAmount, item.currency)
                             : '—'}
                         </td>
-                        <td>{bookingWhen(item.createdAt)}</td>
-                        <td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{bookingWhen(item.createdAt)}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
                           <ButtonLink tone="secondary" size="compact" autoWidth to={`/my-bookings/${item.bookingId}`}>
                             {item.bookingStatus === 'Confirmed' ? 'Xem chi tiết' : 'Chi tiết & thanh toán'}
                           </ButtonLink>

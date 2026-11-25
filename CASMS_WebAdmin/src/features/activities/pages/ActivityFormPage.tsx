@@ -1,5 +1,5 @@
 import {ShipVenueDeckField,ShipVenueCabinField,readShipVenueOptions,readShipVenueCabins} from '@/domain/ship-venue'
-import {zonedInput,SHIP_TIME_ZONE} from '@/shared/lib/journey-time'
+import {journeyTime,zonedInput,SHIP_TIME_ZONE} from '@/shared/lib/journey-time'
 import { EditorLayout,useUnsavedFormGuard } from '@/shared/ui'
 import { FormErrorSummary } from '@/shared/ui'
 import { useCallback,useEffect, useRef, useState, type FormEvent } from 'react'
@@ -17,7 +17,7 @@ import { validateActivity, type ActivityDraft } from '../model/activity'
 import styles from '../components/Activities.module.css'
 import { useActivityProgramAccess } from '../model/useActivityProgramAccess'
 const blank: ActivityDraft = { activityCode: '', activityName: '', cruiseId: '', description: '', startTime: '', endTime: '', location: '', capacity: NaN, price: null, currencyCode: 'VND' }
-function localTime(value:string){return zonedInput(value,SHIP_TIME_ZONE)}
+function localTime(value:string){return zonedInput(value,SHIP_TIME_ZONE).slice(0,16)}
 export function ActivityFormPage() {
   const { activityId } = useParams(), [params] = useSearchParams()
   const access = useSessionAccess()
@@ -80,6 +80,9 @@ function ActivityEditor({ activityId }: { activityId: string }) {
     catch (reason) { if(mutationOutcomeUnknown(reason))setUncertain(true); setError(mutationOutcomeUnknown(reason) ? 'Chưa xác định kết quả lưu hoạt động. Thông tin đã nhập được giữ lại; đối chiếu danh sách trước khi tạo yêu cầu mới.' : reason instanceof ApiError && reason.message.includes('evaluate expression') ? 'Hệ thống đang gặp lỗi kiểm tra quyền hoạt động. Vui lòng liên hệ quản trị viên.' : reason instanceof Error ? reason.message : 'Chưa lưu được hoạt động.') }
     finally { lock.current = false; setBusy(false) }
   }
+  const selectedCruise = cruises.data?.find(item => item.cruiseId === draft.cruiseId)
+  const cruiseMin = selectedCruise ? localTime(selectedCruise.departureDatetime) : undefined
+  const cruiseMax = selectedCruise ? localTime(selectedCruise.returnDatetime) : undefined
   const input = (name: keyof ActivityDraft) => ({ id: 'activity-' + name, name, disabled: !permitted || busy || uncertain || !editable, 'aria-invalid': Boolean(errors[name]), 'aria-describedby': errors[name] ? `activity-${name}-hint` : undefined })
   return <ActivityFrame><PageHeader breadcrumb="DỊCH VỤ TÀU / HOẠT ĐỘNG" title={activityId ? 'Chỉnh sửa hoạt động' : 'Tạo hoạt động trên tàu'} description="Nhập giờ theo giờ tàu Việt Nam. Hoạt động phải nằm trong thời gian chuyến và giới hạn sức chứa." /><ActivityState {...cruises} />
     {!authorityPermitted && <Notice title="Không có quyền lưu hoạt động" tone="warning">Liên hệ quản trị viên để được cấp quyền phù hợp.</Notice>}{programAccess.reason && <Notice title="Quyền sửa chương trình"><p>{programAccess.reason}</p><Button tone="secondary" onClick={programAccess.retry}>Kiểm tra lại quyền sửa</Button></Notice>}{activityId && loadedId === activityId && !editable && <Notice title={draft.cruiseId?"Chỉ sửa hoạt động đã lên kế hoạch":"Hoạt động nguồn"} tone="warning">{draft.cruiseId?"Hoạt động đang ở trạng thái không cho phép chỉnh sửa.":"Hoạt động này chưa gắn chuyến khởi hành. Biểu mẫu hiện tại chỉ chỉnh sửa hoạt động của chuyến khởi hành."}</Notice>}{error && <Notice title="Chưa thể thực hiện" tone="error"><p>{error}</p>{activityId && loadedId !== activityId && <Button onClick={() => setAttempt(value => value + 1)}>Tải lại hoạt động</Button>}</Notice>}
@@ -87,7 +90,7 @@ function ActivityEditor({ activityId }: { activityId: string }) {
     <EditorLayout ><form ref={form} onSubmit={submit} noValidate><Panel title="Thông tin hoạt động">
           <FormErrorSummary errors={errors} /><div className={styles.form}>
       <FormSection title="Thông tin hoạt động" >
-      <Field htmlFor="activity-cruiseId" label="Chuyến khởi hành *" error={errors.cruiseId}><select {...input('cruiseId')} disabled={Boolean(activityId||requestedCruise)||!permitted} value={draft.cruiseId} onChange={event=>setDraft(current=>({...current,cruiseId:event.target.value,deckId:null,cabinId:null}))} required><option value="">Chọn chuyến khởi hành</option>{cruises.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}</select></Field>
+      <Field htmlFor="activity-cruiseId" label="Chuyến khởi hành *" error={errors.cruiseId}><select {...input('cruiseId')} disabled={Boolean(activityId||requestedCruise)||!permitted} value={draft.cruiseId} onChange={event=>{const nextCruiseId=event.target.value;const nextCruise=cruises.data?.find(item=>item.cruiseId===nextCruiseId);setDraft(current=>{const shouldPrefill=nextCruise&&!current.startTime&&!current.endTime;return {...current,cruiseId:nextCruiseId,deckId:null,cabinId:null,...(shouldPrefill?{startTime:localTime(nextCruise.departureDatetime),endTime:localTime(new Date(Math.min(Date.parse(nextCruise.departureDatetime)+2*3600_000,Date.parse(nextCruise.returnDatetime))).toISOString())}:{})}})}} required><option value="">Chọn chuyến khởi hành</option>{cruises.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}</select></Field>
       {(['activityName', 'location'] as const).map(key => <Field key={key} htmlFor={'activity-' + key} label={{ activityName: 'Tên hoạt động *', location: 'Địa điểm', currencyCode: 'Mã tiền tệ' }[key]} error={errors[key]}><input {...input(key)} maxLength={{ activityName: 200, location: 250, currencyCode: 3 }[key]} value={draft[key]} onChange={event => update(key, event.target.value)} /></Field>)}
       {venue.loading&&<p role="status">Đang đối chiếu vị trí trên tàu…</p>}{venue.error&&<Notice title="Chưa đối chiếu được boong" tone="warning">{venue.error.message}<Button tone="secondary" onClick={venue.retry}>Tải lại boong</Button></Notice>}
       {venue.data&&<ShipVenueDeckField id="activity-deck" error={errors.deckId} options={venue.data} value={draft.deckId??null} disabled={!permitted||busy||uncertain||Boolean(activityId&&!editable)} onChange={deckId=>setDraft(old=>({...old,deckId,cabinId:old.deckId===deckId?old.cabinId:null}))}/>}
@@ -100,8 +103,8 @@ function ActivityEditor({ activityId }: { activityId: string }) {
         {!cabins.loading&&!cabins.error&&cabins.data?.length===0&&<p>Boong này chưa có cabin/phòng trong cấu trúc tàu.</p>}
       </>}
 
-      </FormSection><FormSection title="Thời gian và sức chứa" ><p>Giờ tàu: Việt Nam (Asia/Ho_Chi_Minh).</p>
-      {(['startTime', 'endTime'] as const).map(key => <Field key={key} htmlFor={'activity-' + key} label={key === 'startTime' ? 'Bắt đầu *' : 'Kết thúc *'} error={errors[key]}><input {...input(key)} type="datetime-local" value={draft[key]} onChange={event => update(key, event.target.value)} /></Field>)}
+      </FormSection><FormSection title="Thời gian và sức chứa" ><p>{selectedCruise ? <>Trong lịch chuyến · Giờ tàu (Việt Nam, UTC+7): <strong>{journeyTime(selectedCruise.departureDatetime)} – {journeyTime(selectedCruise.returnDatetime)}</strong></> : 'Giờ tàu (Việt Nam, UTC+7).'}</p>
+      {(['startTime', 'endTime'] as const).map(key => <Field key={key} htmlFor={'activity-' + key} label={key === 'startTime' ? 'Bắt đầu *' : 'Kết thúc *'} error={errors[key]}><input {...input(key)} type="datetime-local" step={60} min={key === 'endTime' && draft.startTime ? draft.startTime : cruiseMin} max={cruiseMax} value={draft[key]} onChange={event => update(key, event.target.value)} /></Field>)}
       {(['capacity', 'price'] as const).map(key => <Field key={key} htmlFor={'activity-' + key} label={key === 'capacity' ? 'Sức chứa *' : 'Giá tham gia'} error={errors[key]}><input {...input(key)} type="number" min={key === 'capacity' ? 1 : 0} step={key === 'capacity' ? 1 : 'any'} value={draft[key] === null || Number.isNaN(draft[key]) ? '' : draft[key]} onChange={event => update(key, event.target.value === '' ? key === 'price' ? null : NaN : Number(event.target.value))} /></Field>)}
       <Field htmlFor="activity-currencyCode" label="Đơn vị tiền tệ" error={errors.currencyCode}>
         <select {...input('currencyCode')} value={draft.currencyCode} onChange={event => update('currencyCode', event.target.value)}>

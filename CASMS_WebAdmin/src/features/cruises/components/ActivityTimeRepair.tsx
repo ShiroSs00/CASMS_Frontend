@@ -32,9 +32,9 @@ export function ActivityTimeRepair({cruiseId,activityId,onClose,onSaved}:{cruise
    <h3>{data.name}</h3><p>Giờ hiện tại: {show(data.startsAt)} → {show(data.endsAt)}</p>
    <p>Thời gian chuyến: {show(data.earliestStart)} → {show(data.latestEnd)} · Giờ tàu (Việt Nam)</p>
    {data.canRepair?<><p>Chỉ sửa giờ đang sai của bản nháp. Sau khi lưu hợp lệ, giờ hoạt động sẽ khóa lại theo lịch trình cố định.</p>
-    <form id="activity-time-repair-form" className={styles.modalForm} onSubmit={save}><fieldset disabled={busy||uncertain}>
-     <Field htmlFor="repair-activity-start" label="Giờ bắt đầu mới · Giờ Việt Nam"><input id="repair-activity-start" name="start" type="datetime-local" step={1} min={data.earliestStart?zonedInput(data.earliestStart,SHIP_TIME_ZONE):undefined} max={data.latestEnd?zonedInput(data.latestEnd,SHIP_TIME_ZONE):undefined} required/></Field>
-     <Field htmlFor="repair-activity-end" label="Giờ kết thúc mới · Giờ Việt Nam"><input id="repair-activity-end" name="end" type="datetime-local" step={1} min={data.earliestStart?zonedInput(data.earliestStart,SHIP_TIME_ZONE):undefined} max={data.latestEnd?zonedInput(data.latestEnd,SHIP_TIME_ZONE):undefined} required/></Field>
+    <form id="activity-time-repair-form" className={styles.modalForm} noValidate onSubmit={save}><fieldset disabled={busy||uncertain}>
+     <Field htmlFor="repair-activity-start" label="Giờ bắt đầu mới · Giờ Việt Nam *"><input id="repair-activity-start" name="start" type="datetime-local" step={60} defaultValue={data.earliestStart?zonedInput(data.earliestStart,SHIP_TIME_ZONE).slice(0,16):''} min={data.earliestStart?zonedInput(data.earliestStart,SHIP_TIME_ZONE).slice(0,16):undefined} max={data.latestEnd?zonedInput(data.latestEnd,SHIP_TIME_ZONE).slice(0,16):undefined} required/></Field>
+     <Field htmlFor="repair-activity-end" label="Giờ kết thúc mới · Giờ Việt Nam *"><input id="repair-activity-end" name="end" type="datetime-local" step={60} defaultValue={data.earliestStart&&data.latestEnd?zonedInput(Math.min(Date.parse(data.earliestStart)+2*3600_000,Date.parse(data.latestEnd)),SHIP_TIME_ZONE).slice(0,16):''} min={data.earliestStart?zonedInput(data.earliestStart,SHIP_TIME_ZONE).slice(0,16):undefined} max={data.latestEnd?zonedInput(data.latestEnd,SHIP_TIME_ZONE).slice(0,16):undefined} required/></Field>
     </fieldset></form></>:<Notice title="Không thể sửa giờ bằng thao tác này">{businessErrorMessage(data.blocker??undefined,'')}</Notice>}
   </>}
   {error&&<Notice title="Chưa lưu được giờ hoạt động" tone="error">{error}</Notice>}

@@ -85,6 +85,7 @@ function decodeReview(value: ReviewDetails, id: string) {
 }
 export const staffingApi = {
   inbox: (signal: AbortSignal) => apiRequest<StaffingRequest[]>(path+'/inbox', { signal }),
+  pipeline: (signal: AbortSignal) => apiRequest<StaffingRequest[]>(path+'/pipeline', { signal }),
   cruisesWithoutShipManager: (signal: AbortSignal) =>
     apiRequest<Pick<StaffingRequest, 'cruiseId' | 'cruiseName' | 'cruiseCode'>[]>(path+'/ship-manager-needed', { signal }),
   detail: (id: string, signal: AbortSignal) =>
@@ -166,6 +167,30 @@ export function staffingStatusLabel(request: StaffingRequest) {
   if (request.workflowVersion === 'V2' && request.status === 'HR_SUBMITTED') return 'Chờ Quản lý lịch trình kiểm tra'
   if (request.shipReviewWorkflow && request.status === 'SHIP_CONFIRMED') return 'Chờ Quản lý nhân sự duyệt'
   return staffingStatus[request.status] ?? 'Trạng thái chưa xác định'
+}
+
+export function staffingStageGuidance(request: StaffingRequest) {
+  switch (request.status) {
+    case 'PENDING_ASM':
+      return 'Bước 1/5 · Chờ Quản lý dịch vụ hoàn tất chương trình (có thể gắn Quản lý tàu trước ở mục trên).'
+    case 'PENDING_SHIP_REVIEW':
+      return 'Bước 2/5 · Chờ Quản lý tàu mở khu vực, gắn POS và lập định biên nhân sự.'
+    case 'SHIP_REVIEWED':
+      return 'Bước 3/5 · Quản lý tàu đã xong phương án, chờ Quản lý lịch trình chuyển sang HR.'
+    case 'SENT_TO_HR':
+      return 'Bước 4/5 · Đang chờ Quản lý nhân sự phân công nhân sự & ca hoạt động.'
+    case 'HR_SUBMITTED':
+      return 'Bước 5/5 · HR đã hoàn tất phân công, chờ Quản lý lịch trình kiểm tra trình duyệt.'
+    case 'PLANNER_CONFIRMED':
+    case 'HR_APPROVED':
+      return 'Bước 5/5 · Đã trình Quản lý vận hành phê duyệt phương án nhân sự.'
+    case 'OPS_APPROVED':
+      return 'Hoàn tất · Phương án tàu và nhân sự đã được Quản lý vận hành phê duyệt.'
+    case 'RETURNED':
+      return 'Đã trả bổ sung · Chờ bộ phận liên quan cập nhật lại.'
+    default:
+      return 'Đang xử lý trong quy trình chuẩn bị chuyến.'
+  }
 }
 
 export function staffingMissing(request: StaffingRequest) {

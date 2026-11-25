@@ -41,17 +41,19 @@ export function ExcursionForm({ initial, busy, pending=busy, onSave }: { initial
   const zone = stop?.timeZoneId
   const hasZone = validTimeZone(zone)
   const displayTime = (instant: string) => hasZone ? journeyTime(instant, zone) : 'Chưa có múi giờ cảng'
-  const timeValue = (field: 'startTime' | 'plannedReturnTime') => timeEdits[field] ??
-    (initial && initial.cruiseStopId === stopId && hasZone ? zonedInput(initial[field], zone) : '')
   const window = excursionWindow(stop)
   const occupied = scheduledExcursions(schedule.data ?? [], initial?.shoreExcursionId)
   const suggestion = schedule.data ? suggestExcursionTimes(stop, occupied) : null
+  const timeValue = (field: 'startTime' | 'plannedReturnTime') => timeEdits[field] ??
+    (initial && initial.cruiseStopId === stopId && hasZone
+      ? zonedInput(initial[field], zone).slice(0, 16)
+      : (!initial && suggestion ? suggestion[field] : ''))
   const earliest = window && hasZone ? zonedInput(Math.ceil(window.earliestStart / 60000) * 60000, zone).slice(0, 16) : undefined
   const latest = window && hasZone ? zonedInput((Math.ceil(window.returnDeadline / 60000) - 1) * 60000, zone).slice(0, 16) : undefined
   function change(key: keyof ExcursionFormValues, value: string) {
     if (key === 'startTime' || key === 'plannedReturnTime') setTimeEdits(previous => ({ ...previous, [key]: value }))
     else setValues(previous => ({ ...previous, [key]: value }))
-    if (key === 'cruiseStopId') setTimeEdits({ startTime: '', plannedReturnTime: '' })
+    if (key === 'cruiseStopId') setTimeEdits({})
     setErrors(previous => {
       const next = { ...previous }
       delete next[key]
@@ -101,7 +103,7 @@ export function ExcursionForm({ initial, busy, pending=busy, onSave }: { initial
           {schedule.loading && <p className={styles.hint} role="status">Đang tải lịch tham quan tại điểm dừng…</p>}
           {schedule.error && <Notice title="Chưa tải được lịch tham quan" tone="warning">Có thể nhập giờ thủ công; hệ thống sẽ kiểm tra trùng lịch khi lưu. <Button tone="secondary" onClick={schedule.retry}>Tải lại lịch</Button></Notice>}
           {occupied.length > 0 && <div><strong>Lịch đã có tại điểm dừng</strong><ul className={styles.scheduleList}>{occupied.map(item => <li key={item.shoreExcursionId}>{item.excursionName}: {displayTime(item.startTime)} – {displayTime(item.plannedReturnTime)}</li>)}</ul></div>}
-          {suggestion && <div className={styles.suggestion}><p>Khung giờ trống gợi ý: {displayTime(suggestion.startTime)} – {displayTime(suggestion.plannedReturnTime)}. Có thể chỉnh lại sau khi chọn.</p><Button tone="secondary" onClick={() => { setTimeEdits(suggestion); setErrors({}); setContextError('') }}>Dùng khung giờ gợi ý</Button></div>}
+          {suggestion && <div className={styles.suggestion}><p>{!initial && timeEdits.startTime === undefined && timeEdits.plannedReturnTime === undefined ? `Đã tự động điền khung giờ trống gợi ý: ${displayTime(suggestion.startTime)} – ${displayTime(suggestion.plannedReturnTime)}. Bạn có thể chỉnh lại bên dưới.` : `Khung giờ trống gợi ý: ${displayTime(suggestion.startTime)} – ${displayTime(suggestion.plannedReturnTime)}. Có thể chỉnh lại sau khi chọn.`}</p>{(initial || timeEdits.startTime !== undefined || timeEdits.plannedReturnTime !== undefined) && <Button tone="secondary" onClick={() => { setTimeEdits(suggestion); setErrors({}); setContextError('') }}>Dùng khung giờ gợi ý</Button>}</div>}
           {!schedule.loading && !schedule.error && !suggestion && <p className={styles.hint}>Chưa có khoảng trống đủ một phút trong giờ lưu cảng. Chọn điểm dừng khác hoặc cập nhật lịch tham quan đã có.</p>}
         </section>}
         {fields.map(({ key, label, type = 'text', maxLength, required }) => <div key={key} className={key === 'price' ? styles.fullRow : undefined}><Field htmlFor={`excursion-${key}`} label={`${label}${required ? ' *' : ''}`} error={errors[key]}>
