@@ -3,7 +3,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { brand, lightTheme } from '@/constants/ocevie';
+import { brand, contentLayout, controls, lightTheme, spacing, typeScale } from '@/constants/ocevie';
 import { useAuth } from '@/features/auth/session-store';
 import { OceVieBrand } from './OceVieBrand';
 import { MaterialIcon } from './MaterialIcon';
@@ -42,12 +42,12 @@ export function PassengerScaffold({ children, selected = 'home', title, detail =
 }
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: lightTheme.background },
-  header: { minHeight: 64, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8, width: '100%', maxWidth: 600, alignSelf: 'center' },
-  heading: { flex: 1, gap: 2 },
+  header: { minHeight: 64, paddingHorizontal: spacing.lg, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, width: '100%', maxWidth: contentLayout.passenger, alignSelf: 'center' },
+  heading: { flex: 1, minWidth: 0, gap: spacing.xs },
   kicker: { fontSize: 12, lineHeight: 16, letterSpacing: 1.8, fontWeight: '600', color: brand.teal },
-  title: { fontSize: 23, lineHeight: 32, fontWeight: '700', color: brand.navy },
-  detailTitle: { fontSize: 18, lineHeight: 26 },
-  iconButton: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  title: { ...typeScale.title, color: brand.navy },
+  detailTitle: { ...typeScale.section },
+  iconButton: { width: controls.touch, height: controls.touch, borderRadius: controls.radius, alignItems: 'center', justifyContent: 'center' },
   avatar: { width: 48, height: 48, borderRadius: 14, backgroundColor: brand.tealSoft, alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1 },
 });

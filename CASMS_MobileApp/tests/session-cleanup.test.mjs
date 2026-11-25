@@ -24,7 +24,7 @@ registerHooks({ resolve(specifier, context, nextResolve) {
 } });
 const { authActions, useAuth } = await import('../src/features/auth/session-store.ts');
 const { queryClient } = await import('../src/lib/query-client.ts');
-const { savePosSession, restorePosSession, savePendingSale, readPendingSale } = await import('../src/features/pos/pos-storage.ts');
+const { savePosSession, restorePosSession, savePendingSale, readPendingSale, clearPendingSale } = await import('../src/features/pos/pos-storage.ts');
 const { scopedPos } = await import('../src/features/pos/pos-api.ts');
 const { chooseVoyage, useVoyageSelection } = await import('../src/features/passenger-actions/voyage-selection.ts');
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -162,4 +162,62 @@ test('resume expires the session before any request when the clock passed expiry
   authActions.resume();
   assert.equal(useAuth.getState().status, 'expired');
   assert.equal(requests.length, calls);
+});
+
+
+test('POS journal serializes concurrent intents and refuses stale clear or another owner', async () => {
+  const scope = { owner: id(5), terminalId: id(31), areaId: id(3), cruiseId: id(4), signedInAt: 1 };
+  const work = { serviceName: 'Service', input: { serviceId: id(10), onboardAccountId: id(11), bookingPassengerId: id(12), quantity: 1, idempotencyKey: 'journal-a' } };
+  const next = { ...work, input: { ...work.input, idempotencyKey: 'journal-b' } };
+  const results = await Promise.allSettled([savePendingSale(scope, work), savePendingSale(scope, next)]);
+  assert.equal(results[0].status, 'fulfilled'); assert.equal(results[1].status, 'rejected');
+  await assert.rejects(clearPendingSale(scope, 'journal-b'), e => e.code === 'POS_SALE_BUSY');
+  await assert.rejects(savePendingSale({ ...scope, owner: id(6) }, work));
+  await assert.rejects(clearPendingSale({ ...scope, owner: id(6) }, 'journal-a'));
+  assert.deepEqual((await readPendingSale(scope)).sale, work);
+  await clearPendingSale(scope, 'journal-a'); assert.equal(await readPendingSale(scope), null);
+});
+
+test('POS journal survives session epoch change and blocks another voyage or environment', async () => {
+  const scope = { owner: id(5), terminalId: id(32), areaId: id(3), cruiseId: id(4), signedInAt: 1 };
+  const work = { serviceName: 'Service', input: { serviceId: id(10), onboardAccountId: id(11), bookingPassengerId: id(12), quantity: 1, idempotencyKey: 'epoch-a' } };
+  await savePendingSale(scope, work);
+  assert.equal((await readPendingSale({ ...scope, signedInAt: 2 })).previousSession, true);
+  assert.deepEqual(await readPendingSale({ ...scope, cruiseId: id(99) }), { kind: 'blocked' });
+  assert.deepEqual(await readPendingSale(scope, 'https://other.invalid/api'), { kind: 'blocked' });
+  const reordered = { ...work, input: { idempotencyKey: 'epoch-a', quantity: 1, bookingPassengerId: id(12), onboardAccountId: id(11), serviceId: id(10) } };
+  await savePendingSale(scope, reordered);
+  await clearPendingSale(scope, 'epoch-a');
+});
+
+test('in-flight POS response after employee switch is uncertain and never accepted', async () => {
+  user = 5; await authActions.login('staff-5', 'test-only-password');
+  const login = useAuth.getState().session;
+  const client = scopedPos(login.user.id, login.signedInAt, pos.sessionToken);
+  const previousFetch = globalThis.fetch;
+  let resolve;
+  globalThis.fetch = () => new Promise(done => { resolve = done; });
+  try {
+    const operation = client.services();
+    await Promise.resolve();
+    useAuth.setState({ session: { ...login, user: { ...login.user, id: id(6) } } });
+    resolve(Response.json({ success: true, data: [] }));
+    await assert.rejects(operation, e => e.status === 502 && e.code === 'POS_STALE_RESULT');
+  } finally { globalThis.fetch = previousFetch; useAuth.setState({ session: login }); }
+});
+
+
+test('different legacy and terminal pending intents stay blocked and neither is deleted', async () => {
+  const scope = { owner: id(5), terminalId: id(33), areaId: id(3), cruiseId: id(4), signedInAt: 2 };
+  const work = { serviceName: 'Service', input: { serviceId: id(10), onboardAccountId: id(11), bookingPassengerId: id(12), quantity: 1, idempotencyKey: 'terminal-intent' } };
+  await savePendingSale(scope, work);
+  const legacyKey = `ocevie.pos.pending.${scope.owner}.${scope.terminalId}.${scope.areaId}.${scope.cruiseId}`;
+  const terminalKey = `ocevie.pos.pending-terminal.${scope.terminalId}`;
+  values.set(legacyKey, JSON.stringify({ ...work, backend: process.env.EXPO_PUBLIC_API_URL, input: { ...work.input, idempotencyKey: 'legacy-intent' } }));
+  assert.deepEqual(await readPendingSale(scope), { kind: 'blocked' });
+  await assert.rejects(clearPendingSale(scope, 'terminal-intent'), e => e.code === 'POS_SALE_BUSY');
+  await assert.rejects(savePendingSale(scope, work));
+  assert.ok(values.has(legacyKey)); assert.ok(values.has(terminalKey));
+  values.delete(legacyKey);
+  await clearPendingSale(scope, 'terminal-intent');
 });

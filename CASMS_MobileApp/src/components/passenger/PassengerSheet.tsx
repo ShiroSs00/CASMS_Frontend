@@ -40,9 +40,9 @@ export function PassengerSheet({ visible, title, children, onClose, dismissible 
   const displayed = visible ? { title, children, contentKey } : snapshot;
   function close() { if (visible && dismissible) onClose(); }
   return <Modal visible={visible || mounted} transparent animationType="none" statusBarTranslucent onRequestClose={close}>
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.overlay}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.overlay, { paddingTop: insets.top }]}>
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: overlays.modal, opacity: progress }]} />
-      <Pressable accessibilityRole="button" accessibilityLabel="Đóng bảng thông tin" accessibilityState={{ disabled: !dismissible || !visible }} disabled={!dismissible || !visible} onPress={close} style={StyleSheet.absoluteFill} />
+      <Pressable accessible={false} importantForAccessibility="no-hide-descendants" disabled={!dismissible || !visible} onPress={close} style={StyleSheet.absoluteFill} />
       <Animated.View accessibilityViewIsModal role="dialog" aria-label={displayed.title}
         accessibilityElementsHidden={!visible} pointerEvents={visible ? 'auto' : 'none'} style={[styles.sheet, expanded && { height: '90%' }, {
           paddingBottom: Math.max(insets.bottom, 16), opacity: progress,
@@ -52,7 +52,7 @@ export function PassengerSheet({ visible, title, children, onClose, dismissible 
         <View style={styles.header}><View style={styles.heading}><Text accessibilityRole="header" style={styles.title}>{displayed.title}</Text></View>
           <Pressable accessibilityRole="button" accessibilityLabel="Đóng" accessibilityState={{ disabled: !dismissible || !visible }} disabled={!dismissible || !visible} onPress={close} style={({ pressed }) => [styles.close, pressed && styles.pressed, !dismissible && { opacity: .4 }]}><MaterialIcon name="close" color={brand.navy} size={22} /></Pressable>
         </View>
-        <ScrollView key={displayed.contentKey} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content}>{displayed.children}</ScrollView>
+        <ScrollView key={displayed.contentKey} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content}>{displayed.children}</ScrollView>
       </Animated.View>
     </KeyboardAvoidingView>
   </Modal>;

@@ -1,0 +1,120 @@
+{
+  "date": "2026-11-25",
+  "timezone": "Asia/Saigon",
+  "frontend_head": "a6bd1d6b4078d33dd1cf9e23c63bcaa1fc812b43",
+  "backend_head": "0bc2b3831301a0d67d45bacc120a161dbacec026",
+  "branch": "main",
+  "upstream": "origin/main",
+  "acceptance": "FE_READY_WITH_EXTERNAL_BLOCKERS",
+  "tests": {
+    "baseline": 171,
+    "total": 189,
+    "pass": 189,
+    "fail": 0,
+    "skipped": 0,
+    "new_tests": 18
+  },
+  "sse_tests": {
+    "pass": 9,
+    "fail": 0,
+    "subset_of_full_suite": true,
+    "mode": "UNIT_CONTROLLER_FAKE_STREAM_TIMERS"
+  },
+  "typecheck": {
+    "exit_code": 0
+  },
+  "lint": {
+    "exit_code": 0,
+    "warnings": 0,
+    "errors": 0
+  },
+  "doctor": {
+    "exit_code": 1,
+    "pass": 19,
+    "total": 20,
+    "reason": "11 pre-existing SDK package mismatches"
+  },
+  "dependency_check": {
+    "exit_code": 1,
+    "mismatches": 11,
+    "project_dependency_changes_in_F": false
+  },
+  "export": {
+    "exit_code": 0,
+    "platforms": [
+      "android",
+      "ios",
+      "web"
+    ],
+    "static_routes": 36,
+    "path": "CASMS_MobileApp/dist/phase-f",
+    "scanned_artifacts": 77,
+    "fixture_url_matches": [],
+    "native_bundles": [
+      {
+        "path": "_expo/static/js/android/entry-aaa81eac93ee2a755e7145a1deb2a080.hbc",
+        "sha256": "319900e3a0811979ba3662ba55e12a709f6d8a294a3f99837bb436f3667ec4a6"
+      },
+      {
+        "path": "_expo/static/js/ios/entry-77bdf6fa66e8a8240cb9519adee38f7a.hbc",
+        "sha256": "f0fc71ff9e05bd6a7768315d375e2566d24703e73683e0a081f486ec65947915"
+      }
+    ]
+  },
+  "pos_source_unchanged_since_D": true,
+  "e0_source_unchanged": true,
+  "real_api": "NOT_RUN",
+  "realtime_backend_integration": "NOT_RUN",
+  "device_e2e": "NOT_RUN",
+  "rendered_ui": {
+    "attempted": true,
+    "avd": "Pixel_8",
+    "read_only": true,
+    "result": "BLOCKED_BY_ENVIRONMENT",
+    "observations": [
+      "System UI is not responding",
+      "Expo Go Failed to download remote update before app load"
+    ],
+    "images": [
+      "android-initial.png",
+      "android-retry.png"
+    ],
+    "error_dump": "android-error.xml",
+    "ui_helpers_stopped": true
+  },
+  "ship_model": {
+    "metadata_implemented": true,
+    "renderer_implemented": false,
+    "native_benchmark": "NOT_RUN",
+    "published_mapping_QA": "NOT_VERIFIED",
+    "local_metrics_file": "ship-model-local-metrics.json"
+  },
+  "push": "NOT_IMPLEMENTED_MISSING_BACKEND_CONTRACT",
+  "ack": "BLOCKED_BE_21",
+  "published_change_history": "BLOCKED_BE_22",
+  "backend_changes": false,
+  "database_mutations": false,
+  "web_changes": false,
+  "commit_push": false,
+  "git_diff_check": {
+    "exit_code": 0
+  },
+  "source_sha256": {
+    "src/app/_layout.tsx": "cf321cdfdb7f748017532f58c64ab5c21bb81397cf31ed67fb0a57944eab1fd6",
+    "src/features/notifications/notification-contracts.ts": "d80c0ed8f9bc84fa70f8fc88d80821b3ca36b7f965ad4c0c5751d06adfdcce5e",
+    "src/features/notifications/notification-stream.ts": "410adc3ec498a4f013eb3e071d0ec6cd8045e57bb85f30ee4e4c477ce812162e",
+    "src/features/notifications/notification-queries.ts": "f07e1ba6a54a65eb39a59c2a47f7db3639afe3f6712884396f190b2ed156d8d9",
+    "src/features/notifications/NotificationSync.tsx": "62595cf3fec09d56f45ec39096268728dfeed30f105d31577f103c21f2737716",
+    "src/features/notifications/PassengerNotificationsScreen.tsx": "9eb3c5d56bbd517028dd0b382e2aba5f99c8f0723a64841fd624199e23ede6b9",
+    "src/features/passenger-actions/passenger-api.ts": "77d6d6c244098c57c610f423bfd9fd349d56dbc690e14b55feb7c9dcd1f1e410",
+    "src/features/home/voyage-home-model.ts": "bdf0fd65481bb24c2fae2cfcd302226755d7fa4d8551fd387e1af16ec5825673",
+    "src/features/itinerary/PassengerLiveItineraryScreen.tsx": "0f784d7065065469d47bdcd914aed10d90c1464b31169cab8fffbfcd78601867",
+    "src/features/itinerary/itinerary-client.ts": "7065f906e9d68c370f2e2de9ad9784baec4d5bdfa1e0d49e8f6c2cd5eb16a417",
+    "src/features/home/ship-information.ts": "0cda67b4f510404ab21851f070669c69c47a420873b795127339ec1dcaf3e405",
+    "src/features/home/PassengerDestinationScreen.tsx": "377c4bacebaa64c1cc8a40aff6869b529da8bc1579ce06361b8cbe19567f2c84",
+    "src/features/support/PassengerSupportScreen.tsx": "40323bb8861cb3804d1ac5a918bce966314164d57eff4fcdcd5ea947aabb6236",
+    "tests/notification-realtime.test.mjs": "7ddff63ead7e88a288f696ce2a5e8f5d839cd1ffc058ea5c9feee48076865349",
+    "tests/notification-contracts.test.mjs": "2f67d6b2e5aec669e0278db2a4f5c6ac3a654bd732bd1391d0d3a6a3fc955419",
+    "tests/fixtures/passenger-api-server.mjs": "86f57f0b6bce5995a665225da6ef7248df579ee264d91eb9ac48cddd50fde663"
+  }
+}

@@ -1,0 +1,16 @@
+Tool-call transcription, Phase G (not a rendered-UI log).
+Fixture: shell-local UI_FIXTURE_PORT=18086; node tests/fixtures/passenger-api-server.mjs.
+Observed: In-memory passenger UI fixture ready on port18086; no real data.
+Preview: shell-local EXPO_PUBLIC_API_URL=http://127.0.0.1:18086/api; EXPO_NO_TELEMETRY=1; CI=1.
+Command: npx --no-install expo start --web --port8086.
+Observed: Using src/app as root for Expo Router; React Compiler enabled.
+Observed: Networking disabled; local dependency map fallback unreliable for version validation.
+Observed: Metro running in CI mode, reloads disabled; Starting Metro Bundler; Waiting on http://localhost:8086.
+Observed: React Native DevTools latest download failed, fallback used; NO_COLOR/FORCE_COLOR warnings.
+Connectivity/product load: NOT_VERIFIED; curl HTTP000, IAB webview attachment timed out twice.
+Package/config/.env not changed for preview. Fixture is test-only, never a Real API claim.
+Known helper PIDs verified by command line and stopped: fixture27488, npx24668, Metro29056.
+AVD host diagnostics: emulator-5554 device; sys.boot_completed=1; ExpoGo versionName58.0.5.
+Additional read-only getprop results: Android release16, CPU ABI x86_64.
+pm list packages casms|ocevie: no matching package. No dev build installed in G.
+AVD stopped using adb -s emulator-5554 emu kill: OK.

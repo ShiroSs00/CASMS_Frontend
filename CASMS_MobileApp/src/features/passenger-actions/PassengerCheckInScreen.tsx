@@ -17,7 +17,7 @@ const labels = {
 export function PassengerCheckInScreen() {
   const { bookingId } = useLocalSearchParams<{ bookingId?: string }>();
   const requested = typeof bookingId === 'string' ? bookingId.toLowerCase() : '';
-  const [choice, setChoice] = useState<{ requested: string; passengerId: string }>();
+  const [choice, setChoice] = useState<{ requested: string; passengerId: string; epoch: number | undefined }>();
   const context = usePassengerContext();
   const selected = useVoyageSelection(state => state.selection);
   const scope = context.owner && context.auth.session ? { owner: context.owner, apiUrl: getApiUrl(), signedInAt: context.auth.session.signedInAt } : null;
@@ -25,7 +25,7 @@ export function PassengerCheckInScreen() {
   const options = (voyages.error ? [] : voyages.data ?? []).filter(item => item.bookingStatus === 'Confirmed' && item.participationStatus === 'Active');
   const requestedRows = requested ? options.filter(item => item.bookingId === requested) : options;
   const current = resolveVoyage(scope, selected, options);
-  const chosen = requested ? choice && choice.requested === requested ? requestedRows.find(item => item.bookingPassengerId === choice.passengerId)
+  const chosen = requested ? choice && choice.requested === requested && choice.epoch === context.auth.session?.signedInAt ? requestedRows.find(item => item.bookingPassengerId === choice.passengerId)
     : requestedRows.find(item => item.bookingPassengerId === current?.bookingPassengerId) ?? (requestedRows.length === 1 ? requestedRows[0] : undefined)
     : current;
   const bookings = usePassengerQuery(['bookings'], passengerApi.bookings, 'BOOKING_READ', !!chosen);
@@ -33,22 +33,26 @@ export function PassengerCheckInScreen() {
   const booking = usePassengerQuery(['booking', ownBookingId], signal => passengerApi.booking(ownBookingId, signal),
     'BOOKING_READ', !!ownBookingId);
   const contractAccepted = booking.data && !booking.error ? booking.data.contractStatus === 'Accepted' : undefined;
+  const person = booking.data?.passengers.find(row => row.bookingPassengerId === chosen?.bookingPassengerId && row.participationStatus === 'Active');
   return <LivePage title="Check-in trước chuyến" permission="CHECKIN_READ">
     {!context.can('BOOKING_READ') ? <Text style={ui.body}>Tài khoản cần quyền xem chuyến đã đặt để chọn hồ sơ check-in.</Text> : <>
       <ErrorNotice error={voyages.error} retry={() => { void voyages.refetch(); }} />
-      {voyages.isPending && <Loading text="Đang tải chuyến đi của bạn…" />}
+      <ErrorNotice error={bookings.error ?? booking.error} retry={() => { void bookings.refetch(); if (ownBookingId) void booking.refetch(); }} />
+      {voyages.isLoading && <Loading text="Đang tải chuyến đi của bạn…" />}
+      {voyages.fetchStatus === 'paused' && <Text style={ui.body}>Đang chờ kết nối để tải hồ sơ chuyến đi.</Text>}
       {voyages.isSuccess && options.length === 0 && <EmptyState title="Chưa có hồ sơ check-in" description="Cần có đặt chỗ đã xác nhận." />}
       {!!options.length && <Choice label="Chuyến cần check-in" value={chosen?.bookingPassengerId ?? ''}
         items={options.map(item => ({ id: item.bookingPassengerId, label: `${item.cruiseName} · ${item.bookingReference}` }))}
         onChange={passengerId => {
           const row = options.find(item => item.bookingPassengerId === passengerId);
           if (scope && row) chooseVoyage(scope, options, row.bookingId, passengerId);
-          setChoice({ requested, passengerId });
+          setChoice({ requested, passengerId, epoch: context.auth.session?.signedInAt });
         }} />}
       {!!requested && requestedRows.length === 0 && !!options.length && !chosen &&
         <Text style={ui.body}>Đặt chỗ trong liên kết không khả dụng. Vui lòng chọn lại chuyến.</Text>}
-      {chosen && <PassengerCheckIn key={chosen.bookingPassengerId} passengerId={chosen.bookingPassengerId} bookingId={chosen.bookingId}
-        contractAccepted={contractAccepted} refreshingVoyages={voyages.isFetching}
+      {chosen && person && <View style={ui.card}><Text style={ui.sectionTitle}>{person.fullName}</Text><Text style={ui.body}>{chosen.cruiseName}</Text><Text style={ui.body}>{booking.data?.shipName ?? 'Chưa có thông tin tàu'}</Text><Text style={ui.body}>{person.cabinNumber ? 'Phòng ' + person.cabinNumber : 'Chưa được gán phòng'}</Text></View>}
+      {chosen && <PassengerCheckIn key={context.auth.session?.signedInAt + ':' + chosen.bookingPassengerId} passengerId={chosen.bookingPassengerId} bookingId={chosen.bookingId}
+        contractAccepted={contractAccepted} refreshingVoyages={voyages.isFetching || bookings.isFetching || !!bookings.error || booking.isFetching || !!booking.error || !person}
         closedVoyage={['COMPLETED', 'CANCELLED'].includes(chosen.cruiseStatus)} />}
     </>}
   </LivePage>;
@@ -56,7 +60,7 @@ export function PassengerCheckInScreen() {
 
 function missingCheckin(error: unknown, passengerId: string) {
   return error instanceof ApiError && error.status === 404 && error.code === 'RESOURCE_NOT_FOUND'
-    && error.message === `Checkin record not found for passenger: ${passengerId}`;
+    && !!passengerId;
 }
 
 type CheckInRecord = Awaited<ReturnType<typeof passengerApi.checkin>>;
@@ -86,8 +90,8 @@ function PassengerCheckIn({ passengerId, bookingId, contractAccepted, refreshing
   const current = record?.checkinStatus;
   const contactSaved = hasEmergencyContact(record);
   const mayStart = canStartCheckin(record, missing);
-  const mayComplete = (current === 'InProgress' || current === 'Completed') && contactSaved && contractAccepted !== false;
-  const valid = name.trim().length >= 2 && /^\+?\d{8,15}$/.test(phone.trim());
+  const mayComplete = (current === 'InProgress' || current === 'Completed') && contactSaved && contractAccepted === true;
+  const valid = !!name.trim() && !!phone.trim();
   const ready = !closedVoyage && !refreshingVoyages && !status.isFetching && (!status.error || missing);
 
   async function submit() {
@@ -124,11 +128,14 @@ function PassengerCheckIn({ passengerId, bookingId, contractAccepted, refreshing
   }
 
   return <>
-    {status.isPending && <Loading text="Đang tải hồ sơ check-in…" />}
+    {status.isLoading && <Loading text="Đang tải hồ sơ check-in…" />}
+    {status.fetchStatus === 'paused' && <Text style={ui.body}>Đang chờ kết nối để cập nhật check-in. Kiểm tra mạng trước khi tiếp tục.</Text>}
     {!missing && <ErrorNotice error={status.error} retry={() => { void status.refetch(); }} />}
     {notice && <Text accessibilityLiveRegion="polite" style={ui.body}>{notice}</Text>}
     {(record || missing) && <View style={ui.card}>
       <Text accessibilityRole="header" style={ui.sectionTitle}>{current ? labels[current] : labels.NotStarted}</Text>
+      {!!record?.boardingBlockReason && <Text style={ui.body}>{record.boardingBlockReason}</Text>}
+      {current === 'BoardingReady' && <Text style={ui.caption}>Trạng thái này xác nhận hồ sơ đủ điều kiện, việc lên tàu được kiểm tra tại quầy.</Text>}
       {record?.boardingReadyAt && <Text style={ui.body}>{dateTime(record.boardingReadyAt)}</Text>}
       {closedVoyage && <Text style={ui.body}>Chuyến đã kết thúc hoặc bị hủy. Hồ sơ chỉ có thể xem lại.</Text>}
       {!closedVoyage && current === 'BoardingReady' && <PassengerButton label="Thông tin thẻ lên tàu" variant="secondary"
@@ -150,7 +157,7 @@ function PassengerCheckIn({ passengerId, bookingId, contractAccepted, refreshing
       onClose={() => { if (!lock.current) setConfirm(undefined); }} onConfirm={() => { void submit(); }}>
       {confirm === 'start' && <>
         <Input label="Họ tên người liên hệ" value={name} onChange={setName} maxLength={100} disabled={action.isPending} />
-        <Input label="Số điện thoại (8–15 chữ số)" value={phone} onChange={setPhone} maxLength={16} disabled={action.isPending} phone />
+        <Input label="Số điện thoại người liên hệ" value={phone} onChange={setPhone} disabled={action.isPending} phone />
       </>}
     </ConfirmAction>
   </>;

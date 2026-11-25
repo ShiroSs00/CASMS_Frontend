@@ -46,7 +46,7 @@ export function PassengerAccountScreen() {
       {canUseVoyage && voyage && (context.can('ACTIVITY_READ') || context.can('EXCURSION_READ')) && <PassengerListItem compact
         title="Hoạt động và tour của tôi" supporting="" icon="explore"
         onPress={() => router.push({ pathname: '/passenger-activities', params: { bookingId: voyage.bookingId } })} />}
-      {context.can('TOUR_PACKAGE_ASSIGN') && <PassengerListItem compact title="Gói dịch vụ" supporting="" icon="restaurant" onPress={() => router.push('/passenger-packages')} />}
+      {context.can('BOOKING_READ') && <PassengerListItem compact title="Quyền lợi đã mua" supporting="" icon="restaurant" onPress={() => router.push('/passenger-packages')} />}
       {canUseVoyage && voyage && context.can('CHECKIN_READ') && <PassengerListItem title="Check-in trước chuyến"
         supporting="Xem tình trạng và hoàn tất hồ sơ" icon="assignment_ind"
         onPress={() => router.push({ pathname: '/check-in', params: { bookingId: voyage.bookingId } })} />}

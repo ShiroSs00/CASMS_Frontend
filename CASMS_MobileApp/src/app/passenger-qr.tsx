@@ -1,16 +1,8 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { PassengerButton } from '@/components/passenger/PassengerButton';
-import { EmptyState } from '@/components/passenger/PassengerUI';
-import { LivePage } from '@/features/passenger-actions/PassengerActionUI';
+import { PassengerCardScreen } from '@/features/passenger-actions/PassengerCardScreen';
+import { useSelectedItinerary } from '@/features/itinerary/itinerary-api';
+import { getApiUrl } from '@/lib/api';
 
 export default function PassengerQrRoute() {
-  const { bookingId } = useLocalSearchParams<{ bookingId?: string }>();
-  return <LivePage title="Thẻ lên tàu">
-    <EmptyState icon="assignment_ind" title="Nhận thẻ lên tàu tại quầy"
-      description="Quầy dịch vụ hành khách hỗ trợ nhận thẻ và kiểm tra check-in." />
-    <PassengerButton label="Xem tình trạng check-in" onPress={() => router.dismissTo({
-      pathname: '/check-in', params: typeof bookingId === 'string' ? { bookingId } : {},
-    })} />
-    <PassengerButton label="Trung tâm hỗ trợ" variant="text" onPress={() => router.push('/support')} />
-  </LivePage>;
+  const { context, voyage } = useSelectedItinerary();
+  return <PassengerCardScreen key={JSON.stringify([getApiUrl(), context.owner, context.auth.session?.signedInAt, voyage?.bookingId, voyage?.bookingPassengerId, voyage?.cruiseId])} />;
 }

@@ -42,10 +42,10 @@ export function ErrorNotice({ error, retry }: { error: unknown; retry?: () => vo
     ? error.message : errorText(error);
   return <View accessibilityLiveRegion="polite" style={styles.error}><Text selectable accessibilityRole="alert" style={styles.errorText}>{message}</Text>{retry && <PassengerButton label="Tải lại" variant="text" onPress={retry} />}</View>;
 }
-export function Loading({ text = 'Đang tải dữ liệu…' }: { text?: string }) { return <View style={styles.row}><ActivityIndicator color={brand.teal} /><Text style={ui.body}>{text}</Text></View>; }
-export function LivePage({ title, permission, children, detail = true, selected = 'services', onRefresh, refreshing = false }: {
+export function Loading({ text = 'Đang tải dữ liệu…' }: { text?: string }) { return <View accessible accessibilityLabel={text} accessibilityState={{ busy: true }} style={styles.row}><ActivityIndicator accessible={false} color={brand.teal} /><Text style={ui.body}>{text}</Text></View>; }
+export function LivePage({ title, permission, children, detail = true, selected = 'services', onRefresh, refreshing = false, scroll = true }: {
   title: string; permission?: string; children: ReactNode; detail?: boolean; selected?: PassengerTab;
-  onRefresh?: () => void; refreshing?: boolean;
+  onRefresh?: () => void; refreshing?: boolean; scroll?: boolean;
 }) {
   const context = usePassengerContext();
   const pathname = usePathname();
@@ -56,15 +56,16 @@ export function LivePage({ title, permission, children, detail = true, selected 
   if (context.auth.session && !context.live) {
     return <Redirect href={workspaceDestination(context.auth.session.user) ?? '/loading'} />;
   }
-  return <PassengerScaffold detail={detail} selected={detail ? 'account' : selected} title={title}><ScrollView automaticallyAdjustKeyboardInsets
-    keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={ui.content}
-    refreshControl={onRefresh && context.ready ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={brand.teal} /> : undefined}>
-    {context.auth.status === 'restoring' ? <Loading text="Đang khôi phục phiên…" /> : !context.live ? <EmptyState title="Đăng nhập tài khoản hành khách" description="Vui lòng đăng nhập tài khoản hành khách để tiếp tục." />
+  const content = context.auth.status === 'restoring' ? <Loading text="Đang khôi phục phiên…" /> : !context.live ? <EmptyState title="Đăng nhập tài khoản hành khách" description="Vui lòng đăng nhập tài khoản hành khách để tiếp tục." />
       : context.error ? <ErrorNotice error={context.error} retry={() => { void context.me.refetch(); }} />
         : context.me.fetchStatus === 'paused' && !context.ready ? <EmptyState title="Đang chờ kết nối" description="Kiểm tra kết nối mạng để tiếp tục xác minh tài khoản." />
           : !context.ready ? <Loading text="Đang xác minh tài khoản…" />
-          : permission && !context.can(permission) ? <EmptyState title="Chưa có quyền truy cập" description="Vui lòng liên hệ đội ngũ hỗ trợ nếu bạn cần sử dụng tính năng này." /> : children}
-  </ScrollView></PassengerScaffold>;
+          : permission && !context.can(permission) ? <EmptyState title="Chưa có quyền truy cập" description="Vui lòng liên hệ đội ngũ hỗ trợ nếu bạn cần sử dụng tính năng này." /> : children;
+  return <PassengerScaffold detail={detail} selected={detail ? 'account' : selected} title={title}>
+    {scroll ? <ScrollView automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={ui.content}
+      refreshControl={onRefresh && context.ready ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={brand.teal} /> : undefined}>{content}</ScrollView>
+      : <View style={{ flex: 1 }}>{content}</View>}
+  </PassengerScaffold>;
 }
 export function BookingSelection({ selection, draft = false }: { selection: ReturnType<typeof useBookingSelection>; draft?: boolean }) {
   const context = usePassengerContext();
@@ -93,10 +94,10 @@ export function Choice({ label, value, items, onChange, disabled = false }: { la
   const [open, setOpen] = useState(false);
   const selected = items.find(i => i.id === value);
   return <View style={{ gap: 6 }}><Text style={ui.caption}>{label}</Text>
-    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled, expanded: open }} disabled={disabled} onPress={() => setOpen(true)} style={({ pressed }) => [styles.input, styles.choice, pressed && { borderColor: brand.teal, backgroundColor: brand.tealSoft }, disabled && { opacity: .6 }]}><Text style={[ui.body, { flex: 1, color: selected ? brand.navy : lightTheme.placeholder }]}>{selected?.label ?? 'Chọn…'}</Text><MaterialIcon name="expand_more" color={brand.teal} size={20} /></Pressable>
+    <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${selected?.label ?? 'Chưa chọn'}`} accessibilityState={{ disabled, expanded: open }} disabled={disabled} onPress={() => setOpen(true)} style={({ pressed }) => [styles.input, styles.choice, pressed && { borderColor: brand.teal, backgroundColor: brand.tealSoft }, disabled && { opacity: .6 }]}><Text style={[ui.body, { flex: 1, color: selected ? brand.navy : lightTheme.placeholder }]}>{selected?.label ?? 'Chọn…'}</Text><MaterialIcon name="expand_more" color={brand.teal} size={20} /></Pressable>
     <PassengerSheet visible={open} title={label} onClose={() => setOpen(false)}>
       {!items.length && <Text style={ui.body}>Chưa có lựa chọn phù hợp.</Text>}
-      {items.map(item => <Pressable key={item.id} accessibilityRole="radio" accessibilityLabel={item.label} accessibilityState={{ checked: item.id === value }} onPress={() => { onChange(item.id); setOpen(false); }} style={({ pressed }) => [styles.option, (pressed || item.id === value) && { borderColor: brand.teal, backgroundColor: brand.tealSoft }]}><Text style={[ui.body, { flex: 1, color: brand.navy }]}>{item.label}</Text><MaterialIcon name={item.id === value ? 'check_circle' : 'chevron_right'} color={brand.teal} size={22} /></Pressable>)}
+      {items.map(item => <Pressable key={item.id} accessibilityRole="radio" accessibilityLabel={item.label} accessibilityState={{ checked: item.id === value, disabled }} disabled={disabled} onPress={() => { if (!disabled) { onChange(item.id); setOpen(false); } }} style={({ pressed }) => [styles.option, (pressed || item.id === value) && { borderColor: brand.teal, backgroundColor: brand.tealSoft }]}><Text style={[ui.body, { flex: 1, color: brand.navy }]}>{item.label}</Text><MaterialIcon name={item.id === value ? 'check_circle' : 'chevron_right'} color={brand.teal} size={22} /></Pressable>)}
     </PassengerSheet>
   </View>;
 }
@@ -115,7 +116,7 @@ export const styles = StyleSheet.create({
   badgeText: { fontSize: 12, lineHeight: 18, fontWeight: '600' },
   choice: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
-  input: { borderWidth: 1, borderColor: lightTheme.border, borderRadius: 12, padding: 14, minHeight: 50, color: brand.navy, backgroundColor: lightTheme.surface, fontSize: 15 },
+  input: { borderWidth: 1, borderColor: lightTheme.controlBorder, borderRadius: 12, padding: 14, minHeight: 50, color: brand.navy, backgroundColor: lightTheme.surface, fontSize: 16 },
   option: { minHeight: 56, padding: 16, borderRadius: 14, borderWidth: 1, borderColor: lightTheme.divider, flexDirection: 'row', alignItems: 'center', gap: 12 },
   error: { padding: 14, gap: 8, borderRadius: 12, backgroundColor: statusColors.error.background }, errorText: { fontSize: 14, lineHeight: 22, color: statusColors.error.foreground },
 });

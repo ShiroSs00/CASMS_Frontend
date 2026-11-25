@@ -1,5 +1,6 @@
-import { useRef, useState, type ReactNode } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { useRef, useState, useCallback, type ReactNode } from 'react';
+import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -7,12 +8,21 @@ import { PassengerButton } from '@/components/passenger/PassengerButton';
 import { PassengerSheet, ui } from '@/components/passenger/PassengerUI';
 import { useMotionPreference } from '@/components/passenger/useMotionPreference';
 import { Loading } from '@/features/passenger-actions/PassengerActionUI';
-import { brand, lightTheme, statusColors } from '@/constants/ocevie';
+import { brand, contentLayout, controls, lightTheme, spacing, statusColors } from '@/constants/ocevie';
+import { posColumns } from './pos-layout-metrics';
 import { motion } from '@/constants/motion';
 import { ApiError } from '@/lib/api';
 import { OceVieBrand } from '@/components/passenger/OceVieBrand';
 
 const errors: Record<string, string> = {
+  PASSENGER_CARD_CLAIM_INVALID: 'Mã nhận thẻ không hợp lệ, đã hết hạn hoặc đã dùng. Hành khách cần yêu cầu mã mới.',
+  PASSENGER_CARD_ALREADY_ASSIGNED: 'Hồ sơ này đã được cấp thẻ. Tra cứu thẻ hoặc liên hệ quản lý.',
+  INVALID_NFC_CARD_IDENTIFIER: 'Mã đọc từ thẻ không hợp lệ. Vui lòng đọc lại thẻ phù hợp.',
+  POS_STALE_RESULT: 'Kết quả đến sau khi phiên hoặc môi trường đã thay đổi. Giữ hồ sơ chờ và đối soát trước khi thực hiện lại.',
+  BENEFIT_FULFILLMENT_QUANTITY_INVALID: 'Cần phục vụ đủ toàn bộ số lượng và đúng đơn vị của quyền lợi. Không hỗ trợ phục vụ một phần ở bước này.',
+  ENTITLEMENT_EXHAUSTED: 'Quyền lợi đã hết định mức. Kiểm tra hồ sơ và các yêu cầu đang xử lý.',
+  SERVICE_USAGE_LIMIT_EXCEEDED: 'Số lượng sử dụng vượt định mức được hệ thống cho phép.',
+  POS_AMOUNT_TOO_LARGE: 'Số tiền vượt độ chính xác được hỗ trợ. Liên hệ quản lý để kiểm tra.',
   POS_FULFILLMENT_REQUIRED: 'Nhập đúng số lượng đã phục vụ và kiểm tra đơn vị trước khi hoàn tất.',
   POS_CRUISE_SELECTION_REQUIRED: 'Có nhiều chuyến phù hợp. Nhập mã chuyến do quản lý cung cấp.',
   POS_ALLOWANCE_EXCEEDED: 'Tài khoản trên tàu không còn đủ hạn mức.',
@@ -83,19 +93,29 @@ export function QueryState({ query, empty }: {
   return empty ? <Notice tone="neutral">{empty}</Notice> : null;
 }
 
-export function PosPage({ title, children, refresh, refreshing = false, standalone = false }: {
-  title: string; children: ReactNode; refresh?: () => void; refreshing?: boolean; standalone?: boolean;
+export function PosPage({ title, children, refresh, refreshing = false, standalone = false, wide = false }: {
+  title: string; children: ReactNode; refresh?: () => void; refreshing?: boolean; standalone?: boolean; wide?: boolean;
 }) {
   return <SafeAreaView edges={standalone ? ['top', 'bottom', 'left', 'right'] : ['bottom', 'left', 'right']}
     style={styles.page} onLayout={() => { void SplashScreen.hideAsync().catch(() => {}); }}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <ScrollView automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, wide && { maxWidth: contentLayout.pos }]}
       refreshControl={refresh ? <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={brand.teal} /> : undefined}>
       {standalone && <><OceVieBrand /><Text accessibilityRole="header" style={ui.title}>{title}</Text></>}
       {children}
     </ScrollView>
+    </KeyboardAvoidingView>
   </SafeAreaView>;
 }
+
+export function PosColumns({ children }: { children: ReactNode }) {
+  const { width, fontScale } = useWindowDimensions();
+  return <View style={{ flexDirection: posColumns(width, fontScale) === 2 ? 'row' : 'column', alignItems: 'stretch', gap: spacing.lg }}>{children}</View>;
+}
+// Auto basis retains intrinsic height in a phone's unbounded scroll column.
+// Shrink/grow share available row width without forcing a zero-height flex basis.
+export const posPane = { flexGrow: 1, flexShrink: 1, flexBasis: 'auto', minWidth: 0, gap: spacing.lg } as const;
 
 export function Field({ label, ...props }: TextInputProps & { label: string }) {
   return <View style={styles.field}>
@@ -111,7 +131,11 @@ export function usePosConfirmation(after: () => void, enabled = true, showSucces
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<string>();
   const [success, setSuccess] = useState(false);
-  const lock = useRef(false);
+  const lock = useRef(false), generation = useRef(0);
+  useFocusEffect(useCallback(() => {
+    const ref = generation;
+    return () => { ref.current++; setOperation(null); setFailure(undefined); setSuccess(false); };
+  }, []));
   return {
     open(next: Operation) {
       if (lock.current) return;
@@ -129,12 +153,14 @@ export function usePosConfirmation(after: () => void, enabled = true, showSucces
           if (!operation || lock.current || failure || !enabled) return;
           lock.current = true;
           setPending(true);
-          try { await operation.run(); setOperation(null); setSuccess(showSuccess); }
+          const version = generation.current;
+          try { await operation.run(); if (version === generation.current) { setOperation(null); setSuccess(showSuccess); } }
           catch (error) {
+            if (version !== generation.current) return;
             setFailure(uncertainWrite(error)
               ? 'Chưa xác nhận được kết quả. Đóng cửa sổ và kiểm tra danh sách đã tải lại trước khi thực hiện tiếp.'
               : posError(error));
-          } finally { lock.current = false; setPending(false); after(); }
+          } finally { lock.current = false; setPending(false); if (version === generation.current) after(); }
         }} />
         <PassengerButton label="Quay lại" variant="text" disabled={pending} onPress={() => { if (!lock.current) setOperation(null); }} />
       </PassengerSheet>
@@ -149,13 +175,13 @@ export function uncertainWrite(error: unknown) {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: lightTheme.background },
-  content: { ...ui.content, gap: 16, paddingTop: 16 },
+  content: { ...ui.content, gap: spacing.lg, paddingTop: spacing.lg },
   notice: { padding: 14, borderRadius: 14, borderCurve: 'continuous', gap: 8 },
   skeleton: { width: '65%', height: 10, borderRadius: 5, backgroundColor: brand.navySoft },
   field: { gap: 6 },
   reveal: { gap: 8 },
   input: {
-    minHeight: 50, borderWidth: 1, borderColor: lightTheme.border, borderRadius: 14,
+    minHeight: controls.touch, borderWidth: 1, borderColor: lightTheme.controlBorder, borderRadius: controls.radius,
     paddingHorizontal: 14, paddingVertical: 10, fontSize: 16, color: brand.navy, backgroundColor: lightTheme.surface,
   },
 });

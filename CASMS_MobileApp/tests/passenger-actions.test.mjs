@@ -104,7 +104,7 @@ test('services support authenticated PUT and POST cancel without staff-only acti
   const seen = [];
   const transport = createApiClient({ baseUrl: () => 'http://test/api', fetch: async (url, options) => {
     assert.equal(options.headers.Authorization, 'Bearer test-token'); seen.push({ url, ...options });
-    return Response.json({ success: true, data: { id: target, serviceId: target, bookingPassengerId: bp, quantity: 2 } });
+    return Response.json({ success: true, data: { id: target, serviceId: target, passengerId: user, bookingId: booking, bookingPassengerId: bp, quantity: 2, status: 'REQUESTED', requestTime: '2026-01-01T00:00:00Z', completedAt: null } });
   } }); transport.setToken('test-token');
   const api = createPassengerApi(transport);
   await api.createRequest(target, bp, 2, '  Không đường ');
@@ -122,7 +122,7 @@ test('post-booking service requests reject missing passenger linkage before HTTP
 });
 
 test('activities register against the selected bookingPassenger and use the correct target routes', async () => {
-  const calls = []; const api = createPassengerApi({ async request(path, options) { calls.push({ path, ...options }); return {}; } });
+  const calls = []; const api = createPassengerApi({ async request(path, options) { calls.push({ path, ...options }); return { id: target, passengerId: user, bookingPassengerId: bp, activityId: path.includes('/excursions/') ? null : target, excursionId: path.includes('/excursions/') ? target : null, quantity: options.body?.quantity ?? 1, status: 'PENDING', registeredAt: '2026-01-01T00:00:00Z' }; } });
   await api.register('activity', target, bp, 1); await api.register('excursion', target, bp, 2);
   await api.confirmRegistration(target); await api.updateRegistration(target, 3); await api.cancelRegistration(target, 'Đổi lịch');
   assert.equal(calls[0].path, `/activities/${target}/registrations`);
@@ -136,7 +136,7 @@ test('excursions are resolved through real itinerary routes and scoped to the bo
     calls.push(path);
     if (path === '/itineraries/mine') return [{ bookingId: booking, bookingReference: 'BK-TEST', bookingPassengerId: bp, cruiseId: shipCruise, cruiseName: 'Test', cruiseStatus: 'IN_PROGRESS', bookingStatus: 'Confirmed', participationStatus: 'Active', itineraryId: target, itineraryStatus: 'ACTIVE' }];
     if (path === `/cruise-stops/by-itinerary/${target}`) return [{ cruiseStopId: stop, itineraryId: target }];
-    if (path === '/shore-excursions') { assert.equal(options.query.cruiseStopId, stop); return [{ shoreExcursionId: cabin, cruiseStopId: stop }]; }
+    if (path === '/shore-excursions') { assert.equal(options.query.cruiseStopId, stop); return [{ shoreExcursionId: cabin, cruiseStopId: stop, excursionName: 'QA excursion', startTime: '2099-01-01T00:00:00Z', plannedReturnTime: '2099-01-01T01:00:00Z', status: 'OPEN', price: null, currencyCode: null, availableCapacity: 10 }]; }
     throw new Error(`Unexpected endpoint: ${path}`);
   } });
   assert.equal((await api.excursions(shipCruise))[0].shoreExcursionId, cabin);

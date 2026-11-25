@@ -1,0 +1,11 @@
+# CASMS Mobile Phase F — PASSENGER_SUPPORT
+
+Ngày 25/11/2026. FE a6bd1d6b4078d33dd1cf9e23c63bcaa1fc812b43, main/origin/main + working tree B/C/D/E0 được giữ; BE0bc2b3831301a0d67d45bacc120a161dbacec026 chỉ đọc (?? qa/ từ trước). Baseline171 tests, typecheck/lint/export pass, Doctor19/20 và11 mismatch nền. Đọc AGENTS/OceVie Mobile, báo cáo0/A0/A/B/C/D/E0, handoff và source hiện tại; không dùng báo cáo thay contract. Chỉ sửa Mobile/tài liệu, không BE/DB/Web, SQL/seed/Maven, dependency mới, commit/push hoặc Folio/checkout. Áp dụng7 skill bắt buộc và frontend-testing-debugging, chi tiết SKILL_USAGE. Evidence là source/unit/contract/export trừ khi ghi rõ rendered; chưa có QA BE/DB xác nhận.
+
+Source đọc/sửa PassengerSupportScreen; tìm Backend controllers/services cho ticket/chat/contact/push; không thấy Passenger support API đủ contract. Hotline/email trong template booking không phải kênh tàu/quốc gia đã được xác nhận, không copy vào Mobile. Feedback API không được đổi nhãn thành support ticket hoặc emergency chat.
+
+F giữ quầy dịch vụ và nhân sự trên tàu là hướng dẫn, phân biệt khẩn cấp: báo ngay nhân sự gần nhất, tuân chỉ dẫn an toàn/cabin và không chờ phản hồi trong ứng dụng. Không hardcode số khẩn cấp, email/số điện thoại hoặc tạo ticket ID/chat/sent-success. Giải thích ứng dụng chưa nhận ticket/chat, thêm liên kết Notification Center và Service Requests đã có cho tài khoản đăng nhập. Recovery screen giữ hướng dẫn đơn vị cấp tài khoản, không kích hoạt tài khoản Mobile.
+
+Các màn QR/Spending/Service Requests tiếp tục contact guidance của phase trước; không refactor diện rộng chỉ để gom copy. Source mới không financial API, POST support, local persisted complaint hoặc third-party channel. Không tạo contact route API giả. Existing FAQ/Scaffold/Button/OceVie/accessible accordion giữ nguyên, không decorative motion mới.
+
+Tests support source contract bảo đảm không transport/tel/mailto/fake ticket/success và giữ emergency warning. Rendered app chưa load trên AVD (SystemUI ANR/ExpoGo remote update failure), không nói đã kiểm interaction. BE-24 NEED_BUSINESS_DECISION/BLOCKED_BY_BACKEND riêng support channel/ticket/history; không chặn guidance hiện tại. QA cần chính sách desk/contact/emergency theo ship và actor, consent/PII nếu mở ticket/chat sau này. No dependency. Acceptance FE guidance ready, không ticket/chat integration pass.

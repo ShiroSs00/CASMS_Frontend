@@ -1,0 +1,23 @@
+(node:17640) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/pos/pos-transport.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ request ownership and all terminal states expose only permitted staff actions (2.644ms)
+✔ fulfillment rejects wrong identity, lifecycle and partial results (1.2092ms)
+✔ passenger and POS decode the same completed request identity and quantity (3.9793ms)
+✔ fresh context matching rejects changed terminal, ship, area, cruise or assignment (3.301ms)
+✔ attendance separates registration, check-in, checkout, completion and no-show (0.8736ms)
+✔ registration and attendance responses must match exact target and transition (0.7618ms)
+✔ staff registration edit uses scoped PUT, preserves notes and validates quantity before send (3.4544ms)
+✔ new registration rejects wrong activity, passenger, quantity and automatic confirmation (3.0474ms)
+✔ sale receipt needs request, charge, supported currency and safe financial precision (2.6491ms)
+✔ sale response matches intent and employee terminal scope without fabricating totals (0.7963ms)
+✔ staff statement keeps signed reversal and passenger ID distinct from BookingPassenger (6.3943ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 930.6516

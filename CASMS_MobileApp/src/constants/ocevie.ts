@@ -15,7 +15,7 @@ export const statusColors = {
 export const lightTheme = {
   background: brand.pearl, surface: brand.white, surfaceHover: '#EDF3F4',
   text: brand.navy, textSecondary: '#506777', placeholder: '#607282',
-  border: '#D5E0E4', divider: '#E7EEF0', link: brand.teal,
+  border: '#D5E0E4', controlBorder: '#718391', divider: '#E7EEF0', link: brand.teal,
   selected: brand.tealSoft, focus: '#B7E3E4',
 } as const;
 export const darkTheme = {
@@ -35,4 +35,6 @@ export const typeScale = {
   amount: { fontSize: 22, lineHeight: 30, fontWeight: '700' as const, fontVariant: ['tabular-nums'] as ('tabular-nums')[] },
 } as const;
 export const controls = { touch: 48, radius: 14, cardRadius: 18, buttonHeight: 52 } as const;
+/** Widths describe available space, including split windows; not device models. */
+export const contentLayout = { passenger: 600, pos: 1120, form: 600, split: 840, pane: 320 } as const;
 export const overlays = { hero: '#061A2BE6', modal: 'rgba(6,26,43,.46)', shadow: '0px 4px 16px rgba(6,26,43,.06)' } as const;

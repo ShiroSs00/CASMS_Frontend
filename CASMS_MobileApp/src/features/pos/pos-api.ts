@@ -1,9 +1,10 @@
 import { z } from 'zod';
-import { api, ApiError } from '@/lib/api';
+import { entitlementSchema } from '../passenger-actions/onboard-contracts';
+import { api, ApiError, getApiUrl } from '@/lib/api';
 import { toSession, type LoginDto } from '@/features/auth/session-model';
 import { useAuth } from '@/features/auth/session-store';
 
-import { uuid, decode, type Credential } from './pos-contracts';
+import { uuid, terminal, decode, type Credential } from './pos-contracts';
 import { createScopedPosApi, openPosWithClient } from './pos-transport';
 export * from './pos-contracts';
 const text = z.string();
@@ -43,10 +44,18 @@ export async function deviceCredential(username: string, password: string): Prom
   return { deviceAccessToken: device.accessToken };
 }
 
+export async function readTerminals(shipId: string, signal?: AbortSignal) {
+  const rows = decode(z.array(terminal), await api.request(`/ships/${uuid.parse(shipId)}/pos-terminals`, { signal }));
+  if (rows.some(row => row.shipId !== shipId)) throw new ApiError('Thiết bị không thuộc tàu đã chọn.', 502, 'POS_INVALID_RESPONSE');
+  return rows;
+}
+
 export async function openPos(owner: string, signedInAt: number | undefined, terminalId: string, input: Credential & { areaId?: string; cruiseId?: string }) {
+  const backend = getApiUrl();
   requireEmployee(owner, signedInAt);
   const result = await openPosWithClient(api, terminalId, input);
   requireEmployee(owner, signedInAt);
+  if (getApiUrl() !== backend) throw new ApiError('Môi trường API đã thay đổi.', 409, 'POS_REVERIFY');
   return result;
 }
 
@@ -59,8 +68,24 @@ function requireEmployee(owner: string, signedInAt: number | undefined) {
 }
 
 export function scopedPos(owner: string, signedInAt: number | undefined, sessionToken: string) {
-  return createScopedPosApi({ request<T>(path: string, options: Parameters<typeof api.request>[1]) {
+  const backend = getApiUrl();
+  return createScopedPosApi({ async request<T>(path: string, options: Parameters<typeof api.request>[1]) {
     requireEmployee(owner, signedInAt);
-    return api.request<T>(path, options);
+    if (getApiUrl() !== backend) throw new ApiError('Môi trường API đã thay đổi.', 409, 'POS_REVERIFY');
+    const result = await api.request<T>(path, options);
+    try { requireEmployee(owner, signedInAt); } catch { throw new ApiError('Kết quả đến sau khi phiên thay đổi.', 502, 'POS_STALE_RESULT'); }
+    if (getApiUrl() !== backend) throw new ApiError('Kết quả đến sau khi môi trường thay đổi.', 502, 'POS_STALE_RESULT');
+    return result;
   } }, sessionToken);
+}
+
+// This employee API is outside /pos: never attach X-POS-Session.
+export async function readRequestEntitlement(owner: string, signedInAt: number, requestId: string, bookingPassengerId: string, signal?: AbortSignal) {
+  const backend = getApiUrl(); requireEmployee(owner, signedInAt);
+  const result = decode(z.object({ operationId: uuid, entitlement: entitlementSchema.nullable().default(null) }),
+    await api.request(`/servicepackage/requests/${uuid.parse(requestId)}/fare-entitlement`, { signal }));
+  requireEmployee(owner, signedInAt);
+  if (backend !== getApiUrl() || result.operationId !== requestId || result.entitlement && result.entitlement.bookingPassengerId !== bookingPassengerId)
+    throw new ApiError('Quyền lợi không khớp yêu cầu.', 502, 'POS_INVALID_RESPONSE');
+  return result;
 }

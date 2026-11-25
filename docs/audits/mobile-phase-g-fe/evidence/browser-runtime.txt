@@ -1,0 +1,13 @@
+Tool-call transcription, Phase G, 25/11/2026 Asia/Saigon.
+Browser plugin/browser skill: absent from installed catalogue.
+Mobile node_modules playwright, @playwright/test, puppeteer: all False.
+CUA inventory: IAB available; no tabs initially.
+Attempt 1: cua.createBrowserTab('iab','http://127.0.0.1:8086/login',{visible:true})
+Result: Timed out waiting for the Browser webview to attach for this browser-use page
+Attempt 2, after Metro reported waiting on port8086: same API/URL.
+Result: Timed out waiting for the Browser webview to attach for this browser-use page
+Each browser activity was completed after failure; no DOM or product screenshot acquired.
+Default and host HTTP probes: curl failed to connect to127.0.0.1:8086; HTTP000.
+Root cause of host/network/tool attachment failure unverified. Not evidence of a Backend/source defect.
+No browser dependencies installed; no firewall/security/network settings changed.
+RENDERED_UI_BLOCKED; no rendered interaction/console/viewport acceptance.

@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcon } from '@/components/passenger/MaterialIcon';
 import { ui } from '@/components/passenger/PassengerUI';
-import { brand, darkTheme, lightTheme } from '@/constants/ocevie';
+import { brand, controls, darkTheme, lightTheme, spacing, typeScale } from '@/constants/ocevie';
 
 export function VoyageSummaryCard({ title, ship, dates, returnDate, label, cabin, onPress }: { title: string; ship: string; dates: string; returnDate?: string; label: string; cabin?: string; onPress: () => void }) {
   return <View style={homeStyles.voyage}>
@@ -18,19 +18,19 @@ export function VoyageSummaryCard({ title, ship, dates, returnDate, label, cabin
 export const homeStyles = StyleSheet.create({
   content: { ...ui.content }, greeting: { gap: 7, paddingVertical: 6 },
   title: { fontSize: 28, lineHeight: 36, letterSpacing: -.6, fontWeight: '700', color: brand.navy },
-  voyage: { padding: 22, borderRadius: 24, backgroundColor: brand.navy, gap: 10, overflow: 'hidden' },
+  voyage: { padding: spacing.xl, borderRadius: controls.cardRadius, backgroundColor: brand.navy, gap: spacing.md, overflow: 'hidden' },
   topline: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: brand.tealLight },
   cardLabel: { flex: 1, color: brand.tealLight, fontSize: 12, lineHeight: 17, fontWeight: '600', letterSpacing: 1.1 },
   voyageTitle: { color: brand.pearl, fontSize: 25, lineHeight: 34, fontWeight: '600', letterSpacing: -.4 },
-  ship: { color: darkTheme.textSecondary, fontSize: 13, lineHeight: 21 },
+  ship: { color: darkTheme.textSecondary, ...typeScale.body },
   facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, paddingTop: 8, paddingBottom: 12 },
-  fact: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '100%' }, factText: { color: brand.pearl, fontSize: 12, lineHeight: 20, flexShrink: 1 },
+  fact: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, maxWidth: '100%' }, factText: { color: brand.pearl, ...typeScale.body, flexShrink: 1 },
   voyageAction: { borderTopWidth: 1, borderTopColor: darkTheme.border, minHeight: 48, paddingTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   voyageActionText: { fontSize: 13, lineHeight: 20, color: brand.pearl, fontWeight: '600', flexShrink: 1 },
   section: { gap: 14 }, timeline: { backgroundColor: lightTheme.surface, borderRadius: 20, borderWidth: 1, borderColor: lightTheme.divider, overflow: 'hidden' },
   event: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 20, gap: 10, alignItems: 'flex-start' },
-  timeColumn: { width: 46, gap: 5 }, time: { color: brand.navy, fontWeight: '700', fontSize: 14, lineHeight: 22, fontVariant: ['tabular-nums'] },
+  timeColumn: { flexShrink: 0, gap: spacing.xs }, time: { color: brand.navy, fontWeight: '700', fontSize: 14, lineHeight: 22, fontVariant: ['tabular-nums'] },
   track: { width: 12, alignSelf: 'stretch', alignItems: 'center', paddingTop: 6 },
   dot: { width: 8, height: 8, borderRadius: 4, borderWidth: 2, borderColor: lightTheme.border, backgroundColor: lightTheme.surface },
   dotActive: { backgroundColor: brand.teal, borderColor: brand.teal }, line: { width: 1, backgroundColor: lightTheme.divider, flex: 1, marginTop: 5, marginBottom: -40 },
