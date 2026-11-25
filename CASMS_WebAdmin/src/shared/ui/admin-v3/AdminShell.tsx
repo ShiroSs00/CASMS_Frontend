@@ -19,7 +19,7 @@ export function AdminShell({ children, className = '', topbar, contextNavigation
   children: ReactNode; className?: string; topbar?: ReactNode
   contextNavigation?: { ariaLabel: string; label: string; description?: string; parentTo?: string; parentHref?: string; parentState?: unknown; items: { label: string; to: string; active: boolean; state?: unknown }[] }
 }) {
-  const { pathname } = useLocation()
+  const { pathname, hash } = useLocation()
   const access = useSessionAccess()
   const roles=useContext(AdminRoleContext)
   const roleLabel=staffRoleLabel(roles)
@@ -27,6 +27,16 @@ export function AdminShell({ children, className = '', topbar, contextNavigation
   const [navigationQuery, setNavigationQuery] = useState('')
   const menuButton = useRef<HTMLButtonElement>(null)
   const menuOpen = menu.path === pathname && menu.open
+  useEffect(() => {
+    if (hash) {
+      const target = document.getElementById(hash.slice(1))
+      if (target) {
+        target.scrollIntoView({ behavior: 'auto', block: 'start' })
+        return
+      }
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [pathname, hash])
   useEffect(() => {
     if (!menuOpen) return
     function dismissOnEscape(event: KeyboardEvent) {
@@ -47,7 +57,7 @@ export function AdminShell({ children, className = '', topbar, contextNavigation
   else if (pathname.startsWith('/admin/activity-registrations')) activeTo = '/admin/activity-registrations'
   const currentGroups = roleNavigationGroups(roles,access)
   if(activeTo==='/admin/cabins'&&currentGroups.some(group=>group.items.some(item=>item.to==='/admin/decks'&&item.label==='Boong và phòng'))) activeTo='/admin/decks'
-  const activeLabel = creatingCruise ? 'Tạo tour' : currentGroups.flatMap(group => group.items).find(item => item.to === activeTo)?.label
+  const activeLabel = creatingCruise ? 'Tạo chuyến khởi hành' : currentGroups.flatMap(group => group.items).find(item => item.to === activeTo)?.label
   const query = navigationQuery.trim().toLocaleLowerCase('vi-VN')
   const contextParent = currentGroups.flatMap(group => group.items).find(item => item.to === contextNavigation?.parentTo)
   const contextIdentityMatches = Boolean(contextNavigation && [contextNavigation.label, contextNavigation.description ?? '', contextParent?.label ?? ''].some(value => value.toLocaleLowerCase('vi-VN').includes(query)))

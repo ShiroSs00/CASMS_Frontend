@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import styles from './PublicContact.module.css'
 
-const projectContact = { phone: '09xx 686 888', email: 'ocevie.lucky88@gmail.com' }
+const projectContact = { email: 'ocevie.lucky88@gmail.com' }
 
 export function PublicContact({ variant = 'button', id = 'project-contact' }: { variant?: 'nav' | 'button'; id?: string }) {
   const [open, setOpen] = useState(false)
@@ -66,17 +66,19 @@ export function PublicContact({ variant = 'button', id = 'project-contact' }: { 
         <p className={styles.modalSubtitle}>Chọn phương thức hỗ trợ bạn mong muốn bên dưới</p>
 
         <div className={styles.modalActions}>
-          <a href={`tel:${projectContact.phone.replace(/[\s().-]/g, '')}`} className={styles.modalCallBtn}>
-            <span>Gọi {projectContact.phone}</span>
+          <a href={`mailto:${projectContact.email}?subject=Hỗ%20trợ%20đặt%20chỗ%20OceVie`} className={styles.modalCallBtn}>
+            <span>Gửi email hỗ trợ ({projectContact.email})</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
             </svg>
           </a>
 
-          <a href={`mailto:${projectContact.email}`} className={styles.modalChatBtn}>
-            <span>Chat / Gửi thư qua Gmail</span>
+          <a href="/booking/lookup" className={styles.modalChatBtn} onClick={() => setOpen(false)}>
+            <span>Tra cứu mã đặt chỗ trực tuyến</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
           </a>
         </div>

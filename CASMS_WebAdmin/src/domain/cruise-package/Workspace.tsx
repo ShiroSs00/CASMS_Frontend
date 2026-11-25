@@ -1984,6 +1984,11 @@ function TemplateWorkspace() {
           <PageHeader
             title={pageTitle}
             breadcrumb="Hoạt động và dịch vụ"
+            description={
+              !selected && !creatingTemplate
+                ? 'Cấu hình mẫu gói vé du thuyền kèm hạng phòng và quyền lợi (niêm yết theo VND) để áp dụng khi mở bán các chuyến khởi hành. Các gói dịch vụ lẻ tính theo USD nằm ở mục Gói dịch vụ bổ sung (USD).'
+                : undefined
+            }
             actions={
               selected || creatingTemplate ? (
                 <Button

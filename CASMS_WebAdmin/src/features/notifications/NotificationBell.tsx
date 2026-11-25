@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { apiRequest, getApiAccessToken, getApiBaseUrl } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 
@@ -10,6 +11,42 @@ type NotificationItem = {
   createdAt: string
   readAt?: string | null
   read?: boolean
+}
+
+function cleanNotificationText(text: string) {
+  return (text || '').replace(/\*\*(.*?)\*\*/g, '$1').trim()
+}
+
+function resolveAdminNotificationTarget(item: NotificationItem, roles: readonly string[]): string | null {
+  const type = item.notificationType || ''
+  if (type === 'STAFFING_SHIP_MANAGER_NEEDED') {
+    return roles.includes('HR_MANAGER') ? '/admin/staffing#ship-manager-assign' : null
+  }
+  if (type === 'STAFFING_WORKFLOW' || type === 'STAFFING_SENT_TO_HR') {
+    if (roles.includes('HR_MANAGER')) return '/admin/staffing'
+    if (roles.includes('SHIP_MANAGER')) return '/admin/staffing-reviews'
+    if (roles.includes('OPERATIONS_MANAGER')) return '/admin/staffing-reviews'
+    if (roles.includes('ACTIVITY_SERVICE_MANAGER')) return '/admin/preparation-requests'
+    if (roles.includes('CRUISE_MANAGER')) return '/admin/cruises'
+  }
+  if (type === 'CRUISE_PLAN_SUBMITTED') {
+    return roles.includes('OPERATIONS_MANAGER') ? '/admin/cruise-plan-reviews?mode=tour-dossiers&filter=pending' : '/admin/cruises'
+  }
+  if (type === 'CRUISE_PLAN_REVISION_REQUESTED' || type === 'CRUISE_PLAN_REJECTED') {
+    if (roles.includes('CRUISE_MANAGER')) return '/admin/cruises'
+    if (roles.includes('OPERATIONS_MANAGER')) return '/admin/cruise-plan-reviews?mode=tour-dossiers&filter=returned'
+  }
+  if (type === 'CRUISE_PLAN_APPROVED' || type === 'CRUISE_READY_FOR_SALE' || type === 'CRUISE_OPENED_FOR_SALE') {
+    if (roles.includes('CRUISE_MANAGER')) return '/admin/cruises'
+    if (roles.includes('SHIP_MANAGER') || roles.includes('ACTIVITY_SERVICE_MANAGER')) return '/admin/preparation-requests'
+    if (roles.includes('BOOKING_AGENT')) return '/admin/bookings/cruises'
+    if (roles.includes('OPERATIONS_MANAGER')) return '/admin/cruise-plan-reviews?mode=tour-dossiers&filter=reviewed'
+  }
+  if (type === 'NEW_BOOKING' || type.startsWith('BOOKING_') || type.startsWith('PAYMENT_')) {
+    if (roles.includes('FINANCE_OFFICER')) return '/admin/staff/finance'
+    if (roles.includes('BOOKING_AGENT')) return '/admin/bookings'
+  }
+  return null
 }
 
 function formatNotifTime(value: string) {
@@ -26,6 +63,7 @@ function formatNotifTime(value: string) {
 
 export function NotificationBell({ variant = 'dark' }: { variant?: 'dark' | 'light' }) {
   const access = useSessionAccess()
+  const navigate = useNavigate()
   const authenticated = access.status === 'ready' && Boolean(access.userId)
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<'all' | 'unread'>('all')
@@ -302,11 +340,18 @@ export function NotificationBell({ variant = 'dark' }: { variant?: 'dark' | 'lig
             )}
             {visibleItems.map(item => {
               const unread = !item.readAt && !item.read
+              const targetPath = resolveAdminNotificationTarget(item, access.roles)
               return (
                 <button
                   key={item.notificationId}
                   type="button"
-                  onClick={() => { if (unread) void markRead(item.notificationId) }}
+                  onClick={() => {
+                    if (unread) void markRead(item.notificationId)
+                    if (targetPath) {
+                      setOpen(false)
+                      void navigate(targetPath)
+                    }
+                  }}
                   style={{
                     width: '100%',
                     textAlign: 'left',
@@ -314,17 +359,20 @@ export function NotificationBell({ variant = 'dark' }: { variant?: 'dark' | 'lig
                     borderBottom: '1px solid #EDF3F1',
                     background: unread ? '#F2F8F7' : '#FFFFFF',
                     padding: '12px 16px',
-                    cursor: unread ? 'pointer' : 'default',
+                    cursor: unread || targetPath ? 'pointer' : 'default',
                     display: 'grid',
                     gap: '4px',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                    <strong style={{ fontSize: '13px', color: '#0B2A4A' }}>{item.title}</strong>
+                    <strong style={{ fontSize: '13px', color: '#0B2A4A' }}>{cleanNotificationText(item.title)}</strong>
                     {unread && <span style={{ width: '8px', height: '8px', flexShrink: 0, borderRadius: '50%', background: '#0E6B7A' }} />}
                   </div>
-                  <span style={{ fontSize: '12px', color: '#506777', lineHeight: 1.5 }}>{item.content}</span>
-                  <span style={{ fontSize: '11px', color: '#718391' }}>{formatNotifTime(item.createdAt)}</span>
+                  <span style={{ fontSize: '12px', color: '#506777', lineHeight: 1.5, whiteSpace: 'pre-line' }}>{cleanNotificationText(item.content)}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <span style={{ fontSize: '11px', color: '#718391' }}>{formatNotifTime(item.createdAt)}</span>
+                    {targetPath && <span style={{ fontSize: '11px', fontWeight: 600, color: '#0E6B7A' }}>Mở xem →</span>}
+                  </div>
                 </button>
               )
             })}

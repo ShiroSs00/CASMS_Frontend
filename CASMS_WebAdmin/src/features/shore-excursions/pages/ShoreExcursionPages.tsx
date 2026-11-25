@@ -18,8 +18,12 @@ import { canEditExcursion, displayTime, excursionStatuses, isUuid, statusLabels,
 const root = '/admin/shore-excursions'
 export function ShoreExcursionListPage() {
   const access = useSessionAccess()
+  const canReadSuppliers = access.has('SUPPLIER_READ')
   const stops = useReadQuery('excursion-filter-stops', excursionContextApi.stops)
-  const suppliers = useReadQuery('excursion-filter-suppliers', excursionContextApi.suppliers)
+  const suppliers = useReadQuery(
+    `excursion-filter-suppliers:${canReadSuppliers}`,
+    useCallback((signal: AbortSignal) => canReadSuppliers ? excursionContextApi.suppliers(signal) : Promise.resolve([]), [canReadSuppliers]),
+  )
   const [search, setSearch] = useSearchParams()
   const cruiseStopId = search.get('cruiseStopId')?.trim() || undefined
   const supplierId = search.get('supplierId')?.trim() || undefined
@@ -55,7 +59,7 @@ export function ShoreExcursionListPage() {
         <div className={styles.actions}><Button type="submit">Áp dụng bộ lọc</Button><Button tone="secondary" onClick={() => setSearch({})}>Xóa bộ lọc</Button><Button tone="secondary" onClick={query.reload}>Tải lại</Button></div>
       </form>
     </Panel>
-    {[stops, suppliers].map((lookup, index) => lookup.error && <Notice key={index} title="Chưa tải được tên trong bộ lọc" tone="warning">{lookup.error.message}<Button onClick={lookup.retry}>Thử lại danh mục</Button></Notice>)}
+    {[stops, suppliers].map((lookup, index) => lookup.error && <Notice key={index} title="Chưa tải được tên trong bộ lọc" tone="warning"><p>{lookup.error.message}</p><Button tone="secondary" size="compact" autoWidth onClick={lookup.retry}>Thử lại danh mục</Button></Notice>)}
     {query.loading ? <Loading label="Đang tải chuyến tham quan…" /> : query.error != null ? <ShoreError error={query.error} onRetry={query.reload} /> : query.data && <Panel title={`Danh sách · ${query.data.length}`}>
       {!query.data.length ? <Empty title="Chưa có chuyến tham quan phù hợp"><p>Thử đổi bộ lọc. Khi tạo tour mới, cần chọn nhà cung cấp đã xác minh và lần ghé cảng phù hợp.</p></Empty> : <DataTable label="Danh sách chuyến tham quan bờ" headers={['Mã / tên', 'Nhà cung cấp', 'Bắt đầu', 'Trở về dự kiến', 'Chỗ còn lại', 'Trạng thái']}>
         {[...query.data].sort((a, b) => (Date.parse(b.createdAt ?? b.startTime) || 0) - (Date.parse(a.createdAt ?? a.startTime) || 0)).map((item) => <tr key={item.shoreExcursionId}><td><Link className={styles.link} to={`${root}/${item.shoreExcursionId}`}>{item.excursionName}</Link><div>{item.excursionCode ?? '—'}</div></td><td>{item.supplierName}</td><td>{displayTime(item.startTime)}</td><td>{displayTime(item.plannedReturnTime)}</td><td>{item.availableCapacity} / {item.maximumCapacity}</td><td><ExcursionBadge status={item.status} /></td></tr>)}

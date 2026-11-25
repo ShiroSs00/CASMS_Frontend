@@ -6,7 +6,7 @@ import { Button, Loading, Modal, Notice, Panel } from '@/shared/ui'
 import { departureApi } from '../api/departure-api'
 import type { CruiseRecord } from '../model/cruise-record'
 import type { DepartureSection } from '../model/preparation'
-import { readinessMessage } from '../model/readiness-copy'
+import { localizeReadinessText, readinessMessage } from '../model/readiness-copy'
 
 const preparationSteps = [
   { section: 'preparation', label: 'Xác nhận bốn nhóm hồ sơ', codes: ['PREPARATION_CONFIRMATION_REQUIRED', 'PREPARATION_SECTIONS_NOT_CONFIRMED'] },
@@ -127,8 +127,8 @@ export function DepartureStart({ cruise, refreshKey, sections, onSection, onChan
           </li>
         })}</ul>
         {!ready && <ul>{[...new Set(gate.data.details?.filter(item => item.severity === 'BLOCKER' && item.code !== 'MISSING_ONBOARD_STAFF')
-          .map(item => item.code === 'PREPARATION_SECTION_UNCONFIRMED' && item.message ? item.message : readinessMessage(item.code, item.message))
-          ?? gate.data.issues ?? [])].map(message => <li key={message}>{message}</li>)}</ul>}
+          .map(item => item.code === 'PREPARATION_SECTION_UNCONFIRMED' && item.message ? localizeReadinessText(item.message) : readinessMessage(item.code, item.message))
+          ?? gate.data.issues?.map(localizeReadinessText) ?? [])].map(message => <li key={message}>{message}</li>)}</ul>}
         <Button tone="secondary" disabled={busy} onClick={gate.retry}>Kiểm tra lại điều kiện</Button>
       </>}
       {error && <Notice title={uncertain ? 'Chưa rõ kết quả xác nhận' : 'Chưa thể xác nhận xuất bến'} tone="warning">

@@ -459,6 +459,8 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
                     <input
                       id="addon-start"
                       type="datetime-local"
+                      step={60}
+                      max={candidate?.cutoffLimit ? toInputDateTime(candidate.cutoffLimit) : undefined}
                       value={start}
                       onChange={e => setStart(e.target.value)}
                     />
@@ -468,6 +470,9 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
                     <input
                       id="addon-end"
                       type="datetime-local"
+                      step={60}
+                      min={start || undefined}
+                      max={candidate?.cutoffLimit ? toInputDateTime(candidate.cutoffLimit) : undefined}
                       value={end}
                       onChange={e => setEnd(e.target.value)}
                     />
@@ -477,6 +482,9 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
                     <input
                       id="addon-cutoff"
                       type="datetime-local"
+                      step={60}
+                      min={end || start || undefined}
+                      max={candidate?.cutoffLimit ? toInputDateTime(candidate.cutoffLimit) : undefined}
                       value={cutoff}
                       onChange={e => setCutoff(e.target.value)}
                     />

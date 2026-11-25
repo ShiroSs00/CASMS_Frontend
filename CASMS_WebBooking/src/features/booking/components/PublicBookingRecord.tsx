@@ -119,12 +119,20 @@ export function PublicBookingRecord({
           <p>Đặt chỗ đã hủy. Số dư hiển thị không phải yêu cầu thanh toán hoặc xác nhận hoàn tiền.</p>
         )}
         <BookingInstallments booking={booking} />
-        <p className={styles.helper}>Thực hiện thanh toán theo hướng dẫn hợp đồng và lưu chứng từ để đối soát.</p>
-        {booking.contractSigningInstructions && (
-          <div className={styles.selection}>
-            <strong>Hướng dẫn hợp đồng</strong>
-            <p>{booking.contractSigningInstructions}</p>
-          </div>
+        {booking.fullyPaid === true && booking.contractStatus === 'Accepted' ? (
+          <p className={styles.helper}>Đặt chỗ đã hoàn tất thanh toán đầy đủ và được ghi nhận chấp thuận hợp đồng.</p>
+        ) : (
+          <>
+            {booking.bookingStatus !== 'Cancelled' && (booking.outstandingBalance == null || booking.outstandingBalance > 0) && (
+              <p className={styles.helper}>Thực hiện thanh toán theo hướng dẫn hợp đồng và lưu chứng từ để đối soát.</p>
+            )}
+            {booking.contractSigningInstructions && booking.contractStatus !== 'Accepted' && (
+              <div className={styles.selection}>
+                <strong>Hướng dẫn hợp đồng</strong>
+                <p>{booking.contractSigningInstructions}</p>
+              </div>
+            )}
+          </>
         )}
       </Panel>
       <Panel title="Hành khách & phòng">

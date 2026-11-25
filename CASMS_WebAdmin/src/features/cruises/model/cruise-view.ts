@@ -34,6 +34,8 @@ export type ItinerarySummary = {
 
 export type CruiseListItem = {
   readinessSummary?: { ready: boolean; issues: string[] }
+  planStatus?: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'REVISION_REQUESTED' | 'WITHDRAWN' | null
+  readyStatus?: 'NOT_READY' | 'READY' | 'INVALIDATED' | null
   cruise: CruiseRecord
   ship: ShipRecord | null
   departurePort: PortRecord

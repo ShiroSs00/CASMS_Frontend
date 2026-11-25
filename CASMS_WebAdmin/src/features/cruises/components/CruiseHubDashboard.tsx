@@ -9,7 +9,7 @@ import { cruiseStatusLabels } from '../model/cruise-view'
 import { planEvidence } from '../model/plan-evidence'
 import { planReviewStates } from '../model/plan-review'
 import { type DepartureSection } from '../model/preparation'
-import { readinessMessage } from '../model/readiness-copy'
+import { localizeReadinessText, readinessMessage } from '../model/readiness-copy'
 import styles from './CruiseHubDashboard.module.css'
 
 type Query<T> = { data: T | null | undefined; loading: boolean; error: unknown; retry: () => void }
@@ -64,7 +64,14 @@ export function CruiseHubDashboard({
       {canRead && <Panel title="Sẵn sàng khởi hành">
         <p>{departure.loading ? 'Đang đối chiếu' : gate?.ready === true ? 'Đạt' : gate?.status === 'NOT_READY' ? 'Chưa đạt' : 'Chưa xác định'}</p>
         {departure.error && <Notice title="Chưa đọc được điều kiện khởi hành" tone="error"><Button tone="secondary" onClick={departure.retry}>Tải lại điều kiện khởi hành</Button></Notice>}
-        {Boolean(gate?.blockers?.length) && <ul>{[...new Set(gate?.blockers)].map(code => <li key={code}>{readinessMessage(code)}</li>)}</ul>}
+        {(() => {
+          const detailMessages = gate?.details
+            ?.filter(item => item.severity === 'BLOCKER')
+            .map(item => item.code === 'PREPARATION_SECTION_UNCONFIRMED' && item.message ? localizeReadinessText(item.message) : readinessMessage(item.code, item.message))
+          const fallbackMessages = gate?.blockers?.map(code => readinessMessage(code))
+          const messages = [...new Set((detailMessages?.length ? detailMessages : fallbackMessages) ?? [])]
+          return messages.length > 0 ? <ul>{messages.map(msg => <li key={msg}>{msg}</li>)}</ul> : null
+        })()}
         {['PUBLISHED', 'IN_PROGRESS', 'COMPLETED'].includes(cruise.status) && link('departure-start', 'Xem điều kiện khởi hành')}
       </Panel>}
     </div>

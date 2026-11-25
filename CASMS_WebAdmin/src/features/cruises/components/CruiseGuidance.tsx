@@ -32,7 +32,10 @@ export function CruiseGuidance({cruiseId,onChanged,onReview,refreshKey=0}:{cruis
  function save(e:FormEvent<HTMLFormElement>){
   e.preventDefault();const f=new FormData(e.currentTarget),data=Object.fromEntries(f) as Record<string,unknown>
   for(const key of ['sessionName','location','content']){data[key]=String(f.get(key)??'').trim();if(!data[key]){setError('Nhập đầy đủ tên, địa điểm và nội dung buổi hướng dẫn.');return}}
-  data.capacity=Number(f.get('capacity'))
+  const capacity=Number(f.get('capacity'))
+  if(!Number.isSafeInteger(capacity)||capacity<1){setError('Vui lòng nhập sức chứa nguyên dương cho buổi hướng dẫn.');return}
+  if(!String(f.get('instructorUserId')??'').trim()){setError('Vui lòng chọn nhân viên phụ trách buổi hướng dẫn.');return}
+  data.capacity=capacity
   if(!windows||plan.loading||plan.error||timeError){setError(timeError||'Cần kế hoạch đã được phê duyệt còn hiệu lực để lập buổi hướng dẫn.');return}
   data.startAt=startsAt;data.endAt=endsAt
   void mutate(data,editor&&editor!=='new'?editor:undefined,'save')
@@ -69,7 +72,7 @@ export function CruiseGuidance({cruiseId,onChanged,onReview,refreshKey=0}:{cruis
    {usePlanTimes&&windows&&<p className={styles.sectionMeta}>Thời gian lấy từ kế hoạch đã phê duyệt. Quản lý vận hành bổ sung nội dung và người phụ trách bên dưới.</p>}
    {editing&&!usePlanTimes&&windows&&(startsAt!==windows.guidanceOpensAt||endsAt!==windows.guidanceClosesAt)&&<Button tone="secondary" disabled={busy||uncertain} onClick={()=>{setUsePlanTimes(true);setError('')}}>Dùng thời gian từ kế hoạch đã duyệt</Button>}
    {timeError&&<Notice title="Cần đối chiếu thời gian" tone="error">{timeError}</Notice>}
-   <form id="guidance-editor" className={styles.modalForm} onSubmit={save}><fieldset disabled={busy||uncertain||people.loading||Boolean(people.error)||plan.loading||Boolean(plan.error)||!windows}>
+   <form id="guidance-editor" className={styles.modalForm} noValidate onSubmit={save}><fieldset disabled={busy||uncertain||people.loading||Boolean(people.error)||plan.loading||Boolean(plan.error)||!windows}>
     <Field htmlFor="guide-name" label={businessCopy('guidance.field.name')}><input id="guide-name" name="sessionName" defaultValue={editing?.sessionName??''} required/></Field>
     <Field htmlFor="guide-location" label={businessCopy('guidance.field.location')}><input id="guide-location" name="location" defaultValue={editing?.location??''} required/></Field>
     <Field htmlFor="guide-capacity" label={businessCopy('guidance.field.capacity')}><input id="guide-capacity" name="capacity" type="number" min={1} step={1} defaultValue={editing?.capacity??''} required/></Field>

@@ -13,10 +13,10 @@ export function AuthPageShell({ children, expired = false, image = '/images/port
     <main className={styles.body}>
       <section className={styles.formZone} aria-label={expired ? 'Phiên đăng nhập hết hạn' : 'Đăng nhập'}>{children}</section>
       <section className={styles.editorial} aria-label="OceVie Voyages">
-        <img src={image} alt="Cảnh quan bến cảng châu Á" />
+        <img src={image} alt="Cảnh quan bến cảng châu Á" onError={e => { const el = e.currentTarget; if (!el.dataset.fallback) { el.dataset.fallback = '1'; el.src = '/images/ports/ha-long-bay.webp' } }} />
         <div className={styles.overlay} />
         <div className={styles.editorialCopy}><p className={styles.eyebrow}>OceVie VOYAGES</p><h2>{editorialTitle}</h2><p>{editorialDescription}</p></div>
-        {image === '/images/ports/hong-kong-victoria.webp' && <p className={styles.imageCredit}><a href="https://commons.wikimedia.org/wiki/File:Panorama_of_Hong_Kong_Harbour_from_The_Peak_dllu.jpg" target="_blank" rel="noreferrer">Victoria Harbour · Dllu</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a> · Cắt khung hiển thị</p>}
+        {image === '/images/ports/hong-kong-victoria.webp' && <p className={styles.imageCredit}><a href="https://commons.wikimedia.org/wiki/File:Panorama_of_Hong_Kong_Harbour_from_The_Peak_dllu.jpg" target="_blank" rel="noreferrer">Victoria Harbour · Dllu</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a></p>}
       </section>
     </main>
   </div>

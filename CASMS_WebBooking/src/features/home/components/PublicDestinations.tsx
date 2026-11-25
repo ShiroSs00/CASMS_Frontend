@@ -14,14 +14,12 @@ function DestinationCard({ destination }: { destination: PublicDestination }) {
     ? '/images/ports/port-klang-cruise.webp'
     : country === 'JP'
     ? '/images/ports/kobe-port.webp'
-    : country === 'VN'
-    ? '/images/ports/da-nang-panorama.webp'
-    : '/images/ports/singapore-marina-bay.webp'
+    : '/images/ports/coastal-excursion.jpg'
 
   const effectivePhoto = photo ?? {
     src: fallbackSrc,
-    alt: `Cảng biển tại ${destination.destinationName}`,
-    portLabel: 'Ảnh cảng biển',
+    alt: `Hải trình ven biển ${destination.destinationName}`,
+    portLabel: 'Ảnh cảm hứng hải trình',
   }
 
   const [imgSrc, setImgSrc] = useState(effectivePhoto.src)

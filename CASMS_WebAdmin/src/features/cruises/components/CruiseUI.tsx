@@ -48,6 +48,24 @@ export function CruiseMetrics({ result }: { result: CruiseListResult | null }) {
   </div>
 }
 
+function effectiveCruiseBadge(item: CruiseListItem): { label: string; tone: 'neutral' | 'success' | 'warning' | 'info' | 'error' } {
+  const { cruise, itinerary, planStatus, readyStatus } = item
+  if (cruise.status === 'PUBLISHED') {
+    if (cruise.stoppedAt) return { label: 'Đã dừng bán', tone: 'error' }
+    if (cruise.openedForSaleAt) return { label: 'Đang mở bán', tone: 'success' }
+    return { label: 'Đã công bố', tone: 'success' }
+  }
+  if (cruise.status === 'DRAFT') {
+    if (readyStatus === 'READY') return { label: 'Sẵn sàng mở bán', tone: 'success' }
+    if (planStatus === 'SUBMITTED' || itinerary?.status === 'PENDING_APPROVAL') return { label: 'Chờ OPS xét duyệt', tone: 'info' }
+    if (planStatus === 'APPROVED' || itinerary?.status === 'APPROVED') return { label: 'Đã duyệt · Chờ mở bán', tone: 'success' }
+    if (planStatus === 'REVISION_REQUESTED') return { label: 'Cần bổ sung hồ sơ', tone: 'warning' }
+    if (planStatus === 'REJECTED' || itinerary?.status === 'REJECTED') return { label: 'Hồ sơ bị từ chối', tone: 'error' }
+    if (itinerary?.status === 'OPEN_FOR_SALE') return { label: 'Đang mở bán', tone: 'success' }
+  }
+  return { label: cruiseStatusLabels[cruise.status], tone: statusTone(cruise.status) }
+}
+
 export function CruiseFilters({ query, ships, onChange, onReset, bookingOnly=false }: {
   bookingOnly?: boolean
   query: CruiseQuery
@@ -57,8 +75,8 @@ export function CruiseFilters({ query, ships, onChange, onReset, bookingOnly=fal
 }) {
   const hasFilters = Boolean(query.search || query.status || query.cruiseType || query.departureDate || query.shipId)
   return <section className={styles.filters} aria-label="Bộ lọc chuyến">
-    {bookingOnly ? <div className={styles.saleFilterState}><span>Trạng thái bán</span><Badge label="Đang nhận đặt chỗ" tone="success"/></div> : <Field htmlFor="cruise-status" label="Trạng thái tour"><select id="cruise-status" value={query.status} onChange={(event) => onChange({ status: event.target.value as CruiseStatus | '' })}><option value="">Tất cả</option>{Object.entries(cruiseStatusLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></Field>}
-    <Field htmlFor="cruise-type" label="Loại tour"><select id="cruise-type" value={query.cruiseType} onChange={(event) => onChange({ cruiseType: event.target.value as CruiseType | '' })}><option value="">Tất cả</option>{Object.entries(cruiseTypeLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></Field>
+    {bookingOnly ? <div className={styles.saleFilterState}><span>Trạng thái bán</span><Badge label="Đang nhận đặt chỗ" tone="success"/></div> : <Field htmlFor="cruise-status" label="Trạng thái chuyến"><select id="cruise-status" value={query.status} onChange={(event) => onChange({ status: event.target.value as CruiseStatus | '' })}><option value="">Tất cả</option>{Object.entries(cruiseStatusLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></Field>}
+    <Field htmlFor="cruise-type" label="Loại chuyến"><select id="cruise-type" value={query.cruiseType} onChange={(event) => onChange({ cruiseType: event.target.value as CruiseType | '' })}><option value="">Tất cả</option>{Object.entries(cruiseTypeLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></Field>
     <Field htmlFor="cruise-ship" label="Tàu"><select id="cruise-ship" value={query.shipId} onChange={(event) => onChange({ shipId: event.target.value })}><option value="">Tất cả</option><option value="UNASSIGNED">Chưa phân công tàu</option>{ships.map((ship) => <option value={ship.shipId} key={ship.shipId}>{ship.shipName}</option>)}</select></Field>
     <div className={styles.filterActions}><Button tone="secondary" disabled={!hasFilters} onClick={onReset}>Xóa bộ lọc</Button></div>
   </section>
@@ -77,10 +95,11 @@ function CruiseRoute({ item }: { item: CruiseListItem }) {
 
 export function CruiseTable({ items, returnTo='/admin/cruises', bookingOnly=false }: { items: CruiseListItem[]; returnTo?:string; bookingOnly?:boolean }) {
   return <div className={styles.cruiseResults}>
-    <DataTable label="Danh sách tour" headers={['Tên tour', 'Tuyến đi', 'Ngày khởi hành', 'Tàu', bookingOnly?'Trạng thái bán':'Trạng thái tour']}>
+    <DataTable label="Danh sách chuyến khởi hành" headers={['Chuyến khởi hành', 'Tuyến đi', 'Ngày khởi hành', 'Tàu', bookingOnly?'Trạng thái bán':'Trạng thái']}>
       {items.map((item) => {
         const shipName = item.ship?.shipName ?? (item.cruise.shipId ? 'Chưa tải được thông tin tàu' : 'Chưa chọn tàu')
         const departure = <time dateTime={item.cruise.departureDatetime}>{formatDate(item.cruise.departureDatetime)}</time>
+        const badge = effectiveCruiseBadge(item)
         return <tr key={item.cruise.cruiseId}>
           <td>
             <div className={styles.tripCell}><Link className={styles.rowLink} to={`/admin/cruises/${item.cruise.cruiseId}?${new URLSearchParams({returnTo})}`}>{item.cruise.cruiseName}</Link><span>{item.cruise.cruiseCode}</span></div>
@@ -93,7 +112,7 @@ export function CruiseTable({ items, returnTo='/admin/cruises', bookingOnly=fals
           <td><CruiseRoute item={item} /></td>
           <td><div className={styles.tripDates}>{departure}<span>Kết thúc <time dateTime={item.cruise.returnDatetime}>{formatDate(item.cruise.returnDatetime)}</time></span></div></td>
           <td>{shipName}</td>
-          <td>{bookingOnly?<Badge label="Đang nhận đặt chỗ" tone="success"/>:<CruiseStatusBadge status={item.cruise.status} />}</td>
+          <td>{bookingOnly?<Badge label="Đang nhận đặt chỗ" tone="success"/>:<Badge label={badge.label} tone={badge.tone} />}</td>
         </tr>
       })}
     </DataTable>
@@ -110,8 +129,8 @@ export function CruiseListContent({ state, query, onPage, onRetry, bookingOnly=f
   if (state.status === 'loading') return <Loading label="Đang tải danh sách chuyến…" />
   if (state.status === 'error') return <Notice title="Không tải được dữ liệu" tone="error"><p>{state.error}</p><Button onClick={onRetry}>Thử lại</Button></Notice>
   if (!state.data.total) return query.search || query.status || query.cruiseType || query.departureDate || query.shipId
-    ? <Empty title="Không có tour phù hợp với bộ lọc" />
-    : <Empty title={bookingOnly ? 'Chưa có tour đang nhận đặt chỗ' : 'Chưa có tour'} />
+    ? <Empty title="Không có chuyến khởi hành phù hợp với bộ lọc" />
+    : <Empty title={bookingOnly ? 'Chưa có chuyến đang nhận đặt chỗ' : 'Chưa có chuyến khởi hành'} />
   return <>
     <CruiseTable items={state.data.items} returnTo={'/admin/cruises?'+serializeCruiseQuery(query)} bookingOnly={bookingOnly} />
     <div className={styles.pagination}><span>Hiển thị {(state.data.page - 1) * state.data.pageSize + 1}–{Math.min(state.data.page * state.data.pageSize, state.data.total)} trong {state.data.total} chuyến</span><div><Button tone="secondary" disabled={state.data.page <= 1} onClick={() => onPage(state.data.page - 1)}>Trước</Button><span className={styles.pageNumber}>{state.data.page}/{state.data.pageCount}</span><Button tone="secondary" disabled={state.data.page >= state.data.pageCount} onClick={() => onPage(state.data.page + 1)}>Sau</Button></div></div>

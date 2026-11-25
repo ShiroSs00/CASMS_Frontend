@@ -50,6 +50,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
  const [editingPackage,setEditingPackage]=useState<string|null>(null)
  const [editingExcursion,setEditingExcursion]=useState<{entry:ExcursionCommercial;revision:number}|null>(null)
  const [editingProgram,setEditingProgram]=useState<{kind:'excursions'|'serving-windows';entry:EditableProgram}|null>(null)
+ const [selectedStopId,setSelectedStopId]=useState('')
  const query=useReadQuery(`scoped-programs:${cruiseId}:${epoch}:${allowed}`,useCallback(async signal=>{
   if(!allowed)return null
   const plan=await readPlan(signal)
@@ -73,6 +74,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
   autoOpened.current=true
   setError('')
   setSourceId('')
+  setSelectedStopId('')
   setCreating(true)
  },[autoOpenCreate,data,canCreate])
  async function saveCoordinator(event:FormEvent){
@@ -126,12 +128,19 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
  async function create(e:FormEvent<HTMLFormElement>){
   e.preventDefault();if(!data||lock.current||uncertain||!canCreate||kind==='packages'&&data.plan.unifiedPackageReview)return
   const f=new FormData(e.currentTarget),text=(key:string)=>String(f.get(key)??'').trim(),shore=kind==='excursions'||kind==='serving-windows'&&Boolean(text('stop')),portZone=data.options.stops.find(s=>s.id===text('stop'))?.timeZoneId
+  if(kind==='serving-windows'&&!text('service')){setError('Vui lòng chọn dịch vụ cho khung giờ phục vụ.');return}
+  if(kind==='excursions'&&!text('stop')){setError('Vui lòng chọn lần ghé cảng cho tour tham quan.');return}
+  if(kind==='excursions'&&!text('supplier')){setError('Vui lòng chọn nhà cung cấp cho tour tham quan.');return}
+  if(kind!=='serving-windows'&&!(kind==='activities'&&(sourceId||fixedActivity))&&!text('name')){setError('Vui lòng nhập tên nội dung.');return}
+  if((kind==='excursions'||kind==='serving-windows')&&!text('location')){setError(kind==='excursions'?'Vui lòng nhập điểm tập trung.':'Vui lòng nhập địa điểm phục vụ.');return}
+  if(kind==='packages'&&(!text('type')||!text('price'))){setError('Vui lòng chọn loại gói và nhập đơn giá hợp lệ.');return}
   let instants:Record<string,string>={}
   if(kind!=='packages')try{
-   const localTime=(field:'start'|'end')=>kind==='activities'?text(field+'Day')+'T'+text(field):text(field)
+   const localTime=(field:'start'|'end')=>text(field+'Day')+'T'+text(field)
+   if(!text('startDay')||!text('start')||!text('endDay')||!text('end')){setError('Vui lòng chọn đầy đủ ngày và giờ bắt đầu, kết thúc trong lịch chuyến.');return}
    instants={start:programInstant(localTime('start'),shore,portZone),end:programInstant(localTime('end'),shore,portZone)}
   }catch{setError(businessCopy('program.time.invalid'));return}
-  if(kind==='activities'&&(Date.parse(instants.start)>=Date.parse(instants.end)
+  if(kind!=='packages'&&(Date.parse(instants.start)>=Date.parse(instants.end)
     ||Date.parse(instants.start)<Date.parse(departure)||Date.parse(instants.end)>Date.parse(arrival))){
    setError('Chọn giờ bắt đầu trước giờ kết thúc và trong lịch chuyến hiển thị bên trên.')
    return
@@ -147,6 +156,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
   const activityVenue={deckId:area?.deckId,location:area?.name,meetingPoint:text('meetingPoint')||null}
   if((fixedActivity||fromCatalog)&&(!source||catalog.loading||catalog.error)){setError('Chọn hoạt động dùng chung hợp lệ.');return}
   const capacity=text('capacity')?Number(text('capacity')):null
+  if(kind!=='packages'&&!fromCatalog&&(capacity===null||!Number.isSafeInteger(capacity)||capacity<1||capacity>2147483647)){setError('Vui lòng nhập sức chứa nguyên dương.');return}
   if(fromCatalog&&capacity!==null&&(!Number.isSafeInteger(capacity)||capacity<1||capacity>2147483647)){setError('Nhập sức chứa nguyên dương.');return}
   if(fromCatalog&&capacity===null&&source?.capacity==null){setError('Hoạt động nguồn chưa có sức chứa. Nhập sức chứa cho lần phục vụ này.');return}
   if(fromCatalog)body={sourceActivityId:sourceId,...activityVenue,startTime:instant('start'),endTime:instant('end'),capacity}
@@ -211,7 +221,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
     </div>}
     <div className={styles.programToolbarRight}>
      {data.programs[kind].length>0&&<p role="status">Hiển thị {data.programs[kind].filter(p=>p.name.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))).length} / {data.programs[kind].length} mục</p>}
-     {canCreate&&!editing&&!editingPackage&&!editingExcursion&&!editingProgram&&<Button autoWidth disabled={busy||uncertain||kind==='serving-windows'&&!data.options.services.some(s=>s.scheduled)} onClick={()=>{setError('');setSourceId('');setCreating(true)}}>+ Thêm {titles[kind].toLocaleLowerCase('vi')}</Button>}
+     {canCreate&&!editing&&!editingPackage&&!editingExcursion&&!editingProgram&&<Button autoWidth disabled={busy||uncertain||kind==='serving-windows'&&!data.options.services.some(s=>s.scheduled)} onClick={()=>{setError('');setSourceId('');setSelectedStopId('');setCreating(true)}}>+ Thêm {titles[kind].toLocaleLowerCase('vi')}</Button>}
     </div>
    </div>}
    <ul className={styles.programList}>{data.programs[kind].filter(p=>p.name.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))).map(p=>{
@@ -274,13 +284,13 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
       {error&&<Notice title="Chưa lưu được khu vực" tone="error">{error}</Notice>}
    </Modal>}
    {repairing&&editable&&<ActivityTimeRepair cruiseId={cruiseId} activityId={repairing} onClose={()=>setRepairing(null)} onSaved={()=>{setRepairing(null);setRepairSuccess(true);setEpoch(n=>n+1);onChanged()}}/>}
-   {editing&&editable&&<CruiseActivityEditor key={editing.activity.id} activity={editing.activity} revision={editing.revision} fixed={itineraryMode!=='CUSTOM'} onClose={()=>setEditing(null)} onSaved={()=>{setEditing(null);setEpoch(n=>n+1);onChanged()}}/>}
+   {editing&&editable&&<CruiseActivityEditor key={editing.activity.id} activity={editing.activity} revision={editing.revision} fixed={itineraryMode!=='CUSTOM'} departure={departure} arrival={arrival} onClose={()=>setEditing(null)} onSaved={()=>{setEditing(null);setEpoch(n=>n+1);onChanged()}}/>}
 
    {editingPackage&&<CruisePackageEditor cruiseId={cruiseId} packageId={editingPackage} onClose={()=>setEditingPackage(null)} onSaved={()=>{setEditingPackage(null);setEpoch(n=>n+1);onChanged()}}/>}
 
    {editingExcursion&&editable&&<CruiseExcursionCommercialEditor key={editingExcursion.entry.id} cruiseId={cruiseId} entry={editingExcursion.entry} revision={editingExcursion.revision} onClose={()=>setEditingExcursion(null)} onSaved={()=>{setEditingExcursion(null);setEpoch(n=>n+1);onChanged()}}/>}
 
-   {editingProgram&&editable&&<ScopedProgramEditor cruiseId={cruiseId} kind={editingProgram.kind} entry={editingProgram.entry} options={data.options} revision={data.plan.windows.expectedRevision} onClose={()=>setEditingProgram(null)} onSaved={()=>{setEditingProgram(null);setEpoch(n=>n+1);onChanged()}}/>}
+   {editingProgram&&editable&&<ScopedProgramEditor cruiseId={cruiseId} kind={editingProgram.kind} entry={editingProgram.entry} options={data.options} revision={data.plan.windows.expectedRevision} departure={departure} arrival={arrival} onClose={()=>setEditingProgram(null)} onSaved={()=>{setEditingProgram(null);setEpoch(n=>n+1);onChanged()}}/>}
    {kind==='packages'&&editable&&access.canDo('TOUR_PACKAGE_ASSIGN')&&<div className={styles.disclosureBody}><DeparturePackageManager cruiseId={cruiseId} onChanged={()=>{setEpoch(n=>n+1);onChanged()}}/></div>}
    {crm&&!programWork&&data.programs[kind].length>0&&<div className={styles.programRoleHint}><strong>Phân công nghiệp vụ:</strong> Bộ phận Quản lý hoạt động và dịch vụ chịu trách nhiệm cấu hình chi tiết {titles[kind].toLocaleLowerCase('vi')} theo yêu cầu chuẩn bị của chuyến.</div>}
    {crm&&fixed&&(!fixedActivity||!data.options.ship.id)&&<Notice title={businessCopy('cruise.itinerary.FIXED')}>{fixedActivity?'Phân công tàu trước khi thêm hoạt động.':businessErrorMessage('FIXED_ITINERARY_READ_ONLY','')}</Notice>}
@@ -300,8 +310,8 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
     </form>
     {error&&<Notice title="Chưa lưu được người phụ trách" tone="error">{error}</Notice>}
    </Modal>}
-   {creating&&canCreate&&<Modal wide quiet={kind==='activities'} variant={kind==='activities'?'drawer':'modal'} busy={busy} title={'Thêm '+titles[kind].toLocaleLowerCase('vi')} onClose={()=>setCreating(false)} footer={<><Button tone="secondary" disabled={busy} data-overlay-dismiss onClick={()=>setCreating(false)}>Hủy</Button><Button type="submit" form="cruise-program-create" disabled={busy||uncertain||fixedActivity&&!source}>{busy?'Đang lưu…':kind==='activities'?'Thêm hoạt động':businessCopy('program.action.saveDraft')}</Button></>}>
-   <form id="cruise-program-create" className={styles.modalForm} key={kind} onSubmit={create}><fieldset disabled={busy||uncertain}>
+   {creating&&canCreate&&<Modal wide quiet={kind==='activities'} variant={kind==='activities'?'drawer':'modal'} busy={busy} title={'Thêm '+titles[kind].toLocaleLowerCase('vi')} onClose={()=>{setSelectedStopId('');setCreating(false)}} footer={<><Button tone="secondary" disabled={busy} data-overlay-dismiss onClick={()=>{setSelectedStopId('');setCreating(false)}}>Hủy</Button><Button type="submit" form="cruise-program-create" disabled={busy||uncertain||fixedActivity&&!source}>{busy?'Đang lưu…':kind==='activities'?'Thêm hoạt động':businessCopy('program.action.saveDraft')}</Button></>}>
+   <form id="cruise-program-create" className={styles.modalForm} key={kind} noValidate onSubmit={create}><fieldset disabled={busy||uncertain}>
     {kind==='activities'&&<div className={styles.activityFull}>
     <Field htmlFor="program-activity-source" label={fixedActivity?'Hoạt động mẫu *':'Hoạt động mẫu'} hint={!fixedActivity?'Có thể chọn mẫu hoặc nhập hoạt động riêng.':undefined}>
       <select id="program-activity-source" value={sourceId} required={fixedActivity} onChange={e=>setSourceId(e.target.value)} disabled={catalog.loading||Boolean(catalog.error)}>
@@ -327,15 +337,22 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
     {kind==='packages'&&<Field htmlFor="program-type" label={businessCopy('program.field.type')}><select id="program-type" name="type" required><option value="">Chọn loại gói</option><option value="BASIC">Cơ bản</option><option value="ADD_ON">Dịch vụ bổ sung</option></select></Field>}
     {kind==='serving-windows'&&<Field htmlFor="program-service" label={businessCopy('program.field.service')} hint="Dịch vụ đã gán trên boong vẫn cần Quản lý tàu kiểm tra khu vực và POS."><select id="program-service" name="service" required><option value="">Chọn dịch vụ</option>{data.options.services.filter(s=>s.scheduled).map(s=><option key={s.id} value={s.id}>{programServiceLabel(s)}</option>)}</select></Field>}
     {(kind==='excursions'||kind==='serving-windows')&&<>
-     <Field htmlFor="program-stop" label={businessCopy('program.field.stop')}><select id="program-stop" name="stop" required={kind==='excursions'}><option value="">{kind==='excursions'?'Chọn lần ghé':'Trên tàu'}</option>{data.options.stops.map(s=><option key={s.id} value={s.id}>Lần {s.sequence} · {s.name}</option>)}</select></Field>
+     <Field htmlFor="program-stop" label={businessCopy('program.field.stop')}><select id="program-stop" name="stop" value={selectedStopId} onChange={e=>setSelectedStopId(e.target.value)} required={kind==='excursions'}><option value="">{kind==='excursions'?'Chọn lần ghé':'Trên tàu'}</option>{data.options.stops.map(s=><option key={s.id} value={s.id}>Lần {s.sequence} · {s.name}</option>)}</select></Field>
      <Field htmlFor="program-supplier" label={businessCopy('program.field.supplier')}><select id="program-supplier" name="supplier" required={kind==='excursions'}><option value="">Chọn nhà cung cấp</option>{data.options.suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>
     </>}
     {kind!=='packages'&&<>
      {kind!=='activities'&&<Field htmlFor="program-location" label={businessCopy(kind==='excursions'?'program.field.meetingPoint':'program.field.location')}><input id="program-location" name="location" maxLength={250} required/></Field>}
-     {kind==='activities'?<ActivityTimeFields departure={departure} arrival={arrival}/>:<>
-     <Field htmlFor="program-start" label={businessCopy(kind==='excursions'?'program.field.startPort':kind==='serving-windows'?'program.field.startVenue':'program.field.startShip')}><input id="program-start" name="start" type="datetime-local" required/></Field>
-     <Field htmlFor="program-end" label={businessCopy(kind==='excursions'?'program.field.returnPort':kind==='serving-windows'?'program.field.endVenue':'program.field.endShip')}><input id="program-end" name="end" type="datetime-local" required/></Field>
-     </>}
+     {kind==='activities'?<ActivityTimeFields departure={departure} arrival={arrival}/>:(()=>{
+      const stopZone=selectedStopId?data.options.stops.find(s=>s.id===selectedStopId)?.timeZoneId:undefined
+      return <ActivityTimeFields
+        key={`${kind}:${stopZone??'ship'}`}
+        departure={departure}
+        arrival={arrival}
+        title={kind==='excursions'?'Thời gian tour tham quan':'Thời gian khung phục vụ'}
+        timezoneNote={selectedStopId?'Giờ địa phương cảng đã chọn':kind==='excursions'?'Giờ địa phương cảng':'Giờ tàu (Việt Nam)'}
+        timeZone={stopZone??undefined}
+      />
+     })()}
      {kind!=='activities'&&<Field htmlFor="program-capacity" label={businessCopy('program.field.capacity')}><input id="program-capacity" name="capacity" type="number" min={1} max={2147483647} step={1} required/></Field>}
     </>}
     {kind==='packages'&&<Field htmlFor="program-price" label={businessCopy('program.field.priceUsd')}><input id="program-price" name="price" type="number" min={0} step="any" required/></Field>}
@@ -343,7 +360,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
     {error&&<Notice title="Chưa lưu được nội dung" tone="error">{error}</Notice>}
     {uncertain&&<Notice title="Hệ thống chưa xác nhận được kết quả">Đối chiếu bản đã lưu trước khi gửi tiếp.</Notice>}
    </Modal>}
-  </>}{error&&<Notice title="Không thể hoàn tất thao tác" tone="error">{error}</Notice>}{uncertain&&<Notice title="Hệ thống chưa xác nhận được kết quả">Tải lại trang để đối chiếu trước khi gửi tiếp.</Notice>}
+  </>}{!creating&&!areaEditing&&!coordinator&&error&&<Notice title="Không thể hoàn tất thao tác" tone="error">{error}</Notice>}{!creating&&!areaEditing&&!coordinator&&uncertain&&<Notice title="Hệ thống chưa xác nhận được kết quả">Tải lại trang để đối chiếu trước khi gửi tiếp.</Notice>}
  </Panel>
 }
 

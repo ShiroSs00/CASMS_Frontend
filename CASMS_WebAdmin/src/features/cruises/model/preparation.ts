@@ -37,7 +37,7 @@ export function allowedDepartureSections(access:ReturnType<typeof useSessionAcce
       ||key==='staff'&&access.canDo('CRUISE_STAFF_READ')
       ||key==='sales'&&['CABIN_AVAILABILITY','CRUISE_MANIFEST_READ'].some(p=>access.has(p))
       ||key==='preparation'&&access.has('CRUISE_PREPARATION_READ')
-      ||key==='guidance'&&access.has('CRUISE_GUIDANCE_READ')
+      ||key==='guidance'&&access.has('CRUISE_READ')
       ||key==='operation'&&['CRUISE_START','CRUISE_COMPLETE','CRUISE_CANCEL','OPERATIONAL_ISSUE_READ'].some(p=>access.has(p))
       ||key==='changes'&&access.has('CRUISE_READ')
       ||key==='checks'&&access.canDo('CRUISE_VALIDATE')

@@ -1,6 +1,6 @@
 export const AUTH_ROLES = [
   'ADMIN', 'CRUISE_MANAGER', 'HR_MANAGER', 'SHIP_MANAGER', 'OPERATIONS_MANAGER', 'ACTIVITY_SERVICE_MANAGER', 'BOOKING_AGENT',
-  'CHECKIN_STAFF', 'ONBOARD_STAFF', 'FINANCE_OFFICER', 'CUSTOMER_SERVICE', 'PASSENGER',
+  'CHECKIN_STAFF', 'ONBOARD_STAFF', 'FINANCE_OFFICER', 'CUSTOMER_SERVICE', 'PASSENGER', 'POS',
 ] as const
 export type Role = typeof AUTH_ROLES[number]
 export type AuthUser = { id: string; username: string; email: string | null; roles: Role[] }
@@ -8,7 +8,8 @@ export type AuthSession = { accessToken: string; expiresAt: number; refreshAt: n
 export type AuthState = { status: 'loading' | 'anonymous' | 'authenticated' | 'expired'; session: AuthSession | null }
 
 // Coarse navigation UX only. Backend remains the authority for every action.
-export const isStaff = (user: AuthUser | null | undefined) => Boolean(user?.roles.some((role) => role !== 'PASSENGER'))
+export const isStaff = (user: AuthUser | null | undefined) =>
+  Boolean(user?.roles.some((role) => role !== 'PASSENGER' && role !== 'POS'))
 export const canSignIn = isStaff
 
 export function safeAdminReturnTo(value: string | null): string | null {

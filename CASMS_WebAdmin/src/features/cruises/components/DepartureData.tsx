@@ -6,7 +6,7 @@ import { departureManagementApi } from '../api/departure-management-api'
 import { useCallback, useState } from 'react'
 import { ApiError, apiRequest, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { journeyTime, validTimeZone, SHIP_TIME_ZONE } from '@/shared/lib/journey-time'
+import { journeyTime, validTimeZone, zonedInput, SHIP_TIME_ZONE } from '@/shared/lib/journey-time'
 import { Button, ButtonLink, DataTable, Empty, Field, Loading, Notice, Panel, RecordFacts } from '@/shared/ui'
 import { departureApi } from '../api/departure-api'
 import { cruiseApi } from '../api/cruise-api'
@@ -145,8 +145,16 @@ export function DepartureImpact({ cruise,onChanged,view='all' }: { cruise: Cruis
   }
   return <>
     {view!=='tasks'&&<Panel title="Xem trước tác động thay đổi">
-      <Field htmlFor="impact-departure" label="Bắt đầu mới dự kiến · giờ Việt Nam"><input id="impact-departure" type="datetime-local" value={departure} onChange={e => setDeparture(e.target.value)} /></Field>
-      <Field htmlFor="impact-return" label="Kết thúc mới dự kiến · giờ Việt Nam"><input id="impact-return" type="datetime-local" value={returnTime} onChange={e => setReturnTime(e.target.value)} /></Field>
+      <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:'12px'}}>
+        <p style={{margin:0,fontSize:'13px',color:'var(--ui-muted)'}}>Lịch hiện tại: <strong>{time(cruise.departureDatetime, SHIP_TIME_ZONE)} → {time(cruise.returnDatetime, SHIP_TIME_ZONE)}</strong> (giờ Việt Nam)</p>
+        <Button type="button" tone="secondary" size="compact" autoWidth onClick={() => {
+          if (cruise.departureDatetime) setDeparture(zonedInput(cruise.departureDatetime, SHIP_TIME_ZONE).slice(0, 16))
+          if (cruise.returnDatetime) setReturnTime(zonedInput(cruise.returnDatetime, SHIP_TIME_ZONE).slice(0, 16))
+          setInputError('')
+        }}>Điền theo lịch hiện tại để chỉnh</Button>
+      </div>
+      <Field htmlFor="impact-departure" label="Bắt đầu mới dự kiến · giờ Việt Nam"><input id="impact-departure" type="datetime-local" step={60} value={departure} onChange={e => setDeparture(e.target.value)} /></Field>
+      <Field htmlFor="impact-return" label="Kết thúc mới dự kiến · giờ Việt Nam"><input id="impact-return" type="datetime-local" step={60} min={departure || undefined} value={returnTime} onChange={e => setReturnTime(e.target.value)} /></Field>
       {canPorts&&<><ReadState {...ports}/>{[['impact-departure-port','Cảng khởi hành mới dự kiến',departurePortId,setDeparturePortId],['impact-return-port','Cảng kết thúc mới dự kiến',returnPortId,setReturnPortId]].map(([id,label,value,setter])=><Field key={String(id)} htmlFor={String(id)} label={String(label)}><select id={String(id)} value={String(value)} disabled={ports.loading||Boolean(ports.error)} onChange={event=>(setter as (value:string)=>void)(event.target.value)}><option value="">Không đề xuất đổi cảng</option>{ports.data?.map(port=><option key={port.portId} value={port.portId}>{port.portCode} · {port.portName}</option>)}</select></Field>)}</>}
       {canShips && <><ReadState {...ships} /><Field htmlFor="impact-ship" label="Tàu mới dự kiến"><select id="impact-ship" value={shipId} disabled={ships.loading || Boolean(ships.error)} onChange={e => setShipId(e.target.value)}><option value="">Không đề xuất đổi tàu</option>{ships.data?.map(ship => <option key={ship.shipId} value={ship.shipId}>{ship.shipName}</option>)}</select></Field></>}
       <Field htmlFor="impact-reason" label="Lý do dự kiến"><input id="impact-reason" value={reason} onChange={e => setReason(e.target.value)} /></Field>

@@ -32,7 +32,7 @@
 .badge_info { background:#eaf3ff; color:#185abd; }
 .badge_error { background:#fff0ef; color:#b42318; }
 .tableScroll { width:100%; overflow-x:auto; }
-.table { width:100%; min-width:max-content; border-collapse:collapse; text-align:left; }
+.table { width:100%; min-width:100%; border-collapse:collapse; text-align:left; }
 .table thead th { padding:12px 10px; background:#f5f7f9; color:var(--text-secondary); font-size:12px; font-weight:600; line-height:18px; }
 .table td { padding:12px 10px; border-bottom:1px solid var(--border-default); font-size:13px; line-height:20px; vertical-align:top; }
 .table tbody tr:last-child td { border:0; }
@@ -101,9 +101,9 @@
 .notice_warning { border-color:#ddc693; color:#754d00; }
 .notice_error { border-color:#e5b5b2; color:var(--ui-danger,#b42318); }
 .tableScroll { border:1px solid var(--ui-border,var(--border-default)); border-radius:var(--radius-panel); max-width:100%; overscroll-behavior-inline:contain; }
-.table { min-width:max-content; }
-.table thead th { font-size:12px; letter-spacing:.025em; padding:14px 16px; color:var(--ui-muted,var(--text-secondary)); white-space:nowrap; }
-.table td { padding:14px 16px; font-size:14px; line-height:1.55; overflow-wrap:break-word; font-variant-numeric:tabular-nums; }
+.table { min-width:100%; }
+.table thead th { font-size:12px; letter-spacing:.025em; padding:12px 14px; color:var(--ui-muted,var(--text-secondary)); white-space:nowrap; }
+.table td { padding:12px 14px; font-size:14px; line-height:1.55; overflow-wrap:break-word; font-variant-numeric:tabular-nums; }
 .table tbody tr:hover { background:var(--surface-tinted); }
 .table tbody tr:focus-within { background:var(--surface-tinted); }
 .table td:has(button:focus-visible),.table td:has(a:focus-visible) { background:#edf6f7; }
@@ -175,8 +175,8 @@
 .button { font-size:13px; letter-spacing:.01em; }
 .field label { font-size:13px; font-weight:500; }
 .tableScroll { border-radius:6px; }
-.table thead th { background:#EDF3F1; font-size:11px; text-transform:uppercase; letter-spacing:.05em; padding:14px 16px; white-space:nowrap; }
-.table td { padding:14px 16px; font-size:13px; }
+.table thead th { background:#EDF3F1; font-size:11px; text-transform:uppercase; letter-spacing:.05em; padding:12px 14px; white-space:nowrap; }
+.table td { padding:12px 14px; font-size:13px; }
 .empty { background:#F5F8F6; border:1px dashed #B4C9C8; border-radius:8px; padding:40px 24px; }
 .emptyMark { border-radius:50%; background:white; width:56px; height:56px; }
 @media(max-width:1100px) { .headerBody { align-items:stretch; } .headerBody > .actions { max-width:100%; } }

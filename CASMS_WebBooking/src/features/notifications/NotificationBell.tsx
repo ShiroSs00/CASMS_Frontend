@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { apiRequest, getApiAccessToken, getApiBaseUrl } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 
@@ -10,6 +11,10 @@ type NotificationItem = {
   createdAt: string
   readAt?: string | null
   read?: boolean
+}
+
+function cleanNotificationText(text: string) {
+  return (text || '').replace(/\*\*(.*?)\*\*/g, '$1').trim()
 }
 
 function formatNotifTime(value: string) {
@@ -26,6 +31,7 @@ function formatNotifTime(value: string) {
 
 export function NotificationBell() {
   const access = useSessionAccess()
+  const navigate = useNavigate()
   const authenticated = access.status === 'ready' && Boolean(access.userId)
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<'all' | 'unread'>('all')
@@ -310,27 +316,34 @@ export function NotificationBell() {
             {visibleItems.map(item => {
               const unread = !item.readAt && !item.read
               const needsAck = item.notificationType === 'CRUISE_SCHEDULE_CHANGE' && unread
+              const canOpenBookings = ['BOOKING_CREATED', 'CONTRACT_SIGNING_INVITATION', 'PAYMENT_CONFIRMED', 'CRUISE_SCHEDULE_CHANGE'].includes(item.notificationType)
               return (
                 <div
                   key={item.notificationId}
-                  onClick={() => { if (unread && !needsAck) void markRead(item.notificationId) }}
+                  onClick={() => {
+                    if (unread && !needsAck) void markRead(item.notificationId)
+                    if (canOpenBookings && !needsAck) {
+                      setOpen(false)
+                      void navigate('/my-bookings')
+                    }
+                  }}
                   style={{
                     borderBottom: '1px solid #EDF3F1',
                     background: unread ? '#F2F8F7' : '#FFFFFF',
                     padding: '12px 16px',
-                    cursor: unread && !needsAck ? 'pointer' : 'default',
+                    cursor: (unread || canOpenBookings) && !needsAck ? 'pointer' : 'default',
                     display: 'grid',
                     gap: '4px',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                    <strong style={{ fontSize: '13px', color: '#0B2A4A' }}>{item.title}</strong>
+                    <strong style={{ fontSize: '13px', color: '#0B2A4A' }}>{cleanNotificationText(item.title)}</strong>
                     {unread && <span style={{ width: '8px', height: '8px', flexShrink: 0, borderRadius: '50%', background: '#0E6B7A' }} />}
                   </div>
-                  <span style={{ fontSize: '12px', color: '#506777', lineHeight: 1.5 }}>{item.content}</span>
+                  <span style={{ fontSize: '12px', color: '#506777', lineHeight: 1.5, whiteSpace: 'pre-line' }}>{cleanNotificationText(item.content)}</span>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '4px' }}>
                     <span style={{ fontSize: '11px', color: '#718391' }}>{formatNotifTime(item.createdAt)}</span>
-                    {needsAck && (
+                    {needsAck ? (
                       <button
                         type="button"
                         onClick={e => { e.stopPropagation(); void acknowledge(item.notificationId) }}
@@ -347,7 +360,9 @@ export function NotificationBell() {
                       >
                         Xác nhận đã biết
                       </button>
-                    )}
+                    ) : canOpenBookings ? (
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#0E6B7A' }}>Xem đặt chỗ →</span>
+                    ) : null}
                   </div>
                 </div>
               )
