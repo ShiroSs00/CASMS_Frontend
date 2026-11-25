@@ -1986,7 +1986,7 @@ function TemplateWorkspace() {
             breadcrumb="Hoạt động và dịch vụ"
             description={
               !selected && !creatingTemplate
-                ? 'Cấu hình mẫu gói vé du thuyền kèm hạng phòng và quyền lợi (niêm yết theo VND) để áp dụng khi mở bán các chuyến khởi hành. Các gói dịch vụ lẻ tính theo USD nằm ở mục Gói dịch vụ bổ sung (USD).'
+                ? 'Cấu hình mẫu gói vé du thuyền kèm hạng phòng và quyền lợi (niêm yết theo VND) để áp dụng khi mở bán các chuyến khởi hành. Các gói dịch vụ lẻ/bổ sung nằm ở mục Gói dịch vụ bổ sung.'
                 : undefined
             }
             actions={
