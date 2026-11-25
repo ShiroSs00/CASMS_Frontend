@@ -68,7 +68,17 @@ export function verifyMetroOwner(record, filePort, cli, actual, nodeExecutable =
   const created = Date.parse(actual.created);
   if (!Number.isFinite(created) || Math.abs(created - record.createdAt) > 10000 ||
       !samePath(actual.executable, nodeExecutable)) return false;
-  const args = Array.from((actual.command ?? '').matchAll(/"([^"\r\n]*)"|([^\s"]+)/g), match => match[1] ?? match[2]);
+  if (typeof actual.command !== 'string') return false;
+  const args = [];
+  let offset = 0;
+  for (const match of actual.command.matchAll(/"([^"\r\n]*)"|([^\s"]+)/g)) {
+    // Never silently discard unmatched quote characters between valid tokens.
+    const separator = actual.command.slice(offset, match.index);
+    if (separator.trim() || (args.length > 0 && !separator.length)) return false;
+    args.push(match[1] ?? match[2]);
+    offset = match.index + match[0].length;
+  }
+  if (actual.command.slice(offset).trim()) return false;
   return args.length === 6 && samePath(args[0], nodeExecutable) && samePath(args[1], cli) &&
     args[2] === 'start' && args[3] === '--port' && args[4] === String(record.port) &&
     ['--dev-client', '--go', '--web'].includes(args[5]);
