@@ -1,5 +1,4 @@
 import {apiRequest} from '@/shared/api'
-import {businessCopy} from '@/shared/i18n/business-copy'
 import {mutationOutcomeUnknown} from '@/shared/lib/mutation-outcome'
 import { EditorLayout,useUnsavedFormGuard } from '@/shared/ui'
 import { FormErrorSummary } from '@/shared/ui'
@@ -29,7 +28,11 @@ function CatalogFormPage({ kind }: { kind: CatalogKind }) {
 function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: CatalogItem }) {
   const access = useSessionAccess(), navigate = useNavigate()
   const [params]=useSearchParams(),returnTo=readinessContextReturn(params,kind==='packages'?'PACKAGE':kind.toUpperCase(),initial?.id)
-  const [draft, setDraft] = useState<CatalogDraft>(() => initial ? {...catalogDraft(initial),currency:'USD',price:initial.currency==='USD'?catalogDraft(initial).price:''} : { ...emptyCatalogDraft,currency:'USD' })
+  const [draft, setDraft] = useState<CatalogDraft>(() =>
+    initial
+      ? { ...catalogDraft(initial), currency: initial.currency?.trim() || 'VND' }
+      : { ...emptyCatalogDraft, currency: 'VND' },
+  )
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [error, setError] = useState(''), [busy, setBusy] = useState(false),[uncertain,setUncertain]=useState(false)
   const [baseline] = useState(draft)
@@ -43,7 +46,8 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
   const typeOptions = new Map(Object.entries(kind === 'packages' ? packageTypes : kind === 'services' ? serviceTypes : productTypes))
   for (const row of knownTypes.data ?? []) if (row.type.trim() && row.type.length <= 50 && !typeOptions.has(row.type)) typeOptions.set(row.type, row.type)
   if (initial?.type && !typeOptions.has(initial.type)) typeOptions.set(initial.type, initial.type)
-  const fields: { key: keyof CatalogDraft; label: string; type?: string; maxLength?: number }[] = [{ key: 'name', label: 'Tên *', maxLength: 200 }, { key: 'type', label: 'Loại *', maxLength: 50 }, { key: 'price', label: businessCopy('program.field.priceUsd'), type: 'number' }, ...(kind === 'services' ? [{ key: 'capacity' as const, label: 'Sức chứa cấu hình', type: 'number' }] : []), ...(kind === 'packages' ? [{ key: 'startDate' as const, label: 'Có hiệu lực từ', type: 'date' }, { key: 'endDate' as const, label: 'Đến hết ngày', type: 'date' }] : [])]
+  const currencyLabel = draft.currency.trim() || 'VND'
+  const fields: { key: keyof CatalogDraft; label: string; type?: string; maxLength?: number }[] = [{ key: 'name', label: 'Tên *', maxLength: 200 }, { key: 'type', label: 'Loại *', maxLength: 50 }, { key: 'price', label: `Giá (${currencyLabel})`, type: 'number' }, ...(kind === 'services' ? [{ key: 'capacity' as const, label: 'Sức chứa cấu hình', type: 'number' }] : []), ...(kind === 'packages' ? [{ key: 'startDate' as const, label: 'Có hiệu lực từ', type: 'date' }, { key: 'endDate' as const, label: 'Đến hết ngày', type: 'date' }] : [])]
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (lock.current || !allowed || uncertain) return
@@ -68,7 +72,7 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
   }
   return <EditorLayout ><Panel title="Thông tin danh mục"><form ref={form} onSubmit={submit} noValidate className={styles.editor}><fieldset disabled={busy||uncertain} className={styles.catalogFields}>
     <FormErrorSummary errors={errors} />
-    {kind === 'packages' && <Notice title="Danh mục gói dịch vụ">Dữ liệu cấu hình gói dịch vụ dùng chung. Gói bán chi tiết theo từng chuyến khởi hành được quản lý tại Gói du thuyền.</Notice>}
+    {kind === 'packages' && <Notice title="Gói dịch vụ bổ sung">Dữ liệu cấu hình gói dịch vụ dùng chung (niêm yết theo VND). Gói vé bán kèm hạng phòng theo chuyến được quản lý tại Mẫu gói du thuyền.</Notice>}
     {knownTypes.error && <Notice title="Chưa cập nhật được các loại đang dùng" tone="warning">Bạn vẫn có thể chọn các loại có sẵn.<Button tone="secondary" onClick={knownTypes.retry}>Tải lại loại</Button></Notice>}
     {!allowed && <Notice title="Chưa có quyền lưu" tone="warning">{access.error || 'Đang tải quyền hoặc tài khoản chưa được cấp quyền thao tác này.'}</Notice>}
     {[
