@@ -48,7 +48,11 @@
           "nfcPermission": "Cho phép OceVie đọc thẻ NFC để xác nhận và tra cứu thẻ hành khách tại POS.",
           "includeNdefEntitlement": false
         }
-      ]
+      ],
+      "expo-status-bar",
+      "expo-web-browser",
+      "expo-font",
+      "./plugins/withNfcAndroidSdk.cjs"
     ],
     "experiments": {
       "typedRoutes": true,

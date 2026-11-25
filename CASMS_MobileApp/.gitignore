@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# Isolated local development build outputs and Gradle cache
+.native-build/
