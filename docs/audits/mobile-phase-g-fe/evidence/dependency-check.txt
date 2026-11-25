@@ -1,0 +1,16 @@
+env: load .env.local
+env: export EXPO_PUBLIC_API_URL
+The following packages should be updated for best compatibility with the installed expo version:
+  @expo/ui@58.0.27 - expected version: ~58.0.29
+  expo@58.0.23 - expected version: ~58.0.26
+  expo-constants@58.0.15 - expected version: ~58.0.16
+  expo-font@58.0.11 - expected version: ~58.0.12
+  expo-linking@58.0.16 - expected version: ~58.0.17
+  expo-router@58.0.30 - expected version: ~58.0.32
+  expo-secure-store@58.0.2 - expected version: ~58.0.3
+  expo-splash-screen@58.0.13 - expected version: ~58.0.14
+  expo-status-bar@58.0.4 - expected version: ~58.0.5
+  expo-symbols@58.0.4 - expected version: ~58.0.5
+  expo-web-browser@58.0.7 - expected version: ~58.1.0
+Your project may not work correctly until you install the expected versions of the packages.
+Found outdated dependencies

@@ -1,0 +1,78 @@
+{
+  "date": "2026-11-25",
+  "timezone": "Asia/Saigon",
+  "status": "SPENDING_FOUNDATION_READY_FOLIO_BLOCKED",
+  "frontend_head": "a6bd1d6b4078d33dd1cf9e23c63bcaa1fc812b43",
+  "backend_head": "0bc2b3831301a0d67d45bacc120a161dbacec026",
+  "branch": "main",
+  "upstream": "origin/main",
+  "tests": {
+    "pass": 171,
+    "fail": 0,
+    "skipped": 0,
+    "new_tests": 7
+  },
+  "typecheck": {
+    "exit_code": 0
+  },
+  "lint": {
+    "exit_code": 0,
+    "errors": 0,
+    "warnings": 0
+  },
+  "doctor": {
+    "pass": 19,
+    "checks": 20,
+    "exit_code": 1,
+    "cause": "11 pre-existing SDK package mismatches"
+  },
+  "dependency_check": {
+    "exit_code": 1,
+    "mismatches": 11,
+    "package_changes_in_E0": false
+  },
+  "export": {
+    "exit_code": 0,
+    "platforms": [
+      "android",
+      "ios",
+      "web"
+    ],
+    "static_routes": 36,
+    "artifact_directory": "CASMS_MobileApp/dist/phase-e0",
+    "scanned_artifacts": 77,
+    "fixture_matches": [],
+    "native_bundles": [
+      {
+        "path": "_expo/static/js/android/entry-dd88866cb74950cb3a7bfe5e7227ae48.hbc",
+        "sha256": "b89cfdec8e483b6eb833af1ce01660aaae0d0d7c4e6f4ea7defe41b2c361cddd"
+      },
+      {
+        "path": "_expo/static/js/ios/entry-7ac48b0d2089116be19de3bfe3d2c32c.hbc",
+        "sha256": "d7edb70cb722487703aa0af03204cf99e5724fd90954aa6837065f659000596b"
+      }
+    ]
+  },
+  "pos_source_unchanged_since_D": true,
+  "financial_api_calls_added": false,
+  "settlement_checkout_mutations_added": false,
+  "backend_changes": false,
+  "database_mutations": false,
+  "real_api": "NOT_RUN",
+  "cross_app_e2e": "NOT_RUN",
+  "device_e2e": "NOT_RUN",
+  "rendered_ui": "NOT_RUN; existing environment blockers documented",
+  "M06": "OPEN/BLOCKED_BY_BACKEND",
+  "M07": "OPEN/BLOCKED_BY_BACKEND",
+  "git_diff_check": {
+    "exit_code": 0
+  },
+  "commit_push": false,
+  "source_sha256": {
+    "src/app/spending.tsx": "19b7a708611c206339a3c6d651e2c32d6262bee9722fba145285ed65f73e0b77",
+    "src/features/passenger-actions/booking-financials.ts": "99f176a08446086881914ed06e9b4c3ca36c40b97ffc08536eba32cfad369ac6",
+    "src/features/passenger-actions/PassengerSpendingScreen.tsx": "1c4aa3dd8cf3c2ae633d8d2d1be447d13149b7156e1ecdedbf02452342dbab5d",
+    "src/features/passenger-actions/spending-foundation.ts": "a667d2427bf5d1b7239c53a049a19cf891bb5e23a7d036666c31200cd76833d9",
+    "tests/spending-foundation.test.mjs": "a9f3a024b9236e27d47a541f9f62627ad121b4038ac1e132208ba9e84c1fd59e"
+  }
+}

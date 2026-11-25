@@ -20,7 +20,7 @@ export function PassengerButton({ label, onPress, icon, variant = 'filled', disa
 }) {
   const scale = useSharedValue(1);
   const reduceMotion = useMotionPreference();
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }], borderRadius: 14, overflow: 'hidden' as const }));
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }], borderRadius: controls.radius, overflow: 'hidden' as const }));
   const blocked = disabled || loading;
   useEffect(() => { if (blocked || reduceMotion) scale.set(1); }, [blocked, reduceMotion, scale]);
   const textColor = blocked ? colors.onSurfaceVariant : variant === 'text' || variant === 'secondary' ? colors.secondary : variant === 'premium' ? colors.onTertiaryContainer : colors.onPrimary;
@@ -55,7 +55,7 @@ export function PassengerButton({ label, onPress, icon, variant = 'filled', disa
 }
 
 const styles = StyleSheet.create({
-  base: { borderRadius: 14, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, overflow: 'hidden' },
+  base: { borderRadius: controls.radius, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, overflow: 'hidden' },
   filled: { minHeight: controls.buttonHeight, paddingVertical: 14, backgroundColor: colors.primary },
   secondary: { backgroundColor: colors.surface, borderWidth: 1, borderColor: brand.teal },
   premium: { backgroundColor: colors.tertiaryContainer },

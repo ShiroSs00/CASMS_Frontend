@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   tab: { flex: 1, minWidth: 48, minHeight: 64, paddingTop: 8, paddingBottom: 6, alignItems: 'center', justifyContent: 'center', gap: 4 },
   icon: { width: 44, height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
   selectedIcon: { backgroundColor: brand.tealSoft },
-  label: { fontSize: 12, lineHeight: 16, color: lightTheme.textSecondary, fontWeight: '500', textAlign: 'center' },
+  label: { maxWidth: '100%', paddingHorizontal: 4, fontSize: 12, lineHeight: 16, color: lightTheme.textSecondary, fontWeight: '500', textAlign: 'center' },
   activeLabel: { color: brand.teal, fontWeight: '700' },
   indicator: { position: 'absolute', bottom: 1, width: 16, height: 3, borderRadius: 2, backgroundColor: brand.teal },
   pressed: { opacity: .65 },

@@ -1,0 +1,290 @@
+[
+  {
+    "file": "CASMS_MobileApp/src/app/(passenger)/_layout.tsx",
+    "route": "/_layout",
+    "component": "@/constants/motion; @/components/passenger/useMotionPreference; @/components/passenger/PassengerNavigation; @/constants/passenger-light-theme; @/features/auth/session-store; @/features/auth/workspace-navigation",
+    "current": "Layout: Passenger tabs5/back history",
+    "fix": "Giữ gate, permissions, route keys và pending journals; G không rewrite router",
+    "issue": "STATIC_VERIFIED; hardware Back/session render pending",
+    "layout": true
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/(passenger)/account.tsx",
+    "route": "/account",
+    "component": "@/features/auth/PassengerAccountScreen",
+    "current": "Profile/booking/switch voyage/packages/support/logout confirm",
+    "fix": "Giữ identity/confirmation; hưởng shared sheet/choice/labels",
+    "issue": "G-03/G-04/G-05",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/(passenger)/home.tsx",
+    "route": "/home",
+    "component": "@/features/home/PassengerHomeScreen",
+    "current": "Voyage/ship/cabin/Today/upcoming/quick actions/unread hint",
+    "fix": "VoyageHomeParts cải thiện typography/time width, không hero ảnh mới",
+    "issue": "G-07/G-09",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/(passenger)/itinerary.tsx",
+    "route": "/itinerary",
+    "component": "@/features/itinerary/PassengerItineraryScreen",
+    "current": "Daily/ports/Today/sea-day/planned-actual/zone/tour/history sheets",
+    "fix": "Giữ exact voyage/day/stop validation F; dùng shared sheet",
+    "issue": "G-05/G-09; BE-22 published history OPEN",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/(passenger)/notifications.tsx",
+    "route": "/notifications",
+    "component": "@/features/notifications/PassengerNotificationsScreen; @/features/passenger-actions/AccountBoundScreen",
+    "current": "Inbox/unread/read/read-all/detail/connection/switch voyage",
+    "fix": "FlatList và healthy idle SSE; không ACK",
+    "issue": "G-01/G-02/G-05; BE-21/22",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/(passenger)/services.tsx",
+    "route": "/services",
+    "component": "@/features/services/PassengerServicesScreen",
+    "current": "Hub/search/category/detail/slots/request/result/My Requests",
+    "fix": "Search nhãn visible; spinner đúng fetch; journal/draft giữ",
+    "issue": "G-02 shared LivePage default/G-03/G-04/G-08",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/_layout.tsx",
+    "route": "/_layout",
+    "component": "@/features/notifications/NotificationSync; @/components/passenger/useMotionPreference; @/components/passenger/PassengerScaffold; @/components/passenger/PassengerUI; @/constants/passenger-theme; @/constants/passenger-light-theme; @/lib/query-client; @/lib/app-query-focus; @/features/auth/session-store; @/lib/api",
+    "current": "Layout: auth/provider/Stack",
+    "fix": "Giữ gate, permissions, route keys và pending journals; G không rewrite router",
+    "issue": "STATIC_VERIFIED; hardware Back/session render pending",
+    "layout": true
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/bookings.tsx",
+    "route": "/bookings",
+    "component": "Inline layout/route",
+    "current": "Legacy redirect → passenger-bookings",
+    "fix": "Không tạo booking mới",
+    "issue": "Giữ A0 regression",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/check-in.tsx",
+    "route": "/check-in",
+    "component": "@/features/passenger-actions/PassengerCheckInScreen",
+    "current": "Progress/emergency contact/conditions/boarding-ready",
+    "fix": "Paused guidance thay spinner; contract/preflight/HTTPS guards giữ",
+    "issue": "G-04/G-05/G-08",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/cruise.tsx",
+    "route": "/cruise",
+    "component": "@/features/home/PassengerDestinationScreen",
+    "current": "Selected ship/cabin/decks/public-model metadata khi yêu cầu",
+    "fix": "Paused guidance; không GLB/render/indoor position",
+    "issue": "G-08; M15 OPEN",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/explore.tsx",
+    "route": "/explore",
+    "component": "Inline layout/route",
+    "current": "Legacy redirect → services",
+    "fix": "Không tạo menu API chưa hỗ trợ",
+    "issue": "Giữ A0 regression",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/forgot-password.tsx",
+    "route": "/forgot-password",
+    "component": "@/features/support/PassengerSupportScreen",
+    "current": "Guidance liên hệ đơn vị cấp tài khoản",
+    "fix": "Không fake reset API/success",
+    "issue": "BE support contract vẫn OPEN",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/index.tsx",
+    "route": "/",
+    "component": "Inline layout/route",
+    "current": "Entry → splash",
+    "fix": "Không có tác vụ nghiệp vụ; giữ redirect",
+    "issue": "Không phát hiện lỗi route mới",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/loading.tsx",
+    "route": "/loading",
+    "component": "@/features/launch/PassengerLoadingScreen",
+    "current": "Me/voyages/role landing; retry/logout",
+    "fix": "Giữ hydration/deep-link và paused guidance",
+    "issue": "G-10; không thay Authentication",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/login.tsx",
+    "route": "/login",
+    "component": "@/features/auth/PassengerLoginScreen; @/features/auth/login-model; @/features/auth/session-store; @/features/launch/PassengerLaunchScreen",
+    "current": "Employee hoặc Passenger login; password/recovery",
+    "fix": "OutlinedField/Button reuse; controlBorder; không đổi role landing",
+    "issue": "G-03/G-05; keyboard/SR pending",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/passenger-activities.tsx",
+    "route": "/passenger-activities",
+    "component": "@/features/passenger-actions/PassengerActivitiesScreen; @/features/passenger-actions/AccountBoundScreen",
+    "current": "Activities/tours/registration/detail entitlement/confirm/edit/cancel/My registrations",
+    "fix": "Shared numeric Input/Choice/ConfirmAction; spinner/paused phân biệt",
+    "issue": "G-04/G-05/G-08; BE-16/17 OPEN",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/passenger-bookings/[bookingId].tsx",
+    "route": "/passenger-bookings/[bookingId]",
+    "component": "@/features/passenger-actions/PassengerBookingScreens; @/features/passenger-actions/AccountBoundScreen",
+    "current": "Booking/passengers/cabin/payment/contract/cancellation guidance",
+    "fix": "Paused detail/payment riêng; giữ unknown/currency và labels server",
+    "issue": "G-08; không legacy cancellation mutation",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/passenger-bookings/index.tsx",
+    "route": "/passenger-bookings",
+    "component": "@/features/passenger-actions/PassengerBookingScreens; @/features/passenger-actions/AccountBoundScreen",
+    "current": "Existing booking list",
+    "fix": "Empty chỉ isSuccess; paused guidance; không mua vé",
+    "issue": "G-08; E0 money formatter giữ",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/passenger-bookings/new.tsx",
+    "route": "/passenger-bookings/new",
+    "component": "Inline layout/route",
+    "current": "Retired creation redirect → list",
+    "fix": "Không mở booking mới",
+    "issue": "Giữ A0 regression",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/passenger-packages.tsx",
+    "route": "/passenger-packages",
+    "component": "@/features/passenger-actions/PassengerPackagesScreen; @/features/passenger-actions/AccountBoundScreen",
+    "current": "Purchased entitlement/usage quota/blockers",
+    "fix": "Server quota/null semantics; không package purchase hoặc cash substitution",
+    "issue": "Shared controls/sheet regression; legacy quota OPEN",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/passenger-qr.tsx",
+    "route": "/passenger-qr",
+    "component": "@/features/passenger-actions/PassengerCardScreen; @/features/itinerary/itinerary-api; @/lib/api",
+    "current": "Server claim/expiry/renewal/card guidance",
+    "fix": "Giữ quiet16, size clamp, raw claim không xuất text/log",
+    "issue": "G-09 display timer; scan trên thiết bị pending",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/passenger-services.tsx",
+    "route": "/passenger-services",
+    "component": "@/features/passenger-actions/PassengerServiceRequestsScreen; @/features/passenger-actions/AccountBoundScreen",
+    "current": "My requests/service history và toàn request flow companion",
+    "fix": "Giữ journal khi sheet đóng; không auto replay",
+    "issue": "G-03/G-04/G-05/G-08",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/spending.tsx",
+    "route": "/spending",
+    "component": "@/features/passenger-actions/PassengerSpendingScreen",
+    "current": "E0 spending guidance theo voyage state",
+    "fix": "Không số dư/transaction/settlement giả; chưa tích hợp Folio",
+    "issue": "M06/M07 OPEN; source E0 giữ",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/splash.tsx",
+    "route": "/splash",
+    "component": "@/features/launch/PassengerLaunchScreen",
+    "current": "Brand/restore gate",
+    "fix": "Giữ restore trước redirect; reduced motion có sẵn",
+    "issue": "G-10; chưa kiểm startup render",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/staff-pos/_layout.tsx",
+    "route": "/staff-pos/_layout",
+    "component": "@/features/pos/PosLayout",
+    "current": "Layout: Employee/device/terminal/session gate",
+    "fix": "Giữ gate, permissions, route keys và pending journals; G không rewrite router",
+    "issue": "STATIC_VERIFIED; hardware Back/session render pending",
+    "layout": true
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/staff-pos/activities.tsx",
+    "route": "/staff-pos/activities",
+    "component": "@/features/pos/PosActivities",
+    "current": "Activity detail/registration/create/edit/attendance/lifecycle",
+    "fix": "Giữ Date.now/permission/preflight; shared choice/input/sheet",
+    "issue": "G-04/G-05/G-09; native render pending",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/staff-pos/index.tsx",
+    "route": "/staff-pos",
+    "component": "@/features/pos/PosDashboard",
+    "current": "Shift/context/queue/work/scanner/close session/logout",
+    "fix": "Dashboard hai pane nếu đủ width; confirmations giữ",
+    "issue": "G-06; M17/BE-18/19 OPEN",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/staff-pos/requests.tsx",
+    "route": "/staff-pos/requests",
+    "component": "@/features/pos/PosServices",
+    "current": "Requests/detail/assign/accept/reject/start/fulfillment",
+    "fix": "Hai pane details/actions; exact passenger/context và preflight giữ",
+    "issue": "G-04/G-06; quota/usage handoff OPEN",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/staff-pos/scanner.tsx",
+    "route": "/staff-pos/scanner",
+    "component": "@/features/pos/PosScanner",
+    "current": "QR preview/confirm và NFC lookup",
+    "fix": "Camera focus/AppState teardown có; NFC unavailable trong Go/Web",
+    "issue": "BE-08/09/14; native device OPEN",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/staff-pos/services.tsx",
+    "route": "/staff-pos/services",
+    "component": "@/features/pos/PosServices",
+    "current": "Readable services/price/search/filter",
+    "fix": "Form width600; shared Field contrast/keyboard",
+    "issue": "G-03/G-05; không product sale mới",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/staff-pos/usage.tsx",
+    "route": "/staff-pos/usage",
+    "component": "@/features/pos/PosUsage",
+    "current": "Service sale/receipt/pending recovery/allowance/statement",
+    "fix": "600px bounded form; journal/idempotency/confirmation unchanged",
+    "issue": "G-03/G-04/G-05/G-09; BE-19/20 OPEN",
+    "layout": false
+  },
+  {
+    "file": "CASMS_MobileApp/src/app/support.tsx",
+    "route": "/support",
+    "component": "@/features/support/PassengerSupportScreen",
+    "current": "Emergency/desk/ordinary FAQ/account help",
+    "fix": "Guidance thật; không phone/chat/ticket/success giả",
+    "issue": "BE-24 OPEN; shared a11y source",
+    "layout": false
+  }
+]

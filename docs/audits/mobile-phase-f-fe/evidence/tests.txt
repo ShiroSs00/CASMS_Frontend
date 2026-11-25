@@ -1,0 +1,301 @@
+
+> casms_mobileapp@1.0.0 test
+> node --import ./tests/register-typescript.mjs --test tests/*.test.mjs
+
+(node:5200) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/lib/app-query-focus.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ native resume revalidates stale observed data without replaying mutations (55.0982ms)
+✔ Android inactive/background and active update focus; web keeps browser visibility handling (0.58ms)
+(node:33180) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/tests/fixtures/legacy-itinerary-data.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Asian demo crosses countries and time zones rather than assigning one zone to the whole cruise (57.0495ms)
+✔ East, Southeast, South and West Asian times preserve fractional offsets and midnight rollover (20.5562ms)
+✔ missing/invalid ship zones have an explicit UTC fallback without breaking rendering (1.7611ms)
+✔ booking and activity timestamps show an explicit offset across Asian ports (4.2859ms)
+✔ a stop spans different local dates in Singapore and Dubai using each itinerary day zone (4.2059ms)
+(node:31844) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/auth/session-store.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ cold restore waits for storage once and restores only same-scope session and selected pair (1019.2602ms)
+(node:32524) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/passenger-actions/passenger-api.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Mobile preserves server financial projections and shows all four decimals (101.8611ms)
+✔ missing/null projections never become zero or paid (1.414ms)
+✔ invalid amounts, coercible strings and invalid flags fail closed (6.179ms)
+✔ fully paid with unsigned contract remains Draft, independent from payment flags (1.6288ms)
+✔ Confirmed booking and transaction history remain independent; another booking payment cannot be used (3.3685ms)
+✔ cancelled/refund projections are not fabricated or discarded (1.0154ms)
+✔ currency mismatch, duplicate installment and invalid enums fail closed (3.8433ms)
+✔ four-decimal amounts outside safe JSON-number range are not rendered as rounded financial truth (2.3441ms)
+✔ private permission grants cannot be borrowed from another account and tokens are stripped (0.7488ms)
+(node:28692) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/pos/card-reader.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ native identifier accepts supported hex UID only and does not substitute an identity (12.587ms)
+✔ NFC unsupported and disabled devices never request a tag (3.8206ms)
+✔ read cancellation drops a late native tag, blocks overlap and waits for cleanup (10.654ms)
+✔ cancellation during native module loading prevents opening a session (2.1028ms)
+✔ native failure always cleans the attempted request and permits another scan (0.9394ms)
+(node:16696) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/lib/api/api-client.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ old itinerary detail uses existing BE alias and accepts wrapped sections/raw history (86.476ms)
+✔ old catalog follows every BE page and rejects inconsistent or duplicate pages (19.3587ms)
+✔ old sections preserve 403 separately; 401 invalidates the session (7.8114ms)
+✔ malformed history remains an error section and cannot crash list rendering (3.0371ms)
+✔ old excursions/group requests retain exact BE filter names and reject missing selections (2.04ms)
+✔ old refresh sends the current bearer without a fabricated refresh-token body (0.8318ms)
+(node:5568) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/tests/fixtures/legacy-itinerary-data.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Passenger tour returns before all-aboard, which precedes ship departure (2.4168ms)
+✔ operational changes affect the intended day and leave original fixtures intact (0.3949ms)
+✔ sea days have no port tour or all-aboard and substitution replaces the tour too (0.3274ms)
+✔ normal history excludes unapplied changes and published changes describe the selected scenario (0.5599ms)
+✔ port duration handles overnight arrival and departure (0.3943ms)
+✔ loading morph produces finite closed paths at start, each shape transition and loop boundary (19.0799ms)
+✔ mount/resume clock values keep the initial shape valid instead of crashing (3.2991ms)
+(node:5324) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/lib/api/api-client.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ transport timeout aborts passenger and POS writes once without expiring auth or replaying (70.2762ms)
+✔ navigation cancellation propagates AbortError rather than reporting a timeout (15.038ms)
+✔ tour and history access messages distinguish denied permissions from server failures (0.4091ms)
+✔ a denied section preserves permitted sections and is distinct from an empty list (3.5425ms)
+✔ section permission handling propagates expiry and server/network failures (1.1464ms)
+✔ normalizes explicit API URLs without a Metro, QA or production fallback (12.9373ms)
+✔ transport distinguishes intentional void responses from invalid payloads (103.509ms)
+✔ HTTP errors preserve codes and status while hiding backend implementation messages (4.0158ms)
+✔ an aborted request cannot invalidate a session even if a stale 401 arrives (0.8482ms)
+✔ login posts username/password without sending a previous bearer token (0.9107ms)
+✔ client supports both ApiResponse and raw activity/history arrays with query encoding (1.1292ms)
+✔ 401 expires current session even if backend response has no JSON; 403 does not log out (1.1771ms)
+✔ late 401 from an old token cannot expire a newly signed-in session (0.9218ms)
+✔ a valid session stores only token, expiry and identity, never credentials (1.4992ms)
+✔ time formatting honors ship timezone and never invents missing times (38.0035ms)
+✔ overnight stops remain visible on intermediate itinerary days (4.8601ms)
+(node:32752) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/lib/api/api-client.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ legacy booking and explore deep links reach companion screens (125.6422ms)
+✔ booking detail offers contact guidance and renders the server cancellation reason without a legacy mutation (123.4983ms)
+✔ QA requires an explicit matching confirmation and has no default URL (16.7654ms)
+✔ QA readiness performs a read-only API contract probe without redirects or credentials (139.0817ms)
+✔ QA distinguishes missing setup, authentication and fixture failures (2.9009ms)
+(node:31520) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/components/passenger/sheet-presence.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ sheet stays mounted until its exit actually completes (1.6033ms)
+✔ late native exit callbacks cannot hide a reopened sheet (0.4405ms)
+✔ repeated open/close interruptions leave only the latest exit able to finish (0.4ms)
+✔ instant reduced-motion completion and unmount cancellation both work (0.4372ms)
+(node:21472) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/passenger-actions/passenger-api.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ notification nullable fields are explicit and exact duplicates do not render twice (10.0969ms)
+✔ unread and mark-all use actual REST DTO and never implicitly ACK (6.2169ms)
+✔ notification list rejects malformed response and sorts actual instants across offsets (1.4032ms)
+✔ deep link requires exact verified BP and explicit switch for another voyage (0.8817ms)
+✔ day selection follows Home Today, preserves valid chosen day and reports removed identity (52.6206ms)
+✔ Passenger itinerary rejects a formerly published itinerary returned as an internal draft (3.522ms)
+✔ public model metadata must belong to selected ship and never accepts arbitrary asset URL or traversal (11.2882ms)
+✔ ship decks reject another ship instead of showing incomplete location metadata (0.9506ms)
+✔ Support has no fabricated contact, ticket mutation or chat success flow (52.8359ms)
+(node:25580) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/notifications/notification-stream.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ SSE parser handles arbitrary CRLF boundaries, multiline data, comments and UTF-8 text (9.4733ms)
+✔ malformed or unknown SSE events never become business state (4.1535ms)
+✔ stream connects once using header auth and GET only, coalesces duplicates and ignores malformed frames (109.5002ms)
+✔ authorization denial stops reconnect and polling without logging out a valid session (4.9034ms)
+✔ network retry is bounded with exponential backoff, then foreground REST fallback (15.2998ms)
+✔ idle connection timeout aborts, revalidates and schedules a bounded retry (3.3067ms)
+✔ late response after account, epoch, environment or background change cannot invalidate the new context (5.4408ms)
+✔ token refresh replaces the old stream and cleanup prevents late event callbacks (3.9606ms)
+✔ invalidation predicate isolates owner/API/epoch and excludes financial, POS and pending journal queries (1.0241ms)
+(node:22988) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/passenger-actions/passenger-api.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ catalogue search/category compose and empty/inactive records are handled without made-up categories (4.2382ms)
+✔ service request visibility isolates BookingPassenger even inside the same booking (0.884ms)
+✔ server entitlements match exact resource IDs and passenger, never names or package presence (0.5533ms)
+✔ null price is unknown and currency is not converted or replaced (65.4497ms)
+✔ service detail and availability validate identity, quantity and financial precision (12.4993ms)
+✔ schedule accepts server zero capacity and rejects mismatched or corrupt slots (6.7287ms)
+✔ entitlement API uses booking projection and retains zero/null quota and blockers (40.8435ms)
+✔ recovery distinguishes the original intent from changed quantity, note, slot and owner (2.6197ms)
+✔ edit/cancel schemas reject HTTP200 missing identity or unknown lifecycle (4.7836ms)
+✔ request and registration lifecycle do not expose staff fulfillment or attendance (0.5897ms)
+✔ registration requires one valid target and schema; a lost POST is not automatically replayed (2.0193ms)
+✔ excursion resolution follows exact itinerary/stop IDs and ignores omitted calls and wrong-stop results (6.0723ms)
+✔ availability and registration response identities cannot be replaced by malformed HTTP200 (1.5467ms)
+✔ late action guard rejects voyage/person/account/session/environment changes and expired sessions before writes (0.5135ms)
+✔ business rejection keeps a meaningful recovery instruction without raw backend implementation text (29.254ms)
+✔ NON_NULL serialization preserves unknown amounts and quota, and does not require an absent null registration target (0.95ms)
+✔ journal note fingerprint preserves intent comparison without persisting raw note text (1.3459ms)
+(node:17592) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/passenger-actions/passenger-model.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ passenger assignments request only the own-user API and filter actual booking passenger rows (6.4923ms)
+✔ post-booking actions retain bounded integer quantity validation (1.015ms)
+✔ bookingPassengerId comes from active confirmed booking rows, never user identity (42.227ms)
+✔ packages require a draft and dates covering the entire cruise (1.3285ms)
+✔ registration and service request lifecycle gates follow the actual BE transitions (63.3554ms)
+✔ sessions preserve actual permissions and legacy sessions stay unknown, not inferred from role (1.3019ms)
+✔ personal screens reject mismatched, disabled and mixed staff identities (0.5493ms)
+✔ API uses all booking pages and rejects incomplete or duplicate results (11.6775ms)
+✔ an already cancelled booking remains readable without exposing booking writes (5.8038ms)
+✔ services support authenticated PUT and POST cancel without staff-only action routes (94.8255ms)
+✔ post-booking service requests reject missing passenger linkage before HTTP (0.8609ms)
+✔ activities register against the selected bookingPassenger and use the correct target routes (3.092ms)
+✔ excursions are resolved through real itinerary routes and scoped to the booked cruise (8.7153ms)
+✔ package assignment uses POST for initial selection, PUT for change and DELETE for removal (0.8251ms)
+✔ network failure is not automatically replayed for a create request (0.7564ms)
+✔ service input validates availability, bounded integer quantity and notes before submitting (1.3192ms)
+(node:2896) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/passenger-actions/passenger-api.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ claim comes from server, uses BookingPassenger path and rejects expired or malformed data (15.092ms)
+✔ POS preview/confirm/lookup preserve scoped session and validate response (42.0743ms)
+✔ uncertain confirmation is never replayed automatically (0.7739ms)
+(node:13296) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/auth/login-model.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ login follows Backend required fields without altering the password (3.2237ms)
+✔ role landing is explicit for Passenger, Staff, terminal, and unsupported roles (0.5175ms)
+✔ anonymous deep link resumes the intended route within its workspace only (1.0289ms)
+✔ empty, single and ambiguous voyages never choose a different passenger silently (1.0416ms)
+✔ restored voyage is scoped and checked again against actual records (0.4751ms)
+✔ cabin can be unassigned; matching requires the correct booking, cruise and active passenger (0.6069ms)
+✔ Passenger DTO accepts nullable itinerary and profile details and rejects spoofed identifiers and states (17.8651ms)
+✔ cruise detail accepts no assigned ship and rejects a response for another cruise (5.9501ms)
+✔ scoped itinerary rejects malformed day and unrelated voyage (6.3047ms)
+✔ home chooses today using ship timezone and only upcoming confirmed registrations (49.602ms)
+✔ login keeps network failure distinct and explicit retry can succeed (84.0921ms)
+(node:26852) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/pos/pos-transport.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ terminal bootstrap sends employee JWT and exactly one device credential without POS header (110.9876ms)
+✔ opening POS rejects invalid terminal, mismatched context and expired server session (6.1052ms)
+✔ context comparison invalidates changed ship, terminal, area, cruise or assignment (2.8393ms)
+✔ POS reads/actions/sales/revocation use only scoped endpoints and session header (53.0904ms)
+✔ POS rejects invalid quantities/credentials and never retries timeout or forbidden mutations (3.4228ms)
+✔ uncertain sale retry preserves exact body and idempotency key (0.8392ms)
+✔ statement preserves authoritative allowance and rejects wrong account or malformed amounts (2.7975ms)
+✔ sale detail rejects a response for a different sale (0.4107ms)
+✔ device-bound credential is never sent to passenger endpoints (6.458ms)
+✔ late 401 cannot clear a newer session even when the JWT text is reused (2.6936ms)
+✔ POS employee gate requires server POS_ACCESS, active identity and an employee role (9.2341ms)
+✔ passenger options exclude requests outside server-readable services (66.5664ms)
+✔ activity lifecycle respects backend states and uses POS-scoped action transport (2.3194ms)
+✔ fare-benefit completion requires explicit full quantity and sends the unit through POS scope (1.2182ms)
+(node:20716) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/pos/pos-transport.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ request ownership and all terminal states expose only permitted staff actions (2.6126ms)
+✔ fulfillment rejects wrong identity, lifecycle and partial results (1.5868ms)
+✔ passenger and POS decode the same completed request identity and quantity (28.9737ms)
+✔ fresh context matching rejects changed terminal, ship, area, cruise or assignment (0.7925ms)
+✔ attendance separates registration, check-in, checkout, completion and no-show (4.3708ms)
+✔ registration and attendance responses must match exact target and transition (1.5989ms)
+✔ staff registration edit uses scoped PUT, preserves notes and validates quantity before send (14.5291ms)
+✔ new registration rejects wrong activity, passenger, quantity and automatic confirmation (19.7218ms)
+✔ sale receipt needs request, charge, supported currency and safe financial precision (8.124ms)
+✔ sale response matches intent and employee terminal scope without fabricating totals (1.2814ms)
+✔ staff statement keeps signed reversal and passenger ID distinct from BookingPassenger (5.9652ms)
+(node:29620) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/lib/api/api-client.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ companion adapter reads existing booking, assigned cabin, deposit and payments using the current bearer (125.3988ms)
+✔ read-only detail and payment adapters reject responses linked to a different booking (7.3197ms)
+✔ voyage choice retains the exact booking/passenger pair and refuses cross-booking passengers (9.6984ms)
+✔ multiple linked passengers in one booking do not fall back to the first passenger (0.7589ms)
+✔ selection cannot cross user, login epoch or Backend and never supplies data after logout (2.8871ms)
+✔ current voyage prioritizes active confirmed trips, excludes cancelled passenger participation (10.1268ms)
+✔ route initialization is scoped, atomic, and can be released without altering the chosen passenger (3.816ms)
+✔ production source cannot reintroduce ticket creation grants, quote endpoints or purchase CTAs (205.169ms)
+(node:32772) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/tests/fixtures/service-guides.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ service discovery supports accented and unaccented Vietnamese search (6.5185ms)
+✔ category and search are combined and unmatched queries produce an empty result (0.874ms)
+(node:24480) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/passenger-actions/service-operation-store.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ serialized double tap keeps one original key and original payload, and clear checks the key (10.6119ms)
+✔ queued journal writes capture API environment at call time and isolate owners (3.3311ms)
+(node:25056) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/passenger-actions/passenger-api.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ service request recovery uses operation-key endpoint and preserves fare/usage snapshots (11.4296ms)
+✔ request adapter rejects malformed snapshots instead of treating recovery as confirmed (1.8528ms)
+✔ scheduled requests keep schedule/key contract and reject schedules for another service (2.7773ms)
+(node:24140) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/auth/session-store.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ restore ignores a persisted token scoped to a different API URL (2.4437ms)
+✔ logout revokes POS with outgoing employee JWT and clears auth, POS storage and query cache (52.713ms)
+✔ account switching refuses old scoped client and never reveals another employee pending sale (6.1857ms)
+✔ expired stored POS session is removed instead of restored (0.418ms)
+✔ refresh cannot change account identity or retain the outgoing private cache (1.728ms)
+✔ same-owner refresh preserves the login epoch and current account cache (1.1298ms)
+✔ 403 during refresh preserves unexpired auth and account data (0.9792ms)
+✔ selection persists beside the active JWT, survives refresh, and clears on logout (1.3405ms)
+✔ resume expires the session before any request when the clock passed expiry (0.5954ms)
+✔ POS journal serializes concurrent intents and refuses stale clear or another owner (1.0715ms)
+✔ POS journal survives session epoch change and blocks another voyage or environment (1.3056ms)
+✔ in-flight POS response after employee switch is uncertain and never accepted (1.2487ms)
+✔ different legacy and terminal pending intents stay blocked and neither is deleted (1.5679ms)
+(node:11436) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/passenger-actions/booking-financials.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ shared financial formatter keeps unknown distinct from zero and rejects unsafe precision (44.8737ms)
+✔ shared formatter preserves signed reversal without changing booking nonnegative guard (1.0909ms)
+✔ financial labels use real transaction enums and distinguish account scope from passenger (0.5351ms)
+✔ spending cannot turn unavailable account data into zero, empty or missing account (2.8008ms)
+✔ spending hides previous voyage during reload, denial, failure or offline state (0.4202ms)
+✔ ended voyage never implies settlement or paid account (0.4587ms)
+✔ blocked Spending screen has no financial transport, mock totals or checkout action (44.2295ms)
+(node:26280) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/quanh/OneDrive/M%C3%A1y%20t%C3%ADnh/CASMS_Frontend/CASMS_MobileApp/src/features/staff-pos/staff-model.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ staff permission gate checks current identity, active status and onboard role (3.2829ms)
+✔ staff actions obey assignment ownership and current lifecycle (1.4774ms)
+✔ product form preserves price precision and rejects invalid financial input (3.4303ms)
+✔ staff adapter calls actual management routes and never attempts unfinished sales (7.0889ms)
+ℹ tests 189
+ℹ suites 0
+ℹ pass 189
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4187.6434

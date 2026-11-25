@@ -1,0 +1,429 @@
+{
+  "measurement": "Filesystem exported artifacts; not runtime memory or startup",
+  "phases": {
+    "f": {
+      "android": {
+        "files": [
+          {
+            "file": "dist/phase-f/_expo/static/js/android/entry-aaa81eac93ee2a755e7145a1deb2a080.hbc",
+            "bytes": 6177427,
+            "sha256": "319900e3a0811979ba3662ba55e12a709f6d8a294a3f99837bb436f3667ec4a6"
+          }
+        ],
+        "total_bytes": 6177427
+      },
+      "ios": {
+        "files": [
+          {
+            "file": "dist/phase-f/_expo/static/js/ios/entry-77bdf6fa66e8a8240cb9519adee38f7a.hbc",
+            "bytes": 5957878,
+            "sha256": "f0fc71ff9e05bd6a7768315d375e2566d24703e73683e0a081f486ec65947915"
+          }
+        ],
+        "total_bytes": 5957878
+      },
+      "web": {
+        "files": [
+          {
+            "file": "dist/phase-f/_expo/static/js/web/[bookingId]-a1cdc5ac79c91e5966a43151257fe5e1.js",
+            "bytes": 425,
+            "sha256": "bbf9f5e057d08c999f931138c13ca509ebd2bb44675d1aedbe9152c8637e139b"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/__common-796fcebfc62f846f2136ac8398cc2e2d.js",
+            "bytes": 1736008,
+            "sha256": "1fa9ada8cdb60190b1b76f60cbf99ffff3164b67cb78528755c6efe84f8bbfb3"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/__expo-metro-runtime-9f1a7b6acd20011e290bc79f0164ae37.js",
+            "bytes": 9884,
+            "sha256": "140415269cc2e3324e3d674839d15dc9bf468174e059958b29db4a5b78725162"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/_layout-06d675f6c66741eb6195a7afd1d35d62.js",
+            "bytes": 355,
+            "sha256": "2978086cc17757d3e0231f79d71ab3df2629f19807ba517e72947e3a20b9185e"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/_layout-13bbc034412c28ace8584103b5fcbd06.js",
+            "bytes": 5819,
+            "sha256": "f5567a14d58d5834ffb86524c38f15150ab17a83654d818b89f3789bbab8f0c7"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/_layout-423973e0826faa9bc4097e408a474352.js",
+            "bytes": 3289,
+            "sha256": "3c771153adfcad0c7f7ea13b1c2bc9a5eec6ab0d63052ea8db533e4285269af2"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/account-b29ed6894bf097b96fce7ec30e1c7d97.js",
+            "bytes": 9785,
+            "sha256": "cb1e0dd7520170c7a2df853d5b2c3f4c3cad1a51ee4de24f666b548efbd9bb89"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/activities-b17f03b28f1774c43a3116bcb525fac2.js",
+            "bytes": 18151,
+            "sha256": "f037ed1d050399b27d627838135a154e4605a573276d5aeade7dfe3158ae42f5"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/bookings-7a165cbcf6783cf213b833351b896f4a.js",
+            "bytes": 385,
+            "sha256": "64f97726e9af9bda1d701aca391ab57113cd755c153dc8442e2457090947251c"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/check-in-b1a732f262d6998425dd0af632bd939a.js",
+            "bytes": 9643,
+            "sha256": "804d726c08376d97178e5b092baa99c41261a71605c1bb8bf62ee92c43485d02"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/cruise-badbfe20b730a301ef76ac2f22d5174f.js",
+            "bytes": 7256,
+            "sha256": "530ea6bd68652a5966bfbd91cf25469f7a5a0604b8d1691ae76902fc42cf46fc"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/entry-54967d6b8f0b2d3d51d5093c56cee101.js",
+            "bytes": 1123466,
+            "sha256": "34a6016b7045886e3d7496f159e454f4b9a1e77e0e3d256599d96c9fd5eeffc7"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/explore-9beee8f990e404cd2dda75a98b70ae88.js",
+            "bytes": 375,
+            "sha256": "1f07858b9db85737ee04091e5eb0534c54a9c042e2a9b1fcb4ae7090f94d294d"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/forgot-password-ad66bc5c0efb12983d1280ef7aabc24e.js",
+            "bytes": 385,
+            "sha256": "c4b32bf8cf0ddf54fa50a47a4ff8b0586788eb4acb5074d6c9d88688a013f5e5"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/home-026c56e3a1ff87fbe08cd6448931c3eb.js",
+            "bytes": 17874,
+            "sha256": "d39ba7570ca58bf898a59b47ac39c0f0c5d7e79a9515bb9fa9a950496dd5a9ca"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/index-6b52d691eb800677a29b433600f7587f.js",
+            "bytes": 8329,
+            "sha256": "88f7fb60709baae748051939febd560fc74ec9af9990cc13256a25a7577b57d9"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/index-da4f869ed13d492f58cb65ab3a5f703b.js",
+            "bytes": 373,
+            "sha256": "8367f69d2ba8ee68615cd9d2144df641cf0fbfc9f3192eefe15ed45581da820c"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/index-e44f872f4154ad291853ca0d9eb4f819.js",
+            "bytes": 45045,
+            "sha256": "af17fafcc13e44a558fd7578e91c0f0a7b40c8da5a80c762f01ce59269e792d6"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/index-e93fdd7612eac75f9cbd045d6f9c695b.js",
+            "bytes": 35179,
+            "sha256": "5e994a5197bc6283f7b554de886c218ae64afe33e5ca2a798a55d8482c06a315"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/index-f8803a0dd771e130e08332441fcf80ea.js",
+            "bytes": 420,
+            "sha256": "a0c7a3b1a824258f1a03d03032b2bce4fd90d6b0537d5d7699ad52b4eef74c32"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/itinerary-8a34522f80288cbb1af7efa852dc6f33.js",
+            "bytes": 22037,
+            "sha256": "d9ab813d2071fb9c5c9e24bebe68502c23f0efcd4ce7e8c49bac550c21ef4979"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/loading-a707e2b9d51e501d3001a8f2656e1f7a.js",
+            "bytes": 7108,
+            "sha256": "df661ac62cfe5c7393f600f7c6fe49f0d0248a69f22bcd5d945309174e43c546"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/login-2c87807ddf5f3b2b89ce7d470b0463dd.js",
+            "bytes": 10776,
+            "sha256": "0b2774228e9df0feec3bd3066a23c9010b141add21fc662236201fda7cf82c25"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/new-8ab9cd48b986989ca545db6e82ab2e5c.js",
+            "bytes": 385,
+            "sha256": "7ff7b7ad212e95015e531a0835dd79eb5163275e56c29db8c7a870f8e3b85f15"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/notifications-c7495c4b7fe21b9892096a85a212ed18.js",
+            "bytes": 5628,
+            "sha256": "671a02ee7e5cab0a3d75848cf5d4ae7e1caac3e939228d751d347642a80117b3"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/passenger-activities-3ef99fe4bc1a78756d88b9a30b4c331a.js",
+            "bytes": 17342,
+            "sha256": "5af45b9a30e88eb85a8a03f0044526e952a20cd2cd95652cf57f42229e7dffa4"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/passenger-packages-a34ec7dfbc6cdf94fd144c09f0457bfd.js",
+            "bytes": 3512,
+            "sha256": "453ec12263ed2ca28b984d1754d60bf3328505ce3dfa6e970b4e9e476012c970"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/passenger-qr-de60a9844805c4a1f952dc3bf160e89f.js",
+            "bytes": 34966,
+            "sha256": "67aba681595754d6956c308df556e79e57f7c544275acd468d704abacbce3a0b"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/passenger-services-f22a6669895e9769940d7345bb565966.js",
+            "bytes": 427,
+            "sha256": "f1cf10014b667b297ac5b3a574a49696566525c38a9bb8836ee8b0adbbe43e6b"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/requests-ea21953fd911d87550f14f0e966b45ed.js",
+            "bytes": 206,
+            "sha256": "afc602905bed7393ca996f4d7273ce83332675f27f01856a16223bdd707e2885"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/scanner-3fb9811e84689397880112c235a0685a.js",
+            "bytes": 30052,
+            "sha256": "c448e9c052d007ddffe3d4ffe879659c55256bc3f44503a9810786a05408687c"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/services-1cd0f7a087707e50b3fe99053f519a76.js",
+            "bytes": 772,
+            "sha256": "0d96103f0b5d455dce90aeae4421ee1bd15e290adfd740c35f13cdd79241f9d3"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/services-2fdc34b0e5fb37ce3bd6709d27243da9.js",
+            "bytes": 206,
+            "sha256": "7eb1eb1acfcf7f478b388e8bf0e288ae31709560369e47a12625ec1eba165946"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/spending-73c2d603bdf449651c81b031f81a31f8.js",
+            "bytes": 6393,
+            "sha256": "f0a3df928f7ff0917f9ebb88376ae544a2840924d507e9ed97f53fe3aa9d5d44"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/splash-45e2d5cab689a667d53dff66822358d7.js",
+            "bytes": 373,
+            "sha256": "83e56f9b554afc61d509a2a4ecd15c6007544d54cc4c5d231beceebf70aa17ed"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/support-68eacab64380b994b579e47b357f1217.js",
+            "bytes": 374,
+            "sha256": "fd244f34cd737c66022cb25eab29d92501cd5a22b121d5be86e6e37e5b915497"
+          },
+          {
+            "file": "dist/phase-f/_expo/static/js/web/usage-7811d20c1240c6ed663b50be61502ece.js",
+            "bytes": 15161,
+            "sha256": "c375aa4594aaf759b7e90153866cb12bfc7ee4c1a7b0396634f200a43f212c43"
+          }
+        ],
+        "total_bytes": 3188164
+      }
+    },
+    "g": {
+      "android": {
+        "files": [
+          {
+            "file": "dist/phase-g/_expo/static/js/android/entry-3722b59db7269eed80476d0004094635.hbc",
+            "bytes": 6186871,
+            "sha256": "be2f8b981aa7f57338867bcb51d9496e1feecdb4348290e5404be60ed6cb3840"
+          }
+        ],
+        "total_bytes": 6186871
+      },
+      "ios": {
+        "files": [
+          {
+            "file": "dist/phase-g/_expo/static/js/ios/entry-6d59a5f8d1289eadff28a81015ea9374.hbc",
+            "bytes": 5965374,
+            "sha256": "8aa002fe78326f81469fc96e6ae0a25890686c747fe4201bbacad97fb42545c2"
+          }
+        ],
+        "total_bytes": 5965374
+      },
+      "web": {
+        "files": [
+          {
+            "file": "dist/phase-g/_expo/static/js/web/[bookingId]-781c38a8dd111919c68868495019f0fb.js",
+            "bytes": 425,
+            "sha256": "9442ebf5fe7904a6f5250cbea68145fab0400f89c5d4a230b212259ae06d25f1"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/__common-ce92267b2d77b466b81b43813ae782b0.js",
+            "bytes": 1740248,
+            "sha256": "20c4c729f5ff67a942cca6a4d681874f061325f218cc52c404f9a7a03b45f179"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/__expo-metro-runtime-9f1a7b6acd20011e290bc79f0164ae37.js",
+            "bytes": 9884,
+            "sha256": "140415269cc2e3324e3d674839d15dc9bf468174e059958b29db4a5b78725162"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/_layout-1c035b64de699922fe0f5969949f8bf4.js",
+            "bytes": 3289,
+            "sha256": "ee2704c8b786ecc896d19f767bc4e4f35d010949cb8efc8cdb01681237afe7a4"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/_layout-9eb8e66ee25a0f38010b84c1241038e4.js",
+            "bytes": 355,
+            "sha256": "79eef704353c2c3c122b524ecfeb372c9925f9aad3870f2c318866640cbbdf3a"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/_layout-b32ff8baec578273608c4001c807d57a.js",
+            "bytes": 5855,
+            "sha256": "81e1d46c3860a477cdd23f2eaf216787ccc29387f671b952cdd24249b4e54a7f"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/account-9719e99a9b244051f13ca94f75545815.js",
+            "bytes": 9785,
+            "sha256": "cd30a9417d852a38d520f04c1cae0eee53e6ae38ad03e98dd2b89771c84a55c8"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/activities-834282b5804910d28a2d4649ea57a4f6.js",
+            "bytes": 18151,
+            "sha256": "15af8977ab781f2edc2eb43a471ed7f5bcb7b6a1fc8ace5bcd794c7ebcc99b77"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/bookings-28875caf6d40013e73fe2b42b9568958.js",
+            "bytes": 385,
+            "sha256": "b6b3bd4b05295b81c60f0f7ab466142e4d4f9ba65067a946945fd50975ba1c76"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/check-in-c4e95ce46173475f1b200e23fb17166c.js",
+            "bytes": 10034,
+            "sha256": "5d69e79aab020b3cfde5a57b38c13f6112fcfb496ab1100af40e618e77b0f450"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/cruise-20bb68a6d133afc12b435e9f07f6839e.js",
+            "bytes": 7825,
+            "sha256": "51588dd490c55f3d296130330ceba74b21b8db1f67f1ad2acb9a5dc35a4404a3"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/entry-8b7d0be78ffa2da89857c416238e39cd.js",
+            "bytes": 1123466,
+            "sha256": "56896acc876752bfd717498cb02bb5118fd14c5e3ac975a639f8e77f7dc4f69f"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/explore-84f651748e35108b1688fb646e04759b.js",
+            "bytes": 375,
+            "sha256": "468eb007b499af34ad98f0224b510915186c5323c1ae837b381b1bddfc3fc3a9"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/forgot-password-6f40692e1055116271841adb1bd3aa50.js",
+            "bytes": 385,
+            "sha256": "b6abc5525e73c1c6a38fe390a05b279d7d6941d66b46c2cfaf29c5a82ce49d48"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/home-192f9cc321a3db9bb0846b17e9a198d5.js",
+            "bytes": 17927,
+            "sha256": "e012dc94e61e40fc751482789a4d21ab155301b3161598b1c847d555c4dc0521"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/index-66894c1a7aa2b0b0ff5ee66e63f0d56c.js",
+            "bytes": 8663,
+            "sha256": "0b2abf5e6d1d6fb4ddf8106ffe2633edb8425893f02545eb7c4d4be16501eeb4"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/index-c7c9373d68f880ec4910d197467e5cb7.js",
+            "bytes": 420,
+            "sha256": "dc357dd798353af12f3779c3f71ceb6627526dd760e8a66838a6ce33a44ccd24"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/index-d3213dcd4d05c27dc5d8c937cd70f186.js",
+            "bytes": 373,
+            "sha256": "3e592acf1ff8e592b94c5263e8875f13455655b28ce9846c9d4647249bf48695"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/index-d64649c0397d315534c6ecffcf9ecd68.js",
+            "bytes": 45045,
+            "sha256": "cc40560cbc8f2587f8f0c2e965b839df66d0ccc582aceb44c083710e47f59600"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/index-fd745d0d57480e20cced069d730b29d8.js",
+            "bytes": 35179,
+            "sha256": "429bcaac1cda88e7b3d077c5ef2a6bd3766dfe4519378e1ba39f9126e533dc41"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/itinerary-e60bf23966b857f11852247b023047ec.js",
+            "bytes": 22037,
+            "sha256": "9f80568ebf10bfdd07a81844db81fe09730fa79177e98de18498b5a4800236d1"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/loading-3e1d1f10e80bbe25cbe87e803519ad15.js",
+            "bytes": 7108,
+            "sha256": "1e5db674a7ba16e7cb13350ab2c58b32839a0023650d7c0038be6d436c1b3fe2"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/login-ed05fdb833f9979cf8a7641aa49460c5.js",
+            "bytes": 10827,
+            "sha256": "d28041b9ced386bbb92ba3edcb2d3715775f5edd9624bda07ff7c935129fbaa8"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/new-78109d89f541013086468ccc2e8927e5.js",
+            "bytes": 385,
+            "sha256": "937cdf18aa44813c133e949732166385afb1f22d596b3f8fb823b449bae2b5cc"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/notifications-d1e6df8545a3755a4552bc624e27e440.js",
+            "bytes": 5941,
+            "sha256": "633b4b4d384c47058d3203c4675b72a0137b6f6c05abaeaaecebb6c75a6eca34"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/passenger-activities-d85fb724c7acfc1ca9a07cc2eb3edb5c.js",
+            "bytes": 17503,
+            "sha256": "cf6f0abc2ef2ec3d9dfe6a090f0d67d7c40f06377710d7bd311a8fa869afeb66"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/passenger-packages-3b9f7557a0a8cbd91496d27a2be54e3e.js",
+            "bytes": 3512,
+            "sha256": "9cdd9d8a6218f8c2caf9ae28dc1052e859a3d772237dceffb68aa7ec19737e11"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/passenger-qr-5c479403206517a2e0a90f6c5f876200.js",
+            "bytes": 34966,
+            "sha256": "707f732c95d8ee2447b719f84dd543a26101fede4386e32dbe13a22768592518"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/passenger-services-853183eeec556039c9b238ac7ac3ecf4.js",
+            "bytes": 427,
+            "sha256": "dc3434813ca506c16589af8919a57b380e498e87e8357495927aa3fc9c8a29ec"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/requests-f8a6b09b73eda2af158d7a934219b32a.js",
+            "bytes": 206,
+            "sha256": "f805c56178a8b6a64077d5b18015ca83d755599546d294c9275c2c9d07e44605"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/scanner-7629201074596f5f82f9955f256c00f6.js",
+            "bytes": 30052,
+            "sha256": "2bfe568e68cdc85edee6cd2853c4b7a11eb8e1fa74e8d9a9356406dbe373e03c"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/services-1a1287bc881edb8cb5af65d48d64ab72.js",
+            "bytes": 206,
+            "sha256": "bdc1daa8dbc156e7906ec06daebdeeb6f5024a304e02c27bd72e33089be32c78"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/services-60a7b3c34636d2f8600978e40b27615f.js",
+            "bytes": 772,
+            "sha256": "1edd710f845c986734d03918a4ce66203914321792db2b6557c7c46b2d7aeaa6"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/spending-4123d37830a6c19ea0a9c534db892c92.js",
+            "bytes": 6393,
+            "sha256": "7e632d9e1c51ce07e25cca943bb89fb5ef983800f4adda6e8106d247fcfb444c"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/splash-324590a5a2c8327946f31a089ac02e72.js",
+            "bytes": 373,
+            "sha256": "79ce3c8077aff04f9524319cca888ae3ceb5a78560fcc04d1c77d9b298566b6a"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/support-9612e0223ece517d6cdde26b65f26dcc.js",
+            "bytes": 374,
+            "sha256": "a6f5d21514063ef5c502c4de8ded2eb155d5cfba44cb4acd850f8e73f0ed0dd1"
+          },
+          {
+            "file": "dist/phase-g/_expo/static/js/web/usage-a51b14835196aec6d9c0b2fcefe23e66.js",
+            "bytes": 15161,
+            "sha256": "a26adf4a37f500c61e557ea4ebde5e84c76636e92b92bc90e075cea2b41daa63"
+          }
+        ],
+        "total_bytes": 3194312
+      }
+    }
+  }
+}

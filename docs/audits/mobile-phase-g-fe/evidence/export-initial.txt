@@ -1,0 +1,73 @@
+env: load .env.local
+env: export EXPO_PUBLIC_API_URL
+Using src/app as the root directory for Expo Router.
+React Compiler enabled
+Starting Metro Bundler
+
+| (node:7000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:7000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:7000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:7000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:7000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:7000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:7000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:7000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+Android Bundled 133574ms node_modules\expo-router\entry.js (2238 modules)
+iOS Bundled 154299ms node_modules\expo-router\entry.js (2132 modules)
+Static rendering is enabled. Learn more: https://docs.expo.dev/router/web/static-rendering/
+Web Bundling failed 87163ms node_modules\expo-router\entry.js (1528 modules)
+Unable to resolve "./foreground-clock" from "src\hooks\use-now.ts"
+[0m [90m 1 |[39m [36mimport[39m { useEffect[33m,[39m useState } [36mfrom[39m [32m'react'[39m[33m;[39m
+ [90m 2 |[39m [36mimport[39m { [33mAppState[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { startForegroundClock } [36mfrom[39m [32m'./foreground-clock'[39m[33m;[39m
+ [90m   |[39m                                       [31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [90m/** Expiry labels must update without a tap, including after device suspension. */[39m
+ [90m 6 |[39m [36mexport[39m [36mfunction[39m useNow(intervalMs [33m=[39m [35m1000[39m) {[0m
+
+Import stack:
+
+ src\hooks\use-now.ts
+ | import "./foreground-clock"
+
+ src\features\pos\PosLayout.tsx
+ | import "@/hooks/use-now"
+
+ src\app\staff-pos\_layout.tsx
+ | import "@/features/pos/PosLayout"
+
+ src\app (require.context)
+
+Error: Unable to resolve module ./foreground-clock from C:\Users\quanh\OneDrive\Máy tính\CASMS_Frontend\CASMS_MobileApp\src\hooks\use-now.ts:
+
+None of these files exist:
+  * src\hooks\foreground-clock(.web.ts|.ts|.web.tsx|.tsx|.web.mjs|.mjs|.web.js|.js|.web.jsx|.jsx|.web.json|.json|.web.cjs|.cjs|.web.scss|.scss|.web.sass|.sass|.web.css|.css)
+  * src\hooks\foreground-clock
+  1 | import { useEffect, useState } from 'react';
+  2 | import { AppState } from 'react-native';
+> 3 | import { startForegroundClock } from './foreground-clock';
+    |                                       ^
+  4 |
+  5 | /** Expiry labels must update without a tap, including after device suspension. */
+  6 | export function useNow(intervalMs = 1000) {
+
+Import stack:
+
+ src\hooks\use-now.ts
+ | import "./foreground-clock"
+
+ src\features\pos\PosLayout.tsx
+ | import "@/hooks/use-now"
+
+ src\app\staff-pos\_layout.tsx
+ | import "@/features/pos/PosLayout"
+
+ src\app (require.context)

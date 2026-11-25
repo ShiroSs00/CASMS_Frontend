@@ -10,7 +10,7 @@ const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const terminal = { terminalId: id(1), shipId: id(2), areaId: id(3), code: 'BAR', name: 'OceVie', enabled: true, permissions: ['SERVICE_READ', 'SERVICE_SALE'] };
 const session = { sessionToken: 'device-bound-session', expiresAt: '2099-01-01T00:00:00Z', terminal, cruiseId: id(4), staffAssignmentId: null };
 const context = { terminal, cruiseId: id(4), staffAssignmentId: null, services: [] };
-const sale = { saleId: id(8), terminalId: id(1), areaId: id(3), serviceId: id(5), onboardAccountId: id(6), bookingPassengerId: id(7), employeeId: id(9), quantity: 1, amount: 25, currency: 'USD', createdAt: '2026-11-09T00:00:00Z' };
+const sale = { serviceRequestId: id(11), chargeId: id(15), unitPrice: 25, saleId: id(8), terminalId: id(1), areaId: id(3), serviceId: id(5), onboardAccountId: id(6), bookingPassengerId: id(7), employeeId: id(9), quantity: 1, amount: 25, currency: 'USD', createdAt: '2026-11-09T00:00:00Z' };
 const input = { serviceId: id(5), onboardAccountId: id(6), bookingPassengerId: id(7), quantity: 1, idempotencyKey: 'stable-sale' };
 
 test('terminal bootstrap sends employee JWT and exactly one device credential without POS header', async () => {

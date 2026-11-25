@@ -2,6 +2,7 @@ import { useState, type Ref } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, type TextInputInstance, View } from 'react-native';
 
 import { passengerLightColors as colors } from '@/constants/passenger-light-theme';
+import { lightTheme } from '@/constants/ocevie';
 
 import { MaterialIcon } from './MaterialIcon';
 
@@ -20,7 +21,7 @@ export function OutlinedField({ label, value, onChangeText, helper, error, passw
 }) {
   const [focused, setFocused] = useState(false);
   const [visible, setVisible] = useState(false);
-  const accent = error ? colors.error : focused ? colors.secondary : colors.outline;
+  const accent = error ? colors.error : focused ? colors.secondary : lightTheme.controlBorder;
 
   return (
     <View style={styles.group}>
@@ -54,6 +55,7 @@ export function OutlinedField({ label, value, onChangeText, helper, error, passw
           <Pressable
             disabled={disabled}
             accessibilityRole="button"
+            accessibilityState={{ disabled }}
             accessibilityLabel={visible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
             onPress={() => setVisible(!visible)}
             android_ripple={{ color: colors.secondaryContainer, borderless: true }}

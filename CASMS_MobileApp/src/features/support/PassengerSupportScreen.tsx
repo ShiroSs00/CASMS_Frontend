@@ -27,7 +27,7 @@ export function PassengerSupportScreen({ recovery = false }: { recovery?: boolea
         <MaterialIcon name="error" color={statusColors.error.foreground} size={26} />
         <View style={{ flex: 1, gap: 8 }}><Text style={styles.safetyTitle}>Cần trợ giúp khẩn cấp?</Text><Text style={ui.body}>Báo ngay cho nhân sự gần nhất hoặc đến quầy lễ tân. Tuân theo chỉ dẫn của thủy thủ đoàn và sơ đồ an toàn tại cabin.</Text><Text style={ui.caption}>Không chờ phản hồi trong ứng dụng khi có tình huống khẩn cấp.</Text></View>
       </View>
-      <View style={ui.card}><Text style={ui.sectionTitle}>Quầy dịch vụ hành khách</Text><Text style={ui.body}>Hỗ trợ check-in, thẻ lên tàu và dịch vụ trong chuyến đi.</Text></View>
+      <View style={ui.card}><Text style={ui.sectionTitle}>Quầy dịch vụ hành khách</Text><Text style={ui.body}>Hỗ trợ check-in, thẻ lên tàu, lịch trình và dịch vụ trong chuyến đi. Ứng dụng hiện chưa tiếp nhận ticket hoặc chat; vui lòng liên hệ trực tiếp nhân sự tại quầy.</Text></View>
       <View style={styles.faq}><SectionHeading title="Câu hỏi thường gặp" />
         {questions.map(item => <View key={item.id} style={styles.question}>
           <Pressable accessibilityRole="button" accessibilityState={{ expanded: expanded === item.id }} onPress={() => setExpanded(value => value === item.id ? null : item.id)} style={styles.questionButton}>
@@ -35,6 +35,10 @@ export function PassengerSupportScreen({ recovery = false }: { recovery?: boolea
           </Pressable>{expanded === item.id && <VoyageEntrance><Text style={styles.answer}>{item.answer}</Text></VoyageEntrance>}
         </View>)}
       </View>
+      {authenticated && <>
+        <PassengerButton label="Xem thông báo của tôi" variant="secondary" onPress={() => router.push('/notifications')} />
+        <PassengerButton label="Xem yêu cầu dịch vụ" variant="text" onPress={() => router.push('/passenger-services')} />
+      </>}
       {!authenticated && <PassengerButton label="Về đăng nhập" onPress={() => router.replace('/login')} />}
     </ScrollView>
   </PassengerScaffold>;

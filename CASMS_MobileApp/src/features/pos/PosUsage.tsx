@@ -1,3 +1,6 @@
+import { samePosScope, usePosScopeGuard } from './pos-scope';
+import { verifySaleIntent } from './pos-lifecycle';
+import { PosCardAction } from './PosCardAction';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { uuid as nativeUuid } from 'expo';
@@ -9,7 +12,7 @@ import { dateTime } from '@/features/passenger-actions/passenger-model';
 import { ApiError } from '@/lib/api';
 import { usePos, usePosRequests } from './PosLayout';
 import { passengersFromRequests } from './pos-access';
-import { uuid, type PosStatement, type Sale } from './pos-api';
+import { uuid, type Sale } from './pos-api';
 import { clearPendingSale, readPendingSale, savePendingSale, type PendingRecord, type PendingSale } from './pos-storage';
 import { Field, Notice, PosPage, PosReveal, QueryState, posError, uncertainWrite, usePosConfirmation } from './pos-ui';
 
@@ -25,6 +28,7 @@ function money(value: number, currency: string) {
 export function PosUsage() {
   const pos = usePos();
   const cache = useQueryClient();
+  const assertScope = usePosScopeGuard();
   const [serviceId, setServiceId] = useState('');
   const [account, setAccount] = useState('');
   const [passenger, setPassenger] = useState('');
@@ -36,7 +40,7 @@ export function PosUsage() {
   const sellable = pos.scope.services.filter(service => service.permissions.includes('SERVICE_SALE'));
   const service = sellable.find(item => item.serviceId === serviceId);
   const { terminalId, areaId } = pos.scope.terminal;
-  const saleScope = { owner: pos.owner, terminalId, areaId, cruiseId: pos.scope.cruiseId };
+  const saleScope = { owner: pos.owner, terminalId, areaId, cruiseId: pos.scope.cruiseId, signedInAt: pos.signedInAt };
   const pendingKey = [...pos.key, 'pending-sale'];
   const pending = useQuery({
     queryKey: pendingKey, queryFn: () => readPendingSale(saleScope), enabled: !!sellable.length, retry: false, staleTime: 0,
@@ -55,15 +59,8 @@ export function PosUsage() {
   });
   const accountId = account.trim().toLowerCase();
   const bookingPassengerId = passenger.trim().toLowerCase();
-  const scheduleOptions = new Map<string, string>();
-  if (!requests.error && service?.permissions.includes('SERVICE_REQUEST_READ')) {
-    for (const row of requests.data ?? []) {
-      if (row.serviceId === serviceId && row.bookingPassengerId === bookingPassengerId && row.scheduleId
-        && ['REQUESTED', 'ACCEPTED', 'IN_PROGRESS'].includes(row.status) && !scheduleOptions.has(row.scheduleId)) {
-        scheduleOptions.set(row.scheduleId, `Yêu cầu lúc ${dateTime(row.requestTime)} · …${row.scheduleId.slice(-8)}`);
-      }
-    }
-  }
+  const existingRequest = !requests.error && requests.data?.some(row => row.serviceId === serviceId
+    && row.bookingPassengerId === bookingPassengerId && ['REQUESTED', 'ACCEPTED', 'IN_PROGRESS'].includes(row.status));
   const validIds = uuid.safeParse(accountId).success && uuid.safeParse(bookingPassengerId).success;
   const matched = lookup?.account === accountId && lookup?.passenger === bookingPassengerId;
   const recovery = pending.data?.kind === 'own' ? pending.data.sale : undefined;
@@ -91,6 +88,7 @@ export function PosUsage() {
     setReceipt(undefined);
     setSelectedSale('');
     try {
+      assertScope();
       const saved = await readPendingSale(saleScope).catch(() => {
         throw new ApiError('Không đọc được hồ sơ chờ.', 409, 'POS_JOURNAL');
       });
@@ -98,16 +96,19 @@ export function PosUsage() {
         void pending.refetch();
         throw new ApiError('Hồ sơ chờ đã thay đổi.', 409, 'POS_SALE_BUSY');
       }
-      const current = pos.assertReady().services.find(item => item.serviceId === work.input.serviceId);
+      const context = await pos.client.context(); assertScope();
+      if (!samePosScope(context, pos.scope)) throw new ApiError('Ngữ cảnh đã thay đổi.', 409, 'POS_REVERIFY');
+      cache.setQueryData([...pos.key, 'context'], context);
+      const current = context.services.find(item => item.serviceId === work.input.serviceId);
       if (!current?.permissions.includes('SERVICE_SALE')) throw new ApiError('Quyền sử dụng dịch vụ đã thay đổi.', 403);
       if (reviewPrice && (current.unitPrice !== reviewPrice.amount || current.currency !== reviewPrice.currency)) {
         throw new ApiError('Đơn giá đã thay đổi.', 409, 'POS_PRICE_CHANGED');
       }
       if (reviewPrice) {
-        const state = cache.getQueryState<PosStatement>([...pos.key, 'statement', work.input.onboardAccountId, work.input.bookingPassengerId]);
-        const checked = state?.data?.budget;
-        if (!state || !checked || state.error || state.isInvalidated || state.fetchStatus !== 'idle'
-          || checked.currency !== reviewPrice.currency || reviewPrice.amount > checked.accountRemaining
+        const latest = await pos.client.statement(work.input.onboardAccountId, work.input.bookingPassengerId); assertScope();
+        cache.setQueryData([...pos.key, 'statement', work.input.onboardAccountId, work.input.bookingPassengerId], latest);
+        const checked = latest.budget;
+        if (checked.currency !== reviewPrice.currency || reviewPrice.amount > checked.accountRemaining
           || reviewPrice.amount > checked.remainingAmount) {
           throw new ApiError('Cần kiểm tra lại hạn mức.', 409, 'POS_ALLOWANCE_RECHECK');
         }
@@ -122,18 +123,15 @@ export function PosUsage() {
       updatePending({ kind: 'own', sale: input });
       let result: Sale;
       try {
-        pos.assertReady();
+        assertScope();
         result = await pos.client.recordSale(input.input);
-        if (result.serviceId !== input.input.serviceId || result.bookingPassengerId !== input.input.bookingPassengerId
-          || result.onboardAccountId !== input.input.onboardAccountId || result.terminalId !== terminalId
-          || result.areaId !== areaId || result.employeeId !== pos.owner) {
-          throw new ApiError('Dữ liệu giao dịch không khớp.', 502, 'POS_INVALID_RESPONSE');
-        }
+        verifySaleIntent(result, input.input, { terminalId, areaId, owner: pos.owner });
+        assertScope();
       } catch (error) {
-        if (replay || uncertainWrite(error) || (error instanceof ApiError && error.code === 'POS_IDEMPOTENCY_CONFLICT')) {
+        if (replay || uncertainWrite(error) || (error instanceof ApiError && error.code === 'POS_REVERIFY') || (error instanceof ApiError && error.code === 'POS_IDEMPOTENCY_CONFLICT')) {
           setIssue('Kết quả giao dịch chưa được xác nhận. Hồ sơ chờ giữ nguyên nội dung và mã giao dịch.');
         } else {
-          try { await clearPendingSale(saleScope); updatePending(null); }
+          try { await clearPendingSale(saleScope, input.input.idempotencyKey); updatePending(null); }
           catch { setIssue('Không xóa được hồ sơ chờ trên thiết bị. Liên hệ quản lý để đối soát.'); }
         }
         throw error;
@@ -144,9 +142,9 @@ export function PosUsage() {
       setAccount(result.onboardAccountId);
       setPassenger(result.bookingPassengerId);
       setLookup({ account: result.onboardAccountId, passenger: result.bookingPassengerId });
-      void cache.invalidateQueries({ queryKey: [...pos.key, 'statement'] });
+      void cache.invalidateQueries({ queryKey: pos.key });
       try {
-        await clearPendingSale(saleScope);
+        await clearPendingSale(saleScope, input.input.idempotencyKey);
         updatePending(null);
       } catch {
         setIssue('Giao dịch đã được xác nhận nhưng còn hồ sơ chờ trên thiết bị. Gửi lại cùng mã để đối soát.');
@@ -166,7 +164,7 @@ export function PosUsage() {
     };
     const reviewPrice = { amount: service.unitPrice, currency: service.currency };
     confirm.open({
-      title: 'Ghi nhận sử dụng dịch vụ',
+      title: 'Bán dịch vụ mới',
       description: `${work.serviceName} · 1 lượt · ${money(service.unitPrice, service.currency)} theo danh mục hiện tại.\nHành khách ${work.input.bookingPassengerId}\nTài khoản ${work.input.onboardAccountId}${work.input.scheduleId ? `\nLịch dịch vụ ${work.input.scheduleId}` : ''}`,
       run: () => submit(work, reviewPrice),
     });
@@ -205,6 +203,7 @@ export function PosUsage() {
     {pending.data?.kind === 'blocked' &&
       <Notice tone="warning">Thiết bị còn giao dịch chờ thuộc phiên khác. Nhờ nhân viên đã lập giao dịch hoặc quản lý đối soát trước khi ghi nhận thêm.</Notice>}
     {!!issue && <Notice tone="warning">{issue}</Notice>}
+    {pending.data?.kind === 'own' && pending.data.previousSession && <Notice tone="warning">Giao dịch được lập trong lần đăng nhập trước của bạn. Kiểm tra hồ sơ trước khi đối soát cùng mã.</Notice>}
     {recovery && <View style={ui.card}>
       <Text style={ui.sectionTitle}>Giao dịch chờ đối soát</Text>
       <Text style={ui.sectionTitle}>{recovery.serviceName}</Text>
@@ -215,7 +214,9 @@ export function PosUsage() {
     </View>}
     {receipt && <SaleSummary sale={receipt} confirmed />}
     <View style={ui.card}>
-      <Text style={ui.sectionTitle}>Hồ sơ sử dụng</Text>
+      <Text style={ui.sectionTitle}>Bán dịch vụ mới</Text>
+      <Text style={ui.body}>Bán mới tạo yêu cầu dịch vụ và ghi nhận phí. Yêu cầu đã có cần được xử lý tại mục Yêu cầu dịch vụ.</Text>
+      {pos.employeePermissions.includes('CHECKIN_BOARDING') && <PosCardAction onIdentified={result => updatePassenger(result.bookingPassengerId)} />}
       {canReadRequests && <QueryState query={requests} />}
       {passengerOptions.length > 0 && <Choice label="Hành khách từ yêu cầu trong phiên" value={bookingPassengerId}
         onChange={updatePassenger} disabled={!pos.verified || confirm.pending}
@@ -234,16 +235,15 @@ export function PosUsage() {
         items={sellable.map(item => ({ id: item.serviceId, label: item.name }))} />
       {!!service && <Text style={ui.body}>{service.unitPrice !== null && service.currency
         ? `Đơn giá hiện tại ${money(service.unitPrice, service.currency)} · 1 lượt` : 'Dịch vụ chưa có giá hợp lệ.'}</Text>}
-      {scheduleOptions.size > 0 && <Choice label="Lịch từ yêu cầu trong phiên" value={schedule}
-        onChange={setSchedule} disabled={!!pending.data || confirm.pending}
-        items={[...scheduleOptions].map(([id, label]) => ({ id, label }))} />}
+      {existingRequest && <Notice tone="warning">Hành khách đang có yêu cầu cho dịch vụ này. Kiểm tra mục Yêu cầu dịch vụ trước khi bán thêm; thao tác này tạo khoản phí mới.</Notice>}
       <Disclosure title="Nhập mã lịch phục vụ"><Field label="Mã lịch phục vụ (tùy chọn)" value={schedule} onChangeText={setSchedule} maxLength={36}
         editable={!!service && !pending.data && !confirm.pending} /></Disclosure>
       {!!fundsIssue && <Notice tone="warning">{fundsIssue}</Notice>}
-      <PassengerButton label="Xem lại ghi nhận" disabled={!canReview || !pos.verified || confirm.pending} onPress={review} />
+      <PassengerButton label="Xem lại giao dịch bán mới" disabled={!canReview || !pos.verified || confirm.pending} onPress={review} />
     </View>
     {lookup && <>
-      <Text accessibilityRole="header" style={ui.sectionTitle}>Sao kê hạn mức</Text>
+      <Text accessibilityRole="header" style={ui.sectionTitle}>Hạn mức hành khách và lịch sử tài khoản</Text>
+      <Notice tone="neutral">Hạn mức theo hành khách đã tra cứu. Lịch sử bên dưới gồm toàn bộ giao dịch của tài khoản trên tàu, có thể gồm các hành khách khác trong tài khoản.</Notice>
       {statement.data && !statement.error && <>
         <View style={ui.card}>
           <AmountRow label="Được cấp" value={money(statement.data.budget.allocatedAmount, statement.data.budget.currency)} />
@@ -275,6 +275,8 @@ function SaleSummary({ sale, confirmed = false }: { sale: Sale; confirmed?: bool
     <PosReveal>
       <Text selectable style={ui.amount}>{money(sale.amount, sale.currency)}</Text>
       <Text style={ui.body}>{sale.reversedAt ? `Đã đảo ghi nhận · ${dateTime(sale.reversedAt)}` : dateTime(sale.createdAt)}</Text>
+      <Text selectable style={ui.caption}>Hành khách: {sale.bookingPassengerId}</Text>
+      <Text selectable style={ui.caption}>Yêu cầu dịch vụ: {sale.serviceRequestId}</Text>
       <Disclosure title="Mã giao dịch"><Text selectable style={ui.caption}>{sale.saleId}</Text></Disclosure>
     </PosReveal>
   </View>;

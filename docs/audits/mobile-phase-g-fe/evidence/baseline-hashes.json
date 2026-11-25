@@ -1,0 +1,818 @@
+[
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\global.css",
+    "sha256": "38BE7095073B522F3CE148B477330CEA54742660391237E9F837349173080D57"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\_layout.tsx",
+    "sha256": "CF321CDFDB7F748017532F58C64AB5C21BB81397CF31ED67FB0A57944EAB1FD6"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\bookings.tsx",
+    "sha256": "54E23247527B89693187A5EABD1B2EDBB864B6F8D2B2DBE499942978AFEF1640"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\check-in.tsx",
+    "sha256": "15F64B632A9E25058EEC18A12F0AF66FA275789A4CF529E6D780EF6B7199F024"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\cruise.tsx",
+    "sha256": "7B452E6C95D914AD68AFED2E31DB3B66038FD3146FB8844952D54690D090F1DE"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\explore.tsx",
+    "sha256": "061254490E7D2F9D1B35DBEECE4D88E57127B0FA80079587547A84BA4D1513A8"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\forgot-password.tsx",
+    "sha256": "9CE94992B1AB2690C662DCE0E114EB51924388EE85EDB1FBA2E45B9F3585CCEE"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\index.tsx",
+    "sha256": "C86C4F06C5E9F750D7B60AB097228FAA976579578344FF7859992426BF0D7DB1"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\loading.tsx",
+    "sha256": "650B6D3D38DAF8FB5C38BC478FCEF576007274B739083ED2AAD2C113FD1DC063"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\login.tsx",
+    "sha256": "9E24C3E27365BAB7D185389F3A3FB94CAA35354B6F627E586CC32D61B453E317"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\passenger-activities.tsx",
+    "sha256": "B838F348CBD0EC3E220EC80EFA4E5121B016ABAACE64BD36C6B0E142334FD993"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\passenger-packages.tsx",
+    "sha256": "CF8BA7ECA11B54FB360E65EC5C3D1822040E28248C1F671C1E1848C50C3EB705"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\passenger-qr.tsx",
+    "sha256": "11A2EDEEECF4F67001BA0EA99BE6E210298571189DF14278B843463C6C5AB858"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\passenger-services.tsx",
+    "sha256": "5A35BF3BBE80488E5894884DEE28FB5E64B5A7AA2B70D2F158A85E134248E8D0"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\spending.tsx",
+    "sha256": "19B7A708611C206339A3C6D651E2C32D6262BEE9722FBA145285ED65F73E0B77"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\splash.tsx",
+    "sha256": "E60A194A0E61C1A92351AD43F7003949627ABA13A0EE2FC562090237E31B5AAE"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\support.tsx",
+    "sha256": "AB652B42DFC7650839ADDDCE603981A6A308D61207C27C1F26755ECAC7FB02D3"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\(passenger)\\_layout.tsx",
+    "sha256": "A1772FE581C5D7DCF6A737A0D44DDD0594211425C3ECAC58A820365430890AD9"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\(passenger)\\account.tsx",
+    "sha256": "8B2AB2454B2708190B85BA040BE0472960AC422954AEFD27688C49BE54AED269"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\(passenger)\\home.tsx",
+    "sha256": "958ABB600F12E8B9BBA70ED6838EEDCF53B0421A2AFFDB157658D7215B046B56"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\(passenger)\\itinerary.tsx",
+    "sha256": "CB518E7DEEAC87A694FCDF5E8559E3ABB1D35331E44AD5CCF6120835774C5CAE"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\(passenger)\\notifications.tsx",
+    "sha256": "3ABDE8E100060B678936921A0D4EE8A01A4F701F0044EEE6017C29F8562E8118"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\(passenger)\\services.tsx",
+    "sha256": "3BE03BF5EED4327CF49C8E1E07403F4A7C891B1FB5500A23DACFD16FC4F0FBA3"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\passenger-bookings\\[bookingId].tsx",
+    "sha256": "946D577A22D3244B0A60E4F3851476492D9D049EBD525D766A77E2A398B75599"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\passenger-bookings\\index.tsx",
+    "sha256": "8814526A7E7B2D4932024BC067E796F8E57C1216DE4216B1ECCA63374B6DF48A"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\passenger-bookings\\new.tsx",
+    "sha256": "D488B583CAB66E4384556B188BE8F2FCE0F8EE1698FDC8307152ABB60C74EC37"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\staff-pos\\_layout.tsx",
+    "sha256": "B9946FD5557DE1093C081E1DC9290D1D826EACD1802A816B4A82DB185BF6AC05"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\staff-pos\\activities.tsx",
+    "sha256": "A0CAFEEA03E019513179DBFA9BB13A567A197E05036435E6F90752D1133093A5"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\staff-pos\\index.tsx",
+    "sha256": "FD1359CA79A1E897E32BF852CD17B225C799F01E6C4D4980A726D540B73782B4"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\staff-pos\\requests.tsx",
+    "sha256": "DB7BB4ED4FB032FFEBAED0740C5BED72AEED10D6A830DA9C74EA99A837625638"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\staff-pos\\scanner.tsx",
+    "sha256": "70772863AFF034F30357AD88C0DE44AF7DEED3834FE9C68397E1E27F0AB0A2BA"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\staff-pos\\services.tsx",
+    "sha256": "EE2C657C727D00C5A8F18658321E714012AE788B36F497303FD505D3ACBBA10B"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\app\\staff-pos\\usage.tsx",
+    "sha256": "C1193ACC70538629DCA7A2E9C34B1A1FA60DD63F294720C5D99F21CF24BF0972"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\animated-icon.module.css",
+    "sha256": "7266714581BE4BEA01A871E23C32A1D89064AFF9BCBC2340B2AD68D718AF1839"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\animated-icon.tsx",
+    "sha256": "679B00B232E7CF5B2580D5DB3F5E076620AF6CE0407DF70B61C1235CB4DF3307"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\animated-icon.web.tsx",
+    "sha256": "32425720A789ACE6F7503DFDD068B33B1ACB7C30819BA296BD4864E2C633F0C1"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\app-tabs.tsx",
+    "sha256": "FC7DF64E7A7E9BF0E5DE0C88131ECB1A7C383757D1958F7E01BE21D6FD99D081"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\app-tabs.web.tsx",
+    "sha256": "E8D0F3EA4CE428065EB58093F3EAC1F703C4B19E975F3395D8158C594C5BC6FB"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\external-link.tsx",
+    "sha256": "55A7EBE292A9E8B6BDA3171123A0B7E21653142E04FAFCF62FB8015F0BF0A806"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\hint-row.tsx",
+    "sha256": "C7C72D5DC5818590BD3055CEA1020ABD0C7646ABCBA620B034EA5BD420B387D2"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\themed-text.tsx",
+    "sha256": "42FAA69B289EA1ABEFC404A8646A1E63B77A327131DB7F559C6CC5FAE6490149"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\themed-view.tsx",
+    "sha256": "DAEA78F228B10B381E6922F96E529570AB1D72C92AD3620313BF2F5DCCC68F4C"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\web-badge.tsx",
+    "sha256": "2C0499F7EE28F59CB9516BFAABBBC3FE7A6E518C6B01576E2FFD056B7C6A2994"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\passenger\\material-symbols.json",
+    "sha256": "EBB7873594239AAC8B83E1833A77211AE1693060A718977B4FA28234C3FC4FF2"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\passenger\\MaterialIcon.tsx",
+    "sha256": "05A944BC38F6C243AC01A1760C309879AD26EC41B0DF992E9E63011D4A79C18A"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\passenger\\OceVieBrand.tsx",
+    "sha256": "E91B1542F3BE5D829EC26D15CAFDC86B66311B18FA0DCBBF015CC4F64FB0C6FA"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\passenger\\OutlinedField.tsx",
+    "sha256": "3C751BAFDAB4E809947F6AEAE710D5A4F5175D615CAEF37088BDE5FA47393650"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\passenger\\PassengerButton.tsx",
+    "sha256": "4F35F32AD886C00349EB4BA05B86BB72D5027F781E5CB19C82DF57059D9B7838"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\passenger\\PassengerListItem.tsx",
+    "sha256": "3489199972AB2501F3A5140C52A99573B367725F6968B82777CC9FAECD1D329D"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\passenger\\PassengerNavigation.tsx",
+    "sha256": "63CB8EF41953E67C43497D97045DD70A2A3BD85E90B5E41E7AA45F0F2EC16E29"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\passenger\\PassengerScaffold.tsx",
+    "sha256": "8FD14110D4C9F1774DD464A5F9A75548A33C4E97AEC3549C147EAD4A63F68AD1"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\passenger\\PassengerSheet.tsx",
+    "sha256": "6FB6955E5C697EA8C8AA814AEED6E96AF4C34A4E95ABAC406072856AEF966E7D"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\passenger\\PassengerUI.tsx",
+    "sha256": "3583F35D58EE8DF7003454D54570A4F2F890D1ACCC824DE166AEF62469DBCA1A"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\passenger\\sheet-presence.ts",
+    "sha256": "FD3A223709CE2DAE2A558AF84EE5A16146B0B8EB7817D9EFACC4BD14DC925FE5"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\passenger\\useMotionPreference.ts",
+    "sha256": "072CF3556F50BBCF6F7A61807B2D1E167C7F8554D233EFE4BD6871BA76A21A83"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\passenger\\VoyageArt.tsx",
+    "sha256": "61047876FAEC6006A90CD14D57FAE198AE277EFF9EBEB618E00EA5D2BFB1C8E3"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\passenger\\VoyageEntrance.tsx",
+    "sha256": "1CA6F0476230FA574AA2BCEF7920E7705C703B502CA81E2AAC4968418AE86622"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\components\\ui\\collapsible.tsx",
+    "sha256": "ADC6C644BE8ABF1071973066E3A814CFF677D0AF1C0868906FEE9056BEE150D3"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\constants\\motion.ts",
+    "sha256": "239BA31B0553244F695F31E903F61C1E20E4D0C8B9FEF54329D0AFE6530AD1A8"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\constants\\ocevie.ts",
+    "sha256": "BA69784364CD7C7CBF57157284D9162FE0B57D8A251E5B130D7C6556F1F02686"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\constants\\passenger-light-theme.ts",
+    "sha256": "E883DD7FEB860DAB4C8D73C1715238270ACAF6D7CE34EC038875A55703223667"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\constants\\passenger-theme.ts",
+    "sha256": "26CE286C1F3940D357242945394CB79F7ED3814772D1AB2E184E21D477A9D1D7"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\constants\\theme.ts",
+    "sha256": "F13196DFD46F87278E400267D4E327D96C4E5AF9EDFD2B6227EA448343334E5B"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\constants\\voyage.ts",
+    "sha256": "AE49BB3BA51DA8C1E37886E8E0AC2481BF46C37994BFE71AAB344CCD6B8588C9"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\auth\\login-model.ts",
+    "sha256": "882DB6D2C2F41E8314F3478DD26100FBAB6D7D24C33C3954BAE7428308C9B03A"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\auth\\PassengerAccountScreen.tsx",
+    "sha256": "9A4A6C8685ED0CF11D958B9565BECC868A9BD9870531F852169D92268AD7DA3D"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\auth\\PassengerLoginScreen.tsx",
+    "sha256": "A0F089CAFB81E21D978B5E0C62C96ABE425C5588F360AAF0FA3E8D21954FC643"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\auth\\session-model.ts",
+    "sha256": "53550620639FDE937C80DFB5B1CFF51ADDDC890376034B83989C36C797C27996"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\auth\\session-store.ts",
+    "sha256": "49AF5B099ECE09087E4BCFCA754B14FCA4471AC9FF5F0F1001F0A4DFAFF380C7"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\auth\\workspace-navigation.ts",
+    "sha256": "89908955B15D1FF435AB4EB4DCE1ADDFE3AD867F801709240EC7C1593A1AFDA7"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\home\\PassengerDestinationScreen.tsx",
+    "sha256": "377C4BACEBAA64C1CC8A40AFF6869B529DA8BC1579CE06361B8CBE19567F2C84"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\home\\PassengerHomeScreen.tsx",
+    "sha256": "D1BB18488182086FB3E3E22948C5894F54D084191911CE55BDFD4C30D38A8739"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\home\\PassengerLiveHomeScreen.tsx",
+    "sha256": "8AB4970F17CE1A24371FED09848344C916547694F2C828324F3A2AEC7E9C5EFA"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\home\\PassengerVoyageChooser.tsx",
+    "sha256": "079EA69625AB5760621391B7474D2BCA30319D93D9E6C2374B91C4D59E80FA58"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\home\\ship-information.ts",
+    "sha256": "0CDA67B4F510404AB21851F070669C69C47A420873B795127339EC1DCAF3E405"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\home\\voyage-home-model.ts",
+    "sha256": "BDF0FD65481BB24C2FAE2CFCD302226755D7FA4D8551FD387E1AF16EC5825673"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\home\\VoyageHomeParts.tsx",
+    "sha256": "D4AB501BF93FEA273B8F945BC95E041EC2BC4DCA0A5BB561B4FB69A239E67FA8"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\itinerary\\api-format.ts",
+    "sha256": "430170EAC948EE9CD123A716B2ED3522AA94D0764B1466BF9A90E5B411CDD737"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\itinerary\\itinerary-api.ts",
+    "sha256": "0CC234DF094B53AF2C7DD2F8DC2592CEB67CC5C3D11191B7828B835BB9D99EFB"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\itinerary\\itinerary-client.ts",
+    "sha256": "7065F906E9D68C370F2E2DE9AD9784BAEC4D5BDFA1E0D49E8F6C2CD5EB16A417"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\itinerary\\ItineraryUI.tsx",
+    "sha256": "B1B19314CB87FEA031978E177D4B1FB1E27C617D757151D35E3A09A9CEA696C8"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\itinerary\\PassengerItineraryScreen.tsx",
+    "sha256": "798C3F231E676D706BB347194BC3AC144BA9BB387BDAC183F10D659243FC82E7"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\itinerary\\PassengerLiveItineraryScreen.tsx",
+    "sha256": "0F784D7065065469D47BDCD914AED10D90C1464B31169CAB8FFFBFCD78601867"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\launch\\indicator-motion.ts",
+    "sha256": "147D8B369DB90740297AD8908AD24108A03B426B878F9D052B8A612A16B647C1"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\launch\\LaunchIndicator.android.tsx",
+    "sha256": "1CD62D6E835C236C52A197A1F9B2055F620E8A00651C289407CD58A00BB852EC"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\launch\\LaunchIndicator.tsx",
+    "sha256": "911F3E8E861DC1711A5DF7FC979C5EB44D2851CCA123FBC9033A118ABB11FBE7"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\launch\\material-shapes.ts",
+    "sha256": "4D41F9E300E01FDF2CE3C7F94105893285D756247B41AA1287295ADAA5F02D30"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\launch\\PassengerLaunchScreen.tsx",
+    "sha256": "2D1CFF592A0CC4096D0D104F21A81A474352C3E5785A6651E4874558A9BA6391"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\launch\\PassengerLoadingScreen.tsx",
+    "sha256": "03AA7931CA1B3F341D1D4DCE62780C8B191A903A96E6A83DF1B576ED9F4D3F96"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\notifications\\notification-contracts.ts",
+    "sha256": "D80C0ED8F9BC84FA70F8FC88D80821B3CA36B7F965AD4C0C5751D06ADFDCCE5E"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\notifications\\notification-queries.ts",
+    "sha256": "F07E1BA6A54A65EB39A59C2A47F7DB3639AFE3F6712884396F190B2ED156D8D9"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\notifications\\notification-stream.ts",
+    "sha256": "410ADC3EC498A4F013EB3E071D0EC6CD8045E57BB85F30EE4E4C477CE812162E"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\notifications\\NotificationSync.tsx",
+    "sha256": "62595CF3FEC09D56F45EC39096268728DFEED30F105D31577F103C21F2737716"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\notifications\\PassengerNotificationsScreen.tsx",
+    "sha256": "9EB3C5D56BBD517028DD0B382E2ABA5F99C8F0723A64841FD624199E23EDE6B9"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\AccountBoundScreen.tsx",
+    "sha256": "BFE4E82EC77DDB6ED167973F128892F2D5389AEC12EAD4BA1378BB271923E736"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\booking-financials.ts",
+    "sha256": "99F176A08446086881914ED06E9B4C3CA36C40B97FFC08536EBA32CFAD369AC6"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\card-contracts.ts",
+    "sha256": "AA62048E8596600F6AF14B6EA761512DE7E4C87B6DF45574E47A9E44174A8368"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\EntitlementSummary.tsx",
+    "sha256": "623FF65D1CA371136F14AB58CF3A4800F93F4C4021172B48FEE52A326774AB48"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\onboard-context.ts",
+    "sha256": "0AD01260427DD8EFC0E2CEB0FBEFAFF9BAFC37980E93112FC7D2484BB1C222BB"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\onboard-contracts.ts",
+    "sha256": "116E55FCDCD45F1F3A7266D1EB25ACBDCFF80FED5A2D16E5CB9C7A95F331FDF5"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\onboard-errors.ts",
+    "sha256": "F07C1B47177CBFE81AFA8F9AC1DBFDFF88D8B9AEA9FC8A6E9A403B299BB5D255"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\passenger-api.ts",
+    "sha256": "77D6D6C244098C57C610F423BFD9FD349D56DBC690E14B55FEB7C9DCD1F1E410"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\passenger-hooks.ts",
+    "sha256": "71C3F1195625F2DD7A6EE76C71C321513D4B5F1C67D74D34ACE5F00174BA67C6"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\passenger-model.ts",
+    "sha256": "B5317726493DF0D85DFFDEDEE953B128026687E4D25B31FD967C673F80CDBC3C"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\passenger-types.ts",
+    "sha256": "27FD8189DDA441609057502DC0D02A6C5A9E0951E00B06736C8E7F45246BA21E"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\PassengerActionUI.tsx",
+    "sha256": "2309394E003F7AE921B72B15B4F4009FF0919EA68E84C382FE2C3F4C92365FA5"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\PassengerActivitiesScreen.tsx",
+    "sha256": "39DD2EC158825CCB86C8DDFF873CF85AE340ED611ABC72D984DFC59CB263B073"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\PassengerBookingFinancialSummary.tsx",
+    "sha256": "EF32AB2C43272A68BAFE77922E0B1785281CDCBA14800A2ECF452676AC954B5E"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\PassengerBookingScreens.tsx",
+    "sha256": "6D3ACCF07DBE59BA7A59D7094B2AE62B92D984178A7BA9C6D9C323A004F3E934"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\PassengerCardScreen.tsx",
+    "sha256": "679D0E96D2D2368EADBCED7C2C474B3994FA1A298847C244F2890AFDCEDC7E11"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\PassengerCheckInScreen.tsx",
+    "sha256": "5594FA3C9F362E0D4DD14A5D5E252ED1265CF7780DC87622FF613A72957B30EC"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\PassengerPackagesScreen.tsx",
+    "sha256": "B7185BC41BFC15F79A6A684FADD44A510E96ABDDCED898CDBA7637C9E3D55F19"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\PassengerServiceRequestsScreen.tsx",
+    "sha256": "7815C32D64BA054501D2073AE86476BB9D36F7E037552A7E43E9074A5C2F1425"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\PassengerSpendingScreen.tsx",
+    "sha256": "1C4AA3DD8CF3C2AE633D8D2D1BE447D13149B7156E1ECDEDBF02452342DBAB5D"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\service-operation-store.ts",
+    "sha256": "5094B61AEEE3BF75C400DE70F3ABADC3749AFC983EAC6789B2D6BA76FE96BF18"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\ServiceDetail.tsx",
+    "sha256": "98DF84516069412591F52027E3CDBDD97BA87B538733DF428A1288D1ABF81CF9"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\spending-foundation.ts",
+    "sha256": "A667D2427BF5D1B7239C53A049A19CF891BB5E23A7D036666C31200CD76833D9"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\passenger-actions\\voyage-selection.ts",
+    "sha256": "5353A8061BC203091DF815BF9F5A961345DB25B7DAA648FDB0ED4A1CE9E57394"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\pos\\card-reader.ts",
+    "sha256": "4691F8F643176C7A71C7F10883DADFD24DD9E41E75D0A3D5870F7A8198A5519C"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\pos\\nfc-reader.ts",
+    "sha256": "773D950F21838A6EA1DD0D763C6FB533EAA7E24186BCA16733238A741F0D4F18"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\pos\\pos-access.ts",
+    "sha256": "D502BD5B87FD24F38DF6285BDCE1299EA6DADE6650A86A23966C5B9BE3D7B012"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\pos\\pos-api.ts",
+    "sha256": "21DCA4FE6559704C7EE3F03DBC6619AE74D3FAEC69C8B2675F9B090AFCB922B7"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\pos\\pos-contracts.ts",
+    "sha256": "A68CEF595D5524E022097ED7EE5B23882E856ED6252BAADFC2A86BF9D39CDF9F"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\pos\\pos-lifecycle.ts",
+    "sha256": "6280A506715DF67144B25CB55B2669E9A34A983C446737C18232E084E0F0A65B"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\pos\\pos-scope.ts",
+    "sha256": "1F924034CC31323812E468FEE4F0E8182648F22CC22D48790133B504AD43868A"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\pos\\pos-storage.ts",
+    "sha256": "8C7274F364267840FEC01D6E8B90EE0245339EB5C0BC11EA6FDED5E0A355AB1A"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\pos\\pos-transport.ts",
+    "sha256": "FAB4D68222DA626C59D641241F134D114903640ED6C5C92C8E3117C61EF65668"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\pos\\pos-ui.tsx",
+    "sha256": "DE9F4C9E6B2A88E52081FDE91EFB5D8FCEE4EF66599E453B31142BE3567C8EB5"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\pos\\PosActivities.tsx",
+    "sha256": "1AC6CEA8C17F6755052C4191B9C280E3C87B8C83A9DE610098E84E1C05C98193"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\pos\\PosCardAction.tsx",
+    "sha256": "40641E75273433C00ABDAE16D4395A258D91D1ADAF7AE6E533AD2D6D6EB6D232"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\pos\\PosDashboard.tsx",
+    "sha256": "5773A92C846DF86CD6B9ED0381AD520CF0186471038119AFE04FA1E2A6177FA0"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\pos\\PosLayout.tsx",
+    "sha256": "BD12599F3900A886711ABE2B606A4D54990F6D48D15F76860A78C20827BDA896"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\pos\\PosScanner.tsx",
+    "sha256": "2F8D052527657D3487CFDE074150397F0BCF0BD4C60A396D0D8DD69938FE226E"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\pos\\PosServices.tsx",
+    "sha256": "93716D211762A7D6171D41DA27DCDB76C40E76BF5DAE6BE22FA47FE9A85AA12B"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\pos\\PosUsage.tsx",
+    "sha256": "61A5D7DD272C02FBFF82B13D19AF2B9A501398AAF5DA17485D90D6CF5F242A31"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\services\\PassengerServicesScreen.tsx",
+    "sha256": "5980695FC8D3D1FDB6B8F2DBBF843278E6B08E2652A2866506BF1C5CCE061D85"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\staff-pos\\staff-api.ts",
+    "sha256": "337BBD94CC0DFBBA6FF79DE8B00D54E708AE8F1E0B095FA92BEEF1144FA16C49"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\staff-pos\\staff-model.ts",
+    "sha256": "9ECEBBF8507904C8C2A3F3F565266AC5633DC31B2A0015078DF76EED6660D365"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\features\\support\\PassengerSupportScreen.tsx",
+    "sha256": "40323BB8861CB3804D1AC5A918BCE966314164D57EFF4FCDCD5EA947AABB6236"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\hooks\\use-color-scheme.ts",
+    "sha256": "D1676DEE393D066D61AE60760E56A5E080AE15AC0182277A1F31BE28DD6CB295"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\hooks\\use-color-scheme.web.ts",
+    "sha256": "A658524B3F5D86D8AC374AB1F9AA4CEA6A041353355E8EFF00155D7B4824617A"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\hooks\\use-now.ts",
+    "sha256": "A4172E94BD4B5E7F385A3DC4F5740455CB802A67B48F8F18FAB0B8363C078971"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\hooks\\use-theme.ts",
+    "sha256": "36BAD08C42B9FE4617C5BC7ECDB2DE2890145B31896349D0DB8495CBFD0C7394"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\lib\\app-query-focus.ts",
+    "sha256": "B67F4AE485B79A6AD764F9C2E7E1EDC72A72126DAB9CA3078796C624368F2F86"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\lib\\query-client.ts",
+    "sha256": "2536320EC068F6929310120C130A1F75268A21628042829C4777B7BD19173735"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\lib\\api\\api-client.ts",
+    "sha256": "182948501F95AC1EA92BE881317DA3B669DE13C1B96E07C7C535D8B30F943E45"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\lib\\api\\index.ts",
+    "sha256": "F804DA84467BEC21C1A48FCE2207FD8610E0005E62D774193EAAD88B016CACFE"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\src\\types\\styles.d.ts",
+    "sha256": "B637D73E9633ABEF09278AE66A04FF56BBBE6CB5F2D916BA094AB812FB3C7B50"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\app-query-focus.test.mjs",
+    "sha256": "FCD11C93355C45E840E33273EDA534FE47604A6BBAE2AACFF67AAB5271C8A449"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\asian-voyage.test.mjs",
+    "sha256": "E1458362E9C155C05221F18DCEFAE9545B04407A2801A9F789E905FA4B1D772E"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\auth-restore.test.mjs",
+    "sha256": "CB00138C84AF3F0BCE11BBB2E862D023215EC129D87F75FDBA1AA88F8466F545"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\booking-payment.test.mjs",
+    "sha256": "A245F41847B072934496D27879F086075A15B8569E0618F95EE95435B9DB9203"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\card-reader.test.mjs",
+    "sha256": "50559022B4D1295998FC790A6761AE5CD37FAA458B2752BB7176805DCC8D2975"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\itinerary-contract.test.mjs",
+    "sha256": "9540CF36FB068F35A352374347A3EE9D1DC425D58042871542829349D7FC6D1A"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\itinerary-model.test.mjs",
+    "sha256": "2F8377ED5AEA8851F83CF238EA6B1CEF0A3F6FBB26AEFAD0228995C144AEBD62"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\launch-indicator.test.mjs",
+    "sha256": "9A9117689C771ECFEB21C515FA5979B040C10075365C06AE0A517FED2A25D046"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\live-api.test.mjs",
+    "sha256": "E2FFD972A79CC6AA25847F1445FC69BB66785173AF836F85BDF418760A8AF3D9"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\mobile-foundation.test.mjs",
+    "sha256": "7C6F78B0FB073A6A14980F58C5C7A0DC5739F43E0A15ED879736EB6A52C56724"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\motion-lifecycle.test.mjs",
+    "sha256": "23325B37AD3FBC1CB2883A6CFF4C423430176EFFBA5807C3A0F5AAAED5C9F6B5"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\notification-contracts.test.mjs",
+    "sha256": "2F67D6B2E5AEC669E0278DB2A4F5C6AC3A654BD732BD1391D0D3A6A3FC955419"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\notification-realtime.test.mjs",
+    "sha256": "7DDFF63EAD7E88A288F696CE2A5E8F5D839CD1FFC058EA5C9FEEE48076865349"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\onboard-services.test.mjs",
+    "sha256": "11B38D86B27A69083DD3120B5F825B75A694F9A41FB9C596412D85058216458B"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\passenger-actions.test.mjs",
+    "sha256": "CA631360349EAEB2520A1F3165D4DB619B32A518F1EEC7F2938448048B5B552F"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\passenger-card.test.mjs",
+    "sha256": "9630C39EB0E22F78E65B50B0B31BFCB312A7CDFD8DD068B258BC99A8386E0DDC"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\phase-a-voyage.test.mjs",
+    "sha256": "0C2C420C87560EAD53D388A1B6D8F5B7ED11B97704825F2794AB6C5FE30C66CF"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\pos-integration.test.mjs",
+    "sha256": "C88E01D0149C289878BAEAA37D9150AC44A33FFA3BB90F618B710D885C6B19AC"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\pos-operations.test.mjs",
+    "sha256": "49E99D7A74BA6770C7DDB81E4ABCD22DCBB214E4E723C2ECCDA930BAD34516C5"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\post-booking.test.mjs",
+    "sha256": "012DABDD759B3D165525230DE5F48FF1BD2650962C3BCE856DD0D464DFF0015C"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\register-typescript.mjs",
+    "sha256": "40677605B7908AA81B7006D1C112F27838DF88E3A64A330BBA769D37DF621739"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\service-discovery.test.mjs",
+    "sha256": "14C88CD70CA3B9AFBF79C4241ECF3E547F7C37AEE2A93EA7090BD2F6736E4B4F"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\service-journal.test.mjs",
+    "sha256": "C01CB5F0AEE0F6B8A4A929857BDC6878CB2EAA9483222B4E666D41A5A821C606"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\service-request-merge.test.mjs",
+    "sha256": "5BF641A57FC839225B0F9039E4E7C3A31EBFAB24F7A02C8B6DBC3D8B8999B062"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\session-cleanup.test.mjs",
+    "sha256": "F8ECAA02BFC0BFC774C936EE3E9BC51BD726B4E4CE7FFCDF6C7ED335A6B7862B"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\spending-foundation.test.mjs",
+    "sha256": "A9F3A024B9236E27D47A541F9F62627AD121B4038AC1E132208BA9E84C1FD59E"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\staff-pos.test.mjs",
+    "sha256": "625B18B1BE01578401B3BF2C92BC26C022A0BAEAEB96584AD0743C8D7D37A80A"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\fixtures\\legacy-itinerary-data.ts",
+    "sha256": "F91B39D9E45D34754AFF5DEAC4BB6081F56A6F6BF8B6B506FA116061C06039C5"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\fixtures\\passenger-api-server.mjs",
+    "sha256": "86F57F0B6BCE5995A665225DA6EF7248DF579EE264D91EB9AC48CDDD50FDE663"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\fixtures\\service-guides.ts",
+    "sha256": "840E7CB4239C1F082687E6FC9C19DE9003211CECD886C300C1CD6424B6F7C44D"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\integration\\bootstrap-qa.sql",
+    "sha256": "3A496E6754C8632ABC1E4FF8BC5C3B6A2092FC4F8A7132480231032C5BD85D4C"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\integration\\initialize-database.ps1",
+    "sha256": "2D4AD16D6FF8092D14C7550AACE8676C73AB18963BC946B0C645AE093A0B3457"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\integration\\qa_database.py",
+    "sha256": "CEA10DBE4401858EB24A3593A057238D5865F2CEDB66A988C25E8A5A7C3F1898"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\integration\\qa-environment.mjs",
+    "sha256": "5FF3F5B91BCFA8A9D0D82E221B768D3438DB851D54E1125979ABF2047AFFDA08"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\integration\\real-backend.test.mjs",
+    "sha256": "ADDAD2FC58EFCAF07C1159C95B1B571F37A96C8B33020FAA24544C5D21C85AE2"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\integration\\seed-asian-voyage.sql",
+    "sha256": "A7D0587CD1366C731F9C08AB85CF23D3FE23598C78B85DA240A7EAAA8F089B53"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\integration\\seed-easy-test-accounts.sql",
+    "sha256": "681867D12DFF511607FAFFB644DFB30F39C2F0E0F9A306236B4B1E05A841CF24"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\integration\\seed-onboard-staff.sql",
+    "sha256": "9D223521694877FFEF87EF97E4C16A7E3486F1CECA0E7E61B887F5CA09512000"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\integration\\staff-backend.test.mjs",
+    "sha256": "2698DFD423B38C0EC3F5D556B61B8BE669F3DC856FC70D184BDBDBEE84E5433D"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\tests\\integration\\start-backend.ps1",
+    "sha256": "891A7476C1EDEFC9B073E85F2CE77223378EB572B79D62A8107CBD77AF53FF0E"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\docs\\aurora-itinerary.md",
+    "sha256": "444131EAC1690801690EA9D8914B012663047510995FFDBFC6ED5EE4B5DFB567"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\docs\\backend-mobile-audit-2026-10-21.md",
+    "sha256": "1EE082B45A6F16F1E9F7DCF5CF8F3ECDAF899AAE76103D4BD383E609D4E5E63E"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\docs\\ocevie-mobile-ux.md",
+    "sha256": "8DB830123364F9338D5A568E60B7B77FCD62AAEF0081A8B598134A6440609F88"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\docs\\ocevie-motion-qa.md",
+    "sha256": "D00DA77132492E6A251C6FD3338FF25CAB6358A8EF1395B06977B1A73D37489E"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\docs\\onboard-staff-pos.md",
+    "sha256": "951777B66E04B01BB7D0AABE4D9A8E8350D6FA7A72B5D639A8C18D490CC1A7C4"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\docs\\p00-launch.md",
+    "sha256": "9BB80F6EC80023914AD89FDE6442024A181238DBE1FB110031F287CDAA5CACF5"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\docs\\p01-login.md",
+    "sha256": "3849EE677D23EE5FC21A67F11C6FA5DBFF5BE7AAAADC4C77E4EE796C02A58DB0"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\docs\\p02-home.md",
+    "sha256": "D6611AEB2A854807DE40CA6762834F02BFE21BCA5BCC66340052CF1E50F42DDA"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\docs\\passenger-live-api.md",
+    "sha256": "627753F64D7C2403822A960F6632605CF201979EC9AE06F681B8FE33944A7D4A"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\docs\\passenger-service-flow.md",
+    "sha256": "D458ED4B5193E354B0D6D53832E5A755827004F27AEF07AF5332244921CE7952"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\docs\\real-api-qa.md",
+    "sha256": "D703C36D28A80C08F77C979DADA3108ED244558C2D8BB13AC7B4C301775D26D3"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\docs\\revert-temporary-passenger-permissions.sql",
+    "sha256": "EB2A4F0FBF15C0EA2A5C8F707A446A659E79D4AD2F26C99E5F7BED6B85EFFD4A"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\docs\\temporary-passenger-api.md",
+    "sha256": "92E0643C42E3D68F565C8785A25C5ADADB63E8FBBFAB7FE7B71F77BAB9C54A9C"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\docs\\third-party\\Apache-2.0.txt",
+    "sha256": "3DDF9BE5C28FE27DAD143A5DC76EEA25222AD1DD68934A047064E56ED2FA40C5"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\docs\\third-party\\M3E-Canvas-LICENSE.txt",
+    "sha256": "46E0A3514100CD66F336852AD7F3340DD32726BA5A5D3C12F0E0D4F061015048"
+  },
+  {
+    "path": "C:\\Users\\quanh\\OneDrive\\Máy tính\\CASMS_Frontend\\CASMS_MobileApp\\docs\\third-party\\NOTICE.md",
+    "sha256": "D7D52F93A5A47C51227A5972D8322C73D4037A21037A217C55B2925233BC195C"
+  }
+]

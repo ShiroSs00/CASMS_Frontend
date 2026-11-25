@@ -1,3 +1,4 @@
+import { NotificationSync } from '@/features/notifications/NotificationSync';
 import { MotionPreferenceProvider, useMotionPreference } from '@/components/passenger/useMotionPreference';
 import { Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -43,6 +44,7 @@ function RootContent() {
   const splash = pathname === '/splash' || pathname === '/loading';
   return (
     <QueryClientProvider client={queryClient}>
+      <NotificationSync />
       <StatusBar style={splash ? 'light' : 'dark'} />
       <Stack screenOptions={{
         headerShown: false,
