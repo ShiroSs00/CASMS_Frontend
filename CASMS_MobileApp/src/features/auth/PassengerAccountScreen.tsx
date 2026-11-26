@@ -51,7 +51,7 @@ export function PassengerAccountScreen() {
         supporting="Xem tình trạng và hoàn tất hồ sơ" icon="assignment_ind"
         onPress={() => router.push({ pathname: '/check-in', params: { bookingId: voyage.bookingId } })} />}
       {context.can('NOTIFICATION_READ') && <PassengerListItem title="Thông báo" supporting="Tin nhắn dành cho tài khoản của bạn" icon="notifications" onPress={() => router.push('/notifications')} />}
-      {voyage && <PassengerListItem compact title="Chi tiêu trên tàu" supporting="Sao kê tại quầy dịch vụ" icon="room_service" onPress={() => router.push('/spending')} />}
+      {voyage && <PassengerListItem compact title="Chi tiêu của tôi" supporting="Hạn mức cá nhân và lịch sử giao dịch" icon="room_service" onPress={() => router.push('/spending')} />}
     </View>
     <View style={styles.section}><SectionHeading title="Tài khoản & hỗ trợ" />
       <PassengerListItem compact title="Thông tin cá nhân" supporting="" icon="assignment_ind" onPress={() => setSheet('profile')} />

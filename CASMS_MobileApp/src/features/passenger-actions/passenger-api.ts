@@ -2,6 +2,7 @@ import { notificationSchema as notification, countSchema, uniqueNotifications } 
 import type { RequestOptions } from '../../lib/api/api-client';
 import { z } from 'zod';
 import { readCardClaim } from './card-contracts';
+import { passengerCardStatus, readCatalogue, catalogueServices, catalogueSchedules, readFolioAccount, readPassengerFolio, type FolioAccount } from './synced-contracts';
 import { serviceSchema, scheduleSchema, requestSchema, activitySchema, activityAvailabilitySchema, excursionSchema, registrationSchema, entitlementSchema, decodeOnboard } from './onboard-contracts';
 import type { BookingDetail, BookingSummary, Excursion, Package, PackageAssignment, PackageBenefits, Registration, ServiceRequest, UserMe } from './passenger-types';
 
@@ -137,6 +138,29 @@ export function createPassengerApi(client: Transport) {
       if (result.notificationId !== notificationId || !result.readAt) throw new Error('Chưa xác nhận được trạng thái đã đọc.');
       return result;
     },
+    async acknowledgeNotification(notificationId: string) {
+      const result = decode(notification, await client.request(`/notifications/${id(notificationId)}/ack`, { method: 'POST' }));
+      if (result.notificationId !== notificationId) throw new Error('Thông báo xác nhận không khớp.');
+      return result;
+    },
+    async cardStatus(bookingPassengerId: string, signal?: AbortSignal) {
+      return decode(passengerCardStatus, await client.request(`/checkin/passenger/${id(bookingPassengerId)}/card`, { signal }));
+    },
+    async passengerCatalogue(bookingPassengerId: string, cruiseId: string, signal?: AbortSignal) {
+      return readCatalogue(await client.request(`/servicepackage/passenger/${id(bookingPassengerId)}/catalogue`, { signal }), cruiseId);
+    },
+    async scopedServices(bookingPassengerId: string, cruiseId: string, signal?: AbortSignal) {
+      return catalogueServices(readCatalogue(await client.request(`/servicepackage/passenger/${id(bookingPassengerId)}/catalogue`, { signal }), cruiseId));
+    },
+    async scopedSchedules(bookingPassengerId: string, cruiseId: string, serviceId: string, signal?: AbortSignal) {
+      return catalogueSchedules(readCatalogue(await client.request(`/servicepackage/passenger/${id(bookingPassengerId)}/catalogue`, { signal }), cruiseId), serviceId);
+    },
+    async folioAccount(bookingId: string, cruiseId: string, signal?: AbortSignal) {
+      return readFolioAccount(await client.request('/payment/guest/folio/account', { query: { bookingId: id(bookingId) }, signal }), bookingId, cruiseId);
+    },
+    async passengerFolio(account: FolioAccount, passengerId: string, signal?: AbortSignal) {
+      return readPassengerFolio(await client.request('/payment/guest/folio/statement', { query: { bookingId: id(account.bookingId) }, signal }), account, passengerId);
+    },
     async payments(bookingId: string, signal?: AbortSignal) {
       const rows = decode(z.array(payment), await client.request(`/payment/booking/${id(bookingId)}`, { signal }));
       if (rows.some(row => row.bookingId !== bookingId.toLowerCase())) throw new Error('Lịch sử thanh toán không khớp đặt chỗ.');
@@ -238,7 +262,8 @@ export function createPassengerApi(client: Transport) {
     },
     async registrations(signal?: AbortSignal) { return decodeOnboard(z.array(registrationSchema), await client.request('/activities/registrations', { signal })); },
     registration: (registrationId: string) => client.request(`/activities/registrations/${id(registrationId)}`).then(value => decodeOnboard(registrationSchema, value)),
-    register: (kind: 'activity' | 'excursion', targetId: string, bookingPassengerId: string, quantity: number) => client.request<Registration>(kind === 'activity' ? `/activities/${id(targetId)}/registrations` : `/activities/excursions/${id(targetId)}/registrations`, { method: 'POST', body: { bookingPassengerId: id(bookingPassengerId), quantity } }).then(value => decodeOnboard(registrationSchema, value)),
+    registrationByOperationKey: (key: string, signal?: AbortSignal) => client.request('/activities/registrations/by-operation-key', { query: { key }, signal }).then(value => decodeOnboard(registrationSchema, value)),
+    register: (kind: 'activity' | 'excursion', targetId: string, bookingPassengerId: string, quantity: number, operationKey?: string) => client.request<Registration>(kind === 'activity' ? `/activities/${id(targetId)}/registrations` : `/activities/excursions/${id(targetId)}/registrations`, { method: 'POST', idempotencyKey: operationKey, body: { bookingPassengerId: id(bookingPassengerId), quantity } }).then(value => decodeOnboard(registrationSchema, value)),
     confirmRegistration: (registrationId: string) => client.request<Registration>(`/activities/registrations/${id(registrationId)}/confirm`, { method: 'POST' }).then(value => decodeOnboard(registrationSchema, value)),
     updateRegistration: (registrationId: string, quantity: number) => client.request<Registration>(`/activities/registrations/${id(registrationId)}`, { method: 'PUT', body: { quantity } }).then(value => decodeOnboard(registrationSchema, value)),
     cancelRegistration: (registrationId: string, reason: string) => client.request<Registration>(`/activities/registrations/${id(registrationId)}/cancel`, { method: 'POST', query: reason.trim() ? { reason: reason.trim() } : undefined }).then(value => decodeOnboard(registrationSchema, value)),

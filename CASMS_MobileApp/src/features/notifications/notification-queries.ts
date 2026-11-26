@@ -7,7 +7,7 @@ export function notificationQueryAllowed(key: readonly unknown[], scope: { backe
   const required: Record<string, string[]> = {
     voyages: ['BOOKING_READ'], bookings: ['BOOKING_READ'], booking: ['BOOKING_READ'], entitlements: ['BOOKING_READ'],
     itinerary: ['ITINERARY_READ','CRUISE_READ'], cruise: ['CRUISE_READ'], decks: ['DECK_READ'], 'public-ship-model': ['BOOKING_READ'],
-    services: ['SERVICE_READ'], 'service-detail': ['SERVICE_READ'], 'service-slots': ['SERVICE_READ'], 'service-availability': ['SERVICE_READ'],
+    services: ['SERVICE_REQUEST_READ','SERVICE_REQUEST_CREATE'], 'service-detail': ['SERVICE_REQUEST_READ','SERVICE_REQUEST_CREATE'], 'service-slots': ['SERVICE_REQUEST_READ','SERVICE_REQUEST_CREATE'], 'service-availability': ['SERVICE_READ'],
     'service-requests': ['SERVICE_REQUEST_READ','SERVICE_REQUEST_CREATE','SERVICE_REQUEST_EXECUTE'],
     activities: ['ACTIVITY_READ'], 'activity-availability': ['ACTIVITY_READ'], excursions: ['EXCURSION_READ'], registrations: ['ACTIVITY_REGISTRATION'],
   };

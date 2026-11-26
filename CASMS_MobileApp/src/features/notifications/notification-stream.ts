@@ -60,12 +60,17 @@ export function startNotificationStream(options: {
     if (!valid() || authDenied) return;
     controller = new AbortController(); const activeController = controller;
     status(attempts ? 'retrying' : 'connecting');
-    // The hub sends no heartbeat. Silence after `connected` is healthy, not a
-    // network failure. Bound the handshake separately from its 30-minute lease.
+    // BE-Final emits heartbeat comments every 25 seconds. They keep transport
+    // alive without producing notification events or changing unread counts.
     let established = false;
     const handshake = later(() => activeController.abort(), 45000);
     const lease = later(() => activeController.abort(), 30 * 60 * 1000);
     let stable: Timer | undefined;
+    let idle: Timer | undefined;
+    const touch = () => {
+      if (idle !== undefined) { cancel(idle); timers.delete(idle); }
+      idle = later(() => activeController.abort(), 75000);
+    };
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
     try {
       const response = await options.fetch(`${options.baseUrl}/notifications/stream`, { method: 'GET', credentials: 'omit', redirect: 'error', headers: { Authorization: `Bearer ${options.token}`, Accept: 'text/event-stream' }, signal: activeController.signal });
@@ -75,6 +80,7 @@ export function startNotificationStream(options: {
       reader = response.body.getReader();
       cancelReader = () => { void reader?.cancel().catch(() => {}); };
       const decoder = new TextDecoder();
+      touch();
       const parse = createSseParser(raw => {
         if (!valid() || activeController.signal.aborted) return;
         const event = decodeStreamEvent(raw); if (!event) return;
@@ -97,12 +103,13 @@ export function startNotificationStream(options: {
       });
       while (valid() && !activeController.signal.aborted) {
         const chunk = await reader.read(); if (chunk.done) break;
+        if (chunk.value.length) touch();
         parse(decoder.decode(chunk.value, { stream: true }));
       }
     } catch { /* REST remains authoritative; never log payloads or replay writes. */ }
     finally {
       activeController.abort();
-      for (const timer of [handshake, lease, stable]) {
+      for (const timer of [handshake, lease, stable, idle]) {
         if (timer !== undefined) { cancel(timer); timers.delete(timer); }
       }
       if (reader) { void reader.cancel().catch(() => {}); reader.releaseLock(); }

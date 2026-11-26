@@ -1,3 +1,4 @@
+import { recoverPendingSale } from './sale-journal-contract';
 import { samePosScope, usePosScopeGuard } from './pos-scope';
 import { verifySaleIntent, verifySalePreflight } from './pos-lifecycle';
 import { PosCardAction } from './PosCardAction';
@@ -64,7 +65,7 @@ export function PosUsage() {
   const validIds = uuid.safeParse(accountId).success && uuid.safeParse(bookingPassengerId).success;
   const matched = lookup?.account === accountId && lookup?.passenger === bookingPassengerId;
   const recovery = pending.data?.kind === 'own' ? pending.data.sale : undefined;
-  const canReplay = !!recovery?.reviewPrice && sellable.some(item => item.serviceId === recovery.input.serviceId);
+  const canReplay = !!recovery && sellable.some(item => item.serviceId === recovery.input.serviceId);
   const budget = matched && !statement.error ? statement.data?.budget : undefined;
   const price = service?.unitPrice;
   const selectedPrice = salePrice.safeParse({ amount: price, currency: service?.currency });
@@ -81,7 +82,7 @@ export function PosUsage() {
     if (cache.getQueryState(pendingKey)) cache.setQueryData(pendingKey, work);
   }
 
-  async function submit(work: PendingSale, replay = false) {
+  async function submit(work: PendingSale) {
     if (saleLocks.has(terminalId)) throw new ApiError('Giao dịch đang được xử lý.', 409, 'POS_SALE_BUSY');
     saleLocks.add(terminalId);
     setIssue(undefined);
@@ -92,11 +93,12 @@ export function PosUsage() {
       const saved = await readPendingSale(saleScope).catch(() => {
         throw new ApiError('Không đọc được hồ sơ chờ.', 409, 'POS_JOURNAL');
       });
-      if (replay ? saved?.kind !== 'own' || saved.sale.input.idempotencyKey !== work.input.idempotencyKey : !!saved) {
+      if (saved) {
         void pending.refetch();
         throw new ApiError('Hồ sơ chờ đã thay đổi.', 409, 'POS_SALE_BUSY');
       }
-      const input = saved?.kind === 'own' ? saved.sale : work;
+      const input = work;
+      if (input.endpoint !== 'reviewed') throw new ApiError('Hồ sơ cần đối soát trước khi tiếp tục.', 409, 'POS_JOURNAL');
       if (!input.reviewPrice) throw new ApiError('Hồ sơ cũ chưa có đơn giá và loại tiền đã xác nhận. Liên hệ quản lý để đối soát; hồ sơ vẫn được giữ.', 409, 'POS_PRICE_CONFIRMATION_REQUIRED');
       const context = await pos.client.context(); assertScope();
       if (!samePosScope(context, pos.scope)) throw new ApiError('Ngữ cảnh đã thay đổi.', 409, 'POS_REVERIFY');
@@ -105,8 +107,8 @@ export function PosUsage() {
       if (!current?.permissions.includes('SERVICE_SALE')) throw new ApiError('Quyền sử dụng dịch vụ đã thay đổi.', 403);
       const latest = await pos.client.statement(input.input.onboardAccountId, input.input.bookingPassengerId); assertScope();
       cache.setQueryData([...pos.key, 'statement', input.input.onboardAccountId, input.input.bookingPassengerId], latest);
-      verifySalePreflight(current, latest.budget, input.reviewPrice, replay);
-      // Replaying an older record promotes it to the terminal journal before sending.
+      verifySalePreflight(current, latest.budget, input.reviewPrice, false);
+      // Persist the exact reviewed request before its first and only POST.
       try { await savePendingSale(saleScope, input); }
       catch {
         void pending.refetch();
@@ -120,7 +122,10 @@ export function PosUsage() {
         verifySaleIntent(result, input.input, { terminalId, areaId, owner: pos.owner }, input.reviewPrice);
         assertScope();
       } catch (error) {
-        if (replay || uncertainWrite(error) || (error instanceof ApiError && error.code === 'POS_REVERIFY') || (error instanceof ApiError && error.code === 'POS_IDEMPOTENCY_CONFLICT')) {
+        if (error instanceof ApiError && error.code === 'POS_PRICE_CHANGED') {
+          void cache.invalidateQueries({ queryKey: pos.key });
+        }
+        if (uncertainWrite(error) || (error instanceof ApiError && error.code === 'POS_REVERIFY') || (error instanceof ApiError && error.code === 'POS_IDEMPOTENCY_CONFLICT')) {
           setIssue('Kết quả giao dịch chưa được xác nhận. Hồ sơ chờ giữ nguyên nội dung và mã giao dịch.');
         } else {
           try { await clearPendingSale(saleScope, input.input.idempotencyKey); updatePending(null); }
@@ -139,7 +144,7 @@ export function PosUsage() {
         await clearPendingSale(saleScope, input.input.idempotencyKey);
         updatePending(null);
       } catch {
-        setIssue('Giao dịch đã được xác nhận nhưng còn hồ sơ chờ trên thiết bị. Gửi lại cùng mã để đối soát.');
+        setIssue('Giao dịch đã được xác nhận nhưng còn hồ sơ chờ trên thiết bị. Đọc lại kết quả để đối soát.');
       }
     } finally { saleLocks.delete(terminalId); }
   }
@@ -147,6 +152,7 @@ export function PosUsage() {
   function review() {
     if (!canReview || !service || !selectedPrice.success) return;
     const work: PendingSale = {
+      version: 2, endpoint: 'reviewed', state: 'PENDING_VERIFICATION',
       serviceName: service.name,
       reviewPrice: selectedPrice.data,
       input: {
@@ -155,6 +161,7 @@ export function PosUsage() {
         idempotencyKey: nativeUuid.v4(),
       },
     };
+    work.originalRequest = { ...work.input, expectedUnitPrice: selectedPrice.data.amount, expectedCurrency: selectedPrice.data.currency };
     confirm.open({
       title: 'Bán dịch vụ mới',
       description: `${work.serviceName} · 1 lượt · ${money(selectedPrice.data.amount, selectedPrice.data.currency)} theo danh mục hiện tại.\nHành khách ${work.input.bookingPassengerId}\nTài khoản ${work.input.onboardAccountId}${work.input.scheduleId ? `\nLịch dịch vụ ${work.input.scheduleId}` : ''}`,
@@ -164,9 +171,27 @@ export function PosUsage() {
 
   function reconcile(work: PendingSale) {
     confirm.open({
-      title: 'Gửi lại cùng mã giao dịch',
-      description: `${work.serviceName} · 1 lượt · Hành khách ${work.input.bookingPassengerId}. Gửi lại đúng giao dịch đang chờ để đối soát kết quả.`,
-      run: () => submit(work, true),
+      title: 'Đối soát giao dịch đang chờ',
+      description: `${work.serviceName}. Đọc lại kết quả giao dịch gốc. Hồ sơ chờ được giữ nếu chưa tìm thấy hoặc chưa xác minh được.`,
+      run: async () => {
+        if (saleLocks.has(terminalId)) throw new ApiError('Giao dịch đang được xử lý.', 409, 'POS_SALE_BUSY');
+        saleLocks.add(terminalId);
+        try {
+          assertScope();
+          const saved = await readPendingSale(saleScope); assertScope();
+          if (saved?.kind !== 'own' || saved.sale.input.idempotencyKey !== work.input.idempotencyKey)
+            throw new ApiError('Hồ sơ chờ đã thay đổi.', 409, 'POS_JOURNAL');
+          const result = await recoverPendingSale(pos.client, saved.sale, { terminalId, areaId, owner: pos.owner }); assertScope();
+          await clearPendingSale(saleScope, saved.sale.input.idempotencyKey); assertScope();
+          updatePending(null); setReceipt(result); setIssue(undefined);
+          void cache.invalidateQueries({ queryKey: pos.key });
+        } catch (error) {
+          setIssue(error instanceof ApiError && error.status === 404
+            ? 'Chưa tìm thấy giao dịch gốc. Hồ sơ được giữ để quản lý đối soát; chưa thể tạo giao dịch thay thế.'
+            : 'Chưa xác minh được giao dịch gốc. Hồ sơ chờ được giữ nguyên.');
+          throw error;
+        } finally { saleLocks.delete(terminalId); }
+      },
     });
   }
 
@@ -202,7 +227,7 @@ export function PosUsage() {
       <Disclosure title="Chi tiết đối soát"><Text selectable style={ui.caption}>Hành khách: {recovery.input.bookingPassengerId}{'\n'}Mã giao dịch: {recovery.input.idempotencyKey}</Text></Disclosure>
       {!recovery.reviewPrice && <Notice tone="warning">Hồ sơ cũ chưa có đơn giá và loại tiền đã xác nhận. Liên hệ quản lý để đối soát; hồ sơ vẫn được giữ.</Notice>}
       {!!recovery.reviewPrice && !canReplay && <Notice tone="warning">Quyền ghi nhận dịch vụ này đã thay đổi. Liên hệ quản lý để đối soát.</Notice>}
-      <PassengerButton label="Gửi lại cùng mã" disabled={!pos.verified || !canReplay || confirm.pending || pending.isFetching}
+      <PassengerButton label="Đọc lại kết quả giao dịch" disabled={!pos.verified || !canReplay || confirm.pending || pending.isFetching}
         onPress={() => reconcile(recovery)} />
     </View>}
     {receipt && <SaleSummary sale={receipt} confirmed />}

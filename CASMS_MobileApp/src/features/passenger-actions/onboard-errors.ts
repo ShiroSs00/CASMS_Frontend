@@ -1,5 +1,7 @@
 import { ApiError } from '../../lib/api/api-client';
 const messages: Record<string, string> = {
+  REGISTRATION_IDEMPOTENCY_CONFLICT: 'Mã đăng ký đã gắn với nội dung khác. Giữ hồ sơ chờ và liên hệ quầy để đối soát.',
+  REGISTRATION_IDEMPOTENCY_KEY_INVALID: 'Mã đăng ký chưa hợp lệ. Vui lòng kiểm tra hồ sơ đang chờ.',
   ONBOARD_BOOKING_CLOSED: 'Tạm ngừng nhận đăng ký trong giai đoạn hiện tại của hành trình. Kiểm tra lịch hoặc liên hệ quầy dịch vụ.',
   SERVICE_NOT_PRE_CRUISE: 'Dịch vụ này không nhận yêu cầu trước chuyến. Liên hệ quầy để kiểm tra thời điểm sử dụng.',
   SERVICE_SCHEDULE_CRUISE_MISMATCH: 'Lịch phục vụ không thuộc chuyến đang chọn. Vui lòng tải lại và chọn đúng lịch.',

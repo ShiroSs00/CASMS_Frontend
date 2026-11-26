@@ -1,9 +1,11 @@
+import { pendingSale, type PendingSale } from './sale-journal-contract';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { z } from 'zod';
 import { registerSessionCleanup, useAuth } from '@/features/auth/session-store';
 import { api, ApiError, getApiUrl } from '@/lib/api';
-import { posSession, saleInput, salePrice, uuid, type PosSession } from './pos-api';
+import { posSession, uuid, type PosSession } from './pos-api';
+export type { PendingSale } from './sale-journal-contract';
 
 const sessionKey = 'ocevie.pos.session.v1';
 const accessibility = { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY };
@@ -87,9 +89,7 @@ useAuth.subscribe((next, previous) => {
   }
 });
 
-const pendingSale = z.object({ backend: z.string(), input: saleInput, serviceName: z.string(), reviewPrice: salePrice.optional() });
-export type PendingSale = Omit<z.infer<typeof pendingSale>, 'backend'>;
-const journal = pendingSale.extend({ owner: uuid, areaId: uuid, cruiseId: uuid, signedInAt: z.number().optional() });
+const journal = pendingSale.safeExtend({ terminalId: uuid.optional(), owner: uuid, areaId: uuid, cruiseId: uuid, signedInAt: z.number().optional() });
 export type SaleScope = { owner: string; terminalId: string; areaId: string; cruiseId: string; signedInAt?: number };
 export type PendingRecord = { kind: 'own'; sale: PendingSale; previousSession?: boolean } | { kind: 'blocked' };
 
@@ -100,21 +100,21 @@ export async function readPendingSale(scope: SaleScope, backend = getApiUrl()): 
   const rawJournal = await SecureStore.getItemAsync(terminalKey(scope.terminalId));
   if (rawJournal) {
     const saved = journal.parse(JSON.parse(rawJournal));
-    if (saved.backend !== backend || saved.owner !== scope.owner
+    if (saved.backend !== backend || saved.owner !== scope.owner || saved.terminalId && saved.terminalId !== scope.terminalId
       || saved.areaId !== scope.areaId || saved.cruiseId !== scope.cruiseId) return { kind: 'blocked' };
     const legacy = await SecureStore.getItemAsync(legacyKey(scope));
     if (legacy) {
       const prior = pendingSale.parse(JSON.parse(legacy));
       if (prior.backend !== backend || !samePendingSale(prior, saved)) return { kind: 'blocked' };
     }
-    return { kind: 'own', sale: { input: saved.input, serviceName: saved.serviceName, ...(saved.reviewPrice ? { reviewPrice: saved.reviewPrice } : {}) },
+    return { kind: 'own', sale: { ...(saved.state ? { state: saved.state } : {}), ...(saved.version ? { version: saved.version } : {}), ...(saved.endpoint ? { endpoint: saved.endpoint } : {}), ...(saved.originalRequest ? { originalRequest: saved.originalRequest } : {}), input: saved.input, serviceName: saved.serviceName, ...(saved.reviewPrice ? { reviewPrice: saved.reviewPrice } : {}) },
       ...(scope.signedInAt !== undefined && saved.signedInAt !== scope.signedInAt ? { previousSession: true } : {}) };
   }
   const raw = await SecureStore.getItemAsync(legacyKey(scope));
   if (!raw) return null;
   const saved = pendingSale.parse(JSON.parse(raw));
   if (saved.backend !== backend) return { kind: 'blocked' };
-  return { kind: 'own', sale: { input: saved.input, serviceName: saved.serviceName, ...(saved.reviewPrice ? { reviewPrice: saved.reviewPrice } : {}) },
+  return { kind: 'own', sale: { ...(saved.state ? { state: saved.state } : {}), ...(saved.version ? { version: saved.version } : {}), ...(saved.endpoint ? { endpoint: saved.endpoint } : {}), ...(saved.originalRequest ? { originalRequest: saved.originalRequest } : {}), input: saved.input, serviceName: saved.serviceName, ...(saved.reviewPrice ? { reviewPrice: saved.reviewPrice } : {}) },
     ...(scope.signedInAt !== undefined ? { previousSession: true } : {}) };
 }
 
@@ -131,7 +131,7 @@ export function savePendingSale(scope: SaleScope, sale: PendingSale) {
     if (current && (current.kind !== 'own' || !samePendingSale(current.sale, sale)))
       throw new ApiError('Còn giao dịch khác cần đối soát.', 409, 'POS_SALE_BUSY');
     await SecureStore.setItemAsync(terminalKey(scope.terminalId),
-      JSON.stringify({ ...sale, ...scope, backend }), accessibility);
+      JSON.stringify(journal.parse({ ...sale, ...scope, backend })), accessibility);
   });
 }
 export function clearPendingSale(scope: SaleScope, expectedKey?: string) {
@@ -151,6 +151,6 @@ function sameSaleInput(a: PendingSale['input'], b: PendingSale['input']) {
     && a.onboardAccountId === b.onboardAccountId && a.scheduleId === b.scheduleId && a.quantity === b.quantity;
 }
 
-function samePendingSale(a: Pick<PendingSale, 'input' | 'reviewPrice'>, b: Pick<PendingSale, 'input' | 'reviewPrice'>) {
-  return sameSaleInput(a.input, b.input) && a.reviewPrice?.amount === b.reviewPrice?.amount && a.reviewPrice?.currency === b.reviewPrice?.currency;
+function samePendingSale(a: Pick<PendingSale, 'input' | 'reviewPrice' | 'endpoint' | 'originalRequest'>, b: Pick<PendingSale, 'input' | 'reviewPrice' | 'endpoint' | 'originalRequest'>) {
+  return JSON.stringify(a.originalRequest) === JSON.stringify(b.originalRequest) && (a.endpoint ?? 'legacy') === (b.endpoint ?? 'legacy') && sameSaleInput(a.input, b.input) && a.reviewPrice?.amount === b.reviewPrice?.amount && a.reviewPrice?.currency === b.reviewPrice?.currency;
 }
