@@ -7,7 +7,7 @@ export function unwrapActivityResponse(value: unknown, status: number): unknown 
 
 export type ActivityCatalogEntry = {
   id: string; code: string; name: string; catalogEntry: true; description?: string | null
-  category?: string | null; capacity?: number | null; price?: number | null; currencyCode?: string | null
+  category?: string | null; capacity?: number | null; requiredStaffCount?: number | null; price?: number | null; currencyCode?: string | null
 }
 export function decodeActivityCatalogEntry(dto: unknown, status: number): ActivityCatalogEntry {
   if (!dto || typeof dto !== 'object' || !('catalogEntry' in dto) || dto.catalogEntry !== true

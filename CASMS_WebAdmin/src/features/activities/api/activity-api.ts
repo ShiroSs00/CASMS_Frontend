@@ -15,7 +15,7 @@ function record(value: unknown, status: number): Activity {
   // Jackson may omit null fields. Normalize only the nullable Cruise association.
   return { ...dto, cruiseId: 'cruiseId' in dto ? dto.cruiseId : null } as Activity
 }
-export type ActivityCatalogDraft = { activityName: string; description: string | null; category: string | null; capacity: number; price: number | null; currencyCode: ActivityCurrency }
+export type ActivityCatalogDraft = { activityName: string; description: string | null; category: string | null; capacity: number; requiredStaffCount?: number; price: number | null; currencyCode: ActivityCurrency }
 function list<T>(value: unknown, status: number): T[] {
   const dto = unwrapActivityResponse(value, status)
   if (!Array.isArray(dto)) throw new ApiError('Danh sách hoạt động không đúng định dạng.', status)

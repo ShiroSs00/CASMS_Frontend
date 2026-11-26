@@ -52,7 +52,7 @@ export function CatalogDetail({ kind, recordId, embedded = false }: { kind: Cata
     {item && <><Panel title="Thông tin chi tiết"><RecordFacts entries={[
       ['Mã', item.code], ['Loại', formatCatalogType(item.type)],
       ['Giá', item.price == null ? 'Chưa cấu hình' : `${item.price.toLocaleString('vi-VN')} ${item.currency ?? ''}`],
-      ...(kind === 'services' ? [['Sức chứa cấu hình', item.capacity ?? 'Chưa cấu hình'] as const,['Lịch đặt trước',item.requiresSchedule===true?'Bắt buộc':item.requiresSchedule===false?'Không bắt buộc':'Chưa xác định'] as const,['Nhóm dịch vụ',item.categoryName??'Chưa chọn nhóm'] as const,['Đơn vị phục vụ',formatUnitCode(item.unitCode) || 'Chưa cấu hình'] as const] : []),
+      ...(kind === 'services' ? [['Sức chứa cấu hình', item.capacity ?? 'Chưa cấu hình'] as const,['Nhân viên phục vụ mặc định', `${item.defaultRequiredStaff ?? 1} nhân viên`] as const,['Lịch đặt trước',item.requiresSchedule===true?'Bắt buộc':item.requiresSchedule===false?'Không bắt buộc':'Chưa xác định'] as const,['Nhóm dịch vụ',item.categoryName??'Chưa chọn nhóm'] as const,['Đơn vị phục vụ',formatUnitCode(item.unitCode) || 'Chưa cấu hình'] as const] : []),
       ...(kind === 'services' ? [
         ...(Object.keys(servicePurchaseFlags) as (keyof typeof servicePurchaseFlags)[]).map(key =>
           [servicePurchaseFlags[key], item[key] == null ? 'Chưa xác định' : item[key] ? 'Có' : 'Không'] as const),

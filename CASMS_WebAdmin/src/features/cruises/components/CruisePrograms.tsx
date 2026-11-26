@@ -23,8 +23,8 @@ import {CruiseExcursionCommercialEditor} from './CruiseExcursionCommercialEditor
 import {ScopedProgramEditor,type EditableProgram} from './ScopedProgramEditor'
 import styles from './ManagerWorkspace.module.css'
 type Kind='activities'|'excursions'|'packages'|'serving-windows'
-type Choice={id:string;name:string;sequence?:number;scheduled?:boolean;timeZoneId?:string|null}
-type Program={id:string;cruiseId?:string;sourceActivityId?:string|null;responsibleUserId?:string|null;name:string;ownerCruiseId?:string|null;price?:number|null;currency?:string|null;currencyCode?:string|null;capacity?:number|null;location?:string;startsAt?:string;endsAt?:string;cruiseStopId?:string|null}
+type Choice={id:string;name:string;sequence?:number;scheduled?:boolean;timeZoneId?:string|null;defaultRequiredStaff?:number}
+type Program={id:string;cruiseId?:string;sourceActivityId?:string|null;responsibleUserId?:string|null;name:string;ownerCruiseId?:string|null;price?:number|null;currency?:string|null;currencyCode?:string|null;capacity?:number|null;requiredStaffCount?:number|null;location?:string;startsAt?:string;endsAt?:string;cruiseStopId?:string|null}
 type Options=CruiseVenueOptions&{services:(Choice&{configuredOnShip?:boolean})[];suppliers:Choice[];stops:Choice[]}
 const titles:Record<Kind,string>={activities:businessCopy('program.onboardActivity'),excursions:businessCopy('program.SHORE_EXCURSION'),packages:businessCopy('program.TOUR_PACKAGE'),'serving-windows':businessCopy('program.SERVING_WINDOW')}
 type ProgramContext = {planStatus:string;unifiedPackageReview?:boolean;mayConfigure?:boolean;completionIssues?:{code:string;kind:string;id:string;message:string}[];programIssues?:ProgramIssue[];windows:{expectedRevision:number}}
@@ -51,6 +51,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
  const [editingExcursion,setEditingExcursion]=useState<{entry:ExcursionCommercial;revision:number}|null>(null)
  const [editingProgram,setEditingProgram]=useState<{kind:'excursions'|'serving-windows';entry:EditableProgram}|null>(null)
  const [selectedStopId,setSelectedStopId]=useState('')
+ const [selectedServiceId,setSelectedServiceId]=useState('')
  const query=useReadQuery(`scoped-programs:${cruiseId}:${epoch}:${allowed}`,useCallback(async signal=>{
   if(!allowed)return null
   const plan=await readPlan(signal)
@@ -156,14 +157,17 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
   const activityVenue={deckId:area?.deckId,location:area?.name,meetingPoint:text('meetingPoint')||null}
   if((fixedActivity||fromCatalog)&&(!source||catalog.loading||catalog.error)){setError('Chọn hoạt động dùng chung hợp lệ.');return}
   const capacity=text('capacity')?Number(text('capacity')):null
+  const requiredStaffRaw=text('requiredStaffCount')
+  const requiredStaffCount=requiredStaffRaw?Number(requiredStaffRaw):null
+  if(kind!=='packages'&&requiredStaffCount!==null&&(!Number.isSafeInteger(requiredStaffCount)||requiredStaffCount<1||requiredStaffCount>2147483647)){setError('Vui lòng nhập số nhân viên phục vụ là số nguyên từ 1 trở lên.');return}
   if(kind!=='packages'&&!fromCatalog&&(capacity===null||!Number.isSafeInteger(capacity)||capacity<1||capacity>2147483647)){setError('Vui lòng nhập sức chứa nguyên dương.');return}
   if(fromCatalog&&capacity!==null&&(!Number.isSafeInteger(capacity)||capacity<1||capacity>2147483647)){setError('Nhập sức chứa nguyên dương.');return}
   if(fromCatalog&&capacity===null&&source?.capacity==null){setError('Hoạt động nguồn chưa có sức chứa. Nhập sức chứa cho lần phục vụ này.');return}
-  if(fromCatalog)body={sourceActivityId:sourceId,...activityVenue,startTime:instant('start'),endTime:instant('end'),capacity}
-  else if(kind==='activities')body={cruiseId,activityName:text('name'),...activityVenue,description:text('description'),startTime:instant('start'),endTime:instant('end'),capacity:Number(text('capacity')),price:null,currencyCode:'VND'}
-  else if(kind==='excursions')body={cruiseStopId:text('stop'),supplierId:text('supplier'),excursionName:text('name'),meetingPoint:text('location'),startTime:instant('start'),plannedReturnTime:instant('end'),maximumCapacity:Number(text('capacity')),price:null,currencyCode:'VND'}
+  if(fromCatalog)body={sourceActivityId:sourceId,...activityVenue,startTime:instant('start'),endTime:instant('end'),capacity,requiredStaffCount:requiredStaffCount??source?.requiredStaffCount??1}
+  else if(kind==='activities')body={cruiseId,activityName:text('name'),...activityVenue,description:text('description'),startTime:instant('start'),endTime:instant('end'),capacity:Number(text('capacity')),requiredStaffCount:requiredStaffCount??1,price:null,currencyCode:'VND'}
+  else if(kind==='excursions')body={cruiseStopId:text('stop'),supplierId:text('supplier'),excursionName:text('name'),meetingPoint:text('location'),startTime:instant('start'),plannedReturnTime:instant('end'),maximumCapacity:Number(text('capacity')),requiredStaffCount:requiredStaffCount??1,price:null,currencyCode:'VND'}
   else if(kind==='packages')body={name:text('name'),description:text('description'),type:text('type'),price:Number(text('price')),currency:'VND'}
-  else body={serviceId:text('service'),cruiseStopId:text('stop')||null,supplierId:text('supplier')||null,startsAt:instant('start'),endsAt:instant('end'),location:text('location'),capacity:Number(text('capacity'))}
+  else body={serviceId:text('service'),cruiseStopId:text('stop')||null,supplierId:text('supplier')||null,startsAt:instant('start'),endsAt:instant('end'),location:text('location'),capacity:Number(text('capacity')),requiredStaffCount:requiredStaffCount??1}
   lock.current=true;setBusy(true);setError('')
   let written=false
   try{
@@ -221,7 +225,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
     </div>}
     <div className={styles.programToolbarRight}>
      {data.programs[kind].length>0&&<p role="status">Hiển thị {data.programs[kind].filter(p=>p.name.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))).length} / {data.programs[kind].length} mục</p>}
-     {canCreate&&!editing&&!editingPackage&&!editingExcursion&&!editingProgram&&<Button autoWidth disabled={busy||uncertain||kind==='serving-windows'&&!data.options.services.some(s=>s.scheduled)} onClick={()=>{setError('');setSourceId('');setSelectedStopId('');setCreating(true)}}>+ Thêm {titles[kind].toLocaleLowerCase('vi')}</Button>}
+     {canCreate&&!editing&&!editingPackage&&!editingExcursion&&!editingProgram&&<Button autoWidth disabled={busy||uncertain||kind==='serving-windows'&&!data.options.services.some(s=>s.scheduled)} onClick={()=>{setError('');setSourceId('');setSelectedStopId('');setSelectedServiceId('');setCreating(true)}}>+ Thêm {titles[kind].toLocaleLowerCase('vi')}</Button>}
     </div>
    </div>}
    <ul className={styles.programList}>{data.programs[kind].filter(p=>p.name.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))).map(p=>{
@@ -241,7 +245,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
         : 'Chưa phân công'}</p>}
       {activity&&<><p>{journeyTime(activity.startTime)} → {journeyTime(activity.endTime)} · Giờ Việt Nam</p>{activity.meetingPoint&&<p>Điểm tập trung · {activity.meetingPoint}</p>}</>}
       {activity&&<p>Khu vực hoạt động · {invalidArea?'Chưa có khu vực hợp lệ':data.options.activityAreas?.find(area=>area.id===activity.areaId)?.name??'Đã chọn khu vực'}</p>}
-      <div className={styles.programMeta}>{p.price!=null&&p.price>0?<span>{new Intl.NumberFormat('vi-VN').format(p.price)} {p.currency??'VND'}</span>:(kind==='activities'||kind==='excursions')?<span>Chưa thiết lập giá riêng · Theo gói du thuyền</span>:null}{p.capacity!=null?<span>{p.capacity} chỗ</span>:kind==='activities'?<span>Chưa có sức chứa</span>:null}</div>{ops&&kind==='packages'&&<PackageContents cruiseId={cruiseId} packageId={p.id}/>}</div>
+      <div className={styles.programMeta}>{p.price!=null&&p.price>0?<span>{new Intl.NumberFormat('vi-VN').format(p.price)} {p.currency??'VND'}</span>:(kind==='activities'||kind==='excursions')?<span>Chưa thiết lập giá riêng · Theo gói du thuyền</span>:null}{p.capacity!=null?<span>{p.capacity} chỗ</span>:kind==='activities'?<span>Chưa có sức chứa</span>:null}{kind!=='packages'&&<span>Cần {p.requiredStaffCount??1} nhân viên phục vụ</span>}</div>{ops&&kind==='packages'&&<PackageContents cruiseId={cruiseId} packageId={p.id}/>}</div>
       {editable&&<div className={styles.sectionActions}>
        {(activity||servingWindow)&&canReadStaff&&<Button tone="secondary" disabled={busy||uncertain} onClick={()=>{
         setError('');setResponsibleUserId((p as Program).responsibleUserId??'');setCoordinator({kind:activity?'activities':'serving-windows',row:p as Program,revision:data.plan.windows.expectedRevision})
@@ -333,9 +337,13 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
         <input id="program-capacity" name="capacity" type="number" min={1} max={2147483647} step={1}
           placeholder={source?.capacity!=null?`Mặc định ${source.capacity} người`:undefined} required={!sourceId||source?.capacity==null}/>
       </Field>
+      <Field htmlFor="program-required-staff" label="Số nhân viên phục vụ cần *" hint="HR sẽ phân công đủ số nhân viên này cho ca hoạt động.">
+        <input key={`act-staff:${sourceId}`} id="program-required-staff" name="requiredStaffCount" type="number" min={1} max={2147483647} step={1}
+          defaultValue={source?.requiredStaffCount??1} required/>
+      </Field>
     </>}
     {kind==='packages'&&<Field htmlFor="program-type" label={businessCopy('program.field.type')}><select id="program-type" name="type" required><option value="">Chọn loại gói</option><option value="BASIC">Cơ bản</option><option value="ADD_ON">Dịch vụ bổ sung</option></select></Field>}
-    {kind==='serving-windows'&&<Field htmlFor="program-service" label={businessCopy('program.field.service')} hint="Dịch vụ đã gán trên boong vẫn cần Quản lý tàu kiểm tra khu vực và POS."><select id="program-service" name="service" required><option value="">Chọn dịch vụ</option>{data.options.services.filter(s=>s.scheduled).map(s=><option key={s.id} value={s.id}>{programServiceLabel(s)}</option>)}</select></Field>}
+    {kind==='serving-windows'&&<Field htmlFor="program-service" label={businessCopy('program.field.service')} hint="Dịch vụ đã gán trên boong vẫn cần Quản lý tàu kiểm tra khu vực và POS."><select id="program-service" name="service" value={selectedServiceId} onChange={e=>setSelectedServiceId(e.target.value)} required><option value="">Chọn dịch vụ</option>{data.options.services.filter(s=>s.scheduled).map(s=><option key={s.id} value={s.id}>{programServiceLabel(s)}</option>)}</select></Field>}
     {(kind==='excursions'||kind==='serving-windows')&&<>
      <Field htmlFor="program-stop" label={businessCopy('program.field.stop')}><select id="program-stop" name="stop" value={selectedStopId} onChange={e=>setSelectedStopId(e.target.value)} required={kind==='excursions'}><option value="">{kind==='excursions'?'Chọn lần ghé':'Trên tàu'}</option>{data.options.stops.map(s=><option key={s.id} value={s.id}>Lần {s.sequence} · {s.name}</option>)}</select></Field>
      <Field htmlFor="program-supplier" label={businessCopy('program.field.supplier')}><select id="program-supplier" name="supplier" required={kind==='excursions'}><option value="">Chọn nhà cung cấp</option>{data.options.suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>
@@ -354,6 +362,30 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
       />
      })()}
      {kind!=='activities'&&<Field htmlFor="program-capacity" label={businessCopy('program.field.capacity')}><input id="program-capacity" name="capacity" type="number" min={1} max={2147483647} step={1} required/></Field>}
+     {kind!=='activities'&&(()=>{
+       const pickedService = kind === 'serving-windows' ? data.options.services.find(s => s.id === selectedServiceId) : undefined
+       return (
+         <Field
+           htmlFor="program-required-staff"
+           label="Số nhân viên phục vụ cần *"
+           hint={kind === 'serving-windows'
+             ? `Mặc định theo danh mục dịch vụ: ${pickedService?.defaultRequiredStaff ?? 1} nhân viên. Có thể điều chỉnh theo quy mô khách chuyến này.`
+             : 'HR sẽ phân công đủ số nhân viên này phụ trách tour tham quan.'}
+         >
+           <input
+             key={`staff:${kind}:${selectedServiceId}`}
+             id="program-required-staff"
+             name="requiredStaffCount"
+             type="number"
+             min={1}
+             max={2147483647}
+             step={1}
+             defaultValue={pickedService?.defaultRequiredStaff ?? 1}
+             required
+           />
+         </Field>
+       )
+     })()}
     </>}
     {kind==='packages'&&<Field htmlFor="program-price" label={businessCopy('program.field.priceUsd')}><input id="program-price" name="price" type="number" min={0} step="any" required/></Field>}
     </fieldset></form>

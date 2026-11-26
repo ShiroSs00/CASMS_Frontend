@@ -307,8 +307,10 @@ function StaffingInbox({ review }: { review: boolean }) {
             >
               {filtered.map(request => {
                 const missing = staffingMissing(request)
-                const servicesLabel = request.workflowVersion === 'V2' ? (request.needs ?? [])
-                  .map(need => `${need.areaName} · ${positionLabels[need.positionCode] ?? need.positionCode} (${need.assignedUserIds.length}/${need.requiredCount})`).join(', ')
+                const servicesLabel = request.workflowVersion === 'V2' ? [
+                  ...(request.serviceNeeds ?? []).map(item => `${item.serviceName} (${item.assignedUserIds.length}/${item.requiredCount})`),
+                  ...(request.needs ?? []).map(need => `${need.areaName} · ${positionLabels[need.positionCode] ?? need.positionCode} (${need.assignedUserIds.length}/${need.requiredCount})`),
+                ].join(', ')
                   : request.requirements.map(item => `${item.serviceName} (${item.assigned}/${item.required})`).join(', ')
                 return (
                   <tr key={request.id}>
@@ -618,7 +620,7 @@ function Assignments({ request, refresh, activityOnly = false }: { request: Staf
   )
   const shifts = (plan.data?.windows ?? []).filter(w => w.kind === 'ONBOARD' || w.kind === 'SHORE')
   const firstOpenService = activityOnly
-    ? (shifts.find(item => item.userIds.length === 0)?.windowId ?? shifts[0]?.windowId ?? '')
+    ? (shifts.find(item => item.userIds.length < (item.requiredStaffCount ?? 1))?.windowId ?? shifts[0]?.windowId ?? '')
     : (request.requirements.find(item => item.assigned < item.required)?.serviceId ?? request.requirements[0]?.serviceId ?? shifts[0]?.windowId ?? '')
   const [selectedTarget, setSelectedTarget] = useState('')
   const [staffSearch, setStaffSearch] = useState('')
@@ -638,7 +640,7 @@ function Assignments({ request, refresh, activityOnly = false }: { request: Staf
   )
 
   const missingServices = request.requirements.filter(item => item.assigned < item.required)
-  const missingShifts = shifts.filter(shift => shift.userIds.length === 0)
+  const missingShifts = shifts.filter(shift => shift.userIds.length < (shift.requiredStaffCount ?? 1))
   const covered = Boolean(plan.data) && (request.requirements.length > 0 || shifts.length > 0)
     && missingServices.length === 0 && !plan.loading && !plan.error && missingShifts.length === 0
 
@@ -764,8 +766,8 @@ function Assignments({ request, refresh, activityOnly = false }: { request: Staf
                                 <small className={styles.subtle}>{date(window.startsAt)} – {date(window.endsAt)}</small>
                               </div>
                               <Badge
-                                label={window.userIds.length > 0 ? `${window.userIds.length} đã phân ca` : 'Chưa phân ca'}
-                                tone={window.userIds.length > 0 ? 'success' : 'warning'}
+                                label={`${window.userIds.length}/${window.requiredStaffCount ?? 1} nhân sự`}
+                                tone={window.userIds.length >= (window.requiredStaffCount ?? 1) ? 'success' : 'warning'}
                               />
                             </button>
                           </li>

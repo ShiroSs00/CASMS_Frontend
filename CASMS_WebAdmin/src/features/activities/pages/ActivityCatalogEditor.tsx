@@ -20,7 +20,7 @@ export function ActivityCatalogEditor({ initial }: { initial?: ActivityCatalogEn
   const access = useSessionAccess(), navigate = useNavigate()
   const [draft, setDraft] = useState({
     activityName: initial?.name ?? '', description: initial?.description ?? '', category: initial?.category ?? '',
-    capacity: initial?.capacity?.toString() ?? '', price: initial?.price?.toString() ?? '', currencyCode: initial?.currencyCode ?? 'VND',
+    capacity: initial?.capacity?.toString() ?? '', requiredStaffCount: String(initial?.requiredStaffCount ?? 1), price: initial?.price?.toString() ?? '', currencyCode: initial?.currencyCode ?? 'VND',
   })
   const [baseline] = useState(draft)
   const lock = useRef(false)
@@ -34,10 +34,11 @@ export function ActivityCatalogEditor({ initial }: { initial?: ActivityCatalogEn
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (lock.current || !allowed || uncertain) return
-    const capacity = Number(draft.capacity), price = draft.price === '' ? null : Number(draft.price)
+    const capacity = Number(draft.capacity), requiredStaffCount = Number(draft.requiredStaffCount), price = draft.price === '' ? null : Number(draft.price)
     const invalid: Record<string, string> = {}
     if (!draft.activityName.trim()) invalid.activityName = 'Nhập tên hoạt động.'
     if (!Number.isSafeInteger(capacity) || capacity < 1 || capacity > 2147483647) invalid.capacity = 'Nhập sức chứa là số nguyên dương hợp lệ.'
+    if (!Number.isSafeInteger(requiredStaffCount) || requiredStaffCount < 1 || requiredStaffCount > 2147483647) invalid.requiredStaffCount = 'Nhập số nhân viên phụ trách từ 1 trở lên.'
     if (price != null && (!Number.isFinite(price) || price < 0)) invalid.price = 'Nhập giá là số không âm.'
     const currency = draft.currencyCode
     if (!isActivityCurrency(currency)) invalid.currencyCode = 'Chọn VND hoặc USD.'
@@ -54,12 +55,13 @@ export function ActivityCatalogEditor({ initial }: { initial?: ActivityCatalogEn
     try {
       const saved = await activityApi.saveCatalog({
         activityName: draft.activityName.trim(), description: draft.description.trim() || null,
-        category: draft.category || null, capacity, price, currencyCode: currency,
+        category: draft.category || null, capacity, requiredStaffCount, price, currencyCode: currency,
       }, initial?.id)
       savedId = saved.id
       const actual = await activityApi.read(savedId)
       if (actual.catalogEntry !== true || (initial && actual.id !== initial.id)
           || actual.name !== draft.activityName.trim() || actual.capacity !== capacity
+          || (actual.requiredStaffCount ?? 1) !== requiredStaffCount
           || (actual.description ?? '') !== draft.description.trim() || (actual.category ?? '') !== draft.category
           || actual.price !== (price ?? 0) || actual.currencyCode !== currency) {
         throw new ApiError('Phản hồi chưa xác nhận đúng hoạt động đã lưu.', 502)
@@ -88,8 +90,9 @@ export function ActivityCatalogEditor({ initial }: { initial?: ActivityCatalogEn
           <option value="">Chưa phân nhóm</option>{Object.entries(categories).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select></Field>
         </FormSection>
-        <FormSection title="Giá và sức chứa">
+        <FormSection title="Giá, sức chứa và định biên nhân sự">
         <Field htmlFor="catalog-activity-capacity" label="Sức chứa *" error={errors.capacity}><input id="catalog-activity-capacity" type="number" min={1} max={2147483647} step={1} required value={draft.capacity} onChange={e => update('capacity', e.target.value)} /></Field>
+        <Field htmlFor="catalog-activity-staff" label="Nhân viên phụ trách mặc định *" error={errors.requiredStaffCount}><input id="catalog-activity-staff" type="number" min={1} max={2147483647} step={1} required value={draft.requiredStaffCount} onChange={e => update('requiredStaffCount', e.target.value)} /></Field>
         <Field htmlFor="catalog-activity-price" label="Giá tham chiếu (VND)" error={errors.price}><input id="catalog-activity-price" type="number" min={0} step="any" value={draft.price} onChange={e => update('price', e.target.value)} /></Field>
         <Field htmlFor="catalog-activity-currency" label="Đơn vị tiền tệ" error={errors.currencyCode}>
           <select id="catalog-activity-currency" value={draft.currencyCode || 'VND'} onChange={e => update('currencyCode', e.target.value)}>

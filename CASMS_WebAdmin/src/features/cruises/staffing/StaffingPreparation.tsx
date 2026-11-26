@@ -7,9 +7,9 @@ import styles from './Staffing.module.css'
 import workspaceStyles from '../components/ManagerWorkspace.module.css'
 
 const v2WaitingCopy: Record<string, string> = {
-  PENDING_ASM: 'Đang chờ Quản lý dịch vụ nhận việc và hoàn tất chương trình phục vụ của chuyến.',
-  PENDING_SHIP_REVIEW: 'Đang chờ Quản lý tàu kiểm tra tàu và cabin, chọn khu vực mở, gắn máy POS, bố trí dịch vụ và nhập định biên nhân sự.',
-  SENT_TO_HR: 'Đang chờ Quản lý nhân sự phân công nhân viên đủ điều kiện vào từng khu vực, vị trí và ca hoạt động.',
+  PENDING_ASM: 'Đang chờ Quản lý dịch vụ hoàn tất chương trình và định biên nhân sự phục vụ cho từng dịch vụ/hoạt động.',
+  PENDING_SHIP_REVIEW: 'Đang chờ Quản lý tàu mở khu vực, gắn máy POS và bố trí dịch vụ (xong sẽ chuyển thẳng sang HR phân công).',
+  SENT_TO_HR: 'Đang chờ Quản lý nhân sự phân công đủ nhân viên cho từng dịch vụ, khu vực và ca hoạt động.',
   PLANNER_CONFIRMED: 'Đã gửi Quản lý vận hành xem xét và phê duyệt phương án nhân sự.',
 }
 
@@ -95,9 +95,24 @@ export function StaffingPreparation({ cruiseId, refreshKey, onStarted, onBudgetR
       )}
       {active && v2 && !actionable && (
         <div className={styles.section}>
-          {current.needs?.length ? (
+          {(current.serviceNeeds?.length || current.needs?.length) ? (
             <ul className={styles.rows}>
-              {current.needs.map(need => {
+              {(current.serviceNeeds ?? []).map(item => {
+                const gap = Math.max(0, item.requiredCount - item.assignedUserIds.length)
+                return (
+                  <li className={styles.row} key={`svc:${item.serviceId}`}>
+                    <div className={styles.rowMain}>
+                      <strong>{item.serviceName} · {item.areaName}</strong>
+                      <span className={styles.subtle}>{item.assignedUserIds.length}/{item.requiredCount} nhân viên phục vụ</span>
+                    </div>
+                    <Badge
+                      label={gap === 0 ? 'Đủ người' : `Thiếu ${gap} người`}
+                      tone={gap === 0 ? 'success' : 'warning'}
+                    />
+                  </li>
+                )
+              })}
+              {(current.needs ?? []).map(need => {
                 const gap = Math.max(0, need.requiredCount - need.assignedUserIds.length)
                 return (
                   <li className={styles.row} key={need.needId}>

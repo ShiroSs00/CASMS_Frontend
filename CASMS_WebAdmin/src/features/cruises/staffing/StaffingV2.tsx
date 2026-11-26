@@ -12,7 +12,7 @@ import styles from './Staffing.module.css'
 import { placementGuidance, placementKey, requiresReviewReload, resetImpactCopy, servicePlacementChoices, shipReviewReady } from './ship-review'
 
 const actions = {
-  PENDING_SHIP_REVIEW: { approve: 'SHIP_CHECKED', label: 'Xác nhận phương án tàu', back: 'SHIP_RETURN_ASM', backLabel: 'Trả Quản lý dịch vụ bổ sung chương trình' },
+  PENDING_SHIP_REVIEW: { approve: 'SHIP_CHECKED', label: 'Xác nhận phương án tàu & chuyển HR', back: 'SHIP_RETURN_ASM', backLabel: 'Trả Quản lý dịch vụ bổ sung chương trình' },
   SHIP_REVIEWED: { approve: 'SEND_TO_HR', label: 'Gửi Quản lý nhân sự phân công', back: 'CRM_RETURN_SHIP', backLabel: 'Trả Quản lý tàu' },
   SENT_TO_HR: { approve: 'HR_SUBMITTED', label: 'Gửi phương án cho Quản lý lịch trình', back: 'HR_RETURN_SHIP', backLabel: 'Báo thiếu hoặc yêu cầu kiểm tra lại tàu' },
   HR_SUBMITTED: { approve: 'PLANNER_CONFIRMED', label: 'Gửi Quản lý vận hành duyệt', back: 'CRM_RETURN_HR', backLabel: 'Trả Quản lý nhân sự bổ sung' },
@@ -20,9 +20,8 @@ const actions = {
 } satisfies Record<string, { approve: StaffingAction; label: string; back: StaffingAction; backLabel: string }>
 
 const v2Steps = [
-  { id: 'asm', title: 'Chương trình', owner: 'Quản lý dịch vụ', statuses: ['PENDING_ASM'] },
-  { id: 'ship', title: 'Khu vực, POS & nhu cầu', owner: 'Quản lý tàu', statuses: ['PENDING_SHIP_REVIEW'] },
-  { id: 'dispatch', title: 'Kiểm tra & gửi nhân sự', owner: 'Quản lý lịch trình', statuses: ['SHIP_REVIEWED'] },
+  { id: 'asm', title: 'Chương trình & định biên', owner: 'Quản lý dịch vụ', statuses: ['PENDING_ASM'] },
+  { id: 'ship', title: 'Khu vực, POS & đặt dịch vụ', owner: 'Quản lý tàu', statuses: ['PENDING_SHIP_REVIEW', 'SHIP_REVIEWED'] },
   { id: 'hr', title: 'Phân công nhân sự', owner: 'Quản lý nhân sự', statuses: ['SENT_TO_HR'] },
   { id: 'approval', title: 'Kiểm tra & phê duyệt', owner: 'Quản lý lịch trình → Quản lý vận hành', statuses: ['HR_SUBMITTED', 'PLANNER_CONFIRMED', 'OPS_APPROVED'] },
 ] as const
@@ -31,26 +30,26 @@ const stageGuideCopy: Readonly<Record<string, { actor: string; next: string; tit
   PENDING_ASM: {
     actor: 'Quản lý dịch vụ',
     next: 'Quản lý tàu',
-    title: 'Hoàn thiện chương trình & dịch vụ của chuyến',
-    detail: 'Sau khi Quản lý dịch vụ chốt chương trình, yêu cầu sẽ tự động chuyển sang Quản lý tàu để mở khu vực và lập định biên.',
+    title: 'Hoàn thiện chương trình và định biên nhân sự phục vụ',
+    detail: 'Quản lý dịch vụ chốt danh sách dịch vụ, hoạt động, tour bờ cùng số lượng nhân viên cần cho từng mục; sau đó chuyển sang Quản lý tàu.',
   },
   PENDING_SHIP_REVIEW: {
     actor: 'Quản lý tàu',
-    next: 'Quản lý lịch trình',
-    title: 'Mở khu vực phục vụ, gán máy POS offline và lập định biên',
-    detail: 'Thực hiện lần lượt 3 bước bên dưới: (1) Chọn khu vực mở & số người cần → (2) Gán máy POS cho khu vực mở → (3) Bố trí dịch vụ vào khu vực đã có POS.',
+    next: 'Quản lý nhân sự',
+    title: 'Mở khu vực phục vụ, gắn máy POS offline và bố trí dịch vụ',
+    detail: 'Thực hiện 3 bước bên dưới: (1) Chọn khu vực mở (có thể thêm vị trí riêng nếu cần) → (2) Gắn máy POS cho khu vực mở → (3) Đặt dịch vụ của Quản lý dịch vụ vào khu vực đã có POS, rồi chuyển thẳng sang HR phân công.',
   },
   SHIP_REVIEWED: {
     actor: 'Quản lý lịch trình',
     next: 'Quản lý nhân sự',
     title: 'Rà soát phương án tàu và chuyển sang Nhân sự phân công',
-    detail: 'Kiểm tra lại danh sách khu vực mở, máy POS và định biên từ Quản lý tàu trước khi gửi sang Quản lý nhân sự.',
+    detail: 'Kiểm tra lại danh sách khu vực mở, máy POS và định biên dịch vụ trước khi chuyển sang Quản lý nhân sự.',
   },
   SENT_TO_HR: {
     actor: 'Quản lý nhân sự',
     next: 'Quản lý lịch trình',
-    title: 'Phân công nhân sự cụ thể vào từng vị trí khu vực và ca hoạt động',
-    detail: 'Chọn nhân viên đủ điều kiện cho từng vị trí đến khi đạt 100% định biên, sau đó gửi phương án lại cho Quản lý lịch trình.',
+    title: 'Phân công nhân sự đáp ứng định biên dịch vụ và ca hoạt động',
+    detail: 'Phân công đủ nhân viên cho từng dịch vụ (hệ thống tự liên kết khu vực/POS tương ứng) và các ca hoạt động/tour bờ, sau đó gửi Quản lý lịch trình kiểm tra.',
   },
   HR_SUBMITTED: {
     actor: 'Quản lý lịch trình',
@@ -183,6 +182,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
           : undefined
   const selected = current.activeAreaIds ?? []
   const needs = current.needs ?? []
+  const serviceNeeds = current.serviceNeeds ?? []
   const activeAreas = state.areas.filter(area => legacyShip || selected.includes(area.areaId))
   const ready = shipReviewReady(state)
   const canAssignNeeds = hr && !current.shipPlanStale
@@ -194,8 +194,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
     areas: selected,
     needs: needs.map(need => ({ areaId: need.areaId, positionCode: need.positionCode, count: String(need.requiredCount) })),
   }
-  const invalid = working.areas.some(area => !working.needs.some(need => need.areaId === area))
-    || working.needs.some(need => !/^\d+$/.test(need.count) || Number(need.count) < 1 || Number(need.count) > 2147483647)
+  const invalid = working.needs.some(need => !/^\d+$/.test(need.count) || Number(need.count) < 1 || Number(need.count) > 2147483647)
   const disabled = busy || stale || details.loading || Boolean(details.error) || current.revision < request.revision
   function confirmImpact(action: 'save' | StaffingAction, run: () => void) {
     const message = resetImpactCopy(current, action)
@@ -215,11 +214,17 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
       ? servicePlacementChoices(state, service).some(choice => placementKey(choice) === placementKey(placement))
       : activeAreas.some(area => area.areaId === placement.areaId))
   }).length
-  const totalRequired = needs.reduce((sum, need) => sum + need.requiredCount, 0)
+  const totalServiceRequired = serviceNeeds.length > 0
+    ? serviceNeeds.reduce((sum, item) => sum + item.requiredCount, 0)
+    : state.plannedServices.reduce((sum, item) => sum + (item.requiredStaffCount ?? 1), 0)
+  const totalServiceAssigned = serviceNeeds.reduce((sum, item) => sum + item.assignedUserIds.length, 0)
+  const totalAreaRequired = needs.reduce((sum, need) => sum + need.requiredCount, 0)
+  const totalAreaAssigned = needs.reduce((sum, need) => sum + need.assignedUserIds.length, 0)
+  const totalRequired = totalServiceRequired + totalAreaRequired
   const noStaffingDemand = current.workflowVersion === 'V2' && totalRequired === 0 && state.activities.length === 0
-  const totalAssigned = needs.reduce((sum, need) => sum + need.assignedUserIds.length, 0)
+  const totalAssigned = totalServiceAssigned + totalAreaAssigned
   const missingStaffCount = staffingMissing(current)
-  const activitiesCoveredCount = state.activities.filter(activity => activity.staffIds.length > 0).length
+  const activitiesCoveredCount = state.activities.filter(activity => activity.staffIds.length >= (activity.requiredStaffCount ?? 1)).length
   const missingActivitiesCount = Math.max(0, state.activities.length - activitiesCoveredCount)
   const draftHeadcount = working.needs.reduce((sum, item) => sum + (/^\d+$/.test(item.count) ? Number(item.count) : 0), 0)
 
@@ -267,33 +272,32 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
 
       {ship && !legacyShip && hasAreaPlanning && (
         <fieldset disabled={disabled} className={styles.fieldsetBox}>
-          <legend>Bước 1: Khu vực mở và số người cần</legend>
+          <legend>Bước 1: Mở khu vực phục vụ</legend>
           <div className={styles.stepSectionHead}>
             <div className={styles.stepSectionTitleGroup}>
               <span className={`${styles.stepBadgeNum} ${activeAreas.length > 0 && !draft ? styles.stepBadgeDone : ''}`} aria-hidden="true">
                 {activeAreas.length > 0 && !draft ? '✓' : '1'}
               </span>
-              <strong>Chọn khu vực mở và nhập định biên nhân sự</strong>
+              <strong>Chọn khu vực phục vụ mở cho chuyến</strong>
             </div>
             <Badge
-              label={draft ? 'Có thay đổi chưa lưu' : activeAreas.length > 0 ? `Đã lưu ${activeAreas.length} khu vực · ${totalRequired} người` : 'Chưa chọn khu vực'}
+              label={draft ? 'Có thay đổi chưa lưu' : activeAreas.length > 0 ? `Đã lưu ${activeAreas.length} khu vực mở` : 'Chưa chọn khu vực'}
               tone={draft ? 'warning' : activeAreas.length > 0 ? 'success' : 'neutral'}
             />
           </div>
           <p className={styles.statusNote}>
-            Tick chọn khu vực hoạt động trong chuyến và nhập số người cho vị trí cần dùng (để trống vị trí không cần).
-            {working.areas.length > 0 && ` Đang chọn ${working.areas.length} khu vực · Tổng định biên: ${draftHeadcount} người.`}
+            Tick chọn các khu vực sẽ hoạt động để gắn máy POS và bố trí dịch vụ của Quản lý dịch vụ. Định biên nhân viên phục vụ dịch vụ lấy trực tiếp từ Quản lý dịch vụ; chỉ cần bổ sung thêm vị trí riêng (nếu khu vực không có dịch vụ hoặc cần thêm vị trí đặc thù).
+            {working.areas.length > 0 && ` Đang chọn ${working.areas.length} khu vực mở${draftHeadcount > 0 ? ` · Vị trí bổ sung riêng: ${draftHeadcount} người` : ''}.`}
           </p>
           <div className={styles.areaGrid}>
             {state.areas.length === 0 && (
               <Notice tone="warning" title="Tàu chưa có khu vực dịch vụ hoặc máy POS offline">
-                Tàu này chưa được gắn dịch vụ vào khu vực 3D hoặc chưa đăng ký máy POS offline. Quản trị hệ thống cần vào Hồ sơ tàu → Khu vực dịch vụ để cấu hình trước khi Quản lý tàu chọn khu vực mở và lập định biên nhân sự.
+                Tàu này chưa được gắn dịch vụ vào khu vực 3D hoặc chưa đăng ký máy POS offline. Quản trị hệ thống cần vào Hồ sơ tàu → Khu vực dịch vụ để cấu hình trước khi Quản lý tàu mở khu vực.
               </Notice>
             )}
             {state.areas.map(area => {
               const checked = working.areas.includes(area.areaId)
               const areaNeeds = working.needs.filter(need => need.areaId === area.areaId)
-              const areaMissingNeed = checked && areaNeeds.length === 0
               return (
                 <div key={area.areaId} className={`${styles.areaCard} ${checked ? styles.areaCardActive : ''}`.trim()}>
                   <div className={styles.areaCheckRow}>
@@ -315,16 +319,17 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                         label={area.eligibleTerminals.length ? `${area.eligibleTerminals.length} máy POS hợp lệ` : 'Chưa có POS hợp lệ'}
                         tone={area.eligibleTerminals.length ? 'info' : 'warning'}
                       />
-                      {checked && (
+                      {checked && areaNeeds.length > 0 && (
                         <Badge
-                          label={areaNeeds.length ? `${areaNeeds.length} vị trí cần người` : 'Chưa nhập số người'}
-                          tone={areaNeeds.length ? 'success' : 'warning'}
+                          label={`+${areaNeeds.reduce((s, n) => s + Number(n.count || 0), 0)} vị trí bổ sung`}
+                          tone="success"
                         />
                       )}
                     </div>
                   </div>
                   {checked && (
-                    <>
+                    <details className={styles.details} open={areaNeeds.length > 0}>
+                      <summary>Nhu cầu nhân sự bổ sung riêng tại khu vực này (tùy chọn)</summary>
                       <div className={styles.positionGrid}>
                         {state.positionOptions.map(position => {
                           const id = `staffing-${area.areaId}-${position}`
@@ -355,12 +360,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                           )
                         })}
                       </div>
-                      {areaMissingNeed && (
-                        <p className={styles.blockerHint}>
-                          Khu vực mở cần nhập số lượng (tối thiểu 1 người) cho ít nhất một vị trí.
-                        </p>
-                      )}
-                    </>
+                    </details>
                   )}
                 </div>
               )
@@ -384,7 +384,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                 return updated
               }))}
             >
-              Lưu khu vực và nhu cầu
+              Lưu khu vực mở
             </Button>
             {draft && (
               <Button tone="secondary" autoWidth disabled={disabled} onClick={() => setDraft(undefined)}>
@@ -511,7 +511,10 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                 return (
                   <li key={service.serviceId} className={styles.row}>
                     <div className={styles.rowMain}>
-                      <strong>{service.name}</strong>
+                      <div className={styles.rowMeta}>
+                        <strong>{service.name}</strong>
+                        <Badge label={`Cần ${service.requiredStaffCount ?? 1} nhân viên`} tone="info" />
+                      </div>
                       {proposal}
                       {blocker && <small className={styles.subtle}>{blocker}</small>}
                     </div>
@@ -525,7 +528,10 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
               return (
                 <li key={service.serviceId} className={styles.row}>
                   <div className={styles.rowMain}>
-                    <strong>{service.name}</strong>
+                    <div className={styles.rowMeta}>
+                      <strong>{service.name}</strong>
+                      <Badge label={`ASM yêu cầu: ${service.requiredStaffCount ?? 1} nhân viên`} tone="info" />
+                    </div>
                     {proposal}
                     {candidates.length === 0 && (
                       <small className={styles.subtle}>
@@ -566,29 +572,43 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
     </div>
   )
 
+  const usedStaffAcrossPlan = new Set([
+    ...serviceNeeds.flatMap(item => item.assignedUserIds),
+    ...needs.flatMap(item => item.assignedUserIds),
+  ])
+
   const staffingAssignmentPanel = !ship && (
-    <Panel title={hr ? '1. Phân công nhân sự theo định biên khu vực' : 'Nhu cầu và nhân viên đã phân công'}>
+    <Panel title={hr ? '1. Phân công nhân sự theo Dịch vụ (tự đồng bộ Khu vực & POS)' : 'Định biên dịch vụ và nhân viên đã phân công'}>
       <div className={styles.section}>
         {options.error && (
           <Notice title="Chưa tải được nhân viên" tone="error">
             <Button tone="text" onClick={options.retry}>Thử lại</Button>
           </Notice>
         )}
-        {!needs.length && <p className={styles.statusNote}>Chuyến này chưa có nhu cầu tại khu vực dịch vụ.</p>}
-        {needs.length > 0 && (
+        {!serviceNeeds.length && !needs.length && <p className={styles.statusNote}>Chuyến này chưa có nhu cầu nhân sự tại dịch vụ hoặc khu vực.</p>}
+
+        {serviceNeeds.length > 0 && (
           <ul className={styles.rows}>
-            {needs.map(need => {
-              const assigned = need.assignedUserIds
-              const gap = Math.max(0, need.requiredCount - assigned.length)
-              const used = new Set(needs.flatMap(item => item.assignedUserIds))
-              const candidates = (options.data?.users ?? []).filter(user => user.allowedRoles.includes(need.positionCode)
-                && !used.has(user.userId) && (state.staff.find(staff => staff.userId === user.userId)?.role ?? need.positionCode) === need.positionCode)
+            {serviceNeeds.map(item => {
+              const assigned = item.assignedUserIds
+              const gap = Math.max(0, item.requiredCount - assigned.length)
+              const candidates = (options.data?.users ?? []).filter(user =>
+                user.allowedRoles.includes('ONBOARD_STAFF')
+                && !usedStaffAcrossPlan.has(user.userId)
+                && (state.staff.find(staff => staff.userId === user.userId)?.role ?? 'ONBOARD_STAFF') === 'ONBOARD_STAFF',
+              )
               return (
-                <li className={styles.row} key={need.needId}>
+                <li className={styles.row} key={item.serviceId}>
                   <div className={styles.rowMain}>
-                    <strong>{need.areaName} · {positionLabels[need.positionCode] ?? need.positionCode}</strong>
                     <div className={styles.rowMeta}>
-                      <span className={styles.subtle}>{assigned.length}/{need.requiredCount} đã phân công</span>
+                      <strong>{item.serviceName}</strong>
+                      <Badge
+                        label={`${item.areaName}${item.terminalName ? ` · ${item.terminalName}` : ''}`}
+                        tone="info"
+                      />
+                    </div>
+                    <div className={styles.rowMeta}>
+                      <span className={styles.subtle}>{assigned.length}/{item.requiredCount} nhân viên phục vụ (theo yêu cầu Quản lý dịch vụ)</span>
                       <Badge
                         label={gap === 0 ? 'Đủ người' : `Thiếu ${gap} người`}
                         tone={gap === 0 ? 'success' : 'warning'}
@@ -598,12 +618,102 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                       <div className={styles.progressTrack}>
                         <div
                           className={`${styles.progressFill} ${gap === 0 ? styles.progressFillSuccess : styles.progressFillWarn}`}
-                          style={{ width: `${progressPercent(assigned.length, need.requiredCount)}%` }}
+                          style={{ width: `${progressPercent(assigned.length, item.requiredCount)}%` }}
                         />
                       </div>
                     </div>
                     {assigned.length > 0 && (
-                      <>
+                      <div className={styles.assignedList}>
+                        {assigned.map(userId => {
+                          const displayName = name(userId)
+                          return (
+                            <div className={styles.assignedChip} key={userId}>
+                              <span className={styles.staffAvatar} aria-hidden="true">{staffInitials(displayName)}</span>
+                              <span>{displayName}</span>
+                              {canAssignNeeds && (
+                                <Button
+                                  size="compact"
+                                  tone="text"
+                                  autoWidth
+                                  title="Gỡ nhân viên khỏi dịch vụ và khu vực POS tương ứng."
+                                  disabled={disabled}
+                                  onClick={() => void mutate(() => staffingApi.assignServiceNeed(current, item.serviceId, userId, false))}
+                                >
+                                  Bỏ khỏi dịch vụ
+                                </Button>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  {canAssignNeeds && assigned.length < item.requiredCount && (
+                    <div className={styles.rowControl}>
+                      <Field
+                        htmlFor={`hire-svc-${item.serviceId}`}
+                        label="Chọn nhân viên phục vụ"
+                        hint={candidates.length ? `${candidates.length} nhân viên khả dụng` : 'Chưa có thêm nhân viên phù hợp'}
+                      >
+                        <select
+                          id={`hire-svc-${item.serviceId}`}
+                          value=""
+                          disabled={disabled || options.loading}
+                          onChange={event => {
+                            const userId = event.target.value
+                            if (userId) void mutate(() => staffingApi.assignServiceNeed(current, item.serviceId, userId, true))
+                          }}
+                        >
+                          <option value="" disabled>{candidates.length ? 'Chọn nhân viên đủ điều kiện' : 'Chưa có người phù hợp'}</option>
+                          {candidates.map(user => <option key={user.userId} value={user.userId}>{user.username}</option>)}
+                        </select>
+                      </Field>
+                      {candidates.length === 0 && access.canDo('USER_CREATE') && (
+                        <ButtonLink to="/admin/system" tone="secondary" size="compact" autoWidth>
+                          Bổ sung nhân viên mới →
+                        </ButtonLink>
+                      )}
+                    </div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+
+        {needs.length > 0 && (
+          <div className={styles.subSection}>
+            {serviceNeeds.length > 0 && (
+              <div className={styles.sectionHeadingRow}>
+                <h3>Vị trí bổ sung tại khu vực (Quản lý tàu đề xuất)</h3>
+              </div>
+            )}
+            <ul className={styles.rows}>
+              {needs.map(need => {
+                const assigned = need.assignedUserIds
+                const gap = Math.max(0, need.requiredCount - assigned.length)
+                const candidates = (options.data?.users ?? []).filter(user => user.allowedRoles.includes(need.positionCode)
+                  && !usedStaffAcrossPlan.has(user.userId) && (state.staff.find(staff => staff.userId === user.userId)?.role ?? need.positionCode) === need.positionCode)
+                return (
+                  <li className={styles.row} key={need.needId}>
+                    <div className={styles.rowMain}>
+                      <strong>{need.areaName} · {positionLabels[need.positionCode] ?? need.positionCode}</strong>
+                      <div className={styles.rowMeta}>
+                        <span className={styles.subtle}>{assigned.length}/{need.requiredCount} đã phân công</span>
+                        <Badge
+                          label={gap === 0 ? 'Đủ người' : `Thiếu ${gap} người`}
+                          tone={gap === 0 ? 'success' : 'warning'}
+                        />
+                      </div>
+                      <div className={styles.needProgressWrap} aria-hidden="true">
+                        <div className={styles.progressTrack}>
+                          <div
+                            className={`${styles.progressFill} ${gap === 0 ? styles.progressFillSuccess : styles.progressFillWarn}`}
+                            style={{ width: `${progressPercent(assigned.length, need.requiredCount)}%` }}
+                          />
+                        </div>
+                      </div>
+                      {assigned.length > 0 && (
                         <div className={styles.assignedList}>
                           {assigned.map(userId => {
                             const displayName = name(userId)
@@ -627,67 +737,63 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                             )
                           })}
                         </div>
-                        {canAssignNeeds && (
-                          <small className={styles.subtle}>
-                            “Bỏ khỏi nhu cầu” chỉ gỡ nhân sự khỏi vị trí khu vực này; để gỡ hẳn khỏi chuyến, thao tác ở mục Nhân sự đã phân công vào chuyến bên dưới.
-                          </small>
-                        )}
-                      </>
-                    )}
-                  </div>
-                  {canAssignNeeds && assigned.length < need.requiredCount && (
-                    <div className={styles.rowControl}>
-                      <Field
-                        htmlFor={`hire-${need.needId}`}
-                        label="Chọn nhân viên"
-                        hint={candidates.length ? `${candidates.length} nhân viên khả dụng` : 'Chưa có thêm nhân viên phù hợp'}
-                      >
-                        <select
-                          id={`hire-${need.needId}`}
-                          value=""
-                          disabled={disabled || options.loading}
-                          onChange={event => {
-                            const userId = event.target.value
-                            if (userId) void mutate(() => staffingApi.assignNeed(current, need.needId, userId, true))
-                          }}
-                        >
-                          <option value="" disabled>{candidates.length ? 'Chọn nhân viên đủ điều kiện' : 'Chưa có người phù hợp'}</option>
-                          {candidates.map(user => <option key={user.userId} value={user.userId}>{user.username}</option>)}
-                        </select>
-                      </Field>
-                      {candidates.length === 0 && access.canDo('USER_CREATE') && (
-                        <ButtonLink to="/admin/system" tone="secondary" size="compact" autoWidth>
-                          Bổ sung nhân viên mới →
-                        </ButtonLink>
                       )}
                     </div>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
+                    {canAssignNeeds && assigned.length < need.requiredCount && (
+                      <div className={styles.rowControl}>
+                        <Field
+                          htmlFor={`hire-${need.needId}`}
+                          label="Chọn nhân viên"
+                          hint={candidates.length ? `${candidates.length} nhân viên khả dụng` : 'Chưa có thêm nhân viên phù hợp'}
+                        >
+                          <select
+                            id={`hire-${need.needId}`}
+                            value=""
+                            disabled={disabled || options.loading}
+                            onChange={event => {
+                              const userId = event.target.value
+                              if (userId) void mutate(() => staffingApi.assignNeed(current, need.needId, userId, true))
+                            }}
+                          >
+                            <option value="" disabled>{candidates.length ? 'Chọn nhân viên đủ điều kiện' : 'Chưa có người phù hợp'}</option>
+                            {candidates.map(user => <option key={user.userId} value={user.userId}>{user.username}</option>)}
+                          </select>
+                        </Field>
+                        {candidates.length === 0 && access.canDo('USER_CREATE') && (
+                          <ButtonLink to="/admin/system" tone="secondary" size="compact" autoWidth>
+                            Bổ sung nhân viên mới →
+                          </ButtonLink>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
         )}
 
         {!!state.activities.length && !(hr && activitySection) && (
           <div className={styles.subSection}>
             <div className={styles.sectionHeadingRow}>
               <h3>Ca hoạt động trên tàu và tour tham quan trên bờ</h3>
-              <span className={styles.subtle}>{activitiesCoveredCount}/{state.activities.length} ca đã có người phụ trách</span>
+              <span className={styles.subtle}>{activitiesCoveredCount}/{state.activities.length} ca đã đủ người phụ trách</span>
             </div>
             <ul className={styles.rows}>
               {state.activities.map(activity => {
-                const hasStaff = activity.staffIds.length > 0
+                const required = activity.requiredStaffCount ?? 1
+                const covered = activity.staffIds.length >= required
                 return (
                   <li key={activity.activityId} className={styles.row}>
                     <div className={styles.rowMain}>
                       <strong>{activity.name}</strong>
                       <small className={styles.subtle}>
-                        {formatActivityKind(activity.kind)} · {hasStaff ? `Phụ trách: ${activity.staffIds.map(name).join(', ')}` : 'Chưa phân ca'}
+                        {formatActivityKind(activity.kind)} · {activity.staffIds.length > 0 ? `Phụ trách: ${activity.staffIds.map(name).join(', ')}` : 'Chưa phân ca'}
                       </small>
                     </div>
                     <Badge
-                      label={hasStaff ? `${activity.staffIds.length} nhân sự` : 'Chưa phân ca'}
-                      tone={hasStaff ? 'success' : 'warning'}
+                      label={`${activity.staffIds.length}/${required} nhân sự`}
+                      tone={covered ? 'success' : 'warning'}
                     />
                   </li>
                 )
@@ -835,9 +941,11 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
             </div>
           )}
           {!noStaffingDemand && <span className={styles.summarySub}>
-            {state.activities.length > 0
-              ? `${needs.length} vị trí khu vực · ${activitiesCoveredCount}/${state.activities.length} ca hoạt động/tour bờ`
-              : `${needs.length} vị trí định biên tại khu vực mở`}
+            {[
+              serviceNeeds.length > 0 ? `${serviceNeeds.length} dịch vụ trên tàu` : null,
+              needs.length > 0 ? `${needs.length} vị trí bổ sung tại khu vực` : null,
+              state.activities.length > 0 ? `${activitiesCoveredCount}/${state.activities.length} ca hoạt động/tour bờ` : null,
+            ].filter(Boolean).join(' · ') || 'Chưa có định biên dịch vụ'}
           </span>}
         </div>
       </div>
@@ -914,7 +1022,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                     <span className={!draft && activeAreas.length > 0 ? styles.readinessIconOk : styles.readinessIconPending} aria-hidden="true">
                       {!draft && activeAreas.length > 0 ? '✓' : '•'}
                     </span>
-                    <span>{draft ? 'Cần lưu thay đổi ở Bước 1 trước' : `Đã lưu ${activeAreas.length} khu vực mở (${totalRequired} người)`}</span>
+                    <span>{draft ? 'Cần lưu thay đổi ở Bước 1 trước' : `Đã lưu ${activeAreas.length} khu vực mở · Tổng định biên: ${totalRequired} người`}</span>
                   </li>
                   <li className={styles.readinessItem}>
                     <span className={posCoveredCount === activeAreas.length && activeAreas.length > 0 ? styles.readinessIconOk : styles.readinessIconPending} aria-hidden="true">
@@ -940,8 +1048,8 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
                     </span>
                     <span>
                       {missingStaffCount === 0
-                        ? `Đủ định biên khu vực (${totalAssigned}/${totalRequired} nhân sự)`
-                        : `Còn thiếu ${missingStaffCount} nhân sự theo định biên khu vực`}
+                        ? `Đủ định biên dịch vụ & khu vực (${totalAssigned}/${totalRequired} nhân sự)`
+                        : `Còn thiếu ${missingStaffCount} nhân sự theo định biên dịch vụ & khu vực`}
                     </span>
                   </li>
                   {state.activities.length > 0 && (
@@ -962,7 +1070,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
           )}
           {Boolean(draft) && (
             <p className={styles.blockerHint}>
-              Lưu hoặc hủy thay đổi ở mục &ldquo;Bước 1: Khu vực mở và số người cần&rdquo; trước khi xác nhận phương án tàu.
+              Lưu hoặc hủy thay đổi ở mục &ldquo;Bước 1: Mở khu vực phục vụ&rdquo; trước khi xác nhận phương án tàu.
             </p>
           )}
           {!draft && ship && !legacyShip && !ready && (() => {
@@ -982,7 +1090,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
           })()}
           {hr && missingStaffCount > 0 && (
             <p className={styles.blockerHint}>
-              Còn thiếu {missingStaffCount} nhân sự theo định biên khu vực. Hãy phân công đủ người trước khi gửi, hoặc bấm &ldquo;{action.backLabel}&rdquo; để trả Quản lý tàu điều chỉnh khu vực/nhu cầu.
+              Còn thiếu {missingStaffCount} nhân sự theo định biên dịch vụ/khu vực. Hãy phân công đủ người trước khi gửi, hoặc bấm &ldquo;{action.backLabel}&rdquo; để báo thiếu / trả lại kiểm tra.
             </p>
           )}
           {hr && missingActivitiesCount > 0 && (

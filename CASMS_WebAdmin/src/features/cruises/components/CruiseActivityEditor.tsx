@@ -19,6 +19,8 @@ export function CruiseActivityEditor({activity,revision,fixed,departure,arrival,
   if(!fixed&&!text('name')){setError('Vui lòng nhập tên hoạt động.');return}
   const capacity=Number(text('capacity'))
   if(!Number.isSafeInteger(capacity)||capacity<1){setError('Vui lòng nhập sức chứa nguyên dương.');return}
+  const requiredStaffCount=Number(text('requiredStaffCount'))
+  if(!Number.isSafeInteger(requiredStaffCount)||requiredStaffCount<1){setError('Vui lòng nhập số nhân viên phục vụ từ 1 trở lên.');return}
   let start=activity.startTime,end=activity.endTime
   if(!fixed){
    try{start=wallTimeToInstant(text('start'),SHIP_TIME_ZONE);end=wallTimeToInstant(text('end'),SHIP_TIME_ZONE)}catch{setError(businessCopy('program.time.invalid'));return}
@@ -28,7 +30,7 @@ export function CruiseActivityEditor({activity,revision,fixed,departure,arrival,
    }
   }
   // FIXED retains exact source fields, including seconds, null description and location IDs.
-  const body:ActivityInput={cruiseId:activity.cruiseId,activityName:fixed?activity.name:text('name'),description:fixed?activity.description:text('description'),location:activity.location,meetingPoint:text('meetingPoint'),startTime:start,endTime:end,deckId:activity.deckId,cabinId:activity.cabinId,capacity,price:activity.price??0,currencyCode:activity.currencyCode??'VND'}
+  const body:ActivityInput={cruiseId:activity.cruiseId,activityName:fixed?activity.name:text('name'),description:fixed?activity.description:text('description'),location:activity.location,meetingPoint:text('meetingPoint'),startTime:start,endTime:end,deckId:activity.deckId,cabinId:activity.cabinId,capacity,requiredStaffCount,price:activity.price??0,currencyCode:activity.currencyCode??'VND'}
   lock.current=true;setBusy(true);setError('');setAllocated(null);setScheduleField(null)
   try{await updateScopedActivity(activity.cruiseId,activity.id,revision,body);onSaved()}
   catch(reason){setError(businessErrorMessage(reason instanceof ApiError?reason.code:undefined,''));setAllocated(activityCapacityConflict(reason));setScheduleField(activityScheduleConflict(reason));if(!(reason instanceof ApiError)||reason.status===0||reason.status>=500)setUncertain(true)}
@@ -47,6 +49,7 @@ export function CruiseActivityEditor({activity,revision,fixed,departure,arrival,
    </>}
    <ActivityMeetingPointField id="activity-edit-meeting-point" value={activity.meetingPoint}/>
    <Field htmlFor="activity-edit-capacity" label={fixed?'Số người tham gia tối đa':businessCopy('program.field.capacity')} error={allocated===null?undefined:businessCopy('program.activity.capacityAllocated')+': '+allocated}><input ref={capacityField} id="activity-edit-capacity" name="capacity" type="number" min={1} step={1} defaultValue={activity.capacity??''} required/></Field>
+   <Field htmlFor="activity-edit-staff" label="Số nhân viên phục vụ cần *"><input id="activity-edit-staff" name="requiredStaffCount" type="number" min={1} step={1} defaultValue={activity.requiredStaffCount??1} required/></Field>
    <p>Giá danh mục: <strong>{activity.price!=null&&activity.price>0?`${new Intl.NumberFormat('vi-VN').format(activity.price)} ${activity.currencyCode??'VND'}`:'Chưa thiết lập giá riêng · Theo gói du thuyền'}</strong> (do Quản lý dịch vụ & hoạt động cấu hình)</p>
 
   </fieldset>

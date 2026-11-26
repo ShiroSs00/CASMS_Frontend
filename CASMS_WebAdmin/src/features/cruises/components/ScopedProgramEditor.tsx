@@ -6,8 +6,8 @@ import {journeyTime,SHIP_TIME_ZONE,zonedInput} from '@/shared/lib/journey-time'
 import {programInstant} from '../model/program-time'
 import styles from './ManagerWorkspace.module.css'
 
-export type EditableProgram={id:string;name:string;serviceId?:string;cruiseStopId?:string|null;supplierId?:string|null;startsAt?:string;endsAt?:string;location?:string|null;capacity?:number|null}
-type Excursion={shoreExcursionId:string;cruiseStopId:string;supplierId:string;excursionName:string;meetingPoint:string;startTime:string;plannedReturnTime:string;minimumParticipants:number|null;maximumCapacity:number;price:number|null;currencyCode:string|null}
+export type EditableProgram={id:string;name:string;serviceId?:string;cruiseStopId?:string|null;supplierId?:string|null;startsAt?:string;endsAt?:string;location?:string|null;capacity?:number|null;requiredStaffCount?:number|null}
+type Excursion={shoreExcursionId:string;cruiseStopId:string;supplierId:string;excursionName:string;meetingPoint:string;startTime:string;plannedReturnTime:string;minimumParticipants:number|null;maximumCapacity:number;requiredStaffCount?:number|null;price:number|null;currencyCode:string|null}
 type Choice={id:string;name:string;scheduled?:boolean;sequence?:number;timeZoneId?:string|null}
 export function ScopedProgramEditor({cruiseId,kind,entry,revision,options,departure,arrival,onClose,onSaved}:{cruiseId:string;kind:'excursions'|'serving-windows';entry:EditableProgram;revision:number;options:{services:Choice[];suppliers:Choice[];stops:Choice[]};departure?:string;arrival?:string;onClose:()=>void;onSaved:()=>void}){
  const root=`/cruise-plans/${encodeURIComponent(cruiseId)}/${kind}`,shore=kind==='excursions'
@@ -31,13 +31,15 @@ export function ScopedProgramEditor({cruiseId,kind,entry,revision,options,depart
   if(shore&&(!text('name')||!stopId||!text('supplier'))){setError('Vui lòng nhập tên tour, lần ghé cảng và nhà cung cấp.');return}
   if(!text('location')){setError(shore?'Vui lòng nhập điểm tập trung.':'Vui lòng nhập địa điểm phục vụ.');return}
   if(!Number.isSafeInteger(Number(text('capacity')))||Number(text('capacity'))<1){setError('Vui lòng nhập sức chứa nguyên dương.');return}
+  const reqStaff=Number(text('requiredStaffCount'))
+  if(!Number.isSafeInteger(reqStaff)||reqStaff<1){setError('Vui lòng nhập số nhân viên phục vụ từ 1 trở lên.');return}
   let start:string,end:string
   try{const tz=stopId?options.stops.find(s=>s.id===stopId)?.timeZoneId:undefined;start=programInstant(text('start'),Boolean(stopId),tz);end=programInstant(text('end'),Boolean(stopId),tz)}catch{setError('Kiểm tra giờ bắt đầu, kết thúc và múi giờ cảng.');return}
   if(Date.parse(start)>=Date.parse(end)||(departure&&Date.parse(start)<Date.parse(departure))||(arrival&&Date.parse(end)>Date.parse(arrival))){
    setError('Chọn giờ bắt đầu trước giờ kết thúc và nằm trong khoảng thời gian của chuyến đi.')
    return
   }
-  const body=shore?{cruiseStopId:stopId,supplierId:text('supplier'),excursionName:text('name'),meetingPoint:text('location'),startTime:start,plannedReturnTime:end,minimumParticipants:tour?.minimumParticipants??null,maximumCapacity:Number(text('capacity')),price:tour?.price??null,currencyCode:tour?.currencyCode??'VND'}:{serviceId:text('service'),cruiseStopId:stopId,supplierId:text('supplier')||null,startsAt:start,endsAt:end,location:text('location'),capacity:Number(text('capacity'))}
+  const body=shore?{cruiseStopId:stopId,supplierId:text('supplier'),excursionName:text('name'),meetingPoint:text('location'),startTime:start,plannedReturnTime:end,minimumParticipants:tour?.minimumParticipants??null,maximumCapacity:Number(text('capacity')),requiredStaffCount:reqStaff,price:tour?.price??null,currencyCode:tour?.currencyCode??'VND'}:{serviceId:text('service'),cruiseStopId:stopId,supplierId:text('supplier')||null,startsAt:start,endsAt:end,location:text('location'),capacity:Number(text('capacity')),requiredStaffCount:reqStaff}
   lock.current=true;setBusy(true);setError('')
   try{
    const saved=await apiRequest<{id?:string;shoreExcursionId?:string}>(root+'/'+encodeURIComponent(entry.id),{method:'PUT',ifMatch:revision,body})
@@ -69,6 +71,7 @@ export function ScopedProgramEditor({cruiseId,kind,entry,revision,options,depart
    <Field htmlFor="scoped-start" label="Bắt đầu *"><input id="scoped-start" name="start" type="datetime-local" step={60} min={departure?wall(departure):undefined} max={arrival?wall(arrival):undefined} defaultValue={wall(tour?.startTime??window?.startsAt)} required/></Field>
    <Field htmlFor="scoped-end" label="Kết thúc *"><input id="scoped-end" name="end" type="datetime-local" step={60} min={departure?wall(departure):undefined} max={arrival?wall(arrival):undefined} defaultValue={wall(tour?.plannedReturnTime??window?.endsAt)} required/></Field>
    <Field htmlFor="scoped-capacity" label="Sức chứa *"><input id="scoped-capacity" name="capacity" type="number" min={1} step={1} defaultValue={tour?.maximumCapacity??window?.capacity??''} required/></Field>
+   <Field htmlFor="scoped-required-staff" label="Số nhân viên phục vụ cần *"><input id="scoped-required-staff" name="requiredStaffCount" type="number" min={1} step={1} defaultValue={tour?.requiredStaffCount??window?.requiredStaffCount??1} required/></Field>
 
   </fieldset><Button tone="danger" disabled={busy||unknown} onClick={()=>setDeleting(true)}>Xóa nội dung này</Button></form>}
   {deleting&&<Notice title="Xóa nội dung đã chọn" tone="warning">{entry.name}. Chỉ xóa được nội dung chưa có đăng ký hoặc liên kết sử dụng.<Button onClick={()=>setDeleting(false)}>Quay lại chỉnh sửa</Button></Notice>}

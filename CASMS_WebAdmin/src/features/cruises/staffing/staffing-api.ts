@@ -3,6 +3,10 @@ import { ApiError, apiRequest } from '@/shared/api'
 export type Requirement = { serviceId: string; serviceName: string; required: number; assigned: number }
 export type NeedInput = { areaId: string; positionCode: string; requiredCount: number }
 export type Need = NeedInput & { needId: string; areaName: string; planRevision: number; assignedUserIds: string[] }
+export type ServiceNeed = {
+  serviceId: string; serviceName: string; areaId: string; areaName: string
+  terminalId: string | null; terminalName: string | null; requiredCount: number; assignedUserIds: string[]
+}
 export type Placement = { areaId: string; terminalId: string }
 export type PlacementBlocker = 'SERVICE_INACTIVE' | 'SHIP_MODEL_REQUIRED' | 'DECK_SERVICE_REQUIRED'
   | 'AREA_SERVICE_REQUIRED' | 'SERVICE_AREA_POS_REQUIRED' | 'SERVICE_POS_PERMISSION_REQUIRED'
@@ -14,8 +18,9 @@ export type ReviewDetails = {
   terminalOptions: Terminal[]
   plannedServices: { serviceId: string; name: string; eligibleAreaIds: string[]; placements: Placement[];
     eligiblePlacements?: Placement[]; configuredPlacements?: Placement[]; placementBlocker?: PlacementBlocker | null;
+    requiredStaffCount?: number;
     proposal?: { deckName: string; note: string; status: 'PENDING' | 'CONFIRMED' | 'RETURNED' } | null }[]
-  activities: { activityId: string; kind: string; name: string; staffIds: string[] }[]
+  activities: { activityId: string; kind: string; name: string; staffIds: string[]; requiredStaffCount?: number }[]
   staff: { userId: string; username: string; role: string }[]
   positionOptions: string[]
   canReturnToAsm?: boolean
@@ -35,12 +40,13 @@ export type StaffingRequest = {
   asmProgramWorkflow?: boolean
   activeAreaIds?: string[]
   needs?: Need[]
+  serviceNeeds?: ServiceNeed[]
   shipPlanStale?: boolean
   planResetImpact?: { needsToReplaceOnSave: number; assignmentsToClear: number } | null
 }
 export type WorkPlan = {
   windows: { windowId: string; resourceId: string; definitionId: string; kind: 'SERVICE'|'ONBOARD'|'SHORE';
-    name: string; startsAt: string; endsAt: string; userIds: string[] }[]
+    name: string; startsAt: string; endsAt: string; userIds: string[]; requiredStaffCount?: number }[]
   serviceAssignments: { userId: string; serviceId: string; serviceName: string }[]
 }
 type CandidateStatus = 'AVAILABLE'|'ALREADY_ASSIGNED'|'MISSING_QUALIFICATION'|'SCHEDULE_CONFLICT'
@@ -123,6 +129,10 @@ export const staffingApi = {
     apiRequest<StaffingRequest>(`${path}/${encodeURIComponent(request.id)}/needs/${encodeURIComponent(needId)}/assignments/${encodeURIComponent(userId)}`, {
       method: 'PUT', body: { expectedRevision: request.revision, assigned },
     }).then(value => decodeSnapshot(value, request.id)),
+  assignServiceNeed: (request: StaffingRequest, serviceId: string, userId: string, assigned: boolean) =>
+    apiRequest<StaffingRequest>(`${path}/${encodeURIComponent(request.id)}/service-assignments/${encodeURIComponent(serviceId)}/${encodeURIComponent(userId)}`, {
+      method: 'PUT', body: { expectedRevision: request.revision, assigned },
+    }).then(value => decodeSnapshot(value, request.id)),
   transition: (request: StaffingRequest, action: StaffingAction, comment?: string) => apiRequest<StaffingRequest>(`${path}/${encodeURIComponent(request.id)}/${action}`, {
     method:'POST', body:{expectedRevision:request.revision,comment},
   }).then(value => decodeSnapshot(value, request.id)),
@@ -172,18 +182,18 @@ export function staffingStatusLabel(request: StaffingRequest) {
 export function staffingStageGuidance(request: StaffingRequest) {
   switch (request.status) {
     case 'PENDING_ASM':
-      return 'Bước 1/5 · Chờ Quản lý dịch vụ hoàn tất chương trình (có thể gắn Quản lý tàu trước ở mục trên).'
+      return 'Bước 1/4 · Chờ Quản lý dịch vụ chốt chương trình & định biên nhân sự phục vụ (có thể gắn Quản lý tàu trước ở mục trên).'
     case 'PENDING_SHIP_REVIEW':
-      return 'Bước 2/5 · Chờ Quản lý tàu mở khu vực, gắn POS và lập định biên nhân sự.'
+      return 'Bước 2/4 · Chờ Quản lý tàu mở khu vực, gắn máy POS và bố trí dịch vụ.'
     case 'SHIP_REVIEWED':
-      return 'Bước 3/5 · Quản lý tàu đã xong phương án, chờ Quản lý lịch trình chuyển sang HR.'
+      return 'Bước 2/4 · Quản lý tàu đã xác nhận phương án, chờ chuyển sang HR phân công.'
     case 'SENT_TO_HR':
-      return 'Bước 4/5 · Đang chờ Quản lý nhân sự phân công nhân sự & ca hoạt động.'
+      return 'Bước 3/4 · Đang chờ Quản lý nhân sự phân công đủ nhân viên cho dịch vụ & ca hoạt động.'
     case 'HR_SUBMITTED':
-      return 'Bước 5/5 · HR đã hoàn tất phân công, chờ Quản lý lịch trình kiểm tra trình duyệt.'
+      return 'Bước 4/4 · HR đã phân công xong, chờ Quản lý lịch trình rà soát và trình duyệt.'
     case 'PLANNER_CONFIRMED':
     case 'HR_APPROVED':
-      return 'Bước 5/5 · Đã trình Quản lý vận hành phê duyệt phương án nhân sự.'
+      return 'Bước 4/4 · Đã trình Quản lý vận hành phê duyệt phương án nhân sự.'
     case 'OPS_APPROVED':
       return 'Hoàn tất · Phương án tàu và nhân sự đã được Quản lý vận hành phê duyệt.'
     case 'RETURNED':
@@ -194,9 +204,12 @@ export function staffingStageGuidance(request: StaffingRequest) {
 }
 
 export function staffingMissing(request: StaffingRequest) {
-  return request.workflowVersion === 'V2'
-    ? (request.needs ?? []).reduce((sum, need) => sum + Math.max(0, need.requiredCount - need.assignedUserIds.length), 0)
-    : request.requirements.reduce((sum, item) => sum + Math.max(0, item.required - item.assigned), 0)
+  if (request.workflowVersion === 'V2') {
+    const serviceGap = (request.serviceNeeds ?? []).reduce((sum, item) => sum + Math.max(0, item.requiredCount - item.assignedUserIds.length), 0)
+    const areaGap = (request.needs ?? []).reduce((sum, need) => sum + Math.max(0, need.requiredCount - need.assignedUserIds.length), 0)
+    return serviceGap + areaGap
+  }
+  return request.requirements.reduce((sum, item) => sum + Math.max(0, item.required - item.assigned), 0)
 }
 
 export const positionLabels: Record<string, string> = {

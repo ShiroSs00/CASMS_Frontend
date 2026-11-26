@@ -75,7 +75,7 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
   for (const row of knownTypes.data ?? []) if (row.type.trim() && row.type.length <= 50 && !typeOptions.has(row.type)) typeOptions.set(row.type, row.type)
   if (initial?.type && !typeOptions.has(initial.type)) typeOptions.set(initial.type, initial.type)
   const currencyLabel = draft.currency.trim() || 'VND'
-  const fields: { key: keyof CatalogDraft; label: string; type?: string; maxLength?: number }[] = [{ key: 'name', label: 'Tên *', maxLength: 200 }, { key: 'type', label: 'Loại *', maxLength: 50 }, { key: 'price', label: kind === 'services' ? `Giá (${currencyLabel})` : `Giá (${currencyLabel}) *`, type: 'number' }, ...(kind === 'services' ? [{ key: 'capacity' as const, label: 'Sức chứa cấu hình', type: 'number' }] : []), ...(kind === 'packages' ? [{ key: 'startDate' as const, label: 'Có hiệu lực từ', type: 'date' }, { key: 'endDate' as const, label: 'Đến hết ngày', type: 'date' }] : [])]
+  const fields: { key: keyof CatalogDraft; label: string; type?: string; maxLength?: number }[] = [{ key: 'name', label: 'Tên *', maxLength: 200 }, { key: 'type', label: 'Loại *', maxLength: 50 }, { key: 'price', label: kind === 'services' ? `Giá (${currencyLabel})` : `Giá (${currencyLabel}) *`, type: 'number' }, ...(kind === 'services' ? [{ key: 'capacity' as const, label: 'Sức chứa cấu hình', type: 'number' }, { key: 'defaultRequiredStaff' as const, label: 'Nhân viên phục vụ mặc định *', type: 'number' }] : []), ...(kind === 'packages' ? [{ key: 'startDate' as const, label: 'Có hiệu lực từ', type: 'date' }, { key: 'endDate' as const, label: 'Đến hết ngày', type: 'date' }] : [])]
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (lock.current || !allowed || uncertain) return
@@ -105,12 +105,12 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
     {!allowed && <Notice title="Chưa có quyền lưu" tone="warning">{access.error || 'Đang tải quyền hoặc tài khoản chưa được cấp quyền thao tác này.'}</Notice>}
     {[
       { title: 'Thông tin cơ bản', description: 'Tên và loại giúp nhân sự tìm đúng thông tin.', keys: ['name', 'type'] },
-      { title: kind === 'services' ? 'Giá và sức chứa' : 'Giá bán', description: 'Kiểm tra số tiền, mã tiền tệ và các thông tin cấu hình.', keys: ['price', 'currency', 'capacity'] },
+      { title: kind === 'services' ? 'Giá, sức chứa và định biên nhân sự' : 'Giá bán', description: 'Kiểm tra số tiền, mã tiền tệ và các thông tin cấu hình.', keys: ['price', 'currency', 'capacity', 'defaultRequiredStaff'] },
       { title: 'Thời gian hiệu lực', description: 'Khoảng thời gian áp dụng cho gói dịch vụ.', keys: ['startDate', 'endDate'] },
     ].filter(group => fields.some(field => group.keys.includes(field.key))).map(group => <FormSection key={group.title} title={group.title} >
     {fields.filter(field => group.keys.includes(field.key)).map(field => <Field key={field.key} htmlFor={`catalog-${field.key}`} label={field.label} error={errors[field.key]}>
       {field.key === 'type' ? <select id={`catalog-${field.key}`} name={field.key} required aria-invalid={Boolean(errors.type)} value={draft.type} disabled={busy} onChange={event => setDraft({ ...draft, type: event.target.value })}><option value="">Chọn loại {catalogConfig[kind].label.toLocaleLowerCase('vi')}</option>{[...typeOptions].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-        : <input id={`catalog-${field.key}`} name={field.key} type={field.type ?? 'text'} maxLength={field.maxLength} min={field.type === 'number' ? 0 : undefined} step={field.key === 'capacity' ? 1 : field.type === 'number' ? 'any' : undefined} disabled={busy} value={draft[field.key]} aria-invalid={Boolean(errors[field.key])} onChange={event => setDraft({ ...draft, [field.key]: field.key === 'currency' ? event.target.value.toUpperCase() : event.target.value })} />}
+        : <input id={`catalog-${field.key}`} name={field.key} type={field.type ?? 'text'} maxLength={field.maxLength} min={field.key === 'defaultRequiredStaff' ? 1 : field.type === 'number' ? 0 : undefined} step={field.key === 'capacity' || field.key === 'defaultRequiredStaff' ? 1 : field.type === 'number' ? 'any' : undefined} disabled={busy} value={draft[field.key]} aria-invalid={Boolean(errors[field.key])} onChange={event => setDraft({ ...draft, [field.key]: field.key === 'currency' ? event.target.value.toUpperCase() : event.target.value })} />}
     </Field>)}
     </FormSection>)}
     {kind==='services'&&<FormSection title="Cách phục vụ">

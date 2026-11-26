@@ -6,12 +6,12 @@ export const productTypes: Record<string, string> = { SOUVENIR: 'Quà lưu niệ
 
 type PurchaseFlag = keyof typeof servicePurchaseFlags
 const purchaseFlags = Object.keys(servicePurchaseFlags) as PurchaseFlag[]
-export type CatalogDraft = Record<PurchaseFlag, string> & { preCruiseUsagePolicy: ServiceUsagePolicy | ''; preCruiseUsageLimit: string; usageTimeZone: string; requiresSchedule:string;categoryId:string;unitCode:string; code: string; name: string; description: string; type: string; price: string; currency: string; capacity: string; startDate: string; endDate: string }
-export const emptyCatalogDraft: CatalogDraft = {canBuyPreCruise:'',canBuyOnboard:'',canSellIndependently:'',preCruiseUsagePolicy:'',preCruiseUsageLimit:'',usageTimeZone:'',requiresSchedule:'',categoryId:'',unitCode:'', code: '', name: '', description: '', type: '', price: '', currency: '', capacity: '', startDate: '', endDate: '' }
+export type CatalogDraft = Record<PurchaseFlag, string> & { preCruiseUsagePolicy: ServiceUsagePolicy | ''; preCruiseUsageLimit: string; usageTimeZone: string; requiresSchedule:string;categoryId:string;unitCode:string; defaultRequiredStaff: string; code: string; name: string; description: string; type: string; price: string; currency: string; capacity: string; startDate: string; endDate: string }
+export const emptyCatalogDraft: CatalogDraft = {canBuyPreCruise:'',canBuyOnboard:'',canSellIndependently:'',preCruiseUsagePolicy:'',preCruiseUsageLimit:'',usageTimeZone:'',requiresSchedule:'',categoryId:'',unitCode:'', defaultRequiredStaff: '1', code: '', name: '', description: '', type: '', price: '', currency: '', capacity: '', startDate: '', endDate: '' }
 export function catalogDraft(item: CatalogItem): CatalogDraft {
   const choice = (value: boolean | undefined) => value == null ? '' : String(value)
   return {canBuyPreCruise:choice(item.canBuyPreCruise),canBuyOnboard:choice(item.canBuyOnboard),canSellIndependently:choice(item.canSellIndependently),
-    preCruiseUsagePolicy:item.preCruiseUsagePolicy??'',preCruiseUsageLimit:item.preCruiseUsageLimit?.toString()??'',usageTimeZone:item.usageTimeZone??'',requiresSchedule:item.requiresSchedule===true?'true':item.requiresSchedule===false?'false':'',categoryId:item.categoryId??'',unitCode:item.unitCode??'', code: item.code, name: item.name, description: item.description ?? '', type: item.type, price: item.price == null ? '' : String(item.price), currency: item.currency ?? '', capacity: item.capacity == null ? '' : String(item.capacity), startDate: item.startDate ?? '', endDate: item.endDate ?? '' }
+    preCruiseUsagePolicy:item.preCruiseUsagePolicy??'',preCruiseUsageLimit:item.preCruiseUsageLimit?.toString()??'',usageTimeZone:item.usageTimeZone??'',requiresSchedule:item.requiresSchedule===true?'true':item.requiresSchedule===false?'false':'',categoryId:item.categoryId??'',unitCode:item.unitCode??'', defaultRequiredStaff: String(item.defaultRequiredStaff ?? 1), code: item.code, name: item.name, description: item.description ?? '', type: item.type, price: item.price == null ? '' : String(item.price), currency: item.currency ?? '', capacity: item.capacity == null ? '' : String(item.capacity), startDate: item.startDate ?? '', endDate: item.endDate ?? '' }
 }
 export function validateCatalogDraft(kind: CatalogKind, draft: CatalogDraft): Record<string, string> {
   const errors: Record<string, string> = {}
@@ -24,6 +24,7 @@ export function validateCatalogDraft(kind: CatalogKind, draft: CatalogDraft): Re
   else if (draft.price.trim() && Number(draft.price) > 999999999999) errors.price = 'Giá vượt quá giới hạn cho phép.'
   if (draft.currency.trim() && !['VND', 'USD'].includes(draft.currency.trim().toUpperCase())) errors.currency = 'Chỉ hỗ trợ đơn vị tiền tệ VND hoặc USD.'
   if (kind === 'services' && draft.capacity.trim() && (!Number.isSafeInteger(Number(draft.capacity)) || Number(draft.capacity) < 1 || Number(draft.capacity) > 2147483647)) errors.capacity = 'Sức chứa là số nguyên lớn hơn 0.'
+  if (kind === 'services' && (!draft.defaultRequiredStaff.trim() || !Number.isSafeInteger(Number(draft.defaultRequiredStaff)) || Number(draft.defaultRequiredStaff) < 1 || Number(draft.defaultRequiredStaff) > 2147483647)) errors.defaultRequiredStaff = 'Số nhân viên phục vụ mặc định phải là số nguyên từ 1 trở lên.'
   if (kind === 'packages') {
     for (const field of ['startDate', 'endDate'] as const) if (draft[field] && (!/^\d{4}-\d{2}-\d{2}$/.test(draft[field]) || !Number.isFinite(Date.parse(draft[field])) || new Date(draft[field]).toISOString().slice(0, 10) !== draft[field])) errors[field] = 'Chọn ngày hợp lệ.'
     if (draft.startDate && draft.endDate && draft.endDate < draft.startDate) errors.endDate = 'Ngày hết hạn phải từ ngày bắt đầu trở đi.'
@@ -52,7 +53,7 @@ export function serializeCatalogDraft(kind: CatalogKind, draft: CatalogDraft) {
     preCruiseUsagePolicy: draft.preCruiseUsagePolicy || undefined,
     preCruiseUsageLimit: !draft.preCruiseUsagePolicy ? undefined : draft.preCruiseUsagePolicy === 'UNLIMITED' ? null : Number(draft.preCruiseUsageLimit),
     usageTimeZone: draft.usageTimeZone.trim() || undefined,
-    requiresSchedule:draft.requiresSchedule===''?undefined:draft.requiresSchedule==='true',categoryId:draft.categoryId||undefined,unitCode:draft.unitCode.trim()||undefined, serviceName: draft.name.trim(), serviceType: draft.type.trim(), description, price: money, currencyCode, capacity: draft.capacity.trim() ? Number(draft.capacity) : null }
+    requiresSchedule:draft.requiresSchedule===''?undefined:draft.requiresSchedule==='true',categoryId:draft.categoryId||undefined,unitCode:draft.unitCode.trim()||undefined, defaultRequiredStaff: draft.defaultRequiredStaff.trim() ? Number(draft.defaultRequiredStaff) : 1, serviceName: draft.name.trim(), serviceType: draft.type.trim(), description, price: money, currencyCode, capacity: draft.capacity.trim() ? Number(draft.capacity) : null }
   if (kind === 'products') return { productCode: draft.code.trim(), productName: draft.name.trim(), productType: draft.type.trim(), description, unitPrice: money, currencyCode }
   return { packageName: draft.name.trim(), packageType: draft.type, description, price: money, currencyCode, startDate: draft.startDate || null, endDate: draft.endDate || null }
 }
@@ -62,6 +63,7 @@ export function catalogMatchesDraft(kind:CatalogKind,item:CatalogItem,draft:Cata
     ||item.price!==(draft.price.trim()?Number(draft.price):kind==='services'?0:null)
     ||(item.currency??'')!==draft.currency.trim())return false
   if(kind==='services')return (item.capacity??null)===(draft.capacity.trim()?Number(draft.capacity):null)
+    &&(item.defaultRequiredStaff??1)===(draft.defaultRequiredStaff.trim()?Number(draft.defaultRequiredStaff):1)
     &&(!draft.requiresSchedule||item.requiresSchedule===(draft.requiresSchedule==='true'))
     &&(!draft.categoryId||item.categoryId===draft.categoryId)
     &&(!draft.unitCode.trim()||item.unitCode===draft.unitCode.trim())
