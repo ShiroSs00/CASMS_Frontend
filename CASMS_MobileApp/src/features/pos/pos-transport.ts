@@ -1,5 +1,6 @@
 import { verifySaleIntent } from './pos-lifecycle';
 import { terminalChoices } from '../passenger-actions/synced-contracts';
+import { terminalChoiceKey } from './terminal-choice';
 import { z } from 'zod';
 import { cardPreview, cardAssignment, claimCode, cardIdentifier } from '../passenger-actions/card-contracts';
 import { ApiError, type RequestOptions } from '../../lib/api/api-client';
@@ -8,17 +9,19 @@ type Transport = { request<T>(path: string, options?: RequestOptions): Promise<T
 
 export async function readTerminalChoicesWithClient(client: Transport, signal?: AbortSignal) {
   const rows = decode(terminalChoices, await client.request('/pos/terminals', { signal }));
-  if (new Set(rows.map(row => `${row.terminalId}:${row.cruiseId}`)).size !== rows.length)
+  if (new Set(rows.map(terminalChoiceKey)).size !== rows.length)
     throw new ApiError('Danh sách thiết bị chưa hợp lệ.', 502, 'POS_INVALID_RESPONSE');
   return rows;
 }
 
-export async function openPosWithClient(client: Transport, terminalId: string, value: Credential & { areaId?: string; cruiseId?: string }) {
+export async function openPosWithClient(client: Transport, terminalId: string, value: Credential & { shipId?: string; areaId?: string; cruiseId?: string }) {
   const input = loginInput.parse(value);
+  const expectedShipId = value.shipId ? uuid.parse(value.shipId).toLowerCase() : undefined;
   const result = decode(posSession, await client.request(`/pos-terminals/${uuid.parse(terminalId)}/sessions`, {
     method: 'POST', body: input,
   }));
   if (!result.terminal.enabled || result.terminal.terminalId !== terminalId.toLowerCase()
+    || (expectedShipId && result.terminal.shipId.toLowerCase() !== expectedShipId)
     || (input.areaId && result.terminal.areaId !== input.areaId.toLowerCase())
     || (input.cruiseId && result.cruiseId !== input.cruiseId.toLowerCase())
     || Date.parse(result.expiresAt) <= Date.now()) {

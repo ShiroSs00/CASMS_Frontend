@@ -1,20 +1,20 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Redirect, Stack, usePathname } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Platform, Text, View } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
-import { ui } from '@/components/passenger/PassengerUI';
 import { useMotionPreference } from '@/components/passenger/useMotionPreference';
 import { brand, lightTheme } from '@/constants/ocevie';
 import { authActions, useAuth } from '@/features/auth/session-store';
-import { Choice, Loading } from '@/features/passenger-actions/PassengerActionUI';
+import { Loading } from '@/features/passenger-actions/PassengerActionUI';
 import { isPassengerWorkspace, loginLink } from '@/features/auth/workspace-navigation';
 import { ApiError, getApiUrl } from '@/lib/api';
 import { useNow } from '@/hooks/use-now';
+import { PairTerminal } from './pair-terminal';
 import { employeeRole, eligibleEmployee } from './pos-access';
-import { deviceCredential, openPos, readEmployee, readTerminals, scopedPos, matchesPosSession, type PosContext, type PosSession } from './pos-api';
-import { clearPosSession, restorePosSession, savePosSession } from './pos-storage';
-import { Field, Notice, PosPage, QueryState, posError } from './pos-ui';
+import { readEmployee, scopedPos, matchesPosSession, type PosContext, type PosSession } from './pos-api';
+import { clearPosSession, restorePosSession } from './pos-storage';
+import { Notice, PosPage, QueryState, posError } from './pos-ui';
 
 type Workspace = {
   owner: string;
@@ -128,72 +128,6 @@ function SessionGate({ owner, signedInAt, username, employeePermissions }: {
     onEnd={note => { setMessage(note); setSession(null); }} />;
 }
 
-function PairTerminal({ owner, signedInAt, username, message, onOpened }: {
-  owner: string; signedInAt: number; username: string; employeePermissions: string[]; message?: string; onOpened: (session: PosSession) => void;
-}) {
-  const [selection, setSelection] = useState('');
-  const terminals = useQuery({ queryKey: ['pos-terminals', getApiUrl(), owner, signedInAt],
-    queryFn: ({ signal }) => readTerminals(signal), retry: false, staleTime: 0 });
-  const selected = !terminals.error ? terminals.data?.find(row => `${row.terminalId}:${row.cruiseId}` === selection) : undefined;
-  const [legacy, setLegacy] = useState(false);
-  const [deviceUser, setDeviceUser] = useState('');
-  const [credential, setCredential] = useState('');
-  const [pending, setPending] = useState(false);
-  const lock = useRef(false);
-  const [failure, setFailure] = useState<string>();
-  const valid = !!selected && !terminals.isFetching && !!credential.trim() && (legacy || !!deviceUser.trim());
-
-  async function open() {
-    if (!valid || !selected || lock.current) return;
-    lock.current = true;
-    setPending(true);
-    setFailure(undefined);
-    try {
-      const available = await readTerminals();
-      if (!available.some(row => row.terminalId === selected.terminalId && row.cruiseId === selected.cruiseId
-        && row.shipId === selected.shipId && row.areaId === selected.areaId)) {
-        throw new ApiError('Thiết bị đã chọn không còn khả dụng. Vui lòng chọn lại.', 403);
-      }
-      const proof = legacy ? { deviceSecret: credential.trim() } : await deviceCredential(deviceUser, credential);
-      const session = await openPos(owner, signedInAt, selected.terminalId, {
-        ...proof, areaId: selected.areaId, cruiseId: selected.cruiseId,
-      });
-      try { await savePosSession(owner, session, signedInAt); }
-      catch (error) {
-        await scopedPos(owner, signedInAt, session.sessionToken).close().catch(() => {});
-        throw error;
-      }
-      onOpened(session);
-    } catch (error) {
-      setFailure(error instanceof ApiError && error.status === 403
-        ? 'Không mở được phiên. Kiểm tra tài khoản thiết bị, mã POS và phân công khu vực hoặc chuyến.'
-        : posError(error));
-    } finally {
-      setCredential('');
-      lock.current = false;
-      setPending(false);
-    }
-  }
-
-  return <PosPage title="Mở phiên POS" standalone>
-    <Text style={ui.body}>{username}</Text>
-    {!!message && <Notice tone="warning">{message}</Notice>}
-    <View style={ui.card}>
-      <QueryState query={terminals} empty={terminals.data?.length === 0 ? 'Chưa có thiết bị POS được phân công cho bạn.' : undefined} />
-      <Choice label="Thiết bị POS và chuyến" value={selection} onChange={setSelection} disabled={pending || terminals.isFetching || !!terminals.error}
-        items={(terminals.error ? [] : terminals.data ?? []).map(row => ({ id: `${row.terminalId}:${row.cruiseId}`, label: `${row.name} · ${row.code}${row.cruiseName ? ` · ${row.cruiseName}` : (terminals.data ?? []).some(other => other.terminalId === row.terminalId && other.cruiseId !== row.cruiseId) ? ` · Chuyến ${row.cruiseId}` : ''}` }))} />
-      <PassengerButton label="Cập nhật thiết bị" variant="text" disabled={pending} onPress={() => { void terminals.refetch(); }} />
-      {!legacy && <Field label="Tên tài khoản thiết bị" value={deviceUser} onChangeText={setDeviceUser} editable={!pending} />}
-      <Field label={legacy ? 'Mã bí mật thiết bị' : 'Mật khẩu thiết bị'} value={credential} onChangeText={setCredential}
-        secureTextEntry textContentType="password" autoComplete="off" editable={!pending} maxLength={legacy ? 128 : undefined} />
-      <PassengerButton label="Mở phiên" onPress={() => { void open(); }} disabled={!valid} loading={pending} />
-      <PassengerButton label={legacy ? 'Dùng tài khoản thiết bị' : 'Dùng mã thiết bị cũ'} variant="text" disabled={pending}
-        onPress={() => { setCredential(''); setFailure(undefined); setLegacy(!legacy); }} />
-    </View>
-    {!!failure && <Notice tone="error">{failure}</Notice>}
-    <PassengerButton label="Đăng xuất nhân viên" variant="text" disabled={pending} onPress={() => { void authActions.logout(); }} />
-  </PosPage>;
-}
 
 function ActiveSession({ owner, signedInAt, username, employeePermissions, session, onEnd }: {
   owner: string; signedInAt: number; username: string; employeePermissions: string[]; session: PosSession; onEnd: (message?: string) => void;

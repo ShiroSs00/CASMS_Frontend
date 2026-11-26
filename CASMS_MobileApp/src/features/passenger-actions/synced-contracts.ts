@@ -13,7 +13,8 @@ export const passengerCardStatus = z.object({
   status: z.enum(['NOT_ASSIGNED', 'ASSIGNED', 'UNAVAILABLE']), confirmedAt: instant.nullable().default(null),
 });
 export const terminalChoices = z.array(z.object({
-  terminalId: uuid, shipId: uuid, areaId: uuid, cruiseId: uuid, code: z.string(), name: z.string(),
+  terminalId: uuid.transform(value => value.toLowerCase()), shipId: uuid.transform(value => value.toLowerCase()),
+  areaId: uuid.transform(value => value.toLowerCase()), cruiseId: uuid.transform(value => value.toLowerCase()), code: z.string(), name: z.string(),
 }));
 const placement = z.object({ serviceId: uuid, deckId: uuid, deckName: z.string(), areaId: uuid.nullable().default(null), areaName: text });
 const schedule = z.object({ serviceId: uuid, scheduleId: uuid, location: z.string(), startsAt: instant, endsAt: instant,
