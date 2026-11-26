@@ -62,7 +62,7 @@ function ReportIssueDialogContent({ open, onClose, onCreated }: Props) {
     open={open}
     pending={pending}
     title="Báo cáo sự cố vận hành"
-    description="Ghi nhận mức độ, vị trí và nội dung sự cố. Sự cố mới bắt đầu ở trạng thái OPEN."
+    description="Ghi nhận mức độ, vị trí và nội dung sự cố. Sự cố mới bắt đầu ở trạng thái Chờ xử lý."
     onClose={() => { if (!pending) onClose() }}
     footer={<>
       <button className={styles.secondaryButton} disabled={pending} onClick={onClose} data-overlay-dismiss>Hủy</button>

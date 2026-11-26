@@ -164,6 +164,7 @@
 
 .tableScroll { width: 100%; overflow-x: auto; }
 .table { width: 100%; min-width: 920px; border-collapse: collapse; text-align: left; }
+@media(max-width:1200px) { .table { min-width: 620px; } .table th, .table td { padding: 10px 8px; font-size: 12.5px; } }
 .table th { padding: 14px 12px; background: var(--reg-bg); color: var(--reg-muted); font-size: 12px; font-weight: 600; line-height: 18px; }
 .table td { padding: 14px 12px; border-bottom: 1px solid var(--reg-border); font-size: 13px; line-height: 20px; vertical-align: top; }
 .table tbody tr:last-child td { border-bottom: 0; }

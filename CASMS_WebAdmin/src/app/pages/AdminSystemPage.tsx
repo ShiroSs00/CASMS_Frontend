@@ -65,8 +65,10 @@ export function AdminSystemPage() {
   const [role, setRole] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<{ employeeCode?: string; fullName?: string; email?: string; role?: string }>({})
   const [createdBanner, setCreatedBanner] = useState('')
   const lock = useRef(false)
+  const errorNoticeRef = useRef<HTMLDivElement | null>(null)
 
   const loadUsers = useCallback(async (signal: AbortSignal) => {
     if (!allowed) return []
@@ -116,6 +118,13 @@ export function AdminSystemPage() {
     setPosition('')
     setRole('')
     setSaveError('')
+    setFieldErrors({})
+  }
+
+  function revealFormError() {
+    requestAnimationFrame(() => {
+      errorNoticeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    })
   }
 
   async function submitEmployee(event: FormEvent<HTMLFormElement>) {
@@ -124,13 +133,22 @@ export function AdminSystemPage() {
     const code = employeeCode.trim()
     const name = fullName.trim()
     const mail = email.trim()
-    if (!code || !name || !mail || !role) {
-      setSaveError('Vui lòng nhập đầy đủ mã nhân viên, họ tên, email và vai trò.')
+    const nextErrors: { employeeCode?: string; fullName?: string; email?: string; role?: string } = {}
+    if (!code) nextErrors.employeeCode = 'Vui lòng nhập mã nhân viên.'
+    if (!name) nextErrors.fullName = 'Vui lòng nhập họ và tên.'
+    if (!mail) nextErrors.email = 'Vui lòng nhập email công việc.'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) nextErrors.email = 'Email chưa đúng định dạng.'
+    if (!role) nextErrors.role = 'Vui lòng chọn vai trò phân công.'
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors)
+      setSaveError('Vui lòng kiểm tra các thông tin bắt buộc còn thiếu hoặc chưa hợp lệ bên dưới.')
+      revealFormError()
       return
     }
     lock.current = true
     setSaving(true)
     setSaveError('')
+    setFieldErrors({})
     try {
       const created = await apiRequest<EmployeeView>('/employees', {
         method: 'POST',
@@ -151,6 +169,7 @@ export function AdminSystemPage() {
       query.retry()
     } catch (reason) {
       setSaveError(reason instanceof ApiError ? reason.message : 'Chưa tạo được tài khoản nhân viên.')
+      revealFormError()
     } finally {
       lock.current = false
       setSaving(false)
@@ -162,7 +181,6 @@ export function AdminSystemPage() {
       <PageHeader
         breadcrumb="HỆ THỐNG / NHÂN SỰ"
         title="Tài khoản nhân sự"
-        description="Quản lý danh sách nhân viên và tài khoản đang hoạt động để phục vụ phân công vận hành chuyến khởi hành."
         actions={
           canCreateEmployee ? (
             <Button
@@ -323,17 +341,66 @@ export function AdminSystemPage() {
           }
         >
           <form id="create-employee-form" noValidate onSubmit={submitEmployee} style={{ display: 'grid', gap: '16px' }}>
-            <Field htmlFor="emp-code" label="Mã nhân viên *" hint="Chữ, số, gạch dưới/ngang (ví dụ: NV-ONBOARD-01)">
-              <input id="emp-code" required maxLength={50} value={employeeCode} disabled={saving} onChange={e => setEmployeeCode(e.target.value)} />
+            {saveError && (
+              <div ref={errorNoticeRef}>
+                <Notice title="Chưa tạo được nhân viên" tone="error">{saveError}</Notice>
+              </div>
+            )}
+            <Field htmlFor="emp-code" label="Mã nhân viên *" hint="Chữ, số, gạch dưới/ngang (ví dụ: NV-ONBOARD-01)" error={fieldErrors.employeeCode}>
+              <input
+                id="emp-code"
+                required
+                maxLength={50}
+                value={employeeCode}
+                disabled={saving}
+                aria-invalid={Boolean(fieldErrors.employeeCode)}
+                onChange={e => {
+                  setEmployeeCode(e.target.value)
+                  if (fieldErrors.employeeCode) setFieldErrors(prev => ({ ...prev, employeeCode: undefined }))
+                }}
+              />
             </Field>
-            <Field htmlFor="emp-name" label="Họ và tên *">
-              <input id="emp-name" required maxLength={180} value={fullName} disabled={saving} onChange={e => setFullName(e.target.value)} />
+            <Field htmlFor="emp-name" label="Họ và tên *" error={fieldErrors.fullName}>
+              <input
+                id="emp-name"
+                required
+                maxLength={180}
+                value={fullName}
+                disabled={saving}
+                aria-invalid={Boolean(fieldErrors.fullName)}
+                onChange={e => {
+                  setFullName(e.target.value)
+                  if (fieldErrors.fullName) setFieldErrors(prev => ({ ...prev, fullName: undefined }))
+                }}
+              />
             </Field>
-            <Field htmlFor="emp-email" label="Email công việc *">
-              <input id="emp-email" type="email" required maxLength={100} value={email} disabled={saving} onChange={e => setEmail(e.target.value)} />
+            <Field htmlFor="emp-email" label="Email công việc *" error={fieldErrors.email}>
+              <input
+                id="emp-email"
+                type="email"
+                required
+                maxLength={100}
+                value={email}
+                disabled={saving}
+                aria-invalid={Boolean(fieldErrors.email)}
+                onChange={e => {
+                  setEmail(e.target.value)
+                  if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: undefined }))
+                }}
+              />
             </Field>
-            <Field htmlFor="emp-role" label="Vai trò phân công *">
-              <select id="emp-role" required value={role} disabled={saving || rolesQuery.loading} onChange={e => setRole(e.target.value)}>
+            <Field htmlFor="emp-role" label="Vai trò phân công *" error={fieldErrors.role}>
+              <select
+                id="emp-role"
+                required
+                value={role}
+                disabled={saving || rolesQuery.loading}
+                aria-invalid={Boolean(fieldErrors.role)}
+                onChange={e => {
+                  setRole(e.target.value)
+                  if (fieldErrors.role) setFieldErrors(prev => ({ ...prev, role: undefined }))
+                }}
+              >
                 <option value="">{rolesQuery.loading ? 'Đang tải vai trò…' : 'Chọn vai trò'}</option>
                 {(rolesQuery.data ?? []).filter(item => item !== 'PASSENGER' && item !== 'POS').map(item => (
                   <option key={item} value={item}>
@@ -351,7 +418,6 @@ export function AdminSystemPage() {
             <Field htmlFor="emp-pos" label="Chức danh">
               <input id="emp-pos" maxLength={150} value={position} disabled={saving} onChange={e => setPosition(e.target.value)} />
             </Field>
-            {saveError && <Notice title="Chưa tạo được nhân viên" tone="error">{saveError}</Notice>}
           </form>
         </Modal>
       )}

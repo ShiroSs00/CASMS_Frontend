@@ -11,7 +11,7 @@ export type PaymentStatus =
   | 'Cancelled'
   | 'PartiallyRefunded'
   | 'Refunded'
-export type PaymentOperationType = 'Collect' | 'Refund' | 'Hold' | 'Capture' | 'Release'
+export type PaymentOperationType = 'Collect' | 'Void'
 
 export type Payment = {
   paymentId: string

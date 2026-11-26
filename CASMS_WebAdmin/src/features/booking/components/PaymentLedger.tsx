@@ -173,7 +173,7 @@ function PaymentLedgerContent({
   return (
     <Panel
       title="Thu tiền & lịch sử giao dịch"
-      subtitle="Hiển thị đầy đủ khoản thu tiền mặt, chuyển khoản VietQR (SePay) và các giao dịch thanh toán. Nút Xác nhận đã thu chỉ áp dụng cho khoản chờ của luồng thu thủ công."
+      subtitle=""
     >
       {frozen && (
         <Notice title="Cần đối chiếu khoản thu trước khi tiếp tục" tone="warning">
@@ -256,7 +256,7 @@ function PaymentLedgerContent({
             (query.data.length > 0 ? (
               <DataTable
                 label="Lịch sử thanh toán"
-                headers={['Nguồn', 'Yêu cầu', 'Thực thu', 'Trạng thái', 'Mã đối soát', '']}
+                headers={['Nguồn', 'Yêu cầu', 'Thực thu', 'Trạng thái', 'Mã đối soát', 'Thao tác']}
               >
                 {query.data.map(row => {
                   const manualEligible = canWrite && isManualConfirmEligible(row)

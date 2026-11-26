@@ -159,14 +159,23 @@ function LiveCruiseSearchPage({ page, cruiseType }: { page: number; cruiseType?:
 
   const loadedItems = useMemo(() => result?.items ?? [], [result?.items])
 
-  const availablePorts = useMemo(
-    () => [...new Set(loadedItems.map(item => item.departurePort).filter((p): p is string => Boolean(p)))].sort((a, b) => a.localeCompare(b, 'vi')),
-    [loadedItems],
-  )
-  const availableShips = useMemo(
-    () => [...new Set(loadedItems.map(item => item.ship).filter((ship): ship is string => Boolean(ship)))].sort((a, b) => a.localeCompare(b, 'vi')),
-    [loadedItems],
-  )
+  const [cachedPorts, setCachedPorts] = useState<string[]>([])
+  const [cachedShips, setCachedShips] = useState<string[]>([])
+
+  const availablePorts = useMemo(() => {
+    const next = [...new Set(loadedItems.map(item => item.departurePort).filter((p): p is string => Boolean(p)))].sort((a, b) => a.localeCompare(b, 'vi'))
+    return next.length > 0 ? next : cachedPorts
+  }, [loadedItems, cachedPorts])
+  const availableShips = useMemo(() => {
+    const next = [...new Set(loadedItems.map(item => item.ship).filter((ship): ship is string => Boolean(ship)))].sort((a, b) => a.localeCompare(b, 'vi'))
+    return next.length > 0 ? next : cachedShips
+  }, [loadedItems, cachedShips])
+  if (loadedItems.length > 0) {
+    const portsNow = [...new Set(loadedItems.map(item => item.departurePort).filter((p): p is string => Boolean(p)))].sort((a, b) => a.localeCompare(b, 'vi'))
+    const shipsNow = [...new Set(loadedItems.map(item => item.ship).filter((ship): ship is string => Boolean(ship)))].sort((a, b) => a.localeCompare(b, 'vi'))
+    if (portsNow.length > cachedPorts.length) setCachedPorts(portsNow)
+    if (shipsNow.length > cachedShips.length) setCachedShips(shipsNow)
+  }
   const availableMonths = useMemo(
     () => [...new Set(loadedItems.map(item => departureMonthKey(item.departure)))].sort(),
     [loadedItems],
@@ -365,7 +374,7 @@ function LiveCruiseSearchPage({ page, cruiseType }: { page: number; cruiseType?:
             </div>
           </aside>
 
-          <main className={c.resultsCol}>
+          <section className={c.resultsCol} aria-label="Danh sách hành trình">
             <div className={c.resultsTop}>
               <div className={c.resultsHeadingGroup}>
                 <h2>{resultsTitle}</h2>
@@ -463,7 +472,7 @@ function LiveCruiseSearchPage({ page, cruiseType }: { page: number; cruiseType?:
                 </div>
               </nav>
             )}
-          </main>
+          </section>
         </div>
       </div>
     </div>

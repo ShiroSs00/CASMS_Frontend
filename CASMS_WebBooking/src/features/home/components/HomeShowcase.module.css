@@ -64,8 +64,8 @@
 .closing { margin-top:64px; padding-top:32px; border-top:1px solid #C9D2C9; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:24px; }
 .closing p { font-size:20px; font-family:var(--font-family-heading); }
 @media(hover:hover) and (pointer:fine) { .choicePhoto img { transition:transform var(--motion-surface) var(--ease-soft); } .choice:hover .choicePhoto img { transform:scale(1.035); } }
-@media(max-width:1100px) { .hero { min-height:540px; } .hero h1 { max-width:18ch; } .finder { gap:24px; } .shipCopy { padding:32px; } .booking { gap:32px; padding:32px; } }
-@media(max-width:959px) { .content,.finder { width:calc(100% - 48px); } .heroInner { padding-inline:24px; } .heroFoot { left:24px; right:24px; } .finder { grid-template-columns:1fr; gap:20px; } .ship { grid-template-columns:1fr; } .shipPhoto { min-height:320px; } .booking { grid-template-columns:1fr; } .choicePhoto { height:240px; } }
+@media(max-width:1120px) { .hero { min-height:540px; } .hero h1 { max-width:18ch; } .finder { grid-template-columns:1fr; gap:20px; } .shipCopy { padding:32px; } .booking { gap:32px; padding:32px; } }
+@media(max-width:959px) { .content,.finder { width:calc(100% - 48px); } .heroInner { padding-inline:24px; } .heroFoot { left:24px; right:24px; } .ship { grid-template-columns:1fr; } .shipPhoto { min-height:320px; } .booking { grid-template-columns:1fr; } .choicePhoto { height:240px; } }
 @media(max-width:600px) { .hero { min-height:560px; } .hero h1 { font-size:44px; } .heroInner { padding-top:40px; padding-bottom:120px; } .heroFoot { font-size:8px; gap:8px; } .heroShade { background:linear-gradient(90deg,#061a2be8,#061a2b70); } .heroActions { gap:16px; } .finder form { flex-wrap:wrap; } .finderField { flex-basis:100%; } .finder button { width:100%; } .choiceGrid { grid-template-columns:1fr; } .choices { margin-top:48px; } .shipCopy,.booking { padding:24px; } .ship,.booking { margin-top:48px; } }
 @media(prefers-reduced-motion:reduce) { .choicePhoto img,.goldButton,.navyButton { transition:none; transform:none!important; } }
 
@@ -95,7 +95,8 @@
 }
 
 /* Royal-inspired Live Tours Showcase & Active Fleet Band */
-.finderFields { display:grid; grid-template-columns:1.25fr 1fr; gap:12px; flex:1; min-width:0; }
+.finderFields { display:grid; grid-template-columns:1.25fr minmax(180px, 1fr); gap:12px; flex:1; min-width:0; }
+.finderFields select { white-space:nowrap; }
 @media(max-width:600px) { .finderFields { grid-template-columns:1fr; flex-basis:100%; } }
 
 .liveSection { margin-top:64px; display:grid; gap:24px; }

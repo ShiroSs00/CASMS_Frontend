@@ -9,7 +9,6 @@ import { mutationOutcomeUnknown } from '@/shared/lib/mutation-outcome'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { Button, ButtonLink, Field, FormSection, Notice, PageHeader, Panel } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
-import {isActivityCurrency} from '../model/activity'
 import { ActivityCatalogEditor } from './ActivityCatalogEditor'
 import { activityApi } from '../api/activity-api'
 import { ActivityFrame, ActivityState } from '../components/ActivityUI'
@@ -89,7 +88,7 @@ function ActivityEditor({ activityId }: { activityId: string }) {
     {cruises.data && !cruises.data.length && <Notice title="Chưa có chuyến du lịch"><p>Tạo chuyến trước khi lập hoạt động trên tàu.</p><ButtonLink to="/admin/cruises/new">Tạo chuyến</ButtonLink></Notice>}
     <EditorLayout ><form ref={form} onSubmit={submit} noValidate><Panel title="Thông tin hoạt động">
           <FormErrorSummary errors={errors} /><div className={styles.form}>
-      <FormSection title="Thông tin hoạt động" >
+      <FormSection title="Thông tin chung" >
       <Field htmlFor="activity-cruiseId" label="Chuyến khởi hành *" error={errors.cruiseId}><select {...input('cruiseId')} disabled={Boolean(activityId||requestedCruise)||!permitted} value={draft.cruiseId} onChange={event=>{const nextCruiseId=event.target.value;const nextCruise=cruises.data?.find(item=>item.cruiseId===nextCruiseId);setDraft(current=>{const shouldPrefill=nextCruise&&!current.startTime&&!current.endTime;return {...current,cruiseId:nextCruiseId,deckId:null,cabinId:null,...(shouldPrefill?{startTime:localTime(nextCruise.departureDatetime),endTime:localTime(new Date(Math.min(Date.parse(nextCruise.departureDatetime)+2*3600_000,Date.parse(nextCruise.returnDatetime))).toISOString())}:{})}})}} required><option value="">Chọn chuyến khởi hành</option>{cruises.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}</select></Field>
       {(['activityName', 'location'] as const).map(key => <Field key={key} htmlFor={'activity-' + key} label={{ activityName: 'Tên hoạt động *', location: 'Địa điểm', currencyCode: 'Mã tiền tệ' }[key]} error={errors[key]}><input {...input(key)} maxLength={{ activityName: 200, location: 250, currencyCode: 3 }[key]} value={draft[key]} onChange={event => update(key, event.target.value)} /></Field>)}
       {venue.loading&&<p role="status">Đang đối chiếu vị trí trên tàu…</p>}{venue.error&&<Notice title="Chưa đối chiếu được boong" tone="warning">{venue.error.message}<Button tone="secondary" onClick={venue.retry}>Tải lại boong</Button></Notice>}
@@ -107,9 +106,8 @@ function ActivityEditor({ activityId }: { activityId: string }) {
       {(['startTime', 'endTime'] as const).map(key => <Field key={key} htmlFor={'activity-' + key} label={key === 'startTime' ? 'Bắt đầu *' : 'Kết thúc *'} error={errors[key]}><input {...input(key)} type="datetime-local" step={60} min={key === 'endTime' && draft.startTime ? draft.startTime : cruiseMin} max={cruiseMax} value={draft[key]} onChange={event => update(key, event.target.value)} /></Field>)}
       {(['capacity', 'price'] as const).map(key => <Field key={key} htmlFor={'activity-' + key} label={key === 'capacity' ? 'Sức chứa *' : 'Giá tham gia'} error={errors[key]}><input {...input(key)} type="number" min={key === 'capacity' ? 1 : 0} step={key === 'capacity' ? 1 : 'any'} value={draft[key] === null || Number.isNaN(draft[key]) ? '' : draft[key]} onChange={event => update(key, event.target.value === '' ? key === 'price' ? null : NaN : Number(event.target.value))} /></Field>)}
       <Field htmlFor="activity-currencyCode" label="Đơn vị tiền tệ" error={errors.currencyCode}>
-        <select {...input('currencyCode')} value={draft.currencyCode} onChange={event => update('currencyCode', event.target.value)}>
-          {!isActivityCurrency(draft.currencyCode) && <option value={draft.currencyCode}>{draft.currencyCode}</option>}
-          <option value="VND">VND · Đồng Việt Nam</option><option value="USD">USD · Đô la Mỹ</option>
+        <select {...input('currencyCode')} value={draft.currencyCode || 'VND'} onChange={event => update('currencyCode', event.target.value)}>
+          <option value="VND">VND · Đồng Việt Nam</option>
         </select>
       </Field>
       </FormSection><FormSection title="Nội dung giới thiệu" >

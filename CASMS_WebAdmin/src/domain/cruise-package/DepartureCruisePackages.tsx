@@ -560,7 +560,7 @@ function DepartureOffersWorkspace({cruiseId,onChanged,shipName,renderAssignment}
     {!creatingOffer&&data?.offers.length===0&&!access.canDo('TOUR_PACKAGE_ASSIGN')&&<Empty title="Chưa có gói du thuyền được gán"><p>{canManageTemplates ? 'Chọn phiên bản mẫu đã phát hành để thêm gói cho chuyến này.' : 'Đang chờ Quản lý hoạt động và dịch vụ cấu hình gói và gửi phiên bản giá.'}</p></Empty>}
     {data?.offers.map(item=><OfferCard key={item.offer.id} item={item} context={data.context} shipName={shipName} disabled={disabled} run={mutation.run} feedback={mutation.feedback} templates={templates}/>)}
     {creatingOffer&&<OfferForm key={data?.context.shipId} templates={templates} cruiseId={cruiseId} context={data?.context} shipName={shipName} disabled={disabled||!data?.context.canConfigure} run={mutation.run} busy={mutation.busy} feedback={mutation.feedback} onClose={()=>setCreatingOffer(false)}/>}
-    <CruisePackageAddons cruiseId={cruiseId} onChanged={onChanged}/>
+    <CruisePackageAddons cruiseId={cruiseId} locked={Boolean(data && !data.context.canConfigure)} onChanged={onChanged}/>
   </Panel>
 }
 

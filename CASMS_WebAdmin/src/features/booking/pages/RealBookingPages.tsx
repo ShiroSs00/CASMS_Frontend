@@ -47,7 +47,7 @@ export function RealBookingList() {
     const bookingAgent = access.roles.length === 1 && access.roles[0] === 'BOOKING_AGENT';
     const [openPanel, setOpenPanel] = useState<'lookup' | 'sale' | null>(null);
     return <RealBookingFrame><div className={agentStyles.workspace}>
-    <PageHeader title="Quản lý đặt chỗ" breadcrumb="" description="Theo dõi và xử lý đặt chỗ theo chuyến khởi hành." actions={<>{!bookingAgent && <><ButtonLink tone="secondary" to={root + '/cruises'}>Chuyến đang mở bán</ButtonLink><ButtonLink tone="secondary" to={root + '/lookup'}>Tra cứu bằng mã</ButtonLink></>}
+    <PageHeader title="Quản lý đặt chỗ" breadcrumb="" actions={<>{!bookingAgent && <><ButtonLink tone="secondary" to={root + '/cruises'}>Chuyến đang mở bán</ButtonLink><ButtonLink tone="secondary" to={root + '/lookup'}>Tra cứu bằng mã</ButtonLink></>}
         {access.roles.includes('BOOKING_AGENT') && access.canDo('BOOKING_CREATE') && <ButtonLink to={root + '/new'}>Đặt hộ tại quầy</ButtonLink>}</>}/>
     <section className={`${agentStyles.register} ${agentStyles.bookingTable}`} aria-labelledby="booking-register-heading">
       <div className={agentStyles.registerHeading}>
@@ -109,7 +109,7 @@ export function RealBookingList() {
       </div>
     </section>
     {openPanel === 'lookup' && <BookingLookup onClose={() => setOpenPanel(null)} />}
-    {openPanel === 'sale' && <Modal title="Chuyến đang mở bán" description="Xem ngày khởi hành và khả năng nhận đặt chỗ của từng chuyến."
+    {openPanel === 'sale' && <Modal title="Chuyến đang mở bán"
       onClose={() => setOpenPanel(null)} variant="drawer" quiet protectChanges={false}>
       <BookingSaleCatalogue inDrawer />
     </Modal>}

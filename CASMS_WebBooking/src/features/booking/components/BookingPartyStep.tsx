@@ -103,7 +103,7 @@ export function BookingPartyStep() {
 
   const currentShape = groups.map(g => g.members.length).join(',')
 
-  return <Panel title="Số phòng &amp; hành khách đi cùng" subtitle="Chọn nhanh cấu hình phổ biến hoặc tùy chỉnh số lượng khách trong từng phòng.">
+  return <Panel title="Số phòng &amp; hành khách đi cùng">
     <div className={styles.section}>
       <div className={styles.presetGrid} role="group" aria-label="Chọn nhanh số khách và số phòng">
         {partyPresets.map(preset => {
@@ -134,7 +134,7 @@ export function BookingPartyStep() {
                   {isLeadRoom && <span className={styles.leadTag}>Người đại diện</span>}
                 </div>
                 <p className={styles.muted}>
-                  {group.members.length} hành khách · Chọn gói du thuyền &amp; cabin ở Bước 2
+                  {group.members.length} hành khách
                 </p>
               </div>
               <div className={styles.roomCardRight}>

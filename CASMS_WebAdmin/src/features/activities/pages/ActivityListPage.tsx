@@ -78,11 +78,6 @@ export function ActivityListPage() {
       <PageHeader
         breadcrumb="QUẢN LÝ HOẠT ĐỘNG VÀ DỊCH VỤ"
         title="Hoạt động trên tàu"
-        description={
-          canCreate
-            ? 'Tạo mẫu hoạt động một lần trong Kho hoạt động mẫu, sau đó chọn mẫu để xếp ngày giờ & khu vực cụ thể cho từng chuyến khởi hành.'
-            : 'Theo dõi danh mục hoạt động mẫu và lịch các buổi hoạt động đã xếp trên từng chuyến khởi hành.'
-        }
         actions={
           <>
             <ButtonLink tone="secondary" to="/admin/activity-registrations">
@@ -134,20 +129,6 @@ export function ActivityListPage() {
       >
         {view === 'catalog' ? (
           <>
-            <div className={styles.modeBanner}>
-              <div className={styles.modeBannerText}>
-                <strong>Kho hoạt động mẫu dùng chung là gì?</strong>
-                <span>
-                  Đây là thư viện các hoạt động chuẩn (tên, nhóm, sức chứa mặc định, giá tham chiếu) chưa gắn ngày giờ — tạo 1 lần để chọn nhanh cho nhiều chuyến khác nhau.
-                </span>
-              </div>
-              {canCreate && (
-                <ButtonLink tone="secondary" size="compact" to="/admin/activities/new">
-                  Tạo mẫu mới →
-                </ButtonLink>
-              )}
-            </div>
-
             <Panel title="Danh sách hoạt động mẫu">
               <ListFilters
                 label="Tìm trong kho hoạt động mẫu"
@@ -178,7 +159,7 @@ export function ActivityListPage() {
                 </Empty>
               )}
               {catalogItems.length > 0 && (
-                <DataTable label="Kho hoạt động mẫu" headers={['Hoạt động mẫu', 'Sức chứa mặc định', 'Giá tham chiếu', '']}>
+                <DataTable label="Kho hoạt động mẫu" headers={['Hoạt động mẫu', 'Sức chứa mặc định', 'Giá tham chiếu', 'Thao tác']}>
                   {catalogItems.map(item => (
                     <tr key={item.id}>
                       <td>
@@ -186,7 +167,7 @@ export function ActivityListPage() {
                         <span className={styles.recordCode}>{item.code}</span>
                       </td>
                       <td>{item.capacity ?? 'Chưa cấu hình'}</td>
-                      <td>{item.price == null ? 'Chưa cấu hình' : `${item.price} ${item.currencyCode ?? ''}`}</td>
+                      <td>{item.price == null ? 'Chưa cấu hình' : `${item.price.toLocaleString('vi-VN')} ${item.currencyCode ?? ''}`}</td>
                       <td>
                         <Button
                           tone="secondary"
@@ -205,32 +186,6 @@ export function ActivityListPage() {
           </>
         ) : (
           <>
-            <div className={styles.modeBanner}>
-              <div className={styles.modeBannerText}>
-                <strong>Lịch hoạt động theo chuyến khác gì Kho mẫu?</strong>
-                <span>
-                  {canCreate ? (
-                    <>Đây là các buổi hoạt động đã được xếp ngày giờ và khu vực cụ thể trên từng chuyến khởi hành. Để thêm buổi mới, bấm <strong>+ Xếp lịch hoạt động cho chuyến</strong> và chọn chuyến cần cấu hình.</>
-                  ) : (
-                    'Đây là các buổi hoạt động đã được xếp ngày giờ và khu vực cụ thể trên từng chuyến khởi hành để theo dõi và điểm danh hành khách.'
-                  )}
-                </span>
-              </div>
-              {canCreate && (
-                <Button
-                  tone="secondary"
-                  size="compact"
-                  autoWidth
-                  onClick={() => {
-                    setPickerSearch('')
-                    setPickerOpen(true)
-                  }}
-                >
-                  Chọn chuyến để xếp lịch →
-                </Button>
-              )}
-            </div>
-
             <CollectionSummary
               count={query.loading || query.error ? null : query.data?.length ?? null}
               visible={items.length}
@@ -309,7 +264,7 @@ export function ActivityListPage() {
               {query.data && items.length > 0 && (
                 <DataTable
                   label="Lịch hoạt động theo chuyến"
-                  headers={['Hoạt động', 'Chuyến khởi hành', 'Thời gian', 'Địa điểm', 'Sức chứa', 'Trạng thái', '']}
+                  headers={['Hoạt động', 'Chuyến khởi hành', 'Thời gian', 'Địa điểm', 'Sức chứa', 'Trạng thái', 'Thao tác']}
                 >
                   {items.map(item => {
                     const cruiseInfo = item.cruiseId ? cruiseMap.get(item.cruiseId) : undefined

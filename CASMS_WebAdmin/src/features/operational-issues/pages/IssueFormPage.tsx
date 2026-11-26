@@ -60,7 +60,7 @@ export function IssueFormPage() {
         setForm({
           shipId: issue.ship.id,
           cruiseId: issue.cruise?.id ?? '',
-          cabinId: issue.cabin ?? '',
+          cabinId: issue.cabinId ?? '',
           issueType: issue.type,
           severity: issue.severity,
           description: issue.description,

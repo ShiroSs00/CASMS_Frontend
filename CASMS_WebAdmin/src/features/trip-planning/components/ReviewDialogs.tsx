@@ -69,10 +69,19 @@ export function HistoryDialog({versionId,tripId,onClose}:{versionId:string;tripI
     const content=await gateway.history(versionId,signal);return {content,totalPages:1,totalElements:content.length}
   },[gateway,versionId,tripId,page,scope]))
   const labels:Record<string,string>={SUBMIT:'Gửi mẫu theo quy trình cũ',RETURN:'Trả lại chỉnh sửa',PUBLISH:'Công bố mẫu theo quy trình cũ',FINALIZE:businessCopy('trip.template.FINALIZE_ACTION'),SAVE_CONTENT:'Lưu nội dung',SAVE_DRAFT:'Lưu nháp',CREATE_VERSION:'Tạo phiên bản',CREATE_SCHEDULE_VERSION:'Tạo phiên bản',CREATE_TRIP:'Tạo chuyến đi',PATCH_DRAFT:'Sửa thông tin chuyến',CLONE_TRIP:'Nhân bản chuyến',ARCHIVE_TRIP:'Lưu trữ chuyến',WITHDRAW:'Thu hồi mẫu theo quy trình cũ',CANCEL_DRAFT:'Hủy bản nháp',MANAGE_DAYS_ADD:'Thêm ngày',MANAGE_DAYS_REMOVE:'Xóa ngày'}
+  const formatAuditDetail = (detail?: string | null) => {
+    if (!detail) return ''
+    const pub = /^Published version (\d+)\.?$/i.exec(detail.trim())
+    if (pub) return `Đã chốt phiên bản ${pub[1]}`
+    const draft = /^Saved draft content with revision (\d+)\.?$/i.exec(detail.trim())
+    if (draft) return `Đã lưu nội dung nháp (lần chỉnh sửa ${draft[1]})`
+    const created = /^Created (?:schedule )?version (\d+)\.?$/i.exec(detail.trim())
+    if (created) return `Đã tạo phiên bản lịch trình ${created[1]}`
+    return detail
+  }
   return <Modal wide title="Lịch sử chuyến và lịch trình" onClose={onClose}>
     <div className={styles.actions}><Button tone={scope==='version'?'primary':'secondary'} onClick={()=>{setScope('version');setPage(0)}}>Phiên bản hiện tại</Button>{gateway.historyPage&&<Button tone={scope==='trip'?'primary':'secondary'} onClick={()=>{setScope('trip');setPage(0)}}>Thông tin chuyến</Button>}</div>
-    <p className={styles.muted}>{scope==='trip'?'Các thay đổi thông tin cấp chuyến; không gộp thành lịch sử của từng phiên bản.':'Các sự kiện riêng của phiên bản đang mở.'}</p>
-    {query.loading?<Loading/>:query.error?<Notice title="Chưa tải được lịch sử" tone="error">{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>:!query.data?.content.length?<Empty title="Chưa có lịch sử"/>:<ol className={styles.violations}>{query.data.content.map(row=><li key={row.auditId}><strong>{labels[row.action]??'Cập nhật dữ liệu'}</strong><p>{new Date(row.occurredAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'})} · {row.actorName||'Chưa có tên người thực hiện'} · {row.result==='SUCCESS'?'Thành công':row.result}</p><p>{row.detail}</p></li>)}</ol>}
+    {query.loading?<Loading/>:query.error?<Notice title="Chưa tải được lịch sử" tone="error">{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>:!query.data?.content.length?<Empty title="Chưa có lịch sử"/>:<ol className={styles.violations}>{query.data.content.map(row=><li key={row.auditId}><strong>{labels[row.action]??'Cập nhật dữ liệu'}</strong><p>{new Date(row.occurredAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'})} · {row.actorName||'Chưa có tên người thực hiện'} · {row.result==='SUCCESS'?'Thành công':row.result}</p><p>{formatAuditDetail(row.detail)}</p></li>)}</ol>}
     {query.data&&<div className={styles.pagination}><span>{query.data.totalElements} sự kiện · Trang {page+1}/{Math.max(1,query.data.totalPages)}</span><div className={styles.actions}><Button tone="secondary" disabled={!page||query.loading} onClick={()=>setPage(n=>n-1)}>Trang trước</Button><Button tone="secondary" disabled={query.loading||page+1>=query.data.totalPages} onClick={()=>setPage(n=>n+1)}>Trang sau</Button></div></div>}
   </Modal>
 }

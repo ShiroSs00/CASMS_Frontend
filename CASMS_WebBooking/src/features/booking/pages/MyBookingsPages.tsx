@@ -33,7 +33,6 @@ export function MyBookingsPage() {
         <PageHeader
           breadcrumb="TÀI KHOẢN / ĐẶT CHỖ CỦA TÔI"
           title="Đặt chỗ của tôi"
-          description="Xem danh sách đặt chỗ thuộc tài khoản của bạn, theo dõi lịch thanh toán và tạo mã VietQR trực tuyến."
         />
 
         {access.status === 'loading' && <p role="status">Đang kiểm tra phiên đăng nhập…</p>}
@@ -64,7 +63,7 @@ export function MyBookingsPage() {
                   </ButtonLink>
                 </Empty>
               ) : (
-                <>
+                <div className={styles.bookingsTableWrap}>
                   <DataTable
                     label="Đặt chỗ của bạn"
                     headers={['Mã đặt chỗ', 'Chuyến khởi hành', 'Trạng thái', 'Tổng giá vé', 'Ngày tạo', '']}
@@ -76,7 +75,7 @@ export function MyBookingsPage() {
                           <strong>{item.cruiseName}</strong>
                           {item.departureDatetime && <small>Khởi hành: {bookingWhen(item.departureDatetime)}</small>}
                         </td>
-                        <td style={{ whiteSpace: 'nowrap' }}>
+                        <td className={styles.statusCell}>
                           <Badge
                             label={bookingStatusName[item.bookingStatus] ?? item.bookingStatus}
                             tone={
@@ -88,15 +87,15 @@ export function MyBookingsPage() {
                             }
                           />
                         </td>
-                        <td className={styles.numericCell} style={{ whiteSpace: 'nowrap' }}>
+                        <td className={styles.numericCell}>
                           {item.agreedFareAmount != null && item.currency
                             ? bookingMoney(item.agreedFareAmount, item.currency)
                             : '—'}
                         </td>
                         <td style={{ whiteSpace: 'nowrap' }}>{bookingWhen(item.createdAt)}</td>
-                        <td style={{ whiteSpace: 'nowrap' }}>
-                          <ButtonLink tone="secondary" size="compact" autoWidth to={`/my-bookings/${item.bookingId}`}>
-                            {item.bookingStatus === 'Confirmed' ? 'Xem chi tiết' : 'Chi tiết & thanh toán'}
+                        <td className={styles.actionCell}>
+                          <ButtonLink tone="secondary" size="compact" autoWidth className={styles.tableActionBtn} to={`/my-bookings/${item.bookingId}`}>
+                            {item.bookingStatus === 'Confirmed' || item.bookingStatus === 'Cancelled' ? 'Xem chi tiết' : 'Chi tiết & thanh toán'}
                           </ButtonLink>
                         </td>
                       </tr>
@@ -127,7 +126,7 @@ export function MyBookingsPage() {
                       </Button>
                     </div>
                   )}
-                </>
+                </div>
               )
             )}
           </Panel>
@@ -162,7 +161,6 @@ export function MyBookingDetailPage() {
         <PageHeader
           breadcrumb="ĐẶT CHỖ CỦA TÔI / CHI TIẾT"
           title={detailQuery.data?.bookingReference ?? 'Chi tiết đặt chỗ'}
-          description="Kiểm tra thông tin chuyến, lịch thanh toán, tình trạng hợp đồng và thực hiện thủ tục trước khởi hành."
         />
 
         {access.status === 'loading' && <p role="status">Đang kiểm tra phiên đăng nhập…</p>}
@@ -199,6 +197,7 @@ export function MyBookingDetailPage() {
               key={detailQuery.data.bookingId}
               bookingId={detailQuery.data.bookingId}
               bookingStatus={detailQuery.data.bookingStatus}
+              departureDatetime={detailQuery.data.departureDatetime}
             />
           </>
         )}

@@ -75,7 +75,7 @@
 .publicJourney .rail :is(button,a) { max-width:100%; white-space:normal; }
 @media(max-width:1180px) { .publicJourney .layout > *, .publicJourney .lookupGrid > * { min-width:0; } }
 
-.steps a[aria-disabled='true'] { opacity:.55; cursor:default; }
+.steps a[aria-disabled='true'] { opacity:.55; cursor:default; text-decoration:none; }
 .steps a[data-complete='true'] { border-color:var(--color-teal-600,#007c83); }
 .installments { list-style:none; margin:24px 0; padding:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
 .installments li { min-width:0; display:flex; align-items:flex-start; gap:12px; padding:20px; border:1px solid #d5e1e1; border-radius:12px; background:#f5f9f8; }
@@ -162,8 +162,8 @@
 
 /* Finance & Payment Schedule Workbench */
 .financeWorkbench { display: grid; gap: 20px; min-width: 0; }
-.financeTabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; border: 1px solid #d6e0df; border-radius: 10px; background: #edf3f1; }
-.financeTab { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 16px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--text-secondary); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: none; }
+.financeTabs { display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; gap: 4px; padding: 5px; border: 1px solid #d6e0df; border-radius: 10px; background: #edf3f1; }
+.financeTab { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 6px; min-height: 38px; padding: 7px 12px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--text-secondary); font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: none; }
 .financeTab:hover { color: var(--brand-navy); background: rgb(255 255 255 / 60%); }
 .financeTab[aria-selected='true'] { background: #fff; color: var(--brand-navy); font-weight: 600; border-color: #c8d6d5; border-bottom: 2px solid var(--brand-teal); box-shadow: 0 1px 2px rgb(9 35 51 / 6%); }
 .financeTab:focus-visible { outline: 3px solid var(--ui-focus, var(--brand-teal)); outline-offset: 2px; }

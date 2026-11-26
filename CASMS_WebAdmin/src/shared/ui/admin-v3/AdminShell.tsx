@@ -28,14 +28,26 @@ export function AdminShell({ children, className = '', topbar, contextNavigation
   const menuButton = useRef<HTMLButtonElement>(null)
   const menuOpen = menu.path === pathname && menu.open
   useEffect(() => {
-    if (hash) {
-      const target = document.getElementById(hash.slice(1))
-      if (target) {
-        target.scrollIntoView({ behavior: 'auto', block: 'start' })
-        return
+    const resetScroll = () => {
+      if (hash) {
+        const target = document.getElementById(hash.slice(1))
+        if (target) {
+          target.scrollIntoView({ behavior: 'auto', block: 'start' })
+          return
+        }
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+      document.documentElement.scrollTop = 0
+      document.body.scrollTop = 0
+      const mainEl = document.getElementById('admin-v3-main')
+      if (mainEl) {
+        mainEl.scrollTop = 0
+        if (mainEl.parentElement) mainEl.parentElement.scrollTop = 0
       }
     }
-    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    resetScroll()
+    const raf = requestAnimationFrame(resetScroll)
+    return () => cancelAnimationFrame(raf)
   }, [pathname, hash])
   useEffect(() => {
     if (!menuOpen) return

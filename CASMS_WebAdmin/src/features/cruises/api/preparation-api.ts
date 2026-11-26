@@ -30,7 +30,7 @@ export function operatingBudgetInput(input: string) {
  return /^[1-9][0-9]{0,17}$/.test(digits) ? digits : null
 }
 export function formatOperatingBudget(amount:string) {
- return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(BigInt(amount))
+ return `${new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(BigInt(amount))} VND`
 }
 const root=(id:string)=>`/cruise/${encodeURIComponent(id)}/preparation`
 export function coordinatorDossierSections(sections: PreparationSection[]) {

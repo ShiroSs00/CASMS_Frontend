@@ -50,6 +50,7 @@ export type OperationalIssue = {
   displayTitle: string
   ship: ShipReference
   cruise: CruiseReference | null
+  cabinId?: string | null
   cabin: string | null
   type: IssueType
   severity: IssueSeverity

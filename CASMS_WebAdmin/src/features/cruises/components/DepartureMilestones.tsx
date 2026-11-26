@@ -122,7 +122,7 @@ export function DepartureMilestones({
           >
             <span aria-hidden="true">3</span>
             <div>
-              <strong>Bước 3: Nộp hồ sơ tour cho Quản lý vận hành</strong>
+              <strong>Bước 3: Nộp hồ sơ chuyến khởi hành</strong>
               <small>Kiểm tra tổng thể và gửi phê duyệt mở bán</small>
             </div>
           </button>
@@ -146,7 +146,7 @@ export function DepartureMilestones({
       </li>
       <li aria-current={current === 2 ? 'step' : undefined}>
         <span>3</span>
-        {receivingBookings ? 'Kiểm tra phạm vi nhận đặt chỗ' : 'Nộp hồ sơ tour cho Vận hành'}
+        {receivingBookings ? 'Kiểm tra phạm vi nhận đặt chỗ' : 'Nộp hồ sơ cho Vận hành'}
       </li>
     </ol>
   )

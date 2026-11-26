@@ -6,7 +6,7 @@ import type { BookingQuoteIntent } from '../api/booking-quote-api'
 import type { BookingPackageOption } from './LiveBookingFields'
 import { groupPassengers } from '../model/booking-party'
 import { cabinTypeName } from '../model/booking-presentation'
-import { bookingWhen } from '../model/real-booking-view'
+import { bookingBirthDate, bookingNationalityName, bookingWhen } from '../model/real-booking-view'
 import { bookingPlanLabels } from '../model/live-booking-navigation'
 import { UsdReference } from './UsdReference'
 import styles from './BookingParty.module.css'
@@ -100,11 +100,11 @@ export function BookingReviewStep({
                 </div>}
                 {p.dateOfBirth && <div>
                   <dt>Ngày sinh</dt>
-                  <dd>{p.dateOfBirth}</dd>
+                  <dd>{bookingBirthDate(p.dateOfBirth)}</dd>
                 </div>}
                 {p.nationality && <div>
                   <dt>Quốc tịch</dt>
-                  <dd>{p.nationality}</dd>
+                  <dd>{bookingNationalityName(p.nationality)}</dd>
                 </div>}
                 {p.documentNumber && <div>
                   <dt>{p.documentType === 'Passport' ? 'Hộ chiếu' : 'CCCD'}</dt>
@@ -205,10 +205,6 @@ export function BookingReviewStep({
                   </li>
                 ))}
               </ol>
-              <p className={styles.planRuleNote}>
-                <strong>Lưu ý về giữ chỗ &amp; thanh toán:</strong> Sau khi bấm <em>Xác nhận đặt chỗ</em>, hệ thống giữ cabin tạm thời đến hạn giữ chỗ.
-                Hoàn tất <strong>Đợt 1</strong> qua VietQR để xác nhận chính thức; các đợt tiếp theo bạn theo dõi và thanh toán đúng hạn trong mục <em>Đặt chỗ của tôi</em>.
-              </p>
             </div>
           )}
 

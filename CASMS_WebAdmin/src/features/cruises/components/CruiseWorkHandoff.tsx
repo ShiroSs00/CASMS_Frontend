@@ -140,7 +140,7 @@ export function CruiseWorkHandoff({
                   </details>
                 ) : (
                   canSend &&
-                  budgetAmount && <p className={workspaceStyles.sectionMeta}>Phân công Quản lý tàu cho tour để gửi yêu cầu xác nhận.</p>
+                  budgetAmount && <p className={workspaceStyles.sectionMeta}>Phân công Quản lý tàu cho chuyến để gửi yêu cầu xác nhận.</p>
                 )}
               </section>
             )
@@ -726,7 +726,7 @@ function WorkItem({ task, onChanged }: { task: Task; onChanged: () => void }) {
                 </p>
                 <div className={styles.inlineActions}>
                   <ButtonLink to={cruisePath + programContext} tone="secondary" autoWidth>
-                    Mở chương trình của tour →
+                    Mở chương trình chuyến khởi hành →
                   </ButtonLink>
                 </div>
               </div>

@@ -672,6 +672,50 @@
   white-space: nowrap;
 }
 
+@media (max-width: 1280px) {
+  .content table th,
+  .content table td {
+    padding: 8px 5px;
+    font-size: 12px;
+  }
+  .shipTag {
+    max-width: 98px;
+    padding: 3px 6px;
+    font-size: 11px;
+    gap: 4px;
+  }
+  .queuePrimaryCell {
+    min-width: 0;
+  }
+  .queuePrimaryCell strong {
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+  .queueCodeBadge {
+    font-size: 11px;
+    padding: 1px 5px;
+    white-space: normal;
+  }
+  .queueTime, .queueDepDate {
+    font-size: 11px;
+    white-space: normal;
+  }
+  .queueStatusBadges {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .queueStatusBadges :global(span) {
+    min-height: 24px;
+    padding: 2px 7px;
+    font-size: 11px;
+  }
+  .queueActionCell :is(a, button) {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+}
+
 .queuePaginationBar {
   display: flex;
   flex-wrap: wrap;

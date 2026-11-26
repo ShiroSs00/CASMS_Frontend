@@ -19,7 +19,25 @@ export function CruisePreparationOverview({
   onRetry: () => void
 }) {
   const { cruise } = detail
-  const state = !loading && !error && plan ? planReviewStates[plan.planStatus] : null
+  const baseState = !loading && !error && plan ? planReviewStates[plan.planStatus] : null
+  const state = (() => {
+    if (cruise.status === 'PUBLISHED' && cruise.stoppedAt) {
+      return { title: 'Đã tạm dừng mở bán', tone: 'error' as const, description: 'Chuyến khởi hành đã tạm dừng nhận đặt chỗ mới.' }
+    }
+    if (cruise.status === 'PUBLISHED' && cruise.openedForSaleAt) {
+      return { title: 'Đang mở bán', tone: 'success' as const, description: 'Hồ sơ đã được phê duyệt và chuyến khởi hành đang mở bán cho hành khách.' }
+    }
+    if (cruise.status === 'IN_PROGRESS') {
+      return { title: 'Đang vận hành', tone: 'info' as const, description: 'Chuyến khởi hành đang trong hành trình thực tế.' }
+    }
+    if (cruise.status === 'COMPLETED') {
+      return { title: 'Hoàn thành', tone: 'success' as const, description: 'Chuyến khởi hành đã hoàn tất.' }
+    }
+    if (cruise.status === 'CANCELLED') {
+      return { title: 'Đã hủy', tone: 'error' as const, description: 'Chuyến khởi hành đã bị hủy.' }
+    }
+    return baseState
+  })()
   const source = [
     cruise.sourceTripCode,
     cruise.sourceVersionNumber != null ? `Phiên bản ${cruise.sourceVersionNumber}` : null,

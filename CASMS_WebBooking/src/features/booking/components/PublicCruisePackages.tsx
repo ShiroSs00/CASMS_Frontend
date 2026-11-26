@@ -6,7 +6,6 @@ import { cabinTypeName } from '../model/booking-presentation'
 import { cabinPhotoForType } from '../model/cruise-port-photos'
 import { cruiseDetailSections } from '../model/live-booking-navigation'
 import { publicContentFailure } from '../model/public-content-feedback'
-import { useUsdReference } from './UsdReference'
 import styles from './CruiseDetail.module.css'
 
 const inclusionLabels = {
@@ -20,7 +19,6 @@ type Catalog = Awaited<ReturnType<typeof cruisePackageApi.available>>
 type CatalogOffer = Catalog['offers'][number]
 export type CruisePackageRead = ReturnType<typeof useReadQuery<Catalog>>
 
-type DisplayRate = { effectiveOn: string; vndPerUsd: number; source: string }
 const money = (amount: number, currency: string) =>
   `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: currency === 'VND' ? 0 : 2 }).format(amount)} ${currency}`
 
@@ -31,13 +29,11 @@ function amountUnits(amount: string) {
 
 function OfferCard({
   offer,
-  rate,
   isLowest,
   bookingUrl,
   onInspectBenefits,
 }: {
   offer: CatalogOffer
-  rate?: DisplayRate | null
   isLowest?: boolean
   bookingUrl?: string
   onInspectBenefits?: () => void
@@ -78,9 +74,6 @@ function OfferCard({
         <p className={styles.offerPrice}>
           <strong>{money(Number(selection.amount), offer.currencyCode)}</strong><span> / người</span>
         </p>
-        {rate && offer.currencyCode === 'VND' && <p className={styles.timeNote}>
-          Ước tính {money(Number(selection.amount) / rate.vndPerUsd, 'USD')} mỗi người
-        </p>}
       </div>
       <div className={styles.offerActions}>
         {onInspectBenefits && selection.benefits.length > 0 && (
@@ -103,12 +96,8 @@ export function PublicCruisePackages({
   query: CruisePackageRead
   bookingUrl?: string
 }) {
-  const [showUsd, setShowUsd] = useState(false)
   const [activeCabinTab, setActiveCabinTab] = useState<string>('ALL')
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([])
-
-  const hasVnd = query.data?.offers.some(offer => offer.currencyCode === 'VND') ?? false
-  const { rate, loading: rateLoading } = useUsdReference(showUsd && hasVnd)
 
   const groups = new Map<string, CatalogOffer[]>()
   for (const offer of query.data?.offers ?? []) {
@@ -163,15 +152,7 @@ export function PublicCruisePackages({
         <p className={styles.sectionEyebrow}>LỰA CHỌN LƯU TRÚ &amp; TRẢI NGHIỆM</p>
         <h2 id="public-packages-heading" tabIndex={-1}>Hạng cabin &amp; gói du thuyền</h2>
       </div>
-      {hasVnd && <div className={styles.usdToggle}>
-        <Button tone="secondary" size="compact" autoWidth aria-pressed={showUsd} onClick={() => setShowUsd(value => !value)}>
-          {showUsd ? 'Ẩn giá USD tham khảo' : 'Xem giá USD tham khảo'}
-        </Button>
-      </div>}
     </div>
-    {showUsd && hasVnd && <p className={styles.timeNote} role="status">{rateLoading ? 'Đang tải tỷ giá…'
-      : rate ? `Giá USD ước tính theo tỷ giá ngày ${rate.effectiveOn.split('-').reverse().join('/')}. Bạn thanh toán bằng VND.`
-        : 'Chưa có tỷ giá tham khảo. Bạn vẫn có thể đặt và thanh toán bằng VND.'}</p>}
 
     {/* UX: Hick's Law & Carbon Tabs — filter cabin types cleanly with full keyboard support */}
     {groups.size > 1 && <div className={styles.cabinTabs} role="tablist" aria-label="Lọc theo hạng cabin">
@@ -208,7 +189,6 @@ export function PublicCruisePackages({
           <OfferCard
             key={offer.selection.offerId}
             offer={offer}
-            rate={rate}
             isLowest={Boolean(query.data && query.data.offers.length > 1 && lowestUnits !== undefined && amountUnits(offer.selection.amount) === lowestUnits)}
             bookingUrl={bookingUrl}
             onInspectBenefits={scrollToBenefits}

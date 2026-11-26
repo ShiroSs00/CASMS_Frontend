@@ -9,7 +9,7 @@ import styles from '../components/BookingAgent.module.css'
 
 export function BookingSaleCruises() {
   return <RealBookingFrame><div className={styles.workspace}>
-    <PageHeader title="Chuyến đang mở bán" breadcrumb="" description="Kiểm tra chuyến có thể nhận đặt chỗ."
+    <PageHeader title="Chuyến đang mở bán" breadcrumb=""
       actions={<ButtonLink to="/admin/bookings" tone="secondary">Về danh sách đặt chỗ</ButtonLink>} />
     <BookingSaleCatalogue />
   </div></RealBookingFrame>

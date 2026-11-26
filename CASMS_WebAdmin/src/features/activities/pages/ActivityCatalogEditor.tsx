@@ -82,7 +82,7 @@ export function ActivityCatalogEditor({ initial }: { initial?: ActivityCatalogEn
     <EditorLayout><Panel title="Thông tin hoạt động"><form ref={form} onSubmit={submit} noValidate>
       <FormErrorSummary errors={errors} />
       <fieldset className={styles.form} disabled={busy || uncertain || !allowed}>
-        <FormSection title="Thông tin hoạt động">
+        <FormSection title="Thông tin chung">
         <Field htmlFor="catalog-activity-name" label="Tên hoạt động *" error={errors.activityName}><input id="catalog-activity-name" required maxLength={200} value={draft.activityName} onChange={e => update('activityName', e.target.value)} /></Field>
         <Field htmlFor="catalog-activity-category" label="Nhóm hoạt động"><select id="catalog-activity-category" value={draft.category} onChange={e => update('category', e.target.value)}>
           <option value="">Chưa phân nhóm</option>{Object.entries(categories).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -90,11 +90,10 @@ export function ActivityCatalogEditor({ initial }: { initial?: ActivityCatalogEn
         </FormSection>
         <FormSection title="Giá và sức chứa">
         <Field htmlFor="catalog-activity-capacity" label="Sức chứa *" error={errors.capacity}><input id="catalog-activity-capacity" type="number" min={1} max={2147483647} step={1} required value={draft.capacity} onChange={e => update('capacity', e.target.value)} /></Field>
-        <Field htmlFor="catalog-activity-price" label="Giá tham chiếu" error={errors.price}><input id="catalog-activity-price" type="number" min={0} step="any" value={draft.price} onChange={e => update('price', e.target.value)} /></Field>
+        <Field htmlFor="catalog-activity-price" label="Giá tham chiếu (VND)" error={errors.price}><input id="catalog-activity-price" type="number" min={0} step="any" value={draft.price} onChange={e => update('price', e.target.value)} /></Field>
         <Field htmlFor="catalog-activity-currency" label="Đơn vị tiền tệ" error={errors.currencyCode}>
-          <select value={draft.currencyCode} onChange={e => update('currencyCode', e.target.value)}>
-            {!isActivityCurrency(draft.currencyCode) && <option value={draft.currencyCode}>{draft.currencyCode}</option>}
-            <option value="VND">VND · Đồng Việt Nam</option><option value="USD">USD · Đô la Mỹ</option>
+          <select id="catalog-activity-currency" value={draft.currencyCode || 'VND'} onChange={e => update('currencyCode', e.target.value)}>
+            <option value="VND">VND · Đồng Việt Nam</option>
           </select>
         </Field>
         </FormSection>

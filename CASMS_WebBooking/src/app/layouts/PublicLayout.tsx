@@ -70,6 +70,7 @@ export function PublicLayout() {
             tone="secondary"
             size="compact"
             autoWidth
+            className={styles.headerLogout}
             title={user?.username ? `Đăng xuất tài khoản ${user.username}` : 'Đăng xuất'}
             aria-label={user?.username ? `Đăng xuất tài khoản ${user.username}` : 'Đăng xuất'}
             onClick={() => void logout()}

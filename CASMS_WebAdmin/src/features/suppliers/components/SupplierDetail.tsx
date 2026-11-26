@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Badge, Button, ButtonLink, Field, Modal, Notice, PageHeader, Panel, RecordFacts } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
-import { supplierDateTime, supplierStatusLabels, supplierVerificationLabels, type SupplierListItem, type SupplierVerification } from '../model/supplier-list'
+import { supplierDateTime, supplierStatusLabels, supplierTypeLabels, supplierVerificationLabels, type SupplierListItem, type SupplierVerification } from '../model/supplier-list'
 import type { SupplierVerificationRequest } from '../api/supplier-api'
 import styles from './SupplierDetailPresentation.module.css'
 
@@ -31,7 +31,7 @@ export function SupplierDetail({ supplier, embedded = false, actionInProgress = 
   }
   const actions = <div className={styles.actions}>
     {access.canDo('SUPPLIER_UPDATE') && <ButtonLink to={`/admin/suppliers/${supplier.id}/edit`}>Chỉnh sửa</ButtonLink>}
-    {access.canDo('SUPPLIER_VERIFY') && <Button tone="secondary" disabled={actionInProgress !== null} onClick={() => setShowVerifyModal(true)}>Xác minh nhà cung cấp</Button>}
+    {access.canDo('SUPPLIER_VERIFY') && supplier.verificationStatus !== 'VERIFIED' && <Button tone="secondary" disabled={actionInProgress !== null} onClick={() => setShowVerifyModal(true)}>Xác minh nhà cung cấp</Button>}
     {access.canDo('SUPPLIER_STATUS_CHANGE') && <Button tone="secondary" busy={isStatusBusy} disabled={supplier.status === 'INACTIVE' && !canActivate} onClick={onToggleStatus}>{supplier.status === 'ACTIVE' ? 'Tạm dừng' : 'Kích hoạt'}</Button>}
     {access.canDo('SUPPLIER_DELETE') && <Button tone="danger" disabled={actionInProgress !== null} onClick={() => setShowDeleteModal(true)}>Xóa</Button>}
     <ButtonLink tone="secondary" to={`/admin/shore-excursions?supplierId=${supplier.id}`}>Các chuyến tham quan</ButtonLink>
@@ -41,7 +41,7 @@ export function SupplierDetail({ supplier, embedded = false, actionInProgress = 
     {actionFeedback && <Notice title={actionFeedback.type === 'error' ? 'Chưa thực hiện được' : 'Đã cập nhật'} tone={actionFeedback.type === 'error' ? 'error' : 'success'}>{actionFeedback.message}{onDismissFeedback && <Button tone="text" onClick={onDismissFeedback}>Đóng thông báo</Button>}</Notice>}
     <div className={styles.statuses}><Badge label={supplierStatusLabels[supplier.status]} tone={supplier.status === 'ACTIVE' ? 'success' : 'neutral'} /><Badge label={supplierVerificationLabels[supplier.verificationStatus]} tone={supplier.verificationStatus === 'VERIFIED' ? 'success' : supplier.verificationStatus === 'REJECTED' ? 'error' : 'warning'} /></div>
     <Panel title="Thông tin nhà cung cấp"><RecordFacts entries={[
-      ['Loại đối tác', supplier.supplierType || 'Chưa phân loại'], ['Ghi chú', supplier.notes || 'Chưa có ghi chú'],
+      ['Loại đối tác', (supplier.supplierType && supplierTypeLabels[supplier.supplierType]) || supplier.supplierType || 'Chưa phân loại'], ['Ghi chú', supplier.notes || 'Chưa có ghi chú'],
       ['Tên liên hệ', supplier.contactName || 'Chưa có tên liên hệ'], ['Email', supplier.contactEmail || 'Chưa có email'],
       ['Điện thoại', supplier.contactPhone || 'Chưa có số điện thoại'], ['Cập nhật', supplierDateTime(supplier.updatedAt)],
       ['Tạo lúc', supplierDateTime(supplier.createdAt)],

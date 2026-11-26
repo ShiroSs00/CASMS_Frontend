@@ -34,7 +34,7 @@ export function ReopenIssueForm({ open, pending, error, onClose, onSubmit }: Pro
         </>
       }
     >
-      <p>Sự cố sẽ trở về trạng thái OPEN.</p>
+      <p>Sự cố sẽ trở về trạng thái Chờ xử lý.</p>
       <div className={styles.warningBanner}>
         Kết quả xử lý, thông tin người xử lý và xác minh trước đó sẽ bị xóa.
       </div>

@@ -340,7 +340,6 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
           <strong>{formatSummaryMoney(quoteIntent.quote.installments[0].amount)}</strong>
         </div>
       )}
-      <p className={flow.muted}>{usable && quoteIntent ? 'Đã bao gồm thuế và phí cảng. Chưa thu tiền ở bước này.' : 'Chưa bao gồm thuế & phí cảng. Sẽ tự động tính đầy đủ ở bước Xác nhận.'}</p>
     </div>
   </>}>
     {(uncertain || quoteUnknown) && <div ref={recovery} tabIndex={-1} role="region" aria-label="Cần đối chiếu kết quả"><Notice title={uncertain ? 'Cần kiểm tra kết quả trước khi đặt lại' : 'Chưa nhận được kết quả báo giá'} tone="warning"><p>{uncertain ? 'Hệ thống có thể đã tiếp nhận yêu cầu. Đã khóa gửi lại để tránh tạo trùng. Nếu chưa có mã, liên hệ bộ phận hỗ trợ để kiểm tra bằng thông tin người đại diện.' : 'Chưa có mã báo giá để đối chiếu. Thông tin đã nhập được giữ; vui lòng liên hệ bộ phận hỗ trợ trước khi tiếp tục.'}</p><ButtonLink tone="secondary" to="/booking/lookup">Tra cứu khi đã có mã</ButtonLink></Notice></div>}
@@ -455,7 +454,6 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
               </div>
               {errors['real-booking-plan'] && <p className={flow.inlineError} role="alert">{errors['real-booking-plan']}</p>}
             </div>
-            <p className={flow.muted}>Bước này chưa thu tiền. Sang bước tiếp theo, hệ thống sẽ tự động hiển thị chính xác số tiền và ngày đến hạn của từng đợt.</p>
             <Field htmlFor="real-booking-notes" label="Ghi chú đặc biệt (tùy chọn)" error={errors['real-booking-notes']}><textarea id="real-booking-notes" maxLength={500} placeholder="Ví dụ: yêu cầu chế độ ăn, kỷ niệm ngày cưới, hỗ trợ di chuyển…" value={draft.notes} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} /></Field>
           </div></Panel>
         </>}

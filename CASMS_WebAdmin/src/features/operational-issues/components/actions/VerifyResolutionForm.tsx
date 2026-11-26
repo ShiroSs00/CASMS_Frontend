@@ -16,7 +16,7 @@ export function VerifyResolutionForm({ open, pending, error, onClose, onSubmit }
       pending={pending}
       error={error}
       title="Xác minh resolution"
-      description="Xác nhận kết quả xử lý để chuyển sự cố sang RESOLVED."
+      description="Xác nhận kết quả xử lý sự cố."
       onClose={onClose}
       footer={
         <>

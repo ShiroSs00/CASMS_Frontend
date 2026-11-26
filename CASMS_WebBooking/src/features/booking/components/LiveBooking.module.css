@@ -214,3 +214,12 @@
 .qrTransferCode { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 16px; font-weight: 700; letter-spacing: 0.02em; color: var(--brand-navy); user-select: all; }
 .copyStatus { margin: 0; font-size: 13px; font-weight: 600; color: var(--brand-teal); }
 
+/* Keep My Bookings table scannable at laptop widths without crushing pills/buttons into 3 lines. */
+.bookingsTableWrap { min-width: 0; }
+.bookingsTableWrap table { min-width: 820px; }
+.bookingsTableWrap th, .bookingsTableWrap td { padding: 14px 12px; }
+.statusCell { white-space: nowrap; }
+.statusCell > span { white-space: nowrap !important; overflow-wrap: normal !important; }
+.actionCell { white-space: nowrap; width: 1%; }
+.tableActionBtn { white-space: nowrap !important; overflow-wrap: normal !important; flex: 0 0 auto; }
+

@@ -87,7 +87,7 @@ export function ShipListPage() {
 
   return <AdminShell><div className={`${styles.stack} ${styles.designPage}`}>
     <PageHeader breadcrumb="Quản lý tàu / Danh sách tàu" title="Quản lý tàu"
-      description="Tra cứu và quản lý các tàu trong phạm vi được phân công."
+      description=""
       actions={access.roles.includes('SHIP_MANAGER') && <ButtonLink to="/admin/ships/new">Thêm tàu</ButtonLink>} />
     {state?.archivedShipName && <Notice title="Đã lưu trữ tàu" tone="success">{state.archivedShipName}</Notice>}
     <Filters key={shipListParams(filters, 0).toString()} filters={filters} options={typeOptions} canViewArchive={canViewArchive}

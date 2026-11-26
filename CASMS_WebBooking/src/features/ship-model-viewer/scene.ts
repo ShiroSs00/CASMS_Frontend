@@ -17,7 +17,8 @@ export function createModelScene(host: HTMLDivElement, onPick: (name: string)=>v
   const overlay=new THREE.Group();scene.add(overlay);let placing=false
   const render=()=>{if(!disposed) renderer.render(scene,camera)}
   controls.addEventListener('change',render)
-  const resize=new ResizeObserver(()=>{if(disposed)return; const {width,height}=host.getBoundingClientRect(); renderer.setSize(width,height);camera.aspect=width/Math.max(height,1);camera.updateProjectionMatrix();render()});resize.observe(host)
+  const syncSize=()=>{if(disposed)return; const {width,height}=host.getBoundingClientRect(); if(width>0&&height>0){renderer.setSize(width,height);camera.aspect=width/Math.max(height,1);camera.updateProjectionMatrix()} render()}
+  const resize=new ResizeObserver(syncSize);resize.observe(host)
   const bounds=()=>root?new THREE.Box3().setFromObject(root):new THREE.Box3(new THREE.Vector3(-1,-1,-1),new THREE.Vector3(1,1,1))
   function frame(box:THREE.Box3,view:CameraView='perspective') {
     const center=box.getCenter(new THREE.Vector3()), size=box.getSize(new THREE.Vector3())
@@ -36,7 +37,7 @@ export function createModelScene(host: HTMLDivElement, onPick: (name: string)=>v
   function clearMarkers(){while(overlay.children.length){const child=overlay.children[0];overlay.remove(child);disposeRoot(child)}}
   renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointerup',pick);renderer.domElement.addEventListener('webglcontextlost',onLost)
   return {
-    async load(bytes:ArrayBuffer){const manager=new THREE.LoadingManager();manager.setURLModifier(url=>{if(!url.startsWith('blob:')&&!url.startsWith('data:'))throw new Error('Model GLB tham chiếu tài nguyên ngoài gói. Cần gói GLB tự chứa.');return url});const gltf=await new GLTFLoader(manager).parseAsync(bytes,'');if(disposed){disposeRoot(gltf.scene);return}if(root){scene.remove(root);disposeRoot(root)}clearHighlight();root=gltf.scene;scene.add(root);frame(bounds())},
+    async load(bytes:ArrayBuffer){const manager=new THREE.LoadingManager();manager.setURLModifier(url=>{if(!url.startsWith('blob:')&&!url.startsWith('data:'))throw new Error('Model GLB tham chiếu tài nguyên ngoài gói. Cần gói GLB tự chứa.');return url});const gltf=await new GLTFLoader(manager).parseAsync(bytes,'');if(disposed){disposeRoot(gltf.scene);return {meshCount:0}}if(root){scene.remove(root);disposeRoot(root)}clearHighlight();root=gltf.scene;let meshCount=0;root.traverse(node=>{if(node instanceof THREE.Mesh)meshCount+=1});scene.add(root);syncSize();frame(bounds());requestAnimationFrame(()=>{if(!disposed&&root){syncSize();frame(bounds())}});return {meshCount}},
     view:(view:CameraView)=>frame(bounds(),view),
     zoom:(factor:number)=>{camera.position.sub(controls.target).multiplyScalar(factor).add(controls.target);controls.update();render()},
     select:(name:string,focus:boolean)=>{clearHighlight();const object=root?.getObjectByName(name);if(!object){render();return false}highlight=new THREE.BoxHelper(object,0xf4ac28);highlight.material.depthTest=false;highlight.material.transparent=true;highlight.renderOrder=20;scene.add(highlight);if(focus)frame(new THREE.Box3().setFromObject(object));else render();return true},

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 
 import { operationalIssuesApi, type IssueListResult } from '../api/operational-issues-api'
+import { issueLocationApi } from '../api/location-lookup-api'
+import type { CruiseReference, ShipReference } from '../model/issue'
 import {
   DEFAULT_ISSUE_QUERY,
   parseIssueQuery,
@@ -19,7 +21,22 @@ export function useIssueList() {
   const query = useMemo(() => parseIssueQuery(searchParams), [searchParams])
   const queryKey = useMemo(() => serializeIssueQuery(query).toString(), [query])
   const [state, setState] = useState<ListState>({ status: 'loading', data: null, error: null })
+  const [catalogShips, setCatalogShips] = useState<ShipReference[]>([])
+  const [catalogCruises, setCatalogCruises] = useState<CruiseReference[]>([])
   const requestSequence = useRef(0)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void Promise.all([
+      issueLocationApi.ships(controller.signal).catch(() => []),
+      issueLocationApi.cruises(controller.signal).catch(() => []),
+    ]).then(([shipRows, cruiseRows]) => {
+      if (controller.signal.aborted) return
+      setCatalogShips(shipRows.map(s => ({ id: s.shipId, name: s.shipName })))
+      setCatalogCruises(cruiseRows.filter(c => Boolean(c.shipId)).map(c => ({ id: c.cruiseId, code: c.cruiseCode, name: c.cruiseName, shipId: c.shipId ?? '' })))
+    })
+    return () => controller.abort()
+  }, [])
 
   const request = useCallback(() => {
     const sequence = ++requestSequence.current
@@ -71,7 +88,7 @@ export function useIssueList() {
     resetQuery: () => setSearchParams(serializeIssueQuery(DEFAULT_ISSUE_QUERY)),
     retry: load,
     handlers: [...new Map((state.data?.items.flatMap((item) => item.assignedTo ? [item.assignedTo] : []) ?? []).map((item) => [item.id, item])).values()],
-    ships: [...new Map((state.data?.items.map((item) => item.ship) ?? []).map((item) => [item.id, item])).values()],
-    cruises: [...new Map((state.data?.items.flatMap((item) => item.cruise ? [item.cruise] : []) ?? []).map((item) => [item.id, item])).values()],
+    ships: [...new Map([...catalogShips, ...(state.data?.items.map((item) => item.ship) ?? [])].map((item) => [item.id, item])).values()],
+    cruises: [...new Map([...catalogCruises, ...(state.data?.items.flatMap((item) => item.cruise ? [item.cruise] : []) ?? [])].map((item) => [item.id, item])).values()],
   }
 }

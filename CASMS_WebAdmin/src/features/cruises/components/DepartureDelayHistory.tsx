@@ -21,7 +21,7 @@ export function DepartureDelayHistory({
   )
   const data = query.data
   return (
-    <Panel title="Lịch sử dời giờ khởi hành" subtitle="Các mốc giờ hiển thị theo giờ Việt Nam.">
+    <Panel title="Lịch sử dời giờ khởi hành">
       <ReadState {...query} />
       {data && (
         <>

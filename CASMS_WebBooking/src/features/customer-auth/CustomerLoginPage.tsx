@@ -94,7 +94,8 @@ export function CustomerLoginPage() {
               </Field>
               <div className={styles.actions}>
                 <Button
-                  tone="text"
+                  tone="secondary"
+                  size="compact"
                   autoWidth
                   aria-pressed={showPassword}
                   onClick={() => setShowPassword(value => !value)}

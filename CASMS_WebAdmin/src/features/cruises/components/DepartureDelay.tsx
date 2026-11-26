@@ -72,7 +72,7 @@ export function DepartureDelay({ id, userId, revision, eligible, refreshKey, onC
   }
   const stale = preview && (preview.data.revision !== revision || delay.seconds === 0 || !eligible)
 
-  return <Panel title="Dời giờ khởi hành" subtitle="Xem ảnh hưởng đến lịch chuyến trước khi xác nhận giờ mới.">
+  return <Panel title="Dời giờ khởi hành">
     {canReadGate && <><ReadState {...gate} />{gate.data && <p>Điều kiện khởi hành · {gate.data.ready ? 'Đạt' : 'Chưa đạt'}</p>}</>}
     {delay.success && <Notice title="Đã xác nhận dời giờ" tone="success">Giờ mới được tải lại từ hệ thống.</Notice>}
     {!eligible && !pending.request && !delay.success && <p>Chỉ có thể dời giờ cho chuyến đã phát hành và còn trước giờ khởi hành.</p>}

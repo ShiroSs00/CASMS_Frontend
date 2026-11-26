@@ -44,9 +44,9 @@ export function CruisePlanWorkspace({
 
   if (coordinator) {
     return (
-      <section className={styles.planWorkspace} aria-label="Chuẩn bị tour">
+      <section className={styles.planWorkspace} aria-label="Chuẩn bị chuyến khởi hành">
         <header className={styles.planWorkspaceHeader}>
-          <h2>Chuẩn bị tour</h2>
+          <h2>Chuẩn bị chuyến khởi hành</h2>
           {sections.includes('preparation') && (
             <Button tone="secondary" onClick={() => onSection('preparation')}>
               Xem hồ sơ xét duyệt

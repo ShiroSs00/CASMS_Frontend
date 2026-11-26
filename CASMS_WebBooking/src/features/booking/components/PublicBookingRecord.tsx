@@ -5,7 +5,7 @@ import { Badge, DataTable, Notice, Panel } from '@/shared/ui'
 import type { BookingDetail } from '../api/real-booking-api'
 import { bookingMoney } from '../model/booking-presentation'
 import { financialMoney, paymentState } from '../model/booking-financials'
-import { bookingStatusName, bookingWhen, bookingPlanName } from '../model/real-booking-view'
+import { bookingBirthDate, bookingNationalityName, bookingStatusName, bookingWhen, bookingPlanName } from '../model/real-booking-view'
 import styles from './LiveBooking.module.css'
 
 export function PublicBookingRecord({
@@ -119,20 +119,11 @@ export function PublicBookingRecord({
           <p>Đặt chỗ đã hủy. Số dư hiển thị không phải yêu cầu thanh toán hoặc xác nhận hoàn tiền.</p>
         )}
         <BookingInstallments booking={booking} />
-        {booking.fullyPaid === true && booking.contractStatus === 'Accepted' ? (
-          <p className={styles.helper}>Đặt chỗ đã hoàn tất thanh toán đầy đủ và được ghi nhận chấp thuận hợp đồng.</p>
-        ) : (
-          <>
-            {booking.bookingStatus !== 'Cancelled' && (booking.outstandingBalance == null || booking.outstandingBalance > 0) && (
-              <p className={styles.helper}>Thực hiện thanh toán theo hướng dẫn hợp đồng và lưu chứng từ để đối soát.</p>
-            )}
-            {booking.contractSigningInstructions && booking.contractStatus !== 'Accepted' && (
-              <div className={styles.selection}>
-                <strong>Hướng dẫn hợp đồng</strong>
-                <p>{booking.contractSigningInstructions}</p>
-              </div>
-            )}
-          </>
+        {booking.contractSigningInstructions && booking.contractStatus !== 'Accepted' && (
+          <div className={styles.selection}>
+            <strong>Hướng dẫn hợp đồng</strong>
+            <p>{booking.contractSigningInstructions}</p>
+          </div>
         )}
       </Panel>
       <Panel title="Hành khách & phòng">
@@ -155,11 +146,11 @@ export function PublicBookingRecord({
               <dl className={styles.recordFacts}>
                 <div>
                   <dt>Ngày sinh</dt>
-                  <dd>{person.dateOfBirth ?? 'Chưa cung cấp'}</dd>
+                  <dd>{bookingBirthDate(person.dateOfBirth)}</dd>
                 </div>
                 <div>
                   <dt>Quốc tịch</dt>
-                  <dd>{person.nationality ?? 'Chưa cung cấp'}</dd>
+                  <dd>{bookingNationalityName(person.nationality)}</dd>
                 </div>
                 <div>
                   <dt>Email</dt>
@@ -172,7 +163,6 @@ export function PublicBookingRecord({
               </dl>
             </section>
           ))}
-          <p className={styles.helper}>Liên hệ bộ phận đặt chỗ nếu cần cập nhật thông tin hành khách.</p>
         </Panel>
       )}
     </div>

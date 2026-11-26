@@ -31,7 +31,7 @@ const tools: readonly AdminNavigationItem[] = [
   { label:'Quy định', to:'/admin/regulations', permissionMode:'ANY', permissions:['REGULATION_READ'] },
   { label:'Sự cố vận hành', to:'/admin/issues', permissionMode:'ANY', permissions:['OPERATIONAL_ISSUE_READ'] },
   { label:'Nhà cung cấp', to:'/admin/suppliers', permissionMode:'ANY', permissions:['SUPPLIER_READ'] },
-  { label:'Tour tham quan trên bờ', to:'/admin/shore-excursions', permissionMode:'ANY', permissions:['EXCURSION_READ'] },
+  { label:'Chuyến tham quan bờ', to:'/admin/shore-excursions', permissionMode:'ANY', permissions:['EXCURSION_READ'] },
   { label:'Nhóm tour', to:'/admin/tour-groups', permissionMode:'ANY', permissions:['TOUR_GROUP_READ'] },
   { label:'Đăng ký và điểm danh', to:'/admin/activity-registrations', permissionMode:'ANY', permissions:['ACTIVITY_ATTENDANCE','ACTIVITY_REGISTRATION'] },
   { label:'Hoạt động trên tàu', to:'/admin/activities', permissionMode:'ANY', permissions:['ACTIVITY_READ'] },
@@ -253,7 +253,11 @@ export function roleNavigationGroups(roles: readonly string[], access: AdminAcce
     if(!groups.has(id)) groups.set(id,{id,label:category?.label ?? item.label,items:[],direct:id==='schedule'})
     groups.get(id)!.items.push(item)
   }
-  return [...groups.values()]
+  return [...groups.values()].map(group =>
+    group.id === 'locations' && !group.items.some(i => i.to === '/admin/suppliers')
+      ? { ...group, label: 'Điểm đến và cảng' }
+      : group,
+  )
 }
 export function roleSafeAdminReturnTo(roles: readonly string[], value: string | null, access?: AdminAccess) {
   const home = staffRoleHome(roles,access)

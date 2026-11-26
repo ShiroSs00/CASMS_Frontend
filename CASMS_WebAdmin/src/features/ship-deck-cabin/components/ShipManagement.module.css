@@ -58,6 +58,7 @@
 .structureTabs a[aria-current] { background:var(--ui-surface); color:var(--surface-brand); box-shadow:0 1px 4px rgb(14 47 77 / 8%); }
 .cabinInventory table { min-width:1080px; }
 .deckInventory table { min-width:780px; }
+@media(max-width:1280px) { .cabinInventory table, .deckInventory table { min-width:0; width:100%; } .inventoryTable table :is(th,td) { padding:8px 6px; font-size:12.5px; } .cabinInventory table td:last-child { min-width:auto; } .cabinInventory .rowActions { flex-wrap:wrap; gap:4px 8px; } }
 .cabinInventory table td,.deckInventory table td { vertical-align:middle; }
 .cabinInventory table td:first-child,.cabinInventory table td:nth-child(4),.cabinInventory table td:nth-child(5) > span { white-space:nowrap; }
 .cabinInventory table td:last-child { min-width:290px; }

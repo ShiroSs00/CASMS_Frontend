@@ -72,20 +72,27 @@ export function bookingFieldErrors(draft: BookingDraft, cruise: BookingCruiseOpt
   const errors: Record<string, string> = {}
   const used = new Map<string, number>(), documents = new Set<string>()
   if (step !== 2) {
-    if (!cruise || cruise.cruiseId !== draft.cruiseId || cruise.status !== 'PUBLISHED' || cruise.sellable !== true || !cruise.shipId || !Number.isFinite(Date.parse(cruise.departureDatetime)) || Date.parse(cruise.departureDatetime) <= now) errors['real-booking-cruise'] = 'Chọn chuyến khởi hành đang mở bán và còn chỗ theo dữ liệu máy chủ.'
-    if (!cabins || !draft.passengers.length) errors['real-booking-cruise'] = 'Cần danh sách phòng trống và ít nhất một hành khách.'
-    draft.passengers.forEach(person => { if (person.cabinId) used.set(person.cabinId, (used.get(person.cabinId) ?? 0) + 1) })
-    draft.passengers.forEach((person, index) => {
-      const fare=Boolean(person.farePackageOfferId||person.farePackagePriceRevisionId||person.cabinSelectionMode==='CATEGORY_HOLD')
-      if(fare&&(!person.farePackageOfferId||!person.farePackagePriceRevisionId))errors[`person-${index}-farePackageOfferId`]='Chọn đúng gói vé và phiên bản giá cho hành khách.'
-      if(fare&&!person.cabinSelectionMode)errors[`person-${index}-cabinSelectionMode`]='Chọn cabin vật lý ngay hoặc giữ chỗ theo hạng.'
-      if(fare&&person.tourPackageId)errors[`person-${index}-tourPackageId`]='Cần bỏ lựa chọn gói dịch vụ cũ trước khi dùng gói vé.'
-      if(person.cabinSelectionMode==='CATEGORY_HOLD'){if(person.cabinId)errors[`person-${index}-cabinId`]='Không đồng thời chọn cabin vật lý và giữ chỗ theo hạng.';return}
-      const cabin = cabins?.find(item => item.cabinId === person.cabinId)
-      if (!cabin) errors[`person-${index}-cabinId`] = 'Vui lòng chọn phòng còn trống.'
-      else if ((used.get(cabin.cabinId) ?? 0) > cabin.remainingCapacity) errors[`person-${index}-cabinId`] = `Phòng ${cabin.cabinNumber} chỉ còn ${cabin.remainingCapacity} chỗ cho nhóm của bạn.`
-      else if(fare&&cabin.remainingCapacity!==cabin.capacity)errors[`person-${index}-cabinId`]='Cabin đã có phân bổ khác; chọn cabin còn nguyên khả năng đáp ứng nhóm.'
-    })
+    if (!draft.cruiseId) {
+      errors['real-booking-cruise'] = 'Vui lòng chọn chuyến khởi hành đang mở bán trước khi tiếp tục.'
+    } else if (!cruise || cruise.cruiseId !== draft.cruiseId || cruise.status !== 'PUBLISHED' || cruise.sellable !== true || !cruise.shipId || !Number.isFinite(Date.parse(cruise.departureDatetime)) || Date.parse(cruise.departureDatetime) <= now) {
+      errors['real-booking-cruise'] = 'Chọn chuyến khởi hành đang mở bán và còn chỗ theo dữ liệu máy chủ.'
+    } else if (!cabins || !draft.passengers.length) {
+      errors['real-booking-cruise'] = 'Cần danh sách phòng trống và ít nhất một hành khách.'
+    }
+    if (!errors['real-booking-cruise']) {
+      draft.passengers.forEach(person => { if (person.cabinId) used.set(person.cabinId, (used.get(person.cabinId) ?? 0) + 1) })
+      draft.passengers.forEach((person, index) => {
+        const fare=Boolean(person.farePackageOfferId||person.farePackagePriceRevisionId||person.cabinSelectionMode==='CATEGORY_HOLD')
+        if(fare&&(!person.farePackageOfferId||!person.farePackagePriceRevisionId))errors[`person-${index}-farePackageOfferId`]='Chọn đúng gói vé và phiên bản giá cho hành khách.'
+        if(fare&&!person.cabinSelectionMode)errors[`person-${index}-cabinSelectionMode`]='Chọn cabin vật lý ngay hoặc giữ chỗ theo hạng.'
+        if(fare&&person.tourPackageId)errors[`person-${index}-tourPackageId`]='Cần bỏ lựa chọn gói dịch vụ cũ trước khi dùng gói vé.'
+        if(person.cabinSelectionMode==='CATEGORY_HOLD'){if(person.cabinId)errors[`person-${index}-cabinId`]='Không đồng thời chọn cabin vật lý và giữ chỗ theo hạng.';return}
+        const cabin = cabins?.find(item => item.cabinId === person.cabinId)
+        if (!cabin) errors[`person-${index}-cabinId`] = 'Vui lòng chọn phòng còn trống.'
+        else if ((used.get(cabin.cabinId) ?? 0) > cabin.remainingCapacity) errors[`person-${index}-cabinId`] = `Phòng ${cabin.cabinNumber} chỉ còn ${cabin.remainingCapacity} chỗ cho nhóm của bạn.`
+        else if(fare&&cabin.remainingCapacity!==cabin.capacity)errors[`person-${index}-cabinId`]='Cabin đã có phân bổ khác; chọn cabin còn nguyên khả năng đáp ứng nhóm.'
+      })
+    }
   }
   if (step !== 1) {
     if (!/^[A-Z]{3}$/.test(draft.currency)) errors['real-booking-currency'] = 'Tiền tệ phải là mã 3 chữ cái in hoa.'

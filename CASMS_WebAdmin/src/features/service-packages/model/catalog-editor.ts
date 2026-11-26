@@ -1,5 +1,5 @@
 import { servicePurchaseFlags, type CatalogItem, type CatalogKind, type ServiceUsagePolicy } from './catalog'
-export const packageTypes: Record<string, string> = { BASIC: 'Cơ bản', PLUS: 'Plus', PREMIUM: 'Cao cấp', PREMIUM_PLUS: 'Cao cấp Plus', ADVANCED: 'Nâng cao', ADD_ON: 'Bổ sung (Extra)' }
+export const packageTypes: Record<string, string> = { BASIC: 'Cơ bản', PLUS: 'Tiêu chuẩn nâng cao', PREMIUM: 'Cao cấp', PREMIUM_PLUS: 'Cao cấp đặc biệt', ADVANCED: 'Nâng cao', ADD_ON: 'Dịch vụ bổ sung' }
 // Values present in the backend catalog seed; additional persisted values are merged by the form.
 export const serviceTypes: Record<string, string> = { DINING: 'Ẩm thực', BEVERAGE: 'Đồ uống', INTERNET: 'Internet', WELLNESS: 'Chăm sóc sức khỏe', SPA_WELLNESS: 'Spa & chăm sóc sức khỏe', SHORE_EXCURSION: 'Tham quan bờ', ENTERTAINMENT_ACTIVITY: 'Giải trí & hoạt động', PHOTOGRAPHY: 'Nhiếp ảnh', CABIN_SERVICE: 'Dịch vụ cabin', LAUNDRY: 'Giặt là', CHILDCARE_FAMILY: 'Trẻ em & gia đình', MEDICAL_ASSISTANCE: 'Hỗ trợ y tế', TRANSPORTATION: 'Đưa đón' }
 export const productTypes: Record<string, string> = { SOUVENIR: 'Quà lưu niệm' }
@@ -17,9 +17,10 @@ export function validateCatalogDraft(kind: CatalogKind, draft: CatalogDraft): Re
   const errors: Record<string, string> = {}
   if (draft.code.trim().length > 50) errors.code = 'Mã tối đa 50 ký tự.'
   if (!draft.name.trim() || draft.name.trim().length > 200) errors.name = 'Tên bắt buộc, tối đa 200 ký tự.'
-  if (!draft.type.trim() || (kind === 'packages' ? !Object.hasOwn(packageTypes, draft.type) : draft.type.trim().length > 50)) errors.type = 'Chọn hoặc nhập loại hợp lệ, tối đa 50 ký tự.'
+  if (!draft.type.trim() || (kind === 'packages' ? !Object.hasOwn(packageTypes, draft.type) : draft.type.trim().length > 50)) errors.type = 'Chọn loại hợp lệ.'
   if (draft.description.length > 1000) errors.description = 'Mô tả tối đa 1000 ký tự.'
-  if ((kind !== 'services' && !draft.price.trim()) || (draft.price.trim() && (!Number.isFinite(Number(draft.price)) || Number(draft.price) < 0))) errors.price = 'Giá phải là số không âm.'
+  if (kind !== 'services' && !draft.price.trim()) errors.price = 'Vui lòng nhập giá bán (số không âm).'
+  else if (draft.price.trim() && (!Number.isFinite(Number(draft.price)) || Number(draft.price) < 0)) errors.price = 'Giá phải là số không âm.'
   else if (draft.price.trim() && Number(draft.price) > 999999999999) errors.price = 'Giá vượt quá giới hạn cho phép.'
   if (draft.currency.trim() && !['VND', 'USD'].includes(draft.currency.trim().toUpperCase())) errors.currency = 'Chỉ hỗ trợ đơn vị tiền tệ VND hoặc USD.'
   if (kind === 'services' && draft.capacity.trim() && (!Number.isSafeInteger(Number(draft.capacity)) || Number(draft.capacity) < 1 || Number(draft.capacity) > 2147483647)) errors.capacity = 'Sức chứa là số nguyên lớn hơn 0.'

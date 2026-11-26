@@ -48,10 +48,10 @@ export function PublicCruiseItinerary({ query }: { query: PublicItineraryRead })
 
   function jumpToDay(dayNumber: number | 'overview') {
     setActiveDay(dayNumber)
-    const targetId = dayNumber === 'overview' ? cruiseDetailSections.facts : `itinerary-day-${dayNumber}`
-    const target = document.getElementById(targetId)
+    const target = document.getElementById(cruiseDetailSections.itinerary)
     target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
+  const visibleDays = data ? (activeDay === 'overview' ? data.days : data.days.filter(d => d.dayNumber === activeDay)) : []
 
   return <section id={cruiseDetailSections.itinerary} aria-labelledby="public-schedule-heading" className={styles.section}>
     <div className={styles.sectionHeading}>
@@ -95,7 +95,7 @@ export function PublicCruiseItinerary({ query }: { query: PublicItineraryRead })
         </div>
 
         <ol className={styles.rcTimeline} aria-label="Các ngày hành trình">
-          {data.days.map(day => {
+          {visibleDays.map(day => {
             const isSeaDay = day.portCalls.length === 0 && !(day.dayNumber === 1 && data.departurePortName)
             const isEmbark = day.dayNumber === 1 || day.portCalls.some(p => p.isEmbarkation)
             const isDisembark = day.portCalls.some(p => p.isDisembarkation)

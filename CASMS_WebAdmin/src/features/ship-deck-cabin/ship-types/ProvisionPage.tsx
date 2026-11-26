@@ -126,7 +126,7 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
   const payload = profilePayload(profile)
   return <div className={`${styles.stack} ${styles.designPage}`}>
     <PageHeader title="Thêm tàu" breadcrumb="Quản lý tàu / Thêm tàu"
-      description="Chọn loại tàu, nhập thông tin và xác nhận để tạo tàu mới."
+      description=""
       actions={<ButtonLink to="/admin/ships" tone="secondary" autoWidth><span aria-hidden="true">←</span> Về danh sách tàu</ButtonLink>} />
     {failure ? <Notice title="Chưa thực hiện được thao tác" tone="error">
       {shipError(failure)}

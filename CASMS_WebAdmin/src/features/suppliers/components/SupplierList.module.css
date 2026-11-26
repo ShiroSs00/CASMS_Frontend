@@ -7,3 +7,10 @@
 .contact span { color:var(--ui-muted,var(--text-secondary)); }
 .date { white-space:nowrap; font-variant-numeric:tabular-nums; }
 .rowAction { display:inline-flex; align-items:center; min-height:44px; color:var(--ui-ink,var(--brand-navy)); font-weight:600; white-space:nowrap; text-underline-offset:4px; }
+@media(max-width:1280px) {
+  .name { min-width:0; max-width:140px; font-size:12.5px; }
+  .type { min-width:0; max-width:96px; font-size:12px; }
+  .contact { min-width:0; max-width:140px; font-size:12px; }
+  .contact strong { font-size:12.5px; }
+  .date { white-space:normal; font-size:12px; }
+}

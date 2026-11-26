@@ -279,9 +279,6 @@ export function DayPane({
                 </Field>
               </div>
               </div>}
-              {disembarkationStop?.allAboardTime && (
-                <p>Hạn hành khách trở lại tàu: Ngày {disembarkationStop.allAboardDayNumber} {shortTime(disembarkationStop.allAboardTime)}</p>
-              )}
               {Boolean(disembarkationStop?.visits?.length) && (
                 <p className={styles.muted}>
                   Điểm tham quan: {disembarkationStop!.visits!.map(visit => visit.destinationName?.trim() || 'Điểm đến đã lưu').join(', ')}
@@ -378,7 +375,7 @@ export function DayPane({
                       <div className={styles.cardHead}>
                         <div>
                           <h3>
-                            {position}. {stop.portName ?? 'Cảng'}
+                            {stop.stopOrder || position}. {stop.portName ?? 'Cảng'}
                           </h3>
                           {(stop.isEmbarkation || stop.isDisembarkation) && (
                             <p>
@@ -389,12 +386,12 @@ export function DayPane({
                             Dự kiến: Ngày {stop.arrivalDayNumber} {shortTime(stop.plannedArrivalTime)} → Ngày {stop.departureDayNumber} {shortTime(stop.plannedDepartureTime)}
                           </p>
                           <p className={styles.muted}>
-                            {stop.timeZoneId ?? 'Múi giờ cảng cần đối chiếu'} · {stop.callType === 'OVERNIGHT' ? 'Qua đêm' : stop.callType === 'LATE_NIGHT' ? 'Ghé cảng ban đêm' : 'Thông thường'}
+                            {stop.timeZoneId === 'Asia/Ho_Chi_Minh' ? 'Giờ Việt Nam (UTC+7)' : (stop.timeZoneId ?? 'Múi giờ cảng cần đối chiếu')} · {stop.callType === 'OVERNIGHT' ? 'Qua đêm' : stop.callType === 'LATE_NIGHT' ? 'Ghé cảng ban đêm' : 'Thông thường'}
                             {stop.isEmbarkation ? ' · Hành khách lên tàu' : ''}
                             {stop.isDisembarkation ? ' · Hành khách kết thúc chuyến' : ''}
                           </p>
                           {stop.countryCode === 'VN' && <p className={styles.muted}>{domesticRegionLabel(stop.domesticRegion)}</p>}
-                          {stop.allAboardTime && <p>Hạn hành khách trở lại tàu: Ngày {stop.allAboardDayNumber} {shortTime(stop.allAboardTime)}</p>}
+                          {stop.allAboardTime && !stop.isDisembarkation && <p>Hạn hành khách trở lại tàu: Ngày {stop.allAboardDayNumber} {shortTime(stop.allAboardTime)}</p>}
                           {Boolean(stop.visits?.length) && (
                             <p className={styles.muted}>
                               Điểm tham quan: {stop.visits!.map(visit => visit.destinationName?.trim() || 'Điểm đến đã lưu').join(', ')}
