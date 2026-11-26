@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Badge, DataTable, Empty, Panel, RecordFacts } from '@/shared/ui'
 import type { BookingDetail } from '../api/real-booking-api'
 import { bookingMoney } from '../model/booking-presentation'
-import { bookingBirthDate, bookingContractStatus, bookingStatusName, bookingWhen } from '../model/real-booking-view'
+import { bookingBirthDate, bookingContractStatus, bookingNationalityName, bookingStatusName, bookingWhen } from '../model/real-booking-view'
 import { BookingInstallments } from './BookingInstallments'
 import styles from './BookingAgent.module.css'
 
@@ -41,7 +41,7 @@ export function BookingRecord({ booking, contractAction, summaryInHeader = false
       {booking.passengers.length ? <DataTable label="Hành khách đặt chỗ" headers={['Hành khách', 'Ngày sinh / Quốc tịch', 'Liên hệ', 'Cabin', 'Gói đã chọn', 'Trạng thái']}>
         {booking.passengers.map(person => <tr key={person.bookingPassengerId}>
           <th scope="row">{person.fullName}</th>
-          <td>{bookingBirthDate(person.dateOfBirth)}<br />{person.nationality ?? 'Chưa cung cấp'}</td>
+          <td>{bookingBirthDate(person.dateOfBirth)}<br />{bookingNationalityName(person.nationality)}</td>
           <td>{person.email ?? 'Chưa cung cấp'}<br />{person.phoneNumber ?? 'Chưa cung cấp'}</td>
           <td>{person.cabinNumber ?? (person.cabinSelectionMode === 'CATEGORY_HOLD' ? 'Giữ chỗ theo hạng' : 'Chưa phân cabin')}</td>
           <td>{person.selectedFare?.templateName ?? person.tourPackageName ?? 'Chưa chọn gói'}</td>

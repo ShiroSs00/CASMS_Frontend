@@ -17,8 +17,8 @@ export function CruisePlanSubmission({detail,refreshKey,onChanged,onPrepare,onSe
  const canReadPlan=access.has('CRUISE_READ')&&(access.roles.includes('CRUISE_MANAGER')||access.roles.includes('OPERATIONS_MANAGER'))
  const plan=usePlanQuery(cruise.cruiseId,refreshKey,canReadPlan)
  const canViewCommercial=Boolean(plan.data&&!plan.data.unifiedPackageReview)
- return <section className={styles.content} aria-label="Nộp hồ sơ tour cho Quản lý vận hành">
-  <div className={styles.sectionIntro}><h2>Nộp hồ sơ tour cho Quản lý vận hành</h2></div>
+ return <section className={styles.content} aria-label="Nộp hồ sơ chuyến khởi hành cho Quản lý vận hành">
+  <div className={styles.sectionIntro}><h2>Nộp hồ sơ chuyến khởi hành cho Quản lý vận hành</h2></div>
   <Panel title="Xem lại kế hoạch trước khi gửi">
    <RecordFacts entries={[
     ['Chuyến khởi hành',`${cruise.cruiseCode} · ${cruise.cruiseName}`],['Tàu được phân công',detail.ship?.shipName??'Chưa phân công'],

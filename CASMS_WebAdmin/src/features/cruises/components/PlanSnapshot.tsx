@@ -31,7 +31,7 @@ export function PlanSnapshot({snapshot,includePricing=true}:{snapshot:unknown;in
   ]}/>
   </section>
   <SnapshotGroup title="Lần ghé cảng" count={rows(s.stops).length} unit="lần ghé" initiallyOpen>
-  {rows(s.stops).length?rows(s.stops).map((stop,index)=>{const port=portFor(stop.port_id);return <RecordFacts key={String(stop.cruise_stop_id??index)} entries={[
+  {rows(s.stops).length?[...rows(s.stops)].sort((a,b)=>(numeric(a.stop_order)??999)-(numeric(b.stop_order)??999)).map((stop,index)=>{const port=portFor(stop.port_id);return <RecordFacts key={String(stop.cruise_stop_id??index)} entries={[
    ['Thứ tự ghé',value(stop.stop_order)],['Cảng',value(port?.port_name)],
    ['Dự kiến đến',clock(stop.planned_arrival,port?.time_zone_id??null)],['Dự kiến rời',clock(stop.planned_departure,port?.time_zone_id??null)],
    ['Hạn hành khách trở lại tàu',clock(stop.all_aboard_time,port?.time_zone_id??null)],

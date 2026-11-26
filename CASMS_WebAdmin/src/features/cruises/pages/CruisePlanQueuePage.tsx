@@ -191,7 +191,7 @@ export function CruisePlanQueuePage() {
     const items: { id: QueueMode; label: string; icon: 'tour' | 'groups' | 'fees'; badge: string; pending: boolean }[] = [
       {
         id: 'tour-dossiers',
-        label: 'Hồ sơ toàn tour',
+        label: 'Hồ sơ chuyến khởi hành',
         icon: 'tour',
         badge: pendingPlansCount > 0 ? `${pendingPlansCount} chờ duyệt` : `${allPlans.length} hồ sơ`,
         pending: pendingPlansCount > 0,
@@ -218,14 +218,8 @@ export function CruisePlanQueuePage() {
     return items
   }, [allPlans.length, allGroups.length, canConfirmGroups, canSetFees, pendingPlansCount, pendingGroupsCount, pendingFeesCount])
 
-  // Smart default queue selection: prioritize whichever queue has pending work, defaulting to 'tour-dossiers' when equal
-  const activeMode: QueueMode = useMemo(() => {
-    if (manualMode) return manualMode
-    if (pendingPlansCount > 0) return 'tour-dossiers'
-    if (canConfirmGroups && pendingGroupsCount > 0) return 'section-groups'
-    if (canSetFees && pendingFeesCount > 0) return 'port-fees'
-    return 'tour-dossiers'
-  }, [manualMode, pendingPlansCount, canConfirmGroups, pendingGroupsCount, canSetFees, pendingFeesCount])
+  // Default to primary cruise dossier review queue unless user explicitly picks another tab via URL/click
+  const activeMode: QueueMode = manualMode ?? 'tour-dossiers'
 
   const tabPlans = useMemo(() => allPlans.filter(plan => matchesFilter(plan, filter)), [allPlans, filter])
   const shipOptions = useMemo(() => collectShipOptions(tabPlans), [tabPlans])
@@ -346,7 +340,7 @@ export function CruisePlanQueuePage() {
         </td>
         <td>
           <div className={styles.queuePrimaryCell}>
-            <strong>{plan.submittedByName ?? '—'}</strong>
+            <strong>{({ cruise_manager: 'Quản lý hành trình', operations_manager: 'Quản lý vận hành', ops_manager: 'Quản lý vận hành', activity_manager: 'Quản lý dịch vụ & hoạt động', ship_manager: 'Quản lý tàu', admin: 'Quản trị viên' } as Record<string, string>)[(plan.submittedByName ?? '').toLowerCase()] ?? (plan.submittedByName ?? '—')}</strong>
             <span className={styles.queueTime}>
               {plan.submittedAt ? journeyTime(plan.submittedAt) : '—'}
             </span>
@@ -450,8 +444,8 @@ export function CruisePlanQueuePage() {
             {/* HÀNG ĐỢI 2: HỒ SƠ TOÀN TOUR */}
             {activeMode === 'tour-dossiers' && (
               <Panel
-                title="Hồ sơ toàn tour"
-                subtitle="Xét duyệt tổng thể kế hoạch, gói giá và điều kiện thương mại theo từng tàu trước khi mở bán."
+                title="Hồ sơ chuyến khởi hành"
+                subtitle=""
               >
                 {/* Status Tabs & Ship Grouping Toggle */}
                 <div className={styles.queueStatusBar}>
@@ -489,7 +483,10 @@ export function CruisePlanQueuePage() {
                       aria-pressed={groupByShip}
                       onClick={() => setGroupByShip(prev => !prev)}
                     >
-                      <ShipHullIcon />
+                      <svg className={styles.queueIconSm} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M2.5 5.25 8 2.5l5.5 2.75L8 8 2.5 5.25Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+                        <path d="M2.5 8.25 8 11l5.5-2.75M2.5 11.25 8 14l5.5-2.75" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                       <span>{groupByShip ? 'Đang gom theo tàu' : 'Gom nhóm theo tàu'}</span>
                     </button>
                   </div>
@@ -520,7 +517,7 @@ export function CruisePlanQueuePage() {
                       <input
                         id="ops-plan-search"
                         type="search"
-                        placeholder="Tên tàu, mã chuyến, tên chuyến, người gửi…"
+                        placeholder="Tên tàu, mã/tên chuyến…"
                         value={search}
                         onChange={event => {
                           setSearch(event.target.value)
@@ -542,7 +539,7 @@ export function CruisePlanQueuePage() {
                       <option value="ALL">Tất cả ({senderOptions.length})</option>
                       {senderOptions.map(sender => (
                         <option key={sender} value={sender}>
-                          {sender}
+                          {({ cruise_manager: 'Quản lý hành trình', operations_manager: 'Quản lý vận hành', ops_manager: 'Quản lý vận hành', activity_manager: 'Quản lý dịch vụ & hoạt động', ship_manager: 'Quản lý tàu', admin: 'Quản trị viên' } as Record<string, string>)[sender.toLowerCase()] ?? sender}
                         </option>
                       ))}
                     </select>
@@ -739,7 +736,7 @@ export function CruisePlanQueuePage() {
             {activeMode === 'port-fees' && canSetFees && (
               <Panel
                 title="Yêu cầu cấu hình thuế và phí cảng"
-                subtitle="Thiết lập biểu phí cảng đi, cảng về và thuế áp dụng cho các chuyến khởi hành đang chuẩn bị mở bán."
+                subtitle=""
               >
                 {requests.loading && <Loading label="Đang tải yêu cầu…" />}
                 {requests.error && (

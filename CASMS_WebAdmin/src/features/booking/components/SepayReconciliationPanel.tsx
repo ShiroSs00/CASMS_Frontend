@@ -127,7 +127,7 @@ export function SepayReconciliationPanel({
     <div className={styles.stack}>
       <Panel
         title="Đối soát giao dịch VietQR / SePay"
-        subtitle="Theo dõi toàn bộ biến động tiền vào từ SePay, phát hiện sai lệch (thiếu, dư, sai mã, trùng khoản thu, đến sau hủy/hết hạn) và xử lý có lưu chứng từ audit."
+        subtitle=""
       >
         <div className={styles.financeToolbar}>
           <div className={styles.financeToolbarStats}>

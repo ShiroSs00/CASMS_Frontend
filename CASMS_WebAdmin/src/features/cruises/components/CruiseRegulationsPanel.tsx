@@ -151,7 +151,7 @@ export function CruiseRegulationsPanel({
   return (
     <Panel
       title={`Quy định vận hành${countSuffix}`}
-      subtitle="Kiểm tra quy định chung toàn hệ thống và quy định riêng áp dụng cho chuyến theo mốc thời gian."
+      subtitle=""
     >
       <p className={styles.muted}>
         Danh sách này hỗ trợ kiểm tra điều kiện an toàn trước chuyến đi; không thay thế giấy phép cảng hay kiểm tra thuyền viên.

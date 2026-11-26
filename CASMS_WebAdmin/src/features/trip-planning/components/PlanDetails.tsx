@@ -33,7 +33,7 @@ export function StopDetails({stop,onClose,violation}:{stop?:Stop}&DetailProps) {
         <div className={styles.detailLead}><h3>{text(stop.portName)}</h3><p>{countryLabel(stop.countryCode)}{stop.countryCode==='VN'?` · ${domesticRegionLabel(stop.domesticRegion)}`:''}</p></div>
         <section aria-label="Các điểm tham quan"><h3>Các điểm tham quan trong lần ghé cảng</h3>{stop.visits?.length?<ol>{stop.visits.map(v=><li key={v.clientKey}>{destinationVisitLabel(v.destinationName??'Chưa có tên điểm đến tại thời điểm chốt')}</li>)}</ol>:<p>Chưa có lượt tham quan.</p>}</section>
         <section className={styles.detailSection} aria-label="Thời gian ghé cảng">
-          <p className={styles.timeContext}>Giờ địa phương của cảng · {text(stop.timeZoneId)}</p>
+          <p className={styles.timeContext}>Giờ địa phương của cảng · {stop.timeZoneId === 'Asia/Ho_Chi_Minh' ? 'Giờ Việt Nam (UTC+7)' : text(stop.timeZoneId)}</p>
           <dl className={styles.detailGrid}>
             <Detail label="Dự kiến đến cảng">{dayTime(stop.arrivalDayNumber,stop.plannedArrivalTime)}</Detail>
             <Detail label="Dự kiến rời cảng">{dayTime(stop.departureDayNumber,stop.plannedDepartureTime)}</Detail>

@@ -14,6 +14,34 @@ import { catalogConfig, servicePurchaseFlags, serviceUsagePolicyLabels, type Cat
 import { catalogDraft, packageTypes, serviceTypes, productTypes, catalogPermission, emptyCatalogDraft, validateCatalogDraft, catalogMatchesDraft, type CatalogDraft } from '../model/catalog-editor'
 import styles from '../components/Catalog.module.css'
 
+const serviceCategoryLabelsVi: Record<string, string> = {
+  'beverage': 'Đồ uống',
+  'cabin services': 'Dịch vụ cabin',
+  'dining': 'Ẩm thực',
+  'entertainment and activities': 'Giải trí & Hoạt động',
+  'entertainment': 'Giải trí',
+  'food & beverage': 'Ẩm thực & Đồ uống',
+  'internet': 'Internet & Kết nối',
+  'internet and connectivity': 'Internet & Kết nối',
+  'connectivity': 'Internet & Kết nối',
+  'kids & family': 'Trẻ em & Gia đình',
+  'childcare & family': 'Trẻ em & Gia đình',
+  'childcare and family': 'Trẻ em & Gia đình',
+  'laundry': 'Giặt là',
+  'medical': 'Y tế',
+  'medical assistance': 'Hỗ trợ y tế',
+  'photography': 'Nhiếp ảnh',
+  'retail': 'Mua sắm',
+  'shopping and retail': 'Mua sắm & Bán lẻ',
+  'shore excursion': 'Tham quan bờ',
+  'shore excursions': 'Tour tham quan bờ',
+  'spa & wellness': 'Spa & Chăm sóc sức khỏe',
+  'spa and wellness': 'Spa & Chăm sóc sức khỏe',
+  'transportation': 'Đưa đón',
+  'wellness': 'Chăm sóc sức khỏe',
+}
+const localizeCategoryName = (name: string) => serviceCategoryLabelsVi[name.trim().toLowerCase()] ?? name
+
 function CatalogFormPage({ kind }: { kind: CatalogKind }) {
   const { id } = useParams()
   const access=useSessionAccess()
@@ -47,7 +75,7 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
   for (const row of knownTypes.data ?? []) if (row.type.trim() && row.type.length <= 50 && !typeOptions.has(row.type)) typeOptions.set(row.type, row.type)
   if (initial?.type && !typeOptions.has(initial.type)) typeOptions.set(initial.type, initial.type)
   const currencyLabel = draft.currency.trim() || 'VND'
-  const fields: { key: keyof CatalogDraft; label: string; type?: string; maxLength?: number }[] = [{ key: 'name', label: 'Tên *', maxLength: 200 }, { key: 'type', label: 'Loại *', maxLength: 50 }, { key: 'price', label: `Giá (${currencyLabel})`, type: 'number' }, ...(kind === 'services' ? [{ key: 'capacity' as const, label: 'Sức chứa cấu hình', type: 'number' }] : []), ...(kind === 'packages' ? [{ key: 'startDate' as const, label: 'Có hiệu lực từ', type: 'date' }, { key: 'endDate' as const, label: 'Đến hết ngày', type: 'date' }] : [])]
+  const fields: { key: keyof CatalogDraft; label: string; type?: string; maxLength?: number }[] = [{ key: 'name', label: 'Tên *', maxLength: 200 }, { key: 'type', label: 'Loại *', maxLength: 50 }, { key: 'price', label: kind === 'services' ? `Giá (${currencyLabel})` : `Giá (${currencyLabel}) *`, type: 'number' }, ...(kind === 'services' ? [{ key: 'capacity' as const, label: 'Sức chứa cấu hình', type: 'number' }] : []), ...(kind === 'packages' ? [{ key: 'startDate' as const, label: 'Có hiệu lực từ', type: 'date' }, { key: 'endDate' as const, label: 'Đến hết ngày', type: 'date' }] : [])]
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (lock.current || !allowed || uncertain) return
@@ -71,13 +99,13 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
     finally{lock.current=false;setBusy(false)}
   }
   return <EditorLayout ><Panel title="Thông tin danh mục"><form ref={form} onSubmit={submit} noValidate className={styles.editor}><fieldset disabled={busy||uncertain} className={styles.catalogFields}>
-    <FormErrorSummary errors={errors} />
+    <div className={styles.fullRow}><FormErrorSummary errors={errors} /></div>
     {kind === 'packages' && <Notice title="Gói dịch vụ bổ sung">Dữ liệu cấu hình gói dịch vụ dùng chung (niêm yết theo VND). Gói vé bán kèm hạng phòng theo chuyến được quản lý tại Mẫu gói du thuyền.</Notice>}
     {knownTypes.error && <Notice title="Chưa cập nhật được các loại đang dùng" tone="warning">Bạn vẫn có thể chọn các loại có sẵn.<Button tone="secondary" onClick={knownTypes.retry}>Tải lại loại</Button></Notice>}
     {!allowed && <Notice title="Chưa có quyền lưu" tone="warning">{access.error || 'Đang tải quyền hoặc tài khoản chưa được cấp quyền thao tác này.'}</Notice>}
     {[
-      { title: 'Thông tin danh mục', description: 'Tên và loại giúp nhân sự tìm đúng thông tin.', keys: ['name', 'type'] },
-      { title: 'Giá và sức chứa', description: 'Kiểm tra số tiền, mã tiền tệ và các thông tin cấu hình.', keys: ['price', 'currency', 'capacity'] },
+      { title: 'Thông tin cơ bản', description: 'Tên và loại giúp nhân sự tìm đúng thông tin.', keys: ['name', 'type'] },
+      { title: kind === 'services' ? 'Giá và sức chứa' : 'Giá bán', description: 'Kiểm tra số tiền, mã tiền tệ và các thông tin cấu hình.', keys: ['price', 'currency', 'capacity'] },
       { title: 'Thời gian hiệu lực', description: 'Khoảng thời gian áp dụng cho gói dịch vụ.', keys: ['startDate', 'endDate'] },
     ].filter(group => fields.some(field => group.keys.includes(field.key))).map(group => <FormSection key={group.title} title={group.title} >
     {fields.filter(field => group.keys.includes(field.key)).map(field => <Field key={field.key} htmlFor={`catalog-${field.key}`} label={field.label} error={errors[field.key]}>
@@ -87,7 +115,7 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
     </FormSection>)}
     {kind==='services'&&<FormSection title="Cách phục vụ">
       <Field htmlFor="catalog-schedule" label="Đặt dịch vụ theo lịch" error={errors.requiresSchedule}><select id="catalog-schedule" name="requiresSchedule" disabled={busy} value={draft.requiresSchedule} onChange={e=>setDraft({...draft,requiresSchedule:e.target.value})}><option value="">Chưa thay đổi cấu hình nguồn</option><option value="true">Cần lịch đặt trước</option><option value="false">Không bắt buộc lịch đặt trước</option></select></Field>
-      <Field htmlFor="catalog-category" label="Nhóm dịch vụ"><select id="catalog-category" disabled={busy||categories.loading||Boolean(categories.error)} value={draft.categoryId} onChange={e=>setDraft({...draft,categoryId:e.target.value})}><option value="">Chưa chọn nhóm</option>{categories.data?.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>{categories.error&&<Button tone="text" onClick={categories.retry}>Tải lại nhóm dịch vụ</Button>}</Field>
+      <Field htmlFor="catalog-category" label="Nhóm dịch vụ"><select id="catalog-category" disabled={busy||categories.loading||Boolean(categories.error)} value={draft.categoryId} onChange={e=>setDraft({...draft,categoryId:e.target.value})}><option value="">Chưa chọn nhóm</option>{categories.data?.map(c=><option key={c.id} value={c.id}>{localizeCategoryName(c.name)}</option>)}</select>{categories.error&&<Button tone="text" onClick={categories.retry}>Tải lại nhóm dịch vụ</Button>}</Field>
       <Field htmlFor="catalog-unit" label="Đơn vị phục vụ" error={errors.unitCode}><input id="catalog-unit" name="unitCode" maxLength={30} disabled={busy} value={draft.unitCode} onChange={e=>setDraft({...draft,unitCode:e.target.value})}/></Field>
     </FormSection>}
     {kind === 'services' && <FormSection title="Giai đoạn phục vụ và định mức">

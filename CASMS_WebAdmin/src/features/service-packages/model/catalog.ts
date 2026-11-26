@@ -48,10 +48,10 @@ export const catalogTypeLabels: Record<string, string> = {
   BASIC: 'Cơ bản',
   STANDARD: 'Tiêu chuẩn',
   ADVANCED: 'Nâng cao',
-  ADD_ON: 'Bổ sung (Extra)',
-  PLUS: 'Nâng cao',
+  ADD_ON: 'Dịch vụ bổ sung',
+  PLUS: 'Tiêu chuẩn nâng cao',
   PREMIUM: 'Cao cấp',
-  PREMIUM_PLUS: 'Cao cấp+',
+  PREMIUM_PLUS: 'Cao cấp đặc biệt',
   VIP: 'VIP',
 }
 export function formatCatalogType(type?: string | null) {

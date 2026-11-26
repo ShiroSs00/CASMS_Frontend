@@ -10,7 +10,8 @@ export function CruisePackageBookingHistory({booking}:{booking:BookingDetail}) {
     const fare=p.purchasedFare?.fare??p.selectedFare
     const rawAmount=fare?.amount
     const formattedAmount=rawAmount!=null&&Number.isFinite(Number(rawAmount))?new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(Number(rawAmount)):String(rawAmount??'')
-    const categoryText=fare?.logicalCategory?cabinTypeLabel(fare.logicalCategory):''
+    const rawCategory=fare?.logicalCategory?cabinTypeLabel(fare.logicalCategory):''
+    const categoryText=rawCategory.replace(/^Chưa xác định\s*/i,'').replace(/^\((.+)\)$/,'$1').trim()
     return <Panel key={p.bookingPassengerId} title={`Gói du thuyền · ${p.fullName}`}>
     <p>{fare?.templateName}{categoryText?` · ${categoryText}`:''}{formattedAmount?` · ${formattedAmount} ${fare?.currencyCode??'VND'}/người`:''}</p>
     <p>{p.purchasedFare?'Nội dung gói du thuyền đã mua được lưu tại thời điểm xác nhận.':'Lựa chọn theo báo giá đã chốt; đặt chỗ chưa xác nhận mua.'}</p>

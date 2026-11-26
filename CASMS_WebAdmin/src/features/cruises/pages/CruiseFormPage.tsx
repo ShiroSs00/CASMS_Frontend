@@ -1,6 +1,5 @@
 import { departureWindowIncludes, departureWindowInputs, departureWindowLabel, parseDepartureMinute } from '@/domain/trip-departure-window'
 import { businessErrorMessage } from '@/shared/api/business-errors'
-import { businessCopy } from '@/shared/i18n/business-copy'
 import { InheritedSourcePlan } from '../components/InheritedSourcePlan'
 import { Badge, EditorLayout } from '@/shared/ui'
 import { FormErrorSummary, FormSection, useUnsavedFormGuard } from '@/shared/ui'
@@ -480,7 +479,7 @@ export function CruiseFormPage() {
         <fieldset disabled={busy || uncertain} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
           <FormErrorSummary errors={errors} />
           <div className={styles.departureCreateLayout}>
-          <aside className={styles.departureCreateSource} aria-label="Mẫu dùng cho tour">
+          <aside className={styles.departureCreateSource} aria-label="Mẫu lịch trình nguồn">
             <Panel className={styles.departureSourcePanel}>
               <InheritedSourcePlan
                 source={source.data}
@@ -495,7 +494,7 @@ export function CruiseFormPage() {
             </Panel>
           </aside>
           <Panel className={styles.departureCreateMain}>
-            <FormSection title="Ngày khởi hành và tên tour">
+            <FormSection title="Ngày khởi hành và tên chuyến">
               {/* UX: Proximity & Error Prevention — surface allowed departure window right above date/time inputs */}
               <div className={`${styles.departureWindowBanner} ${styles[`departureWindow_${windowStatus}`]}`} role="region" aria-label="Khung giờ khởi hành cho phép">
                 <div className={styles.departureWindowTop}>
@@ -582,7 +581,7 @@ export function CruiseFormPage() {
                       ? [['Cảng khởi hành', portOptions.find(p => p.portId === draft.departurePortId)?.portName ?? 'Đã chọn thủ công'] as const]
                       : []),
                   ...(previewScheduleData.returnPortName
-                    ? [['Cảng trở về', `${previewScheduleData.returnPortName} (Kế thừa từ mẫu lịch trình)`] as const]
+                    ? [['Cảng đến / Cảng trở về', `${previewScheduleData.returnPortName} (Kế thừa từ mẫu lịch trình)`] as const]
                     : []),
                 ]} />
                 <Button type="button" disabled={applyingSchedule} onClick={handleOpenScheduleDetail}>Xem lịch theo ngày khởi hành</Button>

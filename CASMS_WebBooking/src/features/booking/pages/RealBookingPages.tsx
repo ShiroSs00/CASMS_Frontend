@@ -82,10 +82,10 @@ export function BookingLookupPage() {
         && data.currency === 'VND'
         && (data.outstandingBalance == null || data.outstandingBalance > 0);
     return <RealBookingFrame><div className={styles.stack}>
-    <div className={styles.journeyTopline}><Link to="/cruises">← Khám phá hành trình</Link><p className={styles.helper}>Không cần đăng nhập để tra cứu</p></div>
+    <div className={styles.journeyTopline}><Link to="/cruises">← Khám phá hành trình</Link></div>
     <PageHeader title="Tra cứu đặt chỗ" breadcrumb="HÀNH TRÌNH / ĐẶT CHỖ"/>
     <div className={styles.lookupGrid}><Panel title="Thông tin tra cứu"><form noValidate aria-busy={busy} onSubmit={event => { event.preventDefault(); void lookup(); }}><fieldset disabled={busy} className={styles.draftFields}>
-      <Field htmlFor="lookup-reference" label="Mã đặt chỗ" hint="Mã được hiển thị sau khi hệ thống tiếp nhận đặt chỗ." error={fields.reference}><input ref={referenceInput} id="lookup-reference" value={reference} autoComplete="off" spellCheck={false} aria-required="true" aria-invalid={Boolean(mismatch)} aria-describedby={mismatch ? 'lookup-mismatch' : undefined} onChange={event => { setReference(event.target.value); setFields(current => ({ ...current, reference: undefined })); clearResult(); }}/></Field>
+      <Field htmlFor="lookup-reference" label="Mã đặt chỗ" error={fields.reference}><input ref={referenceInput} id="lookup-reference" value={reference} autoComplete="off" spellCheck={false} aria-required="true" aria-invalid={Boolean(mismatch)} aria-describedby={mismatch ? 'lookup-mismatch' : undefined} onChange={event => { setReference(event.target.value); setFields(current => ({ ...current, reference: undefined })); clearResult(); }}/></Field>
       <p className={styles.helper} id="lookup-contact-help">Nhập email <strong>hoặc</strong> số điện thoại của người đại diện. Không cần nhập cả hai.</p>
       <div className={styles.lookupContact} role="group" aria-label="Thông tin liên hệ">
         <Field htmlFor="lookup-email" label="Email đại diện" error={fields.email}><input ref={emailInput} id="lookup-email" type="email" autoComplete="email" value={email} aria-invalid={Boolean(fields.contact || mismatch)} aria-describedby={contactDescription} onChange={event => { setEmail(event.target.value); setFields(current => ({ ...current, contact: undefined, email: undefined })); clearResult(); }}/></Field>
@@ -95,7 +95,7 @@ export function BookingLookupPage() {
       {mismatch && <div id="lookup-mismatch"><Notice title="Kiểm tra thông tin tra cứu" tone="error">{mismatch}</Notice></div>}
       <Button type="submit" disabled={busy}>{busy ? 'Đang tra cứu…' : 'Tra cứu'}</Button>
     </fieldset></form>{error && <div id="lookup-error-summary" ref={errorSummary} tabIndex={-1} role="region" aria-label="Không tra cứu được"><Notice title="Không tra cứu được" tone="error">{error}</Notice></div>}</Panel>
-    <aside className={styles.lookupHelp}><BookingPhotoNote /><h2>Bạn cần chuẩn bị gì?</h2><p>Mã đặt chỗ và thông tin liên hệ đã dùng khi đặt. Kiểm tra lại ký tự và thông tin người đại diện nếu chưa tìm thấy.</p><p className={styles.helper}>Tra cứu chỉ hiển thị dữ liệu được hệ thống trả về; để tạo mã VietQR thanh toán trực tuyến, vui lòng đăng nhập bằng tài khoản hành khách của đặt chỗ.</p></aside></div>
+    <aside className={styles.lookupHelp}><BookingPhotoNote /><h2>Bạn cần chuẩn bị gì?</h2><p>Mã đặt chỗ cùng email hoặc số điện thoại của người đại diện.</p><p className={styles.helper}>Để tạo mã VietQR thanh toán trực tuyến, vui lòng đăng nhập tài khoản hành khách.</p></aside></div>
     {data && <section className={styles.stack} aria-label="Kết quả tra cứu"><h2 ref={resultHeading} tabIndex={-1}>Kết quả tra cứu · {data.bookingReference}</h2><PublicBookingRecord booking={data} paymentAction={
       isPassenger
         ? <BookingPaymentActionCard booking={data} onBookingReload={() => void lookup()} />

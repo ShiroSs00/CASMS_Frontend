@@ -9,6 +9,21 @@ export function PublicContact({ variant = 'button', id = 'project-contact' }: { 
   const trigger = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
+    if (id !== 'header-contact') return
+    const openFromTrigger = () => setOpen(true)
+    const onHash = () => {
+      if (window.location.hash === '#header-contact') setOpen(true)
+    }
+    window.addEventListener('ocevie:open-contact', openFromTrigger)
+    window.addEventListener('hashchange', onHash)
+    if (window.location.hash === '#header-contact') setOpen(true)
+    return () => {
+      window.removeEventListener('ocevie:open-contact', openFromTrigger)
+      window.removeEventListener('hashchange', onHash)
+    }
+  }, [id])
+
+  useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {

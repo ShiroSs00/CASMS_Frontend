@@ -224,7 +224,7 @@ export function RegulationListPage() {
             </select>
           </Field>
           <Field htmlFor="reg-current-only" label="Hiệu lực"><select id="reg-current-only" value={query.effectiveOnly?'current':'all'} onChange={event=>setQuery(current=>({...current,effectiveOnly:event.target.value==='current'}))}><option value="all">Tất cả quy định</option><option value="current">Đang có hiệu lực theo hệ thống</option></select></Field>
-          <div className={styles.effectiveTime}><Field htmlFor="reg-effective-at" label="Thời điểm tra cứu · Giờ Việt Nam" hint="Chỉ hỗ trợ hiệu lực hiện tại; chưa tra cứu quá khứ hoặc tương lai.">
+          <div className={styles.effectiveTime}><Field htmlFor="reg-effective-at" label="Thời điểm tra cứu · Giờ Việt Nam">
             <input
               id="reg-effective-at"
               disabled

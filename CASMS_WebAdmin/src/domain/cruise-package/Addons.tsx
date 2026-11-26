@@ -87,7 +87,7 @@ function response(value: unknown) {
   return envelope.data
 }
 
-export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string; onChanged?: () => void }) {
+export function CruisePackageAddons({ cruiseId, locked = false, onChanged }: { cruiseId: string; locked?: boolean; onChanged?: () => void }) {
   const access = useSessionAccess()
   const canWrite = access.roles.includes('ACTIVITY_SERVICE_MANAGER') && access.canDo('TOUR_PACKAGE_MANAGE')
   const [creating, setCreating] = useState(false)
@@ -162,7 +162,7 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
   })
 
   const disabled = mutation.busy || mutation.needsReview || query.loading || Boolean(query.error)
-  const createBlocked = disabled || configuration.loading || Boolean(configuration.error) || !configuration.data?.canCreate
+  const createBlocked = locked || disabled || configuration.loading || Boolean(configuration.error) || !configuration.data?.canCreate
 
   const sourceChoices = configuration.data?.candidates.filter(item => item.resourceType === type) ?? []
   const canSave = !createBlocked && Boolean(candidate?.eligible && resource && windows.length && amount.trim() && eligibility.trim()) && !(stage || start || end || cutoff)
@@ -201,7 +201,8 @@ export function CruisePackageAddons({ cruiseId, onChanged }: { cruiseId: string;
         <>
           <QueryState loading={configuration.loading} error={configuration.error} />
           {configuration.error && <Button tone="secondary" onClick={configuration.retry}>Tải lại điều kiện dịch vụ mua thêm</Button>}
-          {configuration.data && !configuration.data.canCreate && <Notice title="Chưa thể cấu hình dịch vụ mua thêm" tone="warning">{configuration.data.reason}</Notice>}
+          {locked && <Notice title="Chưa thể thêm dịch vụ mua thêm" tone="warning">Cấu hình dịch vụ mua thêm đã khóa vì chuyến và hồ sơ hiện không cho phép chỉnh sửa.</Notice>}
+          {!locked && configuration.data && !configuration.data.canCreate && <Notice title="Chưa thể cấu hình dịch vụ mua thêm" tone="warning">{configuration.data.reason}</Notice>}
           {!creating && <Button disabled={createBlocked} onClick={() => setCreating(true)}>Thêm dịch vụ mua thêm</Button>}
         </>
       )}

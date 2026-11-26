@@ -315,8 +315,9 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
       {onAssigned ? assignButton : <>
       <PageHeader
         title={title}
-        description={snapshot?.host.description ?? 'Quy định trực tiếp và kế thừa của đối tượng.'}
+        description={snapshot?.host.description}
         actions={<>
+          {type==='ship'&&routeId&&<ButtonLink tone="secondary" to={`/admin/ships/${encodeURIComponent(routeId)}`}>← Quay lại thông tin tàu</ButtonLink>}
           {type==='cruise'&&routeId&&<ButtonLink tone="secondary" to={`/admin/cruises/${encodeURIComponent(routeId)}?section=resources`}>Về chuyến khởi hành</ButtonLink>}
           {assignButton}
         </>}

@@ -114,7 +114,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
  </>
  }
  const supplement=Boolean(data&&['SUBMITTED','APPROVED'].includes(data.planStatus))
- const submitLabel=supplement?'Gửi bổ sung cho Quản lý vận hành':'Nộp hồ sơ tour cho Quản lý vận hành'
+ const submitLabel=supplement?'Gửi bổ sung cho Quản lý vận hành':'Nộp hồ sơ chuyến khởi hành'
  const actionLabel=(value:MainflowAction)=>value==='ready'?'Xác nhận sẵn sàng mở bán':value==='approve'?'Phê duyệt hồ sơ':value==='reject'?'Từ chối hồ sơ':value==='request-revision'?'Yêu cầu chỉnh sửa':businessCopy(actionKeys[value])
  const actionDialog=action&&<Modal busy={busy} title={action==='submit'?submitLabel:actionLabel(action)} onClose={()=>{if(!busy)setAction(null)}} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setAction(null)}>Quay lại</Button><Button disabled={busy||uncertain||query.loading||Boolean(query.error)||(action==='approve'&&evidenceMissing)||(action==='submit'&&!dossierValid)||(['reject','request-revision'].includes(action)&&!reason.trim())} onClick={()=>void execute()}>{busy?'Đang gửi…':action==='submit'?submitLabel:actionLabel(action)}</Button></>}>
    {action==='submit'&&<>
@@ -393,7 +393,7 @@ function PlanWindows({data,onSaved,editable=true}:{data:PlanView;onSaved:()=>voi
   finally{lock.current=false;setBusy(false)}
  }
  return <>
-  <p className={styles.sectionMeta}>Các mốc nhận đặt chỗ và hướng dẫn hiện tại do hệ thống cung cấp, hiển thị theo giờ Việt Nam (UTC+7). Thời gian hướng dẫn là khung tổ chức buổi hướng dẫn trước chuyến.</p>
+  <p className={styles.sectionMeta}>Các mốc nhận đặt chỗ và hướng dẫn hiển thị theo giờ Việt Nam (UTC+7).</p>
   <RecordFacts entries={fields.map(([key,label])=>[businessCopy(label),data.windows[key]?journeyTime(data.windows[key]!,SHIP_TIME_ZONE):'Chưa thiết lập'] as const)}/>
   {editable&&<Button tone="secondary" disabled={busy||uncertain} onClick={()=>{setWindows(data.windows);setError('');setAttempted(false);setTouched({});setOpen(true)}}>Tùy chỉnh thời gian nhận đặt chỗ và hướng dẫn</Button>}
   {open&&<Modal wide busy={busy} title={businessCopy('cruise.window.title')} description="Tất cả ngày giờ bên dưới theo giờ Việt Nam." onClose={()=>setOpen(false)} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setOpen(false)} data-overlay-dismiss>Hủy</Button><Button type="submit" form="plan-windows-form" disabled={busy||uncertain||departure.loading||Boolean(departure.error)||!departure.data}>{busy?'Đang lưu…':businessCopy('cruise.window.save')}</Button></>}>

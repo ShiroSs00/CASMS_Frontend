@@ -140,7 +140,7 @@ function FinanceWorkspace() {
     <PageHeader
       breadcrumb="TÀI CHÍNH"
       title="Tài chính & lịch thanh toán"
-      description="Chọn đặt chỗ hoặc tra cứu theo ID để ghi nhận khoản thu, đối chiếu lịch thanh toán hợp đồng và xử lý hoàn tiền."
+      description=""
     />
 
     {!canBookings && <Notice title="Danh sách đặt chỗ chưa khả dụng">
@@ -170,7 +170,7 @@ function FinanceWorkspace() {
         aria-labelledby={tabs.length > 1 ? `${baseId}-tab-payments` : undefined}
         className={styles.financeTabPanel}
       >
-        {canPayments && <Panel title="Tra cứu nhanh khoản thu" subtitle="Nhập mã đặt chỗ (ví dụ: DEMO-PAY-01) hoặc ID đặt chỗ để mở thẳng hồ sơ thu tiền.">
+        {canPayments && <Panel title="Tra cứu nhanh khoản thu">
           <form className={styles.financeQuickLookupForm} noValidate onSubmit={event => void openLedger(event)}>
             <Field htmlFor="finance-booking-id" label="Mã đặt chỗ hoặc ID">
               <input id="finance-booking-id" required placeholder="Ví dụ: DEMO-PAY-01" value={bookingId} onChange={event => setBookingId(event.target.value)} />
@@ -213,7 +213,7 @@ function FinanceWorkspace() {
               <RefundHistory key={selected.id + '-refunds'} bookingId={selected.id} />
             </div>
             {canBookings && <div className={styles.financeDetailSide}>
-              <Panel title="Lịch thanh toán hợp đồng" subtitle="Đối chiếu số kỳ, hạn đóng và tình trạng hợp đồng.">
+              <Panel title="Lịch thanh toán hợp đồng">
                 <BookingReadState {...detail} />
                 {detail.data && <BookingInstallments booking={detail.data} />}
                 {detail.error instanceof ApiError && detail.error.status === 403 && <Notice title="Chưa truy cập được hợp đồng" tone="warning">Tài khoản chưa được phép đọc chi tiết đặt chỗ này. Bạn vẫn có thể tra cứu khoản thu bằng quyền thanh toán của mình.</Notice>}
@@ -222,10 +222,10 @@ function FinanceWorkspace() {
           </div>
         </section>}
 
-        {canBookings && <Panel title="Danh sách đặt chỗ" subtitle="Chọn một đặt chỗ bên dưới để xem lịch thanh toán và thao tác thu tiền.">
+        {canBookings && <Panel title="Danh sách đặt chỗ">
           <BookingReadState {...list} />
           {list.data && <>
-            {!list.data.content.length ? <Empty title="Chưa có đặt chỗ" /> : <DataTable label="Đặt chỗ và giá vé" headers={['Mã đặt chỗ', 'Tên chuyến', 'Trạng thái', 'Tổng giá vé', '']}>
+            {!list.data.content.length ? <Empty title="Chưa có đặt chỗ" /> : <DataTable label="Đặt chỗ và giá vé" headers={['Mã đặt chỗ', 'Tên chuyến', 'Trạng thái', 'Tổng giá vé', 'Thao tác']}>
               {list.data.content.map(item => {
                 const isSelected = selectedId === item.bookingId
                 return <tr key={item.bookingId} className={isSelected ? styles.selectedRow : undefined}>

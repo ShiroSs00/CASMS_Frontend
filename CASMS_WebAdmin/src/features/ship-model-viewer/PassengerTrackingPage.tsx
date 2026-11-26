@@ -67,7 +67,7 @@ export function PassengerTrackingPage({ backTo }: { backTo?: string }) {
 
   return <AdminShell>
     <PageHeader title="Tra cứu vị trí hành khách" breadcrumb="HÀNH KHÁCH"
-      description="Chọn tàu và chuyến đang vận hành để xem vùng tín hiệu của hành khách."
+      description=""
       actions={backTo && <ButtonLink to={backTo} tone="secondary">Về danh sách hành khách</ButtonLink>} />
     <div className={styles.page}>
       {!allowed && <Notice title="Chưa đủ quyền theo dõi" tone="warning">Cần quyền đọc tàu và BLE telemetry.</Notice>}

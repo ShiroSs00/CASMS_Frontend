@@ -24,7 +24,7 @@ function PackageRead({ id }: { id: string }) {
         return count ? <li key={kind + type}>{count} {title} · {type === 'INCLUDED' ? 'Đã bao gồm trong gói' : 'Tùy chọn, chưa bao gồm trong giá gói'}</li> : null
       })
     })}</ul> : <p>Gói chưa có quyền lợi được công bố.</p>)}
-    <p className={styles.helper}>Giá gói chưa phải tổng giá đặt chỗ. Chọn gói không tự giữ chỗ hoạt động hay dịch vụ; liên hệ hỗ trợ để xác nhận lịch và tên từng quyền lợi.</p>
+    
   </div>}</div>
 }
 export function CustomerPackageDetails({ id, passenger }: { id: string; passenger: number }) {

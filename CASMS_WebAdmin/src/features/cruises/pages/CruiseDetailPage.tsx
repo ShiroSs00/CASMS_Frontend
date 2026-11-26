@@ -51,6 +51,8 @@ import preparationStyles from '../components/DeparturePreparation.module.css'
 import staffingStyles from '../staffing/Staffing.module.css'
 
 const lifecyclePermissions = { publish: 'CRUISE_PUBLISH', complete: 'CRUISE_COMPLETE', cancel: 'CRUISE_CANCEL' } as const
+const issueSeverityVi: Record<string, string> = { LOW: 'Thấp', MEDIUM: 'Trung bình', HIGH: 'Cao', CRITICAL: 'Nghiêm trọng' }
+const issueStatusVi: Record<string, string> = { OPEN: 'Chờ xử lý', IN_PROGRESS: 'Đang xử lý', RESOLVED: 'Đã xử lý', CLOSED: 'Đã đóng' }
 
 function formatDateTime(value: string) {
   return journeyTime(value)
@@ -185,10 +187,10 @@ function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) 
       {lifecycleSuccess && <Notice title="Đã cập nhật" tone="success">{lifecycleSuccess}</Notice>}
       {state.status === 'loading' && !state.data && <Loading label="Đang tải chi tiết chuyến khởi hành…" />}
       {state.status === 'error' && (state.forbidden
-        ? <Notice title="Tour ngoài phạm vi công việc" tone="warning">
+        ? <Notice title="Chuyến khởi hành ngoài phạm vi công việc" tone="warning">
             {operations ? <><p>Bạn chỉ xem được hồ sơ đã chuyển cho vận hành.</p><ButtonLink tone="secondary" to="/admin/cruise-plan-reviews">Về hồ sơ đã tiếp nhận</ButtonLink></>
-              : serviceWorkspace ? <><p>Mở tour từ yêu cầu được giao để xem chương trình.</p><ButtonLink tone="secondary" to="/admin/preparation-requests">Về yêu cầu chuẩn bị tour</ButtonLink></>
-                : <><p>Bạn chỉ xem được các tour trong phạm vi công việc của mình.</p><ButtonLink tone="secondary" to="/admin/cruises">Về danh sách tour</ButtonLink></>}
+              : serviceWorkspace ? <><p>Mở chuyến khởi hành từ yêu cầu được giao để xem chương trình.</p><ButtonLink tone="secondary" to="/admin/preparation-requests">Về yêu cầu chuẩn bị chương trình</ButtonLink></>
+                : <><p>Bạn chỉ xem được các chuyến khởi hành trong phạm vi công việc của mình.</p><ButtonLink tone="secondary" to="/admin/cruises">Về danh sách chuyến khởi hành</ButtonLink></>}
           </Notice>
         : <Notice title="Không tải được chuyến khởi hành" tone="error"><p>{state.error}</p><Button onClick={()=>void reload()}>Thử lại</Button></Notice>)}
       {state.data && (() => {
@@ -385,7 +387,7 @@ function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) 
                   eligible={state.status === 'ready' && cruise.status === 'PUBLISHED'}
                   refreshKey={checkEpoch} onChanged={() => void reload()} onScheduleChange={() => goSection('changes')} />}
               {access.canDo('OPERATIONAL_ISSUE_READ') && <Panel title={detail.supplementaryLoading || detail.supplementaryErrors?.issues ? 'Sự cố liên quan' : `Sự cố liên quan · ${detail.issues.filter((issue) => issue.status === 'OPEN' || issue.status === 'IN_PROGRESS').length} đang mở`}>
-            {detail.issues.length ? <ul className={styles.compactList}>{detail.issues.map((issue) => <li key={issue.issueId}><span><Badge label={issue.severity} tone={issue.severity === 'CRITICAL' ? 'error' : 'warning'} /> <strong>{issue.issueCode}</strong></span><span>{issue.description} · {issue.status}</span></li>)}</ul> : !detail.supplementaryLoading && !detail.supplementaryErrors?.issues && <Empty title="Không có sự cố liên quan" />}
+            {detail.issues.length ? <ul className={styles.compactList}>{detail.issues.map((issue) => <li key={issue.issueId}><span><Badge label={issueSeverityVi[issue.severity] ?? issue.severity} tone={issue.severity === 'CRITICAL' ? 'error' : issue.severity === 'HIGH' ? 'warning' : 'info'} /> <strong>{issue.issueCode}</strong></span><span>{issue.description} · {issueStatusVi[issue.status] ?? issue.status}</span></li>)}</ul> : !detail.supplementaryLoading && !detail.supplementaryErrors?.issues && <Empty title="Không có sự cố liên quan" />}
             <Link className={styles.inlineLink} to={`/admin/issues?cruise=${cruise.cruiseId}`}>Xem danh sách sự cố →</Link>
           </Panel>}
 </section>}
@@ -422,26 +424,42 @@ function CruiseDetailContent({ renderRegulationAssignment }: CruiseDetailProps) 
                   eligible={state.status === 'ready' && cruise.status === 'PUBLISHED'}
                   refreshKey={checkEpoch} onChanged={() => void reload()} onScheduleChange={() => goSection('changes')} />}
               {access.canDo('OPERATIONAL_ISSUE_READ') && <Panel title={detail.supplementaryLoading || detail.supplementaryErrors?.issues ? 'Sự cố liên quan' : `Sự cố liên quan · ${detail.issues.filter((issue) => issue.status === 'OPEN' || issue.status === 'IN_PROGRESS').length} đang mở`}>
-            {detail.issues.length ? <ul className={styles.compactList}>{detail.issues.map((issue) => <li key={issue.issueId}><span><Badge label={issue.severity} tone={issue.severity === 'CRITICAL' ? 'error' : 'warning'} /> <strong>{issue.issueCode}</strong></span><span>{issue.description} · {issue.status}</span></li>)}</ul> : !detail.supplementaryLoading && !detail.supplementaryErrors?.issues && <Empty title="Không có sự cố liên quan" />}
+            {detail.issues.length ? <ul className={styles.compactList}>{detail.issues.map((issue) => <li key={issue.issueId}><span><Badge label={issueSeverityVi[issue.severity] ?? issue.severity} tone={issue.severity === 'CRITICAL' ? 'error' : issue.severity === 'HIGH' ? 'warning' : 'info'} /> <strong>{issue.issueCode}</strong></span><span>{issue.description} · {issueStatusVi[issue.status] ?? issue.status}</span></li>)}</ul> : !detail.supplementaryLoading && !detail.supplementaryErrors?.issues && <Empty title="Không có sự cố liên quan" />}
             <Link className={styles.inlineLink} to={`/admin/issues?cruise=${cruise.cruiseId}`}>Xem danh sách sự cố →</Link>
           </Panel>}
 </>}
             </section>}
           </>}
           </div>
-          {manager&&!reviewStep&&<div className={preparationStyles.reviewFooter}>
-            {crmPlan.loading&&<Loading label="Đang kiểm tra hồ sơ…"/>}
-            {crmPlan.error&&<Notice title="Chưa kiểm tra được hồ sơ" tone="error"><Button tone="secondary" onClick={crmPlan.retry}>Thử lại</Button></Notice>}
-            {crmPlan.data&&<p className={preparationStyles.reviewFooterNote}>
-              {canReviewPreparation
-                ? 'Hồ sơ đã đủ điều kiện để chuyển sang Bước 3 và gửi Quản lý vận hành duyệt.'
-                : 'Còn điều kiện cần hoàn thiện ở thẻ Tổng quan trước khi có thể nộp hồ sơ cho Quản lý vận hành.'}
-            </p>}
-            <div className={preparationStyles.reviewFooterActions}>
-              {crmPlan.data&&!canReviewPreparation&&section!=='overview'&&<Button tone="secondary" autoWidth onClick={()=>goSection('overview')}>Xem các mục cần hoàn thiện</Button>}
-              <Button autoWidth disabled={!canReviewPreparation} onClick={()=>goPreparationStep(3)}>Nộp hồ sơ tour cho Quản lý vận hành</Button>
+          {manager&&!reviewStep&&(() => {
+            const planFinalized = ['PUBLISHED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].includes(cruise.status) || crmPlan.data?.planStatus === 'APPROVED'
+            const planSubmitted = crmPlan.data?.planStatus === 'SUBMITTED'
+            return <div className={preparationStyles.reviewFooter}>
+              {crmPlan.loading&&<Loading label="Đang kiểm tra hồ sơ…"/>}
+              {crmPlan.error&&<Notice title="Chưa kiểm tra được hồ sơ" tone="error"><Button tone="secondary" onClick={crmPlan.retry}>Thử lại</Button></Notice>}
+              {crmPlan.data&&<p className={preparationStyles.reviewFooterNote}>
+                {planFinalized
+                  ? (cruise.status === 'PUBLISHED' && cruise.openedForSaleAt
+                    ? 'Hồ sơ chuyến khởi hành đã được phê duyệt và chuyến đang mở bán.'
+                    : 'Hồ sơ chuyến khởi hành đã được phê duyệt, không cần nộp lại.')
+                  : planSubmitted
+                    ? 'Hồ sơ đang chờ Quản lý vận hành xét duyệt.'
+                    : canReviewPreparation
+                      ? ((crmPlan.data.programIssues?.length ?? 0) > 0
+                        ? 'Có thể mở Bước 3 để rà soát hồ sơ; hoàn thiện thêm các mục chương trình còn thiếu trước khi gửi Quản lý vận hành duyệt.'
+                        : 'Hồ sơ đã đủ điều kiện để chuyển sang Bước 3 và gửi Quản lý vận hành duyệt.')
+                      : 'Còn điều kiện cần hoàn thiện ở thẻ Tổng quan trước khi có thể nộp hồ sơ cho Quản lý vận hành.'}
+              </p>}
+              <div className={preparationStyles.reviewFooterActions}>
+                {crmPlan.data&&!planFinalized&&!planSubmitted&&!canReviewPreparation&&section!=='overview'&&<Button tone="secondary" autoWidth onClick={()=>goSection('overview')}>Xem các mục cần hoàn thiện</Button>}
+                {planFinalized || planSubmitted ? (
+                  <Button tone="secondary" autoWidth onClick={()=>goPreparationStep(3)}>Xem hồ sơ đã nộp</Button>
+                ) : (
+                  <Button autoWidth disabled={!canReviewPreparation} onClick={()=>goPreparationStep(3)}>Nộp hồ sơ cho Quản lý vận hành</Button>
+                )}
+              </div>
             </div>
-          </div>}
+          })()}
           {lifecycleAction && access.canDo(lifecyclePermissions[lifecycleAction]) && <Modal busy={lifecycleBusy} title='Xác nhận chuyển trạng thái' onClose={() => { if (!lifecycleBusy) setLifecycleAction(null) }} footer={<div className={styles.dialogActions}>
 <Button tone="secondary" disabled={lifecycleBusy} onClick={() => setLifecycleAction(null)} data-overlay-dismiss>Quay lại</Button>
 <Button tone={lifecycleAction === 'cancel' ? 'danger' : 'primary'} disabled={lifecycleBusy || (lifecycleAction === 'cancel' && !cancelReason.trim())} onClick={() => void confirmLifecycle()}>{lifecycleBusy ? 'Đang xử lý…' : {publish:'Phát hành chuyến khởi hành',complete:'Kết thúc chuyến khởi hành',cancel:'Hủy chuyến khởi hành'}[lifecycleAction]}</Button>

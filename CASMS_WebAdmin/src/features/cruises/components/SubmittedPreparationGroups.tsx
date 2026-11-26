@@ -236,7 +236,7 @@ export function SubmittedPreparationGroups({
   return (
     <Panel
       title="Nhóm hồ sơ bộ phận đã gửi"
-      subtitle="Kiểm tra và xác nhận từng phân mục chuyên môn (Lịch trình, Dịch vụ, Nhân sự, Tàu) theo từng tàu trước khi xuất bến."
+      subtitle=""
     >
       {/* Status Tabs & Ship Grouping Toggle */}
       <div className={styles.queueStatusBar}>

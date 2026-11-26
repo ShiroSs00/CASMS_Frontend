@@ -48,6 +48,13 @@ export function Modal({ title, description, onClose, busy = false, wide = false,
     setConfirmDiscard(false)
   }
   function keepTabFocus(event: KeyboardEvent<HTMLDialogElement>) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      event.stopPropagation()
+      if (confirmDiscard) continueEditing()
+      else requestClose()
+      return
+    }
     if (event.key !== 'Tab') return
     const element = event.currentTarget
     const controls = Array.from(element.querySelectorAll<HTMLElement>(

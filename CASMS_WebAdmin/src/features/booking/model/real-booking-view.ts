@@ -26,3 +26,25 @@ export function bookingBirthDate(value: string | null | undefined) {
   return day + '/' + month + '/' + year
 }
 export const bookingPlanName = (value: string | null) => value ? ({ FULL: 'Thanh toán toàn bộ', DEPOSIT: 'Đặt cọc', STAGES: 'Thanh toán theo đợt' } as Record<string, string>)[value] ?? value : 'Chưa có kế hoạch thanh toán'
+
+const nationalityVi: Record<string, string> = {
+  vn: 'Việt Nam', vnm: 'Việt Nam', vietnam: 'Việt Nam', vietnamese: 'Việt Nam',
+  us: 'Hoa Kỳ', usa: 'Hoa Kỳ', american: 'Hoa Kỳ',
+  jp: 'Nhật Bản', jpn: 'Nhật Bản', japan: 'Nhật Bản', japanese: 'Nhật Bản',
+  kr: 'Hàn Quốc', kor: 'Hàn Quốc', korea: 'Hàn Quốc', korean: 'Hàn Quốc',
+  sg: 'Singapore', sgp: 'Singapore', singaporean: 'Singapore',
+  au: 'Úc', aus: 'Úc', australia: 'Úc', australian: 'Úc',
+  gb: 'Anh', gbr: 'Anh', uk: 'Anh', british: 'Anh',
+  fr: 'Pháp', fra: 'Pháp', french: 'Pháp',
+  de: 'Đức', deu: 'Đức', german: 'Đức',
+  cn: 'Trung Quốc', chn: 'Trung Quốc', chinese: 'Trung Quốc',
+  th: 'Thái Lan', tha: 'Thái Lan', thai: 'Thái Lan',
+  my: 'Malaysia', mys: 'Malaysia', malaysian: 'Malaysia',
+  ca: 'Canada', can: 'Canada', canadian: 'Canada',
+}
+
+export function bookingNationalityName(value: string | null | undefined) {
+  const cleaned = (value ?? '').trim()
+  if (!cleaned) return 'Chưa cung cấp'
+  return nationalityVi[cleaned.toLowerCase()] ?? cleaned
+}

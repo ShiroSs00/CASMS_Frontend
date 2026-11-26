@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { SupplierDetailPage } from '../pages/SupplierDetailPage'
 
 import { Badge, Button, CollectionSummary, DataTable, Empty, Field, ListFilters, ListFooter, Loading, Modal, Notice, Panel } from '@/shared/ui'
-import { supplierStatusLabels, supplierUpdatedDate, supplierVerificationLabels, type SupplierFilters, type SupplierListItem } from '../model/supplier-list'
+import { supplierStatusLabels, supplierTypeLabels, supplierUpdatedDate, supplierVerificationLabels, type SupplierFilters, type SupplierListItem } from '../model/supplier-list'
 import styles from './SupplierList.module.css'
 
 type Props = {
@@ -14,17 +14,6 @@ type Props = {
   onFiltersChange: (value: SupplierFilters) => void
   onReset: () => void
   onRetry?: () => void
-}
-
-const supplierTypeLabels: Record<string, string> = {
-  TOUR_OPERATOR: 'Đơn vị tổ chức tour',
-  TRANSPORT: 'Vận chuyển',
-  FOOD_BEVERAGE: 'Ẩm thực & đồ uống',
-  ENTERTAINMENT: 'Giải trí & sự kiện',
-  PORT_AGENT: 'Đại lý cảng',
-  LOGISTICS: 'Hậu cần & cung ứng',
-  ACTIVITY_PROVIDER: 'Đơn vị hoạt động',
-  OTHER: 'Khác',
 }
 
 export function SupplierListView({ rows, filters, totalCount, loading = false, error, onFiltersChange, onReset, onRetry }: Props) {

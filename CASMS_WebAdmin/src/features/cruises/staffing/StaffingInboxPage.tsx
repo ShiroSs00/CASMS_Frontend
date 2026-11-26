@@ -192,7 +192,7 @@ function StaffingInbox({ review }: { review: boolean }) {
                 <input
                   id="staffing-cruise-search"
                   type="search"
-                  placeholder="Nhập tên hoặc mã chuyến…"
+                  placeholder="Tên hoặc mã chuyến…"
                   value={cruiseSearch}
                   onChange={event => setCruiseSearch(event.target.value)}
                 />
@@ -365,7 +365,7 @@ function ShipManagerAssignments({ userId, onAssigned }: { userId: string | null 
     <div id="ship-manager-assign">
       <Panel
         title={count > 0 ? `Chuyến cần phân công Quản lý tàu (${count})` : 'Chuyến cần phân công Quản lý tàu'}
-        subtitle="Gắn Quản lý tàu phụ trách riêng cho chuyến khởi hành này để họ nhận được đề nghị bố trí dịch vụ trên boong và lập phương án tàu."
+        subtitle=""
       >
         <div className={styles.section}>
           <div className={styles.rowMeta}>

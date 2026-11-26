@@ -28,7 +28,7 @@ export function DisembarkationPlan({ cruiseId }: { cruiseId: string }) {
   return (
     <Panel
       title="Kế hoạch trả khách ở cảng cuối"
-      subtitle="Thiết lập và theo dõi khung thời gian rời tàu của hành khách tại cảng đích."
+      subtitle=""
     >
       {query.loading && <Loading label="Đang tải khung trả khách…" />}
       {query.error && (

@@ -12,17 +12,20 @@ export function ShipOverview({ship}:{ship:Ship}) {
   const access=useSessionAccess()
   const loadCapacity=useCallback((signal:AbortSignal)=>shipDeckCabinApi.getShipCapacity(ship.id,signal),[ship.id])
   const loadCruise=useCallback((signal:AbortSignal)=>shipDeckCabinApi.getCurrentCruise(ship.id,signal),[ship.id])
-  const capacity=useFleetQuery(`overview-capacity:${ship.id}`,loadCapacity,access.canDo('SHIP_CAPACITY_SUMMARY'))
+  const canCapacity=access.canDo('SHIP_CAPACITY_SUMMARY')
+  const capacity=useFleetQuery(`overview-capacity:${ship.id}`,loadCapacity,canCapacity)
   const cruise=useFleetQuery(`overview-cruise:${ship.id}`,loadCruise,access.canDo('SHIP_CURRENT_CRUISE'))
   const profileFacts=shipProfileFacts(ship,undefined,!ship.shipTypeId)
-  const facts=[['Boong hành khách',ship.totalDecks],['Chiều dài',ship.lengthMeters!=null?`${ship.lengthMeters.toLocaleString('vi-VN')} m`:'Chưa cập nhật'],['Chiều rộng',ship.beamMeters!=null?`${ship.beamMeters.toLocaleString('vi-VN')} m`:'Chưa cập nhật'],['Ngày đưa vào hoạt động',formatDate(ship.commissionDate)],...profileFacts,['Cập nhật hồ sơ',formatDate(ship.updatedAt)]]
+  const facts=[['Số boong thiết kế',ship.totalDecks],['Chiều dài',ship.lengthMeters!=null?`${ship.lengthMeters.toLocaleString('vi-VN')} m`:'Chưa cập nhật'],['Chiều rộng',ship.beamMeters!=null?`${ship.beamMeters.toLocaleString('vi-VN')} m`:'Chưa cập nhật'],['Ngày đưa vào hoạt động',formatDate(ship.commissionDate)],...profileFacts,['Cập nhật hồ sơ',formatDate(ship.updatedAt)]]
   return <div className={styles.overview}>
     <dl className={styles.summary} aria-label="Sức chứa và phòng trên tàu">
       <div><dt>Sức chứa hành khách</dt><dd>{ship.capacity.toLocaleString('vi-VN')} <span>khách</span></dd></div>
-      <div><dt>Tổng số boong</dt><dd>{capacity.data?.actualDeckCount??'—'}</dd></div>
-      <div><dt>Tổng số phòng</dt><dd>{capacity.data?.actualCabinCount??'—'}</dd></div>
-      <div><dt>Phòng còn trống</dt><dd>{capacity.data?.availableCabinCount??'—'}</dd></div>
-      <ShipAreaCount count={capacity.data?.actualServiceAreaCount}/>
+      {canCapacity ? <>
+        <div><dt>Boong đã cấu hình</dt><dd>{capacity.data?.actualDeckCount??'—'}</dd></div>
+        <div><dt>Tổng số phòng</dt><dd>{capacity.data?.actualCabinCount??'—'}</dd></div>
+        <div><dt>Phòng còn trống</dt><dd>{capacity.data?.availableCabinCount??'—'}</dd></div>
+        <ShipAreaCount count={capacity.data?.actualServiceAreaCount}/>
+      </> : <div><dt>Số boong thiết kế</dt><dd>{ship.totalDecks ?? '—'}</dd></div>}
     </dl>
     {capacity.loading&&<span className={styles.loading} role="status">Đang tải số liệu…</span>}
     {capacity.error&&<Notice title="Không tải được số liệu tàu" tone="error">{capacity.error}</Notice>}

@@ -56,7 +56,7 @@
 .contactModalCard {
   position:relative;
   width:100%;
-  max-width:440px;
+  max-width:468px;
   background:white;
   border-radius:24px;
   padding:36px 32px 28px;
@@ -100,15 +100,19 @@
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:12px;
+  flex-wrap:nowrap;
+  gap:10px;
   min-height:50px;
-  padding:12px 24px;
+  padding:12px 20px;
   border:1.5px solid #0E3752;
   border-radius:999px;
   background:white;
   color:#0E3752 !important;
-  font-size:15px;
+  font-size:14px;
   font-weight:700;
+  line-height:1.35;
+  white-space:nowrap;
+  text-align:center;
   text-decoration:none !important;
   transition:all 0.2s ease;
 }
@@ -118,15 +122,19 @@
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:12px;
+  flex-wrap:nowrap;
+  gap:10px;
   min-height:50px;
-  padding:12px 24px;
+  padding:12px 20px;
   border:1.5px solid #0E3752;
   border-radius:999px;
   background:#0E3752;
   color:white !important;
-  font-size:15px;
+  font-size:14px;
   font-weight:700;
+  line-height:1.35;
+  white-space:nowrap;
+  text-align:center;
   text-decoration:none !important;
   box-shadow:0 4px 14px rgba(14,55,82,0.2);
   transition:all 0.2s ease;

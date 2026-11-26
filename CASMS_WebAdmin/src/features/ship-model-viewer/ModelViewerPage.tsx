@@ -211,7 +211,7 @@ export function ModelViewerPage() {
   }
   const renderHeader = () => <div className={styles.lookupHeader}>
     <PageHeader title="Thiết lập thiết bị định vị" breadcrumb="Cấu hình tàu / Thiết lập thiết bị định vị"
-      description="Chọn loại tàu và tàu để bố trí, kiểm tra thiết bị định vị trên từng boong." />
+      description="" />
     <div className={styles.shipSelector}>
       <Field htmlFor="positioning-type" label="Loại tàu">
         <select id="positioning-type" value={typeFilter} disabled={query.loading || types.loading} onChange={event => changeType(event.target.value)}>

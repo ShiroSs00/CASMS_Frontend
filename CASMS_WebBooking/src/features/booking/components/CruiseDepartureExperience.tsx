@@ -13,6 +13,7 @@ import { publicContentFailure } from '../model/public-content-feedback'
 import { PublicCruiseItinerary, type PublicItineraryRead } from './PublicCruiseInformation'
 import { IncludedBenefits, PublicCruisePackages, type CruisePackageRead } from './PublicCruisePackages'
 import { useBookingModelRenderer } from './BookingModelIntegration'
+import { useUsdReference, type DisplayRate } from './UsdReference'
 import styles from './CruiseDetail.module.css'
 
 const departureTime = new Intl.DateTimeFormat('vi-VN', {
@@ -196,7 +197,7 @@ function ShipExperience({ cruise, facts, offers }: {
               <p className={styles.sectionEyebrow}>KHÁM PHÁ KHÔNG GIAN 3D</p>
               <h3>Mô hình 3D tàu {cruise.ship ?? 'của chuyến'}</h3>
             </div>
-            <span className={styles.timeNote}>Xoay, phóng to và chọn từng boong để xem vị trí cabin &amp; khu dịch vụ</span>
+            <span className={styles.timeNote} />
           </div>
           <div className={styles.shipModelCanvasBox}>
             {renderShipModel({ shipId: cruise.shipId, cruiseId: cruise.id })}
@@ -259,13 +260,71 @@ export function UnavailableCruise({ back }: { back: string }) {
   </div>
 }
 
-function formatExpMoney(price: number | null, currencyCode: string) {
+const serviceCategoryVi: Record<string, string> = {
+  'dining': 'Ẩm thực',
+  'food & beverage': 'Ẩm thực & Đồ uống',
+  'beverage': 'Đồ uống',
+  'spa': 'Spa & Thư giãn',
+  'spa & wellness': 'Spa & Chăm sóc sức khỏe',
+  'spa and wellness': 'Spa & Chăm sóc sức khỏe',
+  'wellness': 'Chăm sóc sức khỏe',
+  'entertainment': 'Giải trí',
+  'entertainment and activities': 'Giải trí & Hoạt động',
+  'activities': 'Hoạt động trên tàu',
+  'cabin services': 'Dịch vụ cabin',
+  'cabin': 'Dịch vụ cabin',
+  'retail': 'Mua sắm',
+  'shopping': 'Mua sắm',
+  'shopping and retail': 'Mua sắm & Bán lẻ',
+  'shore excursion': 'Tour tham quan bờ',
+  'shore excursions': 'Tour tham quan bờ',
+  'internet': 'Internet & Kết nối',
+  'internet and connectivity': 'Internet & Kết nối',
+  'connectivity': 'Internet & Kết nối',
+  'laundry': 'Giặt là',
+  'medical': 'Y tế',
+  'medical assistance': 'Hỗ trợ y tế',
+  'kids': 'Trẻ em & Gia đình',
+  'family': 'Gia đình & Trẻ em',
+  'childcare and family': 'Trẻ em & Gia đình',
+  'childcare & family': 'Trẻ em & Gia đình',
+  'photography': 'Nhiếp ảnh',
+  'concierge': 'Hỗ trợ đặc biệt',
+  'fitness': 'Thể thao & Gym',
+  'transportation': 'Đưa đón',
+}
+
+function translateExperienceCategory(raw?: string | null, fallback = 'Dịch vụ trên tàu') {
+  const cleaned = (raw ?? '').trim()
+  if (!cleaned) return fallback
+  return serviceCategoryVi[cleaned.toLowerCase()] ?? cleaned
+}
+
+function isEntertainmentService(categoryName?: string | null) {
+  const lower = (categoryName ?? '').toLowerCase()
+  return lower.includes('entertainment') || lower.includes('activit') || lower.includes('giải trí') || lower.includes('hoạt động')
+}
+
+function cleanCustomerDescription(raw?: string | null) {
+  const text = (raw ?? '').trim()
+  if (!text) return null
+  if (/(^illustrative\b|^demo\b|catalog placeholder|requires a valid cruise stop|do not treat as a real|included entertainment example|placeholder;)/i.test(text)) {
+    return null
+  }
+  return text
+}
+
+function formatExpMoney(price: number | null, currencyCode: string, rate?: DisplayRate | null) {
   if (price == null || price === 0) return 'Miễn phí / Theo gói'
+  const curr = (currencyCode || 'VND').toUpperCase()
   try {
-    const curr = currencyCode || 'VND'
-  return `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: curr === 'VND' ? 0 : 2 }).format(price)} ${curr}`
+    if (curr === 'USD' && rate) {
+      const approxVnd = Math.round(price * rate.vndPerUsd)
+      return `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(approxVnd)} VND`
+    }
+    return `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: curr === 'VND' ? 0 : 2 }).format(price)} ${curr}`
   } catch {
-    return `${price.toLocaleString('vi-VN')} ${currencyCode || 'VND'}`
+    return `${price.toLocaleString('vi-VN')} ${curr}`
   }
 }
 
@@ -279,10 +338,43 @@ function CruiseServicesAndActivitiesSection({
   loading: boolean
 }) {
   const [tab, setTab] = useState<'all' | 'services' | 'activities'>('all')
-  const services = experiences?.services ?? []
+  const rawServices = experiences?.services ?? []
   const activities = experiences?.activities ?? []
-  const totalCount = services.length + activities.length
-  const showServices = tab === 'all' || tab === 'services'
+
+  // Merge duplicate service entries across multiple decks into one card listing all decks
+  const dedupedServices = Array.from(
+    rawServices.reduce((map, item) => {
+      const key = `${item.serviceName.trim().toLowerCase()}|${(item.categoryName ?? '').trim().toLowerCase()}|${item.price ?? ''}|${item.currencyCode}`
+      const deckLabel = item.deckNumber != null
+        ? `Tầng ${item.deckNumber}`
+        : (item.deckName?.trim() || null)
+      const existing = map.get(key)
+      if (!existing) {
+        map.set(key, {
+          ...item,
+          decks: deckLabel ? [deckLabel] : [],
+        })
+      } else {
+        if (deckLabel && !existing.decks.includes(deckLabel)) existing.decks.push(deckLabel)
+        existing.canBuyPreCruise = existing.canBuyPreCruise || item.canBuyPreCruise
+        existing.canBuyOnboard = existing.canBuyOnboard || item.canBuyOnboard
+      }
+      return map
+    }, new Map<string, PublicCruiseExperiences['services'][number] & { decks: string[] }>()).values(),
+  )
+
+  const entertainmentServices = dedupedServices.filter(item => isEntertainmentService(item.categoryName))
+  const nonEntertainmentServices = dedupedServices.filter(item => !isEntertainmentService(item.categoryName))
+  const activitiesTabCount = activities.length + entertainmentServices.length
+  const totalCount = dedupedServices.length + activities.length
+  const hasUsdItem = [...dedupedServices, ...activities].some(item => (item.currencyCode || '').toUpperCase() === 'USD' && item.price != null && item.price > 0)
+  const { rate } = useUsdReference(hasUsdItem)
+
+  const visibleServices = tab === 'all'
+    ? dedupedServices
+    : tab === 'services'
+      ? nonEntertainmentServices
+      : entertainmentServices
   const showActivities = tab === 'all' || tab === 'activities'
 
   return <section id="cruise-services" className={styles.section} aria-labelledby="cruise-services-heading">
@@ -303,10 +395,10 @@ function CruiseServicesAndActivitiesSection({
           onClick={() => setTab('all')}>Tất cả ({totalCount})</button>
         <button type="button" role="tab" aria-selected={tab === 'services'}
           className={`${styles.shipTab} ${tab === 'services' ? styles.shipTabActive : ''}`}
-          onClick={() => setTab('services')}>Dịch vụ trên tàu ({services.length})</button>
+          onClick={() => setTab('services')}>Dịch vụ trên tàu ({nonEntertainmentServices.length})</button>
         <button type="button" role="tab" aria-selected={tab === 'activities'}
           className={`${styles.shipTab} ${tab === 'activities' ? styles.shipTabActive : ''}`}
-          onClick={() => setTab('activities')}>Hoạt động giải trí ({activities.length})</button>
+          onClick={() => setTab('activities')}>Hoạt động giải trí ({activitiesTabCount})</button>
       </div>
     )}
 
@@ -319,25 +411,26 @@ function CruiseServicesAndActivitiesSection({
 
     {!loading && totalCount > 0 && (
       <ul className={styles.expGrid} aria-label="Danh sách dịch vụ và hoạt động trên tàu">
-        {showServices && services.map(item => {
+        {visibleServices.map(item => {
           const svcPhoto = experiencePhotoFor(`${item.categoryName ?? ''} ${item.serviceName}`)
-          return <li key={`svc-${item.serviceId}-${item.deckNumber ?? 0}`} className={`${styles.expCard} ${styles.expExcursionCard}`}>
+          const desc = cleanCustomerDescription(item.description)
+          return <li key={`svc-${item.serviceId}-${item.decks.join(',')}`} className={`${styles.expCard} ${styles.expExcursionCard}`}>
             <div className={styles.expExcursionPhoto}>
               <img src={svcPhoto} alt={item.serviceName} width="640" height="360" loading="lazy" />
             </div>
             <div className={styles.expExcursionBody}>
               <div className={styles.expCardTop}>
                 <div className={styles.expBadges}>
-                  <span className={styles.expCategoryTag}>{item.categoryName || 'Dịch vụ trên tàu'}</span>
-                  {item.deckName && <span className={styles.expDeckTag}>
-                    {item.deckNumber != null ? `Tầng ${item.deckNumber} · ` : ''}{item.deckName}
+                  <span className={styles.expCategoryTag}>{translateExperienceCategory(item.categoryName, 'Dịch vụ trên tàu')}</span>
+                  {item.decks.length > 0 && <span className={styles.expDeckTag}>
+                    {item.decks.join(', ')}
                   </span>}
                 </div>
                 <h3>{item.serviceName}</h3>
-                {item.description && <p className={styles.expDesc}>{item.description}</p>}
+                {desc && <p className={styles.expDesc}>{desc}</p>}
               </div>
               <div className={styles.expCardFoot}>
-                <span className={styles.expPrice}>{formatExpMoney(item.price, item.currencyCode)}</span>
+                <span className={styles.expPrice}>{formatExpMoney(item.price, item.currencyCode, rate)}</span>
                 <span className={styles.timeNote}>
                   {item.canBuyPreCruise && item.canBuyOnboard ? 'Đặt trước hoặc trên tàu' : item.canBuyOnboard ? 'Phục vụ trên tàu' : 'Theo lịch chuyến'}
                 </span>
@@ -347,6 +440,7 @@ function CruiseServicesAndActivitiesSection({
         })}
         {showActivities && activities.map(act => {
           const actPhoto = experiencePhotoFor(`${act.category ?? ''} ${act.activityName}`)
+          const desc = cleanCustomerDescription(act.description)
           return <li key={`act-${act.activityId}`} className={`${styles.expCard} ${styles.expExcursionCard}`}>
             <div className={styles.expExcursionPhoto}>
               <img src={actPhoto} alt={act.activityName} width="640" height="360" loading="lazy" />
@@ -354,14 +448,14 @@ function CruiseServicesAndActivitiesSection({
             <div className={styles.expExcursionBody}>
               <div className={styles.expCardTop}>
                 <div className={styles.expBadges}>
-                  <span className={styles.expCategoryTag}>{act.category || 'Hoạt động giải trí'}</span>
+                  <span className={styles.expCategoryTag}>{translateExperienceCategory(act.category, 'Hoạt động giải trí')}</span>
                   {(act.deckName || act.location) && <span className={styles.expDeckTag}>{act.deckName || act.location}</span>}
                 </div>
                 <h3>{act.activityName}</h3>
-                {act.description && <p className={styles.expDesc}>{act.description}</p>}
+                {desc && <p className={styles.expDesc}>{desc}</p>}
               </div>
               <div className={styles.expCardFoot}>
-                <span className={styles.expPrice}>{formatExpMoney(act.price, act.currencyCode)}</span>
+                <span className={styles.expPrice}>{formatExpMoney(act.price, act.currencyCode, rate)}</span>
                 {act.startTime && <span className={styles.timeNote}>{departureTime.format(new Date(act.startTime))}</span>}
               </div>
             </div>
@@ -380,6 +474,8 @@ function CruiseShoreExcursionsSection({
   loading: boolean
 }) {
   const excursions = experiences?.shoreExcursions ?? []
+  const hasUsdExcursion = excursions.some(ex => (ex.currencyCode || '').toUpperCase() === 'USD' && ex.price != null && ex.price > 0)
+  const { rate } = useUsdReference(hasUsdExcursion)
   return <section id="cruise-excursions" className={styles.section} aria-labelledby="cruise-excursions-heading">
     <div className={styles.sectionHeading}>
       <div>
@@ -392,7 +488,7 @@ function CruiseShoreExcursionsSection({
     {loading && <p className={styles.timeNote}>Đang tải danh sách tour tham quan bờ…</p>}
     {!loading && excursions.length === 0 && (
       <div className={styles.expEmptyBox}>
-        Các tour tham quan bờ (Shore Excursions) cho từng điểm dừng của hải trình này đang được cập nhật. Bạn vẫn có thể đặt chỗ du thuyền ngay hôm nay và đăng ký tour bờ sau.
+        Các tour tham quan bờ cho từng điểm dừng của hải trình này đang được cập nhật. Bạn vẫn có thể đặt chỗ du thuyền ngay hôm nay và đăng ký tour bờ sau.
       </div>
     )}
     {!loading && excursions.length > 0 && (
@@ -419,8 +515,7 @@ function CruiseShoreExcursionsSection({
                 </p>
               )}
               <div className={styles.expCardFoot}>
-                <span className={styles.expPrice}>{formatExpMoney(ex.price, ex.currencyCode)}</span>
-                <span className={styles.timeNote}>Đăng ký theo chuyến</span>
+                <span className={styles.expPrice}>{formatExpMoney(ex.price, ex.currencyCode, rate)}</span>
               </div>
             </div>
           </li>
@@ -636,7 +731,6 @@ export function CruiseDepartureExperience({ cruise, back }: { cruise: LiveCruise
         </dl>
         <div className={styles.summaryPriceBox}>
           <BookingPrice price={price} />
-          <p className={styles.summaryNote}>Giá tham khảo mỗi khách. Tổng tiền &amp; lịch đóng từng đợt tự động tính khi xác nhận.</p>
           <ul className={styles.summaryPerks} aria-label="Chính sách thanh toán áp dụng">
             <li>✓ Hỗ trợ đặt cọc giữ chỗ từ 30%</li>
             <li>✓ Thanh toán 1 lần, 2 đợt hoặc 3 đợt</li>

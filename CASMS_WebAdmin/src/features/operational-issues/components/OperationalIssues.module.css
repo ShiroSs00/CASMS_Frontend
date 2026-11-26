@@ -845,12 +845,12 @@
 
 .field { align-content:start; }
 
-.metricsGrid { gap:16px; margin:0 0 24px; }
-.metricCard { padding:24px; gap:14px; border-top:3px solid var(--brand-teal); }
+.metricsGrid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin:0 0 24px; }
+.metricCard { padding:18px 16px; gap:10px; border-top:3px solid var(--brand-teal); }
 .metricCard:has(.statusOpen),.metricCard:has(.statusReview) { border-top-color:var(--oim-error); }
 .metricValue { font-family:var(--font-family-heading); letter-spacing:-.03em; }
 .metricHint { font-size:12px; line-height:1.6; }
 .detailGrid { align-items:start; }
 .actionRail { position:sticky; top:var(--workspace-sticky-top,24px); }
 @media(max-width:900px) { .actionRail { position:static; } }
-@media(max-width:600px) { .metricsGrid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; } .metricCard { padding:20px 16px; } }
+@media(max-width:820px) { .metricsGrid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; } .metricCard { padding:16px; } }

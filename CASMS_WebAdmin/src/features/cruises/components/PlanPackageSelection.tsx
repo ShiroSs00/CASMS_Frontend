@@ -85,7 +85,7 @@ export function PlanPackageSelection({ cruiseId, onSaved }: { cruiseId: string; 
     {terms.data?.terms && <p>Thuế: {chargeText(terms.data.terms.tax, true)} · Phí cảng: {chargeText(terms.data.terms.portFee, false, terms.data.currency)}</p>}
     {terms.error && <div className={styles.selectionActions}><Button tone="secondary" size="compact" autoWidth onClick={terms.retry}>Tải lại thuế và phí cảng</Button></div>}
     <div className={styles.selectionActions}>
-      {!hasChanges && !query.loading && !query.error && selected.length > 0 && <p role="status">Đã lưu lựa chọn gói vào hồ sơ. Tiếp tục đến bước nộp hồ sơ tour.</p>}
+      {!hasChanges && !query.loading && !query.error && selected.length > 0 && <p role="status">Đã lưu lựa chọn gói vào hồ sơ. Tiếp tục đến bước nộp hồ sơ chuyến.</p>}
       <Button autoWidth disabled={!editable || !hasChanges || busy || Boolean(error) || query.loading || Boolean(query.error)} onClick={() => void save()}>Lưu lựa chọn gói</Button>
     </div>
   </Panel>

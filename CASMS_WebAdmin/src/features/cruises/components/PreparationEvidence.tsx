@@ -444,7 +444,7 @@ export function PreparationEvidence({
 
       {query.data && !sectionCode && access.roles.includes('CRUISE_MANAGER') && onNavigateSection && (
         <Notice title="Hồ sơ kế hoạch chuyến còn có điều kiện riêng">
-          <p>Kiểm tra gói, phiên bản giá và các mục cần hoàn thiện ở Tổng quan trước khi nộp hồ sơ tour cho Quản lý vận hành.</p>
+          <p>Kiểm tra gói, phiên bản giá và các mục cần hoàn thiện ở Tổng quan trước khi nộp hồ sơ chuyến khởi hành cho Quản lý vận hành.</p>
           <Button tone="secondary" autoWidth onClick={() => onNavigateSection('overview')}>
             Xem gói giá và điều kiện gửi
           </Button>

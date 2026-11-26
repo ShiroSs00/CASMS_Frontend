@@ -21,6 +21,7 @@ export function RefundSummary() {
   const id = useId()
   const [from, setFrom] = useState('')
   const [until, setUntil] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<{ from?: string; until?: string }>({})
   const [rows, setRows] = useState<RefundTotal[] | null>(null)
   const [range, setRange] = useState<{ from: string; until: string } | null>(null)
   const exportLock = useRef(false)
@@ -37,10 +38,19 @@ export function RefundSummary() {
   }
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  return <Panel title="Tổng hợp hoàn tiền" subtitle="Chọn khoảng ngày (giờ Việt Nam) để thống kê số yêu cầu và xuất tệp CSV đối soát.">
-    <form className={styles.financeReportForm} onSubmit={async e => {
+  return <Panel title="Tổng hợp hoàn tiền">
+    <form className={styles.financeReportForm} noValidate onSubmit={async e => {
       e.preventDefault()
-      if (busy || !from || !until) return
+      if (busy) return
+      const nextErrors: { from?: string; until?: string } = {}
+      if (!from) nextErrors.from = 'Chọn ngày bắt đầu.'
+      if (!until) nextErrors.until = 'Chọn ngày kết thúc.'
+      if (from && until && from > until) nextErrors.until = 'Ngày kết thúc phải từ ngày bắt đầu trở đi.'
+      setFieldErrors(nextErrors)
+      if (Object.keys(nextErrors).length > 0) {
+        setError('')
+        return
+      }
       setBusy(true); setError(''); setRows(null); setRange(null)
       try {
         const start = new Date(from + 'T00:00:00+07:00')
@@ -52,8 +62,8 @@ export function RefundSummary() {
       } catch (value) { setError(value instanceof Error ? value.message : 'Chưa tải được số liệu.') }
       finally { setBusy(false) }
     }}>
-      <Field htmlFor={id + '-from'} label="Từ ngày (giờ Việt Nam)"><input id={id + '-from'} type="date" required value={from} onChange={e => setFrom(e.target.value)}/></Field>
-      <Field htmlFor={id + '-until'} label="Đến hết ngày (giờ Việt Nam)"><input id={id + '-until'} type="date" required value={until} onChange={e => setUntil(e.target.value)}/></Field>
+      <Field htmlFor={id + '-from'} label="Từ ngày (giờ Việt Nam) *" error={fieldErrors.from}><input id={id + '-from'} type="date" required aria-invalid={Boolean(fieldErrors.from)} value={from} onChange={e => { setFrom(e.target.value); setFieldErrors(prev => ({ ...prev, from: undefined })) }}/></Field>
+      <Field htmlFor={id + '-until'} label="Đến hết ngày (giờ Việt Nam) *" error={fieldErrors.until}><input id={id + '-until'} type="date" required aria-invalid={Boolean(fieldErrors.until)} value={until} onChange={e => { setUntil(e.target.value); setFieldErrors(prev => ({ ...prev, until: undefined })) }}/></Field>
       <div className={styles.formActions}>
         <Button type="submit" autoWidth busy={busy}>Xem tổng hợp</Button>
         {range && access.has('REPORT_GENERATE') && <Button tone="secondary" autoWidth busy={busy} onClick={() => void download()}>Xuất CSV</Button>}
@@ -156,7 +166,7 @@ export function RefundHistory({ bookingId }: { bookingId: string }) {
     signal => allowed ? apiRequest<RefundRecord[]>(`/refunds/booking/${encodeURIComponent(bookingId)}`, { signal }) : Promise.resolve(null),
     [allowed, bookingId]))
   if (!allowed) return null
-  return <Panel title="Hồ sơ hoàn tiền" subtitle="Duyệt mức hoàn hoặc ghi nhận chứng từ chi hoàn tiền cho đặt chỗ này.">
+  return <Panel title="Hồ sơ hoàn tiền">
     {query.loading && <Loading label="Đang tải hồ sơ hoàn tiền…" />}
     {query.error && <Notice title="Chưa tải được hồ sơ hoàn tiền" tone="error"><Button tone="secondary" size="compact" autoWidth onClick={query.retry}>Tải lại</Button></Notice>}
     {query.data && (query.data.length ? <ul className={styles.financeCaseList}>{query.data.map(row => <li key={row.refundId} className={styles.financeCaseCard}>

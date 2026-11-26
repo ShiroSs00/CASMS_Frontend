@@ -29,11 +29,13 @@ function PassengerOnlineCheckinRow({
   fullName,
   cabinNumber,
   canCheckinWindow,
+  shouldAutoLoad,
 }: {
   passengerId: string
   fullName: string
   cabinNumber: string | null
   canCheckinWindow: boolean
+  shouldAutoLoad: boolean
 }) {
   const access = useSessionAccess()
   const canRead = access.permissions.includes('CHECKIN_READ')
@@ -75,8 +77,12 @@ function PassengerOnlineCheckinRow({
   }, [canRead, passengerId])
 
   useEffect(() => {
+    if (!shouldAutoLoad) {
+      setRecord({ checkinStatus: 'NotStarted', boardingBlockReason: null })
+      return
+    }
     void loadStatus()
-  }, [loadStatus])
+  }, [loadStatus, shouldAutoLoad])
 
   async function submitAction() {
     if (!modalAction || lockRef.current) return
@@ -268,6 +274,7 @@ export function OnlineCheckinPanel({ booking }: { booking: BookingDetail }) {
             fullName={person.fullName}
             cabinNumber={person.cabinNumber ?? null}
             canCheckinWindow={inWindow}
+            shouldAutoLoad={inWindow}
           />
         ))}
       </div>

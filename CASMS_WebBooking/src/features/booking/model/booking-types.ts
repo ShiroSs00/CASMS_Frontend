@@ -1,6 +1,6 @@
 export type BookingStatus = 'Draft' | 'Confirmed' | 'Cancelled'
 export type CheckinStatus = 'NotStarted' | 'InProgress' | 'NeedsReview' | 'Completed' | 'BoardingReady'
-export type PaymentStatus = 'Pending' | 'Confirmed' | 'Failed' | 'Cancelled'
+export type PaymentStatus = 'Initiated' | 'Pending' | 'Authorized' | 'Captured' | 'Confirmed' | 'Failed' | 'Cancelled' | 'PartiallyRefunded' | 'Refunded'
 export type ContractStatus = 'Draft' | 'Accepted' | 'Cancelled'
 export type TravellerDraft = { id:string; name:string; birthDate:string; email:string; phone:string }
 export type BookingDraft = { cruiseId?:string; travellers:TravellerDraft[]; selectedCabinCategory?:string; passengerPackages:Record<string,string|undefined>; acceptedTerms:boolean }

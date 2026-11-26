@@ -32,6 +32,16 @@ export const supplierStatusLabels: Record<SupplierStatus, string> = {
 export const supplierVerificationLabels: Record<SupplierVerification, string> = {
   PENDING: 'Chờ xác minh', VERIFIED: 'Đã xác minh', REJECTED: 'Bị từ chối',
 }
+export const supplierTypeLabels: Record<string, string> = {
+  TOUR_OPERATOR: 'Đơn vị tổ chức tour',
+  TRANSPORT: 'Vận chuyển',
+  FOOD_BEVERAGE: 'Ẩm thực & đồ uống',
+  ENTERTAINMENT: 'Giải trí & sự kiện',
+  PORT_AGENT: 'Đại lý cảng',
+  LOGISTICS: 'Hậu cần & cung ứng',
+  ACTIVITY_PROVIDER: 'Đơn vị hoạt động',
+  OTHER: 'Khác',
+}
 
 // UI-SUP-001 & UI-SUP-003 fixtures stay local to the feature; no Supplier HTTP adapter.
 export const supplierRows: readonly SupplierListItem[] = [

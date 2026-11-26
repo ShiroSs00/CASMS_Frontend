@@ -21,7 +21,7 @@ export function RecordResolutionForm({ open, pending, error, onClose, onSubmit }
       pending={pending}
       error={error}
       title="Ghi nhận resolution"
-      description="Ghi nội dung xử lý nhưng vẫn giữ IN_PROGRESS; Verify là bước riêng."
+      description="Ghi nhận nội dung xử lý (bước xác minh thực hiện riêng)."
       onClose={onClose}
       footer={
         <>

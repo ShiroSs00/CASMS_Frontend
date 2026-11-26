@@ -198,6 +198,7 @@
 
 .referencePrice {
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .referencePrice strong {
   font-size: var(--text-2xl);
@@ -214,28 +215,35 @@
 /* Section Anchor Nav */
 .sectionNav {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--space-5);
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  gap: 0 var(--space-4);
   padding-inline: var(--space-2);
   background: var(--brand-pearl);
   border-block: 1px solid var(--border-default);
 }
+.sectionNav::-webkit-scrollbar {
+  display: none;
+}
 
-@media (min-width: 960px) and (min-height: 621px) {
+@media (min-width: 881px) and (min-height: 621px) {
   .sectionNav {
     position: sticky;
-    top: 86px;
-    z-index: 20;
+    top: 72px;
+    z-index: 25;
   }
 }
 
 .sectionNav a {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   min-height: var(--control-height-default);
   color: var(--brand-navy);
   font-size: var(--text-sm);
   font-weight: 600;
+  white-space: nowrap;
   text-decoration: none;
   border-bottom: 2px solid transparent;
 }
@@ -264,8 +272,8 @@
   min-inline-size: 0;
 }
 
-.detail :is(.facts, .section) {
-  scroll-margin-top: var(--public-anchor-offset, var(--space-5));
+.detail :is(.facts, .section, .rcDay) {
+  scroll-margin-top: var(--public-anchor-offset, 144px);
 }
 
 .detail h2[tabindex]:focus {
@@ -481,6 +489,13 @@
 
 .galleryThumbs:has(> :only-child) {
   grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+}
+
+.galleryThumbs:has(> :only-child) .galleryThumb {
+  aspect-ratio: 16 / 10;
+  min-height: 11rem;
+  max-height: 18rem;
 }
 
 .galleryThumb {
@@ -1345,10 +1360,11 @@
   box-shadow: var(--shadow-panel);
 }
 
-@media (min-width: 960px) and (min-height: 621px) {
+@media (min-width: 881px) and (min-height: 621px) {
   .bookingSummary {
     position: sticky;
-    top: calc(86px + 54px + var(--space-3));
+    top: calc(72px + 52px + var(--space-3));
+    z-index: 10;
   }
 }
 

@@ -146,7 +146,7 @@ function DesignForm({ id, originalKey }: { id?: string; originalKey?: string }) 
         <li aria-current={design && !preview ? 'step' : undefined}><span aria-hidden="true">2</span> Kiểm tra thông tin</li>
         <li aria-current={preview ? 'step' : undefined}><span aria-hidden="true">3</span> {id ? 'Xác nhận cập nhật' : 'Xác nhận tạo'}</li>
       </ol>
-      {!design && <Panel title="Thiết kế loại tàu" subtitle="Thông tin và cấu trúc loại tàu sẽ được đọc từ tệp thiết kế.">
+      {!design && <Panel title="Thiết kế loại tàu">
         <form onSubmit={event => { event.preventDefault(); upload() }}>
           <Field htmlFor="ship-bundle" label="Tệp thiết kế *" error={fileError} hint="Sử dụng gói thiết kế định dạng .zip.">
             <input ref={fileInput} hidden id="ship-bundle" type="file" accept=".zip,application/zip" disabled={Boolean(busy) || !canUpload}

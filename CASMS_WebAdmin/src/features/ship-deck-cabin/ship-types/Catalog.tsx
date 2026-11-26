@@ -50,7 +50,7 @@ export function ShipTypeCatalogPage() {
   const clearFilters = () => { setInput(''); setQ(''); setStatus(undefined); setPage(0) }
   return <AdminShell><div className={`${styles.stack} ${styles.designPage}`}>
     <PageHeader breadcrumb="Cấu hình tàu / Loại tàu" title="Quản lý loại tàu"
-      description="Tra cứu thông số và quản lý các loại tàu hiện có."
+      description=""
       actions={<ButtonLink to="/admin/ship-types/new">Tạo loại tàu</ButtonLink>} />
     <section aria-label="Bộ lọc loại tàu">
       <form className={styles.catalogFilters} role="search" onSubmit={event => { event.preventDefault(); setQ(input.trim()); setPage(0) }}>

@@ -75,6 +75,13 @@ td.version { max-width: 13rem; }
 .typeVessels table tr > :first-child { width:20%;white-space:nowrap; }
 .typeVessels table tr > :nth-child(2) { width:40%;min-width:12rem; }
 .typeVessels table tr > :last-child { white-space:nowrap; }
+@media (max-width: 1280px) {
+  .catalogTable table { min-width:0; width:100%; }
+  .catalogTable table :is(td,th) { padding:8px 6px; font-size:12px; }
+  .catalogTable tbody th, .catalogTable tr > :first-child { min-width:0; }
+  .catalogTable tr > :nth-child(n+3) { white-space:normal; }
+  .catalogTable tr > :last-child { white-space:nowrap; }
+}
 @media (max-width: 1000px) {
   .tableHint { display:block;margin:0;color:var(--text-secondary);font-size:var(--text-sm); }
   .catalogFilters { grid-template-columns:minmax(0,1fr) auto; }
@@ -162,6 +169,13 @@ td.version { max-width: 13rem; }
 .scheduleSection p { margin:var(--space-2) 0 0;color:var(--text-secondary); }
 .scheduleSection .scheduleEmpty { margin:0;padding-block:var(--space-3); }
 .scheduleActions { display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-3); }
+@media (max-width: 1280px) {
+  .catalogTable table { min-width:0; width:100%; }
+  .catalogTable table :is(td,th) { padding:8px 6px; font-size:12px; }
+  .catalogTable tbody th, .catalogTable tr > :first-child { min-width:0; }
+  .catalogTable tr > :nth-child(n+3) { white-space:normal; }
+  .catalogTable tr > :last-child { white-space:nowrap; }
+}
 @media (max-width: 1000px) {
   .profileRecord .facts { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
@@ -181,6 +195,11 @@ td.version { max-width: 13rem; }
 .typePickerSearch { display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:var(--space-3); }
 .resultSummary { margin:0;color:var(--text-secondary);font-size:var(--text-sm); }
 .typePickerTable table :is(th,td), .shipListTable table :is(th,td) { padding:var(--space-3) var(--space-4); }
+@media (max-width: 1280px) {
+  .shipListTable table { min-width:0; width:100%; }
+  .shipListTable table :is(th,td) { padding:8px 5px; font-size:12px; }
+  .shipListTable tr > :first-child { white-space:normal; overflow-wrap:anywhere; }
+}
 .typePickerTable tr > :first-child { min-width:8rem; }
 .typePickerTable tr > :nth-child(2), .shipListTable tr > :first-child { white-space:nowrap; }
 .typePickerTable thead th:nth-child(n+4), .shipListTable thead th:nth-child(4), .shipListTable thead th:nth-child(5) { text-align:end; }
@@ -224,6 +243,13 @@ td.version { max-width: 13rem; }
 .shipFilterActions > button { white-space:nowrap; }
 .shipListTitle { display:flex;align-items:baseline;flex-wrap:wrap;gap:var(--space-3); }
 .shipListTitle > span { color:var(--text-secondary);font-size:var(--text-sm);font-variant-numeric:tabular-nums; }
+@media (max-width: 1280px) {
+  .catalogTable table { min-width:0; width:100%; }
+  .catalogTable table :is(td,th) { padding:8px 6px; font-size:12px; }
+  .catalogTable tbody th, .catalogTable tr > :first-child { min-width:0; }
+  .catalogTable tr > :nth-child(n+3) { white-space:normal; }
+  .catalogTable tr > :last-child { white-space:nowrap; }
+}
 @media (max-width: 1000px) {
   .provisionForm .grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }

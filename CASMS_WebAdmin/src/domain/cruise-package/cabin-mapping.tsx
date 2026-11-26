@@ -51,11 +51,11 @@ function ShipCabinMappingWorkspace({shipId}:{shipId:string}) {
     {query.error&&<Button onClick={query.retry}>Tải lại danh sách cabin</Button>}
     {data&&<>
       {data.confirmation&&<p>{data.confirmation.status==='CURRENT'?'Xác nhận lúc':'Cấu trúc tàu đã đổi. Lần xác nhận trước'} {new Date(data.confirmation.confirmedAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'})}</p>}
-      {rows.length>0&&<ul>{rows.map(row=><li key={row.logicalCategoryId}>
+      {rows.length>0&&<ul>{rows.map(row=>{const cabinList=row.cabinIds.map(id=>data.cabins.find(cabin=>cabin.id===id)?.name??'Cabin đã thay đổi').filter(Boolean).join(', ');return <li key={row.logicalCategoryId}>
         <strong>{data.categories.find(item=>item.id===row.logicalCategoryId)?.name??'Hạng cabin cần kiểm tra'}</strong>
-        {' – '}{row.cabinIds.map(id=>data.cabins.find(cabin=>cabin.id===id)?.name??'Cabin đã thay đổi').join(', ')}
+        {cabinList ? `: ${cabinList}` : ''}
         {canConfirm&&<Button tone="text" disabled={busy||uncertain} onClick={()=>setDraft(rows.filter(item=>item.logicalCategoryId!==row.logicalCategoryId))}>Bỏ nhóm cabin</Button>}
-      </li>)}</ul>}
+      </li>})}</ul>}
       {!rows.length&&<Empty title="Chưa có cabin được chọn cho gói"/>}
       {canConfirm&&<>
         <Field htmlFor="mapping-category" label="Hạng cabin trong mẫu gói">
