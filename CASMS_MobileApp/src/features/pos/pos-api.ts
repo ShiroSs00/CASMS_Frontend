@@ -18,8 +18,10 @@ export async function readEmployee(signal?: AbortSignal) {
 }
 
 export async function readCruiseLabel(cruiseId: string, signal?: AbortSignal) {
-  return decode(z.object({ cruiseId: uuid, cruiseName: text, shipId: optionalId, shipName: optionalText }),
+  const result = decode(z.object({ cruiseId: uuid, cruiseName: text, shipId: optionalId, shipName: optionalText }),
     await api.request(`/cruise/${uuid.parse(cruiseId)}`, { signal }));
+  if (result.cruiseId.toLowerCase() !== cruiseId.toLowerCase()) throw new ApiError('Tên chuyến không khớp phân công.', 502, 'POS_INVALID_RESPONSE');
+  return result;
 }
 
 export async function readShipLabel(shipId: string, signal?: AbortSignal) {
@@ -44,15 +46,25 @@ export async function deviceCredential(username: string, password: string): Prom
   return { deviceAccessToken: device.accessToken };
 }
 
-export async function readTerminals(signal?: AbortSignal) {
+export async function readTerminals(signal?: AbortSignal, employeePermissions?: readonly string[]) {
   const rows = await readTerminalChoicesWithClient(api, signal);
+  const areas = new Map<string, Promise<string | null>>();
+  const cruises = new Map<string, ReturnType<typeof readCruiseLabel>>();
   return Promise.all(rows.map(async row => {
-    const cruise = await readCruiseLabel(row.cruiseId, signal).catch(() => null);
-    return { ...row, cruiseName: cruise?.cruiseId === row.cruiseId ? cruise.cruiseName : null };
+    if (!employeePermissions || employeePermissions.includes('CRUISE_READ')) {
+      if (!cruises.has(row.cruiseId)) cruises.set(row.cruiseId, readCruiseLabel(row.cruiseId, signal));
+    }
+    const areaKey = `${row.shipId}:${row.areaId}`;
+    if (!employeePermissions || employeePermissions.includes('SHIP_READ')) {
+      if (!areas.has(areaKey)) areas.set(areaKey, readAreaLabel(row.shipId, row.areaId, signal).catch(() => null));
+    }
+    const [cruise, areaName] = await Promise.all([cruises.get(row.cruiseId)?.catch(() => null), areas.get(areaKey)]);
+    return { ...row, areaName: areaName ?? null,
+      cruiseName: cruise?.shipId?.toLowerCase() === row.shipId ? cruise.cruiseName : null };
   }));
 }
 
-export async function openPos(owner: string, signedInAt: number | undefined, terminalId: string, input: Credential & { areaId?: string; cruiseId?: string }) {
+export async function openPos(owner: string, signedInAt: number | undefined, terminalId: string, input: Credential & { shipId?: string; areaId?: string; cruiseId?: string }) {
   const backend = getApiUrl();
   requireEmployee(owner, signedInAt);
   const result = await openPosWithClient(api, terminalId, input);
