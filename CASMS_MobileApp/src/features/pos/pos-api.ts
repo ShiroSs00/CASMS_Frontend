@@ -4,8 +4,8 @@ import { api, ApiError, getApiUrl } from '@/lib/api';
 import { toSession, type LoginDto } from '@/features/auth/session-model';
 import { useAuth } from '@/features/auth/session-store';
 
-import { uuid, terminal, decode, type Credential } from './pos-contracts';
-import { createScopedPosApi, openPosWithClient } from './pos-transport';
+import { uuid, decode, type Credential } from './pos-contracts';
+import { createScopedPosApi, openPosWithClient, readTerminalChoicesWithClient } from './pos-transport';
 export * from './pos-contracts';
 const text = z.string();
 const permissions = z.array(text);
@@ -44,10 +44,12 @@ export async function deviceCredential(username: string, password: string): Prom
   return { deviceAccessToken: device.accessToken };
 }
 
-export async function readTerminals(shipId: string, signal?: AbortSignal) {
-  const rows = decode(z.array(terminal), await api.request(`/ships/${uuid.parse(shipId)}/pos-terminals`, { signal }));
-  if (rows.some(row => row.shipId !== shipId)) throw new ApiError('Thiết bị không thuộc tàu đã chọn.', 502, 'POS_INVALID_RESPONSE');
-  return rows;
+export async function readTerminals(signal?: AbortSignal) {
+  const rows = await readTerminalChoicesWithClient(api, signal);
+  return Promise.all(rows.map(async row => {
+    const cruise = await readCruiseLabel(row.cruiseId, signal).catch(() => null);
+    return { ...row, cruiseName: cruise?.cruiseId === row.cruiseId ? cruise.cruiseName : null };
+  }));
 }
 
 export async function openPos(owner: string, signedInAt: number | undefined, terminalId: string, input: Credential & { areaId?: string; cruiseId?: string }) {

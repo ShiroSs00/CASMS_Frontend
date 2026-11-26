@@ -1,3 +1,6 @@
+import { uuid as nativeUuid } from 'expo';
+import { verifyRegistrationOperation, type RegistrationOperation } from './registration-operation';
+import { readRegistrationOperation, beginRegistrationOperation, clearRegistrationOperation } from './registration-operation-store';
 import { onboardError } from './onboard-errors';
 import { useOnboardKey, useOnboardSelection, useOnboardEntitlements, useOnboardGuard } from './onboard-context';
 import { matchingEntitlements } from './onboard-contracts';
@@ -5,10 +8,10 @@ import { EntitlementSummary } from './EntitlementSummary';
 import { CatalogueSkeleton } from './ServiceDetail';
 import { useNow } from '@/hooks/use-now';
 import { useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
-import { ApiError } from '@/lib/api';
+import { ApiError, getApiUrl } from '@/lib/api';
 import { EmptyState, FilterChips, ui } from '@/components/passenger/PassengerUI';
 import { BookingSelection, ConfirmAction, ErrorNotice, Input, LivePage, Loading, StatusBadge } from './PassengerActionUI';
 import { passengerApi, usePassengerAction, usePassengerContext, usePassengerQuery } from './passenger-hooks';
@@ -36,7 +39,18 @@ function ActivitiesWorkspace() {
   const action = usePassengerAction();
   const lock = useRef(false);
   const [success, setSuccess] = useState(false);
-  const uncertain = outcomeUnknown;
+  const [pendingOperation, setPendingOperation] = useState<RegistrationOperation | null>(null);
+  const [journalLoaded, setJournalLoaded] = useState(false);
+  const owner = context.owner, backend = getApiUrl(), signedInAt = context.auth.session?.signedInAt;
+  useEffect(() => {
+    let live = true;
+    if (!owner || !context.ready) return;
+    void readRegistrationOperation(owner, backend).then(saved => {
+      if (live) { setPendingOperation(saved); setJournalLoaded(true); }
+    }).catch(error => { if (live) setValidation(error); });
+    return () => { live = false; };
+  }, [owner, backend, context.ready]);
+  const uncertain = outcomeUnknown || !!pendingOperation || !journalLoaded;
   const activityId = operation?.kind === 'register' && operation.target.kind === 'activity' ? operation.target.id : '';
   const availability = usePassengerQuery(['activity-availability', cruiseId, selection.bookingPassengerId, activityId],
     signal => passengerApi.activityAvailability(activityId, signal), 'ACTIVITY_READ', !!activityId);
@@ -46,7 +60,26 @@ function ActivitiesWorkspace() {
   async function reconcile() {
     if (lock.current) return;
     lock.current = true; setReconciling(true);
-    try { const result = await registrations.refetch(); assertScope(); if (result.error || !result.data) throw new Error('Chưa cập nhật được đăng ký.');
+    try {
+      assertScope();
+      if (pendingOperation) {
+        if (pendingOperation.owner !== owner || pendingOperation.backend !== backend || pendingOperation.bookingId !== selection.bookingId
+          || pendingOperation.cruiseId !== cruiseId || pendingOperation.bookingPassengerId !== selection.bookingPassengerId)
+          throw new Error('Chọn đúng chuyến và hồ sơ của đăng ký đang chờ để đối soát.');
+        const result = await passengerApi.registrationByOperationKey(pendingOperation.key); assertScope();
+        verifyRegistrationOperation(result, pendingOperation);
+        if (context.can('ACTIVITY_REGISTRATION')) {
+          const detail = await passengerApi.registration(result.id); assertScope();
+          verifyRegistrationOperation(detail, pendingOperation);
+          if (detail.id !== result.id) throw new Error('Đăng ký chưa khớp kết quả đối soát.');
+        }
+        await clearRegistrationOperation(pendingOperation); assertScope();
+        setPendingOperation(null);
+      }
+      const result = await registrations.refetch(); assertScope();
+      if (result.error || !result.data) throw new Error('Chưa cập nhật được đăng ký.');
+      if (context.can('ACTIVITY_READ')) void activities.refetch();
+      if (context.can('EXCURSION_READ') && context.can('ITINERARY_READ') && context.can('CRUISE_STOP_READ')) void excursions.refetch();
       setOutcomeUnknown(false); setOperation(null); setTab('registrations'); setValidation(null); action.reset();
     } catch (error) { setValidation(error); } finally { lock.current = false; setReconciling(false); }
   }
@@ -88,12 +121,23 @@ function ActivitiesWorkspace() {
         }
         if (!canRegister(status, captured.target.endTime, available, amount)) throw new Error('Hoạt động hoặc tour không còn mở hoặc không đủ chỗ cho số lượng này.');
         assertCurrent(); assertScope();
+        if (!owner || signedInAt === undefined) throw new Error('Phiên đăng nhập đã thay đổi.');
+        const journal = await beginRegistrationOperation({ version: 1, key: nativeUuid.v4(), backend, owner, signedInAt,
+          bookingId: selection.bookingId, cruiseId, bookingPassengerId: person, kind: captured.target.kind,
+          resourceId: captured.target.id, quantity: amount }).catch(async error => {
+            const saved = await readRegistrationOperation(owner, backend); assertCurrent(); assertScope();
+            setPendingOperation(saved); throw error;
+          });
+        assertCurrent(); assertScope(); setPendingOperation(journal);
         sent = true;
-        const result = await passengerApi.register(captured.target.kind, captured.target.id, person, amount);
+        const result = await passengerApi.register(captured.target.kind, captured.target.id, person, amount, journal.key);
+        assertCurrent(); assertScope();
+        verifyRegistrationOperation(result, journal);
         const targetId = captured.target.kind === 'activity' ? result?.activityId : result?.excursionId;
-        if (!result?.id || result.bookingPassengerId !== person || result.status !== 'PENDING' || result.quantity !== amount || targetId !== captured.target.id) {
+        if (!result?.id || result.bookingPassengerId !== person || result.quantity !== amount || targetId !== captured.target.id) {
           throw new ApiError('Chưa xác nhận được đăng ký đã gửi.', 502);
         }
+        await clearRegistrationOperation(journal); assertCurrent(); assertScope(); setPendingOperation(null);
         return result;
       }
       if (!context.can('ACTIVITY_REGISTRATION')) throw new Error('Tài khoản chưa có quyền sửa đăng ký.');
@@ -117,7 +161,9 @@ function ActivitiesWorkspace() {
     <BookingSelection selection={selection} />
     <ErrorNotice error={selection.booking.error ?? entitlements.error} />
     {(activities.fetchStatus === 'paused' || excursions.fetchStatus === 'paused' || registrations.fetchStatus === 'paused') && <Text style={ui.body}>Đang chờ kết nối để cập nhật danh mục và đăng ký.</Text>}
-    {uncertain && <View style={ui.card}><Text style={ui.body}>Lần gửi trước chưa rõ kết quả. Cập nhật đăng ký để đối soát trước khi tiếp tục; không gửi lại tự động.</Text><PassengerButton label="Đối soát đăng ký" loading={reconciling} onPress={() => { void reconcile(); }} /></View>}
+    {!journalLoaded && <Loading text="Đang kiểm tra đăng ký đang chờ…" />}
+    {(outcomeUnknown || !!pendingOperation) && <View style={ui.card}><Text style={ui.body}>Đăng ký đang chờ được kiểm tra. Đối soát kết quả gốc trước khi tiếp tục. Nếu chưa tìm thấy, hồ sơ được giữ để quầy hỗ trợ kiểm tra.</Text><PassengerButton label="Đối soát đăng ký" loading={reconciling} onPress={() => { void reconcile(); }} /></View>}
+    {!operation && <ErrorNotice error={onboardError(validation)} />}
     {success && <Text accessibilityLiveRegion="polite" style={ui.body}>Đã cập nhật đăng ký của bạn.</Text>}
     <FilterChips items={[{ key: 'activities', label: 'Trên tàu' }, { key: 'excursions', label: 'Tour trên bờ' }, { key: 'registrations', label: 'Đăng ký của tôi' }]} selected={tab} onSelect={setTab} />
     {tab === 'activities' && (!context.can('ACTIVITY_READ') ? <Text style={ui.body}>Tài khoản chưa có quyền xem hoạt động trên tàu.</Text> : <>

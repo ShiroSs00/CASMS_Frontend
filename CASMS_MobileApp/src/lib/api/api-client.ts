@@ -15,7 +15,7 @@ export async function readSection<T>(request: Promise<T>, label: string) {
     return { data: null, error: readErrorMessage(error, label) };
   }
 }
-export type RequestOptions = { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; query?: Record<string, string | number | undefined>; signal?: AbortSignal; authenticated?: boolean; posSession?: string };
+export type RequestOptions = { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; query?: Record<string, string | number | undefined>; signal?: AbortSignal; authenticated?: boolean; posSession?: string; idempotencyKey?: string };
 export function resolveApiUrl(configured: string | undefined) {
   const value = configured?.trim();
   if (!value) throw new ApiError('Chưa cấu hình địa chỉ máy chủ (EXPO_PUBLIC_API_URL).', 0, 'API_CONFIGURATION');
@@ -72,6 +72,10 @@ export function createApiClient(config: { baseUrl: () => string; fetch?: typeof 
         if (options.body !== undefined) headers['Content-Type'] = 'application/json';
         if (token) headers.Authorization = `Bearer ${token}`;
         if (options.posSession) headers['X-POS-Session'] = options.posSession;
+        if (options.idempotencyKey) {
+          if (!/^[A-Za-z0-9._:-]{1,100}$/.test(options.idempotencyKey)) throw new ApiError('Mã thao tác không hợp lệ.', 422);
+          headers['Idempotency-Key'] = options.idempotencyKey;
+        }
         const response = await (config.fetch ?? fetch)(`${config.baseUrl()}${path}${query.size ? `?${query}` : ''}`, { method: options.method ?? 'GET', headers, body: options.body === undefined ? undefined : JSON.stringify(options.body), signal: controller.signal });
         throwIfAborted(options.signal);
         if (response.status === 204 || response.status === 205) return undefined as T;

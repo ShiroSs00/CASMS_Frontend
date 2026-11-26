@@ -8,19 +8,24 @@ import { ui } from '@/components/passenger/PassengerUI';
 import { useSelectedItinerary } from '@/features/itinerary/itinerary-api';
 import { PassengerVoyageChooser } from '@/features/home/PassengerVoyageChooser';
 import { useNow } from '@/hooks/use-now';
-import { ApiError } from '@/lib/api';
+import { ApiError, getApiUrl } from '@/lib/api';
 import { LivePage, ErrorNotice, Loading } from './PassengerActionUI';
 import { passengerApi, usePassengerAction, usePassengerQuery } from './passenger-hooks';
 import { remainingClaimSeconds } from './card-contracts';
 
 export function PassengerCardScreen() {
   const catalog = useSelectedItinerary();
+  return <CardWorkspace key={`${getApiUrl()}:${catalog.context.owner}:${catalog.context.auth.session?.signedInAt}:${catalog.voyage?.bookingPassengerId ?? ''}`} catalog={catalog} />;
+}
+function CardWorkspace({ catalog }: { catalog: ReturnType<typeof useSelectedItinerary> }) {
   const { context, voyage, person, booking, cruise } = catalog;
   const id = voyage?.bookingPassengerId ?? '';
   const status = usePassengerQuery(['checkin', id], signal => passengerApi.checkin(id, signal), 'CHECKIN_READ', !!id);
+  const card = usePassengerQuery(['card-status', voyage?.bookingId, voyage?.cruiseId, id], signal => passengerApi.cardStatus(id, signal), 'CHECKIN_READ', !!id);
   const action = usePassengerAction<void>();
   const [claim, setClaim] = useState<Awaited<ReturnType<typeof passengerApi.cardClaim>>>();
-  const [assigned, setAssigned] = useState(false);
+  const [assignmentConfirmed, setAssigned] = useState(false);
+  const assigned = !card.error && card.data?.status === 'ASSIGNED' || assignmentConfirmed;
   const [choices, setChoices] = useState(false);
   const [expired, setExpired] = useState(false);
   const { width } = useWindowDimensions();
@@ -41,7 +46,8 @@ export function PassengerCardScreen() {
   const remaining = claim ? remainingClaimSeconds(claim.expiresAt, now) : 0;
   useEffect(() => { if (!claim) return; const timer = setTimeout(() => { setClaim(undefined); setExpired(true); }, Math.max(0, Date.parse(claim.expiresAt) - Date.now())); return () => clearTimeout(timer); }, [claim]);
   const eligible = context.ready && context.can('CHECKIN_READ') && !!person && !booking.error && !catalog.error && !catalog.isFetching && !booking.isFetching
-    && !status.error && !status.isFetching && status.data?.checkinStatus === 'BoardingReady';
+    && !status.error && !status.isFetching && status.data?.checkinStatus === 'BoardingReady'
+    && !card.error && !card.isFetching && card.data?.status === 'NOT_ASSIGNED' && !assigned;
   async function requestClaim() {
     if (!eligible || locked.current || assigned) return;
     locked.current = true; setClaim(undefined); setExpired(false);
@@ -49,7 +55,10 @@ export function PassengerCardScreen() {
     try {
       await action.mutateAsync(async assertCurrent => {
         const latest = await passengerApi.checkin(id);
+        const currentCard = await passengerApi.cardStatus(id);
         assertCurrent();
+        if (currentCard.status === 'ASSIGNED') { if (version === generation.current) setAssigned(true); return; }
+        if (currentCard.status !== 'NOT_ASSIGNED') throw new Error('Thẻ chưa khả dụng trong chuyến này.');
         if (version !== generation.current || latest.checkinStatus !== 'BoardingReady') throw new Error('Hồ sơ nhận thẻ đã thay đổi. Vui lòng kiểm tra lại.');
         const result = await passengerApi.cardClaim(id);
         assertCurrent();
@@ -59,9 +68,10 @@ export function PassengerCardScreen() {
       if (version === generation.current && error instanceof ApiError && error.code === 'PASSENGER_CARD_ALREADY_ASSIGNED') setAssigned(true);
     } finally { if (version === generation.current) locked.current = false; }
   }
-  return <LivePage title="Nhận thẻ hành khách" permission="CHECKIN_READ">
-    <ErrorNotice error={catalog.error ?? booking.error ?? status.error} retry={() => { void catalog.refetch(); if (id) void status.refetch(); }} />
-    {catalog.isLoading || status.isLoading ? <Loading /> : null}
+  return <LivePage title="Thẻ hành khách" permission="CHECKIN_READ" onRefresh={() => { setClaim(undefined); void card.refetch(); void status.refetch(); void catalog.refetch(); }} refreshing={card.isRefetching || status.isRefetching}>
+    <ErrorNotice error={catalog.error ?? booking.error ?? card.error ?? status.error} retry={() => { void catalog.refetch(); if (id) { void status.refetch(); void card.refetch(); } }} />
+    {catalog.isLoading || status.isLoading || card.isLoading ? <Loading /> : null}
+    {card.fetchStatus === 'paused' && <Text style={ui.body}>Đang chờ kết nối để xác minh thẻ.</Text>}
     {voyage && <View style={ui.card}>
       <Text style={ui.sectionTitle}>{person?.fullName ?? 'Đang xác minh hành khách'}</Text>
       <Text style={ui.body}>{voyage.cruiseName}</Text>
@@ -70,7 +80,9 @@ export function PassengerCardScreen() {
     </View>}
     {!eligible && !assigned && <Text style={ui.body}>Chọn chuyến đi và hoàn tất hồ sơ check-in để yêu cầu mã nhận thẻ.</Text>}
     {catalog.voyages.length > 0 && <PassengerButton label="Chọn chuyến đi" variant="secondary" onPress={() => setChoices(true)} />}
-    {assigned ? <Text accessibilityLiveRegion="polite" style={ui.body}>Hồ sơ này đã được cấp thẻ. Liên hệ quầy nếu cần kiểm tra thẻ.</Text> : <>
+    {card.data?.status === 'NOT_ASSIGNED' && !card.error && <Text style={ui.body}>Chưa cấp thẻ hành khách.</Text>}
+    {card.data?.status === 'UNAVAILABLE' && <Text style={ui.body}>Thẻ chưa khả dụng trong chuyến đã chọn.</Text>}
+    {assigned ? <Text accessibilityLiveRegion="polite" style={ui.body}>Hồ sơ này đã được cấp thẻ.{card.data?.confirmedAt ? ` Xác nhận lúc ${new Date(card.data.confirmedAt).toLocaleString('vi-VN')}.` : ''} Liên hệ quầy nếu cần kiểm tra thẻ.</Text> : <>
       <ErrorNotice error={action.error} />
       {eligible && !claim && !expired && <Text style={ui.body}>Bạn chưa có mã nhận thẻ đang hiển thị. Yêu cầu mã khi sẵn sàng đến quầy.</Text>}
       {eligible && claim && remaining > 0 && <View style={[ui.card, { alignItems: 'center', padding: spacing.xxl, backgroundColor: brand.white }]}>
@@ -81,8 +93,9 @@ export function PassengerCardScreen() {
       </View>}
       {expired && <Text accessibilityLiveRegion="polite" style={ui.body}>Mã đã hết hạn. Yêu cầu mã mới để tiếp tục nhận thẻ.</Text>}
       <Text style={ui.body}>Đến quầy dịch vụ hành khách và đưa mã QR cho nhân viên. Mã mới sẽ thay thế mã trước đó.</Text>
-      <PassengerButton label={claim || expired ? 'Yêu cầu mã mới' : 'Yêu cầu mã nhận thẻ'} disabled={!eligible}
+      {card.data?.status === 'NOT_ASSIGNED' && !card.error && <PassengerButton label={claim || expired ? 'Yêu cầu mã mới' : 'Yêu cầu mã nhận thẻ'} disabled={!eligible}
         loading={action.isPending} onPress={() => { void requestClaim(); }} />
+      }
     </>}
     <PassengerVoyageChooser catalog={catalog} visible={choices} onClose={() => setChoices(false)} />
   </LivePage>;

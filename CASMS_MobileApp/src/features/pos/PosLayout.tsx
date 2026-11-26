@@ -12,7 +12,7 @@ import { isPassengerWorkspace, loginLink } from '@/features/auth/workspace-navig
 import { ApiError, getApiUrl } from '@/lib/api';
 import { useNow } from '@/hooks/use-now';
 import { employeeRole, eligibleEmployee } from './pos-access';
-import { deviceCredential, openPos, readEmployee, readTerminals, scopedPos, uuid, matchesPosSession, type PosContext, type PosSession } from './pos-api';
+import { deviceCredential, openPos, readEmployee, readTerminals, scopedPos, matchesPosSession, type PosContext, type PosSession } from './pos-api';
 import { clearPosSession, restorePosSession, savePosSession } from './pos-storage';
 import { Field, Notice, PosPage, QueryState, posError } from './pos-ui';
 
@@ -128,36 +128,35 @@ function SessionGate({ owner, signedInAt, username, employeePermissions }: {
     onEnd={note => { setMessage(note); setSession(null); }} />;
 }
 
-function PairTerminal({ owner, signedInAt, username, employeePermissions, message, onOpened }: {
+function PairTerminal({ owner, signedInAt, username, message, onOpened }: {
   owner: string; signedInAt: number; username: string; employeePermissions: string[]; message?: string; onOpened: (session: PosSession) => void;
 }) {
-  const [terminal, setTerminal] = useState('');
-  const [ship, setShip] = useState('');
-  const [selectedShip, setSelectedShip] = useState('');
-  const canList = employeePermissions.includes('POS_MANAGE');
-  const terminals = useQuery({ queryKey: ['pos-terminals', getApiUrl(), owner, signedInAt, selectedShip],
-    queryFn: ({ signal }) => readTerminals(selectedShip, signal), enabled: canList && !!selectedShip, retry: false });
-  const [area, setArea] = useState('');
-  const [cruise, setCruise] = useState('');
+  const [selection, setSelection] = useState('');
+  const terminals = useQuery({ queryKey: ['pos-terminals', getApiUrl(), owner, signedInAt],
+    queryFn: ({ signal }) => readTerminals(signal), retry: false, staleTime: 0 });
+  const selected = !terminals.error ? terminals.data?.find(row => `${row.terminalId}:${row.cruiseId}` === selection) : undefined;
   const [legacy, setLegacy] = useState(false);
   const [deviceUser, setDeviceUser] = useState('');
   const [credential, setCredential] = useState('');
   const [pending, setPending] = useState(false);
   const lock = useRef(false);
   const [failure, setFailure] = useState<string>();
-  const valid = uuid.safeParse(terminal.trim()).success && !!credential.trim()
-    && (legacy || !!deviceUser.trim()) && (!area.trim() || uuid.safeParse(area.trim()).success)
-    && (!cruise.trim() || uuid.safeParse(cruise.trim()).success);
+  const valid = !!selected && !terminals.isFetching && !!credential.trim() && (legacy || !!deviceUser.trim());
 
   async function open() {
-    if (!valid || lock.current) return;
+    if (!valid || !selected || lock.current) return;
     lock.current = true;
     setPending(true);
     setFailure(undefined);
     try {
+      const available = await readTerminals();
+      if (!available.some(row => row.terminalId === selected.terminalId && row.cruiseId === selected.cruiseId
+        && row.shipId === selected.shipId && row.areaId === selected.areaId)) {
+        throw new ApiError('Thiết bị đã chọn không còn khả dụng. Vui lòng chọn lại.', 403);
+      }
       const proof = legacy ? { deviceSecret: credential.trim() } : await deviceCredential(deviceUser, credential);
-      const session = await openPos(owner, signedInAt, terminal.trim(), {
-        ...proof, areaId: area.trim() || undefined, cruiseId: cruise.trim() || undefined,
+      const session = await openPos(owner, signedInAt, selected.terminalId, {
+        ...proof, areaId: selected.areaId, cruiseId: selected.cruiseId,
       });
       try { await savePosSession(owner, session, signedInAt); }
       catch (error) {
@@ -180,18 +179,10 @@ function PairTerminal({ owner, signedInAt, username, employeePermissions, messag
     <Text style={ui.body}>{username}</Text>
     {!!message && <Notice tone="warning">{message}</Notice>}
     <View style={ui.card}>
-      {canList && <>
-        <Field label="Mã tàu để tra thiết bị" value={ship} onChangeText={setShip} maxLength={36} editable={!pending} />
-        <PassengerButton label="Tra thiết bị của tàu" variant="secondary" disabled={pending || !uuid.safeParse(ship.trim()).success}
-          onPress={() => { setTerminal(''); if (selectedShip === ship.trim()) void terminals.refetch(); else setSelectedShip(ship.trim()); }} />
-        {selectedShip && <QueryState query={terminals} empty={terminals.data?.length === 0 ? 'Chưa có thiết bị trên tàu này.' : undefined} />}
-        {!terminals.error && !!terminals.data?.length && <Choice label="Thiết bị POS" value={terminal} onChange={setTerminal} disabled={pending}
-          items={terminals.data.filter(row => row.enabled).map(row => ({ id: row.terminalId, label: `${row.name} · ${row.code}` }))} />}
-      </>}
-      {!canList && <Text style={ui.caption}>Nhập mã POS do quản lý cung cấp. Hệ thống kiểm tra phân công khi mở phiên.</Text>}
-      <Field label="Mã thiết bị POS" value={terminal} onChangeText={setTerminal} maxLength={36} editable={!pending} />
-      <Field label="Mã khu vực (tùy chọn)" value={area} onChangeText={setArea} maxLength={36} editable={!pending} />
-      <Field label="Mã chuyến (tùy chọn)" value={cruise} onChangeText={setCruise} maxLength={36} editable={!pending} />
+      <QueryState query={terminals} empty={terminals.data?.length === 0 ? 'Chưa có thiết bị POS được phân công cho bạn.' : undefined} />
+      <Choice label="Thiết bị POS và chuyến" value={selection} onChange={setSelection} disabled={pending || terminals.isFetching || !!terminals.error}
+        items={(terminals.error ? [] : terminals.data ?? []).map(row => ({ id: `${row.terminalId}:${row.cruiseId}`, label: `${row.name} · ${row.code}${row.cruiseName ? ` · ${row.cruiseName}` : (terminals.data ?? []).some(other => other.terminalId === row.terminalId && other.cruiseId !== row.cruiseId) ? ` · Chuyến ${row.cruiseId}` : ''}` }))} />
+      <PassengerButton label="Cập nhật thiết bị" variant="text" disabled={pending} onPress={() => { void terminals.refetch(); }} />
       {!legacy && <Field label="Tên tài khoản thiết bị" value={deviceUser} onChangeText={setDeviceUser} editable={!pending} />}
       <Field label={legacy ? 'Mã bí mật thiết bị' : 'Mật khẩu thiết bị'} value={credential} onChangeText={setCredential}
         secureTextEntry textContentType="password" autoComplete="off" editable={!pending} maxLength={legacy ? 128 : undefined} />

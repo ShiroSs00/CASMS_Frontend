@@ -44,7 +44,7 @@ export function ErrorNotice({ error, retry }: { error: unknown; retry?: () => vo
 }
 export function Loading({ text = 'Đang tải dữ liệu…' }: { text?: string }) { return <View accessible accessibilityLabel={text} accessibilityState={{ busy: true }} style={styles.row}><ActivityIndicator accessible={false} color={brand.teal} /><Text style={ui.body}>{text}</Text></View>; }
 export function LivePage({ title, permission, children, detail = true, selected = 'services', onRefresh, refreshing = false, scroll = true }: {
-  title: string; permission?: string; children: ReactNode; detail?: boolean; selected?: PassengerTab;
+  title: string; permission?: string | readonly string[]; children: ReactNode; detail?: boolean; selected?: PassengerTab;
   onRefresh?: () => void; refreshing?: boolean; scroll?: boolean;
 }) {
   const context = usePassengerContext();
@@ -60,7 +60,7 @@ export function LivePage({ title, permission, children, detail = true, selected 
       : context.error ? <ErrorNotice error={context.error} retry={() => { void context.me.refetch(); }} />
         : context.me.fetchStatus === 'paused' && !context.ready ? <EmptyState title="Đang chờ kết nối" description="Kiểm tra kết nối mạng để tiếp tục xác minh tài khoản." />
           : !context.ready ? <Loading text="Đang xác minh tài khoản…" />
-          : permission && !context.can(permission) ? <EmptyState title="Chưa có quyền truy cập" description="Vui lòng liên hệ đội ngũ hỗ trợ nếu bạn cần sử dụng tính năng này." /> : children;
+          : permission && !(typeof permission === 'string' ? context.can(permission) : permission.some(context.can)) ? <EmptyState title="Chưa có quyền truy cập" description="Vui lòng liên hệ đội ngũ hỗ trợ nếu bạn cần sử dụng tính năng này." /> : children;
   return <PassengerScaffold detail={detail} selected={detail ? 'account' : selected} title={title}>
     {scroll ? <ScrollView automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={ui.content}
       refreshControl={onRefresh && context.ready ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={brand.teal} /> : undefined}>{content}</ScrollView>

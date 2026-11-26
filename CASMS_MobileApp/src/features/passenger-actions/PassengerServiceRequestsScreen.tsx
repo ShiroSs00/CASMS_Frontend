@@ -1,3 +1,4 @@
+import { passengerCataloguePermissions } from './synced-contracts';
 import { onboardError } from './onboard-errors';
 import { EntitlementSummary } from './EntitlementSummary';
 import { useOnboardKey, useOnboardSelection, useOnboardEntitlements, useOnboardGuard } from './onboard-context';
@@ -31,7 +32,7 @@ function ServiceRequestsWorkspace({ embedded }: { embedded: boolean }) {
   const [category, setCategory] = useState('');
   const [detailId, setDetailId] = useState('');
   const [requestFilter, setRequestFilter] = useState<'all' | 'active' | 'completed'>('all');
-  const services = usePassengerQuery(['services', selection.bookingId, selection.bookingPassengerId, selection.cruiseId], passengerApi.services, 'SERVICE_READ');
+  const services = usePassengerQuery(['services', selection.bookingId, selection.bookingPassengerId, selection.cruiseId], signal => passengerApi.scopedServices(selection.bookingPassengerId, selection.cruiseId, signal), passengerCataloguePermissions, !!selection.bookingPassengerId && !!selection.cruiseId);
   const requestPermissions = ['SERVICE_REQUEST_READ', 'SERVICE_REQUEST_CREATE'] as const;
   const requests = usePassengerQuery(['service-requests', selection.bookingId, selection.bookingPassengerId, selection.cruiseId], passengerApi.requests, requestPermissions);
   const now = useNow();
@@ -45,8 +46,8 @@ function ServiceRequestsWorkspace({ embedded }: { embedded: boolean }) {
   const payloadRef = useRef<string | null>(null), submitLock = useRef(false);
   const serviceId = operation?.kind === 'create' ? operation.service.id : '';
   const slots = usePassengerQuery(['service-slots', selection.cruiseId, selection.bookingPassengerId, serviceId],
-    useCallback(signal => passengerApi.serviceSchedules(serviceId, signal), [serviceId]),
-    'SERVICE_READ', Boolean(serviceId));
+    useCallback(signal => passengerApi.scopedSchedules(selection.bookingPassengerId, selection.cruiseId, serviceId, signal), [selection.bookingPassengerId, selection.cruiseId, serviceId]),
+    passengerCataloguePermissions, Boolean(serviceId));
   const matchingSlots = slots.data?.filter(slot => slot.cruiseId === selection.cruiseId);
   useEffect(() => {
     let current = true;
@@ -154,18 +155,18 @@ function ServiceRequestsWorkspace({ embedded }: { embedded: boolean }) {
           pendingRef.current = null; payloadRef.current = null; setPendingOperation(null); return prior;
         }
       }
-      const fresh = await passengerApi.service(captured.service.id); assertCurrent(); assertScope();
+      const scoped = await passengerApi.scopedServices(person, selection.cruiseId); assertCurrent(); assertScope();
+      const fresh = scoped.find(row => row.id === captured.service.id);
+      if (!fresh) throw new Error('Dịch vụ không còn khả dụng trong chuyến đang chọn.');
       if (fresh.price !== captured.service.price || fresh.currency !== captured.service.currency || fresh.requiresSchedule !== captured.service.requiresSchedule)
         throw new Error('Giá hoặc điều kiện dịch vụ vừa thay đổi. Tải lại và mở lại xác nhận.');
       if (slotId) {
-        const freshSlots = await passengerApi.serviceSchedules(captured.service.id); assertCurrent(); assertScope();
+        const freshSlots = await passengerApi.scopedSchedules(person, selection.cruiseId, captured.service.id); assertCurrent(); assertScope();
         if (!freshSlots.some(slot => slot.id === slotId && slot.cruiseId === selection.cruiseId && slot.status === 'OPEN'
           && slot.remainingCapacity >= amount && Date.parse(slot.endsAt) > Date.now())) throw new Error('Lịch đã thay đổi hoặc không còn đủ chỗ. Vui lòng chọn lại.');
       }
       if (!slotId && !pendingRef.current) {
-        const capacity = await passengerApi.serviceAvailability(captured.service.id, amount);
-        assertCurrent(); assertScope();
-        if (capacity.serviceId !== captured.service.id || capacity.requestedQuantity !== amount || capacity.available !== true) {
+        if (fresh.capacity !== null && fresh.capacity < amount) {
           throw new Error('Dịch vụ không còn đủ khả năng tiếp nhận số lượng này.');
         }
       }
@@ -209,12 +210,12 @@ function ServiceRequestsWorkspace({ embedded }: { embedded: boolean }) {
       onSettled: () => { submitLock.current = false; } });
   }
 
-  return <LivePage title="Dịch vụ trên tàu" permission="SERVICE_READ" detail={!embedded} selected="services"
+  return <LivePage title="Dịch vụ trên tàu" permission={passengerCataloguePermissions} detail={!embedded} selected="services"
     onRefresh={() => { void services.refetch(); void requests.refetch(); void entitlements.refetch(); void selection.source.refetch(); }} refreshing={services.isFetching || requests.isFetching}>
     <PassengerButton compact label="Hoạt động và tour" variant="text" onPress={() => router.push('/passenger-activities')} />
     <PassengerButton compact label="Quyền lợi đã mua" variant="text" onPress={() => router.push('/passenger-packages')} />
     <BookingSelection selection={selection} />
-    <Text style={ui.caption}>Danh mục chung. Lịch phục vụ và điều kiện sử dụng trong chuyến được kiểm tra khi gửi yêu cầu.</Text>
+    <Text style={ui.caption}>Dịch vụ và lịch phục vụ dành cho hồ sơ trong chuyến đã chọn. Điều kiện được kiểm tra lại khi gửi yêu cầu.</Text>
     <ErrorNotice error={selection.booking.error ?? entitlements.error} />
     {selection.voyage && <Text style={ui.body}>{selection.voyage.cruiseName} · {selectedPerson?.fullName ?? 'Đang xác minh hồ sơ'} · {requests.isSuccess && !requests.error ? `${own.filter(r => ['REQUESTED','ACCEPTED','IN_PROGRESS'].includes(r.status)).length} yêu cầu đang xử lý` : 'Chưa cập nhật yêu cầu'}</Text>}
     {(services.fetchStatus === 'paused' || requests.fetchStatus === 'paused') && <Text style={ui.body}>Đang chờ kết nối. Kiểm tra mạng và kéo xuống để cập nhật; chưa gửi thêm yêu cầu khi kết quả cũ chưa rõ.</Text>}
@@ -228,7 +229,7 @@ function ServiceRequestsWorkspace({ embedded }: { embedded: boolean }) {
     {tab === 'catalog' ? <>
       <SearchField placeholder="Tìm dịch vụ trên tàu" value={search} onChangeText={setSearch} />
       {!!categories.length && <FilterChips items={[{ key: '', label: 'Tất cả danh mục' }, ...categories.map(([key, label]) => ({ key, label }))]} selected={category} onSelect={setCategory} />}
-      <ErrorNotice error={services.error} retry={() => { void services.refetch(); }} />
+      <ErrorNotice error={onboardError(services.error)} retry={() => { void services.refetch(); }} />
       {services.isLoading && <CatalogueSkeleton />}
       {!services.isPending && !services.error && !active.length && <EmptyState title={search ? 'Không tìm thấy dịch vụ' : 'Chưa có dịch vụ'} />}
       {active.map(service => <View key={service.id} style={ui.card}><Text style={ui.caption}>{service.categoryName ?? 'Dịch vụ trên tàu'}</Text><Text style={ui.sectionTitle}>{service.name}</Text>

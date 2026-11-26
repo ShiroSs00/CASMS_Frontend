@@ -30,6 +30,8 @@ const errors: Record<string, string> = {
   POS_PASSENGER_NOT_ELIGIBLE: 'Hồ sơ hành khách hoặc tài khoản chưa đủ điều kiện ghi nhận dịch vụ.',
   POS_IDEMPOTENCY_CONFLICT: 'Mã giao dịch đã gắn với một nội dung khác. Liên hệ quản lý để đối soát.',
   POS_PRICE_REQUIRED: 'Dịch vụ chưa có giá hợp lệ.',
+  POS_REVIEWED_PRICE_REQUIRED: 'Cần xem lại và xác nhận đơn giá trước khi bán.',
+  POS_PRICE_CONFIRMATION_INVALID: 'Đơn giá xác nhận chưa hợp lệ. Tải lại danh mục và kiểm tra giao dịch.',
   POS_ALLOWANCE_NOT_ALLOCATED: 'Tài khoản trên tàu chưa được cấp hạn mức.',
   POS_ACCOUNT_CURRENCY_MISMATCH: 'Sao kê có nhiều loại tiền tệ. Liên hệ quản lý để đối soát.',
   POS_STORAGE: 'Không xóa được phiên trên thiết bị. Vui lòng thử lại.',
