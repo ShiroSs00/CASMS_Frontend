@@ -141,10 +141,9 @@ function DesignForm({ id, originalKey }: { id?: string; originalKey?: string }) 
         {checked && <Button tone="secondary" disabled={Boolean(busy)} onClick={() => confirm(pending)}>{actionLabel}</Button>}
       </div>
     </Panel> : <>
-      <ol className={styles.designSteps} aria-label={id ? 'Tiến độ thay phiên bản thiết kế' : 'Tiến độ tạo loại tàu'}>
-        <li aria-current={design ? undefined : 'step'}><span aria-hidden="true">1</span> Chọn thiết kế</li>
-        <li aria-current={design && !preview ? 'step' : undefined}><span aria-hidden="true">2</span> Kiểm tra thông tin</li>
-        <li aria-current={preview ? 'step' : undefined}><span aria-hidden="true">3</span> {id ? 'Xác nhận cập nhật' : 'Xác nhận tạo'}</li>
+      <ol className={`${styles.designSteps} ${styles.twoSteps}`} aria-label={id ? 'Tiến độ thay phiên bản thiết kế' : 'Tiến độ tạo loại tàu'}>
+        <li aria-current={design ? undefined : 'step'} data-complete={Boolean(design)}><span aria-hidden="true">1</span> Chọn thiết kế</li>
+        <li aria-current={design ? 'step' : undefined}><span aria-hidden="true">2</span> Kiểm tra thông tin</li>
       </ol>
       {!design && <Panel title="Thiết kế loại tàu">
         <form onSubmit={event => { event.preventDefault(); upload() }}>
@@ -160,7 +159,7 @@ function DesignForm({ id, originalKey }: { id?: string; originalKey?: string }) 
             </div>
           </Field>
           <div className={styles.designFormActions}>
-            <p>Bạn sẽ xác nhận thông tin ở bước cuối.</p>
+            <p>{id ? 'Bạn sẽ kiểm tra thông tin và áp dụng thiết kế ở bước tiếp theo.' : 'Bạn sẽ kiểm tra thông tin và tạo loại tàu ở bước tiếp theo.'}</p>
             <Button type="submit" busy={Boolean(busy)} disabled={!canUpload}>{busy || 'Kiểm tra thiết kế'}</Button>
           </div>
         </form>

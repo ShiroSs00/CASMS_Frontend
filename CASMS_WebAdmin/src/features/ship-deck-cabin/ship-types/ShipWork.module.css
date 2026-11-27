@@ -108,6 +108,12 @@ td.version { max-width: 13rem; }
   margin: 0;
   padding: 0;
 }
+.twoSteps {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.designSteps li[data-complete='true'] {
+  border-color: var(--brand-teal);
+}
 .designSteps li {
   display: flex;
   align-items: center;
