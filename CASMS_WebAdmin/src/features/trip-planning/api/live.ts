@@ -6,7 +6,7 @@ import { tripView, versionView, contentRequest } from './mappers'
 import { PlanningFault, type PlanningGateway } from './gateway'
 import type { Report, Violation } from '../model/plan'
 import { planningSources } from './catalogs'
-import { supportedDuration } from '../model/duration'
+import { durationRules, supportedDuration } from '../model/duration'
 import { businessErrorMessage } from '@/shared/api/business-errors'
 
 const segment=encodeURIComponent
@@ -60,6 +60,10 @@ export const liveGateway: PlanningGateway = {
   async save(version,content) {return versionView(await apiRequest<CurrentVersion>(`/trip-schedule-versions/${segment(version.versionId)}/content`,{method:'PUT',body:contentRequest(version,content)}))},
   async changeDay(trip,version,removeDay) {
     if(trip.structuralLockedAt||trip.versions?.some(v=>v.status==='PUBLISHED')) throw new PlanningFault('Chuyến đi có mẫu đã chốt nên không thể đổi số ngày. Hãy nhân bản chuyến.',422,'TRIP_DURATION_LOCKED')
+    if(removeDay===undefined&&supportedDuration(trip.info.durationBand)){
+      const rule=durationRules[trip.info.durationBand]
+      if(version.days.length>=rule.maxDays) throw new PlanningFault(trip.info.durationBand==='SHORT'?'Chuyến ngắn (1–2 ngày) đã có đủ 2 ngày, không thể thêm ngày.':`Nhóm thời lượng hiện tại chỉ cho phép tối đa ${rule.maxDays} ngày, không thể thêm ngày.`,422,'DURATION_LIMIT_EXCEEDED')
+    }
     const result=await apiRequest<{trip:CurrentTrip;version:CurrentVersion}>(`/trip-schedule-versions/${segment(version.versionId)}/days/manage`,{method:'POST',body:{expectedTripRevision:trip.revision,expectedVersionRevision:version.revision,action:removeDay===undefined?'ADD':'REMOVE',...(removeDay===undefined?{}:{dayNumber:removeDay})}})
     return {trip:tripView(result.trip),version:versionView(result.version)}
   },

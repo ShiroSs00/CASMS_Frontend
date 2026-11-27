@@ -11,7 +11,7 @@ import { scheduleDayLabel, stopRoleLabel } from '../model/day-labels'
 import { selectEntrySource } from '../model/source-selection'
 import { violationTarget, violationFieldId } from '../model/violation-target'
 import { EntryDetails, StopDetails } from './PlanDetails'
-import { callsAfterTerminal, consecutiveSamePortViolations, linkedTourViolations, overlappingStops, portMatchesScope, routeOrderViolations } from '../model/port-rules'
+import { callTypeTimingViolations, callsAfterTerminal, consecutiveSamePortViolations, linkedTourViolations, overlappingStops, portMatchesScope, routeOrderViolations } from '../model/port-rules'
 
 function useViolationField(violation:Violation|undefined,formId:string,readOnly:boolean,allowLocationInstead=false){
   const [dismissed,setDismissed]=useState<Violation|null>(null),target=violation?violationTarget({...violation,entityType:violation.entityType??(formId==='stop-draft'?'STOP':'ENTRY')}):null
@@ -55,10 +55,28 @@ function StopForm({content,tripId,tripRevision,tripInfo,dayNumber,readOnly,stop,
   if(!port&&!ports.loading&&!ports.error)errors.portId=draft.portId?'Cảng đã chọn không còn trong danh mục hiện tại. Hãy chọn lại.':'Chọn cảng phù hợp với chuyến đi.'
   else if(port&&!portMatchesScope(port,tripInfo))errors.portId='Cảng không thuộc quốc gia hoặc miền đã chọn cho chuyến đi.'
   else if(samePortIssue)errors.portId=samePortIssue.message
-  const routeIssue=routeOrderViolations({days:content.days,stops:projected.stops}).find(issue=>issue.clientKey===draft.clientKey)
+  const routeIssue=routeOrderViolations({days:content.days,stops:projected.stops},tripInfo.earliestDeparture).find(issue=>issue.clientKey===draft.clientKey)
   const terminalIssue=callsAfterTerminal(projected.stops).find(issue=>issue.clientKey===draft.clientKey)
+  const callTypeIssue=callTypeTimingViolations([{...draft,timeZoneId:zone}])[0]
   if(routeIssue)errors.plannedArrivalTime=routeIssue.message
-  if(terminalIssue)errors.plannedDepartureTime=terminalIssue.message
+  if(terminalIssue)errors[terminalIssue.field==='plannedArrivalTime'?'plannedArrivalTime':'plannedDepartureTime']=terminalIssue.message
+  if(callTypeIssue&&callTypeIssue.field&&!errors[callTypeIssue.field])errors[callTypeIssue.field]=callTypeIssue.message
+  const firstDay=content.days.find(d=>d.dayNumber===1)
+  const effectiveDepTime=firstDay?.plannedDepartureTime||tripInfo.earliestDeparture||null
+  const terminalStop=content.stops.find(s=>s.isDisembarkation&&s.clientKey!==draft.clientKey)
+  const timingHints=[
+    !draft.isEmbarkation&&effectiveDepTime?`Khởi hành Ngày 1: ${shortTime(effectiveDepTime)}`:null,
+    !draft.isDisembarkation&&terminalStop?.plannedArrivalTime?`Cảng cuối ${terminalStop.portName||''} cập: Ngày ${terminalStop.arrivalDayNumber} ${shortTime(terminalStop.plannedArrivalTime)}`:null,
+  ].filter(Boolean)
+  const updateStopDays=(field:'arrivalDayNumber'|'departureDayNumber',nextDay:number)=>{
+    setDraft(old=>{
+      const updated={...old,[field]:nextDay}
+      if(!updated.isDisembarkation&&updated.departureDayNumber>updated.arrivalDayNumber&&updated.callType==='NORMAL'){
+        updated.callType='OVERNIGHT'
+      }
+      return updated
+    })
+  }
   if(conflicts.length)errors.plannedArrivalTime='Thời gian ghé chồng với '+conflicts.map(item=>'lần ghé '+item.stopOrder+' · '+(item.portName??'Cảng')).join(', ')+'. Điều chỉnh giờ dự kiến đến/rời.'
   if(port&&!validTimeZone(zone))errors.portId='Cảng chưa có múi giờ IANA hợp lệ.'
   if(!draft.plannedArrivalTime)errors.plannedArrivalTime='Nhập giờ đến.'
@@ -83,10 +101,11 @@ function StopForm({content,tripId,tripRevision,tripInfo,dayNumber,readOnly,stop,
   if(strandedTours.length){
     errors.visits=`Tour bờ “${strandedTours.map(entry=>entry.title).join(', ')}” đang dùng điểm tham quan vừa bỏ. Hãy giữ lại điểm tham quan đó hoặc chỉnh tour bờ trước.`
   }
-  const hasTimingConflict=conflicts.length>0||Boolean(routeIssue)||Boolean(terminalIssue)
+  const hasTimingConflict=conflicts.length>0||Boolean(routeIssue)||Boolean(terminalIssue)||Boolean(callTypeIssue)
   const immediateStopError=(field:string)=>
-    (field==='plannedArrivalTime'&&(conflicts.length>0||Boolean(routeIssue)||Boolean(draft.plannedArrivalTime&&errors.plannedArrivalTime)))
-    ||(field==='plannedDepartureTime'&&(Boolean(terminalIssue)||Boolean(draft.plannedDepartureTime&&errors.plannedDepartureTime)))
+    (field==='plannedArrivalTime'&&(conflicts.length>0||Boolean(routeIssue)||Boolean(callTypeIssue?.field==='plannedArrivalTime')||Boolean(draft.plannedArrivalTime&&errors.plannedArrivalTime)))
+    ||(field==='plannedDepartureTime'&&(Boolean(terminalIssue)||Boolean(callTypeIssue?.field==='plannedDepartureTime')||Boolean(draft.plannedDepartureTime&&errors.plannedDepartureTime)))
+    ||(field==='callType'&&Boolean(callTypeIssue?.field==='callType'))
     ||(field==='allAboardTime'&&Boolean((draft.allAboardTime||affectedTours.length)&&errors.allAboardTime))
     ||(field==='portId'&&Boolean(samePortIssue))
   const shown=(field:string)=>server.errorFor(field)??(attempted||touched[field]||immediateStopError(field)?errors[field]:undefined)
@@ -144,11 +163,32 @@ function StopForm({content,tripId,tripRevision,tripInfo,dayNumber,readOnly,stop,
       <fieldset className={styles.formGroup}>
         <legend>Kiểu ghé</legend>
         <div className={styles.single}>
-          <div><Field htmlFor="stop-call" label="Kiểu ghé cảng" error={shown('callType')}><select id="stop-call" aria-describedby={draft.isDisembarkation?undefined:"stop-call-help"} aria-invalid={Boolean(shown('callType'))} value={draft.callType} disabled={readOnly} onChange={e=>change('callType',e.target.value as Stop['callType'])}><option value="NORMAL">Thông thường</option>{(!draft.isDisembarkation||draft.callType==='LATE_NIGHT')&&<option disabled={draft.isDisembarkation} value="LATE_NIGHT">Ban đêm</option>}{(!draft.isDisembarkation||draft.callType==='OVERNIGHT')&&<option disabled={draft.isDisembarkation} value="OVERNIGHT">Qua đêm</option>}</select>{!draft.isDisembarkation&&<small id="stop-call-help"><em>{{NORMAL:'Tàu đến và rời cảng trong ngày.',LATE_NIGHT:'Tàu đến vào ban đêm rồi rời cảng.',OVERNIGHT:'Tàu ở lại qua đêm và rời cảng hôm sau.'}[draft.callType]}</em></small>}</Field></div>
+          <div>
+            <Field htmlFor="stop-call" label="Kiểu ghé cảng" error={shown('callType')}>
+              <select id="stop-call" aria-describedby={draft.isDisembarkation?undefined:"stop-call-help"} aria-invalid={Boolean(shown('callType'))} value={draft.callType} disabled={readOnly} onChange={e=>change('callType',e.target.value as Stop['callType'])}>
+                <option value="NORMAL">Thông thường</option>
+                {(!draft.isDisembarkation||draft.callType==='LATE_NIGHT')&&<option disabled={draft.isDisembarkation} value="LATE_NIGHT">Ban đêm</option>}
+                {(!draft.isDisembarkation||draft.callType==='OVERNIGHT')&&<option disabled={draft.isDisembarkation} value="OVERNIGHT">Qua đêm</option>}
+              </select>
+            </Field>
+            {!draft.isDisembarkation&&(
+              <ul id="stop-call-help" className={styles.callTypeGuide}>
+                <li data-active={draft.callType==='NORMAL'}>
+                  <strong>Thông thường:</strong> Đến và rời trong <em>cùng ngày</em>, khung <strong>05:00 – 21:00</strong> (VD: Ngày 1 08:00 → Ngày 1 18:00).
+                </li>
+                <li data-active={draft.callType==='LATE_NIGHT'}>
+                  <strong>Ban đêm:</strong> Rời muộn <strong>21:00 – 23:59</strong> cùng ngày, hoặc cập từ <strong>18:00</strong> và rời rạng sáng <strong>00:00 – 03:00</strong> hôm sau (VD: Ngày 1 20:30 → Ngày 1 23:30).
+                </li>
+                <li data-active={draft.callType==='OVERNIGHT'}>
+                  <strong>Qua đêm:</strong> Neo tàu sang <em>ngày hôm sau</em> (Ngày rời &gt; Ngày đến) và rời sau <strong>03:00</strong> sáng (VD: Ngày 1 22:00 → Ngày 2 09:00).
+                </li>
+              </ul>
+            )}
+          </div>
         </div>
       </fieldset>
       {!focusedAllAboard && (
-        <fieldset className={styles.formGroup}><legend>Thời gian tàu đến và rời cảng</legend><div className={styles.grid}><Field htmlFor="stop-arrival-day" label="Ngày tàu đến *">{days(draft.arrivalDayNumber,n=>change('arrivalDayNumber',n),'stop-arrival-day')}</Field><Field htmlFor="stop-arrival" label="Giờ tàu dự kiến đến *" error={shown('plannedArrivalTime')}><input id="stop-arrival" type="time" step={timeStep(draft.plannedArrivalTime)} value={draft.plannedArrivalTime??''} disabled={readOnly} aria-invalid={Boolean(shown('plannedArrivalTime'))} onBlur={touch('plannedArrivalTime')} onChange={e=>change('plannedArrivalTime',e.target.value)}/></Field><Field htmlFor="stop-departure-day" label={draft.isDisembarkation?"Ngày kết thúc dự kiến *":"Ngày tàu rời *"}>{days(draft.departureDayNumber,n=>change('departureDayNumber',n),'stop-departure-day')}</Field><Field htmlFor="stop-departure" label={draft.isDisembarkation?"Giờ kết thúc dự kiến *":"Giờ tàu dự kiến rời *"} error={shown('plannedDepartureTime')}><input id="stop-departure" type="time" step={timeStep(draft.plannedDepartureTime)} value={draft.plannedDepartureTime??''} disabled={readOnly} aria-invalid={Boolean(shown('plannedDepartureTime'))} onBlur={touch('plannedDepartureTime')} onChange={e=>change('plannedDepartureTime',e.target.value)}/></Field></div>
+        <fieldset className={styles.formGroup}><legend>Thời gian tàu đến và rời cảng</legend>{timingHints.length>0&&<p className={styles.timeContext}>Mốc tham chiếu: {timingHints.join(' · ')}</p>}<div className={styles.grid}><Field htmlFor="stop-arrival-day" label="Ngày tàu đến *">{days(draft.arrivalDayNumber,n=>updateStopDays('arrivalDayNumber',n),'stop-arrival-day')}</Field><Field htmlFor="stop-arrival" label="Giờ tàu dự kiến đến *" error={shown('plannedArrivalTime')}><input id="stop-arrival" type="time" step={timeStep(draft.plannedArrivalTime)} value={draft.plannedArrivalTime??''} disabled={readOnly} aria-invalid={Boolean(shown('plannedArrivalTime'))} onBlur={touch('plannedArrivalTime')} onChange={e=>change('plannedArrivalTime',e.target.value)}/></Field><Field htmlFor="stop-departure-day" label={draft.isDisembarkation?"Ngày kết thúc dự kiến *":"Ngày tàu rời *"}>{days(draft.departureDayNumber,n=>updateStopDays('departureDayNumber',n),'stop-departure-day')}</Field><Field htmlFor="stop-departure" label={draft.isDisembarkation?"Giờ kết thúc dự kiến *":"Giờ tàu dự kiến rời *"} error={shown('plannedDepartureTime')}><input id="stop-departure" type="time" step={timeStep(draft.plannedDepartureTime)} value={draft.plannedDepartureTime??''} disabled={readOnly} aria-invalid={Boolean(shown('plannedDepartureTime'))} onBlur={touch('plannedDepartureTime')} onChange={e=>change('plannedDepartureTime',e.target.value)}/></Field></div>
         </fieldset>
       )}
       <fieldset className={styles.formGroup}>
@@ -161,7 +201,7 @@ function StopForm({content,tripId,tripRevision,tripInfo,dayNumber,readOnly,stop,
         </Field>
       </fieldset>
       {(!readOnly||!draft.isDisembarkation||linked.length>0||draft.allAboardTime||shown('allAboardTime'))&&!focusedAllAboard&&(
-        <fieldset className={styles.formGroup}><legend>Hạn hành khách trở lại tàu</legend><div className={styles.grid}><Field htmlFor="stop-aboard-day" label="Ngày hạn trở lại tàu"><select id="stop-aboard-day" value={draft.allAboardDayNumber??''} disabled={readOnly} onChange={e=>change('allAboardDayNumber',e.target.value?Number(e.target.value):null)}><option value="">Chưa chọn</option>{content.days.map(d=><option key={d.key} value={d.dayNumber}>{scheduleDayLabel(d.dayNumber,content.days.length)}</option>)}</select></Field><Field htmlFor="stop-aboard" label="Giờ hạn trở lại tàu" error={shown('allAboardTime')}><input id="stop-aboard" type="time" min={aboardMin} max={aboardMax} step={timeStep(draft.allAboardTime)} value={draft.allAboardTime??''} disabled={readOnly} aria-invalid={Boolean(shown('allAboardTime'))} onBlur={touch('allAboardTime')} onChange={e=>{const nextTime=e.target.value||null;setDraft(old=>({...old,allAboardTime:nextTime,allAboardDayNumber:nextTime?(old.allAboardDayNumber??(old.arrivalDayNumber===old.departureDayNumber?old.arrivalDayNumber:null)):old.allAboardDayNumber}))}}/></Field></div>
+        <fieldset className={styles.formGroup}><legend>Hạn hành khách trở lại tàu</legend>{draft.plannedArrivalTime&&draft.plannedDepartureTime&&<p className={styles.timeContext}>Phải nằm trong khoảng ghé cảng: Ngày {draft.arrivalDayNumber} {shortTime(draft.plannedArrivalTime)} – Ngày {draft.departureDayNumber} {shortTime(draft.plannedDepartureTime)}.</p>}<div className={styles.grid}><Field htmlFor="stop-aboard-day" label="Ngày hạn trở lại tàu"><select id="stop-aboard-day" value={draft.allAboardDayNumber??''} disabled={readOnly} onChange={e=>change('allAboardDayNumber',e.target.value?Number(e.target.value):null)}><option value="">Chưa chọn</option>{content.days.map(d=><option key={d.key} value={d.dayNumber}>{scheduleDayLabel(d.dayNumber,content.days.length)}</option>)}</select></Field><Field htmlFor="stop-aboard" label="Giờ hạn trở lại tàu" error={shown('allAboardTime')}><input id="stop-aboard" type="time" min={aboardMin} max={aboardMax} step={timeStep(draft.allAboardTime)} value={draft.allAboardTime??''} disabled={readOnly} aria-invalid={Boolean(shown('allAboardTime'))} onBlur={touch('allAboardTime')} onChange={e=>{const nextTime=e.target.value||null;setDraft(old=>({...old,allAboardTime:nextTime,allAboardDayNumber:nextTime?(old.allAboardDayNumber??(old.arrivalDayNumber===old.departureDayNumber?old.arrivalDayNumber:null)):old.allAboardDayNumber}))}}/></Field></div>
         </fieldset>
       )}
       {(visitPort||Boolean(draft.visits?.length))&&<DestinationVisits readOnly={readOnly} port={visitPort} visits={draft.visits??[]} onChange={visits=>change('visits',visits)}/>}

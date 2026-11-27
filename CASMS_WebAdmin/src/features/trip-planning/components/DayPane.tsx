@@ -63,7 +63,17 @@ export function DayPane({
 
   const isFirstDay = day.dayNumber === 1
   const isLastDay = day.dayNumber === content.days.length
+  const firstDay = content.days.find(item => item.dayNumber === 1)
+  const effectiveDepartureTime = firstDay?.plannedDepartureTime || departureWindow?.earliest || null
   const disembarkationStop = content.stops.find(s => s.isDisembarkation)
+  const latestIntermediateStop = content.stops
+    .filter(stop => !stop.isDisembarkation && Boolean(stop.plannedDepartureTime))
+    .toSorted((a, b) => timeNumber(b.departureDayNumber, b.plannedDepartureTime) - timeNumber(a.departureDayNumber, a.plannedDepartureTime))[0]
+  const arrivalReferenceHint = latestIntermediateStop
+    ? `Phải sau giờ tàu rời ${latestIntermediateStop.portName || 'cảng trước'} (Ngày ${latestIntermediateStop.departureDayNumber} ${shortTime(latestIntermediateStop.plannedDepartureTime)}).`
+    : effectiveDepartureTime
+      ? `Phải sau giờ khởi hành Ngày 1 (${shortTime(effectiveDepartureTime)}).`
+      : undefined
   const hasEndingTours = Boolean(disembarkationStop && content.entries.some(entry => entry.kind === 'SHORE_EXCURSION' && entry.stopClientKey === disembarkationStop.clientKey))
   const legacyDeparture = isFirstDay ? stops.find(stop => stop.isEmbarkation) : undefined
   const visits = stops.filter(stop => !stop.isEmbarkation && (!stop.isDisembarkation || !isLastDay))
@@ -209,6 +219,7 @@ export function DayPane({
                       type="time"
                       step="60"
                       required
+                      aria-invalid={Boolean(fieldError('planning-departure-time'))}
                       value={day.plannedDepartureTime ?? ''}
                       disabled={busy}
                       onChange={event => onDeparture?.({ plannedDepartureTime: event.target.value || null })}
@@ -247,12 +258,18 @@ export function DayPane({
                   onChange={id => onDisembarkation?.(id || null)}
                 />
               <div className={styles.timeGrid}>
-                <Field htmlFor="planning-disembarkation-arrival" label="Giờ tàu dự kiến cập cảng *" error={fieldError('planning-disembarkation-arrival')}>
+                <Field
+                  htmlFor="planning-disembarkation-arrival"
+                  label="Giờ tàu dự kiến cập cảng *"
+                  hint={arrivalReferenceHint}
+                  error={fieldError('planning-disembarkation-arrival')}
+                >
                   <input
                     id="planning-disembarkation-arrival"
                     type="time"
                     step="60"
                     required
+                    aria-invalid={Boolean(fieldError('planning-disembarkation-arrival'))}
                     value={disembarkationStop?.plannedArrivalTime ?? ''}
                     disabled={busy || !disembarkationStop?.portId}
                     onChange={event =>
@@ -263,6 +280,7 @@ export function DayPane({
                 <Field
                   htmlFor="planning-disembarkation-time"
                   label="Giờ kết thúc hành trình *"
+                  hint={disembarkationStop?.plannedArrivalTime ? `Phải sau giờ tàu cập cảng (${shortTime(disembarkationStop.plannedArrivalTime)}).` : undefined}
                   error={fieldError('planning-disembarkation-time')}
                 >
                   <input
@@ -270,6 +288,7 @@ export function DayPane({
                     type="time"
                     step="60"
                     required
+                    aria-invalid={Boolean(fieldError('planning-disembarkation-time'))}
                     value={disembarkationStop?.plannedDepartureTime ?? ''}
                     disabled={busy || !disembarkationStop?.portId}
                     onChange={event =>

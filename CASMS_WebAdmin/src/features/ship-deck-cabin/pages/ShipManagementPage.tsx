@@ -62,7 +62,7 @@ function ShipManagementContent({ id }: { id: string }) {
     { key: 'decks', label: 'Boong', visible: availableTabs.decks },
     { key: 'areas', label: 'Khu vực dịch vụ', visible: availableTabs.areas },
     { key: 'cabins', label: 'Cabin', visible: availableTabs.cabins },
-    { key: 'model', label: 'Mô hình 2D/3D', visible: availableTabs.model },
+    { key: 'model', label: 'Mô hình 3D', visible: availableTabs.model },
     { key: 'schedule', label: 'Lịch hoạt động', visible: availableTabs.schedule },
   ].filter(section => section.visible)
   return <AdminShell contextNavigation={{ ariaLabel: 'Thông tin trong tàu', label: ship.name, description: ship.code, parentTo: '/admin/ships', parentHref: fleetPath, parentState: state, items: sections.map(section => ({

@@ -24,7 +24,7 @@ import { violationTarget } from '../model/violation-target'
 import { normalizeBoundaryDays } from '../model/day-labels'
 import { versionContext, workingVersionLabel } from '../model/version-context'
 import { durationRules, supportedDuration } from '../model/duration'
-import { callsAfterTerminal, consecutiveSamePortViolations, departureTimingViolations, stopTimingViolations, portScopeViolations, linkedTourViolations, routeOrderViolations, portMatchesScope } from '../model/port-rules'
+import { callTypeTimingViolations, callsAfterTerminal, consecutiveSamePortViolations, departureTimingViolations, stopTimingViolations, portScopeViolations, linkedTourViolations, routeOrderViolations, portMatchesScope } from '../model/port-rules'
 
 export function TripSchedulePage({id}:{id:string}) {
   const {gateway}=usePlanning()
@@ -137,7 +137,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew,creatingRevision}:Ed
     else if(stop.allAboardDayNumber!=null&&stop.allAboardTime&&stop.plannedArrivalTime&&stop.plannedDepartureTime&&(timeNumber(stop.allAboardDayNumber,stop.allAboardTime)<=timeNumber(stop.arrivalDayNumber,stop.plannedArrivalTime)||timeNumber(stop.allAboardDayNumber,stop.allAboardTime)>timeNumber(stop.departureDayNumber,stop.plannedDepartureTime)))issues.push(add('allAboardTime','Hạn trở lại phải nằm trong khoảng ghé cảng.'))
     return issues
   })
-  const timingIssues=[...departureIssues,...departureTimingViolations(content,trip.info.earliestDeparture),...terminalIssues,...consecutiveSamePortViolations(content),...callsAfterTerminal(content.stops),...stopTimingViolations(content),...routeOrderViolations(content,trip.info.earliestDeparture),...content.stops.flatMap(stop=>linkedTourViolations(stop,content)),...scopeIssues]
+  const timingIssues=[...departureIssues,...departureTimingViolations(content,trip.info.earliestDeparture),...terminalIssues,...consecutiveSamePortViolations(content),...callsAfterTerminal(content.stops),...callTypeTimingViolations(content.stops),...stopTimingViolations(content),...routeOrderViolations(content,trip.info.earliestDeparture),...content.stops.flatMap(stop=>linkedTourViolations(stop,content)),...scopeIssues]
   const visibleTimingIssues=showMissingFields ? timingIssues : timingIssues.filter(issue => !['DEPARTURE_PORT_REQUIRED','DEPARTURE_TIME_REQUIRED'].includes(issue.code) && !(issue.code==='CLIENT_TERMINAL_FIELD'&&issue.message.startsWith('Nhập')))
   const violationRows=mergePlanningViolations(fault?.violations.length?fault.violations:report?.violations??[],visibleTimingIssues)
   const structureAllowed=editable&&!locked&&!trip.durationIssue&&Boolean(limits)
@@ -149,8 +149,17 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew,creatingRevision}:Ed
   const canSubmit=editable&&canFinalize&&can('TRIP_PLAN_VALIDATE')
   const [validationExpanded,setValidationExpanded]=useState(false)
   const showValidationResult=Boolean(fault?.violations.length||report)
-  const canAddDay=structureAllowed&&content.days.length<(limits?.[1]??0)
+  const maxDays=limits?.[1]??0
+  const isShortTrip=trip.info.durationBand==='SHORT'
+  const atMaxDays=Boolean(limits&&content.days.length>=maxDays)
+  const canAddDay=structureAllowed&&!atMaxDays
   const canRemoveDay=Boolean(day&&structureAllowed&&content.days.length>(limits?.[0]??0)&&(gateway.supportsMiddleDayRemoval||day.dayNumber===content.days.length))
+  const addDayDisabledReason=atMaxDays
+    ?(isShortTrip?'Chuyến ngắn (1–2 ngày) đã có đủ 2 ngày, không thể thêm ngày.':`Nhóm thời lượng hiện tại đã đạt tối đa ${maxDays} ngày, không thể thêm ngày.`)
+    :locked?'Chuyến đã có mẫu đã chốt nên không thể thay đổi số ngày. Nhân bản chuyến nếu cần đổi số ngày.'
+    :trip.durationIssue?trip.durationIssue
+    :!limits?'Nhóm thời lượng hiện tại chưa hỗ trợ thêm ngày.'
+    :''
   function showValidation(){setValidationExpanded(true);requestAnimationFrame(()=>{const section=document.getElementById('planning-validation');section?.scrollIntoView({block:'center'});section?.focus()})}
   function invalidateCheck(){setReport(null);setValidationExpanded(false)}
   function accept(saved:Version){invalidateCheck();setVersion(saved);setContent(normalizedContent(saved));setReport(null);setTrip(old=>({...old,status:saved.status==='PUBLISHED'&&old.status==='DRAFT'?'READY':old.status,versions:old.versions?.map(v=>v.versionId===saved.versionId?saved:v)}))}
@@ -358,12 +367,18 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew,creatingRevision}:Ed
             </button>
           </li>
         ))}</ol>
-        {editable&&(canAddDay||canRemoveDay)&&<details className={styles.manageDays}>
-          <summary>Thêm hoặc xóa ngày</summary>
-          {canAddDay&&<Button tone="secondary" size="compact" disabled={Boolean(busy)} onClick={()=>setDayChange({})}>Thêm Ngày {content.days.length+1}</Button>}
+        {editable&&<div className={styles.manageDays}>
+          <Button
+            tone="secondary"
+            size="compact"
+            disabled={Boolean(busy)||!canAddDay}
+            aria-describedby={addDayDisabledReason?'planning-day-limit-note':undefined}
+            onClick={()=>{if(canAddDay)setDayChange({})}}
+          >{canAddDay?`+ Thêm Ngày ${content.days.length+1}`:'+ Thêm ngày'}</Button>
+          {addDayDisabledReason&&<p id="planning-day-limit-note" className={atMaxDays?`${styles.dayLimitHint} ${styles.dayLimitWarning}`:styles.dayLimitHint} role="status">{addDayDisabledReason}</p>}
           {canRemoveDay&&day&&<Button tone="secondary" size="compact" disabled={Boolean(busy)} onClick={()=>setDayChange({remove:day.dayNumber})}>Xóa Ngày {day.dayNumber}</Button>}
-          {!gateway.supportsMiddleDayRemoval&&content.days.length>(limits?.[0]??0)&&!canRemoveDay&&<small>Mở Ngày {content.days.length} để xóa ngày cuối.</small>}
-        </details>}
+          {!gateway.supportsMiddleDayRemoval&&structureAllowed&&content.days.length>(limits?.[0]??0)&&!canRemoveDay&&<small className={styles.dayLimitHint}>Mở Ngày {content.days.length} để xóa ngày cuối.</small>}
+        </div>}
       </nav>
       <section id="planning-day-panel" aria-label="Ngày đang xem">{day?<DayPane key={day.key} content={content} day={day} editable={canEdit} busy={Boolean(busy)||uncertain} violation={located} violations={violationRows} departurePorts={{...ports,data:ports.data.filter(port=>portMatchesScope(port,trip.info))}} departureWindow={{earliest:trip.info.earliestDeparture,latest:trip.info.latestDeparture}} onDeparture={value=>edit({...content,days:content.days.map(d=>d.key===day.key?{...d,...value}:d)})} onDisembarkation={handleDisembarkation}
         onTitle={title=>edit({...content,days:content.days.map(d=>d.key===day.key?{...d,title}:d)})}

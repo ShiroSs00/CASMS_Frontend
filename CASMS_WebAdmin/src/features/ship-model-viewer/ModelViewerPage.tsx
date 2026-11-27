@@ -134,7 +134,6 @@ export function ShipRecordViewer({ ship }: { ship: string }) {
   }, [ship])
   const result = useReadQuery('ship-record-viewer:' + ship, load)
   return <div className={styles.page}>
-    <Panel title="Hình ảnh 2D"><Empty title="Chưa có hình ảnh 2D trong dữ liệu mô hình" /></Panel>
     {result.loading && <Loading label="Đang tải mô hình của tàu…" />}
     {result.error && <Failure error={result.error} retry={result.retry} />}
     {!result.loading && !result.error && (result.data ? <>

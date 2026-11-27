@@ -45,6 +45,8 @@ const messages:Readonly<Record<string,string>>={
   PORT_SNAPSHOT_UNAVAILABLE:'Chưa có thông tin cảng đã chụp cho lịch sử này. Cần đối chiếu nguồn trước khi xác nhận.',
   TRIP_DEPARTURE_WINDOW_INVALID: 'Nhập đủ hai mốc khởi hành theo thứ tự từ sớm nhất đến trễ nhất.',
   TRIP_DEPARTURE_WINDOW_LOCKED: 'Khung khởi hành đã khóa vì lịch trình đang được duyệt hoặc đã công bố.',
+  TRIP_DURATION_LOCKED: 'Chuyến đi đã có mẫu đã chốt nên không thể thay đổi số ngày. Hãy nhân bản chuyến nếu cần đổi số ngày.',
+  DURATION_LIMIT_EXCEEDED: 'Số ngày đã đạt giới hạn của nhóm thời lượng (chuyến ngắn tối đa 2 ngày, chuyến dài tối đa 5 ngày), không thể thêm ngày.',
   DEPARTURE_OUTSIDE_TRIP_WINDOW: 'Chọn giờ khởi hành trong khoảng cho phép của mẫu lịch trình.',
   DUPLICATE_DESTINATION_VISIT: 'Điểm tham quan này đã có trong lần ghé cảng. Bỏ lượt bị lặp rồi lưu lại.',
   INVALID_DESTINATION_VISIT:'Mỗi lượt tham quan cần điểm đến và thứ tự riêng trong lần ghé cảng.',
