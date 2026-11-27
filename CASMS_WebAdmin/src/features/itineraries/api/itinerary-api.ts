@@ -179,8 +179,8 @@ export const itineraryApi = {
   getPort: (id: string, signal?: AbortSignal) => apiRequest<Port>(portPath(id), { signal }),
   portTimeZones: (countryCode: string, signal?: AbortSignal) => apiRequest<{timeZoneId:string;displayName:string}[]>('/ports/timezones',{query:{countryCode:countryCode||undefined},signal}),
   createPort: (draft: PortDraft) => {
-    const { portCode, portName, countryCode, timeZoneId, latitude, longitude, status, description, coordinateSource } = draft
-    return apiRequest<Port>('/ports', { method: 'POST', body: { portCode, portName, countryCode, timeZoneId, latitude, longitude, status, description, coordinateSource } })
+    const { portCode, portName, countryCode, timeZoneId, latitude, longitude, status, description, coordinateSource, destinationId } = draft
+    return apiRequest<Port>('/ports', { method: 'POST', body: { portCode, portName, countryCode, timeZoneId, latitude, longitude, status, description, coordinateSource, ...(destinationId ? { destinationId } : {}) } })
   },
   linkPortDestination: (id: string, destinationId: string) => apiRequest<Port>(portPath(id), { method: 'PATCH', body: { destinationId } }),
   updatePort: (id: string, draft: PortDraft, selectedGeocoding=false) => apiRequest<Port>(portPath(id), { method: 'PATCH', body: {

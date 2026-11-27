@@ -8,7 +8,7 @@ export function ListFilters({ children, actions, onSubmit, label = 'Bộ lọc d
   label?: string
   className?: string
 }) {
-  return <form className={`${styles.filters} ${className}`.trim()} aria-label={label} onSubmit={event => { event.preventDefault(); onSubmit?.(event) }}>
+  return <form noValidate className={`${styles.filters} ${className}`.trim()} aria-label={label} onSubmit={event => { event.preventDefault(); onSubmit?.(event) }}>
     <div className={styles.fields}>{children}</div>
     <div className={styles.actions}>{actions}</div>
   </form>

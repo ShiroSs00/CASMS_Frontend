@@ -7,7 +7,7 @@ import { catalogActions, catalogPermission } from '../model/catalog-editor'
 import { catalogConfig, type CatalogItem, type CatalogKind } from '../model/catalog'
 import styles from './Catalog.module.css'
 
-export function CatalogActions({ kind, item, onChanged }: { kind: CatalogKind; item: CatalogItem; onChanged: () => void }) {
+export function CatalogActions({ kind, item, onChanged, onDeleted }: { kind: CatalogKind; item: CatalogItem; onChanged: () => void; onDeleted?: () => void }) {
   const access = useSessionAccess(), navigate = useNavigate()
   const [action, setAction] = useState<string | null>(null)
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
@@ -19,7 +19,12 @@ export function CatalogActions({ kind, item, onChanged }: { kind: CatalogKind; i
     if (lock.current || !action || (action === 'delete' ? !canDelete : !spec || !access.canDo(spec.permission))) return
     lock.current = true; setBusy(true); setError('')
     try {
-      if (action === 'delete') { await servicePackageApi.remove(kind, item.id); navigate(catalogConfig[kind].route) }
+      if (action === 'delete') {
+        await servicePackageApi.remove(kind, item.id)
+        setAction(null)
+        if (onDeleted) onDeleted()
+        else navigate(catalogConfig[kind].route)
+      }
       else if (spec) { await servicePackageApi.status(kind, item.id, spec.action); setAction(null); onChanged() }
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa cập nhật được danh mục.') }
     finally { lock.current = false; setBusy(false) }

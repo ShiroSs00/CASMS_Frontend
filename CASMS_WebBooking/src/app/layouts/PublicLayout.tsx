@@ -65,6 +65,11 @@ export function PublicLayout() {
       <div className={styles.accountNav}>
         <PublicContact variant="button" id="header-contact" />
         {authStatus === 'authenticated' && <NotificationBell />}
+        {authStatus === 'authenticated' && user?.username && (
+          <span className={styles.headerUser} title={user.username}>
+            {user.username}
+          </span>
+        )}
         {authStatus === 'authenticated' ? (
           <Button
             tone="secondary"

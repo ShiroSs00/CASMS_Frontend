@@ -39,7 +39,7 @@ export function ExcursionActions({ excursion, onRefresh, children }: { excursion
       {action === 'remove' ? <p>Chỉ có thể xóa chuyến tham quan đang lên kế hoạch và chưa có đăng ký. Hệ thống sẽ kiểm tra trước khi xóa.</p>
         : action === 'start' ? <p>Chỉ bắt đầu khi thời điểm hiện tại nằm trong khoảng thời gian diễn ra chuyến tham quan. Hệ thống kiểm tra điều kiện trước khi cập nhật.</p>
           : <p>Xác nhận thực hiện thao tác này?</p>}
-      {action === 'cancel' && <Field htmlFor="excursion-cancel-reason" label="Lý do hủy (bắt buộc)"><textarea id="excursion-cancel-reason" required maxLength={500} disabled={mutation.busy} value={reason} onChange={(event) => setReason(event.target.value)} /></Field>}
+      {action === 'cancel' && <Field htmlFor="excursion-cancel-reason" label="Lý do hủy *"><textarea id="excursion-cancel-reason" required maxLength={500} disabled={mutation.busy} value={reason} onChange={(event) => setReason(event.target.value)} /></Field>}
       {mutation.error != null && <ShoreError error={mutation.error} />}
 
     </Modal>}
@@ -50,19 +50,23 @@ export function ExcursionAvailability({ excursion }: { excursion: ShoreExcursion
   const access = useSessionAccess()
   const mutation = useShoreMutation()
   const [participants, setParticipants] = useState('1')
+  const [fieldError, setFieldError] = useState('')
   const [report, setReport] = useState('')
   async function checkAvailability(event: FormEvent) {
-    event.preventDefault(); setReport('')
+    event.preventDefault(); setReport(''); setFieldError('')
     if (excursion.status !== 'OPEN' || !access.canDo('EXCURSION_READ')) return
     const count = Number(participants)
-    if (!Number.isInteger(count) || count < 1 || count > 2147483647) return
+    if (!participants.trim() || !Number.isInteger(count) || count < 1 || count > 2147483647) {
+      setFieldError('Vui lòng nhập số khách là số nguyên dương từ 1 trở lên.')
+      return
+    }
     const result = await mutation.run(signal => shoreExcursionApi.availability(excursion.shoreExcursionId, count, signal))
     if (result.ok) setReport(`Kết quả cho ${count} khách: ${statusLabels[result.value.status]}, còn ${result.value.availableCapacity} chỗ.`)
   }
   if (excursion.status !== 'OPEN' || !access.canDo('EXCURSION_READ')) return null
   return <Panel title="Tra cứu chỗ trống">
-    <form className={styles.availabilityForm} onSubmit={event => void checkAvailability(event)}>
-      <Field htmlFor="excursion-participants" label="Số khách cần kiểm tra"><input id="excursion-participants" type="number" min={1} max={2147483647} step={1} required disabled={mutation.busy} value={participants} onChange={event => { setParticipants(event.target.value); setReport(''); mutation.clearError() }} /></Field>
+    <form noValidate className={styles.availabilityForm} onSubmit={event => void checkAvailability(event)}>
+      <Field htmlFor="excursion-participants" label="Số khách cần kiểm tra *" error={fieldError || undefined}><input id="excursion-participants" type="number" min={1} max={2147483647} step={1} required disabled={mutation.busy} aria-invalid={Boolean(fieldError)} value={participants} onChange={event => { setParticipants(event.target.value); setFieldError(''); setReport(''); mutation.clearError() }} /></Field>
       <Button type="submit" tone="secondary" disabled={mutation.busy}>{mutation.busy ? 'Đang kiểm tra…' : 'Kiểm tra chỗ trống'}</Button>
     </form>
     {mutation.error != null && <ShoreError error={mutation.error} />}

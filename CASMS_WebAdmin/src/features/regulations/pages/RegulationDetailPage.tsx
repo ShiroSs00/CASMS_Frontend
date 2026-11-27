@@ -75,7 +75,6 @@ export function RegulationDetailPage() {
       navigate('/admin/regulations')
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Không thể xóa quy định.')
-      setDeleteOpen(false)
     } finally {
       lock.current = false; setBusy(false)
     }
@@ -85,7 +84,7 @@ export function RegulationDetailPage() {
     {loading && <LoadingPanel />}
     {!loading && !data && <><PageHeader title={error ? 'Không tải được quy định' : 'Không tìm thấy quy định'} description={error || 'Quy định không tồn tại hoặc đã được xóa.'} /><Button tone="secondary" onClick={() => navigate('/admin/regulations')}>Về danh sách</Button></>}
     {data && <>
-      <PageHeader title={`${data.regulation.code} · ${data.regulation.name}`} description={typeLabels[data.regulation.type]} actions={(access.canDo("REGULATION_UPDATE") ? <Button disabled={!access.canDo("REGULATION_UPDATE")} onClick={() => navigate(`/admin/regulations/${regulationId}/edit`)}>Chỉnh sửa quy định</Button> : null)} />
+      <PageHeader title={`${data.regulation.code} · ${data.regulation.name}`} description={typeLabels[data.regulation.type]} actions={<><Button tone="secondary" onClick={() => navigate('/admin/regulations')}>Về danh sách</Button>{access.canDo("REGULATION_UPDATE") ? <Button disabled={!access.canDo("REGULATION_UPDATE")} onClick={() => navigate(`/admin/regulations/${regulationId}/edit`)}>Chỉnh sửa quy định</Button> : null}</>} />
       <div className={styles.summaryBadges}><StatusBadge status={data.regulation.status} /><span className={styles.scopeBadge}>{scopeLabels[data.regulation.scope]}</span></div>
       {error && !nextStatus && !deleteOpen && <Notice title="Chưa thể thực hiện" tone="error">{error}</Notice>}
       {success && <Notice title="Đã cập nhật" tone="success">{success}</Notice>}

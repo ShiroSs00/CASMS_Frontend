@@ -57,7 +57,7 @@ function effectiveCruiseBadge(item: CruiseListItem): { label: string; tone: 'neu
   }
   if (cruise.status === 'DRAFT') {
     if (readyStatus === 'READY') return { label: 'Sẵn sàng mở bán', tone: 'success' }
-    if (planStatus === 'SUBMITTED' || itinerary?.status === 'PENDING_APPROVAL') return { label: 'Chờ OPS xét duyệt', tone: 'info' }
+    if (planStatus === 'SUBMITTED' || itinerary?.status === 'PENDING_APPROVAL') return { label: 'Chờ vận hành xét duyệt', tone: 'info' }
     if (planStatus === 'APPROVED' || itinerary?.status === 'APPROVED') return { label: 'Đã duyệt · Chờ mở bán', tone: 'success' }
     if (planStatus === 'REVISION_REQUESTED') return { label: 'Cần bổ sung hồ sơ', tone: 'warning' }
     if (planStatus === 'REJECTED' || itinerary?.status === 'REJECTED') return { label: 'Hồ sơ bị từ chối', tone: 'error' }

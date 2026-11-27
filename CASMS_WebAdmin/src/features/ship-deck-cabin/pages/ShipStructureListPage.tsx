@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useSessionAccess } from '@/shared/auth'
-import { Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Empty, Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
 import { useFleetQuery } from '../hooks/useFleetQuery'
@@ -36,7 +36,7 @@ function StructurePage({ view: initialView }: { view: 'decks' | 'cabins' }) {
     {!access.canDo('SHIP_READ') && <Notice title="Chưa có quyền xem tàu" tone="warning">Tài khoản cần quyền đọc tàu để chọn dữ liệu quản lý.</Notice>}
     {ships.loading && !ships.data && <Loading label="Đang tải danh sách tàu…" />}
     {ships.error && <Notice title="Không tải được danh sách tàu" tone="error">{ships.error}</Notice>}
-    {!ships.loading && !ships.error && ships.data?.length === 0 && <p>Chưa có tàu.</p>}
+    {!ships.loading && !ships.error && ships.data?.length === 0 && <Empty title="Chưa có tàu" />}
     {!ships.loading && !ships.error && selectedId && ships.data && !selected && <Notice title="Không tìm thấy tàu đã chọn" tone="warning">Vui lòng chọn lại tàu trong danh sách.</Notice>}
     {!selected && Boolean(ships.data?.length) && <Panel className={styles.shipSelection} title="Danh sách tàu">
       <div className={styles.shipChoiceGrid}>{ships.data?.map(ship => <Link key={ship.id} to={`/admin/decks?${new URLSearchParams({ ship: ship.id, view })}`} className={styles.shipChoice} aria-label={`Xem boong và cabin của ${ship.name}`}>
@@ -54,7 +54,7 @@ function StructurePage({ view: initialView }: { view: 'decks' | 'cabins' }) {
     </Panel>}
     {selected && <nav className={styles.structureTabs} aria-label="Cấu trúc tàu">
       {([['decks', 'Boong', 'DECK_READ'], ['cabins', 'Cabin', 'CABIN_READ']] as const).filter(([, , permission])=>access.canDo(permission)).map(([tab, label])=><Link key={tab} to={`/admin/decks?${new URLSearchParams({ ship:selected.id, view:tab })}`} aria-current={view===tab?'page':undefined}>{label}</Link>)}
-      {access.canDo('SHIP_CONFIGURATION_READ')&&<Link to={`/admin/ships/${selected.id}?tab=areas`}>Khu vực (Areas) <span aria-hidden="true">↗</span></Link>}
+      {access.canDo('SHIP_CONFIGURATION_READ')&&<Link to={`/admin/ships/${selected.id}?tab=areas`}>Khu vực dịch vụ <span aria-hidden="true">↗</span></Link>}
     </nav>}
     {selected ? <SelectedInventory key={`${view}:${selected.id}:${params.get('deck') ?? ''}`} ship={selected} view={view} deck={params.get('deck') ?? ''} />
       : null}

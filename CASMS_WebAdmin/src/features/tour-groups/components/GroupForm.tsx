@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react'
 
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, Field, FormErrorSummary, Loading, Notice } from '@/shared/ui'
+import { Button, Field, FormErrorSummary, Loading, Notice, useUnsavedFormGuard } from '@/shared/ui'
 import { listExcursionOptions } from '../api/group-context-api'
 import { canUseGroupExcursion, displayTime, emptyGroupForm, excursionGroupDefaults, formToGroupRequest, groupToForm, inheritedGroupFields, validateGroupForm, type GroupFormValues, type GroupRequest, type TourGroup } from '../model/tour-group'
 import styles from './TourGroups.module.css'
@@ -16,7 +16,7 @@ const fields: { key: InheritedField; label: string; type?: string; maxLength?: n
   { key: 'plannedReturnTime', label: 'Giờ trở về dự kiến', type: 'datetime-local' },
   { key: 'assemblyTime', label: 'Giờ tập trung', type: 'datetime-local' },
 ]
-export function GroupForm({ initial, initialExcursionId = '', busy, onSave }: { initial?: TourGroup; initialExcursionId?: string; busy: boolean; onSave: (request: GroupRequest) => Promise<void> }) {
+export function GroupForm({ initial, initialExcursionId = '', busy, onSave }: { initial?: TourGroup; initialExcursionId?: string; busy: boolean; onSave: (request: GroupRequest, allowLeave: () => void) => Promise<void> }) {
   const access = useSessionAccess()
   const excursions = useReadQuery('group-excursion-options', listExcursionOptions)
   const [excursionId, setExcursionId] = useState(initial?.shoreExcursionId ?? initialExcursionId)
@@ -27,6 +27,10 @@ export function GroupForm({ initial, initialExcursionId = '', busy, onSave }: { 
     for (const key of inheritedGroupFields) if (!saved[key]) delete saved[key]
     return saved
   })
+  const [baselineDraft] = useState(() => structuredClone(draft))
+  const [baselineExcursion] = useState(excursionId)
+  const dirty = excursionId !== baselineExcursion || JSON.stringify(draft) !== JSON.stringify(baselineDraft)
+  const guard = useUnsavedFormGuard(dirty, busy)
   const [errors, setErrors] = useState<Partial<Record<keyof GroupFormValues, string>>>({})
   const selected = excursions.data?.find(item => item.shoreExcursionId === excursionId)
   const inherited = excursionGroupDefaults(selected)
@@ -62,7 +66,7 @@ export function GroupForm({ initial, initialExcursionId = '', busy, onSave }: { 
       input?.focus()
       return
     }
-    void onSave(formToGroupRequest(values))
+    void onSave(formToGroupRequest(values), guard.allowLeave)
   }
   function renderField({ key, label, type = 'text', maxLength }: typeof fields[number]) {
     return <Field key={key} htmlFor={`group-${key}`} label={`${label} *`} error={errors[key]} hint={key === 'maximumCapacity' && selected?.maximumCapacity != null ? `Tối đa ${selected.maximumCapacity} khách, theo sức chứa chuyến tham quan.` : undefined}>
@@ -73,7 +77,7 @@ export function GroupForm({ initial, initialExcursionId = '', busy, onSave }: { 
         aria-invalid={!!errors[key]} onChange={event => change(key, event.target.value)} />
     </Field>
   }
-  return <>
+  return <>{guard.prompt}
     <p className={styles.hint}>Chọn chuyến tham quan để lấy sẵn sức chứa, điểm tập trung và lịch trình. Chỉ bổ sung thông tin còn thiếu hoặc điều chỉnh riêng khi cần.</p>
     {excursions.loading && <Loading label="Đang tải chuyến tham quan…" />}
     {excursions.error && <Notice title="Không tải được chuyến tham quan" tone="error">{excursions.error.message}<Button tone="secondary" onClick={excursions.retry}>Thử lại</Button></Notice>}
@@ -116,7 +120,7 @@ export function GroupForm({ initial, initialExcursionId = '', busy, onSave }: { 
         <div className={styles.fullRow}><Field htmlFor="group-notes" label="Ghi chú riêng cho nhóm (không bắt buộc)" error={errors.notes}><textarea id="group-notes" name="notes" maxLength={500} value={values.notes} aria-invalid={!!errors.notes} onChange={event => change('notes', event.target.value)} /></Field></div>
         <p className={`${styles.hint} ${styles.fullRow}`}>Hướng dẫn viên và hành khách được phân công trong trang chi tiết sau khi tạo nhóm.</p>
       </>}
-      <div className={styles.actions}><Link className={styles.link} to={initial ? `/admin/tour-groups/${initial.tourGroupId}` : '/admin/tour-groups'}>Quay lại</Link>{access.canDo(initial ? 'TOUR_GROUP_UPDATE' : 'TOUR_GROUP_CREATE') && <Button type="submit" disabled={busy || excursions.loading || Boolean(excursions.error) || !selected}>{busy ? 'Đang lưu…' : initial ? 'Lưu thay đổi' : 'Tạo nhóm tour'}</Button>}</div>
+      <div className={styles.actions}><Link className={styles.link} to={initial ? `/admin/tour-groups/${initial.tourGroupId}` : initialExcursionId ? `/admin/tour-groups?excursionId=${encodeURIComponent(initialExcursionId)}` : '/admin/tour-groups'}>Quay lại</Link>{access.canDo(initial ? 'TOUR_GROUP_UPDATE' : 'TOUR_GROUP_CREATE') && <Button type="submit" disabled={busy || excursions.loading || Boolean(excursions.error) || !selected}>{busy ? 'Đang lưu…' : initial ? 'Lưu thay đổi' : 'Tạo nhóm tour'}</Button>}</div>
     </fieldset></form>
   </>
 }

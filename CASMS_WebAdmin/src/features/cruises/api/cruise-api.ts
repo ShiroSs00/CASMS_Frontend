@@ -1,5 +1,5 @@
 import { getSessionAccess, hasPermissions } from '@/shared/auth'
-import { ApiError, apiRequest, apiRequestRaw } from '@/shared/api'
+import { ApiError, apiRequest } from '@/shared/api'
 import { scheduleInstant, localCruiseInput } from '../model/cruise-validation'
 import { readinessSnapshot } from '../model/readiness'
 import { decodeProgramSync, decodeReadiness, decodeSchedule, decodeShipChange, decodeShipCompatibility, decodeShipAssignmentSafety } from '../model/departure-contract'
@@ -193,16 +193,6 @@ async function linkedItinerary(cruiseId: string, signal?: AbortSignal): Promise<
 
 export const cruiseApi = {
   async list(query: CruiseQuery, signal?: AbortSignal): Promise<CruiseListResult> {
-    if (query.shipId === 'UNASSIGNED') {
-      await apiRequestRaw('/v3/api-docs', value => {
-        const spec=value as { paths?: Record<string, { get?: { parameters?: { name?: string; in?: string }[] } }> } | null
-        const parameters=spec?.paths?.['/cruise']?.get?.parameters
-        if(!Array.isArray(parameters)||!parameters.some(parameter=>parameter.name==='unassigned'&&parameter.in==='query')) {
-          throw new ApiError('Chưa xác minh được bộ lọc chuyến khởi hành chưa phân công trên hệ thống. Vui lòng liên hệ quản trị viên.',502)
-        }
-        return true
-      },{signal,authenticated:false})
-    }
     const page = await apiRequest<PageDto<CruiseDto>>(root, {
       query: {
         status: query.status || undefined,

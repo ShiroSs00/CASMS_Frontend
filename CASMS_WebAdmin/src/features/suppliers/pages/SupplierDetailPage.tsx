@@ -155,6 +155,7 @@ export function SupplierDetailPage({ recordId, embedded = false, onDeleted, onCh
         })
       }
       lock.current = false; setActionInProgress(null)
+      throw err
     }
   }
 

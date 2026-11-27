@@ -44,7 +44,7 @@ export function ShoreError({ error, onRetry }: { error: unknown; onRetry?: () =>
   const status = error instanceof ApiError ? error.status : undefined
   return <Notice tone="error" title={status === 403 ? 'Bạn không có quyền thực hiện thao tác này' : status === 401 ? 'Phiên đăng nhập không hợp lệ' : status === 404 ? 'Không tìm thấy chuyến tham quan' : 'Không thể thực hiện yêu cầu'}>
     <p>{errorMessage(error)}</p>
-    {status !== undefined && <p>{status ? `HTTP ${status}` : 'Lỗi kết nối hoặc dữ liệu yêu cầu'}</p>}
+    {status === 0 && <p>Không thể kết nối máy chủ hoặc dữ liệu yêu cầu chưa hợp lệ.</p>}
     {status === 403 && <p>Liên hệ quản trị viên để kiểm tra quyền truy cập chuyến tham quan bờ.</p>}
     {onRetry && <Button tone="secondary" onClick={onRetry}>Thử lại</Button>}
   </Notice>

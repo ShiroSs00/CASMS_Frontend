@@ -40,6 +40,29 @@ const serviceCategoryLabelsVi: Record<string, string> = {
   'transportation': 'Đưa đón',
   'wellness': 'Chăm sóc sức khỏe',
 }
+const serviceUnitPresets = [
+  { code: 'SESSION', label: 'SESSION · Buổi / lượt phục vụ' },
+  { code: 'HOUR', label: 'HOUR · Giờ' },
+  { code: 'DAY', label: 'DAY · Ngày' },
+  { code: 'TRIP', label: 'TRIP · Trọn chuyến' },
+  { code: 'ITEM', label: 'ITEM · Món / sản phẩm' },
+  { code: 'GLASS', label: 'GLASS · Ly' },
+  { code: 'BOTTLE', label: 'BOTTLE · Chai' },
+  { code: 'PERSON', label: 'PERSON · Khách' },
+  { code: 'CABIN', label: 'CABIN · Phòng' },
+  { code: 'GB', label: 'GB · Dung lượng Internet (GB)' },
+] as const
+
+const serviceTimeZoneOptions = [
+  { value: 'Asia/Ho_Chi_Minh', label: 'Giờ Việt Nam (UTC+7 · Asia/Ho_Chi_Minh)' },
+  { value: 'Asia/Bangkok', label: 'Giờ Bangkok (UTC+7 · Asia/Bangkok)' },
+  { value: 'Asia/Singapore', label: 'Giờ Singapore (UTC+8 · Asia/Singapore)' },
+  { value: 'Asia/Hong_Kong', label: 'Giờ Hồng Kông (UTC+8 · Asia/Hong_Kong)' },
+  { value: 'Asia/Tokyo', label: 'Giờ Tokyo (UTC+9 · Asia/Tokyo)' },
+  { value: 'Asia/Seoul', label: 'Giờ Seoul (UTC+9 · Asia/Seoul)' },
+  { value: 'UTC', label: 'Giờ phối hợp quốc tế (UTC)' },
+] as const
+
 const localizeCategoryName = (name: string) => serviceCategoryLabelsVi[name.trim().toLowerCase()] ?? name
 
 function CatalogFormPage({ kind }: { kind: CatalogKind }) {
@@ -75,7 +98,7 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
   for (const row of knownTypes.data ?? []) if (row.type.trim() && row.type.length <= 50 && !typeOptions.has(row.type)) typeOptions.set(row.type, row.type)
   if (initial?.type && !typeOptions.has(initial.type)) typeOptions.set(initial.type, initial.type)
   const currencyLabel = draft.currency.trim() || 'VND'
-  const fields: { key: keyof CatalogDraft; label: string; type?: string; maxLength?: number }[] = [{ key: 'name', label: 'Tên *', maxLength: 200 }, { key: 'type', label: 'Loại *', maxLength: 50 }, { key: 'price', label: kind === 'services' ? `Giá (${currencyLabel})` : `Giá (${currencyLabel}) *`, type: 'number' }, ...(kind === 'services' ? [{ key: 'capacity' as const, label: 'Sức chứa cấu hình', type: 'number' }, { key: 'defaultRequiredStaff' as const, label: 'Nhân viên phục vụ mặc định *', type: 'number' }] : []), ...(kind === 'packages' ? [{ key: 'startDate' as const, label: 'Có hiệu lực từ', type: 'date' }, { key: 'endDate' as const, label: 'Đến hết ngày', type: 'date' }] : [])]
+  const fields: { key: keyof CatalogDraft; label: string; type?: string; maxLength?: number }[] = [{ key: 'name', label: 'Tên *', maxLength: 200 }, { key: 'type', label: 'Loại *', maxLength: 50 }, { key: 'price', label: kind === 'services' ? `Giá (${currencyLabel})` : `Giá (${currencyLabel}) *`, type: 'number' }, { key: 'currency', label: 'Đơn vị tiền tệ' }, ...(kind === 'services' ? [{ key: 'capacity' as const, label: 'Sức chứa cấu hình', type: 'number' }, { key: 'defaultRequiredStaff' as const, label: 'Nhân viên phục vụ mặc định *', type: 'number' }] : []), ...(kind === 'packages' ? [{ key: 'startDate' as const, label: 'Có hiệu lực từ', type: 'date' }, { key: 'endDate' as const, label: 'Đến hết ngày', type: 'date' }] : [])]
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (lock.current || !allowed || uncertain) return
@@ -110,32 +133,46 @@ function CatalogEditor({ kind, initial }: { kind: CatalogKind; initial?: Catalog
     ].filter(group => fields.some(field => group.keys.includes(field.key))).map(group => <FormSection key={group.title} title={group.title} >
     {fields.filter(field => group.keys.includes(field.key)).map(field => <Field key={field.key} htmlFor={`catalog-${field.key}`} label={field.label} error={errors[field.key]}>
       {field.key === 'type' ? <select id={`catalog-${field.key}`} name={field.key} required aria-invalid={Boolean(errors.type)} value={draft.type} disabled={busy} onChange={event => setDraft({ ...draft, type: event.target.value })}><option value="">Chọn loại {catalogConfig[kind].label.toLocaleLowerCase('vi')}</option>{[...typeOptions].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-        : <input id={`catalog-${field.key}`} name={field.key} type={field.type ?? 'text'} maxLength={field.maxLength} min={field.key === 'defaultRequiredStaff' ? 1 : field.type === 'number' ? 0 : undefined} step={field.key === 'capacity' || field.key === 'defaultRequiredStaff' ? 1 : field.type === 'number' ? 'any' : undefined} disabled={busy} value={draft[field.key]} aria-invalid={Boolean(errors[field.key])} onChange={event => setDraft({ ...draft, [field.key]: field.key === 'currency' ? event.target.value.toUpperCase() : event.target.value })} />}
+        : field.key === 'currency' ? <select id="catalog-currency" name="currency" disabled={busy} value={draft.currency || 'VND'} onChange={event => setDraft({ ...draft, currency: event.target.value })}><option value="VND">VND · Đồng Việt Nam</option>{draft.currency === 'USD' && <option value="USD">USD · Đô la Mỹ (dữ liệu cũ)</option>}</select>
+          : <input id={`catalog-${field.key}`} name={field.key} type={field.type ?? 'text'} maxLength={field.maxLength} min={field.key === 'capacity' || field.key === 'defaultRequiredStaff' ? 1 : field.type === 'number' ? 0 : undefined} step={field.key === 'capacity' || field.key === 'defaultRequiredStaff' ? 1 : field.type === 'number' ? 'any' : undefined} disabled={busy} value={draft[field.key]} aria-invalid={Boolean(errors[field.key])} onChange={event => setDraft({ ...draft, [field.key]: event.target.value })} />}
     </Field>)}
     </FormSection>)}
     {kind==='services'&&<FormSection title="Cách phục vụ">
-      <Field htmlFor="catalog-schedule" label="Đặt dịch vụ theo lịch" error={errors.requiresSchedule}><select id="catalog-schedule" name="requiresSchedule" disabled={busy} value={draft.requiresSchedule} onChange={e=>setDraft({...draft,requiresSchedule:e.target.value})}><option value="">Chưa thay đổi cấu hình nguồn</option><option value="true">Cần lịch đặt trước</option><option value="false">Không bắt buộc lịch đặt trước</option></select></Field>
+      <Field htmlFor="catalog-schedule" label="Đặt dịch vụ theo lịch" hint={!initial ? 'Mặc định hệ thống không bắt buộc đặt lịch trước.' : undefined} error={errors.requiresSchedule}><select id="catalog-schedule" name="requiresSchedule" disabled={busy} value={draft.requiresSchedule} onChange={e=>setDraft({...draft,requiresSchedule:e.target.value})}><option value="">{initial ? 'Giữ cấu hình hiện tại' : 'Theo mặc định hệ thống (không bắt buộc lịch)'}</option><option value="true">Cần lịch đặt trước</option><option value="false">Không bắt buộc lịch đặt trước</option></select></Field>
       <Field htmlFor="catalog-category" label="Nhóm dịch vụ"><select id="catalog-category" disabled={busy||categories.loading||Boolean(categories.error)} value={draft.categoryId} onChange={e=>setDraft({...draft,categoryId:e.target.value})}><option value="">Chưa chọn nhóm</option>{categories.data?.map(c=><option key={c.id} value={c.id}>{localizeCategoryName(c.name)}</option>)}</select>{categories.error&&<Button tone="text" onClick={categories.retry}>Tải lại nhóm dịch vụ</Button>}</Field>
-      <Field htmlFor="catalog-unit" label="Đơn vị phục vụ" error={errors.unitCode}><input id="catalog-unit" name="unitCode" maxLength={30} disabled={busy} value={draft.unitCode} onChange={e=>setDraft({...draft,unitCode:e.target.value})}/></Field>
+      <Field htmlFor="catalog-unit" label="Đơn vị phục vụ" hint="Chọn đơn vị gợi ý hoặc nhập mã đơn vị (VD: SESSION, HOUR, ITEM)." error={errors.unitCode}>
+        <input id="catalog-unit" name="unitCode" list="catalog-unit-presets" maxLength={30} disabled={busy} value={draft.unitCode} onChange={e=>setDraft({...draft,unitCode:e.target.value})}/>
+        <datalist id="catalog-unit-presets">
+          {serviceUnitPresets.map(unit => <option key={unit.code} value={unit.code}>{unit.label}</option>)}
+        </datalist>
+      </Field>
     </FormSection>}
     {kind === 'services' && <FormSection title="Giai đoạn phục vụ và định mức">
       {(Object.keys(servicePurchaseFlags) as (keyof typeof servicePurchaseFlags)[]).map(key =>
-        <Field key={key} htmlFor={`catalog-${key}`} label={servicePurchaseFlags[key]} error={errors[key]}>
+        <Field key={key} htmlFor={`catalog-${key}`} label={servicePurchaseFlags[key]} hint={!initial ? 'Để mặc định sẽ áp dụng quy tắc chuẩn của hệ thống khi tạo mới.' : undefined} error={errors[key]}>
           <select id={`catalog-${key}`} name={key} value={draft[key]} onChange={e => setDraft({...draft,[key]:e.target.value})}>
-            <option value="">{initial ? 'Giữ cấu hình hiện tại' : 'Theo cấu hình hệ thống'}</option><option value="true">Có</option><option value="false">Không</option>
+            <option value="">{initial ? 'Giữ cấu hình hiện tại' : 'Theo mặc định hệ thống'}</option><option value="true">Có</option><option value="false">Không</option>
           </select>
         </Field>)}
-      <Field htmlFor="catalog-usage-policy" label="Định mức trước chuyến">
+      <Field htmlFor="catalog-usage-policy" label="Định mức trước chuyến" hint={!initial ? 'Mặc định không giới hạn nếu không chọn định mức riêng.' : undefined}>
         <select id="catalog-usage-policy" value={draft.preCruiseUsagePolicy} onChange={e => setDraft({...draft,preCruiseUsagePolicy:e.target.value as CatalogDraft['preCruiseUsagePolicy']})}>
-          <option value="">{initial ? 'Giữ cấu hình hiện tại' : 'Theo cấu hình hệ thống'}</option>
+          <option value="">{initial ? 'Giữ cấu hình hiện tại' : 'Theo mặc định hệ thống'}</option>
           {Object.entries(serviceUsagePolicyLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </Field>
-      {draft.preCruiseUsagePolicy && draft.preCruiseUsagePolicy !== 'UNLIMITED' && <Field htmlFor="catalog-usage-limit" label="Định mức tối đa" error={errors.preCruiseUsageLimit}>
-        <input id="catalog-usage-limit" name="preCruiseUsageLimit" type="number" min={1} step={1} value={draft.preCruiseUsageLimit} onChange={e=>setDraft({...draft,preCruiseUsageLimit:e.target.value})} />
+      {draft.preCruiseUsagePolicy && draft.preCruiseUsagePolicy !== 'UNLIMITED' && <Field htmlFor="catalog-usage-limit" label="Định mức tối đa *" error={errors.preCruiseUsageLimit}>
+        <input id="catalog-usage-limit" name="preCruiseUsageLimit" type="number" min={1} step={1} required value={draft.preCruiseUsageLimit} onChange={e=>setDraft({...draft,preCruiseUsageLimit:e.target.value})} />
       </Field>}
       <Field htmlFor="catalog-usage-zone" label="Múi giờ tính định mức" error={errors.usageTimeZone}>
-        <input id="catalog-usage-zone" name="usageTimeZone" maxLength={100} value={draft.usageTimeZone} onChange={e=>setDraft({...draft,usageTimeZone:e.target.value})} />
+        <select id="catalog-usage-zone" name="usageTimeZone" disabled={busy} value={draft.usageTimeZone} onChange={e => setDraft({ ...draft, usageTimeZone: e.target.value })}>
+          <option value="">Mặc định theo giờ tàu (Việt Nam · UTC+7)</option>
+          {draft.usageTimeZone && !serviceTimeZoneOptions.some(tz => tz.value === draft.usageTimeZone) && (
+            <option value={draft.usageTimeZone}>{draft.usageTimeZone}</option>
+          )}
+          {serviceTimeZoneOptions.map(tz => (
+            <option key={tz.value} value={tz.value}>{tz.label}</option>
+          ))}
+        </select>
       </Field>
     </FormSection>}
     <div className={styles.fullRow}><Field htmlFor="catalog-description" label="Mô tả" error={errors.description}><textarea id="catalog-description" name="description" maxLength={1000} disabled={busy} value={draft.description} onChange={event => setDraft({ ...draft, description: event.target.value })} /></Field></div>

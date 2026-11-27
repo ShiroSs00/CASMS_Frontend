@@ -73,7 +73,12 @@ export function suggestExcursionTimes(stop: StopOption | undefined, occupied: Sh
   const minute = 60000
   let begin = Math.ceil(window.earliestStart / minute) * minute
   const latest = (Math.ceil(window.returnDeadline / minute) - 1) * minute
-  const times = (end: number) => ({ startTime: zonedInput(begin, zone).slice(0, 16), plannedReturnTime: zonedInput(end, zone).slice(0, 16) })
+  const times = (end: number) => ({
+    startTime: zonedInput(begin, zone).slice(0, 16),
+    plannedReturnTime: zonedInput(end, zone).slice(0, 16),
+    startInstant: new Date(begin).toISOString(),
+    plannedReturnInstant: new Date(end).toISOString(),
+  })
   for (const item of occupied) {
     const start = Date.parse(item.startTime), end = Date.parse(item.plannedReturnTime)
     if (end <= begin) continue

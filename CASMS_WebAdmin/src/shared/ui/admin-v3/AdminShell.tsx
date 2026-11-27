@@ -12,6 +12,8 @@ import { NotificationBell } from '@/features/notifications/NotificationBell'
 
 const bookingNavigation = [
   { to: '/admin/bookings', label: 'Danh sách đặt chỗ', icon: 'bookings' },
+  { to: '/admin/bookings/cruises', label: 'Chuyến đang mở bán', icon: 'cruises' },
+  { to: '/admin/bookings/lookup', label: 'Tra cứu bằng mã', icon: 'bookings' },
   { to: '/admin/staff/checkin', label: 'Check-in', icon: 'checkin' },
 ]
 

@@ -72,7 +72,7 @@ export function CustomerLoginPage() {
               <Field
                 htmlFor="customer-username"
                 label="Tên đăng nhập hoặc email *"
-                hint="Tên đăng nhập được gửi trong email xác nhận hoặc kích hoạt tài khoản."
+                hint="Tên đăng nhập được gửi trong email xác nhận đặt chỗ."
               >
                 <input
                   id="customer-username"
@@ -117,8 +117,8 @@ export function CustomerLoginPage() {
         <aside className={styles.help}>
           <h2>Chưa có mật khẩu đăng nhập?</h2>
           <p>
-            Sau khi đặt chỗ thành công, OceVie gửi liên kết kích hoạt tài khoản qua email người đại diện. Bạn có thể mở
-            liên kết đó để thiết lập mật khẩu.
+            Sau khi đặt chỗ thành công, OceVie gửi tên đăng nhập và mật khẩu tạm qua email người đại diện. Vui lòng kiểm
+            tra hộp thư (kể cả mục Thư rác) để lấy thông tin đăng nhập.
           </p>
           <p className={styles.helper}>
             Nếu chỉ cần xem thông tin đặt chỗ mà chưa thanh toán, bạn vẫn có thể dùng{' '}

@@ -40,7 +40,7 @@ function text(row: Record<string, unknown>, key: string): string {
 }
 function id(row: Record<string, unknown>, key: string): string {
   const value = text(row, key)
-  if (!isUuid(value)) throw new Error(`Trường ${key} phải là ID UUID hợp lệ.`)
+  if (!isUuid(value)) throw new Error('Mã định danh dữ liệu nhóm tour không hợp lệ.')
   return value
 }
 function integer(row: Record<string, unknown>, key: string, min: number): number {
@@ -78,7 +78,7 @@ export function normalizeCapacity(value: unknown): GroupCapacity {
 function localTime(value: string | null): string {
   if (!value) return ''
   const date = new Date(value), pad = (n: number, width = 2) => String(n).padStart(width, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 export function groupToForm(group: TourGroup): GroupFormValues {
   return {
@@ -96,8 +96,8 @@ export function excursionGroupDefaults(excursion: GroupExcursion | undefined): P
 }
 export function validateGroupForm(values: GroupFormValues, excursion?: GroupExcursion, assignedPassengers = 0): Partial<Record<keyof GroupFormValues, string>> {
   const errors: Partial<Record<keyof GroupFormValues, string>> = {}
-  if (!isUuid(values.shoreExcursionId.trim())) errors.shoreExcursionId = 'Nhập ID UUID chuyến tham quan hợp lệ.'
-  for (const key of ['guideId', 'vehicleId'] as const) if (values[key].trim() && !isUuid(values[key].trim())) errors[key] = 'Nhập ID UUID hợp lệ.'
+  if (!isUuid(values.shoreExcursionId.trim())) errors.shoreExcursionId = 'Vui lòng chọn chuyến tham quan hợp lệ.'
+  for (const key of ['guideId', 'vehicleId'] as const) if (values[key].trim() && !isUuid(values[key].trim())) errors[key] = 'Vui lòng chọn mục hợp lệ từ danh sách.'
   if (values.groupCode.trim().length > 50) errors.groupCode = 'Mã nhóm tối đa 50 ký tự.'
   if (!/^\d+$/.test(values.maximumCapacity) || Number(values.maximumCapacity) < 1 || Number(values.maximumCapacity) > 2147483647) errors.maximumCapacity = 'Nhập sức chứa tối đa là số nguyên dương hợp lệ.'
   // BE inherits the excursion meeting point when this field is omitted.

@@ -179,8 +179,13 @@ export function ServiceLocationRequests({ cruiseId, onChanged }: { cruiseId: str
                           <p>{itemError.message}</p>
                           {itemError.code === 'SERVICE_LOCATION_NOT_AVAILABLE' && (
                             <div className={styles.inlineActions}>
-                              <ButtonLink to="/admin/ships" tone="secondary" size="compact" autoWidth>
-                                Mở Danh sách tàu để gắn dịch vụ vào boong →
+                              <ButtonLink
+                                to={view.shipId ? `/admin/ships/${encodeURIComponent(view.shipId)}?tab=areas` : '/admin/ships'}
+                                tone="secondary"
+                                size="compact"
+                                autoWidth
+                              >
+                                Mở cấu hình khu vực trên tàu để gắn dịch vụ →
                               </ButtonLink>
                               <Button
                                 tone="secondary"
@@ -277,6 +282,7 @@ export function ServiceLocationRequests({ cruiseId, onChanged }: { cruiseId: str
 
             {view.canPropose && view.shipId && !view.deckBlocker && view.decks.length > 0 && services.length > 0 && (
               <form
+                noValidate
                 className={styles.stepBox}
                 onSubmit={event => {
                   event.preventDefault()

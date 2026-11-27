@@ -54,12 +54,30 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
   const [validationAttempt, setValidationAttempt] = useState(0), [clock, setClock] = useState(Date.now)
   const [quoteLoading, setQuoteLoading] = useState(false)
   const [quoteError, setQuoteError] = useState('')
+  const [planFallbackNotice, setPlanFallbackNotice] = useState('')
   const [changingCruise, setChangingCruise] = useState(false)
   const lastAutoQuotedRef = useRef<string>('')
   const state = transactionState({ busy, quoteUnknown, uncertain, saved })
   const locked = state !== 'editable'
-  const back = catalogReturn(params.get('from')), requestedCruise = params.get('cruiseId')
+  const back = catalogReturn(params.get('from')), requestedCruise = params.get('cruiseId'), requestedOfferId = params.get('offerId')
+  const appliedRequestedOfferRef = useRef<string>('')
   const usable = quoteUsable(draft, quoteIntent, clock)
+  // If user opens booking flow for a new cruise after finishing a previous booking, clear the old receipt
+  useEffect(() => {
+    if (saved && requestedCruise && requestedCruise !== saved.cruiseId) {
+      setDraft({ ...initialLiveBooking(), cruiseId: requestedCruise })
+      setPersonIds([crypto.randomUUID()])
+      setPartyConfirmed(false)
+      setSaved(null)
+      setQuoteIntent(null)
+      setErrors({})
+      setError('')
+      setUncertain(false)
+      setQuoteUnknown(false)
+      submissionLockRef.current = false
+      appliedRequestedOfferRef.current = ''
+    }
+  }, [saved, requestedCruise, setDraft, setPersonIds, setPartyConfirmed, setSaved, setQuoteIntent, setErrors, setError, setUncertain, setQuoteUnknown, submissionLockRef])
   // Auto-prefill full verified passenger profile on Step 3 so returning customers do not trigger 409 mismatch
   useEffect(() => {
     if (!customerUser || locked || draft.bookForOthers) return
@@ -117,7 +135,12 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
       else heading.current?.focus()
     }
   }, [step, validationAttempt, saved, uncertain, quoteUnknown])
-  const dirty = !saved && (Boolean(draft.cruiseId) || draft.passengers.some(p => p.fullName || p.email || p.documentNumber))
+  const dirty = !saved && (
+    partyConfirmed
+    || draft.passengers.length > 1
+    || Boolean(draft.notes.trim())
+    || draft.passengers.some(p => p.fullName || p.email || p.phoneNumber || p.documentNumber || p.cabinId || p.farePackageOfferId || p.tourPackageId)
+  )
   useEffect(() => {
     if (!dirty) return
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
@@ -133,12 +156,35 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
     const currency = selected?.saleCurrency === 'USD' ? 'USD' : 'VND'
     if (selected && !locked && draft.currency !== currency) setDraft(current => ({ ...current, currency }))
   }, [selected, locked, draft.currency, setDraft])
+  // Pre-select requested offerId from Cruise Detail ("Đặt gói này") when fare catalog loads
+  useEffect(() => {
+    if (!requestedOfferId || locked || !fares.data?.offers.length) return
+    const key = `${draft.cruiseId}:${requestedOfferId}`
+    if (appliedRequestedOfferRef.current === key) return
+    const match = fares.data.offers.find(o => o.selection.offerId === requestedOfferId)
+    if (!match) return
+    appliedRequestedOfferRef.current = key
+    setDraft(current => ({
+      ...current,
+      passengers: current.passengers.map(p =>
+        p.farePackageOfferId
+          ? p
+          : {
+              ...p,
+              farePackageOfferId: match.selection.offerId,
+              farePackagePriceRevisionId: match.selection.priceRevisionId,
+              tourPackageId: '',
+            },
+      ),
+    }))
+  }, [requestedOfferId, locked, fares.data, draft.cruiseId, setDraft])
   const choicesLoading = cruises.loading || cabins.loading || packages.loading || fares.loading
   const readError = cruises.error || cabins.error || fares.error
-  const available = availableBookingStage(draft, partyConfirmed, selected, cabins.data, packages.data, fares.data, !access.userId, clock)
+  const available = availableBookingStage(draft, partyConfirmed, selected, cabins.data, packages.data, fares.data, !access.userId || Boolean(draft.bookForOthers), clock)
   function path(next: number, cruiseId = draft.cruiseId) {
     const query = new URLSearchParams({ from: back })
     if (cruiseId) query.set('cruiseId', cruiseId)
+    if (requestedOfferId && cruiseId === requestedCruise) query.set('offerId', requestedOfferId)
     return bookingStagePaths[next - 1] + '?' + query
   }
   function validate(stage: BookingStage) {
@@ -148,7 +194,7 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
     } else {
       const mode = stage === 2 ? 1 : stage === 3 ? 2 : 3
       invalid = bookingFieldErrors(draft, selected, cabins.data, undefined, mode)
-      if (mode !== 1 && !access.userId && !draft.passengers[0]?.email.trim()) invalid['person-0-email'] = 'Nhập email người đại diện để nhận hướng dẫn hợp đồng.'
+      if (mode !== 1 && (!access.userId || Boolean(draft.bookForOthers)) && !draft.passengers[0]?.email.trim()) invalid['person-0-email'] = 'Nhập email người đại diện để nhận hướng dẫn hợp đồng.'
       if (mode !== 2) {
         Object.assign(invalid, bookingPackageErrors(draft, packages.data), bookingCruisePackageSelectionErrors(draft, fares.data))
         draft.passengers.forEach((p, i) => {
@@ -197,6 +243,7 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
             : eligible[0]
         const adjustedDraft = { ...targetDraft, paymentPlan: fallbackPlan }
         setDraft(current => (current.paymentPlan === fallbackPlan ? current : { ...current, paymentPlan: fallbackPlan }))
+        setPlanFallbackNotice(`Phương án "${bookingPlanLabels[targetDraft.paymentPlan]}" không áp dụng do ngày khởi hành gần mốc thanh toán; hệ thống đã tự động chuyển sang "${bookingPlanLabels[fallbackPlan]}".`)
         const adjustedIntent = await requestBookingQuote(adjustedDraft)
         lastAutoQuotedRef.current = quoteSelection(adjustedDraft)
         setQuoteIntent(adjustedIntent)
@@ -225,6 +272,7 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
   function handleSelectPlanOnReview(plan: typeof draft.paymentPlan) {
     if (plan === draft.paymentPlan || locked) return
     const nextDraft = { ...draft, paymentPlan: plan }
+    setPlanFallbackNotice('')
     setDraft(nextDraft)
     setQuoteIntent(null)
     lastAutoQuotedRef.current = ''
@@ -238,6 +286,8 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
   }
 
   const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [termsError, setTermsError] = useState('')
+  const termsCheckboxRef = useRef<HTMLInputElement>(null)
   async function next(event: FormEvent) {
     event.preventDefault()
     if (locked || submissionLockRef.current) return
@@ -249,9 +299,11 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
       navigate(path(step + 1)); return
     }
     if (!acceptedTerms) {
-      setError('Vui lòng xác nhận đã kiểm tra thông tin hành khách và đồng ý điều kiện đặt chỗ trước khi gửi.')
+      setTermsError('Vui lòng tích xác nhận thông tin hành khách và đồng ý điều kiện đặt chỗ trước khi gửi.')
+      termsCheckboxRef.current?.focus()
       return
     }
+    setTermsError('')
     if (usable) { await submit(); return }
     await runAutoQuote(draft)
   }
@@ -459,6 +511,11 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
         </>}
         {step === 4 && (
           <>
+            {planFallbackNotice && (
+              <Notice title="Đã điều chỉnh kế hoạch thanh toán" tone="info">
+                {planFallbackNotice}
+              </Notice>
+            )}
             <BookingReviewStep
               draft={draft}
               cruise={selected}
@@ -473,15 +530,22 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
               onRefreshQuote={handleRefreshQuote}
               path={path}
             />
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px 16px', background: 'var(--ui-surface, #fff)', border: '1px solid var(--ui-border, #d5e0e4)', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', lineHeight: 1.55 }}>
-              <input
-                type="checkbox"
-                checked={acceptedTerms}
-                onChange={e => { setAcceptedTerms(e.target.checked); if (e.target.checked) setError('') }}
-                style={{ marginTop: '2px' }}
-              />
-              <span>Tôi xác nhận thông tin hành khách là chính xác và đồng ý với điều kiện đặt chỗ, lịch thanh toán và chính sách hợp đồng của OceVie Cruises.</span>
-            </label>
+            <div>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px 16px', background: 'var(--ui-surface, #fff)', border: `1px solid ${termsError ? 'var(--status-error, #b42318)' : 'var(--ui-border, #d5e0e4)'}`, borderRadius: '8px', cursor: 'pointer', fontSize: '14px', lineHeight: 1.55 }}>
+                <input
+                  ref={termsCheckboxRef}
+                  id="booking-accept-terms"
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  aria-invalid={Boolean(termsError)}
+                  aria-describedby={termsError ? 'booking-accept-terms-error' : undefined}
+                  onChange={e => { setAcceptedTerms(e.target.checked); if (e.target.checked) { setTermsError(''); setError('') } }}
+                  style={{ marginTop: '2px' }}
+                />
+                <span>Tôi xác nhận thông tin hành khách là chính xác và đồng ý với điều kiện đặt chỗ, lịch thanh toán và chính sách hợp đồng của OceVie Cruises. *</span>
+              </label>
+              {termsError && <p id="booking-accept-terms-error" className={flow.inlineError} role="alert">{termsError}</p>}
+            </div>
           </>
         )}
         {readError && step > 2 && <><BookingReadState {...cabins} publicResource="phòng trống" /><BookingReadState {...fares} publicResource="gói du thuyền" /></>}
@@ -490,7 +554,7 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
           <Button
             type="submit"
             busy={busy || quoteLoading}
-            disabled={locked || choicesLoading || Boolean(readError) || (step === 4 && (quoteLoading || !usable || !acceptedTerms))}
+            disabled={locked || choicesLoading || Boolean(readError) || (step === 4 && (quoteLoading || !usable))}
           >
             {step === 1
               ? 'Tiếp tục chọn gói & cabin'

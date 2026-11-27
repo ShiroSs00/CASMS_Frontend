@@ -12,7 +12,6 @@ import type {
   ConflictResult,
   HostType,
   RegulationStatus,
-  RegulationScope,
   RegulationType,
 } from '../model/regulation'
 import {
@@ -114,7 +113,6 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<RegulationStatus | 'ALL'>('ALL')
   const [regulationType, setRegulationType] = useState<RegulationType | 'ALL'>('ALL')
-  const [scope, setScope] = useState<RegulationScope | 'ALL'>('ALL')
   const [selectedId, setSelectedId] = useState('')
   const [conflict, setConflict] = useState<ConflictResult | null>(null)
   const [checking, setChecking] = useState(false)
@@ -194,7 +192,6 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
     setSearch('')
     setStatus('ALL')
     setRegulationType('ALL')
-    setScope('ALL')
     try {
       setCandidates(await regulationsApi.getCandidates(type, routeId ?? ''))
     } catch {
@@ -221,9 +218,8 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
       return matchesSearch
         && (status === 'ALL' || regulation.status === status)
         && (regulationType === 'ALL' || regulation.type === regulationType)
-        && (scope === 'ALL' || regulation.scope === scope)
     })
-  }, [candidates, search, status, regulationType, scope])
+  }, [candidates, search, status, regulationType])
 
   const checkCandidate = async (candidate: CandidateRegulation) => {
     if (!access.canDo(`${prefix}_READ`)) return
@@ -309,14 +305,13 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
     Gán quy định
   </Button>
 
-  const globalInherited = snapshot?.inherited.filter((item) => item.source === 'GLOBAL') ?? []
-
   const content = <>
       {onAssigned ? assignButton : <>
       <PageHeader
         title={title}
         description={snapshot?.host.description}
         actions={<>
+          {access.has('REGULATION_READ') && <ButtonLink tone="secondary" to="/admin/regulations">Danh mục quy định</ButtonLink>}
           {type==='ship'&&routeId&&<ButtonLink tone="secondary" to={`/admin/ships/${encodeURIComponent(routeId)}`}>← Quay lại thông tin tàu</ButtonLink>}
           {type==='cruise'&&routeId&&<ButtonLink tone="secondary" to={`/admin/cruises/${encodeURIComponent(routeId)}?section=resources`}>Về chuyến khởi hành</ButtonLink>}
           {assignButton}
@@ -370,8 +365,8 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
       {!onAssigned && !loading && !loadError && snapshot ? (
         type === 'cruise' ? (
           <>
-            <Panel title={`Quy định chung · ${globalInherited.length}`}>
-              <AssignmentTable checkedAt={snapshot.checkedAt} direct={false} removePermission={`${prefix}_REMOVE`} onRemove={setRemoveItem} rows={globalInherited} />
+            <Panel title={`Quy định kế thừa (Toàn hệ thống & Tàu) · ${snapshot.inherited.length}`}>
+              <AssignmentTable checkedAt={snapshot.checkedAt} direct={false} removePermission={`${prefix}_REMOVE`} onRemove={setRemoveItem} rows={snapshot.inherited} />
             </Panel>
             <Panel title={`Riêng cho chuyến (gán trực tiếp) · ${snapshot.direct.length}`}>
               <AssignmentTable checkedAt={snapshot.checkedAt} direct removePermission={`${prefix}_REMOVE`} onRemove={setRemoveItem} rows={snapshot.direct} />
@@ -447,20 +442,11 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
                 {Object.entries(typeLabels).map(([key,label]) => <option key={key} value={key}>{label}</option>)}
               </select>
             </Field>
-            <Field htmlFor="candidate-scope" label="Phạm vi">
-              <select id="candidate-scope" value={scope} onChange={event => {
-                setScope(event.target.value as RegulationScope | 'ALL')
-                resetSelection()
-              }}>
-                <option value="ALL">Tất cả phạm vi</option>
-                {Object.entries(scopeLabels).map(([key,label]) => <option key={key} value={key}>{label}</option>)}
-              </select>
-            </Field>
           </div>
           {!candidateLoading && !candidateError && <div className={styles.candidateSummary}>
             <span role="status">{filteredCandidates.length} quy định</span>
-            {(search || status!=='ALL' || regulationType!=='ALL' || scope!=='ALL')&&<Button tone="text" onClick={() => {
-              setSearch(''); setStatus('ALL'); setRegulationType('ALL'); setScope('ALL'); resetSelection()
+            {(search || status!=='ALL' || regulationType!=='ALL')&&<Button tone="text" onClick={() => {
+              setSearch(''); setStatus('ALL'); setRegulationType('ALL'); resetSelection()
             }}>Xóa bộ lọc</Button>}
           </div>}
           {candidateLoading ? <LoadingPanel label="Đang tải quy định có thể gán…" /> : null}

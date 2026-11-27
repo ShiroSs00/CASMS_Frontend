@@ -162,12 +162,14 @@ export function CruisePlanQueuePage() {
   }
   const selectFilter = (next: FilterKey) => {
     setFilter(next)
+    setShipFilter('ALL')
     setPage(1)
     const q = new URLSearchParams(searchParams)
     q.set('mode', 'tour-dossiers')
     q.set('filter', next)
     setSearchParams(q, { replace: true })
   }
+  const [nowMs, setNowMs] = useState(() => Date.now())
   const [shipFilter, setShipFilter] = useState('ALL')
   const [groupByShip, setGroupByShip] = useState(false)
   const [search, setSearch] = useState('')
@@ -218,8 +220,10 @@ export function CruisePlanQueuePage() {
     return items
   }, [allPlans.length, allGroups.length, canConfirmGroups, canSetFees, pendingPlansCount, pendingGroupsCount, pendingFeesCount])
 
-  // Default to primary cruise dossier review queue unless user explicitly picks another tab via URL/click
-  const activeMode: QueueMode = manualMode ?? 'tour-dossiers'
+  // Default to primary cruise dossier review queue unless user explicitly picks another permitted tab via URL/click
+  const activeMode: QueueMode = manualMode && queueTabs.some(tab => tab.id === manualMode)
+    ? manualMode
+    : (queueTabs[0]?.id ?? 'tour-dossiers')
 
   const tabPlans = useMemo(() => allPlans.filter(plan => matchesFilter(plan, filter)), [allPlans, filter])
   const shipOptions = useMemo(() => collectShipOptions(tabPlans), [tabPlans])
@@ -240,11 +244,6 @@ export function CruisePlanQueuePage() {
   const normalizedSearch = search.trim().toLowerCase()
 
   const filteredPlans = useMemo(() => {
-    const latestTimestamp = allPlans.reduce((max, item) => {
-      const parsed = item.submittedAt ? Date.parse(item.submittedAt) : 0
-      return Number.isFinite(parsed) && parsed > max ? parsed : max
-    }, 0)
-
     const matched = tabPlans.filter(plan => {
       if (shipFilter !== 'ALL' && shipGroupKey(plan.shipName) !== shipFilter) return false
       if (senderFilter !== 'ALL' && (plan.submittedByName ?? '') !== senderFilter) return false
@@ -253,7 +252,7 @@ export function CruisePlanQueuePage() {
       if (readinessFilter === 'CLEAN' && blockerCount > 0) return false
       if (readinessFilter === 'HAS_BLOCKERS' && blockerCount === 0) return false
 
-      if (timeWindow !== 'ALL' && latestTimestamp > 0) {
+      if (timeWindow !== 'ALL') {
         const submittedMs = plan.submittedAt ? Date.parse(plan.submittedAt) : 0
         const windowMs =
           timeWindow === '24H'
@@ -261,7 +260,7 @@ export function CruisePlanQueuePage() {
             : timeWindow === '7D'
               ? 7 * 24 * 3600 * 1000
               : 30 * 24 * 3600 * 1000
-        if (!submittedMs || latestTimestamp - submittedMs > windowMs) return false
+        if (!submittedMs || nowMs - submittedMs > windowMs) return false
       }
 
       if (!normalizedSearch) return true
@@ -283,7 +282,7 @@ export function CruisePlanQueuePage() {
       const timeB = b.submittedAt ? Date.parse(b.submittedAt) : 0
       return sortBy === 'oldest' ? timeA - timeB : timeB - timeA
     })
-  }, [allPlans, tabPlans, shipFilter, senderFilter, readinessFilter, timeWindow, normalizedSearch, sortBy])
+  }, [nowMs, tabPlans, shipFilter, senderFilter, readinessFilter, timeWindow, normalizedSearch, sortBy])
 
   const totalPages = Math.max(1, Math.ceil(filteredPlans.length / pageSize))
   const safePage = Math.min(page, totalPages)
@@ -377,6 +376,7 @@ export function CruisePlanQueuePage() {
   }
 
   function refreshAll() {
+    setNowMs(Date.now())
     query.retry()
     if (canConfirmGroups) groupsQuery.retry()
     if (canSetFees) requests.retry()
@@ -767,39 +767,54 @@ export function CruisePlanQueuePage() {
                             ))}
                           </select>
                         </Field>
+                        {feeShipFilter !== 'ALL' && (
+                          <div style={{ alignSelf: 'end' }}>
+                            <Button tone="secondary" size="compact" autoWidth onClick={() => setFeeShipFilter('ALL')}>
+                              Đặt lại bộ lọc
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
-                    <DataTable
-                      label="Yêu cầu cấu hình thuế và phí cảng"
-                      headers={['Tàu', 'Chuyến khởi hành', 'Cảng đi và cảng về', 'Thao tác']}
-                    >
-                      {filteredFeeRequests.map(item => (
-                        <tr key={item.cruiseId}>
-                          <td>
-                            <CruiseShipTag shipName={item.shipName} />
-                          </td>
-                          <td>
-                            <div className={styles.queuePrimaryCell}>
-                              <strong>{item.cruiseName}</strong>
-                              <div className={styles.queueMetaRow}>
-                                <span className={styles.queueCodeBadge}>{item.cruiseCode}</span>
-                                {item.departureDatetime && (
-                                  <span className={styles.queueDepDate}>KH: {journeyTime(item.departureDatetime)}</span>
-                                )}
+                    {filteredFeeRequests.length === 0 ? (
+                      <Empty title="Không tìm thấy yêu cầu khớp bộ lọc tàu">
+                        <Button tone="secondary" size="compact" autoWidth onClick={() => setFeeShipFilter('ALL')}>
+                          Đặt lại bộ lọc
+                        </Button>
+                      </Empty>
+                    ) : (
+                      <DataTable
+                        label="Yêu cầu cấu hình thuế và phí cảng"
+                        headers={['Tàu', 'Chuyến khởi hành', 'Cảng đi và cảng về', 'Thao tác']}
+                      >
+                        {filteredFeeRequests.map(item => (
+                          <tr key={item.cruiseId}>
+                            <td>
+                              <CruiseShipTag shipName={item.shipName} />
+                            </td>
+                            <td>
+                              <div className={styles.queuePrimaryCell}>
+                                <strong>{item.cruiseName}</strong>
+                                <div className={styles.queueMetaRow}>
+                                  <span className={styles.queueCodeBadge}>{item.cruiseCode}</span>
+                                  {item.departureDatetime && (
+                                    <span className={styles.queueDepDate}>KH: {journeyTime(item.departureDatetime)}</span>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                          <td>
-                            {item.departurePort} · {item.returnPort}
-                          </td>
-                          <td>
-                            <Button tone="primary" size="compact" autoWidth onClick={() => setSelected(item)}>
-                              Cấu hình thuế và phí
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </DataTable>
+                            </td>
+                            <td>
+                              {item.departurePort} · {item.returnPort}
+                            </td>
+                            <td>
+                              <Button tone="primary" size="compact" autoWidth onClick={() => setSelected(item)}>
+                                Cấu hình thuế và phí
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </DataTable>
+                    )}
                   </>
                 )}
               </Panel>

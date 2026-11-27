@@ -33,34 +33,44 @@ export type HomeLiveCruise = {
 const UUID_REGEX = /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i
 
 export async function loadHomeCruises(signal?: AbortSignal): Promise<HomeLiveCruise[]> {
-  const data = await apiRequest<{ content?: unknown[] }>('/cruise', {
-    query: { status: 'PUBLISHED', saleState: 'OPEN_FOR_SALE', page: 0, size: 8, sort: 'departureDatetime,asc' },
-    signal,
-    authenticated: false,
-  })
-  if (!data || !Array.isArray(data.content)) throw new Error('Không đọc được danh mục hải trình công bố.')
-  return data.content.flatMap((entry): HomeLiveCruise[] => {
-    if (!entry || typeof entry !== 'object') return []
-    const row = entry as Record<string, unknown>
-    if (row.status !== 'PUBLISHED' || typeof row.cruiseId !== 'string' || !UUID_REGEX.test(row.cruiseId) || typeof row.cruiseName !== 'string' || !row.cruiseName.trim()) {
-      return []
+  const results: HomeLiveCruise[] = []
+  for (let page = 0, pages = 1; page < pages && page < 10; page++) {
+    const data = await apiRequest<{ content?: unknown[]; totalPages?: number }>('/cruise', {
+      query: { status: 'PUBLISHED', saleState: 'OPEN_FOR_SALE', page, size: 100, sort: 'departureDatetime,asc' },
+      signal,
+      authenticated: false,
+    })
+    if (!data || !Array.isArray(data.content)) throw new Error('Không đọc được danh mục hải trình công bố.')
+    pages = typeof data.totalPages === 'number' && Number.isSafeInteger(data.totalPages) && data.totalPages > 0 ? data.totalPages : 1
+    for (const entry of data.content) {
+      if (!entry || typeof entry !== 'object') continue
+      const row = entry as Record<string, unknown>
+      if (row.status !== 'PUBLISHED' || typeof row.cruiseId !== 'string' || !UUID_REGEX.test(row.cruiseId) || typeof row.cruiseName !== 'string' || !row.cruiseName.trim()) {
+        continue
+      }
+      if (typeof row.departureDatetime !== 'string' || !Number.isFinite(Date.parse(row.departureDatetime)) || typeof row.returnDatetime !== 'string' || !Number.isFinite(Date.parse(row.returnDatetime))) {
+        continue
+      }
+      results.push({
+        id: row.cruiseId,
+        code: typeof row.cruiseCode === 'string' && row.cruiseCode.trim() ? row.cruiseCode.trim() : undefined,
+        title: row.cruiseName.trim(),
+        ship: typeof row.shipName === 'string' && row.shipName.trim() ? row.shipName.trim() : undefined,
+        type: row.cruiseType === 'ONE_DAY' || row.cruiseType === 'MULTI_DAYS' ? row.cruiseType : undefined,
+        departure: row.departureDatetime,
+        returnAt: row.returnDatetime,
+        departurePort: typeof row.departurePortName === 'string' && row.departurePortName.trim() ? row.departurePortName.trim() : undefined,
+        returnPort: typeof row.returnPortName === 'string' && row.returnPortName.trim() ? row.returnPortName.trim() : undefined,
+      })
     }
-    if (typeof row.departureDatetime !== 'string' || !Number.isFinite(Date.parse(row.departureDatetime)) || typeof row.returnDatetime !== 'string' || !Number.isFinite(Date.parse(row.returnDatetime))) {
-      return []
-    }
-    return [{
-      id: row.cruiseId,
-      code: typeof row.cruiseCode === 'string' && row.cruiseCode.trim() ? row.cruiseCode.trim() : undefined,
-      title: row.cruiseName.trim(),
-      ship: typeof row.shipName === 'string' && row.shipName.trim() ? row.shipName.trim() : undefined,
-      type: row.cruiseType === 'ONE_DAY' || row.cruiseType === 'MULTI_DAYS' ? row.cruiseType : undefined,
-      departure: row.departureDatetime,
-      returnAt: row.returnDatetime,
-      departurePort: typeof row.departurePortName === 'string' && row.departurePortName.trim() ? row.departurePortName.trim() : undefined,
-      returnPort: typeof row.returnPortName === 'string' && row.returnPortName.trim() ? row.returnPortName.trim() : undefined,
-    }]
-  })
+  }
+  return results
 }
+
+const neutralCruisePhoto = {
+  image: '/images/ports/coastal-excursion.jpg',
+  caption: 'Hải trình du thuyền ven biển châu Á',
+} as const
 
 const homePortPhotos = [
   { image: '/images/ports/ha-long-bay.webp', caption: 'Vịnh Hạ Long, Việt Nam', match: 'ha long' },
@@ -80,8 +90,9 @@ function normalizePortText(value: string) {
 }
 
 export function homeCruisePhoto(cruise: HomeLiveCruise, fallbackIndex = 0) {
+  void fallbackIndex
   const haystack = normalizePortText([cruise.title, cruise.departurePort, cruise.returnPort].filter(Boolean).join(' '))
-  return homePortPhotos.find(photo => ` ${haystack} `.includes(` ${photo.match} `)) ?? homePortPhotos[fallbackIndex % homePortPhotos.length]
+  return homePortPhotos.find(photo => ` ${haystack} `.includes(` ${photo.match} `)) ?? neutralCruisePhoto
 }
 
 export function homeCruiseDetailPath(cruiseId: string) {

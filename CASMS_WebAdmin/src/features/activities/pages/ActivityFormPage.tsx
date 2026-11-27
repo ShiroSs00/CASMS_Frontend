@@ -55,7 +55,7 @@ function ActivityEditor({ activityId }: { activityId: string }) {
     const controller = new AbortController()
     void activityApi.get(activityId, controller.signal).then(item => {
       if (controller.signal.aborted) return
-      const savedDraft = { activityCode: item.code, activityName: item.name, cruiseId: item.cruiseId ?? '', description: item.description ?? '', startTime: localTime(item.startTime), endTime: localTime(item.endTime), location: item.location ?? '', capacity: item.capacity, price: item.price ?? null, currencyCode: item.currencyCode ?? 'USD', deckId:item.deckId??null,cabinId:item.cabinId??null }
+      const savedDraft = { activityCode: item.code, activityName: item.name, cruiseId: item.cruiseId ?? '', description: item.description ?? '', startTime: localTime(item.startTime), endTime: localTime(item.endTime), location: item.location ?? '', capacity: item.capacity, price: item.price ?? null, currencyCode: item.currencyCode ?? 'VND', deckId:item.deckId??null,cabinId:item.cabinId??null }
       setDraft(savedDraft)
       setBaseline(savedDraft)
       setSavedCabin(item.cabinId?{id:item.cabinId,name:item.cabinNumber??null}:null)
@@ -108,6 +108,7 @@ function ActivityEditor({ activityId }: { activityId: string }) {
       <Field htmlFor="activity-currencyCode" label="Đơn vị tiền tệ" error={errors.currencyCode}>
         <select {...input('currencyCode')} value={draft.currencyCode || 'VND'} onChange={event => update('currencyCode', event.target.value)}>
           <option value="VND">VND · Đồng Việt Nam</option>
+          {draft.currencyCode === 'USD' && <option value="USD">USD · Đô la Mỹ (dữ liệu cũ)</option>}
         </select>
       </Field>
       </FormSection><FormSection title="Nội dung giới thiệu" >

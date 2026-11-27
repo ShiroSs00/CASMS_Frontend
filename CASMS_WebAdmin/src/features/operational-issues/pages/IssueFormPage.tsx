@@ -154,7 +154,7 @@ export function IssueFormPage() {
       )}
 
       {!loading && (!isEdit || !isBlockedEdit) && (
-        <EditorLayout ><form onSubmit={handleSubmit}>
+        <EditorLayout ><form noValidate onSubmit={handleSubmit}>
           <Panel title="Thông tin cơ bản">
             {isEdit && existingIssue && (
               <div className={styles.readonlySummary}>

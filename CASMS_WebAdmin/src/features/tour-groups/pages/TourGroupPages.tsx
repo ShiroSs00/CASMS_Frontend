@@ -23,30 +23,40 @@ export function TourGroupListPage() {
   const access = useSessionAccess()
   const excursions = useReadQuery('group-filter-excursions', listExcursionOptions)
   const [search, setSearch] = useSearchParams()
+  const keyword = search.get('q')?.trim() || ''
   const excursionId = search.get('excursionId')?.trim() || undefined, guideId = search.get('guideId')?.trim() || undefined, rawStatus = search.get('status') || undefined
   const load = useCallback((signal: AbortSignal) => {
     const status = groupStatuses.find((item) => item === rawStatus)
-    if ((rawStatus && !status) || (excursionId && !isUuid(excursionId)) || (guideId && !isUuid(guideId))) throw new ApiError('Kiểm tra trạng thái và ID UUID trong bộ lọc.', 0)
+    if ((rawStatus && !status) || (excursionId && !isUuid(excursionId)) || (guideId && !isUuid(guideId))) throw new ApiError('Bộ lọc chưa hợp lệ. Vui lòng chọn lại giá trị trong danh sách.', 0)
     return tourGroupApi.list({ excursionId, guideId, status }, signal)
   }, [excursionId, guideId, rawStatus])
   const query = useTourResource(load)
+  const normalizedKeyword = keyword.toLocaleLowerCase('vi')
+  const visibleGroups = (query.data ?? []).filter(group =>
+    !normalizedKeyword || [group.groupCode, group.excursionName, group.guideName ?? '']
+      .some(value => value.toLocaleLowerCase('vi').includes(normalizedKeyword)),
+  )
   function filter(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget), next = new URLSearchParams()
-    for (const key of ['excursionId', 'guideId', 'status']) { const value = String(form.get(key) ?? '').trim(); if (value) next.set(key, value) }
+    for (const key of ['q', 'excursionId', 'status']) { const value = String(form.get(key) ?? '').trim(); if (value) next.set(key, value) }
     setSearch(next)
   }
   return <TourLayout>
-    <PageHeader breadcrumb="Dịch vụ bờ" title="Nhóm tour"  actions={access.canDo("TOUR_GROUP_CREATE") && <ButtonLink to={`${root}/new${excursionId ? `?excursionId=${encodeURIComponent(excursionId)}` : ''}`}>Tạo nhóm tour</ButtonLink>} />
-    <CollectionSummary count={query.loading || query.error ? null : query.data?.length ?? null} filtered={Boolean(excursionId || guideId || rawStatus)} label="Nhóm tour" scope="Kết quả trả về theo bộ lọc" />
-    <Panel title="Bộ lọc"><form key={search.toString()} onSubmit={filter}>
-      <div className={styles.filters}><label>Chuyến tham quan<select key={`${excursionId}:${excursions.data?.length}`} name="excursionId" defaultValue={excursionId} disabled={excursions.loading || Boolean(excursions.error)}><option value="">Tất cả chuyến tham quan</option>{excursions.data?.map(item => <option key={item.shoreExcursionId} value={item.shoreExcursionId}>{item.excursionName}</option>)}</select></label><label>Hướng dẫn viên<select disabled><option>Chưa có danh mục hướng dẫn viên</option></select></label><label>Trạng thái<select name="status" defaultValue={rawStatus ?? ''}><option value="">Tất cả</option>{groupStatuses.map((value) => <option key={value} value={value}>{groupStatusLabels[value]}</option>)}</select></label></div>
+    <PageHeader breadcrumb="Dịch vụ bờ" title="Nhóm tour" actions={access.canDo("TOUR_GROUP_CREATE") && <ButtonLink to={`${root}/new${excursionId ? `?excursionId=${encodeURIComponent(excursionId)}` : ''}`}>Tạo nhóm tour</ButtonLink>} />
+    <CollectionSummary count={query.loading || query.error ? null : visibleGroups.length} filtered={Boolean(keyword || excursionId || guideId || rawStatus)} label="Nhóm tour" scope="Kết quả trả về theo bộ lọc" />
+    <Panel title="Bộ lọc"><form key={search.toString()} noValidate onSubmit={filter}>
+      <div className={styles.filters}>
+        <label>Tìm mã nhóm hoặc tên tour<input name="q" type="search" defaultValue={keyword} placeholder="Mã nhóm, tên chuyến tham quan…" /></label>
+        <label>Chuyến tham quan<select key={`${excursionId}:${excursions.data?.length}`} name="excursionId" defaultValue={excursionId} disabled={excursions.loading || Boolean(excursions.error)}><option value="">Tất cả chuyến tham quan</option>{excursions.data?.map(item => <option key={item.shoreExcursionId} value={item.shoreExcursionId}>{item.excursionName}</option>)}</select></label>
+        <label>Trạng thái<select name="status" defaultValue={rawStatus ?? ''}><option value="">Tất cả</option>{groupStatuses.map((value) => <option key={value} value={value}>{groupStatusLabels[value]}</option>)}</select></label>
+      </div>
       <div className={styles.actions}><Button type="submit">Áp dụng bộ lọc</Button><Button tone="secondary" onClick={() => setSearch({})}>Xóa bộ lọc</Button><Button tone="secondary" onClick={query.reload}>Tải lại</Button></div>
     </form></Panel>
     {excursions.error && <Notice title="Không tải được danh mục chuyến tham quan" tone="warning">{excursions.error.message}<Button onClick={excursions.retry}>Thử lại</Button></Notice>}
-    {query.loading ? <Loading label="Đang tải nhóm tour…" /> : query.error != null ? <TourError error={query.error} onRetry={query.reload} /> : query.data && <Panel title={`Danh sách · ${query.data.length}`}>
-      {!query.data.length ? <Empty title="Chưa có nhóm tour phù hợp" /> : <DataTable label="Danh sách nhóm tour" headers={['Mã nhóm', 'Chuyến tham quan', 'Hướng dẫn viên', 'Đã phân công / tối đa', 'Chỗ còn lại', 'Trạng thái']}>
-        {[...query.data].sort((a, b) => (Date.parse(b.plannedDepartureTime ?? '') || 0) - (Date.parse(a.plannedDepartureTime ?? '') || 0) || b.groupCode.localeCompare(a.groupCode, 'vi', { numeric: true })).map((group) => <tr key={group.tourGroupId}><td><Link className={styles.link} to={`${root}/${group.tourGroupId}`}>{group.groupCode}</Link></td><td>{group.excursionName}</td><td className={styles.text}>{group.guideId ? (group.guideName || 'Đã phân công · chưa có tên') : 'Chưa phân công'}</td><td>{group.assignedPassengers} / {group.maximumCapacity}</td><td>{group.availableCapacity}</td><td><GroupBadge status={group.status} /></td></tr>)}
+    {query.loading ? <Loading label="Đang tải nhóm tour…" /> : query.error != null ? <TourError error={query.error} onRetry={query.reload} /> : query.data && <Panel title={`Danh sách · ${visibleGroups.length}`}>
+      {!visibleGroups.length ? <Empty title="Chưa có nhóm tour phù hợp" /> : <DataTable label="Danh sách nhóm tour" headers={['Mã nhóm', 'Chuyến tham quan', 'Hướng dẫn viên', 'Đã phân công / tối đa', 'Chỗ còn lại', 'Trạng thái']}>
+        {[...visibleGroups].sort((a, b) => (Date.parse(b.plannedDepartureTime ?? '') || 0) - (Date.parse(a.plannedDepartureTime ?? '') || 0) || b.groupCode.localeCompare(a.groupCode, 'vi', { numeric: true })).map((group) => <tr key={group.tourGroupId}><td><Link className={styles.link} to={`${root}/${group.tourGroupId}`}>{group.groupCode}</Link></td><td>{group.excursionName}</td><td className={styles.text}>{group.guideId ? (group.guideName || 'Đã phân công · chưa có tên') : 'Chưa phân công'}</td><td>{group.assignedPassengers} / {group.maximumCapacity}</td><td>{group.availableCapacity}</td><td><GroupBadge status={group.status} /></td></tr>)}
       </DataTable>}
     </Panel>}
   </TourLayout>
@@ -103,10 +113,10 @@ function EditGroup({ id }: { id: string }) {
 function SaveGroup({ initial, initialExcursionId }: { initial?: TourGroup; initialExcursionId?: string }) {
   const access = useSessionAccess()
   const navigate = useNavigate(), mutation = useTourMutation()
-  async function save(request: GroupRequest) {
+  async function save(request: GroupRequest, allowLeave: () => void) {
     if (!access.canDo(initial ? 'TOUR_GROUP_UPDATE' : 'TOUR_GROUP_CREATE')) return
     const result = await mutation.run((signal) => initial ? tourGroupApi.update(initial.tourGroupId, request, signal) : tourGroupApi.create(request, signal))
-    if (result.ok) navigate(`${root}/${result.value.tourGroupId}`)
+    if (result.ok) { allowLeave(); navigate(`${root}/${result.value.tourGroupId}`) }
   }
   return <EditorLayout ><Panel title="Thông tin nhóm tour">{mutation.error != null && <TourError error={mutation.error} />}<GroupForm initial={initial} initialExcursionId={initialExcursionId} busy={mutation.busy} onSave={save} /></Panel></EditorLayout>
 }

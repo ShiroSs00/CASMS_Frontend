@@ -8,9 +8,10 @@ import type { Activity } from '../model/activity'
 import styles from './Activities.module.css'
 import { useActivityProgramAccess } from '../model/useActivityProgramAccess'
 const labels = { open: 'Mở đăng ký', start: 'Bắt đầu hoạt động', complete: 'Hoàn thành hoạt động', cancel: 'Hủy hoạt động', delete: 'Xóa hoạt động chưa sử dụng' }
-export function ActivityOperations({ activity, onChanged, renderCatalogHeader }: {
+export function ActivityOperations({ activity, onChanged, onDeleted, renderCatalogHeader }: {
   activity: Activity | ActivityCatalogEntry
   onChanged: () => void
+  onDeleted?: () => void
   renderCatalogHeader?: (deleteAction: ReactNode) => ReactNode
 }) {
   const access = useSessionAccess(), navigate = useNavigate(), lock = useRef(false)
@@ -23,7 +24,18 @@ export function ActivityOperations({ activity, onChanged, renderCatalogHeader }:
   async function confirm() {
     if (!action || lock.current || !allowed(action)) return
     lock.current = true; setBusy(true); setError('')
-    try { if (action === 'delete') { await activityApi.remove(activity.id); navigate('/admin/activities') } else { await activityApi.lifecycle(activity.id, action); onChanged() } setAction(null) }
+    try {
+      if (action === 'delete') {
+        await activityApi.remove(activity.id)
+        setAction(null)
+        if (onDeleted) onDeleted()
+        else navigate('/admin/activities')
+      } else {
+        await activityApi.lifecycle(activity.id, action)
+        onChanged()
+        setAction(null)
+      }
+    }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa thực hiện được thay đổi.') }
     finally { lock.current = false; setBusy(false) }
   }
@@ -44,7 +56,7 @@ export function ActivityOperations({ activity, onChanged, renderCatalogHeader }:
         {canManageLifecycle && lifecycle.map(item => <Button key={item} tone={item === 'cancel' ? 'danger' : 'secondary'} disabled={busy} onClick={() => openAction(item)}>{labels[item]}</Button>)}
         {deleteAction}
       </div>
-      <p>{deleteNote}</p>
+      {deleteAction && <p>{deleteNote}</p>}
     </Panel>}
     {action && allowed(action) && <Modal title={labels[action]} busy={busy} onClose={() => setAction(null)} protectChanges={false} footer={<>
       <Button tone="secondary" disabled={busy} onClick={() => setAction(null)}>Hủy</Button>

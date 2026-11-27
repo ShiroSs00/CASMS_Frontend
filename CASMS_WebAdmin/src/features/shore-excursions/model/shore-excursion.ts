@@ -64,7 +64,7 @@ export function normalizeExcursions(value: unknown): ShoreExcursion[] {
 export function toLocalTime(value: string): string {
   const date = new Date(value)
   const pad = (n: number, length = 2) => String(n).padStart(length, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 export function excursionToForm(value: ShoreExcursion): ExcursionFormValues {
   return {
@@ -76,7 +76,8 @@ export function excursionToForm(value: ShoreExcursion): ExcursionFormValues {
 }
 export function validateExcursionForm(values: ExcursionFormValues): Partial<Record<keyof ExcursionFormValues, string>> {
   const errors: Partial<Record<keyof ExcursionFormValues, string>> = {}
-  for (const key of ['cruiseStopId', 'supplierId'] as const) if (!isUuid(values[key].trim())) errors[key] = 'Nhập ID UUID hợp lệ.'
+  if (!isUuid(values.cruiseStopId.trim())) errors.cruiseStopId = 'Vui lòng chọn điểm dừng hợp lệ từ danh sách.'
+  if (!isUuid(values.supplierId.trim())) errors.supplierId = 'Vui lòng chọn nhà cung cấp hợp lệ từ danh sách.'
   for (const key of ['excursionName', 'meetingPoint'] as const) if (!values[key].trim() || values[key].trim().length > 250) errors[key] = 'Nhập nội dung từ 1 đến 250 ký tự.'
   if (values.excursionCode.trim().length > 50) errors.excursionCode = 'Tối đa 50 ký tự.'
   for (const key of ['startTime', 'plannedReturnTime'] as const) if (!values[key] || !Number.isFinite(Date.parse(values[key]))) errors[key] = 'Nhập thời gian hợp lệ.'
@@ -86,7 +87,8 @@ export function validateExcursionForm(values: ExcursionFormValues): Partial<Reco
     if (!/^\d+$/.test(values[key]) || Number(values[key]) < 1 || Number(values[key]) > 2147483647) errors[key] = 'Nhập số nguyên dương hợp lệ.'
   }
   if (!errors.minimumParticipants && !errors.maximumCapacity && values.minimumParticipants.trim() && Number(values.minimumParticipants) > Number(values.maximumCapacity)) errors.minimumParticipants = 'Số khách tối thiểu không được lớn hơn sức chứa tối đa.'
-  if (values.price.trim() && !/^\d{1,15}(?:\.\d{1,4})?$/.test(values.price.trim())) errors.price = 'Giá không âm, tối đa 15 chữ số nguyên và 4 chữ số thập phân.'
+  if (!values.price.trim()) errors.price = 'Vui lòng nhập giá bán (nhập 0 nếu miễn phí).'
+  else if (!/^\d{1,15}(?:\.\d{1,4})?$/.test(values.price.trim())) errors.price = 'Giá không âm, tối đa 15 chữ số nguyên và 4 chữ số thập phân.'
   if (values.currencyCode.trim() && !/^[A-Z]{3}$/.test(values.currencyCode.trim())) errors.currencyCode = 'Nhập 3 chữ cái viết hoa.'
   return errors
 }

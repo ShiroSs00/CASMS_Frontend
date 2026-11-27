@@ -18,8 +18,13 @@ function Filters({ filters, options, canViewArchive, onSubmit, onReset }: {
   filters: ShipListFilters; options: Map<string, string>; onSubmit: (value: ShipListFilters) => void; onReset: () => void
 }) {
   const [draft, setDraft] = useState(filters)
+  function applyImmediate(patch: Partial<ShipListFilters>) {
+    const next = { ...draft, ...patch }
+    setDraft(next)
+    onSubmit({ ...next, search: next.search.trim() })
+  }
   return <section aria-label="Bộ lọc danh sách tàu">
-    <form role="search" className={styles.shipListFilters} onSubmit={event => {
+    <form role="search" noValidate className={styles.shipListFilters} onSubmit={event => {
       event.preventDefault()
       onSubmit({ ...draft, search: draft.search.trim() })
     }}>
@@ -28,23 +33,23 @@ function Filters({ filters, options, canViewArchive, onSubmit, onReset }: {
       </Field></div>
       <div className={styles.shipListSelects} data-has-archive={canViewArchive}>
       <Field htmlFor="vessel-type-filter" label="Loại tàu">
-        <select value={draft.type} onChange={event => setDraft(value => ({ ...value, type: event.target.value }))}>
+        <select value={draft.type} onChange={event => applyImmediate({ type: event.target.value })}>
           <option value="">Tất cả loại tàu</option><option value="legacy">Chưa phân loại</option>
           {[...options].map(([id, label]) => <option key={id} value={id}>{label}</option>)}
         </select>
       </Field>
       <Field htmlFor="vessel-status-filter" label="Trạng thái">
-        <select value={draft.status} onChange={event => setDraft(value => ({ ...value, status: event.target.value as ShipStatus | '' }))}>
+        <select value={draft.status} onChange={event => applyImmediate({ status: event.target.value as ShipStatus | '' })}>
           <option value="">Tất cả trạng thái</option>{Object.entries(shipStatuses).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
         </select>
       </Field>
       {canViewArchive && <Field htmlFor="vessel-archive-filter" label="Tình trạng lưu trữ">
-        <select value={draft.archived ? 'archived' : 'active'} onChange={event => setDraft(value => ({ ...value, archived: event.target.value === 'archived' }))}>
+        <select value={draft.archived ? 'archived' : 'active'} onChange={event => applyImmediate({ archived: event.target.value === 'archived' })}>
           <option value="active">Chưa lưu trữ</option><option value="archived">Đã lưu trữ</option>
         </select>
       </Field>}
       </div>
-      <div className={styles.shipFilterActions}><Button type="submit" tone="secondary" autoWidth>Áp dụng bộ lọc</Button>
+      <div className={styles.shipFilterActions}><Button type="submit" tone="secondary" autoWidth>Tìm kiếm</Button>
       {(filters.search || filters.type || filters.status || filters.archived || draft.search || draft.type || draft.status || draft.archived) &&
         <Button tone="text" onClick={() => { setDraft(blankFilters); onReset() }}>Xóa bộ lọc</Button>}
       </div>

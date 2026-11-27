@@ -116,7 +116,7 @@ export function SepayReconciliationPanel({
   if (!canRead) {
     return (
       <Notice title="Chưa có quyền xem đối soát SePay" tone="warning">
-        Tài khoản cần quyền báo cáo hoặc xử lý thanh toán của Finance để đối soát giao dịch VietQR.
+        Tài khoản cần quyền báo cáo hoặc xử lý thanh toán của bộ phận Tài chính để đối soát giao dịch VietQR.
       </Notice>
     )
   }
@@ -132,7 +132,7 @@ export function SepayReconciliationPanel({
         <div className={styles.financeToolbar}>
           <div className={styles.financeToolbarStats}>
             <span>
-              Chờ Finance đối soát: <strong>{data?.pendingReviewCount ?? 0}</strong>
+              Chờ Tài chính đối soát: <strong>{data?.pendingReviewCount ?? 0}</strong>
             </span>
             <span>
               Cần thử ghi sổ lại: <strong>{data?.retryRequiredCount ?? 0}</strong>
@@ -146,7 +146,7 @@ export function SepayReconciliationPanel({
           </Button>
         </div>
 
-        <form className={styles.reconFilterBar} onSubmit={submitSearch}>
+        <form className={styles.reconFilterBar} noValidate onSubmit={submitSearch}>
           <Field htmlFor={`${baseId}-preset`} label="Nhóm giao dịch">
             <select
               id={`${baseId}-preset`}
@@ -175,12 +175,13 @@ export function SepayReconciliationPanel({
             <Button type="submit" size="compact" autoWidth>
               Lọc
             </Button>
-            {appliedSearch && (
+            {(appliedSearch || searchInput || preset !== 'PENDING_REVIEW') && (
               <Button
                 tone="secondary"
                 size="compact"
                 autoWidth
                 onClick={() => {
+                  setPreset('PENDING_REVIEW')
                   setSearchInput('')
                   setAppliedSearch('')
                   setPage(0)
@@ -199,7 +200,7 @@ export function SepayReconciliationPanel({
             <Empty title="Không có giao dịch trong nhóm này">
               <p>
                 {preset === 'PENDING_REVIEW'
-                  ? 'Hiện không có giao dịch VietQR sai lệch nào đang chờ Finance xử lý.'
+                  ? 'Hiện không có giao dịch VietQR sai lệch nào đang chờ Tài chính xử lý.'
                   : 'Thử chuyển nhóm lọc hoặc thay đổi từ khóa tìm kiếm.'}
               </p>
             </Empty>
@@ -353,11 +354,12 @@ function ReconciliationDetailModal({
   const [action, setAction] = useState<SepayReconciliationAction>('MARK_FOR_REFUND')
   const [evidenceRef, setEvidenceRef] = useState('')
   const [reason, setReason] = useState('')
-  const [targetBookingId, setTargetBookingId] = useState('')
+  const [targetBookingId, setTargetBookingId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState('')
   const [actionSuccess, setActionSuccess] = useState('')
   const lock = useRef(false)
+  const effectiveTargetBookingId = targetBookingId ?? (transaction?.bookingId ?? '')
 
   const canShowResolveForm =
     canResolve
@@ -378,9 +380,9 @@ function ReconciliationDetailModal({
       setActionError('Cần nhập đầy đủ mã chứng từ đối chiếu và lý do xử lý.')
       return
     }
-    const resolvedBookingId = targetBookingId.trim() || transaction.bookingId || ''
+    const resolvedBookingId = effectiveTargetBookingId.trim()
     if (action === 'APPLY_TO_BOOKING' && !resolvedBookingId) {
-      setActionError('Cần nhập ID đặt chỗ hợp lệ khi chọn Ghi nhận vào đặt chỗ.')
+      setActionError('Cần nhập mã định danh đặt chỗ hợp lệ khi chọn Ghi nhận vào đặt chỗ.')
       return
     }
     lock.current = true
@@ -566,8 +568,8 @@ function ReconciliationDetailModal({
           )}
 
           {canShowResolveForm && (
-            <form className={styles.financeFormSection} onSubmit={submitResolve}>
-              <h3 className={styles.financeSubheading}>Ghi nhận kết quả đối soát (Finance)</h3>
+            <form className={styles.financeFormSection} noValidate onSubmit={submitResolve}>
+              <h3 className={styles.financeSubheading}>Ghi nhận kết quả đối soát (Tài chính)</h3>
               <Field htmlFor="recon-action" label="Hướng xử lý đối soát *">
                 <select
                   id="recon-action"
@@ -584,16 +586,16 @@ function ReconciliationDetailModal({
               {action === 'APPLY_TO_BOOKING' && (
                 <Field
                   htmlFor="recon-booking-id"
-                  label="ID đặt chỗ cần ghi nhận (UUID) *"
+                  label="Mã định danh đặt chỗ cần ghi nhận *"
                   hint={
                     transaction.bookingId
                       ? `Mặc định gắn vào ${transaction.bookingReference ?? transaction.bookingId}. Chỉ đổi nếu khách ghi sai mã đặt chỗ.`
-                      : 'Nhập UUID đặt chỗ cần ghi nhận khoản tiền thực nhận.'
+                      : 'Nhập mã định danh đặt chỗ cần ghi nhận khoản tiền thực nhận.'
                   }
                 >
                   <input
                     id="recon-booking-id"
-                    value={targetBookingId || transaction.bookingId || ''}
+                    value={effectiveTargetBookingId}
                     disabled={busy}
                     onChange={event => setTargetBookingId(event.target.value)}
                   />
@@ -636,7 +638,7 @@ function ReconciliationDetailModal({
 
           {transaction.auditHistory && transaction.auditHistory.length > 0 && (
             <div className={styles.financeFormSection}>
-              <h3 className={styles.financeSubheading}>Lịch sử xử lý (Audit)</h3>
+              <h3 className={styles.financeSubheading}>Lịch sử xử lý (Kiểm toán)</h3>
               <ol className={styles.reconAuditList}>
                 {transaction.auditHistory.map(entry => (
                   <li key={entry.id}>

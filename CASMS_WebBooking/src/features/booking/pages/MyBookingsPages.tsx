@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Badge, Button, ButtonLink, DataTable, Empty, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Badge, Button, ButtonLink, DataTable, Empty, Field, Notice, PageHeader, Panel } from '@/shared/ui'
 import { realBookingApi } from '../api/real-booking-api'
 import { BookingPaymentActionCard } from '../components/BookingPaymentActionCard'
 import { CustomerCancellation } from '../components/CustomerCancellation'
@@ -16,12 +16,26 @@ import styles from '../components/LiveBooking.module.css'
 export function MyBookingsPage() {
   const access = useSessionAccess()
   const [page, setPage] = useState(0)
+  const [statusFilter, setStatusFilter] = useState('')
+  const [sortBy, setSortBy] = useState('createdAt,desc')
+  const [searchQuery, setSearchQuery] = useState('')
   const ready = access.status === 'ready' && access.roles.includes('PASSENGER') && Boolean(access.userId)
 
   const listQuery = useReadQuery(
-    `my-bookings:${access.userId ?? ''}:${page}:${ready}`,
-    useCallback(signal => (ready ? realBookingApi.listMine(page, signal) : Promise.resolve(null)), [ready, page]),
+    `my-bookings:${access.userId ?? ''}:${page}:${statusFilter}:${sortBy}:${ready}`,
+    useCallback(
+      signal => (ready ? realBookingApi.listMine(page, signal, { status: statusFilter || undefined, sort: sortBy }) : Promise.resolve(null)),
+      [ready, page, statusFilter, sortBy],
+    ),
   )
+
+  const normalizedSearch = searchQuery.trim().toLocaleLowerCase('vi-VN')
+  const visibleRows = (listQuery.data?.content ?? []).filter(item =>
+    !normalizedSearch
+    || item.bookingReference.toLocaleLowerCase('vi-VN').includes(normalizedSearch)
+    || item.cruiseName.toLocaleLowerCase('vi-VN').includes(normalizedSearch),
+  )
+  const hasActiveFilter = Boolean(statusFilter || sortBy !== 'createdAt,desc' || normalizedSearch)
 
   return (
     <RealBookingFrame>
@@ -53,14 +67,71 @@ export function MyBookingsPage() {
 
         {ready && (
           <Panel title="Danh sách đặt chỗ">
+            <div className={styles.fields} role="group" aria-label="Bộ lọc đặt chỗ của tôi" style={{ marginBottom: '16px' }}>
+              <Field htmlFor="my-bookings-search" label="Tìm nhanh trên trang">
+                <input
+                  id="my-bookings-search"
+                  type="search"
+                  placeholder="Mã đặt chỗ hoặc tên chuyến…"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+              </Field>
+              <Field htmlFor="my-bookings-status" label="Trạng thái">
+                <select
+                  id="my-bookings-status"
+                  value={statusFilter}
+                  onChange={e => { setStatusFilter(e.target.value); setPage(0) }}
+                >
+                  <option value="">Tất cả trạng thái</option>
+                  {Object.entries(bookingStatusName).map(([code, label]) => (
+                    <option key={code} value={code}>{label}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field htmlFor="my-bookings-sort" label="Sắp xếp">
+                <select
+                  id="my-bookings-sort"
+                  value={sortBy}
+                  onChange={e => { setSortBy(e.target.value); setPage(0) }}
+                >
+                  <option value="createdAt,desc">Mới đặt gần nhất</option>
+                  <option value="createdAt,asc">Đặt cũ nhất trước</option>
+                  <option value="departureDatetime,asc">Khởi hành sớm nhất</option>
+                </select>
+              </Field>
+              {hasActiveFilter && (
+                <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                  <Button
+                    tone="secondary"
+                    size="compact"
+                    autoWidth
+                    onClick={() => {
+                      setStatusFilter('')
+                      setSortBy('createdAt,desc')
+                      setSearchQuery('')
+                      setPage(0)
+                    }}
+                  >
+                    Xóa bộ lọc
+                  </Button>
+                </div>
+              )}
+            </div>
             <BookingReadState {...listQuery} />
             {listQuery.data && !listQuery.loading && !listQuery.error && (
-              listQuery.data.content.length === 0 ? (
-                <Empty title="Bạn chưa có đặt chỗ nào">
-                  <p>Khám phá các hành trình đang mở bán để tạo đặt chỗ đầu tiên.</p>
-                  <ButtonLink to="/cruises" autoWidth>
-                    Khám phá chuyến du thuyền
-                  </ButtonLink>
+              visibleRows.length === 0 ? (
+                <Empty title={hasActiveFilter ? 'Không có đặt chỗ khớp bộ lọc' : 'Bạn chưa có đặt chỗ nào'}>
+                  <p>
+                    {hasActiveFilter
+                      ? 'Thử thay đổi trạng thái hoặc từ khóa tìm kiếm.'
+                      : 'Khám phá các hành trình đang mở bán để tạo đặt chỗ đầu tiên.'}
+                  </p>
+                  {!hasActiveFilter && (
+                    <ButtonLink to="/cruises" autoWidth>
+                      Khám phá chuyến du thuyền
+                    </ButtonLink>
+                  )}
                 </Empty>
               ) : (
                 <div className={styles.bookingsTableWrap}>
@@ -68,7 +139,7 @@ export function MyBookingsPage() {
                     label="Đặt chỗ của bạn"
                     headers={['Mã đặt chỗ', 'Chuyến khởi hành', 'Trạng thái', 'Tổng giá vé', 'Ngày tạo', '']}
                   >
-                    {listQuery.data.content.map(item => (
+                    {visibleRows.map(item => (
                       <tr key={item.bookingId}>
                         <td className={styles.monoCode} style={{ whiteSpace: 'nowrap' }}>{item.bookingReference}</td>
                         <td>
@@ -95,7 +166,7 @@ export function MyBookingsPage() {
                         <td style={{ whiteSpace: 'nowrap' }}>{bookingWhen(item.createdAt)}</td>
                         <td className={styles.actionCell}>
                           <ButtonLink tone="secondary" size="compact" autoWidth className={styles.tableActionBtn} to={`/my-bookings/${item.bookingId}`}>
-                            {item.bookingStatus === 'Confirmed' || item.bookingStatus === 'Cancelled' ? 'Xem chi tiết' : 'Chi tiết & thanh toán'}
+                            {item.bookingStatus === 'Cancelled' ? 'Xem chi tiết' : 'Chi tiết & thanh toán'}
                           </ButtonLink>
                         </td>
                       </tr>

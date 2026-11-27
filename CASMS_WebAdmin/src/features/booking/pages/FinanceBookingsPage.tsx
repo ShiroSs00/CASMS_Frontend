@@ -47,7 +47,7 @@ function FinanceWorkspace() {
 
   const [page, setPage] = useState(0)
   const [selected, setSelected] = useState<{ id: string; reference: string; currency: string; cruiseName?: string; status?: string; fareAmount?: number | null } | null>(null)
-  const [bookingId, setBookingId] = useState(''), [error, setError] = useState('')
+  const [bookingId, setBookingId] = useState(''), [error, setError] = useState(''), [lookupBusy, setLookupBusy] = useState(false)
   const list = useReadQuery(`finance-bookings:${access.userId}:${canBookings}:${page}`, useCallback(signal => canBookings ? realBookingApi.list(page, undefined, undefined, signal) : Promise.resolve(null), [canBookings, page]))
   const selectedId = selected?.id ?? ''
   const selectedHeading = useRef<HTMLHeadingElement>(null)
@@ -64,7 +64,7 @@ function FinanceWorkspace() {
 
   async function openLedger(event: FormEvent) {
     event.preventDefault()
-    if (!canPayments) return
+    if (!canPayments || lookupBusy) return
     const queryText = bookingId.trim()
     if (!queryText) {
       setError('Nhập mã đặt chỗ (ví dụ: DEMO-PAY-01) hoặc ID đặt chỗ để tra cứu.')
@@ -87,22 +87,37 @@ function FinanceWorkspace() {
       return
     }
     if (!isUuid && canBookings) {
+      setLookupBusy(true)
+      setError('')
       try {
-        const found = await realBookingApi.list(0, undefined, queryText)
-        const exact = found.content.find(row => row.bookingReference.toLowerCase() === queryText.toLowerCase()) ?? found.content[0]
-        if (exact) {
-          selectBooking({
-            id: exact.bookingId,
-            reference: exact.bookingReference,
-            currency: exact.currency ?? '',
-            cruiseName: exact.cruiseName,
-            status: exact.bookingStatus,
-            fareAmount: exact.agreedFareAmount,
-          })
-          return
+        const normalized = queryText.toLowerCase()
+        const maxPages = Math.min(25, Math.max(1, list.data?.totalPages ?? 1))
+        for (let p = 0; p < maxPages; p += 1) {
+          if (p === page && list.data) continue
+          const found = await realBookingApi.list(p, undefined, undefined)
+          const exact = found.content.find(row =>
+            row.bookingReference.toLowerCase() === normalized
+            || row.bookingId.toLowerCase() === normalized,
+          )
+          if (exact) {
+            selectBooking({
+              id: exact.bookingId,
+              reference: exact.bookingReference,
+              currency: exact.currency ?? '',
+              cruiseName: exact.cruiseName,
+              status: exact.bookingStatus,
+              fareAmount: exact.agreedFareAmount,
+            })
+            return
+          }
+          if (p + 1 >= found.totalPages || found.content.length === 0) break
         }
-      } catch { /* fall through to error */ }
-      setError(`Không tìm thấy đặt chỗ với mã “${queryText}”. Kiểm tra lại mã đặt chỗ hoặc chọn trực tiếp từ danh sách bên dưới.`)
+        setError(`Không tìm thấy đặt chỗ với mã “${queryText}”. Kiểm tra lại mã đặt chỗ hoặc chọn trực tiếp từ danh sách bên dưới.`)
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : 'Chưa tra cứu được đặt chỗ. Vui lòng thử lại.')
+      } finally {
+        setLookupBusy(false)
+      }
       return
     }
     if (!isUuid) {
@@ -172,14 +187,13 @@ function FinanceWorkspace() {
       >
         {canPayments && <Panel title="Tra cứu nhanh khoản thu">
           <form className={styles.financeQuickLookupForm} noValidate onSubmit={event => void openLedger(event)}>
-            <Field htmlFor="finance-booking-id" label="Mã đặt chỗ hoặc ID">
-              <input id="finance-booking-id" required placeholder="Ví dụ: DEMO-PAY-01" value={bookingId} onChange={event => setBookingId(event.target.value)} />
+            <Field htmlFor="finance-booking-id" label="Mã đặt chỗ hoặc ID *" error={error || undefined}>
+              <input id="finance-booking-id" required placeholder="Ví dụ: DEMO-PAY-01" value={bookingId} disabled={lookupBusy} onChange={event => { setBookingId(event.target.value); if (error) setError('') }} />
             </Field>
             <div className={styles.financeQuickLookupAction}>
-              <Button type="submit" autoWidth>Mở khoản thu</Button>
+              <Button type="submit" autoWidth busy={lookupBusy}>{lookupBusy ? 'Đang tìm…' : 'Mở khoản thu'}</Button>
             </div>
           </form>
-          {error && <Notice title="Chưa tra cứu được" tone="error">{error}</Notice>}
         </Panel>}
 
         {selected && <section id="finance-selected-ledger" className={styles.financeDetailShell} aria-label={`Tài chính ${activeReference}`}>

@@ -49,7 +49,7 @@ function ChargeFields({ label, tax, value, onChange, error, currency = 'VND' }: 
     : null
   return <section className={styles.group}>
     <h3>{label}</h3>
-    <Field label="Áp dụng" htmlFor={id + '-applies'}>
+    <Field label="Áp dụng *" htmlFor={id + '-applies'}>
       <select id={id + '-applies'} value={value.applicability} aria-invalid={Boolean(error && !value.applicability)}
         aria-describedby={error ? id + '-error' : undefined}
         onChange={event => patch({ applicability: event.target.value as Draft['applicability'], value: '', reason: '' })}>
@@ -58,12 +58,12 @@ function ChargeFields({ label, tax, value, onChange, error, currency = 'VND' }: 
         <option value="NOT_APPLICABLE">Không áp dụng</option>
       </select>
     </Field>
-    {applies && <Field label={tax ? 'Tỷ lệ thuế (0–1, VD: 0.1 = 10%)' : `Phí cảng mỗi khách (${currency})`} htmlFor={id + '-value'} hint={numericTax ? `Tương đương ${numericTax} cộng lên giá gói du thuyền.` : tax ? 'Nhập dạng thập phân từ 0 đến 1 (0.08 = 8%, 0.1 = 10%).' : 'Phí cảng biển cố định tính trên mỗi hành khách khi đặt chỗ.'}>
+    {applies && <Field label={tax ? 'Tỷ lệ thuế (0–1, VD: 0.1 = 10%) *' : `Phí cảng mỗi khách (${currency}) *`} htmlFor={id + '-value'} hint={numericTax ? `Tương đương ${numericTax} cộng lên giá gói du thuyền.` : tax ? 'Nhập dạng thập phân từ 0 đến 1 (0.08 = 8%, 0.1 = 10%).' : 'Phí cảng biển cố định tính trên mỗi hành khách khi đặt chỗ.'}>
       <input id={id + '-value'} type="number" min="0" max={tax ? 1 : undefined} step={!tax && currency === 'VND' ? '1' : 'any'} value={value.value}
         aria-invalid={Boolean(error)} aria-describedby={error ? id + '-error' : undefined}
         onChange={event => patch({ value: event.target.value })}/>
     </Field>}
-    {excluded && <Field label="Lý do không áp dụng" htmlFor={id + '-reason'}>
+    {excluded && <Field label="Lý do không áp dụng *" htmlFor={id + '-reason'}>
       <textarea id={id + '-reason'} value={value.reason} aria-invalid={Boolean(error)}
         aria-describedby={error ? id + '-error' : undefined} onChange={event => patch({ reason: event.target.value })}/>
     </Field>}
@@ -210,7 +210,7 @@ export function DepartureSaleTerms({ cruiseId, refreshKey, onChanged, focusOnMou
           <Button tone="secondary" disabled={busy || reconcile} onClick={() => setReturning(true)}>Trả về</Button></>}
       </div>}
       {returning && canReview && <div className={styles.review}>
-        <Field label="Lý do trả về" htmlFor="sale-terms-return"><textarea id="sale-terms-return" disabled={busy} value={reason} onChange={event => setReason(event.target.value)}/></Field>
+        <Field label="Lý do trả về *" htmlFor="sale-terms-return"><textarea id="sale-terms-return" disabled={busy} value={reason} onChange={event => setReason(event.target.value)}/></Field>
         <Button disabled={busy || reconcile || !reason.trim()} onClick={() => review('return')}>Xác nhận trả về</Button>
         <Button tone="secondary" disabled={busy} onClick={() => setReturning(false)}>Hủy</Button>
       </div>}

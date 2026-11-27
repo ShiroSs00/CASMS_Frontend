@@ -83,7 +83,11 @@ export function useCruiseList() {
     query,
     state: visibleState,
     updateQuery,
-    resetQuery: () => setSearchParams(serializeCruiseQuery(DEFAULT_CRUISE_QUERY)),
+    resetQuery: () => setSearchParams(serializeCruiseQuery({
+      ...DEFAULT_CRUISE_QUERY,
+      sourceTripId: query.sourceTripId,
+      sourceVersionId: query.sourceVersionId,
+    })),
     retry: load,
     ships, shipsError, retryShips: () => setShipsAttempt(value=>value+1),
   }

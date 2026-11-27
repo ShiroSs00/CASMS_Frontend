@@ -67,7 +67,7 @@ export function HomeHero() {
     <div className={styles.heroImages} aria-hidden="true">{heroSlides.map((slide, index) => <img key={slide.src} className={`${styles.heroPhoto} ${index === active ? styles.slideActive : styles.slideHidden}`} src={slide.src} alt="" width="1600" height="1067" fetchPriority={index === 0 ? 'high' : 'low'} onLoad={() => setLoaded(items => items.includes(index) ? items : [...items, index])} />)}</div>
     <div className={styles.heroShade} />
     <div className={styles.heroInner}>
-      <p className={styles.eyebrow}>OCEVIE CRUISES · HẢI TRÌNH CHÂU Á</p>
+      <p className={styles.eyebrow}>DU THUYỀN OCEVIE · HẢI TRÌNH CHÂU Á</p>
       <h1 id="home-title">Khám phá biển trời.<br /><span>Tận hưởng kỳ nghỉ.</span></h1>
       <p>Khám phá những điểm đến châu Á và chọn hành trình đang mở đặt chỗ phù hợp cho kỳ nghỉ của bạn cùng OceVie.</p>
       <div className={styles.heroActions}><a className={styles.goldButton} href="#cruise-finder">Tìm hành trình <span aria-hidden="true">↗</span></a><Link className={styles.lightLink} to="/cruises">Xem tất cả hải trình <span aria-hidden="true">→</span></Link></div>
@@ -284,7 +284,7 @@ export function HomeShipInvitation({ cruises = [] }: { cruises?: HomeLiveCruise[
             return (
               <Link
                 key={entry.shipName}
-                to={`/cruises?q=${encodeURIComponent(entry.shipName)}`}
+                to={`/cruises?ship=${encodeURIComponent(entry.shipName)}`}
                 className={styles.fleetPoster}
               >
                 <img src={photo.image} alt={`${entry.shipName} · ${photo.caption}`} width="1200" height="1600" loading="lazy" />

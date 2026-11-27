@@ -36,7 +36,7 @@ export function mapSupplier(dto: SupplierDto): SupplierListItem {
   return {
     id: dto.supplierId,
     supplierName: dto.supplierName,
-    supplierType: dto.supplierType ?? 'Chưa phân loại',
+    supplierType: dto.supplierType ?? '',
     contactName: dto.contactName ?? null,
     contactEmail: dto.contactEmail ?? null,
     contactPhone: dto.contactPhone ?? null,

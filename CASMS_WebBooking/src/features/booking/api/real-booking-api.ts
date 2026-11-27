@@ -227,25 +227,44 @@ export function bookingFieldErrors(draft: BookingDraft, cruise: BookingCruiseOpt
             errors['real-booking-notes'] = 'Ghi chú không được vượt quá 500 ký tự.';
         if (!draft.passengers[0]?.email.trim() && !draft.passengers[0]?.phoneNumber.trim())
             errors['person-0-email'] = 'Người đại diện cần email hoặc số điện thoại liên hệ.';
+        const todayVn = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: 'Asia/Ho_Chi_Minh',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+        }).format(new Date(now));
         draft.passengers.forEach((person, index) => {
             const field = (key: keyof BookingPersonDraft, message: string) => { errors[`person-${index}-${key}`] = message; };
-            if (person.fullName.trim().length < 2 || person.fullName.trim().length > 100)
+            const trimmedName = person.fullName.trim();
+            if (trimmedName.length < 2 || trimmedName.length > 100)
                 field('fullName', 'Họ tên cần từ 2 đến 100 ký tự.');
+            else if (!/^[\p{L}\s.'-]+$/u.test(trimmedName) || !/\p{L}/u.test(trimmedName))
+                field('fullName', 'Họ tên chỉ gồm chữ cái hợp lệ, không chứa chữ số hoặc ký tự đặc biệt.');
             if (person.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(person.email.trim()))
                 field('email', 'Email chưa đúng định dạng.');
             if (person.phoneNumber.trim() && !/^(\+?[0-9]{8,15})$/.test(person.phoneNumber.replace(/[\s-]/g, '')))
                 field('phoneNumber', 'Số điện thoại cần 8–15 chữ số, có thể bắt đầu bằng +.');
             if (person.dateOfBirth) {
-                const birth = Date.parse(person.dateOfBirth);
-                const today = new Date(now);
-                today.setHours(0, 0, 0, 0);
-                if (!/^\d{4}-\d{2}-\d{2}$/.test(person.dateOfBirth) || !Number.isFinite(birth) || new Date(birth).toISOString().slice(0, 10) !== person.dateOfBirth || birth >= today.getTime())
-                    field('dateOfBirth', 'Ngày sinh cần là ngày hợp lệ trong quá khứ.');
+                const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(person.dateOfBirth);
+                let validDate = false;
+                if (match) {
+                    const y = Number(match[1]), m = Number(match[2]), d = Number(match[3]);
+                    const probe = new Date(Date.UTC(y, m - 1, d));
+                    validDate = probe.getUTCFullYear() === y && probe.getUTCMonth() === m - 1 && probe.getUTCDate() === d && y >= 1900 && person.dateOfBirth < todayVn;
+                }
+                if (!validDate)
+                    field('dateOfBirth', 'Ngày sinh cần hợp lệ (từ năm 1900 đến trước hôm nay).');
             }
-            if (person.documentType && !person.documentNumber.trim())
-                field('documentNumber', 'Nhập số giấy tờ cho loại đã chọn.');
             const number = person.documentNumber.trim().toUpperCase();
-            if (number.length > 30)
+            if (number && !person.documentType)
+                field('documentType', 'Vui lòng chọn loại giấy tờ trước khi nhập số giấy tờ.');
+            if (person.documentType && !number)
+                field('documentNumber', 'Nhập số giấy tờ cho loại đã chọn.');
+            else if (number && person.documentType === 'NationalID' && !/^\d{12}$/.test(number))
+                field('documentNumber', 'Số CCCD cần gồm đúng 12 chữ số.');
+            else if (number && person.documentType === 'Passport' && !/^[A-Z0-9]{6,12}$/.test(number))
+                field('documentNumber', 'Số hộ chiếu cần gồm 6–12 ký tự chữ hoặc số (không dấu).');
+            else if (number.length > 30)
                 field('documentNumber', 'Số giấy tờ tối đa 30 ký tự.');
             if (number && documents.has(number))
                 field('documentNumber', 'Số giấy tờ trùng với hành khách khác.');
@@ -261,9 +280,14 @@ export function validateBooking(draft: BookingDraft, cruise: BookingCruiseOption
     return Object.values(bookingFieldErrors(draft, cruise, cabins, now));
 }
 export const realBookingApi = {
-    async listMine(page = 0, signal?: AbortSignal): Promise<{ content: BookingListItem[]; totalPages: number; totalElements: number }> {
+    async listMine(page = 0, signal?: AbortSignal, filters?: { status?: string; sort?: string }): Promise<{ content: BookingListItem[]; totalPages: number; totalElements: number }> {
         const data = await apiRequest<{ content: unknown[]; totalPages: number; totalElements: number }>('/booking', {
-            query: { page, size: 12, sort: 'createdAt,desc' },
+            query: {
+                page,
+                size: 12,
+                sort: filters?.sort || 'createdAt,desc',
+                ...(filters?.status ? { status: filters.status } : {}),
+            },
             signal,
         });
         if (!data || !Array.isArray(data.content) || !Number.isSafeInteger(data.totalPages)) {

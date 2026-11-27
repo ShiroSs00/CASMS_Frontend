@@ -9,6 +9,7 @@ import { useRef, useState, type FormEvent } from 'react'
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router'
 import {readinessContextReturn} from '@/shared/lib/cruise-context'
 import { Button, Notice, PageHeader, Panel } from '@/shared/ui'
+import { useFormChanges } from '@/shared/ui/useUnsavedFormGuard'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { useAdminData, useEntity, useMutation } from '../hooks/useAdminData'
 import { shipDeckCabinApi } from '../api/ship-deck-cabin-api'
@@ -31,12 +32,14 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
     deckId: data.decks.some(row => row.id === deckId && row.shipId === hostId) ? deckId : '',
     number: '', type: 'INTERIOR', capacity: 0, status: 'AVAILABLE', accessible: false })
   const [errors, setErrors] = useState<FieldErrors>({})
+  const [dirty, setDirty] = useState(false)
   const mutation = useMutation()
+  useFormChanges(dirty, mutation.busy)
   const form = useRef<HTMLFormElement>(null)
   const clearError = (key: string) => setErrors((current) => ({ ...current, [key]: '' }))
-  const changeShip = <K extends keyof ShipDraft>(key: K, value: ShipDraft[K]) => { setShip((current) => ({ ...current, [key]: value })); clearError(key) }
-  const changeDeck = <K extends keyof DeckDraft>(key: K, value: DeckDraft[K]) => { setDeck((current) => ({ ...current, [key]: value })); clearError(key) }
-  const changeCabin = <K extends keyof CabinDraft>(key: K, value: CabinDraft[K]) => { setCabin((current) => ({ ...current, [key]: value, ...(key === 'shipId' ? { deckId: '' } : {}) })); clearError(key); if (key === 'shipId') clearError('deckId') }
+  const changeShip = <K extends keyof ShipDraft>(key: K, value: ShipDraft[K]) => { setShip((current) => ({ ...current, [key]: value })); setDirty(true); clearError(key) }
+  const changeDeck = <K extends keyof DeckDraft>(key: K, value: DeckDraft[K]) => { setDeck((current) => ({ ...current, [key]: value })); setDirty(true); clearError(key) }
+  const changeCabin = <K extends keyof CabinDraft>(key: K, value: CabinDraft[K]) => { setCabin((current) => ({ ...current, [key]: value, ...(key === 'shipId' ? { deckId: '' } : {}) })); setDirty(true); clearError(key); if (key === 'shipId') clearError('deckId') }
   const focusError = () => requestAnimationFrame(() => form.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus())
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -49,6 +52,7 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
       const saved = kind === 'ships' ? await shipDeckCabinApi.saveShip(shipDraft, ship)
         : kind === 'decks' ? await shipDeckCabinApi.saveDeck(deckDraft, source?.id)
           : await shipDeckCabinApi.saveCabin(cabinDraft, source?.id)
+      setDirty(false)
       navigate(returnTo??`/admin/${kind}/${saved.id}`, { state: { saved: true } })
     })
   }
@@ -67,8 +71,8 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
             {kind === 'ships' ? <FormSection title="Cấu hình tàu" >
               <InputField label="Tên tàu *" value={shipDraft.name} maxLength={100} disabled={mutation.busy} error={errors.name} onChange={(event) => changeShip('name', event.target.value)} />
               <SelectField label="Trạng thái *" value={shipDraft.status} disabled={mutation.busy || Boolean(ship)} error={errors.status} onChange={(value) => changeShip('status', value as ShipStatus)}>{Object.entries(shipStatuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField>
-              <InputField label="Sức chứa hành khách *" type="number" min={1} step={1} value={shipDraft.capacity || ''} disabled={mutation.busy} error={errors.capacity} onChange={(event) => changeShip('capacity', Number(event.target.value))} />
-              <InputField label="Số boong hành khách *" type="number" min={MIN_PASSENGER_DECKS} max={MAX_PASSENGER_DECKS} step={1} hint={passengerDeckCountHint} value={shipDraft.totalDecks || ''} disabled={mutation.busy} error={errors.totalDecks} onChange={(event) => changeShip('totalDecks', Number(event.target.value))} />
+              <InputField label="Sức chứa hành khách *" type="number" min={1} step={1} value={shipDraft.capacity ?? ''} disabled={mutation.busy} error={errors.capacity} onChange={(event) => changeShip('capacity', Number(event.target.value))} />
+              <InputField label="Số boong hành khách *" type="number" min={MIN_PASSENGER_DECKS} max={MAX_PASSENGER_DECKS} step={1} hint={passengerDeckCountHint} value={shipDraft.totalDecks ?? ''} disabled={mutation.busy} error={errors.totalDecks} onChange={(event) => changeShip('totalDecks', Number(event.target.value))} />
               <InputField label="Ngày đưa vào hoạt động" type="date" value={shipDraft.commissionDate} disabled={mutation.busy} error={errors.commissionDate} onChange={(event) => changeShip('commissionDate', event.target.value)} />
               <ShipProfileFields profile={shipDraft} errors={errors} disabled={mutation.busy} onChange={changeShip} />
             </FormSection> : kind === 'decks' ? <FormSection title="Boong và tàu liên kết" >
@@ -80,7 +84,7 @@ function FormContent({ kind, data, ship, deck, cabin, hostId, deckId }:
               <SelectField label="Boong *" value={cabinDraft.deckId} disabled={mutation.busy || Boolean(cabin) || !cabinDraft.shipId} error={errors.deckId} onChange={(value) => changeCabin('deckId', value)}><option value="">Chọn boong</option>{data.decks.filter((row) => row.shipId === cabinDraft.shipId).map((row) => <option value={row.id} key={row.id}>Boong {row.number} · {row.name || 'Chưa đặt tên'}</option>)}</SelectField>
               <InputField label="Số cabin *" maxLength={10} value={cabinDraft.number} readOnly={Boolean(cabin)} disabled={mutation.busy} error={errors.number} onChange={(event) => changeCabin('number', event.target.value)} />
               <SelectField label="Loại phòng *" value={cabinDraft.type} disabled={mutation.busy || Boolean(cabin)} error={errors.type} onChange={(value) => changeCabin('type', value as CabinType)}>{Object.entries(cabinTypes).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</SelectField>
-              <InputField label="Sức chứa *" type="number" min={1} step={1} value={cabinDraft.capacity || ''} disabled={mutation.busy} error={errors.capacity} onChange={(event) => changeCabin('capacity', Number(event.target.value))} />
+              <InputField label="Sức chứa *" type="number" min={1} step={1} value={cabinDraft.capacity ?? ''} disabled={mutation.busy} error={errors.capacity} onChange={(event) => changeCabin('capacity', Number(event.target.value))} />
               <SelectField label="Trạng thái *" value={cabinDraft.status} disabled={mutation.busy || Boolean(cabin)} error={errors.status} onChange={(value) => changeCabin('status', value as CabinStatus)}>{Object.entries(cabinStatuses).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</SelectField>
               <label className={`${styles.check} ${styles.full}`}><input type="checkbox" checked={cabinDraft.accessible} aria-invalid={Boolean(errors.accessible)} disabled={mutation.busy} onChange={(event) => changeCabin('accessible', event.target.checked)} />Hỗ trợ người khuyết tật / tiếp cận</label>
               {errors.accessible && <Notice title="Thông tin tiếp cận chưa hợp lệ" tone="error">{errors.accessible}</Notice>}

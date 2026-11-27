@@ -25,11 +25,11 @@ const discoveryCopy = {
     target: '/cruises',
   },
   deals: {
-    label: 'Ưu đãi',
-    eyebrow: 'CHƯƠNG TRÌNH ƯU ĐÃI & HẢI TRÌNH',
-    title: 'Ưu đãi hành trình dành riêng cho bạn.',
-    description: 'Khám phá các gói kỳ nghỉ ngắn ngày và dài ngày với mức giá ưu đãi tốt nhất, dịch vụ tiện nghi và nhiều quyền lợi hấp dẫn.',
-    action: 'Xem các gói ưu đãi',
+    label: 'Lựa chọn hành trình',
+    eyebrow: 'HẢI TRÌNH & GÓI DU THUYỀN',
+    title: 'Chọn nhịp hành trình phù hợp cho kỳ nghỉ của bạn.',
+    description: 'Khám phá các hải trình trong ngày và nhiều ngày đang mở đặt chỗ cùng các gói du thuyền và dịch vụ đi kèm trên tàu.',
+    action: 'Xem các loại hành trình',
     photo: 1, // Hong Kong Victoria - completely different from cruises hero
     target: '#offers',
   },
@@ -74,25 +74,25 @@ export function ShipsPage({ explorer }: { explorer?: ReactNode }) {
 
 export function DealsPage() {
   return <div className={`${landing.home} ${styles.page}`}>
-    <title>Ưu đãi và lựa chọn hành trình | OceVie</title>
+    <title>Lựa chọn hành trình | OceVie</title>
     <DiscoveryHeading kind="deals" />
     <div className={`${landing.container} ${styles.content}`}>
       <section className={styles.offerNotice} id="offers" aria-labelledby="offers-title">
-        <p className={styles.eyebrow}>ƯU ĐÃI OCEVIE</p>
-        <h2 id="offers-title">Các gói hành trình ưu đãi hấp dẫn</h2>
-        <p>Chọn các gói chuyến du thuyền ngắn ngày hoặc dài ngày đã được tối ưu chi phí và trải nghiệm. Đặt sớm để nhận thêm các ưu đãi dịch vụ đi kèm trên tàu.</p>
+        <p className={styles.eyebrow}>HẢI TRÌNH OCEVIE</p>
+        <h2 id="offers-title">Lựa chọn hành trình theo thời lượng</h2>
+        <p>Chọn hành trình trong ngày hoặc nhiều ngày đang mở đặt chỗ. Giá gói du thuyền, thuế và phí cảng được hiển thị minh bạch ở từng chuyến trước khi bạn xác nhận đặt chỗ.</p>
       </section>
-      <section className={styles.tripChoices} aria-label="Khám phá theo loại hành trình ưu đãi">
+      <section className={styles.tripChoices} aria-label="Khám phá theo loại hành trình">
         <Link to="/cruises?cruiseType=ONE_DAY">
           <span>01 · HẢI TRÌNH TRONG NGÀY</span>
           <h2>Trải nghiệm du thuyền trong ngày</h2>
-          <p>Hành trình nghỉ dưỡng gọn nhẹ trong ngày với ẩm thực và tiện ích trọn gói trên vịnh.</p>
+          <p>Hành trình nghỉ dưỡng gọn nhẹ trong ngày với ẩm thực và tiện ích chọn lọc trên vịnh.</p>
           <strong>Xem các chuyến trong ngày <span aria-hidden="true">↗</span></strong>
         </Link>
         <Link to="/cruises?cruiseType=MULTI_DAYS">
           <span>02 · HẢI TRÌNH NHIỀU NGÀY</span>
           <h2>Hải trình nghỉ dưỡng nhiều ngày</h2>
-          <p>Thêm thời gian khám phá các thành phố cảng châu Á với mức giá ưu đãi đặt sớm.</p>
+          <p>Thêm thời gian khám phá các thành phố cảng châu Á cùng lịch trình đa điểm dừng và lựa chọn gói dịch vụ phù hợp.</p>
           <strong>Xem các chuyến nhiều ngày <span aria-hidden="true">↗</span></strong>
         </Link>
       </section>

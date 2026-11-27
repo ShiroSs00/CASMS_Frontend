@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Button, Field, FormErrorSummary, FormSection } from '@/shared/ui'
+import { Button, Field, FormErrorSummary, FormSection, useUnsavedFormGuard } from '@/shared/ui'
 import {
   supplierFormFieldOrder,
   supplierFormFields,
@@ -8,6 +8,7 @@ import {
   type SupplierFormMode,
   type SupplierFormValues,
 } from '../model/supplier-form'
+import { supplierTypeLabels } from '../model/supplier-list'
 import styles from './SupplierForm.module.css'
 
 export type SupplierFormProps = {
@@ -15,7 +16,7 @@ export type SupplierFormProps = {
   initialValues: SupplierFormValues
   isSubmitting?: boolean
   apiError?: string | null
-  onSubmitValues?: (values: SupplierFormValues) => void
+  onSubmitValues?: (values: SupplierFormValues, allowLeave: () => void) => void
   onCancel: () => void
 }
 
@@ -30,6 +31,8 @@ export function SupplierForm({
   const [values, setValues] = useState(initialValues)
   const [touched, setTouched] = useState<Partial<Record<SupplierFormField, boolean>>>({})
   const [submitted, setSubmitted] = useState(false)
+  const dirty = supplierFormFieldOrder.some((field) => values[field] !== initialValues[field])
+  const guard = useUnsavedFormGuard(dirty, isSubmitting)
   const errors = validateSupplierForm(values)
   const errorFor = (field: SupplierFormField) =>
     submitted || touched[field] ? errors[field] : undefined
@@ -48,11 +51,13 @@ export function SupplierForm({
       return
     }
     if (onSubmitValues && !isSubmitting) {
-      onSubmitValues(values)
+      onSubmitValues(values, guard.allowLeave)
     }
   }
 
-  const input = (field: Exclude<SupplierFormField, 'notes'>) => {
+  const hasLegacyCustomType = Boolean(values.supplierType && !(values.supplierType in supplierTypeLabels))
+
+  const input = (field: Exclude<SupplierFormField, 'notes' | 'supplierType'>) => {
     const definition = supplierFormFields[field]
     const id = `supplier-form-${field}`
     const error = errorFor(field)
@@ -80,6 +85,7 @@ export function SupplierForm({
   }
 
   return (
+    <>
     <form
       className={styles.form}
       onSubmit={submit}
@@ -89,7 +95,29 @@ export function SupplierForm({
       {submitted && <FormErrorSummary errors={errors} />}
       <FormSection title="01 · Nhà cung cấp" >
         {input('supplierName')}
-        {input('supplierType')}
+        <Field
+          htmlFor="supplier-form-supplierType"
+          label={supplierFormFields.supplierType.label}
+          error={errorFor('supplierType')}
+        >
+          <select
+            id="supplier-form-supplierType"
+            name="supplierType"
+            value={values.supplierType}
+            disabled={isSubmitting}
+            aria-invalid={Boolean(errorFor('supplierType'))}
+            onChange={(event) => change('supplierType', event.target.value)}
+            onBlur={() => blur('supplierType')}
+          >
+            <option value="">Chọn loại nhà cung cấp</option>
+            {Object.entries(supplierTypeLabels).map(([code, label]) => (
+              <option key={code} value={code}>{label}</option>
+            ))}
+            {hasLegacyCustomType && (
+              <option value={values.supplierType}>{values.supplierType}</option>
+            )}
+          </select>
+        </Field>
       </FormSection>
       <FormSection title="02 · Liên hệ chính" >
         {input('contactName')}
@@ -142,5 +170,7 @@ export function SupplierForm({
         </Button>
       </div>
     </form>
+    {guard.prompt}
+    </>
   )
 }
