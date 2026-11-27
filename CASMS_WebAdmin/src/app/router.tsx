@@ -130,6 +130,7 @@ export const router = createBrowserRouter([{
   Component: BookingSessionLayout, children: [{ Component: AdminAccountLayout, children: [{ Component: SessionBoundary, children: [
     { path: '/', element: <Navigate to="/admin" replace /> },
     { path: '/login', Component: LoginPage },
+    { path: '/activate-employee-account', lazy: featurePage(() => import('@/features/auth/pages/EmployeeActivationPage'), 'EmployeeActivationPage') },
     { path: '/403', Component: AccessDeniedPage },
     { path: '/admin/workflow', element: <Navigate to="/admin" replace /> },
     { path: '/admin/workspaces/:workspaceId', element: <Navigate to="/admin" replace /> },
