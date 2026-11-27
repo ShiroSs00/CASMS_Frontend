@@ -1,14 +1,14 @@
-import { useCallback, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, ButtonLink, DataTable, Empty, Field, FormErrorSummary, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Button, ButtonLink, DataTable, Empty, Field, FormErrorSummary, Loading, Notice, PageHeader } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
-import { shipTypesApi, shipError, importIssues, missingProvisionResult, provisionedShipId, unknownOutcome, type PendingProvision, type ShipType } from './api'
+import { shipTypesApi, shipError, importIssues, provisionedShipId, type PendingProvision, type ShipType } from './api'
 import { DesignFacts, PageControls } from './Catalog'
 import { ProfileFacts, ProfileFields } from './ProfileFields'
 import { profilePayload, validateProfile, type ProfileDraft } from './profile'
-import { loadAttempt, saveAttempt } from './attempt-storage'
+import { saveAttempt } from './attempt-storage'
 import styles from './ShipWork.module.css'
 
 function TypePicker({ selected, onSelect }: { selected: ShipType | null; onSelect: (type: ShipType) => void }) {
@@ -48,8 +48,6 @@ function TypePicker({ selected, onSelect }: { selected: ShipType | null; onSelec
 function ProvisionForm({ userId, initial, initialError }: { userId: string; initial: ShipType | null; initialError?: string }) {
   const navigate = useNavigate()
   const storageKey = 'ship-provision:' + userId
-  const [pending, setPending] = useState(() => loadAttempt<PendingProvision>(storageKey))
-  const [checked, setChecked] = useState(false)
   const [step, setStep] = useState(0)
   const [selected, setSelected] = useState<ShipType | null>(initial)
   const [name, setName] = useState('')
@@ -63,6 +61,9 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
   const formRef = useRef<HTMLFormElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const issues = importIssues(failure)
+
+  // Clear any legacy pending provision verification state so users always see the direct form
+  useEffect(() => { saveAttempt(storageKey, null) }, [storageKey])
 
   function move(next: number) {
     setStep(next)
@@ -83,44 +84,17 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
     }
   }
 
-  function clearAttempt() {
-    saveAttempt(storageKey, null)
-    setPending(null)
-    setChecked(false)
-  }
-
   function confirm(attempt: PendingProvision) {
     void run('Đang tạo tàu…', async () => {
-      if (!saveAttempt(storageKey, attempt)) {
-        throw new Error('Trình duyệt chưa lưu được mã yêu cầu. Bật lưu trữ cho trang này rồi thử lại.')
-      }
-      setPending(attempt)
-      setChecked(false)
       try {
         const id = provisionedShipId(await shipTypesApi.provision(attempt))
-        clearAttempt()
         navigate('/admin/ships/' + id, { replace: true })
       } catch (error) {
-        if (!unknownOutcome(error)) clearAttempt()
         if (error instanceof ApiError && error.code === 'SHIP_TYPE_INACTIVE') {
           setSelected(null)
           move(0)
         }
         throw error
-      }
-    })
-  }
-
-  function check(attempt: PendingProvision) {
-    void run('Đang kiểm tra kết quả…', async () => {
-      try {
-        const id = provisionedShipId(await shipTypesApi.result(attempt))
-        clearAttempt()
-        navigate('/admin/ships/' + id, { replace: true })
-      } catch (error) {
-        if (!missingProvisionResult(error, attempt.key)) throw error
-        setChecked(true)
-        setNotice('Chưa thấy tàu đã tạo. Bạn có thể kiểm tra lại hoặc gửi lại đúng yêu cầu này.')
       }
     })
   }
@@ -135,14 +109,7 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
       {issues.length > 0 && <ul>{issues.map((issue, index) => <li key={index}>{[issue.objectIdentifier, issue.message].filter(Boolean).join(' · ')}</li>)}</ul>}
     </Notice> : null}
     {notice && <Notice title="Thông tin yêu cầu" tone="info">{notice}</Notice>}
-    {pending ? <Panel title="Xác minh kết quả tạo tàu">
-      <p>Yêu cầu tạo tàu <strong>{pending.payload.shipName}</strong> chưa có kết quả xác nhận.</p>
-      <p>Kiểm tra kết quả trước khi gửi lại yêu cầu.</p>
-      <div className={styles.actions}>
-        <Button busy={Boolean(busy)} onClick={() => check(pending)}>{busy || 'Kiểm tra kết quả'}</Button>
-        {checked && <Button tone="secondary" disabled={Boolean(busy)} onClick={() => confirm(pending)}>Gửi lại yêu cầu này</Button>}
-      </div>
-    </Panel> : <>
+    <>
       <ol className={`${styles.designSteps} ${styles.provisionSteps}`} aria-label="Tiến độ tạo tàu">
         {[
           ['Chọn loại tàu', 'Chọn thông số có sẵn'],
@@ -211,7 +178,7 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
           })}>{busy || 'Xác nhận tạo tàu'}</Button>
         </div>
       </section>}
-    </>}
+    </>
   </div>
 }
 

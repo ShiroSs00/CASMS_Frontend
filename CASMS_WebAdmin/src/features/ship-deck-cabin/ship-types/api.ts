@@ -122,6 +122,11 @@ export function shipError(error: unknown): string {
     case 'SHIP_TYPE_IN_USE': return 'Loại tàu đang được sử dụng. Có thể ngừng sử dụng loại trong trang chi tiết.'
     case 'IDEMPOTENCY_CONFLICT': return 'Mã xác nhận đã được dùng cho dữ liệu khác. Kiểm tra tàu đã tạo trước khi bắt đầu thao tác mới.'
     case 'DUPLICATE_RESOURCE': return 'Số IMO hoặc số đăng ký đã được sử dụng. Kiểm tra thông tin hồ sơ.'
+    case 'INVALID_DELIVERY_DATE': return 'Ngày bàn giao không hợp lệ (không được trước ngày đưa tàu vào sử dụng).'
+    case 'DELIVERY_DATE_LOCKED': return 'Không thể thay đổi ngày bàn giao khi tàu đã phát sinh hoạt động.'
+    case 'IMO_LOCKED': return 'Không thể thay đổi số IMO khi tàu đã được xác minh đưa vào khai thác.'
+    case 'SHIP_CLASSIFICATION_EXPIRED': return 'Đăng kiểm tàu đã hết hạn. Vui lòng gia hạn hồ sơ đăng kiểm trước khi đưa tàu vào khai thác.'
+    case 'SHIP_CLASSIFICATION_EXPIRES_BEFORE_CRUISE_END': return fallback
     case 'SHIP_MODEL_IMPORT_REJECTED': return 'Không dựng được cấu trúc tàu từ phiên bản này. Kiểm tra các lỗi mô hình bên dưới.'
   }
   if (error.status === 403) return 'Tài khoản của bạn không có quyền thực hiện thao tác này.'

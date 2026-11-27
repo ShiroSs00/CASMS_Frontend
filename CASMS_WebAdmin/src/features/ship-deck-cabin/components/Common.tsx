@@ -19,8 +19,17 @@ export function SelectField({ label, value, onChange, children, error, disabled,
     aria-invalid={Boolean(error)} aria-describedby={error || hint ? `${id}-hint` : undefined}>{children}</select></Field>
 }
 export function StatusBadge({ status }: { status: ShipStatus | CabinStatus }) {
-  return <Badge label={status in shipStatuses ? shipStatuses[status as ShipStatus] : cabinStatuses[status as CabinStatus]}
-    tone={status === 'READY' || status === 'IN_SERVICE' || status === 'AVAILABLE' ? 'success' : status === 'MAINTENANCE' ? 'warning' : status === 'OCCUPIED' ? 'info' : 'neutral'} />
+  const tone =
+    status === 'READY' || status === 'IN_SERVICE' || status === 'AVAILABLE'
+      ? 'success'
+      : status === 'DRAFT' || status === 'OCCUPIED'
+        ? 'info'
+        : status === 'MAINTENANCE'
+          ? 'warning'
+          : status === 'SUSPENDED' || status === 'OUT_OF_SERVICE'
+            ? 'error'
+            : 'neutral'
+  return <Badge label={status in shipStatuses ? shipStatuses[status as ShipStatus] : cabinStatuses[status as CabinStatus]} tone={tone} />
 }
 export function Definition({ rows }: { rows: Array<[string, ReactNode]> }) {
   return <RecordFacts entries={rows} />

@@ -1,15 +1,33 @@
 import type { EditableProfile, OperationalProfile } from './api'
 
+export const SUPPORTED_FLAG_COUNTRY_CODES = [
+  'VN', 'SG', 'PA', 'BS', 'MT', 'MH', 'LR', 'BM', 'CY', 'NO', 'IT', 'FR', 'GB', 'US',
+  'JP', 'KR', 'TH', 'MY', 'ID', 'PH', 'CN', 'HK', 'TW', 'AU', 'NZ', 'GR', 'NL', 'DE',
+] as const
+
+export const CLASSIFICATION_SOCIETIES = [
+  "Lloyd's Register",
+  'DNV',
+  'Bureau Veritas',
+  'ABS',
+  'ClassNK',
+  'RINA',
+  'CCS',
+  'Vietnam Register (VR)',
+] as const
+
+export const OTHER_CLASSIFICATION_VALUE = '__OTHER__'
+
 export const profileGroups = [
   { title: 'Bàn giao', fields: [
     { key: 'deliveryDate', label: 'Ngày bàn giao', kind: 'date' },
   ] },
   { title: 'Đăng ký và đăng kiểm', fields: [
-    { key: 'imoNumber', label: 'Số IMO', max: 11, hint: 'Nhập 7 chữ số nếu có.' },
-    { key: 'registrationCountry', label: 'Quốc gia đăng ký', max: 2, hint: 'Mã quốc gia gồm hai chữ cái, ví dụ VN.' },
-    { key: 'registrationNumber', label: 'Số đăng ký', max: 80 },
-    { key: 'classificationSociety', label: 'Tổ chức đăng kiểm', max: 150 },
-    { key: 'classificationExpiryDate', label: 'Ngày hết hạn đăng kiểm', kind: 'date' },
+    { key: 'imoNumber', label: 'Số IMO', max: 7, hint: 'Nhập chính xác 7 chữ số (0–9) hợp lệ theo checksum IMO, ví dụ: 9074729.' },
+    { key: 'registrationCountry', label: 'Quốc gia đăng ký', max: 2, hint: 'Chọn quốc gia đăng ký tàu (quốc kỳ, chuẩn ISO 3166-1 alpha-2).' },
+    { key: 'registrationNumber', label: 'Số đăng ký', max: 50, hint: 'Tối đa 50 ký tự, cho phép chữ, số và dấu phân cách (ví dụ: BS-2025-00128).' },
+    { key: 'classificationSociety', label: 'Tổ chức đăng kiểm', max: 150, hint: 'Chọn tổ chức đăng kiểm từ danh mục hoặc chọn Khác để nhập tên (2–150 ký tự).' },
+    { key: 'classificationExpiryDate', label: 'Ngày hết hạn đăng kiểm', kind: 'date', hint: 'Cần còn hiệu lực đến hết thời gian chuyến đi (ExpiryDate ≥ CruiseEndDate).' },
   ] },
   { title: 'Tham chiếu hồ sơ', fields: [
     { key: 'certificateReferences', label: 'Chứng nhận', kind: 'references' },
@@ -29,38 +47,104 @@ export function toProfileDraft(profile?: OperationalProfile | null): ProfileDraf
     return [key, Array.isArray(value) ? value.join('\n') : String(value ?? '')]
   })))
 }
+
 const rows = (value: string) => value.split(/\r?\n/).map(item => item.trim()).filter(Boolean)
 const localDate = () => new Date().toLocaleDateString('sv-SE')
+
+export function isValidImoChecksum(value: string): boolean {
+  if (!/^[0-9]{7}$/.test(value)) return false
+  let sum = 0
+  for (let i = 0; i < 6; i++) {
+    sum += Number(value[i]) * (7 - i)
+  }
+  return sum % 10 === Number(value[6])
+}
+
+export function isClassificationExpired(expiryDate?: string): boolean {
+  const value = expiryDate?.trim()
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value) && value < localDate())
+}
 
 export function validateProfile(draft: ProfileDraft): ProfileErrors {
   const errors: ProfileErrors = {}
   for (const { fields } of profileGroups) for (const field of fields) {
-    const value = draft[field.key]?.trim()
-    if (!value) continue
+    const raw = draft[field.key] ?? ''
+    const value = raw.trim()
+    if (!value) {
+      if (raw.length > 0 && (field.key === 'registrationNumber' || field.key === 'classificationSociety')) {
+        errors[field.key] = 'Không được chỉ nhập khoảng trắng.'
+      }
+      continue
+    }
     if ('max' in field && value.length > field.max) errors[field.key] = 'Dùng tối đa ' + field.max + ' ký tự.'
     if ('kind' in field && field.kind === 'references') {
+      const rawLines = raw.split(/\r?\n/)
+      if (rawLines.some(line => line.length > 0 && line.trim().length === 0)) {
+        errors[field.key] = 'Không được để dòng chỉ chứa khoảng trắng.'
+        continue
+      }
       const references = rows(value)
-      if (references.length > 100 || references.some(item => item.length > 1000)) {
-        errors[field.key] = 'Tối đa 100 dòng, mỗi dòng không quá 1.000 ký tự.'
+      if (references.length > 100 || references.some(item => item.length > 255)) {
+        errors[field.key] = 'Tối đa 100 dòng, mỗi dòng không quá 255 ký tự.'
+        continue
+      }
+      const seen = new Set<string>()
+      for (const item of references) {
+        const norm = item.toLowerCase()
+        if (seen.has(norm)) {
+          errors[field.key] = 'Không được nhập trùng tham chiếu trên cùng một danh sách.'
+          break
+        }
+        seen.add(norm)
       }
     }
   }
-  const country = draft.registrationCountry?.trim()
-  if (country && !/^[a-z]{2}$/i.test(country)) errors.registrationCountry = 'Nhập mã quốc gia gồm hai chữ cái.'
-  if (draft.registrationCountry?.trim() && !draft.registrationNumber?.trim()) errors.registrationNumber = 'Nhập số đăng ký cùng quốc gia đăng ký.'
-  if (!draft.registrationCountry?.trim() && draft.registrationNumber?.trim()) errors.registrationCountry = 'Nhập quốc gia đăng ký cùng số đăng ký.'
-  if (draft.imoNumber?.trim() && !/^(?:IMO )?[0-9]{7}$/i.test(draft.imoNumber.trim())) errors.imoNumber = 'Số IMO gồm 7 chữ số.'
-  if (draft.deliveryDate && draft.deliveryDate > localDate()) errors.deliveryDate = 'Ngày bàn giao không thể ở tương lai.'
+
+  const imo = draft.imoNumber?.trim()
+  if (imo) {
+    if (!/^[0-9]{7}$/.test(imo)) {
+      errors.imoNumber = 'Số IMO phải gồm chính xác 7 chữ số (0–9), không kèm chữ cái hoặc khoảng trắng.'
+    } else if (!isValidImoChecksum(imo)) {
+      errors.imoNumber = 'Số IMO sai chữ số kiểm tra (checksum IMO không hợp lệ). Ví dụ hợp lệ: 9074729.'
+    }
+  }
+
+  const country = draft.registrationCountry?.trim().toUpperCase()
+  if (country && !(SUPPORTED_FLAG_COUNTRY_CODES as readonly string[]).includes(country)) {
+    errors.registrationCountry = 'Quốc gia đăng ký không nằm trong danh sách quốc kỳ được hỗ trợ.'
+  }
+  const regNum = draft.registrationNumber?.trim()
+  if (country && !regNum) errors.registrationNumber = 'Vui lòng nhập số đăng ký tương ứng với quốc gia đăng ký.'
+  if (!country && regNum) errors.registrationCountry = 'Vui lòng chọn quốc gia đăng ký cùng với số đăng ký.'
+  if (regNum && !/^[A-Za-z0-9][A-Za-z0-9 ./_-]{0,49}$/.test(regNum)) {
+    errors.registrationNumber = 'Số đăng ký chỉ cho phép chữ, số và dấu phân cách (1–50 ký tự).'
+  }
+
+  const society = draft.classificationSociety?.trim()
+  if (society === OTHER_CLASSIFICATION_VALUE) {
+    errors.classificationSociety = 'Vui lòng nhập tên tổ chức đăng kiểm (2–150 ký tự).'
+  } else if (society && society.length < 2) {
+    errors.classificationSociety = 'Tên tổ chức đăng kiểm phải từ 2 đến 150 ký tự.'
+  }
+
+  const delivery = draft.deliveryDate?.trim()
+  const expiry = draft.classificationExpiryDate?.trim()
+  if (delivery && delivery > localDate()) {
+    errors.deliveryDate = 'Ngày bàn giao không được ở tương lai.'
+  }
+  if (delivery && expiry && expiry < delivery) {
+    errors.classificationExpiryDate = 'Ngày hết hạn đăng kiểm không được trước ngày bàn giao.'
+  }
+
   return errors
 }
 
 export function profilePayload(draft: ProfileDraft): EditableProfile {
   const entries = profileGroups.flatMap(group => group.fields.flatMap<[ProfileKey, string | string[]]>(({ key }) => {
     const value = draft[key]?.trim()
-    if (!value) return []
+    if (!value || (key === 'classificationSociety' && value === OTHER_CLASSIFICATION_VALUE)) return []
     if (key.endsWith('References')) return [[key, rows(value)]]
     if (key.endsWith('Country') || key === 'registrationNumber') return [[key, value.toUpperCase()]]
-    if (key === 'imoNumber') return [[key, value.replace(/^IMO /i, '')]]
     return [[key, value]]
   }))
   return Object.fromEntries(entries)

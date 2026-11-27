@@ -19,6 +19,15 @@ const titles: Record<Operation, string> = {
   schedule: 'Kiểm tra lịch trống', ready: 'Kiểm tra sẵn sàng vận hành', availability: 'Kiểm tra cabin',
   affected: 'Các chuyến bị ảnh hưởng', validate: 'Kiểm tra cấu hình', ownership: 'Kiểm tra boong thuộc tàu',
 }
+const allowedShipTransitions: Record<ShipStatus, ShipStatus[]> = {
+  DRAFT: ['READY'],
+  READY: ['MAINTENANCE', 'SUSPENDED'],
+  IN_SERVICE: ['MAINTENANCE', 'SUSPENDED'],
+  MAINTENANCE: ['READY', 'SUSPENDED'],
+  SUSPENDED: ['READY', 'MAINTENANCE'],
+  RETIRED: [],
+}
+
 export function OperationDialog({ item, kind, ships, shipChoicesState, operation, onClose }: {
   item: Entity; kind: EntityKind; ships: Ship[]; operation: Operation; onClose: () => void
   shipChoicesState?: { loading: boolean; error: string; retry: () => void }
@@ -27,7 +36,16 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
   const permitted = access.canDo(operationPermission(kind, operation)) && (operation !== 'availability' || access.canDo('CABIN_READ'))
   const isShip = 'code' in item
   const isCheck = ['schedule', 'ready', 'availability', 'affected', 'validate', 'ownership'].includes(operation)
-  const [status, setStatus] = useState<string>('status' in item ? item.status : '')
+  const currentStatus = 'status' in item ? item.status : ''
+  const allowedNextShipStatuses: ShipStatus[] = isShip
+    ? (allowedShipTransitions[currentStatus as ShipStatus] ?? [])
+    : []
+  const [status, setStatus] = useState<string>(() => {
+    if (operation === 'status' && isShip) {
+      return allowedNextShipStatuses[0] ?? currentStatus
+    }
+    return currentStatus
+  })
   const [start, setStart] = useState('')
   const [end, setEnd] = useState('')
   const [guests, setGuests] = useState(1)
@@ -106,15 +124,47 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
         {results.map((result) => <Notice key={result.title} title={result.title} tone={result.tone}>{result.message}</Notice>)}
         {cruises && <CruiseTable rows={cruises} />}
       </> : <>
-        {operation === 'status' && <SelectField label="Trạng thái mới" value={status} disabled={mutation.busy} onChange={(value) => { setStatus(value); mutation.clear() }}>
-          {Object.entries(isShip ? shipStatuses : cabinStatuses).filter(([value]) => isShip || value !== 'OCCUPIED' || status === 'OCCUPIED').map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </SelectField>}
+        {operation === 'status' && (isShip ? (
+          allowedNextShipStatuses.length === 0 ? (
+            <Notice title="Không thể đổi trạng thái" tone="warning">
+              Tàu đang ở trạng thái <strong>{shipStatuses[currentStatus as ShipStatus]}</strong> và không có trạng thái chuyển tiếp hợp lệ.
+            </Notice>
+          ) : allowedNextShipStatuses.length === 1 ? (
+            <SelectField
+              label="Trạng thái mới"
+              value={status}
+              disabled={mutation.busy}
+              hint="Tàu đang ở trạng thái Đang thiết lập chỉ có thể chuyển sang Sẵn sàng hoạt động (READY) sau khi hoàn thiện hồ sơ vận hành."
+              onChange={(value) => { setStatus(value); mutation.clear() }}
+            >
+              {allowedNextShipStatuses.map((value) => (
+                <option key={value} value={value}>{shipStatuses[value]}</option>
+              ))}
+            </SelectField>
+          ) : (
+            <SelectField
+              label="Trạng thái mới"
+              value={status}
+              disabled={mutation.busy}
+              hint={`Trạng thái hiện tại: ${shipStatuses[currentStatus as ShipStatus]}. Chỉ hiển thị các trạng thái chuyển tiếp hợp lệ.`}
+              onChange={(value) => { setStatus(value); mutation.clear() }}
+            >
+              {allowedNextShipStatuses.map((value) => (
+                <option key={value} value={value}>{shipStatuses[value]}</option>
+              ))}
+            </SelectField>
+          )
+        ) : (
+          <SelectField label="Trạng thái mới" value={status} disabled={mutation.busy} onChange={(value) => { setStatus(value); mutation.clear() }}>
+            {Object.entries(cabinStatuses).filter(([value]) => value !== 'OCCUPIED' || status === 'OCCUPIED').map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </SelectField>
+        ))}
         {operation === 'block' && <><SelectField label="Trạng thái khóa" value={reasonStatus} disabled={mutation.busy} onChange={(value) => { setReasonStatus(value as typeof reasonStatus); mutation.clear() }}><option value="MAINTENANCE">Bảo trì</option><option value="OUT_OF_SERVICE">Ngừng phục vụ</option></SelectField><Notice title="Xác nhận khóa cabin" tone="warning">Khóa cabin sẵn sàng sang trạng thái đã chọn. Hệ thống sẽ kiểm tra điều kiện trước khi cập nhật.</Notice></>}
         {operation === 'release' && <Notice title="Xác nhận mở cabin" tone="warning">Cabin sẽ được chuyển về trạng thái Sẵn sàng nếu hệ thống cho phép.</Notice>}
       </>}
       {mutation.error && <Notice title="Thao tác chưa hoàn tất" tone="error">{fleetError(mutation.error)}{missing.length > 0 && <ul>{missing.map(group => <li key={group}>{group}</li>)}</ul>}</Notice>}
       <div className={styles.actions}>
-        <Button disabled={!permitted || mutation.busy || shipChoicesUnavailable || (operation === 'status' && 'status' in item && status === item.status)} onClick={() => isCheck ? void check() : confirm()}>
+        <Button disabled={!permitted || mutation.busy || shipChoicesUnavailable || (operation === 'status' && (isShip ? allowedNextShipStatuses.length === 0 : 'status' in item && status === item.status))} onClick={() => isCheck ? void check() : confirm()}>
           {mutation.busy ? 'Đang xử lý…' : isCheck ? results.length || cruises || mutation.error ? 'Kiểm tra lại' : 'Kiểm tra' : 'Xác nhận'}
         </Button>
         <Button tone="secondary" disabled={mutation.busy} onClick={onClose}>{isCheck ? 'Đóng' : 'Hủy'}</Button>

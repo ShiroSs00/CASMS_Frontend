@@ -25,12 +25,13 @@
 .notice_success { background:#eaf6ef; }
 .notice_warning { background:#fff4dd; }
 .notice_error { background:#fff0ef; }
-.badge { display:inline-flex; align-items:center; min-height:28px; padding:4px 10px; border-radius:14px; font-size:12px; font-weight:600; line-height:18px; white-space:nowrap; }
-.badge_neutral { background:#eef1f3; color:var(--text-secondary); }
-.badge_success { background:#eaf6ef; color:#166345; }
-.badge_warning { background:#fff4dd; color:#805500; }
-.badge_info { background:#eaf3ff; color:#185abd; }
-.badge_error { background:#fff0ef; color:#b42318; }
+.badge { display:inline-flex; align-items:center; gap:6px; min-height:30px; padding:4px 12px; border:1px solid transparent; border-radius:999px; font-size:12.5px; font-weight:600; line-height:18px; letter-spacing:.01em; white-space:nowrap; }
+.badge::before { content:''; width:7px; height:7px; border-radius:50%; background:currentColor; flex:none; }
+.badge_neutral { background:#e6edf2; border-color:#9fb2bf; color:var(--brand-navy,#0b2a4a); }
+.badge_success { background:#e6f6ed; border-color:#8cc8a7; color:#115e3b; }
+.badge_warning { background:#fff3d6; border-color:#e2b857; color:#7a4f00; }
+.badge_info { background:#e5f1ff; border-color:#7fb2f0; color:#0f4c92; }
+.badge_error { background:#fdeceb; border-color:#e6a39e; color:#a61c12; }
 .tableScroll { width:100%; overflow-x:auto; }
 .table { width:100%; min-width:100%; border-collapse:collapse; text-align:left; }
 .table thead th { padding:12px 10px; background:#f5f7f9; color:var(--text-secondary); font-size:12px; font-weight:600; line-height:18px; }
