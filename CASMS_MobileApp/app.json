@@ -52,7 +52,8 @@
       "expo-status-bar",
       "expo-web-browser",
       "expo-font",
-      "./plugins/withNfcAndroidSdk.cjs"
+      "./plugins/withNfcAndroidSdk.cjs",
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true,
