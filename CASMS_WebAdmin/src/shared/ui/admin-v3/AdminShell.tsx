@@ -67,9 +67,10 @@ export function AdminShell({ children, className = '', topbar, contextNavigation
   let activeTo = pathname.startsWith('/admin/staff/') ? pathname : pathname.split('/').slice(0,3).join('/')
   if (creatingCruise) activeTo = ''
   else if (pathname.includes('/regulations')) activeTo = pathname.startsWith('/admin/cruises/') ? '/admin/cruises' : pathname.startsWith('/admin/ships/') ? '/admin/ships' : '/admin/regulations'
-  else if (pathname.startsWith('/admin/itinerary-history')) activeTo = '/admin/cruises'
+  else if (pathname.startsWith('/admin/itinerary-history')) activeTo = '/admin/itinerary-history'
   else if (pathname.startsWith('/admin/activity-registrations')) activeTo = '/admin/activity-registrations'
   const currentGroups = roleNavigationGroups(roles,access)
+  if(activeTo==='/admin/itinerary-history'&&!currentGroups.some(group=>group.items.some(item=>item.to==='/admin/itinerary-history'))) activeTo='/admin/cruises'
   if(activeTo==='/admin/cabins'&&currentGroups.some(group=>group.items.some(item=>item.to==='/admin/decks'&&item.label==='Boong và phòng'))) activeTo='/admin/decks'
   const activeLabel = creatingCruise ? 'Tạo chuyến khởi hành' : currentGroups.flatMap(group => group.items).find(item => item.to === activeTo)?.label
   const query = navigationQuery.trim().toLocaleLowerCase('vi-VN')
