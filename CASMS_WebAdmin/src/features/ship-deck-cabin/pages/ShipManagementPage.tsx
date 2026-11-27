@@ -75,8 +75,8 @@ function ShipManagementContent({ id }: { id: string }) {
           {access.canDo('SHIP_REGULATION_READ') && <ButtonLink tone="secondary" to={`/admin/ships/${id}/regulations`}>Quy định áp dụng</ButtonLink>}
           {!archived && manager && !admin && ship.status === 'DRAFT' && access.canDo('SHIP_ARCHIVE') && <ShipArchiveAction ship={ship} />}
           {!archived && access.canDo('SHIP_STATUS_CHANGE')&&<Button tone="secondary" autoWidth disabled={query.loading} onClick={()=>setDialog({type:'operation',kind:'ships',item:ship,operation:'status'})}>Cập nhật trạng thái</Button>}
-          {!archived && manager && ship.shipTypeId && !access.canDo('SHIP_UPDATE') && <Button autoWidth onClick={() => setRenaming(true)}>Đổi tên tàu</Button>}
-          {!archived && access.canDo('SHIP_UPDATE')&&<Button autoWidth disabled={query.loading} onClick={()=>{setSaved('');setDialog({type:'edit',target:{kind:'ships',item:ship}})}}>Chỉnh sửa thông tin</Button>}
+          {!archived && manager && ship.shipTypeId && !access.canDo('SHIP_UPDATE') && <Button autoWidth onClick={() => setRenaming(true)}>Sửa tên tàu</Button>}
+          {!archived && access.canDo('SHIP_UPDATE')&&<Button autoWidth disabled={query.loading} onClick={()=>{setSaved('');setDialog({type:'edit',target:{kind:'ships',item:ship}})}}>{ship.shipTypeId ? 'Sửa tên tàu' : 'Chỉnh sửa thông tin'}</Button>}
         </div>
       </div>
       <div className={styles.detailIdentity}><div><span>{ship.code}</span><h1>{ship.name}</h1></div>{archived ? <Badge label="Đã lưu trữ" /> : <StatusBadge status={ship.status}/>}</div>

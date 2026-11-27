@@ -21,8 +21,8 @@ const titles: Record<Operation, string> = {
 }
 const allowedShipTransitions: Record<ShipStatus, ShipStatus[]> = {
   DRAFT: ['READY'],
-  READY: ['MAINTENANCE', 'SUSPENDED'],
-  IN_SERVICE: ['MAINTENANCE', 'SUSPENDED'],
+  READY: ['IN_SERVICE', 'MAINTENANCE', 'SUSPENDED'],
+  IN_SERVICE: ['READY', 'MAINTENANCE', 'SUSPENDED'],
   MAINTENANCE: ['READY', 'SUSPENDED'],
   SUSPENDED: ['READY', 'MAINTENANCE'],
   RETIRED: [],

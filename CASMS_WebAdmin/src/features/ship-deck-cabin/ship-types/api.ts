@@ -25,6 +25,7 @@ export type EditableProfile = {
   registrationCountry?: string
   registrationNumber?: string
   classificationSociety?: string
+  classificationDate?: string
   classificationExpiryDate?: string
   certificateReferences?: string[]
   warrantyReferences?: string[]

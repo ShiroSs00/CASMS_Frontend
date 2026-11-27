@@ -47,9 +47,10 @@ function isPresetSociety(value: string) {
   return (CLASSIFICATION_SOCIETIES as readonly string[]).includes(value)
 }
 
-export function ProfileFields({ draft, errors, disabled, onChange, onBlur, grouped = false }: {
+export function ProfileFields({ draft, errors, disabled, onChange, onBlur, grouped = false, required = false }: {
   draft: ProfileDraft; errors: ProfileErrors; disabled?: boolean
   grouped?: boolean
+  required?: boolean
   onChange: (key: ProfileKey, value: string) => void
   onBlur: (key: ProfileKey) => void
 }) {
@@ -68,8 +69,9 @@ export function ProfileFields({ draft, errors, disabled, onChange, onBlur, group
         const id = prefix + '-' + field.key
         const kind = 'kind' in field ? field.kind : 'text'
         const currentValue = draft[field.key] ?? ''
+        const fieldLabel = required ? `${field.label} *` : field.label
         const props = {
-          id, value: currentValue, disabled,
+          id, value: currentValue, disabled, required,
           onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => onChange(field.key, event.target.value),
           onBlur: () => onBlur(field.key),
           'aria-describedby': grouped ? `${prefix}-group-${groupIndex}` : undefined,
@@ -79,12 +81,13 @@ export function ProfileFields({ draft, errors, disabled, onChange, onBlur, group
           const selectVal = customSocietyMode
             ? OTHER_CLASSIFICATION_VALUE
             : isPresetSociety(currentValue) ? currentValue : ''
-          return <Field key={field.key} htmlFor={id} label={field.label} error={errors[field.key]} hint={field.hint}>
+          return <Field key={field.key} htmlFor={id} label={fieldLabel} error={errors[field.key]} hint={field.hint}>
             <>
               <select
                 id={id}
                 value={selectVal}
                 disabled={disabled}
+                required={required}
                 aria-describedby={grouped ? `${prefix}-group-${groupIndex}` : undefined}
                 onChange={event => {
                   const chosen = event.target.value
@@ -110,6 +113,7 @@ export function ProfileFields({ draft, errors, disabled, onChange, onBlur, group
                   type="text"
                   maxLength={150}
                   disabled={disabled}
+                  required={required}
                   placeholder="Nhập tên tổ chức đăng kiểm (2–150 ký tự)"
                   value={currentValue === OTHER_CLASSIFICATION_VALUE ? '' : currentValue}
                   onChange={event => onChange('classificationSociety', event.target.value || OTHER_CLASSIFICATION_VALUE)}
@@ -121,7 +125,7 @@ export function ProfileFields({ draft, errors, disabled, onChange, onBlur, group
           </Field>
         }
 
-        return <Field key={field.key} htmlFor={id} label={field.label} error={errors[field.key]}
+        return <Field key={field.key} htmlFor={id} label={fieldLabel} error={errors[field.key]}
           hint={kind === 'references' ? grouped ? undefined : 'Mỗi tham chiếu trên một dòng, không trùng lặp (tối đa 255 ký tự).' : 'hint' in field ? field.hint : undefined}>
           {field.key === 'registrationCountry' ? (
             <select {...props}>
