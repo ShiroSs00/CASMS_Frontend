@@ -27,7 +27,8 @@ export const profileGroups = [
     { key: 'registrationCountry', label: 'Quốc gia đăng ký', max: 2, hint: 'Chọn quốc gia đăng ký tàu (quốc kỳ, chuẩn ISO 3166-1 alpha-2).' },
     { key: 'registrationNumber', label: 'Số đăng ký', max: 50, hint: 'Tối đa 50 ký tự, cho phép chữ, số và dấu phân cách (ví dụ: BS-2025-00128).' },
     { key: 'classificationSociety', label: 'Tổ chức đăng kiểm', max: 150, hint: 'Chọn tổ chức đăng kiểm từ danh mục hoặc chọn Khác để nhập tên (2–150 ký tự).' },
-    { key: 'classificationExpiryDate', label: 'Ngày hết hạn đăng kiểm', kind: 'date', hint: 'Cần còn hiệu lực đến hết thời gian chuyến đi (ExpiryDate ≥ CruiseEndDate).' },
+    { key: 'classificationDate', label: 'Ngày đăng kiểm', kind: 'date', hint: 'Ngày thực hiện đăng kiểm gần nhất (không ở tương lai).' },
+    { key: 'classificationExpiryDate', label: 'Ngày hết hạn đăng kiểm', kind: 'date', hint: 'Phải sau ngày đăng kiểm và còn hiệu lực đến hết thời gian chuyến đi (ExpiryDate ≥ CruiseEndDate).' },
   ] },
   { title: 'Tham chiếu hồ sơ', fields: [
     { key: 'certificateReferences', label: 'Chứng nhận', kind: 'references' },
@@ -65,7 +66,21 @@ export function isClassificationExpired(expiryDate?: string): boolean {
   return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value) && value < localDate())
 }
 
-export function validateProfile(draft: ProfileDraft): ProfileErrors {
+const requiredFieldMessages: Record<ProfileKey, string> = {
+  deliveryDate: 'Vui lòng nhập ngày bàn giao.',
+  imoNumber: 'Vui lòng nhập số IMO (7 chữ số hợp lệ).',
+  registrationCountry: 'Vui lòng chọn quốc gia đăng ký.',
+  registrationNumber: 'Vui lòng nhập số đăng ký tàu.',
+  classificationSociety: 'Vui lòng chọn hoặc nhập tổ chức đăng kiểm.',
+  classificationDate: 'Vui lòng nhập ngày đăng kiểm.',
+  classificationExpiryDate: 'Vui lòng nhập ngày hết hạn đăng kiểm.',
+  certificateReferences: 'Vui lòng nhập ít nhất một tham chiếu chứng nhận.',
+  warrantyReferences: 'Vui lòng nhập ít nhất một tham chiếu bảo hành.',
+  maintenanceReferences: 'Vui lòng nhập ít nhất một tham chiếu bảo trì và sửa chữa.',
+}
+
+export function validateProfile(draft: ProfileDraft, options?: { requireAll?: boolean }): ProfileErrors {
+  const requireAll = Boolean(options?.requireAll)
   const errors: ProfileErrors = {}
   for (const { fields } of profileGroups) for (const field of fields) {
     const raw = draft[field.key] ?? ''
@@ -73,6 +88,8 @@ export function validateProfile(draft: ProfileDraft): ProfileErrors {
     if (!value) {
       if (raw.length > 0 && (field.key === 'registrationNumber' || field.key === 'classificationSociety')) {
         errors[field.key] = 'Không được chỉ nhập khoảng trắng.'
+      } else if (requireAll) {
+        errors[field.key] = requiredFieldMessages[field.key]
       }
       continue
     }
@@ -128,12 +145,19 @@ export function validateProfile(draft: ProfileDraft): ProfileErrors {
   }
 
   const delivery = draft.deliveryDate?.trim()
+  const classificationDate = draft.classificationDate?.trim()
   const expiry = draft.classificationExpiryDate?.trim()
   if (delivery && delivery > localDate()) {
     errors.deliveryDate = 'Ngày bàn giao không được ở tương lai.'
   }
+  if (classificationDate && classificationDate > localDate()) {
+    errors.classificationDate = 'Ngày đăng kiểm không được ở tương lai.'
+  }
   if (delivery && expiry && expiry < delivery) {
     errors.classificationExpiryDate = 'Ngày hết hạn đăng kiểm không được trước ngày bàn giao.'
+  }
+  if (classificationDate && expiry && expiry <= classificationDate) {
+    errors.classificationExpiryDate = 'Ngày hết hạn đăng kiểm phải sau ngày đăng kiểm.'
   }
 
   return errors

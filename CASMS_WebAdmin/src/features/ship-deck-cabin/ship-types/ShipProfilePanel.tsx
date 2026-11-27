@@ -106,7 +106,7 @@ export function ShipRenameDialog({ id, initial, onClose }: { id: string; initial
     }
   }
   return <Modal
-    title="Đổi tên tàu"
+    title="Sửa tên tàu"
     busy={busy}
     onClose={() => { if (!busy) onClose() }}
     footer={<>

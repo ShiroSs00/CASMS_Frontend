@@ -52,7 +52,6 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
   const [selected, setSelected] = useState<ShipType | null>(initial)
   const [name, setName] = useState('')
   const [profile, setProfile] = useState<ProfileDraft>({})
-  const [profileExpanded, setProfileExpanded] = useState(false)
   const [errors, setErrors] = useState<ReturnType<typeof validateProfile> & { shipName?: string }>({})
   const [failure, setFailure] = useState<unknown>(null)
   const [notice, setNotice] = useState(initialError ?? '')
@@ -100,6 +99,7 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
   }
 
   const payload = profilePayload(profile)
+  const isFormValid = Boolean(name.trim() && name.trim().length <= 100 && Object.keys(validateProfile(profile)).length === 0)
   return <div className={`${styles.stack} ${styles.designPage}`}>
     <PageHeader title="Thêm tàu" breadcrumb="Quản lý tàu / Thêm tàu"
       description=""
@@ -113,7 +113,7 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
       <ol className={`${styles.designSteps} ${styles.provisionSteps}`} aria-label="Tiến độ tạo tàu">
         {[
           ['Chọn loại tàu', 'Chọn thông số có sẵn'],
-          ['Thông tin tàu', 'Đặt tên và bổ sung hồ sơ'],
+          ['Thông tin tàu', 'Tên tàu và hồ sơ vận hành'],
           ['Xác nhận tạo tàu', 'Kiểm tra trước khi tạo'],
         ].map(([label, hint], index) => <li key={label} aria-current={step === index ? 'step' : undefined} data-complete={index < step}>
           <span aria-hidden="true">{index + 1}</span><div><strong>{label}</strong><small>{index < step ? 'Đã hoàn tất' : hint}</small></div>
@@ -123,20 +123,19 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
         <div className={styles.workflowHeading}><h2 id="provision-step-heading" ref={headingRef} tabIndex={-1}>Chọn loại tàu</h2>
           <p>Chọn một loại tàu đang sử dụng. Cùng một loại tàu có thể tạo nhiều tàu riêng biệt.</p></div>
         <TypePicker selected={selected} onSelect={setSelected} />
-        {selected && <details className={styles.selectedTypeFacts}><summary>Thông số loại tàu: {selected.name}</summary><DesignFacts type={selected} /></details>}
+        {selected && <section className={styles.selectedTypeFacts}><h3>Thông số loại tàu: {selected.name}</h3><DesignFacts type={selected} /></section>}
         <div className={styles.workflowActions}><p role="status">{selected?.status === 'INACTIVE' ? 'Loại tàu đã ngừng sử dụng. Hãy chọn loại khác.' : selected ? <>Đã chọn <strong>{selected.name}</strong> ({selected.code})</> : 'Chọn một loại tàu để tiếp tục.'}</p>
           <Button disabled={!selected || selected.status !== 'ACTIVE'} onClick={() => move(1)}>Tiếp tục: Thông tin tàu</Button></div>
       </section>}
       {step === 1 && <section className={styles.workflowSection} aria-labelledby="provision-step-heading">
         <div className={styles.workflowHeading}><h2 id="provision-step-heading" ref={headingRef} tabIndex={-1}>Thông tin tàu</h2>
-          <p>Đặt tên riêng cho tàu. Hồ sơ vận hành có thể bổ sung sau.</p></div>
+          <p>Đặt tên riêng cho tàu. Hồ sơ vận hành có thể điền ngay hoặc bổ sung sau khi tạo.</p></div>
         <form className={styles.provisionForm} ref={formRef} noValidate onSubmit={event => {
           event.preventDefault()
           const validation = { ...validateProfile(profile), ...(!name.trim() || name.trim().length > 100
             ? { shipName: 'Nhập tên riêng của tàu, tối đa 100 ký tự.' } : {}) }
           setErrors(validation)
           if (Object.keys(validation).length) {
-            if (Object.keys(validation).some(key => key !== 'shipName')) setProfileExpanded(true)
             requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus())
           }
           else move(2)
@@ -148,13 +147,13 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
             </Field>
             <div className={styles.provisionTypeSummary}><dl><dt>Loại tàu đã chọn</dt><dd>{selected?.name}</dd></dl><p>Mã tàu được cấp tự động khi tạo.</p></div>
           </div>
-          <details className={styles.provisionProfileDetails} open={profileExpanded} onToggle={event => setProfileExpanded(event.currentTarget.open)}>
-            <summary><h3>Hồ sơ vận hành <span>(không bắt buộc khi tạo bản nháp)</span></h3></summary>
-            <p>Điền thông tin đang có hoặc bổ sung sau khi tạo tàu. Lưu ý: cần hoàn thiện Hồ sơ vận hành (đăng kiểm, chứng nhận, bảo hành, bảo trì) trước khi chuyển tàu sang trạng thái Sẵn sàng khai thác.</p>
+          <section className={styles.provisionProfileDetails} aria-labelledby="provision-profile-heading">
+            <h3 id="provision-profile-heading">Hồ sơ vận hành <span>(không bắt buộc khi tạo bản nháp)</span></h3>
+            <p>Điền thông tin đang có hoặc bổ sung sau khi tạo tàu. Lưu ý: cần hoàn thiện Hồ sơ vận hành (đăng kiểm, chứng nhận, bảo hành, bảo trì) trước khi chuyển tàu sang trạng thái Sẵn sàng hoạt động.</p>
             <div className={styles.provisionProfileGroups}><ProfileFields grouped draft={profile} errors={errors}
               onChange={(key, value) => { setProfile(current => ({ ...current, [key]: value })); setErrors(current => ({ ...current, [key]: undefined })) }}
               onBlur={key => setErrors(current => ({ ...current, [key]: validateProfile(profile)[key] }))} /></div>
-          </details>
+          </section>
           <div className={styles.workflowActions}><Button tone="secondary" onClick={() => move(0)}>Quay lại: Chọn loại tàu</Button>
             <div className={styles.provisionNextAction}><p>Bạn sẽ kiểm tra lại thông tin ở bước tiếp theo.</p><Button type="submit" autoWidth>Tiếp tục: Xác nhận</Button></div>
           </div>
@@ -167,15 +166,18 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
           <div><dt>Loại tàu</dt><dd>{selected.name}</dd></div>
           <div><dt>Trạng thái khi tạo</dt><dd>Bản nháp</dd></div>
         </dl>
-        <details className={styles.selectedTypeFacts}><summary>Thông số loại tàu: {selected.name}</summary><DesignFacts type={selected} /></details>
+        <section className={styles.selectedTypeFacts}><h3>Thông số loại tàu: {selected.name}</h3><DesignFacts type={selected} /></section>
         <h3>Hồ sơ vận hành</h3>
         {Object.keys(payload).length ? <div className={styles.confirmationProfile}><ProfileFacts profile={payload} onlyProvided /></div> : <p>Hồ sơ sẽ được bổ sung sau.</p>}
         <div className={styles.workflowActions}>
-          <Button tone="secondary" disabled={Boolean(busy)} onClick={() => move(1)}>Sửa thông tin</Button>
-          <Button busy={Boolean(busy)} onClick={() => confirm({
-            typeId: selected.shipTypeId, key: crypto.randomUUID(),
-            payload: { shipName: name.trim(), profile: Object.keys(payload).length ? payload : null },
-          })}>{busy || 'Xác nhận tạo tàu'}</Button>
+          <Button tone="secondary" disabled={Boolean(busy)} onClick={() => move(1)}>Quay lại: Thông tin tàu</Button>
+          <Button busy={Boolean(busy)} disabled={!isFormValid} onClick={() => {
+            if (!isFormValid) { move(1); return }
+            confirm({
+              typeId: selected.shipTypeId, key: crypto.randomUUID(),
+              payload: { shipName: name.trim(), profile: Object.keys(payload).length ? payload : null },
+            })
+          }}>{busy || 'Xác nhận tạo tàu'}</Button>
         </div>
       </section>}
     </>
