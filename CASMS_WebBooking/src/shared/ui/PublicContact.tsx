@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router'
 import styles from './PublicContact.module.css'
 
-const projectContact = { email: 'ocevie.lucky88@gmail.com' }
+const projectContact = { email: (import.meta.env.VITE_SUPPORT_EMAIL as string | undefined)?.trim() || 'support@ocevie.vn' }
 
 export function PublicContact({ variant = 'button', id = 'project-contact' }: { variant?: 'nav' | 'button'; id?: string }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(() => id === 'header-contact' && typeof window !== 'undefined' && window.location.hash === '#header-contact')
   const root = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
 
@@ -16,7 +17,6 @@ export function PublicContact({ variant = 'button', id = 'project-contact' }: { 
     }
     window.addEventListener('ocevie:open-contact', openFromTrigger)
     window.addEventListener('hashchange', onHash)
-    if (window.location.hash === '#header-contact') setOpen(true)
     return () => {
       window.removeEventListener('ocevie:open-contact', openFromTrigger)
       window.removeEventListener('hashchange', onHash)
@@ -89,13 +89,13 @@ export function PublicContact({ variant = 'button', id = 'project-contact' }: { 
             </svg>
           </a>
 
-          <a href="/booking/lookup" className={styles.modalChatBtn} onClick={() => setOpen(false)}>
+          <Link to="/booking/lookup" className={styles.modalChatBtn} onClick={() => setOpen(false)}>
             <span>Tra cứu mã đặt chỗ trực tuyến</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="8"/>
               <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-          </a>
+          </Link>
         </div>
 
         <div className={styles.modalFooterNote}>

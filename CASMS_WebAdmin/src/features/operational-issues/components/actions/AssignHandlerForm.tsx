@@ -37,13 +37,13 @@ export function AssignHandlerForm({ open, currentHandlerId, pending, error, onCl
             onClick={() => void onSubmit(handlerId).then((ok) => ok && onClose())}
             type="button"
           >
-            {pending ? 'Đang cập nhật…' : 'Assign handler'}
+            {pending ? 'Đang cập nhật…' : 'Phân công người xử lý'}
           </button>
         </>
       }
     >
       <label className={styles.field}>
-        Team / người phụ trách
+        Đội / người phụ trách *
         <select value={selected ? handlerId : ''} disabled={pending || handlers.loading || !!handlers.error} onChange={(event) => setHandlerId(event.target.value)}>
           <option value="">{handlers.loading ? 'Đang tải người xử lý…' : 'Chọn người xử lý'}</option>
           {handlers.options.map((handler) => <option key={handler.id} value={handler.id}>{handler.label}{handler.capability ? ` — ${handler.capability}` : ''}</option>)}

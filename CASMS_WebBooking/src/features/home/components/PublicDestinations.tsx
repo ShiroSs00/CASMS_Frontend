@@ -23,9 +23,10 @@ function DestinationCard({ destination }: { destination: PublicDestination }) {
   }
 
   const [imgSrc, setImgSrc] = useState(effectivePhoto.src)
+  const searchLink = `/cruises?q=${encodeURIComponent(destination.destinationName)}`
 
   return <article className={styles.card}>
-    <div className={styles.photo}>
+    <Link to={searchLink} className={styles.photo} aria-label={`Xem hành trình tại ${destination.destinationName}`}>
       <img
         src={imgSrc}
         alt={effectivePhoto.alt}
@@ -35,12 +36,13 @@ function DestinationCard({ destination }: { destination: PublicDestination }) {
         onError={() => setImgSrc('/images/ports/ha-long-bay.webp')}
       />
       <span>{effectivePhoto.portLabel}</span>
-    </div>
+    </Link>
     <div className={styles.copy}>
       <span className={styles.country}>{countries.of(destination.countryCode) ?? destination.countryCode}</span>
-      <h3>{destination.destinationName}</h3>
+      <h3><Link to={searchLink} className={styles.cardTitleLink}>{destination.destinationName}</Link></h3>
       {destination.description && <p>{destination.description}</p>}
       {destination.ports.length > 0 && <div className={styles.ports}><strong>Cảng tại điểm đến</strong><ul>{destination.ports.map((port,index) => <li key={`${port.portName}-${index}`}>{port.portName}</li>)}</ul></div>}
+      <Link to={searchLink} className={styles.cardAction}>Tìm hành trình liên quan <span aria-hidden="true">→</span></Link>
     </div>
   </article>
 }

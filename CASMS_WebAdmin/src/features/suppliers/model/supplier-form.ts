@@ -22,9 +22,9 @@ export const emptySupplierForm: SupplierFormValues = {
 // Matches SupplierRequest; workflow fields deliberately stay outside the form.
 export const supplierFormFields = {
   supplierName: { label: 'Tên nhà cung cấp', placeholder: 'Nhập tên nhà cung cấp', type: 'text', required: true, max: 250 },
-  supplierType: { label: 'Loại nhà cung cấp', placeholder: 'Ví dụ: Local Tour Operator', type: 'text', required: false, max: 100 },
+  supplierType: { label: 'Loại nhà cung cấp', placeholder: 'Chọn loại nhà cung cấp', type: 'text', required: false, max: 100 },
   contactName: { label: 'Tên liên hệ', placeholder: 'Nhập tên liên hệ', type: 'text', required: true, max: 200 },
-  contactPhone: { label: 'Điện thoại', placeholder: 'Số điện thoại', type: 'tel', required: false, max: 50 },
+  contactPhone: { label: 'Điện thoại', placeholder: 'Ví dụ: 0912 345 678', type: 'tel', required: false, max: 50 },
   contactEmail: { label: 'Email', placeholder: 'name@example.com', type: 'email', required: false, max: 255 },
   notes: { label: 'Ghi chú', placeholder: 'Thông tin nội bộ cho đội vận hành…', required: false, max: 1000 },
 } as const
@@ -34,9 +34,10 @@ export const supplierFormFieldOrder: SupplierFormField[] = [
 ]
 
 export function supplierToForm(supplier: SupplierListItem & { notes?: string | null }): SupplierFormValues {
+  const rawType = (supplier.supplierType ?? '').trim()
   return {
     supplierName: supplier.supplierName,
-    supplierType: supplier.supplierType ?? '',
+    supplierType: rawType === 'Chưa phân loại' ? '' : rawType,
     contactName: supplier.contactName ?? '',
     contactPhone: supplier.contactPhone ?? '',
     contactEmail: supplier.contactEmail ?? '',
@@ -52,8 +53,15 @@ export function validateSupplierForm(values: SupplierFormValues): SupplierFormEr
     if (rule.required && !value.trim()) errors[field] = `Vui lòng nhập ${rule.label.toLowerCase()}.`
     else if (value.length > rule.max) errors[field] = `${rule.label} không được vượt quá ${rule.max} ký tự.`
   }
-  if (!errors.contactEmail && values.contactEmail !== ''
-    && !emailPattern.test(values.contactEmail)) {
+  const trimmedPhone = values.contactPhone.trim()
+  if (!errors.contactPhone && trimmedPhone !== '') {
+    const digits = trimmedPhone.replace(/\D/g, '')
+    if (!/^[+]?[0-9\s().-]{8,20}$/.test(trimmedPhone) || digits.length < 8 || digits.length > 15) {
+      errors.contactPhone = 'Số điện thoại không đúng định dạng (8–15 chữ số).'
+    }
+  }
+  const trimmedEmail = values.contactEmail.trim()
+  if (!errors.contactEmail && trimmedEmail !== '' && !emailPattern.test(trimmedEmail)) {
     errors.contactEmail = 'Email không đúng định dạng.'
   }
   return errors

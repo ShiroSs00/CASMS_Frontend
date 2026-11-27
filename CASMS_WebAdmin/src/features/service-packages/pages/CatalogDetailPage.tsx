@@ -39,7 +39,35 @@ function PackageBenefits({ id, showComponents = true }: { id: string; showCompon
     </DataTable>}
   </>}</Panel>
 }
-export function CatalogDetail({ kind, recordId, embedded = false }: { kind: CatalogKind; recordId?: string; embedded?: boolean }) {
+const serviceCategoryLabelsVi: Record<string, string> = {
+  'beverage': 'Đồ uống',
+  'cabin services': 'Dịch vụ cabin',
+  'dining': 'Ẩm thực',
+  'entertainment and activities': 'Giải trí & Hoạt động',
+  'entertainment': 'Giải trí',
+  'food & beverage': 'Ẩm thực & Đồ uống',
+  'internet': 'Internet & Kết nối',
+  'internet and connectivity': 'Internet & Kết nối',
+  'connectivity': 'Internet & Kết nối',
+  'kids & family': 'Trẻ em & Gia đình',
+  'childcare & family': 'Trẻ em & Gia đình',
+  'childcare and family': 'Trẻ em & Gia đình',
+  'laundry': 'Giặt là',
+  'medical': 'Y tế',
+  'medical assistance': 'Hỗ trợ y tế',
+  'photography': 'Nhiếp ảnh',
+  'retail': 'Mua sắm',
+  'shopping and retail': 'Mua sắm & Bán lẻ',
+  'shore excursion': 'Tham quan bờ',
+  'shore excursions': 'Tour tham quan bờ',
+  'spa & wellness': 'Spa & Chăm sóc sức khỏe',
+  'spa and wellness': 'Spa & Chăm sóc sức khỏe',
+  'transportation': 'Đưa đón',
+  'wellness': 'Chăm sóc sức khỏe',
+}
+const localizeCategoryName = (name?: string | null) => name ? (serviceCategoryLabelsVi[name.trim().toLowerCase()] ?? formatCatalogType(name)) : 'Chưa chọn nhóm'
+
+export function CatalogDetail({ kind, recordId, embedded = false, onDeleted }: { kind: CatalogKind; recordId?: string; embedded?: boolean; onDeleted?: () => void }) {
   const params = useParams(), id = recordId ?? params.id ?? '', config = catalogConfig[kind]
   const Frame = embedded ? Fragment : CatalogFrame
   const [benefitsVersion, setBenefitsVersion] = useState(0)
@@ -48,11 +76,11 @@ export function CatalogDetail({ kind, recordId, embedded = false }: { kind: Cata
   const back=canRoleOpenAdminPath(roles,config.route,'',access)?config.route:staffRoleHome(roles,access)??'/admin'
   const query = useReadQuery(access.userId + ':' + kind + ':' + id, useCallback(signal => servicePackageApi.get(kind, id, signal), [kind, id]))
   const item = query.data
-  return <Frame>{!embedded && <Link className={styles.backLink} to={back}>← {back === config.route ? config.label : 'Về trang quản lý'}</Link>}{!embedded ? <PageHeader breadcrumb={'DỊCH VỤ TÀU / ' + config.label.toLocaleUpperCase('vi')} title={item?.name ?? 'Chi tiết ' + config.label.toLocaleLowerCase('vi')}  actions={item && <div className={styles.detailToolbar}><div className={styles.recordStatus}><span>Trạng thái</span><Badge label={statusLabels[item.status] ?? item.status} tone={item.status === 'ACTIVE' ? 'success' : 'neutral'} /></div><CatalogActions kind={kind} item={item} onChanged={query.retry} /></div>} /> : item && <div className={styles.detailToolbar}><Badge label={statusLabels[item.status] ?? item.status} tone={item.status === 'ACTIVE' ? 'success' : 'neutral'} /><CatalogActions kind={kind} item={item} onChanged={query.retry} /></div>}<CatalogState {...query} />
+  return <Frame>{!embedded && <Link className={styles.backLink} to={back}>← {back === config.route ? config.label : 'Về trang quản lý'}</Link>}{!embedded ? <PageHeader breadcrumb={'DỊCH VỤ TÀU / ' + config.label.toLocaleUpperCase('vi')} title={item?.name ?? 'Chi tiết ' + config.label.toLocaleLowerCase('vi')}  actions={item && <div className={styles.detailToolbar}><div className={styles.recordStatus}><span>Trạng thái</span><Badge label={statusLabels[item.status] ?? item.status} tone={item.status === 'ACTIVE' ? 'success' : 'neutral'} /></div><CatalogActions kind={kind} item={item} onChanged={query.retry} onDeleted={onDeleted} /></div>} /> : item && <div className={styles.detailToolbar}><Badge label={statusLabels[item.status] ?? item.status} tone={item.status === 'ACTIVE' ? 'success' : 'neutral'} /><CatalogActions kind={kind} item={item} onChanged={query.retry} onDeleted={onDeleted} /></div>}<CatalogState {...query} />
     {item && <><Panel title="Thông tin chi tiết"><RecordFacts entries={[
       ['Mã', item.code], ['Loại', formatCatalogType(item.type)],
       ['Giá', item.price == null ? 'Chưa cấu hình' : `${item.price.toLocaleString('vi-VN')} ${item.currency ?? ''}`],
-      ...(kind === 'services' ? [['Sức chứa cấu hình', item.capacity ?? 'Chưa cấu hình'] as const,['Nhân viên phục vụ mặc định', `${item.defaultRequiredStaff ?? 1} nhân viên`] as const,['Lịch đặt trước',item.requiresSchedule===true?'Bắt buộc':item.requiresSchedule===false?'Không bắt buộc':'Chưa xác định'] as const,['Nhóm dịch vụ',item.categoryName??'Chưa chọn nhóm'] as const,['Đơn vị phục vụ',formatUnitCode(item.unitCode) || 'Chưa cấu hình'] as const] : []),
+      ...(kind === 'services' ? [['Sức chứa cấu hình', item.capacity ?? 'Chưa cấu hình'] as const,['Nhân viên phục vụ mặc định', `${item.defaultRequiredStaff ?? 1} nhân viên`] as const,['Lịch đặt trước',item.requiresSchedule===true?'Bắt buộc':item.requiresSchedule===false?'Không bắt buộc':'Chưa xác định'] as const,['Nhóm dịch vụ',localizeCategoryName(item.categoryName)] as const,['Đơn vị phục vụ',formatUnitCode(item.unitCode) || 'Chưa cấu hình'] as const] : []),
       ...(kind === 'services' ? [
         ...(Object.keys(servicePurchaseFlags) as (keyof typeof servicePurchaseFlags)[]).map(key =>
           [servicePurchaseFlags[key], item[key] == null ? 'Chưa xác định' : item[key] ? 'Có' : 'Không'] as const),
@@ -78,7 +106,7 @@ export function ServiceRequestDetailPage() {
   return <CatalogFrame><Link className={styles.backLink} to="/admin/service-requests">← Yêu cầu dịch vụ</Link><PageHeader breadcrumb="DỊCH VỤ TÀU / YÊU CẦU" title="Chi tiết yêu cầu dịch vụ"  /><CatalogState {...query} />
     {request && <><ServiceRequestActions key={request.id} request={request} onChanged={query.retry} /><Panel title="Thông tin yêu cầu"><RecordFacts entries={[
       ['Trạng thái', statusLabels[request.status] ?? request.status], ['Số lượng', request.quantity],
-      ['Giá tham chiếu danh mục', request.unitPriceSnapshot != null && request.currencySnapshot ? `${request.unitPriceSnapshot} ${request.currencySnapshot}` : 'Chưa ghi nhận'],
+      ['Giá tham chiếu danh mục', request.unitPriceSnapshot != null && request.currencySnapshot ? `${Number(request.unitPriceSnapshot).toLocaleString('vi-VN')} ${request.currencySnapshot}` : 'Chưa ghi nhận'],
       ['Kênh sử dụng', request.usageMode === 'PRE_CRUISE' ? 'Trước chuyến' : request.usageMode === 'ONBOARD' ? 'Trên tàu' : 'Yêu cầu cũ'],
       ['Quyền lợi trong gói', request.fareBenefitSnapshotId ? 'Đã liên kết quyền lợi gói du thuyền' : 'Chưa ghi nhận quyền lợi gói du thuyền'],
       ['Đã phục vụ', request.fulfilledQuantity == null ? 'Chưa ghi nhận' : `${request.fulfilledQuantity}${request.fulfillmentUnitCode ? ` ${formatUnitCode(request.fulfillmentUnitCode)}` : ''}`],

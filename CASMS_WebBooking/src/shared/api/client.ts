@@ -137,9 +137,14 @@ async function request<T>(path: string, options: RequestOptions, decode: (payloa
       if (response.status === 401 && requestToken && requestToken === accessToken) {
         unauthorizedListeners.forEach((listener) => listener())
       }
-      throw new ApiError(response.status === 401 ? 'Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.'
-        : response.status === 403 ? 'Bạn không có quyền thực hiện thao tác này.'
-          : (shipModelErrorMessage(path,message) ?? businessErrorMessage(payload?.code ?? payload?.error,message)) || `Không thể thực hiện yêu cầu (HTTP ${response.status}).`, response.status, payload?.code ?? payload?.error, payload?.details ?? payload?.data,message)
+      const errorCode = payload?.code ?? payload?.error
+      const isLoginCredentialFailure =
+        response.status === 401 && (errorCode === 'INVALID_CREDENTIALS' || (options.authenticated === false && path.startsWith('/auth/login')))
+      throw new ApiError(isLoginCredentialFailure
+        ? 'Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng kiểm tra lại.'
+        : response.status === 401 ? 'Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.'
+          : response.status === 403 ? 'Bạn không có quyền thực hiện thao tác này.'
+            : (shipModelErrorMessage(path,message) ?? businessErrorMessage(errorCode,message)) || `Không thể thực hiện yêu cầu (HTTP ${response.status}).`, response.status, errorCode, payload?.details ?? payload?.data,message)
     }
     if (generation !== sessionGeneration) throw new ApiError('Phiên đăng nhập đã thay đổi. Dữ liệu của phiên cũ được bỏ qua.', 0, 'SESSION_CHANGED')
     if (required && !hasPermissions(getSessionAccess(), required)) throw new ApiError('Quyền truy cập đã thay đổi. Vui lòng tải lại dữ liệu.', 403, 'ACCESS_DENIED')

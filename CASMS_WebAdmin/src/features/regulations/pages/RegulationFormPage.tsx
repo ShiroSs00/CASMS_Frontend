@@ -206,7 +206,7 @@ export function RegulationFormPage() {
         <Panel title="Thông tin quy định">
           <FormErrorSummary errors={errors} />
           <div className={styles.formGrid}><FormSection title="Nội dung và phạm vi">
-            <Field error={errors.name} htmlFor="name" label="Tên quy định">
+            <Field error={errors.name} htmlFor="name" label="Tên quy định *">
               <input
                 aria-invalid={Boolean(errors.name)}
                 data-form-error={Boolean(errors.name)}
@@ -241,7 +241,7 @@ export function RegulationFormPage() {
                 <option value="CRUISE">Theo chuyến khởi hành</option>
               </select>
             </Field>
-            </FormSection><FormSection title="Giá trị và đơn vị"><Field error={errors.value} htmlFor="value" label="Giá trị">
+            </FormSection><FormSection title="Giá trị và đơn vị"><Field error={errors.value} htmlFor="value" label="Giá trị *">
               <input aria-invalid={Boolean(errors.value)} data-form-error={Boolean(errors.value)} id="value" onChange={event=>setValue('value',event.target.value)} maxLength={100} value={draft.value}/>
 
             </Field>
@@ -263,7 +263,7 @@ export function RegulationFormPage() {
                 <option value="NONE">Không có đơn vị</option>
               </select>
             </Field>
-            </FormSection><FormSection title="Thời gian hiệu lực · Giờ Việt Nam"><Field error={errors.effectiveFrom} htmlFor="effective-from" label="Bắt đầu hiệu lực">
+            </FormSection><FormSection title="Thời gian hiệu lực · Giờ Việt Nam"><Field error={errors.effectiveFrom} htmlFor="effective-from" label="Bắt đầu hiệu lực *">
               <input
                 aria-invalid={Boolean(errors.effectiveFrom)}
                 data-form-error={Boolean(errors.effectiveFrom)}

@@ -112,6 +112,18 @@ export const liveCruiseCatalogApi = {
   })
   return toPublishedPage(data)
  },
+ async listAll(signal?: AbortSignal, cruiseType?: 'ONE_DAY' | 'MULTI_DAYS') {
+  const collected = new Map<string, ReturnType<typeof toPublishedPage>['items'][number]>()
+  let page = 1
+  const maxPages = 10
+  while (page <= maxPages) {
+   const current = await this.list(page, signal, cruiseType, 100)
+   for (const item of current.items) collected.set(item.id, item)
+   if (page >= current.pageCount || current.items.length === 0) break
+   page += 1
+  }
+  return [...collected.values()]
+ },
  async detail(id:string, signal?:AbortSignal) {
   if (!UUID_REGEX.test(id)) return null
   const data = await apiRequest<LiveCruiseDto>(`/cruise/${encodeURIComponent(id)}`, { query:{saleState:'OPEN_FOR_SALE'}, signal })

@@ -29,7 +29,7 @@ import {
   type ResourceType,
 } from './api'
 import styles from './TemplateWorkspace.module.css'
-import { benefitQuantity } from './benefit-copy'
+import { benefitQuantity, formatServiceUnitCode } from './benefit-copy'
 import { lifecycle, resourceLabels, inclusionLabels } from './labels'
 import { useCruisePackageMutation } from './useCruisePackageMutation'
 
@@ -433,7 +433,7 @@ function BenefitEditor({
                   <span>
                     <strong>Đơn vị ghi nhận:</strong>{' '}
                     {type === 'SERVICE'
-                      ? serviceUnitCode || 'Dịch vụ chưa cấu hình đơn vị nguồn'
+                      ? formatServiceUnitCode(serviceUnitCode) || 'Dịch vụ chưa cấu hình đơn vị nguồn'
                       : '01 lượt tham gia / hành khách'}
                   </span>
                   <span>
@@ -861,7 +861,6 @@ function ShipCabinSelection({
                     <div className={styles.shipCabinMainInfo}>
                       <div className={styles.shipCabinTitleLine}>
                         <span className={styles.shipCabinTitle}>{cabinTypeLabel(option.type)}</span>
-                        <span className={styles.codePill}>{option.type}</span>
                       </div>
                       {previewCabins.length > 0 && (
                         <span className={styles.shipCabinPreviewText}>
@@ -1025,6 +1024,22 @@ function TemplateVersions({
       latestVersion.version.sourceShipId ?? '',
       latestVersion.logicalCategoryReferences.flatMap(category => category.cabinType ? [category.cabinType] : []),
     )
+    setBenefits(
+      latestVersion.benefits.map(b => ({
+        resourceType: b.onboardActivityId ? 'ACTIVITY' : b.shoreExcursionId ? 'EXCURSION' : 'SERVICE',
+        resourceId: b.onboardActivityId ?? b.shoreExcursionId ?? b.serviceId ?? '',
+        resourceName: latestVersion.resourceNames[b.id] ?? 'Quyền lợi đã lưu',
+        inclusion: b.inclusion,
+        quantityLimit: b.quantityLimit ?? null,
+        eligibility: b.eligibility,
+        usagePolicy: b.usagePolicy,
+        usageUnit: b.usageUnit,
+        serviceUnitCode: b.serviceUnitCode,
+        requiresReservation: b.requiresReservation,
+        usageStartsAt: b.usageStartsAt,
+        usageEndsAt: b.usageEndsAt,
+      })),
+    )
   }
 
   const publishVersion = () => {
@@ -1170,6 +1185,7 @@ function TemplateVersions({
           {mutation.feedback}
 
           <form
+            noValidate
             aria-busy={mutation.busy}
             className={styles.versionForm}
             onSubmit={async e => {
@@ -1467,6 +1483,7 @@ function UnifiedNewTemplateWizard({
 
       <form
         id="fare-template-create"
+        noValidate
         aria-busy={mutation.busy}
         className={styles.versionForm}
         onSubmit={async e => {
@@ -1572,7 +1589,13 @@ function UnifiedNewTemplateWizard({
                   disabled={disabled}
                   onChange={e => {
                     setCodeManuallyEdited(true)
-                    setCode(e.target.value.toUpperCase())
+                    const sanitized = e.target.value
+                      .normalize('NFD')
+                      .replace(/[\u0300-\u036f]/g, '')
+                      .replace(/đ/gi, 'd')
+                      .toUpperCase()
+                      .replace(/[^A-Z0-9_-]/g, '')
+                    setCode(sanitized)
                   }}
                 />
               </Field>
@@ -1769,7 +1792,7 @@ function VersionCard({
             {version.logicalCategories.length > 0 ? (
               <div className={styles.cabinBadgeRow}>
                 {version.logicalCategories.map(cat => (
-                  <Badge key={cat} label={cat} tone="neutral" />
+                  <Badge key={cat} label={cabinTypeLabel(cat)} tone="neutral" />
                 ))}
               </div>
             ) : (
@@ -1820,7 +1843,7 @@ function VersionCard({
                         <dd>
                           {b.usageUnit === 'PARTICIPATION'
                             ? 'Lượt tham gia / hành khách'
-                            : b.serviceUnitCode ?? 'Chưa có đơn vị hỗ trợ'}
+                            : formatServiceUnitCode(b.serviceUnitCode) || 'Chưa có đơn vị hỗ trợ'}
                         </dd>
                       </div>
                       <div>
@@ -1846,7 +1869,7 @@ function VersionCard({
                   )}
                   {(b.inclusion === 'OPTIONAL' || b.inclusion === 'NOT_INCLUDED') && (
                     <p className={styles.helper}>
-                      Không cấp quyền sử dụng miễn phí. Hành khách mua thêm theo Add-on Offer hợp lệ.
+                      Không cấp quyền sử dụng miễn phí. Hành khách mua thêm theo gói dịch vụ bổ sung hợp lệ.
                     </p>
                   )}
                 </div>
@@ -1895,8 +1918,13 @@ function TemplateWorkspace() {
   const [search, setSearch] = useState('')
   const [shipFilter, setShipFilter] = useState('')
   const pageHeading = useRef<HTMLDivElement>(null)
+  const hasMounted = useRef(false)
 
   useEffect(() => {
+    if (!hasMounted.current) {
+      hasMounted.current = true
+      return
+    }
     pageHeading.current?.focus()
   }, [selected, creatingTemplate])
 
@@ -2083,6 +2111,21 @@ function TemplateWorkspace() {
                     </Field>
                   </div>
                 )}
+                {(search || shipFilter) && (
+                  <div style={{ alignSelf: 'end' }}>
+                    <Button
+                      tone="secondary"
+                      size="compact"
+                      autoWidth
+                      onClick={() => {
+                        setSearch('')
+                        setShipFilter('')
+                      }}
+                    >
+                      Xóa bộ lọc
+                    </Button>
+                  </div>
+                )}
               </div>
               {catalog.data && (
                 <span className={styles.helper}>
@@ -2145,7 +2188,7 @@ function TemplateWorkspace() {
                             {categories.length > 0 && (
                               <div className={styles.cabinBadgeRow}>
                                 {categories.map(cat => (
-                                  <Badge key={cat} label={cat} tone="neutral" />
+                                  <Badge key={cat} label={cabinTypeLabel(cat)} tone="neutral" />
                                 ))}
                               </div>
                             )}

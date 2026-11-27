@@ -24,9 +24,11 @@ export function RefundSummary() {
   const [fieldErrors, setFieldErrors] = useState<{ from?: string; until?: string }>({})
   const [rows, setRows] = useState<RefundTotal[] | null>(null)
   const [range, setRange] = useState<{ from: string; until: string } | null>(null)
+  const [appliedDates, setAppliedDates] = useState<{ from: string; until: string } | null>(null)
   const exportLock = useRef(false)
+  const rangeStale = Boolean(range && appliedDates && (from !== appliedDates.from || until !== appliedDates.until))
   async function download() {
-    if (!range || exportLock.current) return
+    if (!range || rangeStale || exportLock.current) return
     exportLock.current = true
     setBusy(true); setError('')
     try {
@@ -51,7 +53,7 @@ export function RefundSummary() {
         setError('')
         return
       }
-      setBusy(true); setError(''); setRows(null); setRange(null)
+      setBusy(true); setError(''); setRows(null); setRange(null); setAppliedDates(null)
       try {
         const start = new Date(from + 'T00:00:00+07:00')
         const end = new Date(new Date(until + 'T00:00:00+07:00').getTime() + 86_400_000)
@@ -59,6 +61,7 @@ export function RefundSummary() {
         const applied = { from: start.toISOString(), until: end.toISOString() }
         setRows(await apiRequest<RefundTotal[]>('/refunds/report', { query: applied }))
         setRange(applied)
+        setAppliedDates({ from, until })
       } catch (value) { setError(value instanceof Error ? value.message : 'Chưa tải được số liệu.') }
       finally { setBusy(false) }
     }}>
@@ -66,9 +69,10 @@ export function RefundSummary() {
       <Field htmlFor={id + '-until'} label="Đến hết ngày (giờ Việt Nam) *" error={fieldErrors.until}><input id={id + '-until'} type="date" required aria-invalid={Boolean(fieldErrors.until)} value={until} onChange={e => { setUntil(e.target.value); setFieldErrors(prev => ({ ...prev, until: undefined })) }}/></Field>
       <div className={styles.formActions}>
         <Button type="submit" autoWidth busy={busy}>Xem tổng hợp</Button>
-        {range && access.has('REPORT_GENERATE') && <Button tone="secondary" autoWidth busy={busy} onClick={() => void download()}>Xuất CSV</Button>}
+        {range && access.has('REPORT_GENERATE') && <Button tone="secondary" autoWidth busy={busy} disabled={rangeStale} onClick={() => void download()}>Xuất CSV</Button>}
       </div>
     </form>
+    {rangeStale && <p className={styles.helper} role="status">Khoảng ngày đã thay đổi. Bấm Xem tổng hợp để cập nhật dữ liệu trước khi xuất CSV.</p>}
     {error && <Notice title="Chưa tải được tổng hợp" tone="error">{error}</Notice>}
     {rows && (rows.length ? <DataTable label="Tổng hợp hoàn tiền theo trạng thái" headers={['Tiền tệ', 'Trạng thái', 'Số yêu cầu', 'Tổng yêu cầu', 'Tổng đã duyệt']}>
       {rows.map(row => <tr key={row.currency + row.status}>
@@ -111,7 +115,17 @@ function ManualRefundAction({ record, onChanged }: { record: RefundRecord; onCha
   const isVnd = record.currency.trim().toUpperCase() === 'VND'
   async function submit() {
     const input = value.trim()
-    if (lock.current || !action || !options.includes(action) || !input) return
+    if (lock.current || !action || !options.includes(action)) return
+    if (!input) {
+      setError(
+        action === 'approve'
+          ? 'Nhập số tiền duyệt hoàn.'
+          : action === 'reject'
+            ? 'Nhập lý do từ chối hoàn tiền.'
+            : 'Nhập mã biên lai hoặc tham chiếu giao dịch đã thực hiện.',
+      )
+      return
+    }
     if (action === 'approve') {
       const formatOk = isVnd ? /^\d+(\.0+)?$/.test(input) : /^\d+(\.\d{1,4})?$/.test(input)
       if (!formatOk || Number(input) <= 0 || Number(input) > record.requestedAmount) {
@@ -137,9 +151,9 @@ function ManualRefundAction({ record, onChanged }: { record: RefundRecord; onCha
       if (failure instanceof ApiError && failure.status === 409) onChanged()
     } finally { lock.current = false; setBusy(false) }
   }
-  const label = action === 'approve' ? `Số tiền duyệt (${record.currency})`
-    : action === 'reject' ? 'Lý do từ chối' : 'Mã biên lai hoặc giao dịch'
-  return <form className={styles.stack} onSubmit={event => { event.preventDefault(); void submit() }}>
+  const label = action === 'approve' ? `Số tiền duyệt (${record.currency}) *`
+    : action === 'reject' ? 'Lý do từ chối *' : 'Mã biên lai hoặc giao dịch *'
+  return <form className={styles.stack} noValidate onSubmit={event => { event.preventDefault(); void submit() }}>
     <div className={styles.financeInlineForm}>
       <Field htmlFor={id} label="Thao tác hoàn tiền">
         <select id={id} value={action} disabled={busy} onChange={event => {
@@ -151,8 +165,8 @@ function ManualRefundAction({ record, onChanged }: { record: RefundRecord; onCha
       </Field>
       {action && <Field htmlFor={id + '-value'} label={label} error={error || undefined}
         hint={action === 'complete' ? 'Dùng mã trên chứng từ của giao dịch đã thực hiện.' : action === 'approve' && isVnd ? 'Nhập số nguyên VND (ví dụ: 500000).' : undefined}>
-        <input id={id + '-value'} required value={value} maxLength={action === 'reject' ? 1000 : 255}
-          inputMode={action === 'approve' ? (isVnd ? 'numeric' : 'decimal') : undefined} onChange={event => setValue(event.target.value)}/>
+        <input id={id + '-value'} required aria-invalid={Boolean(error)} value={value} maxLength={action === 'reject' ? 1000 : 255}
+          inputMode={action === 'approve' ? (isVnd ? 'numeric' : 'decimal') : undefined} onChange={event => { setValue(event.target.value); if (error) setError('') }}/>
       </Field>}
     </div>
     {action && <div className={styles.formActions}><Button type="submit" size="compact" autoWidth tone={action === 'reject' ? 'danger' : 'primary'} busy={busy}>{refundActionLabels[action]}</Button></div>}

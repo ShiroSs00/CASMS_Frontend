@@ -9,7 +9,7 @@ import { CatalogState } from './CatalogUI'
 import styles from './Catalog.module.css'
 
 function ServiceScheduleWorkspace({ serviceId }: { serviceId: string }) {
-  const access = useSessionAccess(), canCreate = access.roles.includes('CRUISE_MANAGER') && access.canDo('CRUISE_UPDATE_DRAFT'), canCruise = access.canDo('CRUISE_READ')
+  const access = useSessionAccess(), canCreate = access.roles.includes('ACTIVITY_SERVICE_MANAGER') && access.canDo('SERVICE_UPDATE'), canCruise = access.canDo('CRUISE_READ')
   const slots = useReadQuery(`service-slots:${access.userId}:${serviceId}`, useCallback(signal => serviceSlots(serviceId, signal), [serviceId]))
   const cruises = useReadQuery(`service-slot-cruises:${access.userId}:${canCreate}:${canCruise}`, useCallback(async signal => {
     const rows: { cruiseId: string; cruiseName: string; status: string; departureDatetime: string; returnDatetime: string }[] = []

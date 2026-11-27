@@ -19,7 +19,7 @@ export function LoginPage() {
   const expired = arrivedExpired || params.get('reason') === 'expired'
   useEffect(() => { authSession.acknowledgeExpiry() }, [])
   if (auth.user) {
-    if (access.status === 'error') return <AuthPageShell editorialTitle="Quyền truy cập" editorialDescription="Quyền được xác minh theo tài khoản đang đăng nhập."><Notice title="Chưa tải được quyền truy cập" tone="error"><p>{access.error}</p><Button onClick={access.retry}>Thử lại</Button><Button tone="secondary" onClick={() => void auth.logout()}>Đăng xuất</Button></Notice></AuthPageShell>
+    if (access.status === 'error') return <AuthPageShell editorialTitle="Quyền truy cập" editorialDescription="Quyền được xác minh theo tài khoản đang đăng nhập."><div style={{ display: 'grid', gap: 'var(--space-4)' }}><Notice title="Chưa tải được quyền truy cập" tone="error"><p>{access.error}</p><div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)', marginTop: 'var(--space-3)' }}><Button autoWidth onClick={access.retry}>Thử lại</Button><Button autoWidth tone="secondary" onClick={() => void auth.logout()}>Đăng xuất</Button></div></Notice><p id="auth-help" style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--muted)' }}>Liên hệ quản trị viên nếu lỗi tải quyền vẫn tiếp diễn.</p></div></AuthPageShell>
     if (access.status !== 'ready' || access.userId !== auth.user.id) return <Loading label="Đang xác minh quyền tài khoản…" />
     return <Navigate to={destination(access.roles)} replace />
   }

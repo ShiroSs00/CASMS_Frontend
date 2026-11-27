@@ -4,6 +4,26 @@ import { profileGroups, type ProfileDraft, type ProfileErrors, type ProfileKey }
 import type { OperationalProfile } from './api'
 import styles from './ShipWork.module.css'
 
+const regionDisplayNames = new Intl.DisplayNames(['vi'], { type: 'region' })
+const flagCountryCodes = [
+  'VN', 'SG', 'PA', 'BS', 'MT', 'MH', 'LR', 'BM', 'CY', 'NO', 'IT', 'FR', 'GB', 'US',
+  'JP', 'KR', 'TH', 'MY', 'ID', 'PH', 'CN', 'HK', 'TW', 'AU', 'NZ', 'GR', 'NL', 'DE',
+]
+const registrationCountries = [...new Set(flagCountryCodes)]
+  .map(code => ({ code, name: regionDisplayNames.of(code) ?? code }))
+  .sort((a, b) => a.name.localeCompare(b.name, 'vi'))
+
+function formatCountryCode(code: string) {
+  const upper = code.trim().toUpperCase()
+  if (!upper) return ''
+  try {
+    const label = regionDisplayNames.of(upper)
+    return label && label !== upper ? `${label} (${upper})` : upper
+  } catch {
+    return upper
+  }
+}
+
 const groupDescriptions: Record<string, string> = {
   'Bàn giao': 'Ghi nhận thời điểm nhận bàn giao tàu.',
   'Đăng ký và đăng kiểm': 'Thông tin định danh và cơ quan đăng kiểm của tàu.',
@@ -24,15 +44,26 @@ export function ProfileFields({ draft, errors, disabled, onChange, onBlur, group
       {group.fields.map(field => {
         const id = prefix + '-' + field.key
         const kind = 'kind' in field ? field.kind : 'text'
+        const currentValue = draft[field.key] ?? ''
         const props = {
-          id, value: draft[field.key] ?? '', disabled,
-          onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(field.key, event.target.value),
+          id, value: currentValue, disabled,
+          onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => onChange(field.key, event.target.value),
           onBlur: () => onBlur(field.key),
           'aria-describedby': grouped ? `${prefix}-group-${groupIndex}` : undefined,
         }
         return <Field key={field.key} htmlFor={id} label={field.label} error={errors[field.key]}
-          hint={kind === 'references' ? grouped ? undefined : 'Mỗi tham chiếu trên một dòng.' : 'hint' in field ? field.hint : undefined}>
-          {kind === 'references' ? <textarea {...props} rows={grouped ? 2 : 3} />
+          hint={field.key === 'registrationCountry' ? 'Chọn quốc gia đăng ký tàu (quốc kỳ).' : kind === 'references' ? grouped ? undefined : 'Mỗi tham chiếu trên một dòng.' : 'hint' in field ? field.hint : undefined}>
+          {field.key === 'registrationCountry' ? (
+            <select {...props}>
+              <option value="">Chọn quốc gia đăng ký</option>
+              {currentValue && !registrationCountries.some(c => c.code === currentValue.toUpperCase()) && (
+                <option value={currentValue.toUpperCase()}>{formatCountryCode(currentValue)}</option>
+              )}
+              {registrationCountries.map(country => (
+                <option key={country.code} value={country.code}>{country.name} ({country.code})</option>
+              ))}
+            </select>
+          ) : kind === 'references' ? <textarea {...props} rows={grouped ? 2 : 3} />
             : <input {...props} type={kind} maxLength={'max' in field ? field.max : undefined} />}
         </Field>
       })}
@@ -49,11 +80,13 @@ export function ProfileFacts({ profile, onlyProvided = false, className = '' }: 
     <h3>{group.title}</h3><dl className={styles.facts}>
       {group.fields.map(field => {
         const value = profile[field.key]
-        const dateValue = 'kind' in field && field.kind === 'date' && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
-          ? value.split('-').reverse().join('/') : value
+        const displayValue = field.key === 'registrationCountry' && typeof value === 'string'
+          ? formatCountryCode(value)
+          : 'kind' in field && field.kind === 'date' && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+            ? value.split('-').reverse().join('/') : value
         return <div key={field.key}><dt>{field.label}</dt><dd className={styles.reference}>
           {Array.isArray(value) && value.length > 0 ? <ul>{value.map((item, index) => <li key={item + ':' + index}>{item}</li>)}</ul>
-            : !Array.isArray(value) && value ? dateValue : <span className={styles.missingValue}>Chưa cung cấp</span>}
+            : !Array.isArray(value) && value ? displayValue : <span className={styles.missingValue}>Chưa cung cấp</span>}
         </dd></div>
       })}
     </dl>

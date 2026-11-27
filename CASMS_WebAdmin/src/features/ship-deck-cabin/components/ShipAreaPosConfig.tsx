@@ -47,6 +47,7 @@ export function ShipAreaPosConfig({
   const [posBusy, setPosBusy] = useState(false)
   const [posError, setPosError] = useState('')
   const [createdSecret, setCreatedSecret] = useState<{ code: string; name: string; secret: string } | null>(null)
+  const [copiedSecret, setCopiedSecret] = useState(false)
   const lock = useRef(false)
 
   const activeAreaId = areasOnDeck.some(a => a.id === selectedAreaId) ? selectedAreaId : ''
@@ -153,6 +154,7 @@ export function ShipAreaPosConfig({
         name: result.terminal.name,
         secret: result.deviceSecret,
       })
+      setCopiedSecret(false)
       setPosCode('')
       setPosName('')
       terminalsQuery.retry()
@@ -301,7 +303,7 @@ export function ShipAreaPosConfig({
         )}
 
         {deckId && areasOnDeck.length > 0 ? (
-          <form className={styles.stack} onSubmit={createTerminal}>
+          <form className={styles.stack} noValidate onSubmit={createTerminal}>
             <div className={styles.posFormGrid}>
               <Field htmlFor="pos-terminal-area" label="Khu vực đặt máy *">
                 <select
@@ -359,7 +361,20 @@ export function ShipAreaPosConfig({
         )}
         {createdSecret && (
           <Notice title={`Đã đăng ký ${createdSecret.name} (${createdSecret.code})`} tone="success">
-            Mã kích hoạt thiết bị offline (chỉ hiển thị 1 lần): <code>{createdSecret.secret}</code>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+              <span>Mã kích hoạt thiết bị offline (chỉ hiển thị 1 lần): <code>{createdSecret.secret}</code></span>
+              <Button
+                type="button"
+                tone="secondary"
+                size="compact"
+                autoWidth
+                onClick={() => {
+                  void navigator.clipboard?.writeText(createdSecret.secret).then(() => setCopiedSecret(true))
+                }}
+              >
+                {copiedSecret ? 'Đã sao chép' : 'Sao chép mã bảo mật'}
+              </Button>
+            </div>
           </Notice>
         )}
       </section>

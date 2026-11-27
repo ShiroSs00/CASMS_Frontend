@@ -11,6 +11,20 @@ import styles from './CruiseDetail.module.css'
 
 export type PublicItineraryRead = ReturnType<typeof useReadQuery<Awaited<ReturnType<typeof liveCruiseCatalogApi.publicItinerary>>>>
 
+const regionNames = typeof Intl !== 'undefined' && typeof Intl.DisplayNames === 'function'
+  ? new Intl.DisplayNames(['vi'], { type: 'region' })
+  : null
+
+function countryName(code?: string | null) {
+  const clean = (code ?? '').trim().toUpperCase()
+  if (!clean) return ''
+  try {
+    return regionNames?.of(clean) ?? clean
+  } catch {
+    return clean
+  }
+}
+
 function PortTime({ instant, zone, day, showDate }: { instant: string; zone: string; day?: string; showDate?: boolean }) {
   const date = portLocalDate(instant, zone)
   const time = new Intl.DateTimeFormat('vi-VN', {
@@ -156,7 +170,7 @@ export function PublicCruiseItinerary({ query }: { query: PublicItineraryRead })
                         </div>
                         <div className={styles.rcPortDetails}>
                           <div className={styles.portHeading}>
-                            <h4>{port.portName || 'Chưa có tên cảng'}{port.countryCode ? ' · ' + port.countryCode : ''}</h4>
+                            <h4>{port.portName || 'Chưa có tên cảng'}{port.countryCode ? ' · ' + countryName(port.countryCode) : ''}</h4>
                           </div>
                           <p className={styles.rcPortStory}>{portPhoto.story}</p>
                           <div className={styles.rcTimeChips}>

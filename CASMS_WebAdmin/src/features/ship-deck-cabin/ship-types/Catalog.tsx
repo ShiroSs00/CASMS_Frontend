@@ -53,7 +53,7 @@ export function ShipTypeCatalogPage() {
       description=""
       actions={<ButtonLink to="/admin/ship-types/new">Tạo loại tàu</ButtonLink>} />
     <section aria-label="Bộ lọc loại tàu">
-      <form className={styles.catalogFilters} role="search" onSubmit={event => { event.preventDefault(); setQ(input.trim()); setPage(0) }}>
+      <form className={styles.catalogFilters} role="search" noValidate onSubmit={event => { event.preventDefault(); setQ(input.trim()); setPage(0) }}>
         <Field htmlFor="type-search" label="Tên hoặc mã loại tàu"><input type="search" placeholder="Nhập tên hoặc mã loại tàu" value={input} onChange={event => setInput(event.target.value)} /></Field>
         <Field htmlFor="type-filter" label="Trạng thái"><select value={status ?? ''} onChange={event => {
           setStatus((event.target.value || undefined) as TypeStatus | undefined); setPage(0)
@@ -99,7 +99,7 @@ function TypeVessels({ id }: { id: string }) {
         <td><StatusBadge status={ship.status} /></td>
         <td><PermissionLink to={'/admin/ships/' + ship.shipId} aria-label={'Chi tiết tàu ' + ship.shipName}>Xem tàu</PermissionLink></td>
       </tr>)}
-    </DataTable> : result.data && <p className={styles.sectionEmpty}>Chưa có tàu cùng loại trong phạm vi xem của bạn.</p>}
+    </DataTable> : result.data && <Empty title="Chưa có tàu cùng loại trong phạm vi xem của bạn" />}
     {result.data && result.data.totalPages > 1 && <PageControls page={result.data} label="tàu" onPage={setPage} />}
   </section>
 }

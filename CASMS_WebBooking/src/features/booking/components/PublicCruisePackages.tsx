@@ -19,6 +19,35 @@ type Catalog = Awaited<ReturnType<typeof cruisePackageApi.available>>
 type CatalogOffer = Catalog['offers'][number]
 export type CruisePackageRead = ReturnType<typeof useReadQuery<Catalog>>
 
+const serviceUnitLabels: Record<string, string> = {
+  SESSION: 'buổi',
+  HOUR: 'giờ',
+  DAY: 'ngày',
+  NIGHT: 'đêm',
+  PER_PERSON: 'khách',
+  PERSON: 'khách',
+  ITEM: 'món',
+  UNIT: 'đơn vị',
+  USE: 'lượt',
+  TRIP: 'chuyến',
+  MEAL: 'bữa',
+  GLASS: 'ly',
+  BOTTLE: 'chai',
+  GB: 'GB',
+}
+
+function formatServiceUnit(code?: string | null) {
+  const normalized = (code ?? '').trim().toUpperCase()
+  if (!normalized) return 'lượt'
+  return serviceUnitLabels[normalized] ?? 'lượt'
+}
+
+function offerBookingUrl(baseUrl: string | undefined, offerId: string) {
+  if (!baseUrl) return undefined
+  const separator = baseUrl.includes('?') ? '&' : '?'
+  return `${baseUrl}${separator}offerId=${encodeURIComponent(offerId)}`
+}
+
 const money = (amount: number, currency: string) =>
   `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: currency === 'VND' ? 0 : 2 }).format(amount)} ${currency}`
 
@@ -82,7 +111,7 @@ function OfferCard({
           </button>
         )}
         {bookingUrl && (
-          <ButtonLink to={bookingUrl} size="compact" autoWidth>Đặt gói này</ButtonLink>
+          <ButtonLink to={offerBookingUrl(bookingUrl, selection.offerId) ?? bookingUrl} size="compact" autoWidth>Đặt gói này</ButtonLink>
         )}
       </div>
     </div>
@@ -203,7 +232,7 @@ function BenefitTerms({ benefit }: { benefit: CapturedCruisePackageBenefit }) {
   return <div className={styles.benefitTerms}>
     <strong>{inclusionLabels[benefit.inclusion]}</strong>
     {benefit.inclusion === 'LIMITED_INCLUDED' && <p>
-      Giới hạn: {benefit.quantityLimit} {benefit.usageUnit === 'PARTICIPATION' ? 'lượt tham gia' : benefit.serviceUnitCode ?? 'đơn vị chưa xác định'}.
+      Giới hạn: {benefit.quantityLimit} {benefit.usageUnit === 'PARTICIPATION' ? 'lượt tham gia' : formatServiceUnit(benefit.serviceUnitCode)}.
     </p>}
     {benefit.requiresReservation === true && <Badge label="Cần đăng ký riêng" tone="warning" />}
     {benefit.eligibility && <p>{benefit.eligibility}</p>}
@@ -216,7 +245,7 @@ function BenefitTerms({ benefit }: { benefit: CapturedCruisePackageBenefit }) {
 }
 
 function offerLabel({ selection }: CatalogOffer) {
-  return `${selection.templateName} · ${selection.logicalCategory}`
+  return `${selection.templateName} · ${cabinTypeName(selection.cabinType || selection.logicalCategory)}`
 }
 
 function PackageBenefit({ terms }: { terms?: CapturedCruisePackageBenefit[] }) {

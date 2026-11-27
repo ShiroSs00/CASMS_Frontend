@@ -21,11 +21,12 @@ export function ShipInventory({ ship, view, initialDeck = '', onDialog }: { ship
   const { state } = useLocation()
   const [filters, setFilters] = useState({ ...emptyRoomFilters, deck: initialDeck })
   const [page, setPage] = useState(1)
+  const canReadDecks = access.canDo('DECK_READ')
   const loadDecks = useCallback((signal: AbortSignal) => shipDeckCabinApi.listShipDecks(ship.id, signal), [ship.id])
-  const decks = useFleetQuery(`inventory-decks:${ship.id}`, loadDecks, access.canDo('DECK_READ'))
+  const decks = useFleetQuery(`inventory-decks:${ship.id}`, loadDecks, canReadDecks)
   const selectedDeck=decks.data?.find(deck=>deck.id===filters.deck)
   const loadRooms=useCallback((signal:AbortSignal)=>view==='cabins'&&selectedDeck?shipDeckCabinApi.listDeckCabins(ship.id,selectedDeck.id,signal):shipDeckCabinApi.listShipCabins(ship.id,signal),[ship.id,view,selectedDeck])
-  const rooms=useFleetQuery(`inventory-rooms:${ship.id}:${view}:${selectedDeck?.id??''}`,loadRooms,access.canDo('CABIN_READ')&&(view==='decks'||Boolean(selectedDeck)))
+  const rooms=useFleetQuery(`inventory-rooms:${ship.id}:${view}:${selectedDeck?.id??''}:${canReadDecks}`,loadRooms,access.canDo('CABIN_READ')&&(view==='decks'||Boolean(selectedDeck)||!canReadDecks))
   const deckPagination=paginateFleet(decks.data??[],page,6)
   const counts = decks.data && rooms.data ? roomCounts(decks.data, rooms.data) : null
   const filtered = filterRooms(rooms.data ?? [], filters)
@@ -38,16 +39,16 @@ export function ShipInventory({ ship, view, initialDeck = '', onDialog }: { ship
   const primary = view === 'decks' ? decks : rooms
   return <Panel className={view==='cabins'?styles.cabinInventory:styles.deckInventory} title={view === 'decks' ? 'Danh sách boong' : 'Danh sách phòng'}>
     <div className={styles.stack}>
-      {view==='cabins'&&<div className={styles.roomDeckPicker}><Field htmlFor="fleet-room-deck" label="Boong"><select id="fleet-room-deck" value={selectedDeck?.id??''} disabled={!decks.data?.length||decks.loading} onChange={event=>changeFilters({...emptyRoomFilters,deck:event.target.value})}><option value="">{decks.loading?'Đang tải boong…':'Chọn boong'}</option>{decks.data?.map(deck=><option key={deck.id} value={deck.id}>Boong {deck.number} · {deck.name}</option>)}</select></Field></div>}
+      {view==='cabins'&&canReadDecks&&<div className={styles.roomDeckPicker}><Field htmlFor="fleet-room-deck" label="Boong"><select id="fleet-room-deck" value={selectedDeck?.id??''} disabled={!decks.data?.length||decks.loading} onChange={event=>changeFilters({...emptyRoomFilters,deck:event.target.value})}><option value="">{decks.loading?'Đang tải boong…':'Chọn boong'}</option>{decks.data?.map(deck=><option key={deck.id} value={deck.id}>Boong {deck.number} · {deck.name}</option>)}</select></Field></div>}
 
       {primary.loading && !primary.data && <Loading label={view === 'decks' ? 'Đang tải boong…' : 'Đang tải phòng…'} />}
       {primary.loading && primary.data && <p className={styles.muted} role="status">Đang cập nhật dữ liệu…</p>}
       {primary.error && <Notice title="Chưa tải được dữ liệu" tone="error">{primary.error}</Notice>}
-      {decks.error && view === 'cabins' && <Notice title="Chưa tải được danh sách boong" tone="warning">{decks.error}</Notice>}
+      {decks.error && view === 'cabins' && canReadDecks && <Notice title="Chưa tải được danh sách boong" tone="warning">{decks.error}</Notice>}
       {rooms.error && view === 'decks' && <Notice title="Chưa tải được số phòng theo boong" tone="warning">{rooms.error}</Notice>}
-      {view === 'decks' && !access.canDo('DECK_READ') && <Notice title="Chưa có quyền xem boong" tone="warning">Tài khoản cần được cấp quyền đọc boong.</Notice>}
+      {view === 'decks' && !canReadDecks && <Notice title="Chưa có quyền xem boong" tone="warning">Tài khoản cần được cấp quyền đọc boong.</Notice>}
       {view === 'cabins' && !access.canDo('CABIN_READ') && <Notice title="Chưa có quyền xem phòng" tone="warning">Tài khoản cần được cấp quyền đọc phòng.</Notice>}
-      {view === 'cabins' && !selectedDeck && decks.data && decks.data.length > 0 && <p className={styles.muted}>Chọn boong để xem danh sách phòng.</p>}
+      {view === 'cabins' && canReadDecks && !selectedDeck && decks.data && decks.data.length > 0 && <Empty title="Chọn boong để xem danh sách phòng" />}
       {view === 'decks' && decks.data && (decks.data.length ? <>
         <div className={styles.inventoryTable}><DataTable label="Danh sách boong" headers={['Số boong', 'Tên boong', 'Số phòng', 'Phòng sẵn sàng', 'Thao tác']}>
           {deckPagination.items.map(deck => <tr key={deck.id}>
@@ -62,7 +63,7 @@ export function ShipInventory({ ship, view, initialDeck = '', onDialog }: { ship
         </DataTable></div>
         <FleetPagination pagination={deckPagination} onChange={setPage} label="boong" />
       </> : <Empty title="Tàu chưa có boong" />)}
-      {view === 'cabins' && selectedDeck && rooms.data && <>
+      {view === 'cabins' && (selectedDeck || !canReadDecks) && rooms.data && <>
         <div className={styles.roomFilters}>
           <Field htmlFor="fleet-room-search" label="Tìm phòng"><input id="fleet-room-search" value={filters.search} placeholder="Nhập số phòng…" onChange={event => changeFilters({ ...filters, search: event.target.value })} /></Field>
 
@@ -77,8 +78,8 @@ export function ShipInventory({ ship, view, initialDeck = '', onDialog }: { ship
             {!ship.archivedAt && room.status === 'AVAILABLE' && access.canDo('CABIN_BLOCK') && <Button tone="text" size="compact" disabled={rooms.loading} onClick={() => onDialog({ type: 'operation', kind: 'cabins', item: room, operation: 'block' })}>Khóa phòng</Button>}
             {!ship.archivedAt && ['MAINTENANCE', 'OUT_OF_SERVICE'].includes(room.status) && access.canDo('CABIN_RELEASE') && <Button tone="text" size="compact" disabled={rooms.loading} onClick={() => onDialog({ type: 'operation', kind: 'cabins', item: room, operation: 'release' })}>Mở phòng</Button>}
           </div></td></tr>)}
-        </DataTable></div> : <Empty title={rooms.data.length ? 'Không có phòng phù hợp' : 'Boong này chưa có phòng'} />}
-        <ListFooter summary={`${filtered.length?((currentPage-1)*ROOMS_PER_PAGE+1):0}–${Math.min(currentPage*ROOMS_PER_PAGE,filtered.length)} / ${filtered.length} phòng`}><Button tone="secondary" size="compact" autoWidth disabled={currentPage<=1} onClick={()=>setPage(currentPage-1)}>← Trước</Button><span aria-live="polite">{currentPage} / {pageCount}</span><Button tone="secondary" size="compact" autoWidth disabled={currentPage>=pageCount} onClick={()=>setPage(currentPage+1)}>Sau →</Button></ListFooter>
+        </DataTable></div> : <Empty title={rooms.data.length ? 'Không có phòng phù hợp' : canReadDecks ? 'Boong này chưa có phòng' : 'Tàu chưa có phòng'} />}
+        {filtered.length > 0 && <ListFooter summary={`${((currentPage-1)*ROOMS_PER_PAGE+1)}–${Math.min(currentPage*ROOMS_PER_PAGE,filtered.length)} / ${filtered.length} phòng`}><Button tone="secondary" size="compact" autoWidth disabled={currentPage<=1} onClick={()=>setPage(currentPage-1)}>← Trước</Button><span aria-live="polite">{currentPage} / {pageCount}</span><Button tone="secondary" size="compact" autoWidth disabled={currentPage>=pageCount} onClick={()=>setPage(currentPage+1)}>Sau →</Button></ListFooter>}
       </>}
     </div>
   </Panel>

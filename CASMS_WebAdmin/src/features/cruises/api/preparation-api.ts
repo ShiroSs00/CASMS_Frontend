@@ -59,6 +59,10 @@ export const preparationApi={
   apiRequest<OperatingBudget>(root(id)+'/operating-budget',{signal}),
  saveOperatingBudget: (id:string,expectedRevision:number,amountVnd:string) =>
   apiRequest<OperatingBudget>(root(id)+'/operating-budget',{method:'PUT',body:{expectedRevision,amountVnd}}),
+ submitOperatingBudget: (id:string,expectedRevision:number,expectedReviewRevision:number) =>
+  apiRequest<OperatingBudget>(root(id)+'/operating-budget/submit',{method:'POST',body:{expectedRevision,expectedReviewRevision}}),
+ reviewOperatingBudget: (id:string,expectedReviewRevision:number,decision:'APPROVE'|'REJECT',reason?:string|null) =>
+  apiRequest<OperatingBudget>(root(id)+'/operating-budget/review',{method:'POST',body:{expectedReviewRevision,decision,reason:reason?.trim()||null}}),
  async get(id:string,signal?:AbortSignal){return decodePreparation(await apiRequest<PreparationDashboard>(root(id),{signal}),id)},
  async action(id:string,section:PreparationSection,action:PreparationAction,text:string){
   if(!section.allowedActions.includes(action.toUpperCase()))throw new ApiError('',403,'PREPARATION_ACTION_FORBIDDEN')

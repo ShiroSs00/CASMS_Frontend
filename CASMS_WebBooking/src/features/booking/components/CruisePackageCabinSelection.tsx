@@ -13,6 +13,28 @@ import type { BookingPackageOption } from './LiveBookingFields'
 import { CustomerPackageDetails } from './CustomerPackageDetails'
 import styles from './BookingParty.module.css'
 
+const unitLabels: Record<string, string> = {
+  SESSION: 'buổi',
+  HOUR: 'giờ',
+  DAY: 'ngày',
+  NIGHT: 'đêm',
+  PER_PERSON: 'khách',
+  PERSON: 'khách',
+  ITEM: 'món',
+  UNIT: 'đơn vị',
+  USE: 'lượt',
+  TRIP: 'chuyến',
+  MEAL: 'bữa',
+  GLASS: 'ly',
+  BOTTLE: 'chai',
+  GB: 'GB',
+}
+
+function formatUnit(code?: string | null) {
+  const normalized = (code ?? '').trim().toUpperCase()
+  return normalized ? (unitLabels[normalized] ?? 'lượt') : 'lượt'
+}
+
 /** Presentation only: a cabin choice is not a reservation. Both views share eligibility. */
 export function CruisePackageCabinSelection({ catalog, cabins, shipId, render, packages }: {
   catalog: CruisePackageCatalog; cabins: AvailableCabin[]; shipId?: string | null; render?: BookingModelRenderer; packages?: BookingPackageOption[] | null
@@ -24,6 +46,13 @@ export function CruisePackageCabinSelection({ catalog, cabins, shipId, render, p
   const groups = groupPassengers(draft.passengers)
   function update(index: number, change: Partial<BookingPersonDraft>) {
     setDraft(d => ({ ...d, passengers: d.passengers.map((p, i) => i === index ? { ...p, ...change } : p) }))
+    setErrors({})
+  }
+  function updateGroupMode(groupKey: string, modeValue: CabinSelectionMode) {
+    setDraft(d => ({
+      ...d,
+      passengers: d.passengers.map(p => personGroup(p) === groupKey ? { ...p, cabinSelectionMode: modeValue, cabinId: '' } : p),
+    }))
     setErrors({})
   }
   function choices(index: number) { return eligibleCabins(cabins, draft.passengers, index, catalog) }
@@ -74,9 +103,10 @@ export function CruisePackageCabinSelection({ catalog, cabins, shipId, render, p
               {p.farePackageOfferId && !fare && <Notice title="Gói đã chọn cần kiểm tra lại" tone="warning">Vui lòng chọn một gói du thuyền khả dụng phía trên.</Notice>}
               {errors[`person-${index}-farePackageOfferId`] && <p className={styles.inlineError} role="alert">{errors[`person-${index}-farePackageOfferId`]}</p>}
             </div>
-            {fare && <details className={styles.benefitDrawer}><summary>Quyền lợi bao gồm trong gói ({fare.benefits.length})</summary><ul>{fare.benefits.map(b => <li key={b.sourceBenefitId}>{b.resourceName} · {b.inclusion === 'INCLUDED' ? 'Đã bao gồm' : b.inclusion === 'LIMITED_INCLUDED' ? `Đã bao gồm, giới hạn ${b.quantityLimit} ${b.serviceUnitCode ?? 'lượt'}` : b.inclusion === 'OPTIONAL' ? 'Tùy chọn' : 'Không bao gồm'}{b.requiresReservation && ' · Cần đăng ký riêng'}</li>)}</ul></details>}
+            {fare && <details className={styles.benefitDrawer}><summary>Quyền lợi bao gồm trong gói ({fare.benefits.length})</summary><ul>{fare.benefits.map(b => <li key={b.sourceBenefitId}>{b.resourceName} · {b.inclusion === 'INCLUDED' ? 'Đã bao gồm' : b.inclusion === 'LIMITED_INCLUDED' ? `Đã bao gồm, giới hạn ${b.quantityLimit} ${formatUnit(b.serviceUnitCode)}` : b.inclusion === 'OPTIONAL' ? 'Tùy chọn' : 'Không bao gồm'}{b.requiresReservation && ' · Cần đăng ký riêng'}</li>)}</ul></details>}
             <div>
               <p className={styles.choiceGroupLabel}>Cách nhận cabin *</p>
+              {group.members.length > 1 && <p className={styles.muted}>Áp dụng đồng nhất cho tất cả hành khách cùng ở {group.label.toLowerCase()}.</p>}
               <div id={`person-${index}-cabinSelectionMode`} tabIndex={-1} className={styles.choiceCardGrid} role="group" aria-label={`Cách nhận cabin cho hành khách ${index + 1}`} aria-invalid={Boolean(errors[`person-${index}-cabinSelectionMode`])}>
                 {([
                   ['PHYSICAL_CABIN', 'Chọn cabin cụ thể', 'Tự chọn số phòng trên danh sách cabin trống hoặc sơ đồ tàu 3D.'],
@@ -88,7 +118,7 @@ export function CruisePackageCabinSelection({ catalog, cabins, shipId, render, p
                     type="button"
                     className={`${styles.choiceCard} ${active ? styles.choiceCardActive : ''}`}
                     aria-pressed={active}
-                    onClick={() => update(index, { cabinSelectionMode: modeValue as CabinSelectionMode, cabinId: '' })}
+                    onClick={() => updateGroupMode(group.key, modeValue as CabinSelectionMode)}
                   >
                     <div className={styles.choiceCardHead}>
                       <span className={styles.choiceCardTitle}>{modeTitle}</span>

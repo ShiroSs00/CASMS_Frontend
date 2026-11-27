@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
+import { useSearchParams } from 'react-router'
 import { ApiError, apiRequest, useReadQuery } from '@/shared/api'
 import { Button, Field, Loading, Notice } from '@/shared/ui'
 import { CustomerModelScene } from './CustomerModelScene'
@@ -34,7 +35,7 @@ type PublicShip = { shipId: string; shipName: string }
 async function fleet(signal: AbortSignal) {
   const result = new Map<string, PublicShip>()
   for (let page = 0, pages = 1; page < pages; page++) {
-    const data = await apiRequest<{ content: Array<{ shipId?: string; shipName?: string }>; totalPages: number }>('/cruise', { query: { status: 'PUBLISHED', size: 100, page }, signal })
+    const data = await apiRequest<{ content: Array<{ shipId?: string; shipName?: string }>; totalPages: number }>('/cruise', { query: { status: 'PUBLISHED', saleState: 'OPEN_FOR_SALE', size: 100, page }, signal, authenticated: false })
     if (!Array.isArray(data.content) || !Number.isSafeInteger(data.totalPages) || data.totalPages < 0 || data.totalPages > 1000) throw new Error('Danh sách tàu chưa hợp lệ.')
     pages = data.totalPages
     for (const item of data.content) if (item.shipId && item.shipName) result.set(item.shipId, { shipId: item.shipId, shipName: item.shipName })
@@ -43,13 +44,19 @@ async function fleet(signal: AbortSignal) {
 }
 export function CustomerFleetExplorer() {
   const query = useReadQuery('public-model-fleet', fleet)
-  const [requested, setShip] = useState('')
+  const [params, setParams] = useSearchParams()
+  const requested = params.get('shipId') ?? ''
   const selected = query.data?.find(ship => ship.shipId === requested) ?? query.data?.[0]
   return <section aria-labelledby="fleet-model-heading">
-    <h2 id="fleet-model-heading">Tàu & không gian 3D</h2><p>Khám phá vị trí cabin và các khu vực trên tàu của những hành trình đã công bố.</p>
+    <h2 id="fleet-model-heading">Tàu & không gian 3D</h2><p>Khám phá vị trí cabin và các khu vực trên tàu của những hành trình đang mở bán.</p>
     {query.loading && <Loading label="Đang tải danh sách tàu…" />}
     {query.error && <Notice title="Chưa tải được danh sách tàu" tone="warning"><Button onClick={query.retry}>Thử lại</Button></Notice>}
-    {query.data?.length === 0 && <p>Chưa có tàu gắn với hành trình đã công bố.</p>}
-    {selected && <><Field htmlFor="public-explorer-ship" label="Chọn tàu"><select id="public-explorer-ship" value={selected.shipId} onChange={event => setShip(event.target.value)}>{query.data?.map(ship => <option key={ship.shipId} value={ship.shipId}>{ship.shipName}</option>)}</select></Field><CustomerShipExplorer key={selected.shipId} shipId={selected.shipId} /></>}
+    {query.data?.length === 0 && <p>Chưa có tàu gắn với hành trình đang mở bán.</p>}
+    {selected && <><Field htmlFor="public-explorer-ship" label="Chọn tàu"><select id="public-explorer-ship" value={selected.shipId} onChange={event => {
+      const next = new URLSearchParams(params)
+      if (event.target.value) next.set('shipId', event.target.value)
+      else next.delete('shipId')
+      setParams(next, { replace: true, preventScrollReset: true })
+    }}>{query.data?.map(ship => <option key={ship.shipId} value={ship.shipId}>{ship.shipName}</option>)}</select></Field><CustomerShipExplorer key={selected.shipId} shipId={selected.shipId} /></>}
   </section>
 }

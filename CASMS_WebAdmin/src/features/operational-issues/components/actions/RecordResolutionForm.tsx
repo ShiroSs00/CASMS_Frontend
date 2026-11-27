@@ -20,13 +20,13 @@ export function RecordResolutionForm({ open, pending, error, onClose, onSubmit }
       open={open}
       pending={pending}
       error={error}
-      title="Ghi nhận resolution"
+      title="Ghi nhận phương án xử lý"
       description="Ghi nhận nội dung xử lý (bước xác minh thực hiện riêng)."
       onClose={onClose}
       footer={
         <>
-          <button className={styles.secondaryButton} disabled={pending} onClick={onClose} type="button">
-            Quay lại issue
+          <button className={styles.secondaryButton} disabled={pending} onClick={onClose} type="button" data-overlay-dismiss>
+            Hủy
           </button>
           <button
             className={styles.primaryButton}
@@ -34,20 +34,20 @@ export function RecordResolutionForm({ open, pending, error, onClose, onSubmit }
             onClick={() => void onSubmit(resolution).then((ok) => ok && onClose())}
             type="button"
           >
-            {pending ? 'Đang cập nhật…' : 'Record resolution'}
+            {pending ? 'Đang cập nhật…' : 'Lưu phương án xử lý'}
           </button>
         </>
       }
     >
       <label className={styles.field}>
-        Resolution summary
+        Nội dung xử lý *
         <textarea
           required
           value={resolution}
           onChange={(event) => setResolution(event.target.value)}
         />
       </label>
-      {invalid ? <p className={styles.actionHint}>Resolution không được để trống.</p> : null}
+      {invalid ? <p className={styles.actionHint}>Nội dung xử lý không được để trống.</p> : null}
       <p>Người ghi nhận là tài khoản đang đăng nhập.</p>
     </ActionDialog>
   )

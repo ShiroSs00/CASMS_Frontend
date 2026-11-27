@@ -157,7 +157,11 @@ export function VietQrCheckoutModal({
       ? { label: 'Đã nhận thanh toán', tone: 'success' as const }
       : effectiveStatus === 'Pending'
         ? { label: 'Đang chờ chuyển khoản', tone: 'warning' as const }
-        : { label: 'Lệnh đã đóng / hết hiệu lực', tone: 'error' as const }
+        : effectiveStatus === 'Initiated'
+          ? { label: 'Đang khởi tạo lệnh thanh toán', tone: 'info' as const }
+          : effectiveStatus === 'Refunded'
+            ? { label: 'Đã hoàn tiền', tone: 'neutral' as const }
+            : { label: 'Lệnh đã đóng / hết hiệu lực', tone: 'error' as const }
 
   const effectiveBookingStatus = liveStatus?.bookingStatus ?? order.bookingStatus
   const effectiveContractStatus = liveStatus?.contractStatus ?? order.contractStatus
@@ -169,18 +173,26 @@ export function VietQrCheckoutModal({
       onClose={onClose}
       footer={
         <>
-          {effectiveStatus === 'Pending' && (
+          {(effectiveStatus === 'Pending' || effectiveStatus === 'Initiated') && (
             <Button
               autoWidth
               busy={checking}
               disabled={checking}
               onClick={() => void checkStatus(true)}
             >
-              {checking ? 'Đang kiểm tra…' : 'Tôi đã chuyển khoản'}
+              {checking
+                ? 'Đang kiểm tra…'
+                : effectiveStatus === 'Initiated'
+                  ? 'Kiểm tra trạng thái'
+                  : 'Tôi đã chuyển khoản'}
             </Button>
           )}
           <Button tone="secondary" autoWidth onClick={onClose}>
-            {effectiveStatus === 'Confirmed' ? 'Hoàn tất & xem đặt chỗ' : 'Đóng (giữ lệnh đang chờ)'}
+            {effectiveStatus === 'Confirmed'
+              ? 'Hoàn tất & xem đặt chỗ'
+              : effectiveStatus === 'Pending' || effectiveStatus === 'Initiated'
+                ? 'Đóng (giữ lệnh đang chờ)'
+                : 'Đóng'}
           </Button>
         </>
       }
@@ -250,6 +262,20 @@ export function VietQrCheckoutModal({
                 của bạn đã được cập nhật.
               </p>
             )}
+          </Notice>
+        ) : effectiveStatus === 'Refunded' ? (
+          <Notice title="Giao dịch thanh toán này đã được hoàn tiền" tone="neutral">
+            <p>
+              Khoản thanh toán cho lệnh này đã được xử lý hoàn tiền. Không chuyển khoản lại theo mã cũ; vui lòng kiểm tra
+              trạng thái đặt chỗ và lịch thanh toán trên trang chi tiết.
+            </p>
+          </Notice>
+        ) : effectiveStatus === 'Initiated' ? (
+          <Notice title="Lệnh thanh toán VietQR đang được khởi tạo" tone="info">
+            <p>
+              Hệ thống đang hoàn tất khởi tạo lệnh chuyển khoản. Vui lòng đợi vài giây hoặc bấm{' '}
+              <strong>Kiểm tra trạng thái</strong> để nhận thông tin chuyển khoản khi sẵn sàng.
+            </p>
           </Notice>
         ) : effectiveStatus === 'Cancelled' || effectiveStatus === 'Failed' ? (
           <Notice title="Lệnh VietQR này không còn hiệu lực" tone="error">

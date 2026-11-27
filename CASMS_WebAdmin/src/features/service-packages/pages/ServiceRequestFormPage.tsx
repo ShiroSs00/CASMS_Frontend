@@ -1,10 +1,9 @@
-import { EditorLayout } from '@/shared/ui'
+import { Button, ButtonLink, EditorLayout, Field, Notice, PageHeader, Panel, useUnsavedFormGuard } from '@/shared/ui'
 import { useCallback, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { BookingPassengerPicker } from '@/domain/booking-context'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, ButtonLink, Field, Notice, PageHeader, Panel } from '@/shared/ui'
 import { servicePackageApi } from '../api/service-package-api'
 import { CatalogFrame, CatalogState } from '../components/CatalogUI'
 import type { ServiceRequest } from '../model/catalog'
@@ -36,7 +35,11 @@ function RequestEditor({ initial }: { initial?: ServiceRequest }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
   const lock = useRef(false)
   const canEditAssigned = access.canDo('SERVICE_REQUEST_EXECUTE') && (access.roles.includes('ACTIVITY_SERVICE_MANAGER') || initial?.assignedUserId === access.userId)
-  const allowed = initial ? access.canDo('SERVICE_REQUEST_CREATE') || canEditAssigned : access.roles.includes('PASSENGER') && access.canDo('SERVICE_REQUEST_CREATE')
+  const allowed = initial ? access.canDo('SERVICE_REQUEST_CREATE') || canEditAssigned : access.canDo('SERVICE_REQUEST_CREATE')
+  const dirty = initial
+    ? quantity !== String(initial.quantity) || note !== (initial.note ?? '')
+    : Boolean(serviceId || slotId || bookingPassengerId || quantity !== '1' || note.trim())
+  const guard = useUnsavedFormGuard(dirty, busy)
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (lock.current || !allowed) return
@@ -48,21 +51,21 @@ function RequestEditor({ initial }: { initial?: ServiceRequest }) {
     const payload = JSON.stringify({ serviceId, bookingPassengerId, slotId, quantity: Number(quantity), note })
     if (requestKey.current?.payload !== payload) requestKey.current = { payload, key: crypto.randomUUID() }
     lock.current = true; setBusy(true); setError('')
-    try { const saved = await servicePackageApi.saveRequest({ serviceId, bookingPassengerId, serviceScheduleId: slotId, idempotencyKey: requestKey.current.key, quantity: Number(quantity), note }, initial?.id); navigate(`/admin/service-requests/${saved.id}`) }
+    try { const saved = await servicePackageApi.saveRequest({ serviceId, bookingPassengerId, serviceScheduleId: slotId, idempotencyKey: requestKey.current.key, quantity: Number(quantity), note }, initial?.id); guard.allowLeave(); navigate(`/admin/service-requests/${saved.id}`) }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Chưa lưu được yêu cầu. Dữ liệu đã nhập được giữ lại.') }
     finally { lock.current = false; setBusy(false) }
   }
-  return <Panel title="Nội dung yêu cầu"><EditorLayout ><form onSubmit={submit} className={styles.editor}>
-    {!initial && !allowed && <Notice title="Yêu cầu do hành khách gửi">Tài khoản nhân viên có thể xử lý yêu cầu theo quyền được cấp.</Notice>}
-    {!initial && allowed && <><CatalogState {...services} /><Field htmlFor="request-service" label="Dịch vụ"><select id="request-service" required value={serviceId} disabled={busy || services.loading || Boolean(services.error)} onChange={event => { setServiceId(event.target.value); setSlotId('') }}><option value="">Chọn dịch vụ</option>{services.data?.map(service => <option key={service.id} value={service.id} disabled={service.status !== 'ACTIVE'}>{service.name} · {service.code}</option>)}</select></Field><BookingPassengerPicker value={bookingPassengerId} disabled={busy} allowedStatuses={['Confirmed']} onChange={(passenger, booking) => { setBookingPassengerId(passenger?.bookingPassengerId ?? ''); setBookingCruiseId(booking?.cruiseId ?? ''); setSlotId('') }} /><p>Chọn đặt chỗ đã xác nhận của chính bạn. Nếu để trống, hệ thống chỉ tự chọn khi có đúng một đặt chỗ hợp lệ.</p></>}
+  return <Panel title="Nội dung yêu cầu"><EditorLayout ><form noValidate onSubmit={submit} className={styles.editor}>
+    {!initial && !allowed && <Notice title="Chưa có quyền tạo yêu cầu dịch vụ">Tài khoản chưa được cấp quyền tạo yêu cầu dịch vụ mới.</Notice>}
+    {!initial && allowed && <><CatalogState {...services} /><Field htmlFor="request-service" label="Dịch vụ *"><select id="request-service" required value={serviceId} disabled={busy || services.loading || Boolean(services.error)} onChange={event => { setServiceId(event.target.value); setSlotId('') }}><option value="">Chọn dịch vụ</option>{services.data?.map(service => <option key={service.id} value={service.id} disabled={service.status !== 'ACTIVE'}>{service.name} · {service.code}</option>)}</select></Field><BookingPassengerPicker value={bookingPassengerId} disabled={busy} allowedStatuses={['Confirmed']} onChange={(passenger, booking) => { setBookingPassengerId(passenger?.bookingPassengerId ?? ''); setBookingCruiseId(booking?.cruiseId ?? ''); setSlotId('') }} /><p>Chọn đặt chỗ đã xác nhận của hành khách để gắn yêu cầu dịch vụ.</p></>}
     {initial && <ButtonLink tone="secondary" to={`/admin/services/${initial.serviceId}`}>Xem dịch vụ đã yêu cầu (không đổi)</ButtonLink>}
     {initial?.scheduleId && <Notice title="Yêu cầu đã giữ khung giờ">Bạn có thể sửa số lượng và ghi chú khi yêu cầu còn chờ tiếp nhận. Hệ thống kiểm tra lại số chỗ và định mức.</Notice>}
     {!initial && serviceId && <Button tone="secondary" disabled={busy || slots.loading} onClick={() => { slots.retry(); setError('') }}>Tải lại lịch & chỗ trống</Button>}
-    {!initial && serviceId && <><CatalogState {...slots} /><Field htmlFor="request-slot" label="Khung giờ dịch vụ"><select id="request-slot" key={serviceId} value={matchingSlots?.some(slot => slot.id === slotId) ? slotId : ''} disabled={busy || slots.loading || Boolean(slots.error)} onChange={event => setSlotId(event.target.value)}><option value="">{requiresSchedule ? 'Chọn khung giờ' : 'Không chọn khung giờ'}</option>{matchingSlots?.map(slot => <option key={slot.id} value={slot.id} disabled={slot.status !== 'OPEN' || slot.remainingCapacity < Number(quantity) || Date.parse(slot.endsAt) <= openedAt}>{new Date(slot.startsAt).toLocaleString('vi-VN')} → {new Date(slot.endsAt).toLocaleString('vi-VN')} · {slot.location} · còn {slot.remainingCapacity} chỗ</option>)}</select></Field>{slots.data?.length === 0 && <p>Chưa có khung giờ được mở cho dịch vụ này.</p>}</>}
-    <Field htmlFor="request-quantity" label="Số lượng"><input id="request-quantity" required type="number" min={1} max={2147483647} step={1} disabled={busy || !allowed} value={quantity} onChange={event => setQuantity(event.target.value)} /></Field>
+    {!initial && serviceId && <><CatalogState {...slots} /><Field htmlFor="request-slot" label={requiresSchedule ? 'Khung giờ dịch vụ *' : 'Khung giờ dịch vụ'}><select id="request-slot" key={serviceId} value={matchingSlots?.some(slot => slot.id === slotId) ? slotId : ''} disabled={busy || slots.loading || Boolean(slots.error)} onChange={event => setSlotId(event.target.value)}><option value="">{requiresSchedule ? 'Chọn khung giờ' : 'Không chọn khung giờ'}</option>{matchingSlots?.map(slot => <option key={slot.id} value={slot.id} disabled={slot.status !== 'OPEN' || slot.remainingCapacity < Number(quantity) || Date.parse(slot.endsAt) <= openedAt}>{new Date(slot.startsAt).toLocaleString('vi-VN')} → {new Date(slot.endsAt).toLocaleString('vi-VN')} · {slot.location} · còn {slot.remainingCapacity} chỗ</option>)}</select></Field>{slots.data?.length === 0 && <p>Chưa có khung giờ được mở cho dịch vụ này.</p>}</>}
+    <Field htmlFor="request-quantity" label="Số lượng *"><input id="request-quantity" required type="number" min={1} max={2147483647} step={1} disabled={busy || !allowed} value={quantity} onChange={event => setQuantity(event.target.value)} /></Field>
     <Field htmlFor="request-note" label="Ghi chú"><textarea id="request-note" maxLength={500} disabled={busy} value={note} onChange={event => setNote(event.target.value)} /></Field>
     {error && <Notice title="Không lưu được yêu cầu" tone="error">{error}</Notice>}
     {!allowed && <p>Tài khoản chưa có quyền lưu yêu cầu này.</p>}
     <div className={styles.editorActions}>{allowed && <Button type="submit" disabled={busy || (!initial && (!services.data || services.loading || Boolean(services.error)))}>{busy ? 'Đang lưu…' : 'Lưu yêu cầu'}</Button>}</div>
-  </form></EditorLayout></Panel>
+  </form></EditorLayout>{guard.prompt}</Panel>
 }

@@ -11,6 +11,7 @@ export function BookingInstallments({ booking }: { booking: BookingDetail }) {
   const paid = Math.max(0, booking.totalPaidAmount ?? 0)
   const remaining = Math.max(0, booking.outstandingBalance ?? Math.max(0, total - paid))
   const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0
+  const isBookingCancelled = booking.bookingStatus === 'Cancelled'
   const firstUnpaidSeq = installments.find(i => i.status !== 'Cancelled' && !i.paid)?.sequenceNo ?? null
 
   return (
@@ -22,16 +23,18 @@ export function BookingInstallments({ booking }: { booking: BookingDetail }) {
             <strong>{bookingMoney(paid, booking.currency)} / {bookingMoney(total, booking.currency)}</strong>
           </div>
           <Badge
-            label={remaining === 0 ? 'Đã thanh toán đủ' : `Còn lại ${bookingMoney(remaining, booking.currency)}`}
-            tone={remaining === 0 ? 'success' : 'info'}
+            label={isBookingCancelled ? 'Đặt chỗ đã hủy' : remaining === 0 ? 'Đã thanh toán đủ' : `Còn lại ${bookingMoney(remaining, booking.currency)}`}
+            tone={isBookingCancelled ? 'neutral' : remaining === 0 ? 'success' : 'info'}
           />
         </div>
         <div className={styles.paymentProgressTrack} aria-hidden="true">
           <div className={styles.paymentProgressFill} style={{ width: `${pct}%` }} />
         </div>
         <p className={styles.helper}>
-          Đã hoàn thành <strong>{pct}%</strong> tổng giá trị đặt chỗ
-          {booking.holdExpiresAt && remaining > 0 ? ` · Hạn giữ chỗ: ${bookingWhen(booking.holdExpiresAt)}` : ''}
+          {isBookingCancelled
+            ? 'Đặt chỗ này đã hủy. Các đợt thanh toán chưa thu không còn hiệu lực.'
+            : <>Đã hoàn thành <strong>{pct}%</strong> tổng giá trị đặt chỗ
+                {booking.holdExpiresAt && remaining > 0 ? ` · Hạn giữ chỗ: ${bookingWhen(booking.holdExpiresAt)}` : ''}</>}
         </p>
       </div>
 

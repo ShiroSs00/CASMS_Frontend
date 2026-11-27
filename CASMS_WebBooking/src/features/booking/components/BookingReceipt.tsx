@@ -58,7 +58,7 @@ export function BookingReceipt({ booking, headingRef, onNew }: { booking: Bookin
       paymentAction={
         canPayVnd && !isPassenger ? (
           <Notice title="Tiếp tục thanh toán qua VietQR" tone="info">
-            Kiểm tra email kích hoạt tài khoản hoặc đăng nhập tài khoản hành khách đã có để tạo mã VietQR cho đặt chỗ này.
+            OceVie đã gửi tên đăng nhập và mật khẩu tạm qua email người đại diện (hoặc bạn có thể dùng tài khoản hành khách đã có). Hãy đăng nhập để tạo mã VietQR và theo dõi thanh toán cho đặt chỗ này.
           </Notice>
         ) : null
       }

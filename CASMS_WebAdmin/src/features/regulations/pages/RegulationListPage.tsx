@@ -109,8 +109,8 @@ export function RegulationListPage() {
   const applyFilters = () => {
     setLoading(true)
     setError('')
-    const next={...query,effectiveAt:regulationInput(Date.now())}
-    setQuery(next);setAppliedQuery(next)
+    const next = { ...query, effectiveAt: query.effectiveAt || regulationInput(Date.now()) }
+    setQuery(next); setAppliedQuery(next)
   }
   const resetFilters = () => {
     setLoading(true)
@@ -141,7 +141,7 @@ export function RegulationListPage() {
               {Object.entries(scopeLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
             </select>
           </Field>
-          <Field htmlFor="compliance-at" label="Thời điểm kiểm tra (giờ Việt Nam)">
+          <Field htmlFor="compliance-at" label="Thời điểm kiểm tra (giờ Việt Nam) *">
             <input id="compliance-at" type="datetime-local" required value={effectiveAt} onChange={event => setEffectiveAt(event.target.value)} />
           </Field>
         </ListFilters>
@@ -155,7 +155,7 @@ export function RegulationListPage() {
         {compliance.data && !compliance.error && access.has('REPORT_GENERATE')
           && <Button tone="secondary" disabled={exporting} onClick={() => void exportCompliance()}>Xuất CSV quy định</Button>}
       </Panel>}
-      <CollectionSummary count={loading || error ? null : items.length} filtered={Boolean(appliedQuery.search || appliedQuery.type !== 'ALL' || appliedQuery.scope !== 'ALL' || appliedQuery.status !== 'ALL')} label="Quy định trong kết quả" scope="Tra cứu theo thời điểm đã chọn" />
+      <CollectionSummary count={loading || error ? null : items.length} filtered={Boolean(appliedQuery.search || appliedQuery.type !== 'ALL' || appliedQuery.scope !== 'ALL' || appliedQuery.status !== 'ALL' || appliedQuery.effectiveOnly)} label="Quy định trong kết quả" scope="Tra cứu theo thời điểm đã chọn" />
       <Panel title="Bộ lọc">
         <ListFilters className={styles.regulationFilters} label="Bộ lọc quy định" onSubmit={applyFilters} actions={<><Button type="submit">Áp dụng bộ lọc</Button><Button onClick={resetFilters} tone="secondary">Xóa bộ lọc</Button></>}>
           <Field htmlFor="reg-search" label="Tìm quy định">
@@ -223,15 +223,14 @@ export function RegulationListPage() {
               <option value="EXPIRED">Hết hạn</option>
             </select>
           </Field>
-          <Field htmlFor="reg-current-only" label="Hiệu lực"><select id="reg-current-only" value={query.effectiveOnly?'current':'all'} onChange={event=>setQuery(current=>({...current,effectiveOnly:event.target.value==='current'}))}><option value="all">Tất cả quy định</option><option value="current">Đang có hiệu lực theo hệ thống</option></select></Field>
+          <Field htmlFor="reg-current-only" label="Hiệu lực"><select id="reg-current-only" value={query.effectiveOnly ? 'current' : 'all'} onChange={event => setQuery(current => ({ ...current, effectiveOnly: event.target.value === 'current' }))}><option value="all">Tất cả quy định</option><option value="current">Đang có hiệu lực tại thời điểm chọn</option></select></Field>
           <div className={styles.effectiveTime}><Field htmlFor="reg-effective-at" label="Thời điểm tra cứu · Giờ Việt Nam">
             <input
               id="reg-effective-at"
-              disabled
-              readOnly
               type="datetime-local"
               step={1}
-              value={query.effectiveAt.slice(0,16)}
+              value={query.effectiveAt}
+              onChange={event => setQuery(current => ({ ...current, effectiveAt: event.target.value }))}
             />
           </Field></div>
         </ListFilters>

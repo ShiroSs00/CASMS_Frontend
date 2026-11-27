@@ -67,7 +67,7 @@ function ActivityAreaSetup({shipId,deckId}:{shipId:string;deckId:string}) {
      </Field>
      <div><Button busy={saving} disabled={!areaId} onClick={()=>void save()}>Đặt làm khu vực hoạt động</Button></div>
    </>}
-   {query.data&&candidates.length===0&&configured.length===0&&<p>Boong này chưa có khu vực phù hợp để tổ chức hoạt động.</p>}
+   {query.data&&candidates.length===0&&configured.length===0&&<Empty title="Boong này chưa có khu vực phù hợp để tổ chức hoạt động" />}
    {error&&<Notice title="Chưa lưu được khu vực" tone="error">{error}</Notice>}
  </section>
 }
@@ -91,11 +91,11 @@ export function ShipAreas({shipId,initialDeck=''}:{shipId:string;initialDeck?:st
    {access.canDo('POS_MANAGE')
     ?<ShipAreaPosConfig shipId={shipId} deckId={selected?.id??''} areasOnDeck={onDeck} allAreas={areas.data??[]}/>
     :<Notice title="Cấu hình dịch vụ theo khu vực 3D & máy POS offline">Để mở khu vực và lập định biên nhân sự trong Kế hoạch chuyến, Quản trị hệ thống cần gắn dịch vụ vào khu vực 3D và đăng ký máy POS offline cho tàu trên tài khoản Quản trị.</Notice>}
-   {selected&&access.roles.includes('SHIP_MANAGER')&&access.has('SHIP_MODEL_OBJECT_UPDATE')&&<ActivityAreaSetup key={selected.id} shipId={shipId} deckId={selected.id}/>}
+   {selected&&access.has('SHIP_MODEL_OBJECT_UPDATE')&&<ActivityAreaSetup key={selected.id} shipId={shipId} deckId={selected.id}/>}
    {decks.error&&<Notice title="Không tải được danh sách boong" tone="error">{decks.error}</Notice>}
    {!access.canDo('DECK_READ')&&<Empty title="Chưa có quyền xem boong"/>}
    {!decks.loading&&!decks.error&&decks.data?.length===0&&<Empty title="Tàu chưa có boong"/>}
-   {!selected&&decks.data&&decks.data.length>0&&<p>Chọn boong để xem danh sách khu vực dịch vụ.</p>}
+   {!selected&&decks.data&&decks.data.length>0&&<Empty title="Chọn boong để xem danh sách khu vực dịch vụ" />}
    {selected&&areas.loading&&!areas.data&&<Loading label="Đang tải khu vực dịch vụ…"/>}
    {selected&&areas.error&&<Notice title="Không tải được khu vực dịch vụ" tone="error">{areas.error}</Notice>}
    {selected&&areas.data&&<>
@@ -107,7 +107,7 @@ export function ShipAreas({shipId,initialDeck=''}:{shipId:string;initialDeck?:st
     {rows.length?<div className={styles.areaTable}><DataTable label="Danh sách khu vực dịch vụ" headers={['Tên khu vực dịch vụ','Loại khu vực dịch vụ']}>
       {pagination.items.map(area=><tr key={area.id}><th scope="row">{displayName(area)}</th><td>{areaKindLabel(area.kind)}</td></tr>)}
     </DataTable></div>:<Empty title={onDeck.length?'Không có khu vực dịch vụ phù hợp':'Boong chưa có khu vực dịch vụ'}/>}
-    <FleetPagination pagination={pagination} onChange={setPage} label="khu vực"/>
+    {rows.length > 0 && <FleetPagination pagination={pagination} onChange={setPage} label="khu vực"/>}
    </>}
   </div>
  </Panel>

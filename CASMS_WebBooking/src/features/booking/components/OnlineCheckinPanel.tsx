@@ -50,6 +50,7 @@ function PassengerOnlineCheckinRow({
   const [modalAction, setModalAction] = useState<'start' | 'complete' | null>(null)
   const [emergencyName, setEmergencyName] = useState('')
   const [emergencyPhone, setEmergencyPhone] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; phone?: string }>({})
 
   const loadStatus = useCallback(async () => {
     if (!canRead) return
@@ -77,25 +78,29 @@ function PassengerOnlineCheckinRow({
   }, [canRead, passengerId])
 
   useEffect(() => {
-    if (!shouldAutoLoad) {
-      setRecord({ checkinStatus: 'NotStarted', boardingBlockReason: null })
-      return
-    }
-    void loadStatus()
+    if (!shouldAutoLoad) return
+    const timer = window.setTimeout(() => { void loadStatus() }, 0)
+    return () => window.clearTimeout(timer)
   }, [loadStatus, shouldAutoLoad])
 
   async function submitAction() {
     if (!modalAction || lockRef.current) return
-    if (modalAction === 'start' && (!emergencyName.trim() || !emergencyPhone.trim())) {
-      setError('Vui lòng nhập đầy đủ tên và số điện thoại người liên hệ khẩn cấp.')
-      return
+    if (modalAction === 'start') {
+      const nextErrors: { name?: string; phone?: string } = {}
+      const trimmedName = emergencyName.trim()
+      const normalizedPhone = emergencyPhone.replace(/[\s-]/g, '')
+      if (!trimmedName) nextErrors.name = 'Nhập tên người liên hệ khẩn cấp.'
+      if (!normalizedPhone) nextErrors.phone = 'Nhập số điện thoại liên hệ khẩn cấp.'
+      else if (!/^(\+?[0-9]{8,15})$/.test(normalizedPhone)) nextErrors.phone = 'Số điện thoại cần gồm 8–15 chữ số, có thể bắt đầu bằng +.'
+      setFieldErrors(nextErrors)
+      if (Object.keys(nextErrors).length > 0) return
     }
     lockRef.current = true
     setBusy(true)
     setError('')
     try {
       const query = modalAction === 'start'
-        ? { emergencyContactName: emergencyName.trim(), emergencyContactPhone: emergencyPhone.trim() }
+        ? { emergencyContactName: emergencyName.trim(), emergencyContactPhone: emergencyPhone.replace(/[\s-]/g, '') }
         : undefined
       const data = await apiRequest<CheckinRecord>(
         `/checkin/passenger/${encodeURIComponent(passengerId)}/${modalAction}`,
@@ -108,6 +113,7 @@ function PassengerOnlineCheckinRow({
       setModalAction(null)
       setEmergencyName('')
       setEmergencyPhone('')
+      setFieldErrors({})
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Chưa cập nhật được thủ tục check-in.')
     } finally {
@@ -159,7 +165,7 @@ function PassengerOnlineCheckinRow({
             size="compact"
             autoWidth
             disabled={loading || busy || !canCheckinWindow}
-            onClick={() => { setError(''); setModalAction('start') }}
+            onClick={() => { setError(''); setFieldErrors({}); setModalAction('start') }}
           >
             Bắt đầu Check-in online
           </Button>
@@ -169,7 +175,7 @@ function PassengerOnlineCheckinRow({
             size="compact"
             autoWidth
             disabled={loading || busy || !canCheckinWindow}
-            onClick={() => { setError(''); setModalAction('complete') }}
+            onClick={() => { setError(''); setFieldErrors({}); setModalAction('complete') }}
           >
             Hoàn tất Check-in online
           </Button>
@@ -193,7 +199,6 @@ function PassengerOnlineCheckinRow({
               <Button
                 autoWidth
                 busy={busy}
-                disabled={modalAction === 'start' && (!emergencyName.trim() || !emergencyPhone.trim())}
                 onClick={() => void submitAction()}
               >
                 {modalAction === 'start' ? 'Lưu & bắt đầu' : 'Xác nhận hoàn tất'}
@@ -202,29 +207,36 @@ function PassengerOnlineCheckinRow({
           }
         >
           {modalAction === 'start' ? (
-            <div className={styles.stack}>
+            <form
+              className={styles.stack}
+              noValidate
+              onSubmit={e => { e.preventDefault(); void submitAction() }}
+            >
               <p>Khai báo thông tin người liên hệ khẩn cấp để khởi tạo hồ sơ check-in lên tàu.</p>
-              <Field htmlFor={`online-em-name-${passengerId}`} label="Tên người liên hệ khẩn cấp *">
+              <Field htmlFor={`online-em-name-${passengerId}`} label="Tên người liên hệ khẩn cấp *" error={fieldErrors.name}>
                 <input
                   id={`online-em-name-${passengerId}`}
                   required
                   disabled={busy}
+                  aria-invalid={Boolean(fieldErrors.name)}
                   value={emergencyName}
-                  onChange={e => setEmergencyName(e.target.value)}
+                  onChange={e => { setEmergencyName(e.target.value); if (fieldErrors.name) setFieldErrors(prev => ({ ...prev, name: undefined })) }}
                   placeholder="Ví dụ: Lê Văn B"
                 />
               </Field>
-              <Field htmlFor={`online-em-phone-${passengerId}`} label="Số điện thoại liên hệ khẩn cấp *">
+              <Field htmlFor={`online-em-phone-${passengerId}`} label="Số điện thoại liên hệ khẩn cấp *" error={fieldErrors.phone}>
                 <input
                   id={`online-em-phone-${passengerId}`}
+                  type="tel"
                   required
                   disabled={busy}
+                  aria-invalid={Boolean(fieldErrors.phone)}
                   value={emergencyPhone}
-                  onChange={e => setEmergencyPhone(e.target.value)}
+                  onChange={e => { setEmergencyPhone(e.target.value); if (fieldErrors.phone) setFieldErrors(prev => ({ ...prev, phone: undefined })) }}
                   placeholder="Ví dụ: 0901112223"
                 />
               </Field>
-            </div>
+            </form>
           ) : (
             <p>
               Xác nhận thông tin hành khách, hợp đồng vận chuyển và liên hệ khẩn cấp đã đầy đủ để chuyển sang trạng thái
@@ -240,13 +252,17 @@ function PassengerOnlineCheckinRow({
 
 export function OnlineCheckinPanel({ booking }: { booking: BookingDetail }) {
   const access = useSessionAccess()
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
   if (booking.bookingStatus !== 'Confirmed' || !access.permissions.includes('CHECKIN_READ')) return null
 
   const activePassengers = booking.passengers.filter(p => p.participationStatus === 'Active')
   if (!activePassengers.length) return null
 
   const departureMs = booking.departureDatetime ? Date.parse(booking.departureDatetime) : NaN
-  const nowMs = Date.now()
   const threeHoursMs = 3 * 60 * 60 * 1000
   const inWindow = Number.isFinite(departureMs) && departureMs > nowMs && departureMs - nowMs <= threeHoursMs
   const departed = Number.isFinite(departureMs) && departureMs <= nowMs

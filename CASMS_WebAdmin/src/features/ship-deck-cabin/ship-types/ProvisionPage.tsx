@@ -12,6 +12,8 @@ import { loadAttempt, saveAttempt } from './attempt-storage'
 import styles from './ShipWork.module.css'
 
 function TypePicker({ selected, onSelect }: { selected: ShipType | null; onSelect: (type: ShipType) => void }) {
+  const access = useSessionAccess()
+  const isAdmin = access.roles.includes('ADMIN')
   const choiceId = useId()
   const [search, setSearch] = useState('')
   const [q, setQ] = useState('')
@@ -36,7 +38,7 @@ function TypePicker({ selected, onSelect }: { selected: ShipType | null; onSelec
           <td className={styles.number}>{type.totalCapacity.toLocaleString('vi-VN')}</td><td className={styles.number}>{type.totalDecks}</td>
         </tr>)}
       </DataTable></> : <Empty title={q ? 'Không có loại tàu phù hợp' : 'Chưa có loại tàu đang sử dụng'}>
-        {q ? 'Tìm theo mã hoặc một phần tên loại.' : 'Liên hệ Admin để kiểm tra danh mục loại tàu.'}
+        {q ? 'Tìm theo mã hoặc một phần tên loại.' : isAdmin ? <ButtonLink to="/admin/ship-types/new">Tạo loại tàu mới</ButtonLink> : 'Liên hệ Quản trị hệ thống để kiểm tra hoặc tạo mới loại tàu.'}
       </Empty>}
       {query.data.totalPages > 1 && <PageControls page={query.data} label="loại tàu" onPage={setPage} />}
     </div>}
@@ -180,8 +182,8 @@ function ProvisionForm({ userId, initial, initialError }: { userId: string; init
             <div className={styles.provisionTypeSummary}><dl><dt>Loại tàu đã chọn</dt><dd>{selected?.name}</dd></dl><p>Mã tàu được cấp tự động khi tạo.</p></div>
           </div>
           <details className={styles.provisionProfileDetails} open={profileExpanded} onToggle={event => setProfileExpanded(event.currentTarget.open)}>
-            <summary><h3>Hồ sơ vận hành <span>(không bắt buộc)</span></h3></summary>
-            <p>Điền thông tin đang có hoặc bổ sung sau khi tạo tàu.</p>
+            <summary><h3>Hồ sơ vận hành <span>(không bắt buộc khi tạo bản nháp)</span></h3></summary>
+            <p>Điền thông tin đang có hoặc bổ sung sau khi tạo tàu. Lưu ý: cần hoàn thiện Hồ sơ vận hành (đăng kiểm, chứng nhận, bảo hành, bảo trì) trước khi chuyển tàu sang trạng thái Sẵn sàng khai thác.</p>
             <div className={styles.provisionProfileGroups}><ProfileFields grouped draft={profile} errors={errors}
               onChange={(key, value) => { setProfile(current => ({ ...current, [key]: value })); setErrors(current => ({ ...current, [key]: undefined })) }}
               onBlur={key => setErrors(current => ({ ...current, [key]: validateProfile(profile)[key] }))} /></div>

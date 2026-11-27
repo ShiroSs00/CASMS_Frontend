@@ -80,10 +80,10 @@ export function BookingAccountActivationPage({ link, support }: { link: Activati
       <h1 id="activation-title">Thiết lập tài khoản OceVie</h1>
       {showForm ? <form onSubmit={event => { void submit(event) }} noValidate aria-busy={status === 'busy'}>
         {error && <Notice title="Chưa thể hoàn tất" tone="error">{error}</Notice>}
-        <Field htmlFor="activation-password" label="Mật khẩu mới" hint="Từ 8 đến 24 ký tự, tối đa 72 byte UTF-8." error={fields.password}>
+        <Field htmlFor="activation-password" label="Mật khẩu mới *" hint="Từ 8 đến 24 ký tự (không quá dài khi dùng ký tự có dấu)." error={fields.password}>
           <input ref={password} id="activation-password" type={visible ? 'text' : 'password'} autoComplete="new-password" required disabled={status === 'busy'} />
         </Field>
-        <Field htmlFor="activation-confirmation" label="Xác nhận mật khẩu" error={fields.confirmation}>
+        <Field htmlFor="activation-confirmation" label="Xác nhận mật khẩu *" error={fields.confirmation}>
           <input ref={confirmation} id="activation-confirmation" type={visible ? 'text' : 'password'} autoComplete="new-password" required disabled={status === 'busy'} />
         </Field>
         <Button tone="text" autoWidth className={styles.visibility} aria-pressed={visible} aria-controls="activation-password activation-confirmation" disabled={status === 'busy'} onClick={() => setVisible(value => !value)}>{visible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}</Button>
@@ -95,7 +95,11 @@ export function BookingAccountActivationPage({ link, support }: { link: Activati
             {status === 'invalid' ? 'Vui lòng mở lại liên kết trong email hoặc liên hệ hỗ trợ.' : error}
           </Notice>}
       </div>}
-      <div className={styles.navigation}><ButtonLink to="/" tone="secondary">Về trang chủ</ButtonLink>{support}</div>
+      <div className={styles.navigation}>
+        {status === 'success' && <ButtonLink to="/login">Đăng nhập ngay</ButtonLink>}
+        <ButtonLink to="/" tone="secondary">Về trang chủ</ButtonLink>
+        {support}
+      </div>
     </div>
   </section>
 }

@@ -36,10 +36,18 @@ export function RealBookingList() {
     };
     const choices = useReadQuery('booking-history-cruises:' + access.userId, realBookingApi.historyCruises);
     const list = useReadQuery(`booking-list:${access.userId}:${page}:${status}:${cruiseId}`, useCallback(signal => realBookingApi.list(page, status || undefined, cruiseId || undefined, signal), [page, status, cruiseId]));
+    const [searchQuery, setSearchQuery] = useState('');
+    const normalizedSearch = searchQuery.trim().toLocaleLowerCase('vi-VN');
+    const visibleBookings = (list.data?.content ?? []).filter(item =>
+      !normalizedSearch
+      || item.bookingReference.toLocaleLowerCase('vi-VN').includes(normalizedSearch)
+      || item.cruiseName.toLocaleLowerCase('vi-VN').includes(normalizedSearch)
+    );
     const root = '/admin/bookings';
-    const filtered = Boolean(status || cruiseId);
+    const filtered = Boolean(status || cruiseId || normalizedSearch);
     const cruiseFilter = useRef<HTMLSelectElement>(null);
     const resetFilters = () => {
+      setSearchQuery('');
       updateFilters('', '');
       cruiseFilter.current?.focus();
     };
@@ -51,7 +59,7 @@ export function RealBookingList() {
         {access.roles.includes('BOOKING_AGENT') && access.canDo('BOOKING_CREATE') && <ButtonLink to={root + '/new'}>Đặt hộ tại quầy</ButtonLink>}</>}/>
     <section className={`${agentStyles.register} ${agentStyles.bookingTable}`} aria-labelledby="booking-register-heading">
       <div className={agentStyles.registerHeading}>
-        <div><h2 id="booking-register-heading">Danh sách đặt chỗ</h2>{!list.loading && !list.error && list.data && <p aria-live="polite">{list.data.totalElements.toLocaleString('vi-VN')} đặt chỗ</p>}</div>
+        <div><h2 id="booking-register-heading">Danh sách đặt chỗ</h2>{!list.loading && !list.error && list.data && <p aria-live="polite">{normalizedSearch ? `${visibleBookings.length.toLocaleString('vi-VN')} / ${list.data.content.length.toLocaleString('vi-VN')} đặt chỗ trên trang hiện tại` : `${list.data.totalElements.toLocaleString('vi-VN')} đặt chỗ`}</p>}</div>
         {bookingAgent && access.canDo('BOOKING_READ') && <div className={agentStyles.toolbarActions}>
           <Button tone="secondary" autoWidth aria-haspopup="dialog" onClick={() => setOpenPanel('sale')}>Chuyến đang mở bán</Button>
           <Button tone="secondary" autoWidth aria-haspopup="dialog" onClick={() => setOpenPanel('lookup')}>Tra cứu nhanh</Button>
@@ -59,6 +67,7 @@ export function RealBookingList() {
       </div>
       <div className={agentStyles.registerFilters} role="group" aria-label="Bộ lọc đặt chỗ">
       <div className={agentStyles.toolbar}>
+        <Field htmlFor="booking-search" label="Tìm trên trang"><input id="booking-search" type="search" placeholder="Mã đặt chỗ hoặc tên chuyến…" value={searchQuery} onChange={event => setSearchQuery(event.target.value)} /></Field>
         <Field htmlFor="booking-cruise" label="Chuyến có đặt chỗ"><select ref={cruiseFilter} id="booking-cruise" value={cruiseId} onChange={event => updateFilters(event.target.value, status)}>
           <option value="">Tất cả chuyến trong phạm vi xem</option>{cruiseId && !choices.data?.some(item => item.cruiseId === cruiseId) && <option value={cruiseId}>Chuyến đang lọc</option>}{choices.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseName}</option>)}
         </select></Field>
@@ -72,11 +81,11 @@ export function RealBookingList() {
       </div>
       <div className={agentStyles.registerResults}>
       <BookingReadState {...list} publicResource={undefined}/>
-      {list.data && !list.loading && !list.error && (list.data.content.length ? <>
+      {list.data && !list.loading && !list.error && (visibleBookings.length ? <>
         <div className={agentStyles.desktopRows}>
           <p className={agentStyles.scrollHint}>Cuộn ngang để xem các cột còn lại.</p>
           <DataTable label="Danh sách đặt chỗ" headers={['Mã đặt chỗ', 'Tên chuyến', 'Tạo lúc (giờ VN)', 'Khách', 'Tổng giá vé', 'Trạng thái', 'Thao tác']}>
-          {list.data.content.map(item => <tr key={item.bookingId}>
+          {visibleBookings.map(item => <tr key={item.bookingId}>
             <td><Link className={listStyles.reference} to={detailPath(item.bookingId)}>{item.bookingReference}</Link></td>
             <td><span className={listStyles.cruise}>{item.cruiseName}</span></td>
             <td>{bookingWhen(item.createdAt)}</td><td className={agentStyles.numeric}>{item.passengerCount ?? '—'}</td><td className={agentStyles.numeric}>{item.agreedFareAmount != null && item.currency ? bookingMoney(item.agreedFareAmount, item.currency) : '—'}</td>
@@ -85,7 +94,7 @@ export function RealBookingList() {
           </tr>)}
         </DataTable></div>
         <ul className={agentStyles.mobileRows} aria-label="Danh sách đặt chỗ">
-          {list.data.content.map(item => <li key={item.bookingId}>
+          {visibleBookings.map(item => <li key={item.bookingId}>
             <div className={agentStyles.resultsHeading}>
               <Link className={listStyles.reference} to={detailPath(item.bookingId)}>{item.bookingReference}</Link>
               <BookingStatusBadge status={item.bookingStatus} />
@@ -99,7 +108,7 @@ export function RealBookingList() {
           </li>)}
         </ul>
       </> : <Empty className={agentStyles.registerEmpty} title={filtered ? 'Không tìm thấy đặt chỗ phù hợp' : 'Chưa có đặt chỗ trong phạm vi xem'}>
-        <p>{filtered ? 'Thử thay đổi chuyến khởi hành hoặc trạng thái.' : 'Bạn có thể tải lại danh sách hoặc tra cứu nếu đã có mã đặt chỗ.'}</p>
+        <p>{filtered ? 'Thử thay đổi từ khóa tìm kiếm, chuyến khởi hành hoặc trạng thái.' : 'Bạn có thể tải lại danh sách hoặc tra cứu nếu đã có mã đặt chỗ.'}</p>
       </Empty>)}
       {list.data && !list.loading && !list.error && (page > 0 || list.data.totalPages > 1) && <ListFooter summary={null}>
         <Button tone="secondary" size="compact" disabled={page === 0} onClick={() => updateFilters(cruiseId, status, page - 1)}>Trang trước</Button>
@@ -167,10 +176,8 @@ export function RealBookingDetail({ related }: { related?: (bookingId: string) =
 
 export function BookingLookupPage() {
     const [params] = useSearchParams();
-    const access = useSessionAccess();
-    const bookingAgent = access.roles.length === 1 && access.roles[0] === 'BOOKING_AGENT';
     return <RealBookingFrame><div className={agentStyles.workspace}>
-      <PageHeader title="Tra cứu đặt chỗ" breadcrumb="" actions={!bookingAgent && <ButtonLink tone="secondary" to="/admin/bookings">Về danh sách đặt chỗ</ButtonLink>} />
+      <PageHeader title="Tra cứu đặt chỗ" breadcrumb="" actions={<ButtonLink tone="secondary" to="/admin/bookings">Về danh sách đặt chỗ</ButtonLink>} />
       <BookingLookup initialReference={params.get('reference') ?? ''} />
     </div></RealBookingFrame>;
 }
@@ -219,7 +226,7 @@ function BookingLookup({ initialReference = '', onClose }: { initialReference?: 
         }
     }
     const fields = [
-        { key: 'reference', label: 'Mã đặt chỗ', type: 'text', value: reference, set: setReference },
+        { key: 'reference', label: 'Mã đặt chỗ *', type: 'text', value: reference, set: setReference },
         { key: 'email', label: 'Email đại diện', type: 'email', value: email, set: setEmail },
         { key: 'phone', label: 'Số điện thoại đại diện', type: 'tel', value: phone, set: setPhone },
     ];
@@ -229,10 +236,14 @@ function BookingLookup({ initialReference = '', onClose }: { initialReference?: 
         <form id={formId} ref={formRef} noValidate onSubmit={event => { event.preventDefault(); void lookup(); }}>
           <fieldset disabled={busy} className={styles.draftFields + ' ' + agentStyles.lookup}>
             {fields.map(field => <Field key={field.key} htmlFor={formId + '-' + field.key} label={field.label} error={fieldErrors[field.key]}>
-              <input type={field.type} value={field.value} required={field.key === 'reference'} onChange={event => {
+              <input type={field.type} value={field.value} required={field.key === 'reference'} aria-invalid={Boolean(fieldErrors[field.key])} onChange={event => {
                 field.set(event.target.value);
                 setData(null); setError('');
-                setFieldErrors(current => ({ ...current, [field.key]: '' }));
+                setFieldErrors(current => ({
+                  ...current,
+                  [field.key]: '',
+                  ...(field.key === 'email' || field.key === 'phone' ? { email: '', phone: '' } : {}),
+                }));
               }} />
             </Field>)}
             {!onClose && <div className={agentStyles.lookupActions}>{submit}</div>}
@@ -251,6 +262,12 @@ function BookingLookup({ initialReference = '', onClose }: { initialReference?: 
     </Modal>;
     return <div className={agentStyles.lookupWorkspace}>
       <Panel title="Thông tin tra cứu" subtitle={description} className={agentStyles.lookupPanel}>{form}</Panel>
-      {data && <section aria-label="Kết quả tra cứu"><p role="status">Đã tìm thấy đặt chỗ {data.bookingReference}. Kết quả chỉ dùng để tra cứu.</p><BookingRecord booking={data} /></section>}
+      {data && <section aria-label="Kết quả tra cứu">
+        <div className={agentStyles.lookupMatch}>
+          <p role="status">Đã tìm thấy đặt chỗ {data.bookingReference}.</p>
+          <ButtonLink tone="secondary" autoWidth to={'/admin/bookings/' + encodeURIComponent(data.bookingId)}>Mở chi tiết đặt chỗ</ButtonLink>
+        </div>
+        <BookingRecord booking={data} />
+      </section>}
     </div>;
 }

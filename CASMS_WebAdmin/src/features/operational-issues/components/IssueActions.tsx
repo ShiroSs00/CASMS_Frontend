@@ -107,13 +107,15 @@ export function IssueActions({ issue, onChanged }: Props) {
         onClose={() => setActiveAction(null)}
         onSubmit={actions.start}
       />
-      <RecordResolutionForm
-        open={activeAction !== null && access.canDo(issueActionPermissions[activeAction]) && activeAction === 'RECORD_RESOLUTION'}
-        pending={actions.pendingAction === 'RECORD_RESOLUTION'}
-        error={actions.feedback?.tone === 'error' ? actions.feedback.message : undefined}
-        onClose={() => setActiveAction(null)}
-        onSubmit={actions.recordResolution}
-      />
+      {activeAction === 'RECORD_RESOLUTION' && access.canDo(issueActionPermissions.RECORD_RESOLUTION) && (
+        <RecordResolutionForm
+          open
+          pending={actions.pendingAction === 'RECORD_RESOLUTION'}
+          error={actions.feedback?.tone === 'error' ? actions.feedback.message : undefined}
+          onClose={() => setActiveAction(null)}
+          onSubmit={actions.recordResolution}
+        />
+      )}
       <VerifyResolutionForm
         open={activeAction !== null && access.canDo(issueActionPermissions[activeAction]) && activeAction === 'VERIFY_RESOLUTION'}
         pending={actions.pendingAction === 'VERIFY_RESOLUTION'}

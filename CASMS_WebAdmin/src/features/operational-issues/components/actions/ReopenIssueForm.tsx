@@ -29,7 +29,7 @@ export function ReopenIssueForm({ open, pending, error, onClose, onSubmit }: Pro
             onClick={() => void onSubmit().then((ok) => ok && onClose())}
             type="button"
           >
-            {pending ? 'Đang mở lại…' : 'Reopen issue'}
+            {pending ? 'Đang mở lại…' : 'Mở lại sự cố'}
           </button>
         </>
       }

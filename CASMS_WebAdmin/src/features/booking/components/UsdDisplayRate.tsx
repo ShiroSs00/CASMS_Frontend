@@ -188,7 +188,7 @@ export function UsdDisplayRate() {
         <summary>Ghi đè tỷ giá thủ công (chỉ dùng khi cần ấn định tỷ giá riêng)</summary>
         <form className={styles.stack} noValidate onSubmit={submitManualOverride}>
           <div className={styles.financeRateForm}>
-            <Field htmlFor={id + '-date'} label="Ngày hiệu lực" error={fieldErrors.date}>
+            <Field htmlFor={id + '-date'} label="Ngày hiệu lực *" error={fieldErrors.date}>
               <input
                 id={id + '-date'}
                 type="date"
@@ -203,7 +203,7 @@ export function UsdDisplayRate() {
                 }}
               />
             </Field>
-            <Field htmlFor={id + '-rate'} label="Số VND đổi 1 USD" error={fieldErrors.amount}>
+            <Field htmlFor={id + '-rate'} label="Số VND đổi 1 USD *" error={fieldErrors.amount}>
               <input
                 id={id + '-rate'}
                 type="number"
@@ -221,7 +221,7 @@ export function UsdDisplayRate() {
                 }}
               />
             </Field>
-            <Field htmlFor={id + '-source'} label="Nguồn tỷ giá" error={fieldErrors.source}>
+            <Field htmlFor={id + '-source'} label="Nguồn tỷ giá *" error={fieldErrors.source}>
               <input
                 id={id + '-source'}
                 maxLength={160}

@@ -69,7 +69,7 @@ export function IssueDetailPage() {
               )}
               <Link className={styles.secondaryButton} to={`/admin/ships/${state.issue.ship.id}`}>Xem tàu liên quan</Link>
               {state.issue.cruise && <Link className={styles.secondaryButton} to={`/admin/cruises/${state.issue.cruise.id}`}>Xem chuyến liên quan</Link>}
-              <Link className={styles.primaryButton} to={returnTo}>Quay lại danh sách</Link>
+              <Link className={styles.secondaryButton} to={returnTo}>Quay lại danh sách</Link>
                         </>} />
           <div className={styles.detailGrid}>
             <div className={styles.detailMain}>

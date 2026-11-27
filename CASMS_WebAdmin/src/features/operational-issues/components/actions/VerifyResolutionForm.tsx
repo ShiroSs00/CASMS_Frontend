@@ -15,7 +15,7 @@ export function VerifyResolutionForm({ open, pending, error, onClose, onSubmit }
       open={open}
       pending={pending}
       error={error}
-      title="Xác minh resolution"
+      title="Xác minh phương án xử lý"
       description="Xác nhận kết quả xử lý sự cố."
       onClose={onClose}
       footer={
@@ -29,7 +29,7 @@ export function VerifyResolutionForm({ open, pending, error, onClose, onSubmit }
             onClick={() => void onSubmit().then((ok) => ok && onClose())}
             type="button"
           >
-            {pending ? 'Đang xác minh…' : 'Verify resolution'}
+            {pending ? 'Đang xác minh…' : 'Xác nhận xác minh'}
           </button>
         </>
       }

@@ -73,17 +73,29 @@ export function ShipProfilePanel({ id, readOnly = false }: { id: string; readOnl
 }
 
 export function ShipRenameDialog({ id, initial, onClose }: { id: string; initial: string; onClose: () => void }) {
+  const formId = useId()
   const [name, setName] = useState(initial)
+  const [nameError, setNameError] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const lock = useRef(false)
   async function save() {
-    if (lock.current || !name.trim()) return
+    if (lock.current) return
+    const trimmed = name.trim()
+    if (!trimmed) {
+      setNameError('Vui lòng nhập tên tàu hợp lệ (không để trống hoặc chỉ gồm khoảng trắng).')
+      return
+    }
+    if (trimmed === initial.trim()) {
+      setNameError('Tên mới đang trùng với tên tàu hiện tại.')
+      return
+    }
     lock.current = true
+    setNameError('')
     setError('')
     setBusy(true)
     try {
-      await shipTypesApi.rename(id, name.trim())
+      await shipTypesApi.rename(id, trimmed)
       refreshShipStructure()
       onClose()
     } catch (failure) {
@@ -93,13 +105,31 @@ export function ShipRenameDialog({ id, initial, onClose }: { id: string; initial
       setBusy(false)
     }
   }
-  return <Modal title="Đổi tên tàu" busy={busy} onClose={onClose}>
-    <form onSubmit={event => { event.preventDefault(); void save() }}>
-      <Field htmlFor="ship-rename" label="Tên tàu *"><input value={name} maxLength={100} required disabled={busy}
-        onChange={event => setName(event.target.value)} /></Field>
+  return <Modal
+    title="Đổi tên tàu"
+    busy={busy}
+    onClose={() => { if (!busy) onClose() }}
+    footer={<>
+      <Button tone="secondary" disabled={busy} data-overlay-dismiss onClick={onClose}>Hủy</Button>
+      <Button type="submit" form={formId} busy={busy} disabled={busy}>Lưu tên tàu</Button>
+    </>}
+  >
+    <form id={formId} noValidate onSubmit={event => { event.preventDefault(); void save() }}>
+      <Field htmlFor="ship-rename" label="Tên tàu *" error={nameError || undefined}>
+        <input
+          id="ship-rename"
+          value={name}
+          maxLength={100}
+          required
+          disabled={busy}
+          aria-invalid={Boolean(nameError)}
+          onChange={event => {
+            setName(event.target.value)
+            if (nameError) setNameError('')
+          }}
+        />
+      </Field>
       {error && <Notice title="Chưa đổi được tên tàu" tone="error">{error}</Notice>}
-      <div className={styles.actions}><Button tone="secondary" disabled={busy} onClick={onClose}>Hủy</Button>
-        <Button type="submit" busy={busy} disabled={!name.trim() || initial === name.trim()}>Lưu tên tàu</Button></div>
     </form>
   </Modal>
 }

@@ -68,7 +68,7 @@ export function SupplierFormPage() {
     setReloadKey((k) => k + 1)
   }
 
-  async function handleSubmit(values: SupplierFormValues) {
+  async function handleSubmit(values: SupplierFormValues, allowLeave?: () => void) {
     if (!access.canDo(mode === 'create' ? 'SUPPLIER_CREATE' : 'SUPPLIER_UPDATE')) { setApiError('Tài khoản chưa có quyền lưu nhà cung cấp.'); return }
     setIsSubmitting(true)
     setApiError(null)
@@ -76,9 +76,11 @@ export function SupplierFormPage() {
       const payload = formToSupplierRequest(values)
       if (mode === 'create') {
         const created = await supplierApi.create(payload)
+        allowLeave?.()
         navigate(`/admin/suppliers/${created.id}`)
       } else if (supplierId) {
         const updated = await supplierApi.update(supplierId, payload)
+        allowLeave?.()
         navigate(returnTo??`/admin/suppliers/${updated.id}`)
       }
     } catch (err) {
@@ -139,9 +141,9 @@ export function SupplierFormPage() {
               onSubmitValues={handleSubmit}
               onCancel={() =>
                 navigate(
-                  mode === 'edit' && supplierId
+                  returnTo ?? (mode === 'edit' && supplierId
                     ? `/admin/suppliers/${supplierId}`
-                    : '/admin/suppliers',
+                    : '/admin/suppliers'),
                 )
               }
             /></EditorLayout>

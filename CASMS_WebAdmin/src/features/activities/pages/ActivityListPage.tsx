@@ -35,6 +35,7 @@ export function ActivityListPage() {
   function changeView(next: typeof view) {
     if (next === view) return
     focusResults.current = true
+    setSearch('')
     setView(next)
   }
 
@@ -106,15 +107,19 @@ export function ActivityListPage() {
 
       <div className={styles.actions} role="tablist" aria-label="Chế độ xem hoạt động">
         <Button
+          role="tab"
           tone={view === 'catalog' ? 'primary' : 'secondary'}
-          aria-pressed={view === 'catalog'}
+          aria-selected={view === 'catalog'}
+          tabIndex={view === 'catalog' ? 0 : -1}
           onClick={() => changeView('catalog')}
         >
           Kho hoạt động mẫu ({catalog.data?.length ?? 0})
         </Button>
         <Button
+          role="tab"
           tone={view === 'schedule' ? 'primary' : 'secondary'}
-          aria-pressed={view === 'schedule'}
+          aria-selected={view === 'schedule'}
+          tabIndex={view === 'schedule' ? 0 : -1}
           onClick={() => changeView('schedule')}
         >
           Lịch hoạt động theo chuyến ({query.data?.length ?? 0})
@@ -344,7 +349,7 @@ export function ActivityListPage() {
           footer={<Button tone="secondary" onClick={() => setSelected(null)}>Đóng</Button>}
         >
           <div>
-            <ActivityDetailPage recordId={selected.id} embedded />
+            <ActivityDetailPage recordId={selected.id} embedded onDeleted={() => { setSelected(null); catalog.retry(); query.retry() }} />
           </div>
         </Modal>
       )}

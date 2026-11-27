@@ -39,7 +39,7 @@ export function validateCatalogDraft(kind: CatalogKind, draft: CatalogDraft): Re
     }
     if (draft.usageTimeZone.trim()) {
       try { new Intl.DateTimeFormat('vi-VN', { timeZone: draft.usageTimeZone.trim() }) }
-      catch { errors.usageTimeZone = 'Nhập mã múi giờ IANA hợp lệ.' }
+      catch { errors.usageTimeZone = 'Vui lòng chọn múi giờ hợp lệ (ví dụ: Giờ Việt Nam - Asia/Ho_Chi_Minh).' }
     }
   }
   return errors

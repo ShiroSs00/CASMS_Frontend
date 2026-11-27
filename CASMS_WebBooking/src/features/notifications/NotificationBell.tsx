@@ -38,34 +38,32 @@ export function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [items, setItems] = useState<NotificationItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState('')
   const [connected, setConnected] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const loadList = useCallback(async () => {
     if (!authenticated) return
     setLoading(true)
+    setLoadError('')
     try {
       const data = await apiRequest<NotificationItem[]>('/notifications')
       const list = Array.isArray(data) ? data : []
       setItems(list)
       setUnreadCount(list.filter(item => !item.readAt && !item.read).length)
     } catch {
-      // keep existing items on transient failure
+      setLoadError('Chưa tải được danh sách thông báo lúc này.')
     } finally {
       setLoading(false)
     }
   }, [authenticated])
 
   useEffect(() => {
-    if (!authenticated) {
-      setUnreadCount(0)
-      setItems([])
-      setConnected(false)
-      return
-    }
+    if (!authenticated) return
     let cancelled = false
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null
     let activeController: AbortController | null = null
+    let failureCount = 0
 
     void apiRequest<{ unreadCount: number }>('/notifications/unread-count')
       .then(data => { if (!cancelled && typeof data?.unreadCount === 'number') setUnreadCount(data.unreadCount) })
@@ -85,7 +83,8 @@ export function NotificationBell() {
           headers: { Authorization: `Bearer ${token}`, Accept: 'text/event-stream' },
           signal: activeController.signal,
         })
-        if (!res.ok || !res.body) throw new Error('SSE unavailable')
+        if (!res.ok || !res.body) throw new Error('Stream unavailable')
+        failureCount = 0
         setConnected(true)
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
@@ -116,7 +115,7 @@ export function NotificationBell() {
                     const incoming = payload.notification
                     setItems(prev => [incoming, ...prev.filter(x => x.notificationId !== incoming.notificationId)])
                   }
-                } catch { /* ignore malformed SSE payload */ }
+                } catch { /* ignore malformed notification payload */ }
               }
               currentEvent = ''
               dataLines = []
@@ -125,8 +124,12 @@ export function NotificationBell() {
         }
       } catch {
         setConnected(false)
+        failureCount += 1
       } finally {
-        if (!cancelled) void connectSse(5000)
+        if (!cancelled) {
+          const nextDelay = Math.min(30_000, 5_000 * Math.pow(2, Math.max(0, failureCount - 1)))
+          void connectSse(nextDelay)
+        }
       }
     }
 
@@ -138,10 +141,6 @@ export function NotificationBell() {
       activeController?.abort()
     }
   }, [authenticated])
-
-  useEffect(() => {
-    if (open) void loadList()
-  }, [open, loadList])
 
   useEffect(() => {
     if (!open) return
@@ -195,7 +194,11 @@ export function NotificationBell() {
         aria-label={unreadCount > 0 ? `Thông báo (${unreadCount} chưa đọc)` : 'Thông báo'}
         aria-expanded={open}
         aria-haspopup="dialog"
-        onClick={() => setOpen(v => !v)}
+        onClick={() => {
+          const next = !open
+          setOpen(next)
+          if (next) void loadList()
+        }}
         style={{
           position: 'relative',
           display: 'inline-flex',
@@ -265,7 +268,7 @@ export function NotificationBell() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <strong style={{ fontSize: '15px' }}>Thông báo</strong>
               <span
-                title={connected ? 'Đang kết nối thời gian thực (SSE)' : 'Đang kết nối lại…'}
+                title={connected ? 'Đang kết nối cập nhật trực tiếp' : 'Đang kết nối lại…'}
                 style={{ width: '8px', height: '8px', borderRadius: '50%', background: connected ? '#167347' : '#995700' }}
               />
             </div>
@@ -303,12 +306,24 @@ export function NotificationBell() {
           </div>
 
           <div style={{ overflowY: 'auto', flex: 1 }}>
+            {loadError && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '10px 16px', background: '#FDF4E7', borderBottom: '1px solid #F1DFC0', fontSize: '12px', color: '#7A4300' }} role="status">
+                <span>{loadError}</span>
+                <button
+                  type="button"
+                  onClick={() => void loadList()}
+                  style={{ border: 0, background: 'transparent', color: '#0B2A4A', fontWeight: 600, fontSize: '12px', cursor: 'pointer', flexShrink: 0 }}
+                >
+                  Thử lại
+                </button>
+              </div>
+            )}
             {loading && !items.length && (
               <p style={{ padding: '24px 16px', textAlign: 'center', color: '#506777', fontSize: '13px', margin: 0 }}>
                 Đang tải thông báo…
               </p>
             )}
-            {!loading && visibleItems.length === 0 && (
+            {!loading && !loadError && visibleItems.length === 0 && (
               <p style={{ padding: '28px 16px', textAlign: 'center', color: '#506777', fontSize: '13px', margin: 0 }}>
                 {tab === 'unread' ? 'Không có thông báo chưa đọc.' : 'Chưa có thông báo nào.'}
               </p>

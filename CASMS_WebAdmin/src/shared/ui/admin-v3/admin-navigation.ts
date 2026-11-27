@@ -28,6 +28,7 @@ const tools: readonly AdminNavigationItem[] = [
   { label:'Boong', to:'/admin/decks', permissionMode:'ANY', permissions:['DECK_READ','CABIN_READ'] },
   { label:'Cabin', to:'/admin/cabins', permissionMode:'ANY', permissions:['CABIN_READ'] },
   { label:'Chuyến khởi hành', to:'/admin/cruises', permissionMode:'ANY', permissions:['CRUISE_READ'] },
+  { label:'Nhật ký thay đổi lịch trình', to:'/admin/itinerary-history', permissionMode:'ANY', permissions:['ITINERARY_CHANGE_READ'] },
   { label:'Quy định', to:'/admin/regulations', permissionMode:'ANY', permissions:['REGULATION_READ'] },
   { label:'Sự cố vận hành', to:'/admin/issues', permissionMode:'ANY', permissions:['OPERATIONAL_ISSUE_READ'] },
   { label:'Nhà cung cấp', to:'/admin/suppliers', permissionMode:'ANY', permissions:['SUPPLIER_READ'] },
@@ -219,7 +220,7 @@ const navigationGroups = [
   {id:'locations',label:'Điểm đến và đối tác',sections:['destinations','ports','suppliers']},
   {id:'fleet',label:'Quản lý tàu',sections:['ships','decks','cabins']},
   {id:'schedule',label:'Lập lịch trình',sections:['trips']},
-  {id:'cruise-operations',label:'Quản lý chuyến khởi hành',sections:['cruises']},
+  {id:'cruise-operations',label:'Quản lý chuyến khởi hành',sections:['cruises','itinerary-history']},
   {id:'bookings',label:'Đặt chỗ và đón khách',sections:['bookings','staff/checkin']},
   {id:'operations',label:'Vận hành và tuân thủ',sections:['issues','regulations']},
 ]

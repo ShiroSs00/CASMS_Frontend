@@ -250,6 +250,15 @@ const messages:Readonly<Record<string,string>>={
   SEPAY_RETRY_NOT_ALLOWED:'Chỉ có thể thử ghi sổ lại cho sự kiện đang ở trạng thái cần xử lý lại.',
   SEPAY_RETRY_FAILED:'Thử ghi sổ lại chưa thành công. Kiểm tra chi tiết lỗi và thử lại sau.',
   SEPAY_DISABLED:'Cổng thanh toán VietQR / SePay hiện đang tạm ngưng.',
+  EMPLOYEE_EMAIL_EXISTS:'Email công việc này đã được sử dụng cho một tài khoản nhân sự khác.',
+  EMPLOYEE_CODE_EXISTS:'Mã nhân viên đã tồn tại trong hệ thống. Vui lòng chọn mã khác.',
+  EMPLOYEE_ROLE_FORBIDDEN:'Tài khoản hiện tại không có quyền phân công vai trò này.',
+  EMPLOYEE_SELF_INACTIVATION:'Bạn không thể tự vô hiệu hóa tài khoản của chính mình.',
+  EMPLOYEE_ASSIGNMENT_CHANGED:'Phân công của nhân viên vừa thay đổi. Tải lại danh sách để đối chiếu trước khi thao tác tiếp.',
+  EMPLOYEE_ON_ACTIVE_CRUISE:'Nhân viên đang được phân công trên chuyến khởi hành đang hoạt động nên chưa thể vô hiệu hóa.',
+  PASSWORD_TOO_LONG:'Mật khẩu vượt quá độ dài tối đa cho phép.',
+  PREPARATION_BUDGET_EDIT_FORBIDDEN:'Không thể chỉnh sửa ngân sách ở trạng thái hiện tại hoặc tài khoản chưa có quyền.',
+  PREPARATION_BUDGET_NOT_SUBMITTED:'Ngân sách vận hành chưa được gửi xét duyệt.',
 }
 
 /** Reviewed business codes only. Free-text server messages cannot supply UI business copy. */

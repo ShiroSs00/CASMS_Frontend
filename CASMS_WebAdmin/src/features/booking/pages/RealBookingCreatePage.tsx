@@ -9,7 +9,7 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { PermissionLink as Link } from '@/shared/ui';
 import { useSessionAccess } from '@/shared/auth';
 import { useReadQuery } from '@/shared/api';
-import { Badge, Button, ButtonLink, Empty, Field, Loading, Modal, Notice, PageHeader, Panel, RecordFacts } from '@/shared/ui';
+import { Badge, Button, ButtonLink, Empty, Field, Loading, Modal, Notice, PageHeader, Panel, RecordFacts, useUnsavedFormGuard } from '@/shared/ui';
 import { bookingFieldErrors, bookingPackageErrors, realBookingApi } from '../api/real-booking-api';
 import { createQuotedBooking, quoteSelection, recoverQuotedBooking, requestBookingQuote, type BookingQuoteIntent } from '../api/booking-quote-api';
 import { CabinPassengerFields, PassengerDetailsFields } from '../components/LiveBookingFields';
@@ -22,7 +22,7 @@ import { bookingBirthDate, bookingWhen } from '../model/real-booking-view';
 
 import { ApiError } from '@/shared/api';
 import { BookingRecord } from '../components/BookingRecord';
-import { bookingMoney } from '../model/booking-presentation';
+import { bookingMoney, cabinTypeName } from '../model/booking-presentation';
 import styles from '../components/LiveBooking.module.css';
 import agentStyles from '../components/BookingAgent.module.css';
 import { BookingShipModel, type BookingModelRenderer } from '../components/BookingShipModel';
@@ -67,21 +67,22 @@ function ExistingBookingFlow({ step: routeStep, renderShipModel }: {
             setErrors({});
         }
     }, [requestedCruise, draft.cruiseId, busy, uncertain, setDraft, setSaved, setErrors]);
+    const hasMounted = useRef(false);
     useEffect(() => {
         const first = form.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
-        if (first)
+        if (first) {
             first.focus();
-        else
+            hasMounted.current = true;
+            return;
+        }
+        if (hasMounted.current) {
             heading.current?.focus();
+        } else {
+            hasMounted.current = true;
+        }
     }, [step, validationAttempt, saved]);
     const dirty = !saved && draft.passengers.some(person => person.fullName || person.email || person.documentNumber || person.phoneNumber);
-    useEffect(() => {
-        if (!dirty)
-            return;
-        const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
-        window.addEventListener('beforeunload', warn);
-        return () => window.removeEventListener('beforeunload', warn);
-    }, [dirty]);
+    const unsavedGuard = useUnsavedFormGuard(dirty, busy, (current, next) => current.pathname !== next.pathname);
     const cruises = useReadQuery('booking-published-cruises:' + access.userId, realBookingApi.cruises);
     const cabins = useReadQuery('booking-available-cabins:' + draft.cruiseId, useCallback(signal => draft.cruiseId ? realBookingApi.cabins(draft.cruiseId, signal) : Promise.resolve(null), [draft.cruiseId]));
     const packages = useReadQuery('booking-cruise-packages:' + draft.cruiseId, useCallback(signal => realBookingApi.packagesForCruise(draft.cruiseId, signal), [draft.cruiseId]));
@@ -252,7 +253,7 @@ function ExistingBookingFlow({ step: routeStep, renderShipModel }: {
     {quoteUnknown && <Notice title="Chưa nhận được kết quả báo giá">Chưa có mã báo giá để đối chiếu nên chưa thể gửi yêu cầu tiếp. Thông tin đã nhập vẫn được giữ. Vui lòng liên hệ bộ phận hỗ trợ; chưa có đặt chỗ được xác nhận từ bước báo giá này.</Notice>}<form ref={form} noValidate onSubmit={next}><div className={styles.layout + ' ' + agentStyles.wizardLayout}><div className={styles.main}>
       {Object.keys(errors).length > 0 && <Notice title="Vui lòng kiểm tra thông tin" tone="error"><ul>{Object.entries(errors).map(([id, message]) => <li key={id}>{message}</li>)}</ul></Notice>}
       <fieldset disabled={busy || uncertain} className={styles.draftFields}><div className={styles.stack}>
-        {step === 1 && <><Panel title="Chuyến khởi hành"><BookingReadState {...cruises} publicResource={undefined}/>{cruises.data?.length === 0 && <Empty title="Chưa có chuyến đã công bố để đặt"></Empty>}<Field htmlFor="real-booking-cruise" label="Chuyến khởi hành *" error={errors['real-booking-cruise']}><select id="real-booking-cruise" value={draft.cruiseId} aria-invalid={Boolean(errors['real-booking-cruise'])} aria-describedby={errors['real-booking-cruise'] ? 'real-booking-cruise-hint' : undefined} onChange={event => { const id = event.target.value; setDraft(current => ({ ...current, currency: 'USD', cruiseId: id, passengers: current.passengers.map(person => ({ ...person, cabinId: '', tourPackageId: '', cabinSelectionMode: undefined, cabinGroupKey: undefined, farePackageOfferId: undefined, farePackagePriceRevisionId: undefined })) })); setErrors({}); navigate(stepPath(1, id), { replace: true }); }}><option value="">Chọn chuyến có thể đặt chỗ</option>{cruises.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}</select></Field>
+        {step === 1 && <><Panel title="Chuyến khởi hành"><BookingReadState {...cruises} publicResource={undefined}/>{cruises.data?.length === 0 ? <Empty title="Chưa có chuyến đã công bố để đặt"></Empty> : <Field htmlFor="real-booking-cruise" label="Chuyến khởi hành *" error={errors['real-booking-cruise']}><select id="real-booking-cruise" value={draft.cruiseId} aria-invalid={Boolean(errors['real-booking-cruise'])} aria-describedby={errors['real-booking-cruise'] ? 'real-booking-cruise-hint' : undefined} onChange={event => { const id = event.target.value; setDraft(current => ({ ...current, currency: 'USD', cruiseId: id, passengers: current.passengers.map(person => ({ ...person, cabinId: '', tourPackageId: '', cabinSelectionMode: undefined, cabinGroupKey: undefined, farePackageOfferId: undefined, farePackagePriceRevisionId: undefined })) })); setErrors({}); navigate(stepPath(1, id), { replace: true }); }}><option value="">Chọn chuyến có thể đặt chỗ</option>{cruises.data?.map(item => <option key={item.cruiseId} value={item.cruiseId}>{item.cruiseCode} · {item.cruiseName}</option>)}</select></Field>}
           {selected && <RecordFacts entries={[
             ['Mã chuyến', selected.cruiseCode],
             ['Tàu', selected.shipName ?? 'Chưa cung cấp'],
@@ -278,14 +279,14 @@ function ExistingBookingFlow({ step: routeStep, renderShipModel }: {
             setDraft(current => ({ ...current, passengers: current.passengers.filter((_, i) => i !== index) }));
             setErrors({});
           }} /><Panel title="Hình thức thanh toán"><div className={styles.fields}><p>Tiền tệ đặt chỗ: {draft.currency}.</p><Field htmlFor="real-booking-plan" label="Hình thức thanh toán" error={errors['real-booking-plan']}><select id="real-booking-plan" aria-invalid={Boolean(errors['real-booking-plan'])} aria-describedby={errors['real-booking-plan'] ? 'real-booking-plan-hint' : undefined} value={draft.paymentPlan} onChange={event => setDraft(current => ({ ...current, paymentPlan: event.target.value as typeof draft.paymentPlan }))}>{Object.entries(plans).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field></div>{draft.paymentPlan === 'STAGES' && <p className={styles.helper}>Ba đợt thanh toán: đặt cọc, thanh toán giữa kỳ và thanh toán phần còn lại theo hợp đồng.</p>}<Field htmlFor="real-booking-notes" label="Ghi chú (tối đa 500 ký tự)" error={errors['real-booking-notes']}><textarea aria-invalid={Boolean(errors['real-booking-notes'])} aria-describedby={errors['real-booking-notes'] ? 'real-booking-notes-hint' : undefined} id="real-booking-notes" maxLength={500} value={draft.notes} onChange={event => setDraft(current => ({ ...current, notes: event.target.value }))}/></Field></Panel></>}
-        {step === 3 && <><BookingReadState {...cruises} publicResource={undefined}/><BookingReadState {...cabins} publicResource={undefined}/><Panel title="Kiểm tra toàn bộ đặt chỗ"><div className={styles.sectionHeading}><h2>{selected?.cruiseName ?? 'Chưa chọn chuyến'}</h2></div><p>{bookingWhen(selected?.departureDatetime)} → {bookingWhen(selected?.returnDatetime)} · Giờ Việt Nam</p><ol className={styles.review}>{draft.passengers.map((person, index) => <li key={index}><strong>{person.fullName || `Hành khách ${index + 1} · Chưa nhập tên`}</strong><p>Phòng: {person.cabinSelectionMode === 'CATEGORY_HOLD' ? 'Giữ nguyên nhóm theo hạng, chọn cabin sau' : cabins.data?.find(cabin => cabin.cabinId === person.cabinId)?.cabinNumber ?? 'Cần kiểm tra lại'}</p>{person.farePackageOfferId && <p>Gói du thuyền: {fares.data?.offers.find(f => f.selection.offerId === person.farePackageOfferId)?.selection.templateName ?? 'Cần đối chiếu'} · Hạng {fares.data?.offers.find(f => f.selection.offerId === person.farePackageOfferId)?.selection.logicalCategory ?? 'Cần đối chiếu'} · Nhóm {person.cabinGroupKey || 'Theo lựa chọn cabin'}</p>}{(!person.farePackageOfferId || person.tourPackageId) && <p>Gói dịch vụ bổ sung: {person.tourPackageId ? packages.data?.find(pack => pack.id === person.tourPackageId)?.name ?? 'Cần kiểm tra lại' : 'Không chọn'}</p>}<p>Ngày sinh: {bookingBirthDate(person.dateOfBirth)} · Quốc tịch: {person.nationality || 'Chưa cung cấp'}</p><p>Liên hệ: {person.email || 'Không có email'} · {person.phoneNumber || 'Không có số điện thoại'}</p>{person.documentNumber && <p>Giấy tờ: {person.documentType || 'Chưa chọn loại'} · ••••{person.documentNumber.slice(-4)}</p>}</li>)}</ol><p>Hình thức: {plans[draft.paymentPlan]} · Tiền tệ yêu cầu: {draft.currency}</p>{draft.notes && <p>Ghi chú: {draft.notes}</p>}<p>Sau khi đặt chỗ, bạn sẽ nhận tổng giá vé, lịch thanh toán từng đợt và hướng dẫn hợp đồng.</p></Panel></>}
+        {step === 3 && <><BookingReadState {...cruises} publicResource={undefined}/><BookingReadState {...cabins} publicResource={undefined}/><Panel title="Kiểm tra toàn bộ đặt chỗ"><div className={styles.sectionHeading}><h2>{selected?.cruiseName ?? 'Chưa chọn chuyến'}</h2></div><p>{bookingWhen(selected?.departureDatetime)} → {bookingWhen(selected?.returnDatetime)} · Giờ Việt Nam</p><ol className={styles.review}>{draft.passengers.map((person, index) => { const offer = fares.data?.offers.find(f => f.selection.offerId === person.farePackageOfferId)?.selection; const docLabel = person.documentType === 'NationalID' ? 'CCCD' : person.documentType === 'Passport' ? 'Hộ chiếu' : person.documentType || 'Chưa chọn loại'; return <li key={index}><strong>{person.fullName || `Hành khách ${index + 1} · Chưa nhập tên`}</strong><p>Phòng: {person.cabinSelectionMode === 'CATEGORY_HOLD' ? 'Giữ nguyên nhóm theo hạng, chọn cabin sau' : cabins.data?.find(cabin => cabin.cabinId === person.cabinId)?.cabinNumber ?? 'Cần kiểm tra lại'}</p>{person.farePackageOfferId && <p>Gói du thuyền: {offer?.templateName ?? 'Cần đối chiếu'} · Hạng {offer?.logicalCategory ? cabinTypeName(offer.logicalCategory) : 'Cần đối chiếu'} · Nhóm {person.cabinGroupKey || 'Theo lựa chọn cabin'}</p>}{(!person.farePackageOfferId || person.tourPackageId) && <p>Gói dịch vụ bổ sung: {person.tourPackageId ? packages.data?.find(pack => pack.id === person.tourPackageId)?.name ?? 'Cần kiểm tra lại' : 'Không chọn'}</p>}<p>Ngày sinh: {bookingBirthDate(person.dateOfBirth)} · Quốc tịch: {person.nationality || 'Chưa cung cấp'}</p><p>Liên hệ: {person.email || 'Không có email'} · {person.phoneNumber || 'Không có số điện thoại'}</p>{person.documentNumber && <p>Giấy tờ: {docLabel} · ••••{person.documentNumber.slice(-4)}</p>}</li>; })}</ol><p>Hình thức: {plans[draft.paymentPlan]} · Tiền tệ yêu cầu: {draft.currency}</p>{draft.notes && <p>Ghi chú: {draft.notes}</p>}<p>Sau khi đặt chỗ, bạn sẽ nhận tổng giá vé, lịch thanh toán từng đợt và hướng dẫn hợp đồng.</p></Panel></>}
         {step === 3 && quoteIntent && <Panel title="Báo giá từ hệ thống">
           <RecordFacts entries={[
             ['Tổng tiền', quoteIntent.quote.totalAmount != null && quoteIntent.quote.currency
               ? bookingMoney(quoteIntent.quote.totalAmount, quoteIntent.quote.currency) : 'Chưa cung cấp'],
             ['Hình thức thanh toán', plans[draft.paymentPlan]],
-            ...(quoteIntent.quote.depositAmount != null ? [['Cọc theo báo giá', bookingMoney(quoteIntent.quote.depositAmount, draft.currency)] as const] : []),
-            ...(quoteIntent.quote.remainingAmount != null ? [['Còn lại theo báo giá', bookingMoney(quoteIntent.quote.remainingAmount, draft.currency)] as const] : []),
+            ...(quoteIntent.quote.depositAmount != null ? [['Cọc theo báo giá', bookingMoney(quoteIntent.quote.depositAmount, quoteIntent.quote.currency ?? draft.currency)] as const] : []),
+            ...(quoteIntent.quote.remainingAmount != null ? [['Còn lại theo báo giá', bookingMoney(quoteIntent.quote.remainingAmount, quoteIntent.quote.currency ?? draft.currency)] as const] : []),
             ['Hiệu lực đến', bookingWhen(quoteIntent.quote.expiresAt ?? undefined)],
           ]} />
           {quoteExpired && <Notice title={businessCopy('booking.quote.EXPIRED')} tone="warning">{businessCopy('booking.quote.expiredInstruction')}</Notice>}
@@ -293,5 +294,5 @@ function ExistingBookingFlow({ step: routeStep, renderShipModel }: {
         <div className={styles.actions + ' ' + agentStyles.wizardActions}>{step > 1 && <Button tone="secondary" onClick={() => navigate(stepPath(step - 1))}>Quay lại</Button>}<Button type="submit" busy={busy} disabled={busy || uncertain || quoteUnknown || (step !== 2 && (cruises.loading || cabins.loading || fares.loading || (packages.loading && draft.passengers.some(person => person.tourPackageId))))}>{step === 1 ? 'Tiếp tục nhập hành khách' : step === 2 ? 'Kiểm tra đặt chỗ' : quoteIntent && !quoteExpired ? 'Xác nhận tạo đặt chỗ' : quoteExpired ? 'Tính lại báo giá' : 'Tính báo giá & xem tổng tiền'}</Button></div>
       </div></fieldset>
     </div><aside className={styles.rail}><Panel title="Tóm tắt đặt chỗ"><strong>{selected?.cruiseName ?? 'Chưa chọn chuyến'}</strong><p>{draft.passengers.length} hành khách</p><ButtonLink tone="secondary" to={back}>Về danh sách đặt chỗ</ButtonLink></Panel></aside></div></form>
-  </div>{review && <Modal title="Xác nhận gửi đặt chỗ" busy={busy} onClose={() => setReview(false)} footer={<><Button tone="secondary" disabled={busy} onClick={() => setReview(false)}>Quay lại kiểm tra</Button><Button disabled={busy || uncertain || quoteExpired || !quoteIntent} onClick={() => void submit()}>Gửi đặt chỗ</Button></>}><p>{selected?.cruiseName} · {draft.passengers.length} hành khách · {plans[draft.paymentPlan]}</p>{quoteIntent && <><p>{businessCopy('booking.quote.total')}: {quoteIntent.quote.totalAmount != null && quoteIntent.quote.currency ? bookingMoney(quoteIntent.quote.totalAmount, quoteIntent.quote.currency) : 'Chưa cung cấp'}</p><p>{businessCopy('booking.quote.validUntil')}: {bookingWhen(quoteIntent.quote.expiresAt ?? undefined)} · Giờ Việt Nam</p></>}{quoteExpired && <Notice title={businessCopy('booking.quote.EXPIRED')}>{businessCopy('booking.quote.expiredInstruction')}</Notice>}<p>Kiểm tra thông tin và gửi yêu cầu để nhận mã đặt chỗ cùng lịch thanh toán.</p>{error && <Notice title="Chưa xác nhận được kết quả" tone="error">{error}</Notice>}{uncertain && <Notice title="Kiểm tra kết quả trước khi gửi lại" tone="warning">Đóng hộp thoại để kiểm tra kết quả của yêu cầu đã gửi.</Notice>}</Modal>}</RealBookingFrame>;
+  </div>{unsavedGuard.prompt}{review && <Modal title="Xác nhận gửi đặt chỗ" busy={busy} onClose={() => setReview(false)} footer={<><Button tone="secondary" disabled={busy} onClick={() => setReview(false)}>Quay lại kiểm tra</Button><Button disabled={busy || uncertain || quoteExpired || !quoteIntent} onClick={() => void submit()}>Gửi đặt chỗ</Button></>}><p>{selected?.cruiseName} · {draft.passengers.length} hành khách · {plans[draft.paymentPlan]}</p>{quoteIntent && <><p>{businessCopy('booking.quote.total')}: {quoteIntent.quote.totalAmount != null && quoteIntent.quote.currency ? bookingMoney(quoteIntent.quote.totalAmount, quoteIntent.quote.currency) : 'Chưa cung cấp'}</p><p>{businessCopy('booking.quote.validUntil')}: {bookingWhen(quoteIntent.quote.expiresAt ?? undefined)} · Giờ Việt Nam</p></>}{quoteExpired && <Notice title={businessCopy('booking.quote.EXPIRED')}>{businessCopy('booking.quote.expiredInstruction')}</Notice>}<p>Kiểm tra thông tin và gửi yêu cầu để nhận mã đặt chỗ cùng lịch thanh toán.</p>{error && <Notice title="Chưa xác nhận được kết quả" tone="error">{error}</Notice>}{uncertain && <Notice title="Kiểm tra kết quả trước khi gửi lại" tone="warning">Đóng hộp thoại để kiểm tra kết quả của yêu cầu đã gửi.</Notice>}</Modal>}</RealBookingFrame>;
 }

@@ -7,7 +7,7 @@ import { bookingReadFailure } from '../model/booking-feedback'
 import { ApiError } from '@/shared/api'
 import { ButtonLink, Loading, Notice } from '@/shared/ui'
 import { liveCruiseCatalogApi } from '../api/booking-api'
-import type { LiveCruise, LiveCruisePage } from '../api/live-cruise-contract'
+import type { LiveCruise } from '../api/live-cruise-contract'
 import type { decodePublicItinerary } from '../api/public-sale-contract'
 import { useAdapterData } from '../model/booking-state'
 import { Action, ActionLink, EmptyState } from './BookingUI'
@@ -117,7 +117,9 @@ function LiveCruiseSearchPage({ page, cruiseType }: { page: number; cruiseType?:
   const rawSort = params.get('sort')
   const sortOrder: SortOrder = rawSort === 'latest' || rawSort === 'title' || rawSort === 'duration' ? rawSort : 'soonest'
 
-  const [draftKeyword, setDraftKeyword] = useState(keywordParam)
+  const [keywordDraft, setKeywordDraft] = useState(() => ({ base: keywordParam, value: keywordParam }))
+  const draftKeyword = keywordDraft.base === keywordParam ? keywordDraft.value : keywordParam
+  const setDraftKeyword = (value: string) => setKeywordDraft({ base: keywordParam, value })
 
   function updateQuery(patch: Record<string, string | undefined>, resetPage = true) {
     const query = new URLSearchParams(params)
@@ -145,37 +147,27 @@ function LiveCruiseSearchPage({ page, cruiseType }: { page: number; cruiseType?:
     return '/cruises?' + query
   }
 
-  const load = useCallback(async (signal: AbortSignal): Promise<LoadResult<LiveCruisePage>> => {
+  const load = useCallback(async (signal: AbortSignal): Promise<LoadResult<LiveCruise[]>> => {
     try {
-      return { value: await liveCruiseCatalogApi.list(page, signal, cruiseType) }
+      return { value: await liveCruiseCatalogApi.listAll(signal, cruiseType) }
     } catch (error) {
       return { issue: issueFor(error) }
     }
-  }, [page, cruiseType])
+  }, [cruiseType])
 
   const { data, loading, error, retry } = useAdapterData(load)
-  const result = data?.value
   const issue = data?.issue ?? (error ? { status: 0, message: error } : undefined)
 
-  const loadedItems = useMemo(() => result?.items ?? [], [result?.items])
+  const loadedItems = useMemo(() => data?.value ?? [], [data?.value])
 
-  const [cachedPorts, setCachedPorts] = useState<string[]>([])
-  const [cachedShips, setCachedShips] = useState<string[]>([])
-
-  const availablePorts = useMemo(() => {
-    const next = [...new Set(loadedItems.map(item => item.departurePort).filter((p): p is string => Boolean(p)))].sort((a, b) => a.localeCompare(b, 'vi'))
-    return next.length > 0 ? next : cachedPorts
-  }, [loadedItems, cachedPorts])
-  const availableShips = useMemo(() => {
-    const next = [...new Set(loadedItems.map(item => item.ship).filter((ship): ship is string => Boolean(ship)))].sort((a, b) => a.localeCompare(b, 'vi'))
-    return next.length > 0 ? next : cachedShips
-  }, [loadedItems, cachedShips])
-  if (loadedItems.length > 0) {
-    const portsNow = [...new Set(loadedItems.map(item => item.departurePort).filter((p): p is string => Boolean(p)))].sort((a, b) => a.localeCompare(b, 'vi'))
-    const shipsNow = [...new Set(loadedItems.map(item => item.ship).filter((ship): ship is string => Boolean(ship)))].sort((a, b) => a.localeCompare(b, 'vi'))
-    if (portsNow.length > cachedPorts.length) setCachedPorts(portsNow)
-    if (shipsNow.length > cachedShips.length) setCachedShips(shipsNow)
-  }
+  const availablePorts = useMemo(
+    () => [...new Set(loadedItems.map(item => item.departurePort).filter((p): p is string => Boolean(p)))].sort((a, b) => a.localeCompare(b, 'vi')),
+    [loadedItems],
+  )
+  const availableShips = useMemo(
+    () => [...new Set(loadedItems.map(item => item.ship).filter((ship): ship is string => Boolean(ship)))].sort((a, b) => a.localeCompare(b, 'vi')),
+    [loadedItems],
+  )
   const availableMonths = useMemo(
     () => [...new Set(loadedItems.map(item => departureMonthKey(item.departure)))].sort(),
     [loadedItems],
@@ -202,15 +194,23 @@ function LiveCruiseSearchPage({ page, cruiseType }: { page: number; cruiseType?:
     })
   }, [loadedItems, keywordParam, monthParam, portParam, shipParam, sortOrder])
 
+  const PAGE_SIZE = 6
+  const totalFiltered = visibleItems.length
+  const pageCount = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE))
+  const pagedItems = useMemo(
+    () => visibleItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [visibleItems, page],
+  )
+
   const hasAnyFilter = Boolean(cruiseType || keywordParam || monthParam || portParam || shipParam)
 
   const resultsTitle = loading
     ? 'Đang tìm hải trình phù hợp…'
     : issue
       ? 'Chưa tải được danh mục'
-      : hasAnyFilter && loadedItems.length > visibleItems.length
-        ? `${visibleItems.length} / ${result?.total ?? visibleItems.length} hải trình phù hợp`
-        : `${result?.total ?? visibleItems.length} hải trình đang mở đặt chỗ`
+      : hasAnyFilter
+        ? `${totalFiltered} / ${loadedItems.length} hải trình phù hợp`
+        : `${totalFiltered} hải trình đang mở đặt chỗ`
 
   return (
     <div className={`${s.surface} ${s.liveSurface} ${c.page}`}>
@@ -311,33 +311,6 @@ function LiveCruiseSearchPage({ page, cruiseType }: { page: number; cruiseType?:
                   })}
                 </div>
               </div>
-
-              {availablePorts.length > 0 && (
-                <div className={c.filterGroup}>
-                  <p className={c.filterGroupTitle}>Cảng khởi hành</p>
-                  <div className={c.filterChoices} role="group" aria-label="Lọc theo cảng khởi hành">
-                    <button
-                      type="button"
-                      className={c.choiceBtn}
-                      aria-pressed={!portParam}
-                      onClick={() => updateQuery({ port: undefined })}
-                    >
-                      <span>Mọi cảng đi</span>
-                    </button>
-                    {availablePorts.map(port => (
-                      <button
-                        key={port}
-                        type="button"
-                        className={c.choiceBtn}
-                        aria-pressed={portParam === port}
-                        onClick={() => updateQuery({ port: portParam === port ? undefined : port })}
-                      >
-                        <span>{port}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {availableShips.length > 0 && (
                 <div className={c.filterGroup}>
@@ -442,11 +415,11 @@ function LiveCruiseSearchPage({ page, cruiseType }: { page: number; cruiseType?:
                 </>
               ) : issue ? (
                 <LiveError issue={issue} retry={retry} />
-              ) : visibleItems.length ? (
-                visibleItems.map((cruise, idx) => (
-                  <LiveCruiseCard key={cruise.id} cruise={cruise} index={idx} from={location.pathname + location.search} />
+              ) : pagedItems.length ? (
+                pagedItems.map((cruise, idx) => (
+                  <LiveCruiseCard key={cruise.id} cruise={cruise} index={(page - 1) * PAGE_SIZE + idx} from={location.pathname + location.search} />
                 ))
-              ) : result?.total && result.items.length === 0 ? (
+              ) : totalFiltered > 0 && pagedItems.length === 0 ? (
                 <EmptyState title="Trang này chưa có hành trình">
                   <ActionLink to={pageLink(1)}>Về trang đầu</ActionLink>
                 </EmptyState>
@@ -463,12 +436,12 @@ function LiveCruiseSearchPage({ page, cruiseType }: { page: number; cruiseType?:
               )}
             </div>
 
-            {result && result.total > 0 && result.page <= result.pageCount && (
+            {!loading && !issue && totalFiltered > 0 && page <= pageCount && (
               <nav className={c.pagination} aria-label="Phân trang danh mục hải trình">
-                <span>Trang {result.page} / {result.pageCount} · {result.total} hành trình</span>
+                <span>Trang {page} / {pageCount} · {totalFiltered} hành trình</span>
                 <div className={c.paginationLinks}>
-                  {result.page > 1 ? <Link to={pageLink(result.page - 1)}>← Trang trước</Link> : <span aria-disabled="true">← Trang trước</span>}
-                  {result.page < result.pageCount ? <Link to={pageLink(result.page + 1)}>Trang sau →</Link> : <span aria-disabled="true">Trang sau →</span>}
+                  {page > 1 ? <Link to={pageLink(page - 1)}>← Trang trước</Link> : <span aria-disabled="true">← Trang trước</span>}
+                  {page < pageCount ? <Link to={pageLink(page + 1)}>Trang sau →</Link> : <span aria-disabled="true">Trang sau →</span>}
                 </div>
               </nav>
             )}

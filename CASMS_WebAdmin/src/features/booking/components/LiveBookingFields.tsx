@@ -40,6 +40,26 @@ export function CabinPassengerFields({ cabins, packages, publicJourney = false }
   </div>
 }
 
+const NATIONALITY_OPTIONS = [
+  ['VN', 'Việt Nam (VN)'],
+  ['US', 'Hoa Kỳ (US)'],
+  ['SG', 'Singapore (SG)'],
+  ['JP', 'Nhật Bản (JP)'],
+  ['KR', 'Hàn Quốc (KR)'],
+  ['CN', 'Trung Quốc (CN)'],
+  ['TH', 'Thái Lan (TH)'],
+  ['MY', 'Malaysia (MY)'],
+  ['ID', 'Indonesia (ID)'],
+  ['PH', 'Philippines (PH)'],
+  ['AU', 'Úc (AU)'],
+  ['GB', 'Vương quốc Anh (GB)'],
+  ['FR', 'Pháp (FR)'],
+  ['DE', 'Đức (DE)'],
+  ['CA', 'Canada (CA)'],
+  ['TW', 'Đài Loan (TW)'],
+  ['HK', 'Hồng Kông (HK)'],
+] as const
+
 export function PassengerDetailsFields({ publicJourney = false, representativeEmailRequired = false, cabinSummary, onAdd, onRemove }: {
   publicJourney?: boolean; representativeEmailRequired?: boolean; cabinSummary?: (person: BookingPersonDraft) => string
   onAdd?: () => void; onRemove?: (index: number) => void
@@ -51,7 +71,7 @@ export function PassengerDetailsFields({ publicJourney = false, representativeEm
   }
   const fields = [
     ['fullName', 'Họ tên *', 'text', 100], ['dateOfBirth', 'Ngày sinh (tùy chọn)', 'date', undefined],
-    ['nationality', 'Quốc tịch (tùy chọn)', 'text', 10], ['email', 'Email', 'email', undefined],
+    ['email', 'Email', 'email', undefined],
     ['phoneNumber', 'Số điện thoại', 'tel', 16], ['documentNumber', 'Số giấy tờ (tùy chọn)', 'text', 30],
   ] as const
   return <div className={styles.stack}>{draft.passengers.map((person, index) => <Panel className={styles.passengerCard} key={index} title={`Hành khách ${index + 1}${index === 0 ? ' · Người đại diện' : ''}`}>
@@ -63,7 +83,15 @@ export function PassengerDetailsFields({ publicJourney = false, representativeEm
       const autoComplete = ({ fullName: 'name', dateOfBirth: 'bday', email: 'email', phoneNumber: 'tel' } as Record<string, string>)[key]
       const emailRequired = publicJourney && representativeEmailRequired && index === 0 && key === 'email'
       return <Field key={key} htmlFor={id} label={label} error={errors[id]} hint={emailRequired ? 'Bắt buộc cho người đại diện chưa đăng nhập.' : undefined}><input id={id} type={type} maxLength={maxLength} required={key === 'fullName'} aria-required={emailRequired || undefined} autoComplete={publicJourney && autoComplete ? `section-traveller${index} ${autoComplete}` : undefined} value={person[key]} aria-invalid={Boolean(errors[id])} aria-describedby={errors[id] || emailRequired ? id + '-hint' : undefined} onChange={event => update(index, key, event.target.value)} /></Field>
-    })}<Field htmlFor={`person-${index}-documentType`} label="Loại giấy tờ (tùy chọn)" error={publicJourney ? errors[`person-${index}-documentType`] : undefined}><select id={`person-${index}-documentType`} aria-invalid={publicJourney ? Boolean(errors[`person-${index}-documentType`]) : undefined} aria-describedby={publicJourney && errors[`person-${index}-documentType`] ? `person-${index}-documentType-hint` : undefined} value={person.documentType} onChange={event => update(index, 'documentType', event.target.value)}><option value="">Chưa cung cấp</option><option value="NationalID">CCCD</option><option value="Passport">Hộ chiếu</option></select></Field></div>
+    })}
+    <Field htmlFor={`person-${index}-nationality`} label="Quốc tịch (tùy chọn)" error={errors[`person-${index}-nationality`]}>
+      <select id={`person-${index}-nationality`} aria-invalid={Boolean(errors[`person-${index}-nationality`])} aria-describedby={errors[`person-${index}-nationality`] ? `person-${index}-nationality-hint` : undefined} value={person.nationality} onChange={event => update(index, 'nationality', event.target.value)}>
+        <option value="">Chưa cung cấp</option>
+        {person.nationality && !NATIONALITY_OPTIONS.some(([code]) => code === person.nationality) && <option value={person.nationality}>{person.nationality}</option>}
+        {NATIONALITY_OPTIONS.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+      </select>
+    </Field>
+    <Field htmlFor={`person-${index}-documentType`} label="Loại giấy tờ (tùy chọn)" error={errors[`person-${index}-documentType`]}><select id={`person-${index}-documentType`} aria-invalid={Boolean(errors[`person-${index}-documentType`])} aria-describedby={errors[`person-${index}-documentType`] ? `person-${index}-documentType-hint` : undefined} value={person.documentType} onChange={event => update(index, 'documentType', event.target.value)}><option value="">Chưa cung cấp</option><option value="NationalID">CCCD</option><option value="Passport">Hộ chiếu</option></select></Field></div>
     {index > 0 && onRemove && <Button tone="secondary" onClick={() => onRemove(index)}>Bỏ hành khách {index + 1}</Button>}
   </Panel>)}{onAdd && <Button tone="secondary" onClick={onAdd}>Thêm hành khách và chọn cabin</Button>}</div>
 }

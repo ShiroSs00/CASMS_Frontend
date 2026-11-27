@@ -16,12 +16,14 @@ export function BookingLookupPage() {
     const [params] = useSearchParams();
     const access = useSessionAccess();
     const isPassenger = access.status === 'ready' && access.roles.includes('PASSENGER');
-    const [reference, setReference] = useState(() => params.get('reference') ?? ''), [email, setEmail] = useState(''), [phone, setPhone] = useState(''), [data, setData] = useState<BookingDetail | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false), lock = useRef(false);
+    const noticeParam = params.get('notice');
+    const [reference, setReference] = useState(() => params.get('reference') ?? params.get('bookingId') ?? ''), [email, setEmail] = useState(''), [phone, setPhone] = useState(''), [data, setData] = useState<BookingDetail | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false), lock = useRef(false);
     const requestRef = useRef<AbortController | null>(null);
-    const [fields, setFields] = useState<{ reference?: string; contact?: string; email?: string }>({});
+    const [fields, setFields] = useState<{ reference?: string; contact?: string; email?: string; phone?: string }>({});
     const [mismatch, setMismatch] = useState('');
     const referenceInput = useRef<HTMLInputElement>(null);
     const emailInput = useRef<HTMLInputElement>(null);
+    const phoneInput = useRef<HTMLInputElement>(null);
     const resultHeading = useRef<HTMLHeadingElement>(null);
     const errorSummary = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -37,14 +39,18 @@ export function BookingLookupPage() {
         setData(null);
         setError('');
         setMismatch('');
+        const trimmedPhone = phone.trim();
+        const phoneDigits = trimmedPhone.replace(/\D/g, '');
+        const invalidPhone = Boolean(trimmedPhone) && (!/^[+]?[0-9\s().-]{8,20}$/.test(trimmedPhone) || phoneDigits.length < 8 || phoneDigits.length > 15);
         const errors = {
             reference: reference.trim() ? undefined : 'Nhập mã đặt chỗ đã nhận.',
-            contact: email.trim() || phone.trim() ? undefined : 'Nhập email hoặc số điện thoại đại diện.',
+            contact: email.trim() || trimmedPhone ? undefined : 'Nhập email hoặc số điện thoại đại diện.',
             email: emailInput.current?.validity.typeMismatch ? 'Kiểm tra định dạng email.' : undefined,
+            phone: invalidPhone ? 'Kiểm tra định dạng số điện thoại (8–15 chữ số).' : undefined,
         };
         setFields(errors);
-        if (errors.reference || errors.contact || errors.email) {
-            (errors.reference ? referenceInput : emailInput).current?.focus();
+        if (errors.reference || errors.contact || errors.email || errors.phone) {
+            (errors.reference ? referenceInput : errors.email || errors.contact ? emailInput : phoneInput).current?.focus();
             return;
         }
         lock.current = true;
@@ -84,12 +90,14 @@ export function BookingLookupPage() {
     return <RealBookingFrame><div className={styles.stack}>
     <div className={styles.journeyTopline}><Link to="/cruises">← Khám phá hành trình</Link></div>
     <PageHeader title="Tra cứu đặt chỗ" breadcrumb="HÀNH TRÌNH / ĐẶT CHỖ"/>
+    {noticeParam === 'register' && <Notice title="Tài khoản được cấp tự động khi đặt chỗ" tone="info">Bạn không cần đăng ký trước. Khi đặt chỗ thành công, OceVie sẽ gửi tên đăng nhập và mật khẩu tạm qua email người đại diện. Nếu đã có mã đặt chỗ, bạn có thể tra cứu ngay bên dưới.</Notice>}
+    {noticeParam === 'password-reset' && <Notice title="Hỗ trợ mật khẩu tài khoản hành khách" tone="info">Hệ thống chưa hỗ trợ tự đặt lại mật khẩu trực tuyến. Vui lòng kiểm tra email xác nhận đặt chỗ để lấy mật khẩu tạm hoặc liên hệ bộ phận hỗ trợ; bạn vẫn có thể tra cứu thông tin đặt chỗ công khai bên dưới.</Notice>}
     <div className={styles.lookupGrid}><Panel title="Thông tin tra cứu"><form noValidate aria-busy={busy} onSubmit={event => { event.preventDefault(); void lookup(); }}><fieldset disabled={busy} className={styles.draftFields}>
-      <Field htmlFor="lookup-reference" label="Mã đặt chỗ" error={fields.reference}><input ref={referenceInput} id="lookup-reference" value={reference} autoComplete="off" spellCheck={false} aria-required="true" aria-invalid={Boolean(mismatch)} aria-describedby={mismatch ? 'lookup-mismatch' : undefined} onChange={event => { setReference(event.target.value); setFields(current => ({ ...current, reference: undefined })); clearResult(); }}/></Field>
+      <Field htmlFor="lookup-reference" label="Mã đặt chỗ *" error={fields.reference}><input ref={referenceInput} id="lookup-reference" value={reference} autoComplete="off" spellCheck={false} aria-required="true" aria-invalid={Boolean(fields.reference || mismatch)} aria-describedby={mismatch ? 'lookup-mismatch' : undefined} onChange={event => { setReference(event.target.value); setFields(current => ({ ...current, reference: undefined })); clearResult(); }}/></Field>
       <p className={styles.helper} id="lookup-contact-help">Nhập email <strong>hoặc</strong> số điện thoại của người đại diện. Không cần nhập cả hai.</p>
       <div className={styles.lookupContact} role="group" aria-label="Thông tin liên hệ">
-        <Field htmlFor="lookup-email" label="Email đại diện" error={fields.email}><input ref={emailInput} id="lookup-email" type="email" autoComplete="email" value={email} aria-invalid={Boolean(fields.contact || mismatch)} aria-describedby={contactDescription} onChange={event => { setEmail(event.target.value); setFields(current => ({ ...current, contact: undefined, email: undefined })); clearResult(); }}/></Field>
-        <Field htmlFor="lookup-phone" label="Số điện thoại đại diện"><input id="lookup-phone" type="tel" autoComplete="tel" value={phone} aria-invalid={Boolean(fields.contact || mismatch)} aria-describedby={contactDescription} onChange={event => { setPhone(event.target.value); setFields(current => ({ ...current, contact: undefined })); clearResult(); }}/></Field>
+        <Field htmlFor="lookup-email" label="Email đại diện" error={fields.email}><input ref={emailInput} id="lookup-email" type="email" autoComplete="email" value={email} aria-invalid={Boolean(fields.contact || fields.email || mismatch)} aria-describedby={contactDescription} onChange={event => { setEmail(event.target.value); setFields(current => ({ ...current, contact: undefined, email: undefined })); clearResult(); }}/></Field>
+        <Field htmlFor="lookup-phone" label="Số điện thoại đại diện" error={fields.phone}><input ref={phoneInput} id="lookup-phone" type="tel" autoComplete="tel" value={phone} aria-invalid={Boolean(fields.contact || fields.phone || mismatch)} aria-describedby={contactDescription} onChange={event => { setPhone(event.target.value); setFields(current => ({ ...current, contact: undefined, phone: undefined })); clearResult(); }}/></Field>
       </div>
       {fields.contact && <div id="lookup-contact-error"><Notice title={fields.contact} tone="error">{null}</Notice></div>}
       {mismatch && <div id="lookup-mismatch"><Notice title="Kiểm tra thông tin tra cứu" tone="error">{mismatch}</Notice></div>}
@@ -107,6 +115,6 @@ export function BookingLookupPage() {
               </div>
             </Notice>
           : null
-    }/><CustomerCancellation key={data.bookingId} bookingId={data.bookingId} bookingStatus={data.bookingStatus}/></section>}
+    }/><CustomerCancellation key={data.bookingId} bookingId={data.bookingId} bookingStatus={data.bookingStatus} departureDatetime={data.departureDatetime}/></section>}
   </div></RealBookingFrame>;
 }

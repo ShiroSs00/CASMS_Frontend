@@ -332,10 +332,14 @@ function CruiseServicesAndActivitiesSection({
   cruise,
   experiences,
   loading,
+  error,
+  onRetry,
 }: {
   cruise: LiveCruise
   experiences: PublicCruiseExperiences | null
   loading: boolean
+  error?: unknown
+  onRetry?: () => void
 }) {
   const [tab, setTab] = useState<'all' | 'services' | 'activities'>('all')
   const rawServices = experiences?.services ?? []
@@ -403,7 +407,13 @@ function CruiseServicesAndActivitiesSection({
     )}
 
     {loading && <p className={styles.timeNote}>Đang tải danh mục dịch vụ và hoạt động trên tàu…</p>}
-    {!loading && totalCount === 0 && (
+    {!loading && Boolean(error) && (
+      <Notice title="Chưa tải được danh mục dịch vụ và hoạt động trên tàu" tone="warning">
+        <p>{publicContentFailure(error)}</p>
+        {onRetry && <Button tone="secondary" onClick={onRetry}>Tải lại danh mục</Button>}
+      </Notice>
+    )}
+    {!loading && !error && totalCount === 0 && (
       <div className={styles.expEmptyBox}>
         Danh mục dịch vụ và hoạt động trên tàu cho chuyến khởi hành này đang được đội ngũ vận hành cập nhật.
       </div>
@@ -469,9 +479,13 @@ function CruiseServicesAndActivitiesSection({
 function CruiseShoreExcursionsSection({
   experiences,
   loading,
+  error,
+  onRetry,
 }: {
   experiences: PublicCruiseExperiences | null
   loading: boolean
+  error?: unknown
+  onRetry?: () => void
 }) {
   const excursions = experiences?.shoreExcursions ?? []
   const hasUsdExcursion = excursions.some(ex => (ex.currencyCode || '').toUpperCase() === 'USD' && ex.price != null && ex.price > 0)
@@ -486,7 +500,13 @@ function CruiseShoreExcursionsSection({
       </div>
     </div>
     {loading && <p className={styles.timeNote}>Đang tải danh sách tour tham quan bờ…</p>}
-    {!loading && excursions.length === 0 && (
+    {!loading && Boolean(error) && (
+      <Notice title="Chưa tải được danh sách tour tham quan bờ" tone="warning">
+        <p>{publicContentFailure(error)}</p>
+        {onRetry && <Button tone="secondary" onClick={onRetry}>Tải lại tour bờ</Button>}
+      </Notice>
+    )}
+    {!loading && !error && excursions.length === 0 && (
       <div className={styles.expEmptyBox}>
         Các tour tham quan bờ cho từng điểm dừng của hải trình này đang được cập nhật. Bạn vẫn có thể đặt chỗ du thuyền ngay hôm nay và đăng ký tour bờ sau.
       </div>
@@ -550,6 +570,7 @@ export function CruiseDepartureExperience({ cruise, back }: { cruise: LiveCruise
   const photos = photosForPorts([cruise.departurePort, cruise.returnPort, ...facts.ports.map(port => port.portName)])
   const heroPhoto = photos[0] ?? primaryPhotoForCruise(cruise)
   const stops = routeStops(cruise, facts.ports)
+  const [renderedAt] = useState(() => Date.now())
   const [copied, setCopied] = useState(false)
   const handledAnchor = useRef('')
   const content = useRef<HTMLDivElement>(null)
@@ -710,8 +731,8 @@ export function CruiseDepartureExperience({ cruise, back }: { cruise: LiveCruise
         </section>
 
         <PublicCruiseItinerary query={itinerary} />
-        <CruiseServicesAndActivitiesSection cruise={cruise} experiences={experiences.data} loading={experiences.loading} />
-        <CruiseShoreExcursionsSection experiences={experiences.data} loading={experiences.loading} />
+        <CruiseServicesAndActivitiesSection cruise={cruise} experiences={experiences.data} loading={experiences.loading} error={experiences.error} onRetry={experiences.retry} />
+        <CruiseShoreExcursionsSection experiences={experiences.data} loading={experiences.loading} error={experiences.error} onRetry={experiences.retry} />
         <ShipExperience cruise={cruise} facts={facts} offers={offers} />
         <PublicCruisePackages query={catalog} bookingUrl={bookingUrl} />
         <IncludedBenefits query={catalog} />
@@ -731,11 +752,26 @@ export function CruiseDepartureExperience({ cruise, back }: { cruise: LiveCruise
         </dl>
         <div className={styles.summaryPriceBox}>
           <BookingPrice price={price} />
-          <ul className={styles.summaryPerks} aria-label="Chính sách thanh toán áp dụng">
-            <li>✓ Hỗ trợ đặt cọc giữ chỗ từ 30%</li>
-            <li>✓ Thanh toán 1 lần, 2 đợt hoặc 3 đợt</li>
-            <li>✓ Chuyển khoản nhanh qua VietQR</li>
-          </ul>
+          {(() => {
+            const offerCurrency = offers[0]?.currencyCode?.toUpperCase() ?? 'VND'
+            const daysUntilDeparture = (Date.parse(cruise.departure) - renderedAt) / 86_400_000
+            const depositLikelyAvailable = Number.isFinite(daysUntilDeparture) && daysUntilDeparture > 7
+            return (
+              <ul className={styles.summaryPerks} aria-label="Chính sách thanh toán áp dụng">
+                <li>
+                  {depositLikelyAvailable
+                    ? '✓ Hỗ trợ thanh toán 1 lần hoặc chia đợt theo thời điểm khởi hành'
+                    : '✓ Thanh toán toàn bộ theo chính sách chuyến khởi hành gần ngày'}
+                </li>
+                <li>
+                  {offerCurrency === 'VND'
+                    ? '✓ Hỗ trợ chuyển khoản nhanh qua VietQR (VND)'
+                    : `✓ Niêm yết bằng ${offerCurrency}; hướng dẫn thanh toán hiển thị ở bước báo giá`}
+                </li>
+                <li>✓ Báo giá minh bạch gồm thuế và phí cảng trước khi xác nhận</li>
+              </ul>
+            )
+          })()}
         </div>
         <div className={styles.bookingEntry} aria-live="polite" aria-busy={sale.loading}>
           {sale.loading && <p>Đang kiểm tra khả năng đặt chỗ…</p>}

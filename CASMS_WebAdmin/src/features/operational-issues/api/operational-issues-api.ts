@@ -9,6 +9,7 @@ export type IssueListResult = {
   items: OperationalIssue[]
   total: number
   statusTotals: IssueStatusTotals
+  handlers: PersonReference[]
 }
 
 const roleUsernameLabels: Record<string, string> = {
@@ -175,16 +176,42 @@ export const operationalIssuesApi = {
     const hydratedRows = needsLookupHydration(rawRows)
       ? await loadIssueLookups(signal).then(lookups => rawRows.map(row => hydrateDto(row, lookups)))
       : rows
-    const items = hydratedRows.map(toIssue)
+    const allItems = hydratedRows.map(toIssue)
+    const handlers = [...new Map(
+      allItems.flatMap((item) => (item.assignedTo ? [item.assignedTo] : [])).map((item) => [item.id, item]),
+    ).values()]
+    const term = query.search.trim().toLocaleLowerCase('vi')
+    const filtered = allItems.filter((item) => {
+      if (query.severity && item.severity !== query.severity) return false
+      if (query.handlerId && item.assignedTo?.id !== query.handlerId) return false
+      if (!term) return true
+      return [
+        item.code,
+        item.displayTitle,
+        item.description,
+        item.ship.name,
+        item.cruise?.code ?? '',
+        item.cruise?.name ?? '',
+        item.cabin ?? '',
+        item.reportedBy.name,
+        item.assignedTo?.name ?? '',
+      ].some((value) => value.toLocaleLowerCase('vi').includes(term))
+    })
+    const pageSize = Math.max(1, query.pageSize || 20)
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+    const safePage = Math.min(Math.max(1, query.page || 1), totalPages)
+    const startIndex = (safePage - 1) * pageSize
+    const items = filtered.slice(startIndex, startIndex + pageSize)
     return {
       items,
-      total: items.length,
+      total: filtered.length,
+      handlers,
       statusTotals: {
-        OPEN: items.filter((item) => item.status === 'OPEN').length,
-        IN_PROGRESS: items.filter((item) => item.status === 'IN_PROGRESS').length,
-        RESOLVED: items.filter((item) => item.status === 'RESOLVED').length,
-        CLOSED: items.filter((item) => item.status === 'CLOSED').length,
-        critical: items.filter((item) => item.severity === 'CRITICAL').length,
+        OPEN: filtered.filter((item) => item.status === 'OPEN').length,
+        IN_PROGRESS: filtered.filter((item) => item.status === 'IN_PROGRESS').length,
+        RESOLVED: filtered.filter((item) => item.status === 'RESOLVED').length,
+        CLOSED: filtered.filter((item) => item.status === 'CLOSED').length,
+        critical: filtered.filter((item) => item.severity === 'CRITICAL').length,
       },
     }
   },

@@ -40,6 +40,26 @@ export function CabinPassengerFields({ cabins, packages, publicJourney = false }
   </div>
 }
 
+const NATIONALITY_OPTIONS = [
+  ['VN', 'Việt Nam (VN)'],
+  ['US', 'Hoa Kỳ (US)'],
+  ['SG', 'Singapore (SG)'],
+  ['JP', 'Nhật Bản (JP)'],
+  ['KR', 'Hàn Quốc (KR)'],
+  ['CN', 'Trung Quốc (CN)'],
+  ['TH', 'Thái Lan (TH)'],
+  ['MY', 'Malaysia (MY)'],
+  ['ID', 'Indonesia (ID)'],
+  ['PH', 'Philippines (PH)'],
+  ['AU', 'Úc (AU)'],
+  ['GB', 'Vương quốc Anh (GB)'],
+  ['FR', 'Pháp (FR)'],
+  ['DE', 'Đức (DE)'],
+  ['CA', 'Canada (CA)'],
+  ['TW', 'Đài Loan (TW)'],
+  ['HK', 'Hồng Kông (HK)'],
+] as const
+
 export function PassengerDetailsFields({
   publicJourney = false,
   representativeEmailRequired = false,
@@ -56,12 +76,21 @@ export function PassengerDetailsFields({
   const { draft, setDraft, errors, setErrors, personIds } = useLiveBooking()
   function update(index: number, key: keyof BookingPersonDraft, value: string) {
     setDraft(current => ({ ...current, passengers: current.passengers.map((person, i) => i === index ? { ...person, [key]: value } : person) }))
-    if (publicJourney) setErrors(current => { const next = { ...current }; delete next[`person-${index}-${key}`]; return next })
+    setErrors(current => {
+      const next = { ...current }
+      delete next[`person-${index}-${key}`]
+      if (key === 'documentType') delete next[`person-${index}-documentNumber`]
+      if (index === 0 && (key === 'email' || key === 'phoneNumber')) {
+        delete next['person-0-email']
+        delete next['person-0-phoneNumber']
+      }
+      return next
+    })
   }
   const fields = [
     ['fullName', 'Họ tên *', 'text', 100], ['dateOfBirth', 'Ngày sinh (tùy chọn)', 'date', undefined],
-    ['nationality', 'Quốc tịch (tùy chọn)', 'text', 10], ['email', 'Email', 'email', undefined],
-    ['phoneNumber', 'Số điện thoại', 'tel', 16], ['documentNumber', 'Số giấy tờ (tùy chọn)', 'text', 30],
+    ['email', 'Email', 'email', undefined],
+    ['phoneNumber', 'Số điện thoại', 'tel', 16],
   ] as const
   return <div className={styles.stack}>{draft.passengers.map((person, index) => <Panel className={styles.passengerCard} key={personIds[index] ?? index} title={`Hành khách ${index + 1}${index === 0 ? ' · Người đại diện' : ''}`}>
     {index === 0 && canSwitchLeadProfile && onSelectLeadMode && (
@@ -90,7 +119,7 @@ export function PassengerDetailsFields({
         </div>
         <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>
           {usingOwnProfile
-            ? 'Đang dùng hồ sơ đã lưu của tài khoản — có thể để trống ngày sinh/giấy tờ nếu không đổi; nếu cần sửa giấy tờ định danh, vui lòng cập nhật hồ sơ trước khi đặt.'
+            ? 'Đang dùng hồ sơ đã lưu của tài khoản — có thể để trống ngày sinh/giấy tờ nếu không đổi, hoặc liên hệ bộ phận hỗ trợ nếu cần điều chỉnh thông tin định danh.'
             : 'Đang nhập thông tin cho người đại diện khác. Nếu hành khách đã từng đặt chuyến, giữ đúng họ tên và để trống trường tùy chọn để tránh lệch hồ sơ.'}
         </p>
       </div>
@@ -100,6 +129,38 @@ export function PassengerDetailsFields({
       const autoComplete = ({ fullName: 'name', dateOfBirth: 'bday', email: 'email', phoneNumber: 'tel' } as Record<string, string>)[key]
       const emailRequired = publicJourney && representativeEmailRequired && index === 0 && key === 'email'
       return <Field key={key} htmlFor={id} label={emailRequired ? 'Email người đại diện *' : label} error={errors[id]}><input id={id} type={type} maxLength={maxLength} required={key === 'fullName' || emailRequired} aria-required={emailRequired || undefined} autoComplete={publicJourney && autoComplete ? `section-traveller${index} ${autoComplete}` : undefined} value={person[key]} aria-invalid={Boolean(errors[id])} aria-describedby={errors[id] || emailRequired ? id + '-hint' : undefined} onChange={event => update(index, key, event.target.value)} /></Field>
-    })}<Field htmlFor={`person-${index}-documentType`} label="Loại giấy tờ (tùy chọn)" error={publicJourney ? errors[`person-${index}-documentType`] : undefined}><select id={`person-${index}-documentType`} aria-invalid={publicJourney ? Boolean(errors[`person-${index}-documentType`]) : undefined} aria-describedby={publicJourney && errors[`person-${index}-documentType`] ? `person-${index}-documentType-hint` : undefined} value={person.documentType} onChange={event => update(index, 'documentType', event.target.value)}><option value="">Chưa cung cấp</option><option value="NationalID">CCCD</option><option value="Passport">Hộ chiếu</option></select></Field></div>
+    })}
+    <Field htmlFor={`person-${index}-nationality`} label="Quốc tịch (tùy chọn)" error={errors[`person-${index}-nationality`]}>
+      <select id={`person-${index}-nationality`} aria-invalid={Boolean(errors[`person-${index}-nationality`])} aria-describedby={errors[`person-${index}-nationality`] ? `person-${index}-nationality-hint` : undefined} value={person.nationality} onChange={event => update(index, 'nationality', event.target.value)}>
+        <option value="">Chưa cung cấp</option>
+        {person.nationality && !NATIONALITY_OPTIONS.some(([code]) => code === person.nationality) && <option value={person.nationality}>{person.nationality}</option>}
+        {NATIONALITY_OPTIONS.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+      </select>
+    </Field>
+    <Field htmlFor={`person-${index}-documentType`} label="Loại giấy tờ (tùy chọn)" error={errors[`person-${index}-documentType`]}>
+      <select id={`person-${index}-documentType`} aria-invalid={Boolean(errors[`person-${index}-documentType`])} aria-describedby={errors[`person-${index}-documentType`] ? `person-${index}-documentType-hint` : undefined} value={person.documentType} onChange={event => update(index, 'documentType', event.target.value)}>
+        <option value="">Chưa cung cấp</option>
+        <option value="NationalID">CCCD</option>
+        <option value="Passport">Hộ chiếu</option>
+      </select>
+    </Field>
+    <Field
+      htmlFor={`person-${index}-documentNumber`}
+      label={person.documentType ? 'Số giấy tờ *' : 'Số giấy tờ (tùy chọn)'}
+      hint={!person.documentType ? 'Chọn loại giấy tờ trước khi nhập số.' : person.documentType === 'NationalID' ? 'CCCD gồm đúng 12 chữ số.' : 'Hộ chiếu gồm 6–12 ký tự chữ hoặc số (không dấu).'}
+      error={errors[`person-${index}-documentNumber`]}
+    >
+      <input
+        id={`person-${index}-documentNumber`}
+        type="text"
+        maxLength={30}
+        disabled={!person.documentType && !person.documentNumber}
+        required={Boolean(person.documentType)}
+        value={person.documentNumber}
+        aria-invalid={Boolean(errors[`person-${index}-documentNumber`])}
+        aria-describedby={`person-${index}-documentNumber-hint`}
+        onChange={event => update(index, 'documentNumber', event.target.value)}
+      />
+    </Field></div>
   </Panel>)}</div>
 }

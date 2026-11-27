@@ -55,15 +55,15 @@ function WindowEditor({ row, busy, blocked, error, onSave, onClose }: {
     footer={<><Button tone="secondary" data-overlay-dismiss onClick={onClose}>Quay lại</Button><Button type="submit" form="port-window-form" disabled={blocked} busy={busy}>Lưu khung giờ</Button></>}>
     {row && <Notice title="Xác minh lại sau khi sửa">Khi lưu, khung giờ ngừng hoạt động và cần được xác minh lại trước khi kích hoạt.</Notice>}
     {(localError || error) && <Notice role="alert" tone="error" title="Chưa lưu được khung giờ">{localError || error}</Notice>}
-    <form id="port-window-form" className={styles.formGrid} onSubmit={submit}>
-      <Field htmlFor="window-movement" label="Loại khung giờ"><select id="window-movement" name="windowType" defaultValue={row?.windowType ?? ''} required><option value="">Chọn loại</option>{Object.entries(movement).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></Field>
-      <Field htmlFor="window-from" label="Hiệu lực từ ngày"><input id="window-from" name="validFrom" type="date" defaultValue={row?.validFrom} required/></Field>
+    <form id="port-window-form" noValidate className={styles.formGrid} onSubmit={submit}>
+      <Field htmlFor="window-movement" label="Loại khung giờ *"><select id="window-movement" name="windowType" defaultValue={row?.windowType ?? ''} required><option value="">Chọn loại</option>{Object.entries(movement).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></Field>
+      <Field htmlFor="window-from" label="Hiệu lực từ ngày *"><input id="window-from" name="validFrom" type="date" defaultValue={row?.validFrom} required/></Field>
       <Field htmlFor="window-to" label="Hiệu lực đến ngày"><input id="window-to" name="validTo" type="date" defaultValue={row?.validTo ?? ''}/></Field>
-      <fieldset><legend>Ngày áp dụng</legend>{windowDays.map(([day,label]) => <div key={day}><label><input type="checkbox" name="days" value={day} defaultChecked={row?.daysOfWeek.includes(day)}/>{label}</label></div>)}</fieldset>
-      <Field htmlFor="window-start" label="Giờ bắt đầu tại cảng"><input id="window-start" name="start" type="time" step="1" defaultValue={row?.localStartTime} required/></Field>
-      <Field htmlFor="window-end" label="Giờ kết thúc tại cảng"><input id="window-end" name="end" type="time" step="1" defaultValue={row?.localEndTime} required/></Field>
-      <Field htmlFor="window-source" label="Nguồn xác nhận"><select id="window-source" name="sourceType" defaultValue={row?.sourceType ?? ''} required><option value="">Chọn nguồn</option><option value="PORT_AUTHORITY">Cơ quan quản lý cảng</option><option value="PORT_AGENT">Đại lý cảng</option></select></Field>
-      <Field htmlFor="window-reference" label="Thông tin tham chiếu"><textarea id="window-reference" name="reference" defaultValue={row?.sourceReference} required maxLength={2000}/></Field>
+      <fieldset><legend>Ngày áp dụng *</legend>{windowDays.map(([day,label]) => <div key={day}><label><input type="checkbox" name="days" value={day} defaultChecked={row?.daysOfWeek.includes(day)}/>{label}</label></div>)}</fieldset>
+      <Field htmlFor="window-start" label="Giờ bắt đầu tại cảng *"><input id="window-start" name="start" type="time" step="1" defaultValue={row?.localStartTime} required/></Field>
+      <Field htmlFor="window-end" label="Giờ kết thúc tại cảng *"><input id="window-end" name="end" type="time" step="1" defaultValue={row?.localEndTime} required/></Field>
+      <Field htmlFor="window-source" label="Nguồn xác nhận *"><select id="window-source" name="sourceType" defaultValue={row?.sourceType ?? ''} required><option value="">Chọn nguồn</option><option value="PORT_AUTHORITY">Cơ quan quản lý cảng</option><option value="PORT_AGENT">Đại lý cảng</option></select></Field>
+      <Field htmlFor="window-reference" label="Thông tin tham chiếu *"><textarea id="window-reference" name="reference" defaultValue={row?.sourceReference} required maxLength={2000}/></Field>
       <Field htmlFor="window-source-date" label="Ngày hiệu lực của nguồn"><input id="window-source-date" name="sourceDate" type="date" defaultValue={row?.sourceEffectiveDate ?? ''}/></Field>
       <Field htmlFor="window-max-stay" label="Thời gian lưu tối đa (phút)"><input id="window-max-stay" name="maxStay" type="number" min="1" defaultValue={row?.maxStayMinutes ?? ''}/></Field>
       <label><input name="overnight" type="checkbox" defaultChecked={row?.overnightAllowed === true}/> Cho phép tàu lưu qua đêm</label>

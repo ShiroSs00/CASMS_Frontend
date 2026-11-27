@@ -254,11 +254,15 @@ export function SubmittedPreparationGroups({
                 tabIndex={active ? 0 : -1}
                 onClick={() => {
                   setStatus(key)
+                  setShipFilter('ALL')
+                  setCruiseFilter('ALL')
                   setPage(1)
                 }}
                 onKeyDown={event =>
                   handleTabKeys(event, index, nextKey => {
                     setStatus(nextKey)
+                    setShipFilter('ALL')
+                    setCruiseFilter('ALL')
                     setPage(1)
                   })
                 }
@@ -619,7 +623,7 @@ function GroupReview({
             </Notice>
           )}
           {returning && detail.allowedActions.includes('RETURN') && (
-            <Field label="Bộ phận phụ trách cần bổ sung nội dung gì?" htmlFor="group-return-reason">
+            <Field label="Bộ phận phụ trách cần bổ sung nội dung gì? *" htmlFor="group-return-reason">
               <textarea
                 id="group-return-reason"
                 value={reason}

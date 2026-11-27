@@ -103,28 +103,52 @@ export function filterSuppliers(rows: readonly SupplierListItem[], filters: Supp
   const search = normalizeSearch(filters.search)
   return rows.filter(row => (filters.status === 'ALL' || row.status === filters.status)
     && (filters.verification === 'ALL' || row.verificationStatus === filters.verification)
-    && (!search || [row.supplierName, row.supplierType, row.contactName, row.contactEmail, row.contactPhone]
-      .some(value => value !== null && normalizeSearch(value).includes(search))))
+    && (!search || [
+      row.supplierName,
+      row.supplierType,
+      row.supplierType ? (supplierTypeLabels[row.supplierType] ?? null) : 'Chưa phân loại',
+      row.contactName,
+      row.contactEmail,
+      row.contactPhone,
+    ].some(value => value !== null && normalizeSearch(value).includes(search))))
 }
 
 export function supplierContact(row: SupplierListItem) {
   return [row.contactName, row.contactEmail || row.contactPhone].filter(Boolean).join(' · ') || 'Chưa có email'
 }
 
+const vnDateFormatter = new Intl.DateTimeFormat('vi-VN', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  timeZone: 'Asia/Ho_Chi_Minh',
+})
+
+const vnTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+  timeZone: 'Asia/Ho_Chi_Minh',
+})
+
 export function supplierUpdatedDate(value: string) {
-  const datePart = value.includes('T') ? value.split('T')[0] : value
-  const [year, month, day] = datePart.split('-')
-  return `${day}/${month}/${year}`
+  if (!value) return '—'
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-')
+    return `${day}/${month}/${year}`
+  }
+  const parsed = new Date(value)
+  if (!Number.isFinite(parsed.getTime())) return value
+  return vnDateFormatter.format(parsed)
 }
 
 export function supplierDateTime(value?: string | null): string {
   if (!value) return '—'
-  if (value.includes('T')) {
-    const [datePart, timePart] = value.split('T')
-    const [year, month, day] = datePart.split('-')
-    const time = timePart.slice(0, 5)
-    return `${day}/${month}/${year} · ${time}`
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-')
+    return `${day}/${month}/${year}`
   }
-  const [year, month, day] = value.split('-')
-  return `${day}/${month}/${year}`
+  const parsed = new Date(value)
+  if (!Number.isFinite(parsed.getTime())) return value
+  return `${vnDateFormatter.format(parsed)} · ${vnTimeFormatter.format(parsed)}`
 }

@@ -87,7 +87,7 @@ export function useIssueList() {
     updateQuery,
     resetQuery: () => setSearchParams(serializeIssueQuery(DEFAULT_ISSUE_QUERY)),
     retry: load,
-    handlers: [...new Map((state.data?.items.flatMap((item) => item.assignedTo ? [item.assignedTo] : []) ?? []).map((item) => [item.id, item])).values()],
+    handlers: state.data?.handlers ?? [...new Map((state.data?.items.flatMap((item) => item.assignedTo ? [item.assignedTo] : []) ?? []).map((item) => [item.id, item])).values()],
     ships: [...new Map([...catalogShips, ...(state.data?.items.map((item) => item.ship) ?? [])].map((item) => [item.id, item])).values()],
     cruises: [...new Map([...catalogCruises, ...(state.data?.items.flatMap((item) => item.cruise ? [item.cruise] : []) ?? [])].map((item) => [item.id, item])).values()],
   }

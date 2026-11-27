@@ -20,7 +20,7 @@ export const DEFAULT_ISSUE_QUERY: IssueQuery = {
   cruiseId: '',
   handlerId: '',
   page: 1,
-  pageSize: 4,
+  pageSize: 20,
 }
 
 function isOneOf<T extends string>(value: string | null, values: readonly T[]): value is T {

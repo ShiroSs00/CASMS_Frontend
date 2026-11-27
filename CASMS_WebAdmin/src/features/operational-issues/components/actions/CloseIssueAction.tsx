@@ -34,12 +34,12 @@ export function CloseIssueAction({ open, pending, error, onClose, onSubmit }: Pr
         </>
       }
     >
-      <h3>Checklist trước khi đóng</h3>
+      <h3>Danh sách kiểm tra trước khi đóng</h3>
       <ul className={styles.checklist}>
         <li>Đã ghi nhận kết quả xử lý</li>
         <li>Đã ghi nhận người xử lý</li>
         <li>Đã ghi nhận thời điểm xử lý</li>
-        <li>Sự cố chuyển sang CLOSED sau khi đóng</li>
+        <li>Sự cố chuyển sang trạng thái Đã đóng sau khi xác nhận</li>
       </ul>
     </ActionDialog>
   )

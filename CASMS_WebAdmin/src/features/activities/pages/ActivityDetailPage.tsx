@@ -20,17 +20,24 @@ function ActivityRelated({ activity }: { activity: Activity }) {
     {activity.cruiseId && access.can({mode:'ANY',permissions:['ACTIVITY_ATTENDANCE','ACTIVITY_REGISTRATION']}) && <RegistrationPanel key={activity.id + activity.status} context={{kind: 'activities', id, cruiseId: activity.cruiseId, status: activity.status, startTime: activity.startTime, endTime: activity.endTime}} />}
   </>
 }
-export function ActivityDetailPage({ recordId, embedded = false }: { recordId?: string; embedded?: boolean } = {}) {
+const activityCategoryLabels: Record<string, string> = {
+  ENTERTAINMENT: 'Giải trí & nghệ thuật',
+  SPORTS_WELLNESS: 'Thể thao & sức khỏe',
+  FAMILY_KIDS: 'Gia đình & trẻ em',
+  SPECIAL_EVENTS: 'Sự kiện đặc biệt',
+}
+
+export function ActivityDetailPage({ recordId, embedded = false, onDeleted }: { recordId?: string; embedded?: boolean; onDeleted?: () => void } = {}) {
   const access = useSessionAccess()
   const params = useParams(), activityId = recordId ?? params.activityId ?? ''
   const Frame = embedded ? Fragment : ActivityFrame
   const query = useReadQuery('activity:' + activityId, useCallback(signal => activityApi.read(activityId, signal), [activityId]))
   const activity = query.data
   if (activity?.catalogEntry === true) return <Frame>
-    <ActivityOperations key={activity.id} activity={activity} onChanged={query.retry} renderCatalogHeader={deleteAction => {
+    <ActivityOperations key={activity.id} activity={activity} onChanged={query.retry} onDeleted={onDeleted} renderCatalogHeader={deleteAction => {
       const editAction = access.canDo('ACTIVITY_UPDATE') && <ButtonLink tone={embedded ? 'secondary' : 'primary'} to={`/admin/activities/${activity.id}/edit`}>Chỉnh sửa</ButtonLink>
       return embedded
-        ? editAction && <div className={styles.actions}>{editAction}{deleteAction}</div>
+        ? (editAction || deleteAction) && <div className={styles.actions}>{editAction}{deleteAction}</div>
         : <PageHeader breadcrumb="DỊCH VỤ TÀU / DANH MỤC" title={activity.name} actions={<>
           <ButtonLink tone="secondary" to="/admin/activities">Danh mục hoạt động</ButtonLink>
           {editAction}
@@ -38,16 +45,20 @@ export function ActivityDetailPage({ recordId, embedded = false }: { recordId?: 
         </>} />
     }} />
     <Panel title="Thông tin hoạt động dùng chung"><RecordFacts entries={[
-      ['Mã hoạt động', activity.code], ['Mô tả', activity.description || 'Chưa có mô tả'],
-      ['Sức chứa', activity.capacity ?? 'Chưa cấu hình'], ['Giá tham chiếu', activity.price == null ? 'Chưa cấu hình' : `${activity.price} ${activity.currencyCode ?? ''}`],
+      ['Mã hoạt động', activity.code],
+      ['Nhóm hoạt động', activity.category ? (activityCategoryLabels[activity.category] ?? activity.category) : 'Chưa phân nhóm'],
+      ['Sức chứa mặc định', activity.capacity ?? 'Chưa cấu hình'],
+      ['Nhân viên phụ trách mặc định', `${activity.requiredStaffCount ?? 1} nhân viên`],
+      ['Giá tham chiếu', activity.price == null ? 'Chưa cấu hình' : `${activity.price.toLocaleString('vi-VN')} ${activity.currencyCode ?? 'VND'}`],
+      ['Mô tả', activity.description || 'Chưa có mô tả'],
     ]} /><p>Giờ và địa điểm phục vụ được chọn khi lập chương trình cho chuyến khởi hành.</p></Panel>
   </Frame>
   return <Frame>{!embedded && <PageHeader breadcrumb="DỊCH VỤ TÀU / HOẠT ĐỘNG" title={activity?.name ?? 'Chi tiết hoạt động'}  actions={<><ButtonLink tone="secondary" to="/admin/activities">Danh sách hoạt động</ButtonLink></>} />}<ActivityState {...query} />
     {activity && <><div className={styles.detailLayout}><Panel title="Thông tin hoạt động"><RecordFacts entries={[
-      ['Mã hoạt động', activity.code], ['Trạng thái', <Badge label={activityStatusLabels[activity.status] ?? activity.status} tone={activity.status === 'IN_PROGRESS' ? 'info' : activity.status === 'COMPLETED' ? 'success' : 'neutral'} />],
+      ['Mã hoạt động', activity.code], ['Trạng thái', <Badge label={activityStatusLabels[activity.status] ?? activity.status} tone={activity.status === 'CANCELLED' ? 'error' : activity.status === 'IN_PROGRESS' ? 'info' : activity.status === 'COMPLETED' ? 'success' : 'neutral'} />],
       ['Thời gian', `${activityTime(activity.startTime)} → ${activityTime(activity.endTime)}`], ['Địa điểm', [activity.deckName||(activity.deckNumber!=null?`Boong ${activity.deckNumber}`:null),activity.cabinNumber?`Cabin ${activity.cabinNumber}`:null].filter(Boolean).join(' · ') || 'Chưa có địa điểm được liên kết'],
       ['Mô tả địa điểm', activity.location || 'Chưa có mô tả'],
-      ['Sức chứa', activity.capacity], ['Giá tham gia', activity.price === null ? 'Chưa cấu hình' : `${activity.price} ${activity.currencyCode ?? ''}`], ['Mô tả', activity.description || 'Chưa có mô tả'],
-    ]} />{activity.cruiseId?<ButtonLink tone="secondary" to={`/admin/cruises/${activity.cruiseId}`}>Xem chuyến khởi hành</ButtonLink>:<p>Hoạt động nguồn dùng để lập chương trình chuyến đi.</p>}</Panel><aside className={styles.actionRail}><ActivityOperations activity={activity} onChanged={query.retry} /></aside></div><ActivityRelated activity={activity} /></>}
+      ['Sức chứa', activity.capacity], ['Giá tham gia', activity.price === null ? 'Chưa cấu hình' : `${activity.price.toLocaleString('vi-VN')} ${activity.currencyCode ?? 'VND'}`], ['Mô tả', activity.description || 'Chưa có mô tả'],
+    ]} />{activity.cruiseId?<ButtonLink tone="secondary" to={`/admin/cruises/${activity.cruiseId}`}>Xem chuyến khởi hành</ButtonLink>:<p>Hoạt động nguồn dùng để lập chương trình chuyến đi.</p>}</Panel><aside className={styles.actionRail}><ActivityOperations activity={activity} onChanged={query.retry} onDeleted={onDeleted} /></aside></div><ActivityRelated activity={activity} /></>}
   </Frame>
 }

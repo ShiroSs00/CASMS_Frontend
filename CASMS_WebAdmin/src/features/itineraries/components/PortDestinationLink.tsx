@@ -43,10 +43,10 @@ export function PortDestinationLink({ port, onReadback }: { port: Port; onReadba
     <RecordFacts entries={[[ 'Điểm đến', port.destinationName ?? (port.destinationId ? 'Chưa đọc được tên' : 'Chưa liên kết') ]]}/>
     {success && <Notice role="status" title="Đã cập nhật điểm đến" tone="success">Thông tin đã được đọc lại từ hệ thống.</Notice>}
     {allowed && !open && <Button tone="secondary" onClick={() => { setOpen(true); setSuccess(false) }}>{port.destinationId ? 'Đổi điểm đến' : 'Liên kết điểm đến'}</Button>}
-    {read && <form onSubmit={save}>
+    {read && <form noValidate onSubmit={save}>
       {query.loading && <Loading label="Đang tải điểm đến…"/>}
       {query.error && <Notice tone="error" title="Chưa tải được điểm đến"><Button tone="secondary" onClick={query.retry}>Thử lại</Button></Notice>}
-      <Field htmlFor="port-destination" label="Điểm đến" hint="Chọn điểm đến đang hoạt động cùng quốc gia với cảng." error={error || undefined}>
+      <Field htmlFor="port-destination" label="Điểm đến *" hint="Chọn điểm đến đang hoạt động cùng quốc gia với cảng." error={error || undefined}>
         <select id="port-destination" name="destination" defaultValue="" required disabled={busy || query.loading || Boolean(query.error)}>
           <option value="">Chọn điểm đến</option>{options.filter(item => item.destinationId !== port.destinationId).map(item => <option key={item.destinationId} value={item.destinationId}>{item.destinationName}</option>)}
         </select>
