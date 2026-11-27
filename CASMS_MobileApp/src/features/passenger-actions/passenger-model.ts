@@ -23,6 +23,10 @@ export function positiveQuantity(value: string): number {
   if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 2147483647) throw new Error('Số lượng không hợp lệ.');
   return quantity;
 }
+export function quantityError(value: string): string | undefined {
+  try { positiveQuantity(value); return undefined; }
+  catch (error) { return error instanceof Error ? error.message : 'Số lượng không hợp lệ.'; }
+}
 export function usablePassengers(booking: BookingDetail | undefined, confirmed = true): BookingPassenger[] {
   if (!booking || (confirmed ? booking.bookingStatus !== 'Confirmed' : booking.bookingStatus === 'Cancelled')) return [];
   // Ownership is checked by BE. Never substitute a user UUID for bookingPassengerId.

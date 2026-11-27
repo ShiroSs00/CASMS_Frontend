@@ -12,7 +12,7 @@ import { Choice } from '@/features/passenger-actions/PassengerActionUI';
 import { dateTime } from '@/features/passenger-actions/passenger-model';
 import { ApiError } from '@/lib/api';
 import { usePos, usePosRequests } from './PosLayout';
-import { passengersFromRequests } from './pos-access';
+import { passengerReference, passengersFromRequests } from './pos-access';
 import { uuid, salePrice, type Sale } from './pos-api';
 import { clearPendingSale, readPendingSale, savePendingSale, type PendingRecord, type PendingSale } from './pos-storage';
 import { Field, Notice, PosPage, PosReveal, QueryState, posError, uncertainWrite, usePosConfirmation } from './pos-ui';
@@ -33,6 +33,7 @@ export function PosUsage() {
   const [serviceId, setServiceId] = useState('');
   const [account, setAccount] = useState('');
   const [passenger, setPassenger] = useState('');
+  const [identified, setIdentified] = useState<{ bookingPassengerId: string; passengerName: string }>();
   const [schedule, setSchedule] = useState('');
   const [lookup, setLookup] = useState<{ account: string; passenger: string }>();
   const [receipt, setReceipt] = useState<Sale>();
@@ -164,7 +165,7 @@ export function PosUsage() {
     work.originalRequest = { ...work.input, expectedUnitPrice: selectedPrice.data.amount, expectedCurrency: selectedPrice.data.currency };
     confirm.open({
       title: 'Bán dịch vụ mới',
-      description: `${work.serviceName} · 1 lượt · ${money(selectedPrice.data.amount, selectedPrice.data.currency)} theo danh mục hiện tại.\nHành khách ${work.input.bookingPassengerId}\nTài khoản ${work.input.onboardAccountId}${work.input.scheduleId ? `\nLịch dịch vụ ${work.input.scheduleId}` : ''}`,
+      description: [work.serviceName + ' · 1 lượt · ' + money(selectedPrice.data.amount, selectedPrice.data.currency) + ' theo danh mục hiện tại.', identified?.bookingPassengerId === work.input.bookingPassengerId ? identified.passengerName : passengerReference(work.input.bookingPassengerId, passengerOptions), 'Tài khoản …' + work.input.onboardAccountId.slice(-8), ...(work.input.scheduleId ? ['Lịch dịch vụ …' + work.input.scheduleId.slice(-8)] : [])].join('\n'),
       run: () => submit(work),
     });
   }
@@ -202,6 +203,7 @@ export function PosUsage() {
   }
   function updatePassenger(value: string) {
     setPassenger(value);
+    setIdentified(undefined);
     setLookup(undefined);
     setSelectedSale('');
     setSchedule('');
@@ -234,7 +236,7 @@ export function PosUsage() {
     <View style={ui.card}>
       <Text style={ui.sectionTitle}>Bán dịch vụ mới</Text>
       <Text style={ui.body}>Bán mới tạo yêu cầu dịch vụ và ghi nhận phí. Yêu cầu đã có cần được xử lý tại mục Yêu cầu dịch vụ.</Text>
-      {pos.employeePermissions.includes('CHECKIN_BOARDING') && <PosCardAction onIdentified={result => updatePassenger(result.bookingPassengerId)} />}
+      {pos.employeePermissions.includes('CHECKIN_BOARDING') && <PosCardAction onIdentified={result => { updatePassenger(result.bookingPassengerId); setIdentified(result); }} />}
       {canReadRequests && <QueryState query={requests} />}
       {passengerOptions.length > 0 && <Choice label="Hành khách từ yêu cầu trong phiên" value={bookingPassengerId}
         onChange={updatePassenger} disabled={!pos.verified || confirm.pending}
@@ -265,10 +267,10 @@ export function PosUsage() {
       <Notice tone="neutral">Hạn mức theo hành khách đã tra cứu. Lịch sử bên dưới gồm toàn bộ giao dịch của tài khoản trên tàu, có thể gồm các hành khách khác trong tài khoản.</Notice>
       {statement.data && !statement.error && <>
         <View style={ui.card}>
-          <AmountRow label="Được cấp" value={money(statement.data.budget.allocatedAmount, statement.data.budget.currency)} />
-          <AmountRow label="Đã dùng" value={money(statement.data.budget.usedAmount, statement.data.budget.currency)} />
-          <AmountRow label="Tài khoản còn" value={money(statement.data.budget.accountRemaining, statement.data.budget.currency)} />
-          <AmountRow label="Hành khách còn" value={money(statement.data.budget.remainingAmount, statement.data.budget.currency)} prominent />
+          <AmountRow label="Hạn mức tài khoản" value={money(statement.data.budget.allocatedAmount, statement.data.budget.currency)} />
+          <AmountRow label="Tài khoản đã sử dụng" value={money(statement.data.budget.usedAmount, statement.data.budget.currency)} />
+          <AmountRow label="Tài khoản còn khả dụng" value={money(statement.data.budget.accountRemaining, statement.data.budget.currency)} />
+          <AmountRow label="Hành khách còn khả dụng" value={money(statement.data.budget.remainingAmount, statement.data.budget.currency)} prominent />
         </View>
         {!statement.data.history.length && <Notice tone="neutral">Chưa có giao dịch sử dụng hạn mức.</Notice>}
         {[...statement.data.history].reverse().map(row => <View style={ui.card} key={row.transactionId}>
@@ -294,9 +296,12 @@ function SaleSummary({ sale, confirmed = false }: { sale: Sale; confirmed?: bool
     <PosReveal>
       <Text selectable style={ui.amount}>{money(sale.amount, sale.currency)}</Text>
       <Text style={ui.body}>{sale.reversedAt ? `Đã đảo ghi nhận · ${dateTime(sale.reversedAt)}` : dateTime(sale.createdAt)}</Text>
-      <Text selectable style={ui.caption}>Hành khách: {sale.bookingPassengerId}</Text>
-      <Text selectable style={ui.caption}>Yêu cầu dịch vụ: {sale.serviceRequestId}</Text>
-      <Disclosure title="Mã giao dịch"><Text selectable style={ui.caption}>{sale.saleId}</Text></Disclosure>
+      <Text style={ui.caption}>{passengerReference(sale.bookingPassengerId)}</Text>
+      <Disclosure title="Mã giao dịch">
+        <Text selectable style={ui.caption}>{sale.saleId}</Text>
+        <Text selectable style={ui.caption}>Hồ sơ hành khách: {sale.bookingPassengerId}</Text>
+        <Text selectable style={ui.caption}>Yêu cầu dịch vụ: {sale.serviceRequestId}</Text>
+      </Disclosure>
     </PosReveal>
   </View>;
 }

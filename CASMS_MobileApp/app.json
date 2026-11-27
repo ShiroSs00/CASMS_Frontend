@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "OceVie Cruises",
@@ -11,6 +12,7 @@
       "icon": "./assets/ocevie/ios-app-icon-1024.png"
     },
     "android": {
+      "package": "com.casms.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#061A2B",
         "foregroundImage": "./assets/ocevie/android-adaptive-foreground-432.png",

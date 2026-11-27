@@ -85,10 +85,11 @@ export function BookingSelection({ selection, draft = false }: { selection: Retu
 
   </View>;
 }
-export function Input({ label, value, onChange, multiline = false, numeric = false, maxLength, disabled = false, email = false, phone = false }: {
-  label: string; value: string; onChange: (text: string) => void; multiline?: boolean; numeric?: boolean; maxLength?: number; disabled?: boolean; email?: boolean; phone?: boolean;
+export function Input({ label, value, onChange, multiline = false, numeric = false, maxLength, disabled = false, email = false, phone = false, helper, error }: {
+  label: string; value: string; onChange: (text: string) => void; multiline?: boolean; numeric?: boolean; maxLength?: number; disabled?: boolean; email?: boolean; phone?: boolean; helper?: string; error?: string;
 }) {
-  return <View style={{ gap: 6 }}><Text style={ui.caption}>{label}</Text><TextInput accessibilityLabel={label} value={value} onChangeText={onChange} multiline={multiline} keyboardType={phone ? 'phone-pad' : numeric ? 'number-pad' : email ? 'email-address' : 'default'} autoCapitalize={email || phone ? 'none' : 'sentences'} autoCorrect={!email && !phone} maxLength={maxLength} editable={!disabled} style={[styles.input, multiline && { minHeight: 86, textAlignVertical: 'top' }, disabled && { opacity: .6 }]} /></View>;
+  const [focused, setFocused] = useState(false);
+  return <View style={{ gap: 6 }}><Text style={ui.caption}>{label}</Text><TextInput accessibilityLabel={label} accessibilityHint={error || helper} accessibilityState={{ disabled }} value={value} onChangeText={onChange} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} multiline={multiline} keyboardType={phone ? 'phone-pad' : numeric ? 'number-pad' : email ? 'email-address' : 'default'} autoCapitalize={email || phone ? 'none' : 'sentences'} autoCorrect={!email && !phone} maxLength={maxLength} editable={!disabled} style={[styles.input, focused && { borderColor: brand.teal, borderWidth: 2 }, error && { borderColor: statusColors.error.foreground }, multiline && { minHeight: 86, textAlignVertical: 'top' }, disabled && { opacity: .6 }]} />{!!(error || helper) && <Text accessibilityLiveRegion="polite" style={[ui.caption, error && { color: statusColors.error.foreground }]}>{error || helper}</Text>}</View>;
 }
 export function Choice({ label, value, items, onChange, disabled = false }: { label: string; value: string; items: { id: string; label: string }[]; onChange: (id: string) => void; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -101,10 +102,18 @@ export function Choice({ label, value, items, onChange, disabled = false }: { la
     </PassengerSheet>
   </View>;
 }
-export function ConfirmAction({ visible, title, description, onClose, onConfirm, pending, error, children, disabled = false }: {
-  visible: boolean; title: string; description: string; onClose: () => void; onConfirm: () => void; pending: boolean; error: unknown; children?: ReactNode; disabled?: boolean;
+export function ConfirmAction({ visible, title, description, onClose, onConfirm, pending, error, children, disabled = false, dirty = false }: {
+  visible: boolean; title: string; description: string; onClose: () => void; onConfirm: () => void; pending: boolean; error: unknown; children?: ReactNode; disabled?: boolean; dirty?: boolean;
 }) {
-  return <PassengerSheet visible={visible} dismissible={!pending} title={title} onClose={() => { if (!pending) onClose(); }}>{!!description && <Text style={ui.body}>{description}</Text>}{children}<ErrorNotice error={error} /><PassengerButton label={title} loading={pending} disabled={disabled} onPress={onConfirm} /><PassengerButton label="Quay lại" variant="text" disabled={pending} onPress={onClose} /></PassengerSheet>;
+  const [discarding, setDiscarding] = useState(false);
+  const requestClose = () => { if (!pending) { if (dirty) setDiscarding(true); else onClose(); } };
+  return <PassengerSheet visible={visible} dismissible={!pending} title={title} onClose={requestClose}>
+    {discarding && dirty ? <>
+      <Text accessibilityRole="alert" style={ui.body}>Bạn có thay đổi chưa gửi. Bỏ thay đổi và quay lại?</Text>
+      <PassengerButton label="Tiếp tục chỉnh sửa" onPress={() => setDiscarding(false)} />
+      <PassengerButton label="Bỏ thay đổi" variant="text" onPress={() => { setDiscarding(false); onClose(); }} />
+    </> : <>{!!description && <Text style={ui.body}>{description}</Text>}{children}<ErrorNotice error={error} /><PassengerButton label={title} loading={pending} disabled={disabled} onPress={onConfirm} /><PassengerButton label="Quay lại" variant="text" disabled={pending} onPress={requestClose} /></>}
+  </PassengerSheet>;
 }
 export const styles = StyleSheet.create({
   intro: { gap: 10, paddingTop: 6 },

@@ -17,10 +17,18 @@ const statusLabels: Record<string, string> = { POSTED: 'Đã ghi sổ', PENDING:
 export function PassengerSpendingScreen() {
   const trip = useSelectedItinerary();
   const { voyage, person } = trip;
+  const bookingId = voyage?.bookingId, cruiseId = voyage?.cruiseId, passengerId = person?.passengerId;
   const ready = !!voyage && !!person && !trip.error && !trip.booking.error && !trip.isFetching && !trip.booking.isFetching;
-  const scope = [voyage?.bookingId, voyage?.bookingPassengerId, voyage?.cruiseId, person?.passengerId];
-  const account = usePassengerQuery(['folio-account', ...scope], signal => passengerApi.folioAccount(voyage!.bookingId, voyage!.cruiseId, signal), 'BOOKING_READ', ready);
-  const statement = usePassengerQuery(['passenger-folio', ...scope, account.data?.onboardAccountId], signal => passengerApi.passengerFolio(account.data!, person!.passengerId, signal), 'BOOKING_READ', ready && !!account.data && !account.error);
+  const scope = [bookingId, voyage?.bookingPassengerId, cruiseId, passengerId];
+  const account = usePassengerQuery(['folio-account', ...scope], signal => {
+    if (!bookingId || !cruiseId) throw new Error('Chọn chuyến đi trước khi xem chi tiêu.');
+    return passengerApi.folioAccount(bookingId, cruiseId, signal);
+  }, 'BOOKING_READ', ready);
+  const onboardAccount = account.data;
+  const statement = usePassengerQuery(['passenger-folio', ...scope, onboardAccount?.onboardAccountId], signal => {
+    if (!onboardAccount || !passengerId) throw new Error('Cần xác minh hồ sơ hành khách trước khi tải sao kê.');
+    return passengerApi.passengerFolio(onboardAccount, passengerId, signal);
+  }, 'BOOKING_READ', ready && !!onboardAccount && !account.error);
   const data = ready && !account.error && !statement.error ? statement.data : undefined;
   const error = trip.error ?? trip.booking.error ?? account.error ?? statement.error;
   const missing = account.error instanceof ApiError && account.error.status === 404;

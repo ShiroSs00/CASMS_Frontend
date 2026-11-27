@@ -15,7 +15,7 @@ import { PassengerButton } from '@/components/passenger/PassengerButton';
 import { Disclosure, EmptyState, FilterChips, SearchField, ui } from '@/components/passenger/PassengerUI';
 import { Choice, BookingSelection, ConfirmAction, ErrorNotice, Input, LivePage, Loading, StatusBadge } from './PassengerActionUI';
 import { passengerApi, usePassengerAction, usePassengerContext, usePassengerQuery } from './passenger-hooks';
-import { dateTime, money, positiveQuantity, serviceRequestActions, serviceRequestInput } from './passenger-model';
+import { dateTime, money, positiveQuantity, quantityError, serviceRequestActions, serviceRequestInput } from './passenger-model';
 import type { Service, ServiceRequest } from './passenger-types';
 
 type Operation = { kind: 'create'; service: Service } | { kind: 'edit'; request: ServiceRequest } | { kind: 'cancel'; request: ServiceRequest };
@@ -260,7 +260,7 @@ function ServiceRequestsWorkspace({ embedded }: { embedded: boolean }) {
     {!!detailId && <ServiceDetail key={detailId} serviceId={detailId} cruiseId={selection.cruiseId} personId={selection.bookingPassengerId}
       entitlements={entitlements.data ?? []} beforeDeparture={beforeDeparture} canRequest={canCreate && context.can('SERVICE_REQUEST_CREATE') && operationLoaded && (!pendingOperation || pendingOperation.serviceId === detailId && pendingOperation.bookingPassengerId === selection.bookingPassengerId)}
       onClose={() => setDetailId('')} onRequest={service => { setDetailId(''); open({ kind: 'create', service }); }} />}
-    <ConfirmAction visible={!!operation} title={operation?.kind === 'create' ? 'Xác nhận gửi yêu cầu' : operation?.kind === 'edit' ? 'Lưu thay đổi yêu cầu' : 'Xác nhận hủy yêu cầu'} description={operation?.kind === 'cancel' ? 'Bạn muốn hủy yêu cầu dịch vụ này?' : 'Yêu cầu cần được nhân viên xác nhận. Chưa thu tiền ở bước này.'} onClose={() => { if (!submitLock.current) setOperation(null); }} onConfirm={submit} pending={action.isPending} disabled={!operationLoaded || !selection.ready} error={onboardError(action.error)}>
+    <ConfirmAction visible={!!operation} dirty={!!operation && operation.kind !== 'cancel' && (quantity !== (operation.kind === 'create' ? '1' : String(operation.request.quantity)) || note !== (operation.kind === 'create' ? '' : operation.request.note ?? '') || !!slotId)} title={operation?.kind === 'create' ? 'Xác nhận gửi yêu cầu' : operation?.kind === 'edit' ? 'Lưu thay đổi yêu cầu' : 'Xác nhận hủy yêu cầu'} description={operation?.kind === 'cancel' ? 'Bạn muốn hủy yêu cầu dịch vụ này?' : 'Yêu cầu cần được nhân viên xác nhận. Chưa thu tiền ở bước này.'} onClose={() => { if (!submitLock.current) setOperation(null); }} onConfirm={submit} pending={action.isPending} disabled={!operationLoaded || !selection.ready} error={onboardError(action.error)}>
       {operation?.kind === 'create' && <View style={ui.card}><Text style={ui.sectionTitle}>{operation.service.name}</Text><Text style={ui.body}>{selectedPerson?.fullName}{selectedPerson?.cabinNumber ? ` · Phòng ${selectedPerson.cabinNumber}` : ''}</Text><Text style={ui.caption}>Đơn giá {money(operation.service.price, operation.service.currency)}</Text></View>}
       {operation?.kind === 'create' && <EntitlementSummary rows={matchingEntitlements(entitlements.data ?? [], selection.bookingPassengerId, 'SERVICE', operation.service.id)} />}
       {!!operation && operation.kind !== 'create' && <Text style={ui.sectionTitle}>{services.data?.find(s => s.id === operation.request.serviceId)?.name ?? 'Yêu cầu dịch vụ'}</Text>}
@@ -274,7 +274,7 @@ function ServiceRequestsWorkspace({ embedded }: { embedded: boolean }) {
               .map(slot => ({ id: slot.id, label: scheduleText(slot) }))]}
           onChange={setSlotId} disabled={!!pendingOperation?.payload || action.isPending || slots.isFetching || Boolean(slots.error)} />
       </>}
-      {operation?.kind !== 'cancel' && <><Input label="Số lượng" value={quantity} onChange={setQuantity} numeric maxLength={10} disabled={action.isPending || !!pendingOperation?.payload} /><Input label="Ghi chú nếu có" value={note} onChange={setNote} multiline maxLength={500} disabled={action.isPending} /></>}
+      {operation?.kind !== 'cancel' && <><Input label="Số lượng" value={quantity} onChange={setQuantity} numeric maxLength={10} disabled={action.isPending || !!pendingOperation?.payload} error={quantityError(quantity)} /><Input label="Ghi chú nếu có" value={note} onChange={setNote} multiline maxLength={500} disabled={action.isPending} /></>}
       <ErrorNotice error={onboardError(validation)} />
     </ConfirmAction>
   </LivePage>;

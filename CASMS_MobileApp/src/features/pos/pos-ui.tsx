@@ -119,11 +119,13 @@ export function PosColumns({ children }: { children: ReactNode }) {
 // Shrink/grow share available row width without forcing a zero-height flex basis.
 export const posPane = { flexGrow: 1, flexShrink: 1, flexBasis: 'auto', minWidth: 0, gap: spacing.lg } as const;
 
-export function Field({ label, ...props }: TextInputProps & { label: string }) {
+export function Field({ label, error, helper, ...props }: TextInputProps & { label: string; error?: string; helper?: string }) {
   return <View style={styles.field}>
     <Text style={ui.body}>{label}</Text>
     <TextInput {...props} accessibilityLabel={label} autoCapitalize={props.autoCapitalize ?? 'none'}
-      autoCorrect={false} placeholderTextColor={lightTheme.placeholder} style={styles.input} />
+      accessibilityHint={error || helper || props.accessibilityHint}
+      autoCorrect={false} placeholderTextColor={lightTheme.placeholder} style={[styles.input, error && { borderColor: statusColors.error.foreground }, props.style]} />
+    {!!(error || helper) && <Text accessibilityLiveRegion="polite" style={[ui.caption, error && { color: statusColors.error.foreground }]}>{error || helper}</Text>}
   </View>;
 }
 

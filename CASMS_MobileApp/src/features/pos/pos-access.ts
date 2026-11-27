@@ -27,3 +27,9 @@ export function passengersFromRequests(services: PosContext['services'], rows: P
   }
   return [...options].map(([id, label]) => ({ id, label }));
 }
+
+/** Display reference only; API calls and identity checks retain the complete ID. */
+export function passengerReference(id: string, options: readonly { id: string; label: string }[] = []) {
+  return options.find(option => option.id.toLowerCase() === id.toLowerCase())?.label
+    ?? `Hồ sơ …${id.slice(-8)}`;
+}

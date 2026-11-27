@@ -153,7 +153,7 @@ function PassengerCheckIn({ passengerId, bookingId, contractAccepted, refreshing
           ? 'Hồ sơ mới bật theo dõi và chia sẻ vị trí theo thiết lập mặc định của hệ thống. Nếu bạn muốn trao đổi về thiết lập này, hãy làm thủ tục tại quầy.'
           : 'Cung cấp người có thể liên hệ khi cần trợ giúp khẩn cấp.'
         : 'OceVie sẽ kiểm tra lại đặt chỗ, hợp đồng và liên hệ khẩn cấp trước khi xác nhận.'}
-      pending={action.isPending} error={action.error} disabled={!ready || (confirm === 'start' ? !valid || !mayStart : !mayComplete)}
+      dirty={confirm === 'start' && !!(name || phone)} pending={action.isPending} error={action.error} disabled={!ready || (confirm === 'start' ? !valid || !mayStart : !mayComplete)}
       onClose={() => { if (!lock.current) setConfirm(undefined); }} onConfirm={() => { void submit(); }}>
       {confirm === 'start' && <>
         <Input label="Họ tên người liên hệ" value={name} onChange={setName} maxLength={100} disabled={action.isPending} />

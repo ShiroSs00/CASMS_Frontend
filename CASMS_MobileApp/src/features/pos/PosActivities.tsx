@@ -9,7 +9,7 @@ import { dateTime } from '@/features/passenger-actions/passenger-model';
 import { ApiError } from '@/lib/api';
 import { useNow } from '@/hooks/use-now';
 import { usePos, usePosActivities, usePosRequests } from './PosLayout';
-import { passengersFromRequests } from './pos-access';
+import { passengerReference, passengersFromRequests } from './pos-access';
 import { uuid, type AttendanceAction, type PosActivity, type ActivityAction } from './pos-api';
 import { activityActions, attendanceActions, verifyAttendanceOutcome, verifyRegistrationOutcome } from './pos-lifecycle';
 import { Field, Notice, PosPage, PosReveal, QueryState, posError, usePosConfirmation } from './pos-ui';
@@ -169,7 +169,7 @@ function ActivityDetail({ item, onBack, reloadActivities, refreshing, activities
       {duplicate && <Notice tone="warning">Hành khách đã có đăng ký cho hoạt động này.</Notice>}
       <PassengerButton label="Xem lại đăng ký" disabled={!valid || !registrationReady} onPress={() => confirm.open({
         title: 'Đăng ký hoạt động',
-        description: `${activity.name} · ${quantity} chỗ · Hành khách ${passenger.trim()}`,
+        description: `${activity.name} · ${quantity} chỗ · ${passengerReference(passenger.trim(), passengerOptions)}`,
         run: async () => {
           const current = await currentActivity('ACTIVITY_REGISTRATION');
           if (current.status !== 'OPEN' || Date.parse(current.endTime) <= Date.now()
@@ -189,18 +189,18 @@ function ActivityDetail({ item, onBack, reloadActivities, refreshing, activities
       <Text accessibilityRole="header" style={ui.sectionTitle}>Đăng ký</Text>
       <QueryState query={registrations} empty={registrations.data?.length === 0 ? 'Chưa có đăng ký.' : undefined} />
       {!registrations.error && registrations.data?.map(row => <View style={ui.card} key={row.id}>
-        <Text selectable style={ui.body}>Hành khách {row.bookingPassengerId}</Text>
+        <Text style={ui.body}>{passengerReference(row.bookingPassengerId, passengerOptions)}</Text>
         <Text style={ui.caption}>Số chỗ {row.quantity}</Text>
         <StatusBadge status={row.status} />
         {canRegister && activity.status !== 'CANCELLED' && (row.status === 'PENDING' || row.status === 'CONFIRMED') && <>
           {row.status === 'PENDING' && <PassengerButton label="Sửa số chỗ" variant="secondary" disabled={!registrationReady} onPress={() => { changedSeats.current = String(row.quantity); confirm.open({ title: 'Sửa số chỗ đăng ký', description: activity.name, content: pending => <RegistrationSeatsField initial={String(row.quantity)} disabled={pending} onChange={value => { changedSeats.current = value; }} />, run: () => changeRegistration(row.id, 'update') }); }} />}
           {row.status === 'PENDING' && ['OPEN', 'FULL'].includes(activity.status) && Date.parse(activity.endTime) > now &&
             <PassengerButton label="Duyệt đăng ký" disabled={!registrationReady} onPress={() => confirm.open({
-              title: 'Duyệt đăng ký', description: `${activity.name} · Hành khách ${row.bookingPassengerId}`,
+              title: 'Duyệt đăng ký', description: `${activity.name} · ${passengerReference(row.bookingPassengerId, passengerOptions)}`,
               run: () => changeRegistration(row.id, 'confirm'),
             })} />}
           <PassengerButton label="Hủy đăng ký" variant="text" disabled={!registrationReady || Date.parse(activity.startTime) <= now} onPress={() => confirm.open({
-            title: 'Hủy đăng ký', description: `${activity.name} · Hành khách ${row.bookingPassengerId}`,
+            title: 'Hủy đăng ký', description: `${activity.name} · ${passengerReference(row.bookingPassengerId, passengerOptions)}`,
             run: () => changeRegistration(row.id, 'cancel'),
           })} />
         </>}
@@ -212,13 +212,13 @@ function ActivityDetail({ item, onBack, reloadActivities, refreshing, activities
       {!participation.error && participation.data?.map(row => {
         const person = passengerByRegistration.get(row.registrationId);
         return <View style={ui.card} key={row.id}>
-          <Text style={ui.body}>{person ? `Hành khách ${person}` : `Đăng ký ${row.registrationId}`}</Text>
+          <Text style={ui.body}>{person ? passengerReference(person, passengerOptions) : 'Chưa có thông tin hồ sơ hành khách'}</Text>
           <Text style={ui.body}>{attendanceStatus[row.status] ?? row.status}</Text>
           {!!row.checkInTime && <Text style={ui.caption}>Vào {dateTime(row.checkInTime)}</Text>}
           {!!row.checkOutTime && <Text style={ui.caption}>Rời {dateTime(row.checkOutTime)}</Text>}
           {attendanceActions(row, activity, now).map(action => <PassengerButton compact key={action} label={attendanceLabels[action]} variant="secondary"
             disabled={!attendanceReady} onPress={() => confirm.open({
-              title: attendanceLabels[action], description: `${activity.name} · ${person ?? row.registrationId}`,
+              title: attendanceLabels[action], description: `${activity.name} · ${person ? passengerReference(person, passengerOptions) : 'Chưa có thông tin hồ sơ hành khách'}`,
               run: () => changeAttendance(row.id, action),
             })} />)}
         </View>;

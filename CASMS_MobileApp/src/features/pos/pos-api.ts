@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { entitlementSchema } from '../passenger-actions/onboard-contracts';
 import { api, ApiError, getApiUrl } from '@/lib/api';
 import { toSession, type LoginDto } from '@/features/auth/session-model';
+import { validateLogin } from '../auth/login-model';
 import { useAuth } from '@/features/auth/session-store';
 
 import { uuid, decode, type Credential } from './pos-contracts';
@@ -36,6 +37,8 @@ export async function readAreaLabel(shipId: string, areaId: string, signal?: Abo
 }
 
 export async function deviceCredential(username: string, password: string): Promise<Credential> {
+  const errors = validateLogin({ username, password });
+  if (errors.username || errors.password) throw new ApiError(errors.username ?? errors.password!, 422, 'POS_DEVICE_CREDENTIALS_INVALID');
   const dto = await api.request<LoginDto>('/auth/login', {
     method: 'POST', authenticated: false, body: { username: username.trim(), password },
   });

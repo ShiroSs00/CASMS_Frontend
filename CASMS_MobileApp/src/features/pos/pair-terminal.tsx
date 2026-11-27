@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
 import { ui } from '@/components/passenger/PassengerUI';
 import { authActions } from '@/features/auth/session-store';
+import { validateLogin } from '../auth/login-model';
 import { Choice } from '@/features/passenger-actions/PassengerActionUI';
 import { ApiError, getApiUrl } from '@/lib/api';
 import { deviceCredential, openPos, readTerminals, scopedPos, type PosSession } from './pos-api';
@@ -29,7 +30,8 @@ export function PairTerminal({ owner, signedInAt, username, employeePermissions,
     setSelection('');
     setFailure('Khu vực hoặc chuyến đã chọn không còn khả dụng. Vui lòng chọn lại.');
   }
-  const valid = !!selected && !terminals.isFetching && !!credential.trim() && (legacy || !!deviceUser.trim());
+  const credentialErrors = validateLogin({ username: deviceUser, password: credential });
+  const valid = !!selected && !terminals.isFetching && (legacy ? !!credential.trim() : !credentialErrors.username && !credentialErrors.password);
 
   async function open() {
     if (!valid || !selected || lock.current) return;
@@ -73,9 +75,11 @@ export function PairTerminal({ owner, signedInAt, username, employeePermissions,
       <Choice label="Thiết bị POS, khu vực và chuyến" value={selected ? selection : ''} onChange={setSelection} disabled={pending || terminals.isFetching || !!terminals.error}
         items={terminalChoiceItems(terminals.error ? [] : terminals.data ?? [])} />
       <PassengerButton label="Cập nhật thiết bị" variant="text" disabled={pending} onPress={() => { void terminals.refetch(); }} />
-      {!legacy && <Field label="Tên tài khoản thiết bị" value={deviceUser} onChangeText={setDeviceUser} editable={!pending} />}
+      {!legacy && <Field label="Tên tài khoản thiết bị" value={deviceUser} onChangeText={setDeviceUser} editable={!pending}
+        error={deviceUser ? credentialErrors.username : undefined} />}
       <Field label={legacy ? 'Mã bí mật thiết bị' : 'Mật khẩu thiết bị'} value={credential} onChangeText={setCredential}
-        secureTextEntry textContentType="password" autoComplete="off" editable={!pending} maxLength={legacy ? 128 : undefined} />
+        secureTextEntry textContentType="password" autoComplete="off" editable={!pending} maxLength={legacy ? 128 : undefined}
+        error={!legacy && credential ? credentialErrors.password : undefined} />
       <PassengerButton label="Mở phiên" onPress={() => { void open(); }} disabled={!valid} loading={pending} />
       <PassengerButton label={legacy ? 'Dùng tài khoản thiết bị' : 'Dùng mã thiết bị cũ'} variant="text" disabled={pending}
         onPress={() => { setCredential(''); setFailure(undefined); setLegacy(!legacy); }} />

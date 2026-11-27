@@ -2,7 +2,7 @@ import { claimCode, cardPreview } from '../passenger-actions/card-contracts';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, StyleSheet, Text, View } from 'react-native';
+import { AppState, Linking, Platform, StyleSheet, Text, View } from 'react-native';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
 import { ui } from '@/components/passenger/PassengerUI';
 import { brand, layout } from '@/constants/ocevie';
@@ -82,6 +82,9 @@ function ScannerCamera({ enabled, preview }: { enabled: boolean; preview: (code:
       try { await requestPermission(); setFailure(undefined); }
       catch { setFailure('permission'); }
       finally { setRequested(false); }
+    }} />}
+    {!permission.canAskAgain && Platform.OS !== 'web' && <PassengerButton label="Mở Cài đặt" onPress={() => {
+      void Linking.openSettings().catch(() => setFailure('permission'));
     }} />}
   </View>;
   if (failure) return <Notice tone="error" retry={reset}>Không mở được camera. Kiểm tra quyền và thử lại.</Notice>;

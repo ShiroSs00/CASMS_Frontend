@@ -3,7 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { PassengerButton } from '@/components/passenger/PassengerButton';
-import { ui } from '@/components/passenger/PassengerUI';
+import { Disclosure, ui } from '@/components/passenger/PassengerUI';
+import { passengerReference } from './pos-access';
 import { Choice, StatusBadge } from '@/features/passenger-actions/PassengerActionUI';
 import { dateTime, money } from '@/features/passenger-actions/passenger-model';
 import { ApiError } from '@/lib/api';
@@ -114,8 +115,11 @@ export function PosRequests() {
       <StatusBadge status={row.status} />
       <Text style={ui.body}>Số lượng {row.quantity} · {dateTime(row.requestTime)}</Text>
       <Text style={ui.caption}>{row.assignedUserId === pos.owner ? 'Đã giao cho bạn' : row.assignedUserId ? 'Đã phân công' : 'Chưa phân công'}</Text>
-      <Text selectable style={ui.caption}>Hồ sơ hành khách: {row.bookingPassengerId ?? 'Chưa có liên kết'}</Text>
-      {!!row.scheduleId && <Text selectable style={ui.caption}>Lịch phục vụ: {row.scheduleId}</Text>}
+      <Text style={ui.caption}>{row.bookingPassengerId ? passengerReference(row.bookingPassengerId) : 'Chưa có liên kết hồ sơ hành khách'}</Text>
+      <Disclosure title="Thông tin đối chiếu yêu cầu">
+        <Text selectable style={ui.caption}>Hồ sơ hành khách: {row.bookingPassengerId ?? 'Chưa có liên kết'}</Text>
+        {!!row.scheduleId && <Text selectable style={ui.caption}>Lịch phục vụ: {row.scheduleId}</Text>}
+      </Disclosure>
       <Text style={ui.body}>Đã phục vụ: {row.fulfilledQuantity ?? 'Chưa có số liệu'} {row.fulfillmentUnitCode ?? ''}</Text>
       {row.unitPriceSnapshot !== null && <Text style={ui.caption}>Giá tham chiếu: {money(row.unitPriceSnapshot, row.currencySnapshot)}</Text>}
       {row.completedAt && <Text style={ui.caption}>Hoàn tất: {dateTime(row.completedAt)}</Text>}

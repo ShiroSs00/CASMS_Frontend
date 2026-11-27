@@ -15,7 +15,7 @@ import { ApiError, getApiUrl } from '@/lib/api';
 import { EmptyState, FilterChips, ui } from '@/components/passenger/PassengerUI';
 import { BookingSelection, ConfirmAction, ErrorNotice, Input, LivePage, Loading, StatusBadge } from './PassengerActionUI';
 import { passengerApi, usePassengerAction, usePassengerContext, usePassengerQuery } from './passenger-hooks';
-import { canRegister, dateTime, money, positiveQuantity, registrationActions, statusText } from './passenger-model';
+import { canRegister, dateTime, money, positiveQuantity, quantityError, registrationActions, statusText } from './passenger-model';
 import type { Registration } from './passenger-types';
 
 type Target = { id: string; name: string; kind: 'activity' | 'excursion'; endTime: string; status: string; available: number | null; cruiseStopId?: string };
@@ -210,6 +210,7 @@ function ActivitiesWorkspace() {
     </>)}
     {detail && <View style={ui.card}><Text style={ui.sectionTitle}>Quyền lợi liên quan</Text><EntitlementSummary rows={matchingEntitlements(entitlements.data ?? [], selection.bookingPassengerId, detail.kind, detail.id)} />{!matchingEntitlements(entitlements.data ?? [], selection.bookingPassengerId, detail.kind, detail.id).length && <Text style={ui.body}>Chưa có quyền lợi được liên kết rõ cho mục này. Giá niêm yết và điều kiện đăng ký cần được kiểm tra riêng.</Text>}<PassengerButton label="Đóng quyền lợi" variant="text" onPress={() => setDetail(undefined)} /></View>}
     <ConfirmAction visible={!!operation} title={operation?.kind === 'register' ? 'Gửi đăng ký' : operation?.kind === 'confirm' ? 'Xác nhận tham gia' : operation?.kind === 'edit' ? 'Lưu số lượng' : 'Xác nhận hủy đăng ký'} description={operation?.kind === 'register' ? `${operation.target.name}. Sau khi gửi, bạn có thể xác nhận tham gia trong Đăng ký của tôi.` : operation?.kind === 'cancel' ? 'Đăng ký sẽ được hủy theo điều kiện của hoạt động hoặc tour.' : 'Hệ thống sẽ kiểm tra trạng thái và số chỗ hiện tại trước khi lưu.'} onClose={() => { if (!lock.current) setOperation(null); }} onConfirm={() => { void submit(); }} pending={action.isPending} error={onboardError(action.error)}
+      dirty={!!operation && (((operation.kind === 'register' || operation.kind === 'edit') && quantity !== (operation.kind === 'register' ? '1' : String(operation.registration.quantity))) || (operation.kind === 'cancel' && !!reason))}
       disabled={!selection.ready || uncertain || (!!activityId && (availability.isPending || !!availability.error || availability.data?.availableSeats === 0))}>
       {!!activityId && <>
         {availability.isLoading && <Loading text="Đang kiểm tra chỗ trống…" />}
@@ -217,7 +218,7 @@ function ActivitiesWorkspace() {
         <ErrorNotice error={availability.error} retry={() => { void availability.refetch(); }} />
         {availability.data && <Text style={ui.body}>Còn {availability.data.availableSeats} chỗ</Text>}
       </>}
-      {(operation?.kind === 'register' || operation?.kind === 'edit') && <><Text style={ui.caption}>Chỉ xác nhận đăng ký theo kết quả hệ thống. Giá niêm yết không phải xác nhận khoản phí đã phát sinh.</Text><Input label="Số chỗ đăng ký" value={quantity} onChange={setQuantity} numeric maxLength={10} disabled={action.isPending} /></>}
+      {(operation?.kind === 'register' || operation?.kind === 'edit') && <><Text style={ui.caption}>Chỉ xác nhận đăng ký theo kết quả hệ thống. Giá niêm yết không phải xác nhận khoản phí đã phát sinh.</Text><Input label="Số chỗ đăng ký" value={quantity} onChange={setQuantity} numeric maxLength={10} disabled={action.isPending} error={quantityError(quantity)} /></>}
       {operation?.kind === 'cancel' && <Input label="Lý do hủy nếu có" value={reason} onChange={setReason} multiline maxLength={500} disabled={action.isPending} />}
       <ErrorNotice error={onboardError(validation)} />
     </ConfirmAction>

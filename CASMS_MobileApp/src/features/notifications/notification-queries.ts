@@ -6,6 +6,8 @@ export function notificationQueryAllowed(key: readonly unknown[], scope: { backe
   if (kind === 'inbox') return false;
   const required: Record<string, string[]> = {
     voyages: ['BOOKING_READ'], bookings: ['BOOKING_READ'], booking: ['BOOKING_READ'], entitlements: ['BOOKING_READ'],
+    'folio-account': ['BOOKING_READ'], 'passenger-folio': ['BOOKING_READ'], 'booking-payments': ['PAYMENT_READ'],
+    checkin: ['CHECKIN_READ'], 'card-status': ['CHECKIN_READ'],
     itinerary: ['ITINERARY_READ','CRUISE_READ'], cruise: ['CRUISE_READ'], decks: ['DECK_READ'], 'public-ship-model': ['BOOKING_READ'],
     services: ['SERVICE_REQUEST_READ','SERVICE_REQUEST_CREATE'], 'service-detail': ['SERVICE_REQUEST_READ','SERVICE_REQUEST_CREATE'], 'service-slots': ['SERVICE_REQUEST_READ','SERVICE_REQUEST_CREATE'], 'service-availability': ['SERVICE_READ'],
     'service-requests': ['SERVICE_REQUEST_READ','SERVICE_REQUEST_CREATE','SERVICE_REQUEST_EXECUTE'],
