@@ -34,8 +34,8 @@ export function PublicBookingRecord({
       {booking.bookingStatus === 'Draft' && (
         <Notice title="Đặt chỗ đang chờ xác nhận" tone="info">
           {depositCoveredWaitingContract
-            ? 'OceVie đã tiếp nhận đủ khoản cọc yêu cầu. Bước tiếp theo: hoàn tất ký hợp đồng bản cứng theo hướng dẫn bên dưới để đặt chỗ chuyển sang Đã xác nhận.'
-            : 'Đặt chỗ sẽ được xác nhận khi OceVie nhận khoản thanh toán yêu cầu và hợp đồng đã ký.'}
+            ? 'OceVie đã tiếp nhận đủ khoản cọc yêu cầu. Bước tiếp theo: chấp nhận hợp đồng điện tử trực tuyến bên dưới (hoặc ký bản cứng) để đặt chỗ chuyển sang Đã xác nhận.'
+            : 'Đặt chỗ sẽ được xác nhận tự động khi OceVie nhận đủ khoản thanh toán yêu cầu và bạn đã chấp nhận hợp đồng điện tử.'}
         </Notice>
       )}
       {booking.bookingStatus === 'Confirmed' && (
@@ -127,13 +127,13 @@ export function PublicBookingRecord({
         )}
       </Panel>
       <Panel title="Hành khách & phòng">
-        <DataTable label="Hành khách đặt chỗ" headers={['Hành khách', 'Phòng', 'Gói đã chọn', 'Tham gia']}>
+        <DataTable label="Hành khách đặt chỗ" headers={['Hành khách', 'Phòng', 'Gói đã chọn', 'Trạng thái']}>
           {booking.passengers.map(person => (
             <tr key={person.bookingPassengerId}>
               <td>{person.fullName}</td>
               <td>{person.cabinNumber ?? 'Chưa gán phòng'}</td>
               <td>{person.purchasedFare?.fare.templateName ?? person.selectedFare?.templateName ?? person.tourPackageName ?? '—'}</td>
-              <td>{person.participationStatus === 'Active' ? 'Tham gia' : 'Đã hủy'}</td>
+              <td>{person.participationStatus === 'Active' ? 'Đang tham gia' : 'Đã hủy'}</td>
             </tr>
           ))}
         </DataTable>

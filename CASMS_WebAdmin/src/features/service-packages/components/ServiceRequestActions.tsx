@@ -15,10 +15,19 @@ export function ServiceRequestActions({ request, onChanged }: { request: Service
   const lock = useRef(false)
   const before = useRef<{request:ServiceRequest;action:Action;fulfillment?:{fulfilledQuantity:number;unitCode:string}} | null>(null)
   const [fulfilledQuantity,setFulfilledQuantity]=useState(''),[needsReview,setNeedsReview]=useState(false)
+  const [recoveryNotice,setRecoveryNotice]=useState('')
   const entitlement=useReadQuery(`service-request-entitlement:${access.userId}:${request.id}:${request.status}:${request.fulfilledQuantity??''}`,useCallback(signal=>request.fareBenefitSnapshotId?servicePackageApi.requestEntitlement(request.id,signal):Promise.resolve(null),[request.id,request.fareBenefitSnapshotId]))
   const ownAssignment = request.assignedUserId === access.userId
-  const actions: Action[] = request.status === 'REQUESTED' ? ['assign', 'accept', 'reject', 'cancel'] : request.status === 'ACCEPTED' ? [...(ownAssignment ? ['start' as const] : []), 'cancel'] : request.status === 'IN_PROGRESS' && ownAssignment ? ['complete'] : []
+  const onboard = access.roles.includes('ONBOARD_STAFF')
+  const actions: Action[] = request.status === 'REQUESTED'
+    ? ['assign', 'accept', 'reject', 'cancel']
+    : request.status === 'ACCEPTED'
+      ? [...(!request.assignedUserId ? ['assign' as const] : []), ...(ownAssignment ? ['start' as const] : []), 'cancel']
+      : request.status === 'IN_PROGRESS' && ownAssignment
+        ? ['complete']
+        : []
   const allowed = (action: Action) => {
+    if (onboard && (!ownAssignment || action === 'assign' || action === 'cancel')) return false
     if (action === 'cancel') return access.canDo('SERVICE_REQUEST_CREATE')
     if ((action === 'accept' || action === 'reject') && !ownAssignment && !access.roles.includes('ACTIVITY_SERVICE_MANAGER')) return false
     return access.canDo('SERVICE_REQUEST_ASSIGN') || access.canDo('SERVICE_REQUEST_EXECUTE')
@@ -57,22 +66,28 @@ export function ServiceRequestActions({ request, onChanged }: { request: Service
       const operation=before.current
       const expected={accept:'ACCEPTED',reject:'REJECTED',start:'IN_PROGRESS',complete:'COMPLETED',cancel:'CANCELLED'}
       const confirmed=operation&&(operation.action==='assign'?fresh.assignedUserId===access.userId:fresh.status===expected[operation.action])&&(!operation.fulfillment||fresh.fulfilledQuantity===operation.fulfillment.fulfilledQuantity&&fresh.fulfillmentUnitCode===operation.fulfillment.unitCode)
-      if(!confirmed){setError('Chưa thấy kết quả thay đổi được xác nhận. Không tự gửi lại thao tác; tiếp tục đối chiếu yêu cầu.');return}
+      if(!confirmed){
+        if(operation && fresh.status===operation.request.status && fresh.assignedUserId===operation.request.assignedUserId && fresh.fulfilledQuantity===operation.request.fulfilledQuantity){
+          setNeedsReview(false);setAction(null);setError('');setRecoveryNotice('Đã kiểm tra dữ liệu mới nhất: yêu cầu chưa đổi trạng thái. Bạn có thể kiểm tra lại nội dung và chủ động thực hiện tiếp.');onChanged();return
+        }
+        setError('Yêu cầu đã thay đổi. Tải lại nội dung và đối chiếu kết quả trước khi tiếp tục.');return
+      }
       setNeedsReview(false);setAction(null);setError('');onChanged();entitlement.retry()
     }catch(reason){setError(reason instanceof Error?reason.message:'Chưa đối chiếu được yêu cầu.')}
     finally{lock.current=false;setBusy(false)}
   }
   if (!access.canDo('SERVICE_REQUEST_CREATE') && !access.canDo('SERVICE_REQUEST_ASSIGN') && !access.canDo('SERVICE_REQUEST_EXECUTE')) return null
   return <Panel title="Tiếp nhận và thực hiện">
+    {recoveryNotice&&<Notice title="Đã kiểm tra lại yêu cầu" tone="info">{recoveryNotice}</Notice>}
     {entitlement.loading&&request.fareBenefitSnapshotId&&<p role="status">Đang đối chiếu quyền lợi…</p>}
     {entitlement.error&&<Notice title="Chưa đối chiếu được quyền lợi" tone="error"><p>{entitlement.error.message}</p><Button onClick={entitlement.retry}>Tải lại quyền lợi</Button></Notice>}
     {entitlement.data&&<OperationalCruisePackageEntitlement entitlement={entitlement.data}/>}
     {request.fareBenefitSnapshotId&&<p>Đã ghi nhận phục vụ: {request.fulfilledQuantity??'Chưa xác định'} {formatUnitCode(request.fulfillmentUnitCode) || 'Chưa có đơn vị nguồn'}. Giá tham chiếu danh mục: {request.unitPriceSnapshot != null ? `${request.unitPriceSnapshot.toLocaleString('vi-VN')} ${request.currencySnapshot ?? ''}`.trim() : 'Chưa xác định'}.</p>}
     {needsReview&&<Notice title="Chưa xác nhận được kết quả" tone="warning"><p>{error}</p><Button disabled={busy} onClick={()=>void reconcile()}>Kiểm tra lại trạng thái vừa gửi</Button></Notice>}
-    {!needsReview && request.status === 'REQUESTED' && (access.canDo('SERVICE_REQUEST_CREATE') || (access.canDo('SERVICE_REQUEST_EXECUTE') && (ownAssignment || access.roles.includes('ACTIVITY_SERVICE_MANAGER')))) && <ButtonLink tone="secondary" to={`/admin/service-requests/${request.id}/edit`}>Sửa số lượng và ghi chú</ButtonLink>}
-    {actions.filter(allowed).map(action => <Button key={action} tone={action === 'cancel' || action === 'reject' ? 'danger' : 'secondary'} disabled={busy || needsReview || !allowed(action)} onClick={() => { setAction(action); setError('') }}>{labels[action]}</Button>)}
+    {!onboard && !needsReview && request.status === 'REQUESTED' && (access.canDo('SERVICE_REQUEST_CREATE') || (access.canDo('SERVICE_REQUEST_EXECUTE') && (ownAssignment || access.roles.includes('ACTIVITY_SERVICE_MANAGER')))) && <ButtonLink tone="secondary" to={`/admin/service-requests/${request.id}/edit`}>Sửa số lượng và ghi chú</ButtonLink>}
+    {actions.filter(allowed).map(action => <Button key={action} tone={action === 'cancel' || action === 'reject' ? 'danger' : onboard ? 'primary' : 'secondary'} disabled={busy || needsReview || !allowed(action)} onClick={() => { setAction(action); setError('');setRecoveryNotice('') }}>{labels[action]}</Button>)}
     {!ownAssignment && ['ACCEPTED', 'IN_PROGRESS'].includes(request.status) && <p>Chỉ người được phân công mới có thể bắt đầu hoặc hoàn thành yêu cầu.</p>}
-    <p>Nhận xử lý gắn yêu cầu với tài khoản của bạn. Chỉ bắt đầu hoặc hoàn thành yêu cầu đã được giao cho bạn.</p>
+    {!onboard && <p>Nhận xử lý gắn yêu cầu với tài khoản của bạn. Chỉ bắt đầu hoặc hoàn thành yêu cầu đã được giao cho bạn.</p>}
     {action && allowed(action) && <Modal title={labels[action]} busy={busy} onClose={() => setAction(null)} footer={<>
       <Button tone="secondary" data-overlay-dismiss disabled={busy} onClick={() => setAction(null)}>Hủy</Button>
       <Button tone={action === 'cancel' || action === 'reject' ? 'danger' : 'primary'} busy={busy} disabled={busy || needsReview || !allowed(action)} onClick={() => void confirm()}>{labels[action]}</Button>

@@ -14,6 +14,7 @@ export const bleApi = {
   mappings:(ship:string,model:string,signal:AbortSignal)=>apiRequest<DeckMapping[]>(`/ships/${encodeURIComponent(ship)}/models/${encodeURIComponent(model)}/deck-mappings`,{signal}),
   save:(ship:string,draft:AnchorDraft,id?:string)=>apiRequest<Anchor>(`/ships/${encodeURIComponent(ship)}/ble-anchors${id?`/${encodeURIComponent(id)}`:''}`,{method:id?'PATCH':'POST',body:id?anchorUpdate(draft):draft}),
   action:(ship:string,id:string,action:string)=>apiRequest<Anchor>(`/ships/${encodeURIComponent(ship)}/ble-anchors/${encodeURIComponent(id)}/${action}`,{method:'POST'}),
+  remove:(ship:string,id:string)=>apiRequest<void>(`/ships/${encodeURIComponent(ship)}/ble-anchors/${encodeURIComponent(id)}/unused`,{method:'DELETE'}),
   cruises:async(ship:string,signal:AbortSignal)=>{const result=await apiRequest<{content:Array<{cruiseId:string;cruiseCode:string;cruiseName:string}>}>('/cruise',{signal,query:{shipId:ship,status:'IN_PROGRESS',size:100}});return result.content},
   tracking:async(ship:string,cruise:string,signal:AbortSignal)=>{const result=await apiRequest<Tracking>(`/cruises/${encodeURIComponent(cruise)}/passenger-tracking`,{signal});if(result.shipId!==ship||result.cruiseId!==cruise||result.positionKind!=='RANGE_ONLY_NO_DIRECTION')throw new Error('Dữ liệu tracking không khớp tàu/chuyến.');return result},
 }

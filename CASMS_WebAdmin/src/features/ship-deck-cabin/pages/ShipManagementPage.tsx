@@ -74,7 +74,7 @@ function ShipManagementContent({ id }: { id: string }) {
         <div className={styles.shipActions}>
           {access.canDo('SHIP_REGULATION_READ') && <ButtonLink tone="secondary" to={`/admin/ships/${id}/regulations`}>Quy định áp dụng</ButtonLink>}
           {!archived && manager && !admin && ship.status === 'DRAFT' && access.canDo('SHIP_ARCHIVE') && <ShipArchiveAction ship={ship} />}
-          {!archived && access.canDo('SHIP_STATUS_CHANGE')&&<Button tone="secondary" autoWidth disabled={query.loading} onClick={()=>setDialog({type:'operation',kind:'ships',item:ship,operation:'status'})}>Cập nhật trạng thái</Button>}
+          {!archived && ship.status !== 'RETIRED' && access.canDo('SHIP_STATUS_CHANGE')&&<Button tone="secondary" autoWidth disabled={query.loading} onClick={()=>setDialog({type:'operation',kind:'ships',item:ship,operation:'status'})}>Cập nhật trạng thái</Button>}
           {!archived && manager && ship.shipTypeId && !access.canDo('SHIP_UPDATE') && <Button autoWidth onClick={() => setRenaming(true)}>Sửa tên tàu</Button>}
           {!archived && access.canDo('SHIP_UPDATE')&&<Button autoWidth disabled={query.loading} onClick={()=>{setSaved('');setDialog({type:'edit',target:{kind:'ships',item:ship}})}}>{ship.shipTypeId ? 'Sửa tên tàu' : 'Chỉnh sửa thông tin'}</Button>}
         </div>
@@ -86,14 +86,14 @@ function ShipManagementContent({ id }: { id: string }) {
     {archived && <Notice title="Hồ sơ lưu trữ">Tàu được lưu trữ ngày {formatDate(ship.archivedAt)}. Hồ sơ ở chế độ tra cứu.</Notice>}
     <h2 className={styles.currentSectionHeading}>{sections.find(section => section.key === tab)?.label}</h2>
     {tab === 'overview' && <>
-      <section className={styles.typeInformation} aria-labelledby="ship-type-information-heading">
+      {ship.shipTypeId && <section className={styles.typeInformation} aria-labelledby="ship-type-information-heading">
         <div className={styles.sectionHeading}><h3 id="ship-type-information-heading">Thông tin loại tàu</h3>
-        {ship.shipTypeId ? <Link to={'/admin/ship-types/' + ship.shipTypeId}>{ship.shipTypeName || ship.shipTypeCode || 'Xem loại tàu'}</Link> : 'Chưa phân loại'}
+        <Link to={'/admin/ship-types/' + ship.shipTypeId}>{ship.shipTypeName || ship.shipTypeCode || 'Xem loại tàu'}</Link>
         </div>
         {ship.designReference && (manufacturingFields.some(({ key }) => ship.designReference?.manufacturingMetadata?.[key] != null)
           ? <DesignVersionFacts design={ship.designReference} showReference={false} />
           : <p>Tệp thiết kế chưa cung cấp thông tin đóng tàu.</p>)}
-      </section>
+      </section>}
       <ShipOverview ship={ship}/>
       {manager && ship.shipTypeId && <ShipProfilePanel id={id} readOnly={archived} />}
     </>}

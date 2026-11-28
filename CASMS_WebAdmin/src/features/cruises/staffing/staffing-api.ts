@@ -57,7 +57,7 @@ export const candidateStatusCopy: Record<CandidateStatus,string> = {
   MISSING_QUALIFICATION:'Thiếu năng lực cho ca này',
   SCHEDULE_CONFLICT:'Trùng lịch',
 }
-type Preparation = {
+export type Preparation = {
   scheduleRevision: number; request: StaffingRequest | null; services: { id: string; name: string }[]
   hasOperatingBudget: boolean
   requiresReplanning?: boolean
@@ -138,10 +138,16 @@ export const staffingApi = {
   }).then(value => decodeSnapshot(value, request.id)),
   assignService: (cruise: string, user: string, serviceId: string) =>
     apiRequest<void>(staffPath(cruise,user)+'/service', {method:'PUT',body:{serviceId}}),
+  unassignService: (cruise: string, user: string) =>
+    apiRequest<void>(staffPath(cruise,user)+'/service', {method:'DELETE'}),
   assignShift: (cruise: string, user: string, kind: 'ONBOARD'|'SHORE', occurrence: string) =>
     apiRequest<void>(`${staffPath(cruise,user)}/activity-shifts/${kind}/${encodeURIComponent(occurrence)}`, {method:'PUT'}),
+  unassignShift: (cruise: string, user: string, kind: 'ONBOARD'|'SHORE', occurrence: string) =>
+    apiRequest<void>(`${staffPath(cruise,user)}/activity-shifts/${kind}/${encodeURIComponent(occurrence)}`, {method:'DELETE'}),
   grantQualification: (user: string, kind: 'ONBOARD'|'SHORE', definitionId: string) =>
     apiRequest<void>(`/staff/${encodeURIComponent(user)}/activity-qualifications/${kind}/${encodeURIComponent(definitionId)}`, {method:'PUT'}),
+  revokeQualification: (user: string, kind: 'ONBOARD'|'SHORE', definitionId: string) =>
+    apiRequest<void>(`/staff/${encodeURIComponent(user)}/activity-qualifications/${kind}/${encodeURIComponent(definitionId)}`, {method:'DELETE'}),
 }
 
 const errors: Record<string,string> = {
@@ -174,23 +180,27 @@ export const staffingStatus: Record<string,string> = {
 }
 
 export function staffingStatusLabel(request: StaffingRequest) {
-  if (request.workflowVersion === 'V2' && request.status === 'HR_SUBMITTED') return 'Chờ Quản lý lịch trình kiểm tra'
-  if (request.shipReviewWorkflow && request.status === 'SHIP_CONFIRMED') return 'Chờ Quản lý nhân sự duyệt'
+  if (request.workflowVersion === 'V2' && request.status === 'HR_SUBMITTED') return 'Chờ Quản lý tàu xác nhận sau phân công'
+  if (request.workflowVersion !== 'V2' && request.shipReviewWorkflow && request.status === 'SHIP_CONFIRMED') return 'Chờ Quản lý nhân sự duyệt'
   return staffingStatus[request.status] ?? 'Trạng thái chưa xác định'
 }
 
 export function staffingStageGuidance(request: StaffingRequest) {
   switch (request.status) {
     case 'PENDING_ASM':
-      return 'Bước 1/4 · Chờ Quản lý dịch vụ chốt chương trình & định biên nhân sự phục vụ (có thể gắn Quản lý tàu trước ở mục trên).'
+      return 'Bước 1/4 · Chờ Quản lý dịch vụ chốt chương trình & định biên nhân sự phục vụ (có thể gắn Quản lý tàu trước ở tab Gắn Quản lý tàu).'
     case 'PENDING_SHIP_REVIEW':
-      return 'Bước 2/4 · Chờ Quản lý tàu mở khu vực, gắn máy POS và bố trí dịch vụ.'
+      return 'Bước 2/4 · Chờ Quản lý tàu mở khu vực, bố trí quầy bán hàng và dịch vụ.'
     case 'SHIP_REVIEWED':
-      return 'Bước 2/4 · Quản lý tàu đã xác nhận phương án, chờ chuyển sang HR phân công.'
+      return 'Bước 2/4 · Quản lý tàu đã xác nhận phương án, chờ chuyển sang Quản lý nhân sự phân công.'
     case 'SENT_TO_HR':
       return 'Bước 3/4 · Đang chờ Quản lý nhân sự phân công đủ nhân viên cho dịch vụ & ca hoạt động.'
     case 'HR_SUBMITTED':
-      return 'Bước 4/4 · HR đã phân công xong, chờ Quản lý lịch trình rà soát và trình duyệt.'
+      return 'Quản lý nhân sự đã gửi phương án, chờ Quản lý tàu xác nhận sau phân công.'
+    case 'SHIP_CONFIRMED':
+      return request.workflowVersion !== 'V2' && request.shipReviewWorkflow
+        ? 'Quản lý tàu đã xác nhận phương án, chờ Quản lý nhân sự xét duyệt.'
+        : 'Quản lý tàu đã xác nhận sau phân công, chờ Quản lý lịch trình rà soát và trình duyệt.'
     case 'PLANNER_CONFIRMED':
     case 'HR_APPROVED':
       return 'Bước 4/4 · Đã trình Quản lý vận hành phê duyệt phương án nhân sự.'
@@ -221,10 +231,10 @@ export const positionLabels: Record<string, string> = {
 export const staffingShipStatusLabels: Record<string, string> = {
   DRAFT: 'Đang thiết lập',
   READY: 'Sẵn sàng hoạt động',
-  IN_SERVICE: 'Đang hoạt động',
-  MAINTENANCE: 'Đang bảo trì',
-  SUSPENDED: 'Tạm dừng hoạt động',
-  RETIRED: 'Đã ngừng hoạt động',
+  IN_SERVICE: 'Đang khai thác',
+  MAINTENANCE: 'Bảo trì',
+  SUSPENDED: 'Tạm đình chỉ',
+  RETIRED: 'Ngừng khai thác',
 }
 
 export const staffingCabinStatusLabels: Record<string, string> = {

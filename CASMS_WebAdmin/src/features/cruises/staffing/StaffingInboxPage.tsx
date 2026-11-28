@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { useLocation, useSearchParams } from 'react-router'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { Badge, Button, ButtonLink, DataTable, Empty, Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
@@ -30,10 +30,23 @@ function StaffingInbox({ review }: { review: boolean }) {
   const ship = access.roles.includes('SHIP_MANAGER') && access.has('CRUISE_PREPARATION_READ')
   const operations = access.roles.includes('OPERATIONS_MANAGER') && access.has('CRUISE_VALIDATE')
   const hr = !review
+  const canAssignShipManager = hr && access.roles.includes('HR_MANAGER') && access.canDo('CRUISE_STAFF_ASSIGN')
   const inbox = useReadQuery(`staffing-inbox:${access.userId}`, staffingApi.inbox)
   const pipeline = useReadQuery(`staffing-pipeline:${access.userId}`, staffingApi.pipeline)
+  const loadShipManagerQueue = useCallback(
+    (signal: AbortSignal) => (canAssignShipManager ? staffingApi.cruisesWithoutShipManager(signal) : Promise.resolve([])),
+    [canAssignShipManager],
+  )
+  const shipManagerQueue = useReadQuery(
+    `ship-manager-needed:${canAssignShipManager ? access.userId : 'none'}`,
+    loadShipManagerQueue,
+  )
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [activeTab, setActiveTab] = useState<'actionable' | 'tracking'>('actionable')
+  const [manualTab, setManualTab] = useState<'ship_manager' | 'actionable' | 'tracking' | null>(() =>
+    location.hash === '#ship-manager-assign' ? 'ship_manager' : null,
+  )
+  const [shipManagerSaved, setShipManagerSaved] = useState('')
   const [cruiseSearch, setCruiseSearch] = useState('')
   const [progressFilter, setProgressFilter] = useState<'ALL' | 'MISSING' | 'COVERED'>('ALL')
   const [statusFilter, setStatusFilter] = useState('')
@@ -41,16 +54,45 @@ function StaffingInbox({ review }: { review: boolean }) {
   const selectedId = searchParams.get('requestId') ?? ''
   const items = (inbox.data ?? []).filter(request => hr ? (
     request.status === 'SENT_TO_HR' || (request.workflowVersion !== 'V2' && request.shipReviewWorkflow && request.status === 'SHIP_CONFIRMED')
-  ) : (ship && (request.status === 'PENDING_SHIP_REVIEW' || (request.workflowVersion !== 'V2' && request.status === 'HR_SUBMITTED')))
+  ) : (ship && (request.status === 'PENDING_SHIP_REVIEW' || request.status === 'HR_SUBMITTED'))
     || (operations && (request.status === 'PLANNER_CONFIRMED' || request.status === 'HR_APPROVED')))
   const actionableIds = new Set(items.map(item => item.id))
-  const trackingItems = (pipeline.data ?? []).filter(request => !actionableIds.has(request.id))
-  const visiblePool = activeTab === 'actionable' ? items : trackingItems
+  const trackingItems = (pipeline.data ?? []).filter(request => {
+    if (actionableIds.has(request.id)) return false
+    if (!hr && ship && !operations && request.status === 'PENDING_ASM') return false
+    return true
+  })
+  const shipManagerItems = shipManagerQueue.data ?? []
+  const defaultTab: 'ship_manager' | 'actionable' | 'tracking' = canAssignShipManager && items.length === 0 && shipManagerItems.length > 0
+    ? 'ship_manager'
+    : 'actionable'
+  const tabParam = searchParams.get('tab')
+  const urlTab: 'ship_manager' | 'actionable' | 'tracking' | null =
+    tabParam === 'ship-manager' && canAssignShipManager ? 'ship_manager'
+      : tabParam === 'assign' ? 'actionable'
+        : tabParam === 'tracking' ? 'tracking'
+          : null
+  const activeTab: 'ship_manager' | 'actionable' | 'tracking' = urlTab ?? manualTab ?? defaultTab
+  const isSingleListShip = ship && !hr && !operations
+  const visiblePool = isSingleListShip
+    ? [...items, ...trackingItems]
+    : activeTab === 'actionable' ? items : trackingItems
   const selectedRequest = items.find(item => item.id === selectedId)
   const shipWorkspace = !hr && ship && (!operations || selectedRequest?.status === 'PENDING_SHIP_REVIEW'
     || selectedRequest?.status === 'HR_SUBMITTED')
-  const title = hr ? 'Phân công nhân sự' : shipWorkspace ? 'Chuẩn bị phương án tàu'
+  const hrSubtaskTitle = activeTab === 'ship_manager'
+    ? 'Gắn Quản lý tàu'
+    : activeTab === 'tracking'
+      ? 'Theo dõi tiến độ'
+      : 'Phân công nhân viên'
+  const title = hr ? (canAssignShipManager ? hrSubtaskTitle : 'Phân công nhân sự') : shipWorkspace ? 'Phương án khu vực & nhân sự'
     : ship && operations && !selectedId ? 'Phương án tàu và nhân sự' : 'Duyệt phương án nhân sự'
+
+  function refreshAll() {
+    inbox.retry()
+    pipeline.retry()
+    if (canAssignShipManager) shipManagerQueue.retry()
+  }
 
   function openRequest(id: string) {
     const next = new URLSearchParams(searchParams)
@@ -61,7 +103,9 @@ function StaffingInbox({ review }: { review: boolean }) {
 
   if (selectedId) {
     const inInbox = items.some(item => item.id === selectedId)
-    const canOpen = lastReviewedId === selectedId || inInbox
+    const inTracking = trackingItems.some(item => item.id === selectedId)
+    const canOpen = lastReviewedId === selectedId || inInbox || inTracking
+    const readOnlyMode = !inInbox && inTracking
     return (
       <CruiseFrame>
         <div className={styles.workspace}>
@@ -79,14 +123,14 @@ function StaffingInbox({ review }: { review: boolean }) {
               key={selectedId}
               requestId={selectedId}
               review={review}
-              onCompleted={() => { openRequest(''); inbox.retry(); pipeline.retry() }}
+              readOnly={readOnlyMode}
+              onCompleted={() => { openRequest(''); refreshAll() }}
               onChanged={() => {
                 setLastReviewedId(selectedId)
-                inbox.retry()
-                pipeline.retry()
+                refreshAll()
               }}
             />
-          ) : inbox.loading ? (
+          ) : inbox.loading || pipeline.loading ? (
             <Loading label="Đang kiểm tra yêu cầu nhân sự…" />
           ) : inbox.error ? (
             <Notice tone="error" title="Chưa tải được danh sách">
@@ -107,13 +151,24 @@ function StaffingInbox({ review }: { review: boolean }) {
   const availableStatuses = [...new Set(visiblePool.map(item => item.status))]
   const filtered = visiblePool.filter(request => {
     const missing = staffingMissing(request)
-    if (activeTab === 'actionable' && progressFilter === 'MISSING' && missing === 0) return false
-    if (activeTab === 'actionable' && progressFilter === 'COVERED' && missing > 0) return false
+    if (!isSingleListShip && activeTab === 'actionable' && progressFilter === 'MISSING' && missing === 0) return false
+    if (!isSingleListShip && activeTab === 'actionable' && progressFilter === 'COVERED' && missing > 0) return false
     if (statusFilter && request.status !== statusFilter) return false
     if (!normalizedQuery) return true
     return request.cruiseName.toLowerCase().includes(normalizedQuery) || request.cruiseCode.toLowerCase().includes(normalizedQuery)
-  }).sort((a, b) => (Date.parse(b.departure) || 0) - (Date.parse(a.departure) || 0) || b.cruiseCode.localeCompare(a.cruiseCode, 'vi', { numeric: true }))
+  }).sort((a, b) => {
+    if (isSingleListShip) {
+      const aPending = actionableIds.has(a.id) ? 0 : 1
+      const bPending = actionableIds.has(b.id) ? 0 : 1
+      if (aPending !== bPending) return aPending - bPending
+    }
+    return (Date.parse(b.departure) || 0) - (Date.parse(a.departure) || 0) || b.cruiseCode.localeCompare(a.cruiseCode, 'vi', { numeric: true })
+  })
   const hasFilters = Boolean(cruiseSearch.trim() || (activeTab === 'actionable' && progressFilter !== 'ALL') || statusFilter)
+  const pipelineByCruiseId = new Map((pipeline.data ?? []).map(item => [item.cruiseId, item]))
+  const visibleTabs: ('ship_manager' | 'actionable' | 'tracking')[] = canAssignShipManager
+    ? ['ship_manager', 'actionable', 'tracking']
+    : ['actionable', 'tracking']
 
   function resetFilters() {
     setCruiseSearch('')
@@ -121,10 +176,15 @@ function StaffingInbox({ review }: { review: boolean }) {
     setStatusFilter('')
   }
 
-  function switchTab(next: 'actionable' | 'tracking') {
-    setActiveTab(next)
+  function switchTab(next: 'ship_manager' | 'actionable' | 'tracking') {
+    setManualTab(next)
     setStatusFilter('')
     setProgressFilter('ALL')
+    if (canAssignShipManager) {
+      const nextParams = new URLSearchParams(searchParams)
+      nextParams.set('tab', next === 'ship_manager' ? 'ship-manager' : next === 'tracking' ? 'tracking' : 'assign')
+      setSearchParams(nextParams)
+    }
   }
 
   return (
@@ -132,296 +192,342 @@ function StaffingInbox({ review }: { review: boolean }) {
       <div className={styles.workspace}>
         <div className={styles.stack}>
           <PageHeader
-            breadcrumb={hr ? 'Quản lý nhân sự' : ship ? 'Quản lý tàu / Xét duyệt chuyến' : 'Quản lý vận hành'}
-            title={title}
-            description={
-              hr
-                ? 'Phân bổ nhân sự phù hợp cho từng khu vực và dịch vụ của chuyến khởi hành theo đề xuất đã duyệt.'
-                : ship
-                  ? 'Kiểm tra và xác nhận phương án nhân sự theo các khu vực trên tàu trước khi chuyển bước phân công tiếp theo.'
-                  : 'Rà soát và phê duyệt phương án nhân sự cho chuyến khởi hành trước khi mở bán.'
-            }
+            breadcrumb={hr ? 'Quản lý nhân sự / Phân công nhân sự' : ship ? 'Phối hợp & duyệt chuyến' : 'Quản lý vận hành'}
+            title={hr ? title : shipWorkspace ? 'Khu vực & nhân sự' : title}
+            description=""
             actions={
-              <Button tone="secondary" size="compact" autoWidth onClick={() => { inbox.retry(); pipeline.retry() }}>Cập nhật</Button>
+              <Button tone="secondary" size="compact" autoWidth onClick={refreshAll}>Làm mới</Button>
             }
           />
-          {ship && !hr && (
-            <nav className={styles.shipSwitcher} aria-label="Các đầu việc của Quản lý tàu">
-              <Link to="/admin/preparation-requests" className={styles.shipSwitchTab}>
-                1. Xác nhận đáp ứng tàu
-              </Link>
-              <Link to="/admin/service-locations" className={styles.shipSwitchTab}>
-                2. Đề nghị bố trí dịch vụ
-              </Link>
-              <Link to="/admin/staffing-reviews" aria-current="page" className={`${styles.shipSwitchTab} ${styles.shipSwitchTabActive}`}>
-                3. Chuẩn bị phương án tàu
-              </Link>
-            </nav>
-          )}
-          {hr && access.roles.includes('HR_MANAGER') && access.canDo('CRUISE_STAFF_ASSIGN') && (
-            <ShipManagerAssignments key={access.userId} userId={access.userId} onAssigned={() => { inbox.retry(); pipeline.retry() }} />
-          )}
-          <Panel title={hr ? 'Danh sách phương án nhân sự theo chuyến' : shipWorkspace ? 'Chuyến chờ Quản lý tàu xử lý'
-            : ship && operations ? 'Yêu cầu chờ xử lý' : 'Phương án nhân sự chờ duyệt'}>
-            <div className={styles.tourChipBar} role="tablist" aria-label="Phân loại yêu cầu nhân sự">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === 'actionable'}
-                aria-pressed={activeTab === 'actionable'}
-                className={styles.tourChip}
-                onClick={() => switchTab('actionable')}
+          <Panel title={hr || shipWorkspace ? undefined : ship && operations ? 'Yêu cầu chờ xử lý' : 'Phương án nhân sự chờ duyệt'}>
+            {!isSingleListShip && !canAssignShipManager && (
+              <div
+                className={styles.tourChipBar}
+                role="tablist"
+                aria-label="Phân loại công việc nhân sự"
+                onKeyDown={event => {
+                  if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+                    event.preventDefault()
+                    const currentIndex = visibleTabs.indexOf(activeTab)
+                    const delta = event.key === 'ArrowRight' ? 1 : -1
+                    const nextIndex = (currentIndex + delta + visibleTabs.length) % visibleTabs.length
+                    switchTab(visibleTabs[nextIndex])
+                  }
+                }}
               >
-                <span>{hr ? 'Cần phân công nhân sự' : 'Cần xử lý ngay'}</span>
-                <span className={styles.tourChipCount}>{items.length}</span>
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === 'tracking'}
-                aria-pressed={activeTab === 'tracking'}
-                className={styles.tourChip}
-                onClick={() => switchTab('tracking')}
-              >
-                <span>Theo dõi tiến độ các chuyến</span>
-                <span className={styles.tourChipCount}>{trackingItems.length}</span>
-              </button>
-            </div>
-            <section className={styles.filterBar} aria-label="Bộ lọc yêu cầu nhân sự">
-              <Field htmlFor="staffing-cruise-search" label="Tìm kiếm chuyến khởi hành">
-                <input
-                  id="staffing-cruise-search"
-                  type="search"
-                  placeholder="Tên hoặc mã chuyến…"
-                  value={cruiseSearch}
-                  onChange={event => setCruiseSearch(event.target.value)}
-                />
-              </Field>
-              {activeTab === 'actionable' && (
-                <Field htmlFor="staffing-progress-filter" label="Tiến độ nhân sự">
-                  <select
-                    id="staffing-progress-filter"
-                    value={progressFilter}
-                    onChange={event => setProgressFilter(event.target.value as 'ALL' | 'MISSING' | 'COVERED')}
+                {canAssignShipManager && (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === 'ship_manager'}
+                    tabIndex={activeTab === 'ship_manager' ? 0 : -1}
+                    className={styles.tourChip}
+                    onClick={() => switchTab('ship_manager')}
                   >
-                    <option value="ALL">Tất cả</option>
-                    <option value="MISSING">Còn thiếu nhân sự</option>
-                    <option value="COVERED">Đã đủ nhân sự</option>
-                  </select>
-                </Field>
-              )}
-              <Field htmlFor="staffing-status-filter" label="Trạng thái">
-                <select
-                  id="staffing-status-filter"
-                  value={statusFilter}
-                  onChange={event => setStatusFilter(event.target.value)}
+                    <span>Gắn Quản lý tàu</span>
+                    <span className={styles.tourChipCount}>{shipManagerItems.length}</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'actionable'}
+                  tabIndex={activeTab === 'actionable' ? 0 : -1}
+                  className={styles.tourChip}
+                  onClick={() => switchTab('actionable')}
                 >
-                  <option value="">Tất cả</option>
-                  {availableStatuses.map(status => (
-                    <option key={status} value={status}>
-                      {staffingStatusLabel(visiblePool.find(item => item.status === status)!)}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <div className={styles.filterActions}>
-                <Button tone="secondary" autoWidth disabled={!hasFilters} onClick={resetFilters}>
-                  Xóa bộ lọc
-                </Button>
-              </div>
-            </section>
-
-            {!(activeTab === 'actionable' ? inbox.loading : pipeline.loading) && !(activeTab === 'actionable' ? inbox.error : pipeline.error) && (
-              <div className={styles.resultsHead}>
-                <span className={styles.resultCount}>
-                  Hiển thị {filtered.length} / {visiblePool.length} yêu cầu
-                </span>
+                  <span>{hr ? 'Phân công nhân viên' : 'Chờ xác nhận'}</span>
+                  <span className={styles.tourChipCount}>{items.length}</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'tracking'}
+                  tabIndex={activeTab === 'tracking' ? 0 : -1}
+                  className={styles.tourChip}
+                  onClick={() => switchTab('tracking')}
+                >
+                  <span>{hr ? 'Theo dõi tiến độ' : 'Đã xử lý'}</span>
+                  <span className={styles.tourChipCount}>{trackingItems.length}</span>
+                </button>
               </div>
             )}
 
-            {(activeTab === 'actionable' ? inbox.loading : pipeline.loading) ? (
-              <Loading label="Đang tải danh sách yêu cầu nhân sự…" />
-            ) : (activeTab === 'actionable' ? inbox.error : pipeline.error) ? (
-              <Notice tone="error" title="Chưa tải được danh sách">
-                <p>{staffingError(activeTab === 'actionable' ? inbox.error : pipeline.error)}</p>
-                <Button tone="secondary" size="compact" autoWidth onClick={() => { inbox.retry(); pipeline.retry() }}>Thử lại</Button>
-              </Notice>
-            ) : !visiblePool.length ? (
-              <Empty title={activeTab === 'tracking' ? 'Chưa có chuyến nào trong quy trình nhân sự' : hr ? 'Hiện chưa có chuyến nào tới bước phân công nhân sự' : 'Chưa có phương án nhân sự nào chờ xác nhận'}>
-                <p>
-                  {activeTab === 'tracking'
-                    ? 'Khi Quản lý lịch trình khởi tạo yêu cầu chuẩn bị nhân sự cho chuyến khởi hành, tiến độ từng bước sẽ hiển thị tại đây.'
-                    : hr
-                      ? 'Chuyến chỉ chuyển vào hàng chờ này sau khi Quản lý dịch vụ hoàn tất chương trình, Quản lý tàu lập phương án khu vực/POS và Quản lý lịch trình bấm chuyển sang HR.'
-                      : ship
-                        ? 'Khi Quản lý dịch vụ hoàn tất chương trình cho chuyến thuộc tàu bạn phụ trách, phương án nhân sự sẽ tự động chuyển về đây để bạn duyệt.'
-                        : 'Chưa có phương án nhân sự nào từ các bộ phận gửi lên chờ phê duyệt.'}
-                </p>
-                {activeTab === 'actionable' && trackingItems.length > 0 && (
-                  <Button tone="secondary" size="compact" autoWidth onClick={() => switchTab('tracking')}>
-                    Xem tiến độ {trackingItems.length} chuyến ở các bước khác
-                  </Button>
+            {activeTab === 'ship_manager' ? (
+              <div className={styles.section}>
+                {shipManagerSaved && (
+                  <Notice tone="success" title="Đã gắn Quản lý tàu">
+                    {shipManagerSaved}
+                  </Notice>
                 )}
-                {ship && !hr && (
-                  <ButtonLink to="/admin/preparation-requests" tone="secondary" size="compact" autoWidth>
-                    ← Quay lại Trung tâm duyệt chuyến
-                  </ButtonLink>
-                )}
-              </Empty>
-            ) : !filtered.length ? (
-              <Empty title="Không tìm thấy chuyến phù hợp với bộ lọc">
-                <Button tone="secondary" size="compact" autoWidth onClick={resetFilters}>
-                  Xóa bộ lọc
-                </Button>
-              </Empty>
-            ) : activeTab === 'tracking' ? (
-              <DataTable
-                label="Tiến độ yêu cầu nhân sự các chuyến"
-                headers={['Chuyến khởi hành', 'Thời gian chạy', 'Trạng thái hiện tại', 'Tiến độ quy trình']}
-              >
-                {filtered.map(request => (
-                  <tr key={request.id}>
-                    <td>
-                      <span className={styles.tableCellTitle}>{request.cruiseName}</span>
-                      <span className={styles.tableCellSub}>{request.cruiseCode}</span>
-                    </td>
-                    <td>
-                      <span className={styles.tableCellSub}>{date(request.departure)} – {date(request.returning)}</span>
-                    </td>
-                    <td>
-                      <Badge
-                        label={staffingStatusLabel(request)}
-                        tone={request.status === 'OPS_APPROVED' ? 'success' : request.status === 'RETURNED' ? 'warning' : 'info'}
-                      />
-                    </td>
-                    <td>
-                      <span className={styles.tableCellSub}>{staffingStageGuidance(request)}</span>
-                    </td>
-                  </tr>
-                ))}
-              </DataTable>
-            ) : (
-            <DataTable
-              label="Danh sách yêu cầu nhân sự theo chuyến"
-              headers={['Chuyến khởi hành', 'Thời gian chạy', 'Nhu cầu nhân sự', 'Tiến độ', 'Trạng thái', 'Thao tác']}
-            >
-              {filtered.map(request => {
-                const missing = staffingMissing(request)
-                const servicesLabel = request.workflowVersion === 'V2' ? [
-                  ...(request.serviceNeeds ?? []).map(item => `${item.serviceName} (${item.assignedUserIds.length}/${item.requiredCount})`),
-                  ...(request.needs ?? []).map(need => `${need.areaName} · ${positionLabels[need.positionCode] ?? need.positionCode} (${need.assignedUserIds.length}/${need.requiredCount})`),
-                ].join(', ')
-                  : request.requirements.map(item => `${item.serviceName} (${item.assigned}/${item.required})`).join(', ')
-                return (
-                  <tr key={request.id}>
-                    <td>
-                      <span className={styles.tableCellTitle}>{request.cruiseName}</span>
-                      <span className={styles.tableCellSub}>{request.cruiseCode}</span>
-                    </td>
-                    <td>
-                      <span className={styles.tableCellSub}>{date(request.departure)} – {date(request.returning)}</span>
-                    </td>
-                    <td>{servicesLabel || '—'}</td>
-                    <td>
-                      <span className={missing > 0 ? styles.queueGap : styles.queueReady}>
-                        {request.status === 'PENDING_SHIP_REVIEW' ? 'Chờ xác nhận nhu cầu'
-                          : missing > 0 ? `Còn thiếu ${missing} người` : request.workflowVersion === 'V2' ? 'Đủ theo nhu cầu khu vực' : 'Đủ dịch vụ · Kiểm tra thêm phân ca'}
-                      </span>
-                    </td>
-                    <td>
-                      <Badge
-                        label={staffingStatusLabel(request)}
-                        tone={request.status === 'SENT_TO_HR' ? 'warning' : 'info'}
-                      />
-                    </td>
-                    <td>
-                      <Button
-                        tone="secondary"
-                        size="compact"
-                        autoWidth
-                        className={styles.tableActionBtn}
-                        onClick={() => openRequest(request.id)}
-                      >
-                        {hr && request.status === 'SENT_TO_HR' ? 'Phân công' : 'Xem chi tiết'}
+                {shipManagerQueue.loading ? (
+                  <Loading label="Đang tải danh sách chuyến chưa có Quản lý tàu…" />
+                ) : shipManagerQueue.error ? (
+                  <Notice tone="error" title="Chưa tải được danh sách chuyến">
+                    <p>{staffingError(shipManagerQueue.error)}</p>
+                    <Button tone="secondary" size="compact" autoWidth onClick={shipManagerQueue.retry}>Thử lại</Button>
+                  </Notice>
+                ) : !shipManagerItems.length ? (
+                  <Empty title="Tất cả chuyến đã có Quản lý tàu phụ trách">
+                    <p>Khi có chuyến khởi hành mới chưa gắn Quản lý tàu, chuyến sẽ xuất hiện tại đây để bạn chỉ định người phụ trách.</p>
+                    {items.length > 0 ? (
+                      <Button tone="secondary" size="compact" autoWidth onClick={() => switchTab('actionable')}>
+                        Chuyển sang Phân công nhân viên ({items.length})
                       </Button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </DataTable>
-          )}
-        </Panel>
+                    ) : trackingItems.length > 0 ? (
+                      <Button tone="secondary" size="compact" autoWidth onClick={() => switchTab('tracking')}>
+                        Xem tiến độ {trackingItems.length} chuyến đang chuẩn bị
+                      </Button>
+                    ) : null}
+                  </Empty>
+                ) : (
+                  <DataTable
+                    label="Chuyến khởi hành cần gắn Quản lý tàu"
+                    headers={['Chuyến khởi hành', 'Thời gian chạy', 'Quản lý tàu phụ trách', 'Thao tác']}
+                  >
+                    {shipManagerItems.map(cruise => {
+                      const match = pipelineByCruiseId.get(cruise.cruiseId)
+                      return (
+                        <ShipManagerRow
+                          key={cruise.cruiseId}
+                          cruise={cruise}
+                          scheduleLabel={match ? `${date(match.departure)} – ${date(match.returning)}` : '—'}
+                          onAssigned={() => {
+                            setShipManagerSaved(`${cruise.cruiseCode} · ${cruise.cruiseName}`)
+                            refreshAll()
+                          }}
+                        />
+                      )
+                    })}
+                  </DataTable>
+                )}
+              </div>
+            ) : (
+              <>
+                {visiblePool.length > 0 && (
+                  <>
+                    <section className={styles.filterBar} aria-label="Bộ lọc yêu cầu nhân sự">
+                      <Field htmlFor="staffing-cruise-search" label="Tìm kiếm chuyến khởi hành">
+                        <input
+                          id="staffing-cruise-search"
+                          type="search"
+                          placeholder="Tên hoặc mã chuyến…"
+                          value={cruiseSearch}
+                          onChange={event => setCruiseSearch(event.target.value)}
+                        />
+                      </Field>
+                      {!isSingleListShip && activeTab === 'actionable' && (
+                        <Field htmlFor="staffing-progress-filter" label="Tiến độ nhân sự">
+                          <select
+                            id="staffing-progress-filter"
+                            value={progressFilter}
+                            onChange={event => setProgressFilter(event.target.value as 'ALL' | 'MISSING' | 'COVERED')}
+                          >
+                            <option value="ALL">Tất cả</option>
+                            <option value="MISSING">Còn thiếu nhân sự</option>
+                            <option value="COVERED">Đã đủ nhân sự</option>
+                          </select>
+                        </Field>
+                      )}
+                      <Field htmlFor="staffing-status-filter" label="Trạng thái">
+                        <select
+                          id="staffing-status-filter"
+                          value={statusFilter}
+                          onChange={event => setStatusFilter(event.target.value)}
+                        >
+                          <option value="">Tất cả</option>
+                          {availableStatuses.map(status => (
+                            <option key={status} value={status}>
+                              {staffingStatusLabel(visiblePool.find(item => item.status === status)!)}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      {hasFilters && (
+                        <div className={styles.filterActions}>
+                          <Button tone="secondary" autoWidth onClick={resetFilters}>
+                            Xóa lọc
+                          </Button>
+                        </div>
+                      )}
+                    </section>
+
+                    {!(activeTab === 'actionable' ? inbox.loading : pipeline.loading) && !(activeTab === 'actionable' ? inbox.error : pipeline.error) && (
+                      <div className={styles.resultsHead}>
+                        <span className={styles.resultCount}>
+                          Hiển thị {filtered.length} / {visiblePool.length} chuyến
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {(activeTab === 'actionable' ? inbox.loading : pipeline.loading) ? (
+                  <Loading label="Đang tải danh sách yêu cầu nhân sự…" />
+                ) : (activeTab === 'actionable' ? inbox.error : pipeline.error) ? (
+                  <Notice tone="error" title="Chưa tải được danh sách">
+                    <p>{staffingError(activeTab === 'actionable' ? inbox.error : pipeline.error)}</p>
+                    <Button tone="secondary" size="compact" autoWidth onClick={refreshAll}>Thử lại</Button>
+                  </Notice>
+                ) : !visiblePool.length ? (
+                  <Empty title={activeTab === 'tracking' ? (hr ? 'Chưa có chuyến nào trong quy trình nhân sự' : 'Chưa có phương án nào đã xử lý') : hr ? 'Chưa có chuyến nào tới bước phân công nhân viên' : 'Chưa có phương án nhân sự nào chờ xác nhận'}>
+                    <p>
+                      {activeTab === 'tracking'
+                        ? (hr
+                          ? 'Khi Quản lý lịch trình khởi tạo yêu cầu chuẩn bị nhân sự cho chuyến khởi hành, tiến độ từng bước sẽ hiển thị tại đây.'
+                          : 'Các phương án bạn đã xác nhận hoặc trả bổ sung sẽ được lưu tại đây để tra cứu lại.')
+                        : hr
+                          ? 'Chuyến chuyển vào hàng chờ này sau khi Quản lý dịch vụ hoàn tất chương trình, Quản lý tàu lập phương án khu vực phục vụ và Quản lý lịch trình chuyển sang Quản lý nhân sự.'
+                          : ship
+                            ? 'Chuyến thuộc tàu bạn phụ trách sẽ xuất hiện tại đây để xác định nhu cầu nhân sự theo khu vực, gửi Quản lý nhân sự phân công và xác nhận phương án trước khi chuyển Quản lý lịch trình.'
+                            : 'Chưa có phương án nhân sự nào từ các bộ phận gửi lên chờ phê duyệt.'}
+                    </p>
+                    {!isSingleListShip && activeTab === 'actionable' && trackingItems.length > 0 && (
+                      <Button tone="secondary" size="compact" autoWidth onClick={() => switchTab('tracking')}>
+                        Xem tiến độ {trackingItems.length} chuyến ở các bước khác
+                      </Button>
+                    )}
+                  </Empty>
+                ) : !filtered.length ? (
+                  <Empty title="Không tìm thấy chuyến phù hợp với bộ lọc">
+                    <Button tone="secondary" size="compact" autoWidth onClick={resetFilters}>
+                      Xóa bộ lọc
+                    </Button>
+                  </Empty>
+                ) : activeTab === 'tracking' ? (
+                  <DataTable
+                    label="Tiến độ yêu cầu nhân sự các chuyến"
+                    headers={['Chuyến khởi hành', 'Thời gian chạy', 'Trạng thái hiện tại', 'Tiến độ quy trình', 'Thao tác']}
+                  >
+                    {filtered.map(request => {
+                      const canViewReadOnly = (hr && ['SENT_TO_HR', 'HR_SUBMITTED', 'SHIP_CONFIRMED', 'PLANNER_CONFIRMED', 'OPS_APPROVED'].includes(request.status))
+                        || (operations && ['PLANNER_CONFIRMED', 'OPS_APPROVED'].includes(request.status))
+                      return (
+                        <tr key={request.id}>
+                          <td>
+                            <span className={styles.tableCellTitle}>{request.cruiseName}</span>
+                            <span className={styles.tableCellSub}>{request.cruiseCode}</span>
+                          </td>
+                          <td>
+                            <span className={styles.tableCellSub}>{date(request.departure)} – {date(request.returning)}</span>
+                          </td>
+                          <td>
+                            <Badge
+                              label={staffingStatusLabel(request)}
+                              tone={request.status === 'OPS_APPROVED' ? 'success' : request.status === 'RETURNED' ? 'warning' : 'info'}
+                            />
+                          </td>
+                          <td>
+                            <span className={styles.tableCellSub}>{staffingStageGuidance(request)}</span>
+                          </td>
+                          <td>
+                            {canViewReadOnly ? (
+                              <Button
+                                tone="secondary"
+                                size="compact"
+                                autoWidth
+                                className={styles.tableActionBtn}
+                                onClick={() => openRequest(request.id)}
+                              >
+                                Xem chi tiết
+                              </Button>
+                            ) : <span className={styles.tableCellSub}>Chưa đến bước</span>}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </DataTable>
+                ) : (
+                  <DataTable
+                    label="Danh sách yêu cầu nhân sự theo chuyến"
+                    headers={['Chuyến khởi hành', 'Thời gian chạy', 'Nhu cầu nhân sự', 'Tiến độ', 'Trạng thái', 'Thao tác']}
+                  >
+                    {filtered.map(request => {
+                      const missing = staffingMissing(request)
+                      const servicesLabel = request.workflowVersion === 'V2' ? [
+                        ...(request.serviceNeeds ?? []).map(item => `${item.serviceName} (${item.assignedUserIds.length}/${item.requiredCount})`),
+                        ...(request.needs ?? []).map(need => `${need.areaName} · ${positionLabels[need.positionCode] ?? need.positionCode} (${need.assignedUserIds.length}/${need.requiredCount})`),
+                      ].join(', ')
+                        : request.requirements.map(item => `${item.serviceName} (${item.assigned}/${item.required})`).join(', ')
+                      return (
+                        <tr key={request.id}>
+                          <td>
+                            <span className={styles.tableCellTitle}>{request.cruiseName}</span>
+                            <span className={styles.tableCellSub}>{request.cruiseCode}</span>
+                          </td>
+                          <td>
+                            <span className={styles.tableCellSub}>{date(request.departure)} – {date(request.returning)}</span>
+                          </td>
+                          <td>{servicesLabel || '—'}</td>
+                          <td>
+                            <span className={missing > 0 ? styles.queueGap : styles.queueReady}>
+                              {request.status === 'PENDING_SHIP_REVIEW' ? 'Chờ xác nhận nhu cầu'
+                                : missing > 0 ? `Còn thiếu ${missing} người` : request.workflowVersion === 'V2' ? 'Đủ theo nhu cầu khu vực' : 'Đủ dịch vụ · Kiểm tra thêm phân ca'}
+                            </span>
+                          </td>
+                          <td>
+                            <Badge
+                              label={staffingStatusLabel(request)}
+                              tone={request.status === 'SENT_TO_HR' ? 'warning' : 'info'}
+                            />
+                          </td>
+                          <td>
+                            <Button
+                              tone={isSingleListShip && actionableIds.has(request.id) ? 'primary' : 'secondary'}
+                              size="compact"
+                              autoWidth
+                              className={styles.tableActionBtn}
+                              onClick={() => openRequest(request.id)}
+                            >
+                              {hr && request.status === 'SENT_TO_HR'
+                                ? 'Phân công'
+                                : isSingleListShip && actionableIds.has(request.id)
+                                  ? 'Xử lý'
+                                  : 'Xem chi tiết'}
+                            </Button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </DataTable>
+                )}
+              </>
+            )}
+          </Panel>
         </div>
       </div>
     </CruiseFrame>
   )
 }
 
-function ShipManagerAssignments({ userId, onAssigned }: { userId: string | null | undefined; onAssigned?: () => void }) {
-  const queue = useReadQuery(`ship-manager-needed:${userId}`, staffingApi.cruisesWithoutShipManager)
-  const [cruiseId, setCruiseId] = useState('')
-  const [saved, setSaved] = useState('')
-  const selected = queue.data?.find(cruise => cruise.cruiseId === cruiseId)
-  const count = queue.data?.length ?? 0
-  return (
-    <div id="ship-manager-assign">
-      <Panel
-        title={count > 0 ? `Chuyến cần phân công Quản lý tàu (${count})` : 'Chuyến cần phân công Quản lý tàu'}
-        subtitle=""
-      >
-        <div className={styles.section}>
-          <div className={styles.rowMeta}>
-            <Button tone="secondary" size="compact" autoWidth disabled={queue.loading} onClick={queue.retry}>Cập nhật danh sách</Button>
-            {count > 0 && <Badge label={`${count} chuyến đang thiếu Quản lý tàu`} tone="warning" />}
-          </div>
-          {saved && <Notice tone="success" title="Đã phân công Quản lý tàu">{saved}</Notice>}
-          {queue.loading && <Loading label="Đang tải danh sách chuyến…" />}
-          {queue.error && <Notice tone="error" title="Chưa tải được danh sách">
-            <p>{staffingError(queue.error)}</p>
-            <Button tone="secondary" size="compact" autoWidth onClick={queue.retry}>Thử lại</Button>
-          </Notice>}
-          {queue.data?.length === 0 && <p className={styles.subtle}>Không có chuyến nào đang thiếu Quản lý tàu.</p>}
-          {!!queue.data?.length && <Field htmlFor="ship-manager-cruise" label="Chuyến cần phân công">
-            <select id="ship-manager-cruise" value={selected?.cruiseId ?? ''} onChange={event => setCruiseId(event.target.value)}>
-              <option value="">Chọn chuyến ({count} chuyến đang chờ)</option>
-              {queue.data.map(cruise => <option key={cruise.cruiseId} value={cruise.cruiseId}>{cruise.cruiseCode} · {cruise.cruiseName}</option>)}
-            </select>
-          </Field>}
-          {selected && <AssignShipManager key={selected.cruiseId} cruiseId={selected.cruiseId} onAssigned={() => {
-            setSaved(`${selected.cruiseCode} · ${selected.cruiseName}`)
-            setCruiseId('')
-            queue.retry()
-            onAssigned?.()
-          }} />}
-        </div>
-      </Panel>
-    </div>
+function ShipManagerRow({
+  cruise,
+  scheduleLabel,
+  onAssigned,
+}: {
+  cruise: Pick<StaffingRequest, 'cruiseId' | 'cruiseName' | 'cruiseCode'>
+  scheduleLabel: string
+  onAssigned: () => void
+}) {
+  const options = useReadQuery(
+    `ship-manager-options:${cruise.cruiseId}`,
+    useCallback(signal => cruiseStaffApi.options(cruise.cruiseId, signal), [cruise.cruiseId]),
   )
-}
-
-function AssignShipManager({ cruiseId, onAssigned }: { cruiseId: string; onAssigned: () => void }) {
-  const options = useReadQuery(`ship-manager-options:${cruiseId}`,
-    useCallback(signal => cruiseStaffApi.options(cruiseId, signal), [cruiseId]))
-  const [userId, setUserId] = useState('')
+  const [selectedUserId, setSelectedUserId] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const lock = useRef(false)
   const candidates = options.data?.users.filter(user => user.allowedRoles.includes('SHIP_MANAGER')) ?? []
-  const selected = candidates.find(user => user.userId === userId)
-  if (options.loading) return <Loading label="Đang tải Quản lý tàu có thể phân công…" />
-  if (options.error) return <Notice tone="error" title="Chưa tải được Quản lý tàu">
-    <p>{staffingError(options.error)}</p>
-    <Button tone="secondary" size="compact" autoWidth onClick={options.retry}>Thử lại</Button>
-  </Notice>
-  if (!candidates.length) return <p>Chưa có Quản lý tàu phù hợp với lịch chuyến.</p>
-  return <form className={styles.form} onSubmit={async event => {
-    event.preventDefault()
+  const effectiveUserId = selectedUserId || (candidates.length === 1 ? candidates[0].userId : '')
+  const selected = candidates.find(user => user.userId === effectiveUserId)
+
+  async function assign() {
     if (lock.current || !selected) return
     lock.current = true
     setBusy(true)
     setError('')
     try {
-      await cruiseStaffApi.assign(cruiseId, { userId: selected.userId, roleInCruise: 'SHIP_MANAGER', notes: '' })
+      await cruiseStaffApi.assign(cruise.cruiseId, { userId: selected.userId, roleInCruise: 'SHIP_MANAGER', notes: '' })
       onAssigned()
     } catch (cause) {
       setError(staffingError(cause))
@@ -429,20 +535,64 @@ function AssignShipManager({ cruiseId, onAssigned }: { cruiseId: string; onAssig
       lock.current = false
       setBusy(false)
     }
-  }}>
-    <Field htmlFor="ship-manager-user" label="Quản lý tàu">
-      <select id="ship-manager-user" value={selected?.userId ?? ''} disabled={busy} onChange={event => setUserId(event.target.value)}>
-        <option value="">Chọn người phụ trách</option>
-        {candidates.map(user => <option key={user.userId} value={user.userId}>{user.username}</option>)}
-      </select>
-    </Field>
-    {error && <Notice tone="error" title="Chưa phân công được">{error}</Notice>}
-    <Button type="submit" busy={busy} disabled={!selected}>Phân công Quản lý tàu</Button>
-  </form>
+  }
+
+  return (
+    <tr>
+      <td>
+        <span className={styles.tableCellTitle}>{cruise.cruiseName}</span>
+        <span className={styles.tableCellSub}>{cruise.cruiseCode}</span>
+      </td>
+      <td>
+        <span className={styles.tableCellSub}>{scheduleLabel}</span>
+      </td>
+      <td>
+        {options.loading ? (
+          <span className={styles.tableCellSub}>Đang tải danh sách Quản lý tàu…</span>
+        ) : options.error ? (
+          <div className={styles.inlineRowFeedback}>
+            <span className={styles.queueGap}>Chưa tải được ứng viên</span>
+            <Button tone="text" size="compact" onClick={options.retry}>Thử lại</Button>
+          </div>
+        ) : !candidates.length ? (
+          <span className={styles.tableCellSub}>Chưa có Quản lý tàu trống lịch</span>
+        ) : (
+          <div className={styles.inlineRowControl}>
+            <select
+              aria-label={`Chọn Quản lý tàu cho ${cruise.cruiseCode}`}
+              className={styles.inlineSelect}
+              value={effectiveUserId}
+              disabled={busy}
+              onChange={event => setSelectedUserId(event.target.value)}
+            >
+              {candidates.length > 1 && <option value="">Chọn Quản lý tàu</option>}
+              {candidates.map(user => (
+                <option key={user.userId} value={user.userId}>{`Quản lý tàu (${user.username})`}</option>
+              ))}
+            </select>
+            {error && <span className={styles.queueGap} role="alert">{error}</span>}
+          </div>
+        )}
+      </td>
+      <td>
+        <Button
+          tone="primary"
+          size="compact"
+          autoWidth
+          className={styles.tableActionBtn}
+          busy={busy}
+          disabled={!selected || options.loading}
+          onClick={() => void assign()}
+        >
+          Phân công
+        </Button>
+      </td>
+    </tr>
+  )
 }
 
-function StaffingDetail({ requestId, onChanged, onCompleted, review }: {
-  requestId: string; onChanged: () => void; onCompleted: () => void; review: boolean
+function StaffingDetail({ requestId, onChanged, onCompleted, review, readOnly = false }: {
+  requestId: string; onChanged: () => void; onCompleted: () => void; review: boolean; readOnly?: boolean
 }) {
   const access = useSessionAccess()
   const [refreshTick, setRefreshTick] = useState(0)
@@ -481,9 +631,10 @@ function StaffingDetail({ requestId, onChanged, onCompleted, review }: {
         <StaffingV2
           request={request.data}
           refreshKey={refreshTick}
+          readOnly={readOnly}
           onChanged={syncAll}
           onCompleted={onCompleted}
-          activitySection={!review && request.data.status === 'SENT_TO_HR'
+          activitySection={!review && !readOnly && request.data.status === 'SENT_TO_HR'
             ? <Assignments request={request.data} refresh={syncAll} activityOnly />
             : undefined}
         />
@@ -847,13 +998,28 @@ function Assignments({ request, refresh, activityOnly = false }: { request: Staf
                         {visibleCandidates.map(person => {
                           const canAssignNow = person.status === 'AVAILABLE'
                           const canAllowShift = person.status === 'MISSING_QUALIFICATION' && shift && (shift.kind === 'ONBOARD' || shift.kind === 'SHORE')
+                          const assignedToCurrentService = Boolean(
+                            person.status === 'ALREADY_ASSIGNED'
+                            && requirement
+                            && plan.data?.serviceAssignments.some(a => a.userId === person.userId && a.serviceId === requirement.serviceId),
+                          )
+                          const assignedToCurrentShift = Boolean(
+                            person.status === 'ALREADY_ASSIGNED'
+                            && shift
+                            && (shift.kind === 'ONBOARD' || shift.kind === 'SHORE')
+                            && shift.userIds.includes(person.userId),
+                          )
                           const reasonLabel = canAssignNow
                             ? 'Sẵn sàng phân công'
-                            : person.status === 'MISSING_QUALIFICATION' && shift
-                              ? `Chưa đánh dấu phụ trách "${shift.name}"`
-                              : person.status === 'ALREADY_ASSIGNED' && requirement
-                                ? 'Đang phụ trách dịch vụ trên chuyến'
-                                : candidateStatusCopy[person.status]
+                            : assignedToCurrentService
+                              ? `Đang phụ trách "${requirement?.serviceName}"`
+                              : assignedToCurrentShift
+                                ? `Đã xếp vào ca "${shift?.name}"`
+                                : person.status === 'MISSING_QUALIFICATION' && shift
+                                  ? `Chưa đánh dấu phụ trách "${shift.name}"`
+                                  : person.status === 'ALREADY_ASSIGNED' && requirement
+                                    ? 'Đang phụ trách dịch vụ khác trên chuyến'
+                                    : candidateStatusCopy[person.status]
                           return (
                             <li key={person.userId} className={styles.candidateItem}>
                               <div className={styles.candidateInfo}>
@@ -875,6 +1041,29 @@ function Assignments({ request, refresh, activityOnly = false }: { request: Staf
                                   }}
                                 >
                                   {requirement ? 'Phân công' : 'Phân ca'}
+                                </Button>
+                              ) : assignedToCurrentService ? (
+                                <Button
+                                  tone="secondary"
+                                  size="compact"
+                                  autoWidth
+                                  disabled={busy}
+                                  onClick={() => void run(() => staffingApi.unassignService(cruiseId, person.userId))}
+                                >
+                                  Gỡ phân công
+                                </Button>
+                              ) : assignedToCurrentShift && shift && (shift.kind === 'ONBOARD' || shift.kind === 'SHORE') ? (
+                                <Button
+                                  tone="secondary"
+                                  size="compact"
+                                  autoWidth
+                                  disabled={busy}
+                                  onClick={() => {
+                                    const kind = shift.kind as 'ONBOARD' | 'SHORE'
+                                    void run(() => staffingApi.unassignShift(cruiseId, person.userId, kind, shift.resourceId))
+                                  }}
+                                >
+                                  Gỡ ca
                                 </Button>
                               ) : canAllowShift ? (
                                 <Button

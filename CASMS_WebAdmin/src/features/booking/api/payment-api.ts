@@ -193,14 +193,18 @@ export function isManualConfirmEligible(row: Payment): boolean {
   return row.status === 'Pending' && isCollect && (row.paymentMethod === 'Cash' || row.paymentMethod === 'GatewaySandbox')
 }
 
-/** Tổng hợp tiền đã xác nhận thu theo từng đơn vị tiền tệ, chỉ tính khoản Collect đã Confirmed. */
+/** Tổng hợp tiền đã xác nhận thu theo từng đơn vị tiền tệ (dùng đơn vị nguyên 1e-4 tránh sai số IEEE-754). */
 export function summarizeConfirmedCollectionsByCurrency(rows: readonly Payment[]): Record<string, number> {
-  const totals: Record<string, number> = {}
+  const scaled: Record<string, number> = {}
   for (const row of rows) {
     const isCollect = !row.operationType || row.operationType === 'Collect'
     if (row.status === 'Confirmed' && isCollect && row.confirmedAmount != null && row.confirmedAmount > 0) {
-      totals[row.currency] = (totals[row.currency] ?? 0) + row.confirmedAmount
+      scaled[row.currency] = (scaled[row.currency] ?? 0) + Math.round(row.confirmedAmount * 10_000)
     }
+  }
+  const totals: Record<string, number> = {}
+  for (const [currency, units] of Object.entries(scaled)) {
+    totals[currency] = units / 10_000
   }
   return totals
 }

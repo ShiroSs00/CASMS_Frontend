@@ -15,13 +15,13 @@ export function ShipSchedule({ ship, onDialog }: { ship: Ship; onDialog: (dialog
   const query = useFleetQuery('ship-current-cruise:' + ship.id, load, canReadCurrent)
   return <div className={styles.scheduleWorkspace}>
     {canReadCurrent && <section className={styles.scheduleSection} aria-labelledby="ship-current-activity-heading">
-      <h3 id="ship-current-activity-heading">Chuyến đang hoạt động</h3>
-      {query.loading && <Loading label="Đang tải chuyến đang hoạt động…" />}
-      {query.error && <Notice title="Chưa tải được chuyến đang hoạt động" tone="error">{query.error} <Button tone="text" onClick={query.retry}>Thử lại</Button></Notice>}
-      {!query.loading && !query.error && (query.data ? <CruiseTable rows={[query.data]} label="Chuyến đang hoạt động" /> : <p className={styles.scheduleEmpty}>Hiện tàu chưa có chuyến đang hoạt động.</p>)}
+      <h3 id="ship-current-activity-heading">Chuyến đang khai thác</h3>
+      {query.loading && <Loading label="Đang tải chuyến đang khai thác…" />}
+      {query.error && <Notice title="Chưa tải được chuyến đang khai thác" tone="error">{query.error} <Button tone="text" onClick={query.retry}>Thử lại</Button></Notice>}
+      {!query.loading && !query.error && (query.data ? <CruiseTable rows={[query.data]} label="Chuyến đang khai thác" /> : <p className={styles.scheduleEmpty}>Hiện tàu chưa có chuyến đang khai thác.</p>)}
     </section>}
     {(access.canDo('SHIP_SCHEDULE_CHECK') || access.canDo('SHIP_AFFECTED_CRUISES')) && <section className={styles.scheduleSection} aria-labelledby="ship-activity-lookup-heading">
-      <div><h3 id="ship-activity-lookup-heading">Tra cứu lịch hoạt động</h3><p>Chọn khoảng thời gian để kiểm tra lịch trống hoặc xem các chuyến liên quan.</p></div>
+      <h3 id="ship-activity-lookup-heading">Tra cứu lịch hoạt động</h3>
       <div className={styles.scheduleActions}>
         {access.canDo('SHIP_SCHEDULE_CHECK') && <Button autoWidth onClick={() => onDialog({ type: 'operation', kind: 'ships', item: ship, operation: 'schedule' })}>Kiểm tra lịch trống</Button>}
         {access.canDo('SHIP_AFFECTED_CRUISES') && <Button tone={access.canDo('SHIP_SCHEDULE_CHECK') ? 'secondary' : 'primary'} autoWidth onClick={() => onDialog({ type: 'operation', kind: 'ships', item: ship, operation: 'affected' })}>Xem chuyến theo thời gian</Button>}

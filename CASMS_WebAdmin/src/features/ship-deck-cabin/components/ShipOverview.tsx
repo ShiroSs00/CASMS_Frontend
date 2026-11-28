@@ -23,7 +23,7 @@ export function ShipOverview({ship}:{ship:Ship}) {
       {canCapacity ? <>
         <div><dt>Boong đã cấu hình</dt><dd>{capacity.data?.actualDeckCount??'—'}</dd></div>
         <div><dt>Tổng số phòng</dt><dd>{capacity.data?.actualCabinCount??'—'}</dd></div>
-        <div><dt>Phòng còn trống</dt><dd>{capacity.data?.availableCabinCount??'—'}</dd></div>
+        <div><dt>Phòng sẵn sàng</dt><dd>{capacity.data?.availableCabinCount??'—'}</dd></div>
         <ShipAreaCount count={capacity.data?.actualServiceAreaCount}/>
       </> : <div><dt>Số boong thiết kế</dt><dd>{ship.totalDecks ?? '—'}</dd></div>}
     </dl>
@@ -31,11 +31,11 @@ export function ShipOverview({ship}:{ship:Ship}) {
     {capacity.error&&<Notice title="Không tải được số liệu tàu" tone="error">{capacity.error}</Notice>}
     <div className={styles.panels}>
       <Panel title="Thông số tàu"><dl className={styles.facts}>{facts.map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></Panel>
-      {access.canDo('SHIP_CURRENT_CRUISE')&&<Panel title="Chuyến đang thực hiện">
+      {access.canDo('SHIP_CURRENT_CRUISE')&&<Panel title="Chuyến đang khai thác">
         {cruise.loading&&!cruise.data&&<Loading label="Đang tải chuyến khởi hành…"/>}
         {cruise.error&&<div className={styles.cruiseError} role="alert"><strong>Không tải được chuyến khởi hành</strong><p>{cruise.error}</p></div>}
         {cruise.data&&<div className={styles.cruise}><span className={styles.cruiseCode}>{cruise.data.code}</span><h3>{cruise.data.name}</h3><dl className={styles.facts}><div><dt>Khởi hành</dt><dd>{formatDate(cruise.data.departure)}</dd></div><div><dt>Kết thúc</dt><dd>{formatDate(cruise.data.returnAt)}</dd></div></dl></div>}
-        {!cruise.loading&&!cruise.error&&!cruise.data&&<div className={styles.noCruise}><span aria-hidden="true">—</span><strong>Không có chuyến đang thực hiện</strong></div>}
+        {!cruise.loading&&!cruise.error&&!cruise.data&&<div className={styles.noCruise}><span aria-hidden="true">—</span><strong>Hiện tàu chưa có chuyến đang khai thác</strong></div>}
       </Panel>}
     </div>
   </div>

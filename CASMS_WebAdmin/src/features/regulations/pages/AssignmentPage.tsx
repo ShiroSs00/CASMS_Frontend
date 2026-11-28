@@ -58,6 +58,8 @@ function AssignmentTable({
     )
   }
 
+  const showActions = direct && access.canDo(removePermission)
+
   return (
     <TableScroll>
       <table className={styles.table}>
@@ -67,7 +69,7 @@ function AssignmentTable({
             <th>LOẠI</th>
             <th>NGUỒN</th>
             <th>TRẠNG THÁI KÍCH HOẠT</th><th>HIỆU LỰC KHI KIỂM TRA</th>
-            <th>THAO TÁC</th>
+            {showActions && <th>THAO TÁC</th>}
           </tr>
         </thead>
         <tbody>
@@ -77,21 +79,19 @@ function AssignmentTable({
               <td>{typeLabels[item.regulation.type]}</td>
               <td>{item.sourceLabel}</td>
               <td><StatusBadge status={item.regulation.status} /></td><td><StatusBadge status={getEffectiveStatus(item.regulation,checkedAt)}/><p className={styles.muted}>{formatDateTime(item.regulation.effectiveFrom)} → {formatDateTime(item.regulation.effectiveTo)}</p></td>
-              <td>
-                {direct ? (
-                  (access.canDo(removePermission) ? <button
+              {showActions && (
+                <td>
+                  <button
                     className={styles.linkButton}
-                    disabled={!item.capabilities.canRemove.allowed || !access.canDo(removePermission)}
+                    disabled={!item.capabilities.canRemove.allowed}
                     onClick={() => onRemove(item)}
                     title={item.capabilities.canRemove.reason}
                     type="button"
                   >
                     Gỡ liên kết
-                  </button> : null)
-                ) : (
-                  <span title={item.capabilities.canRemove.reason}>Chỉ đọc</span>
-                )}
-              </td>
+                  </button>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -317,7 +317,7 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
           {assignButton}
         </>}
       />
-      <div className={styles.twoColumn}>
+      <div className={styles.twoColumn} style={{ marginBottom: '20px' }}>
         <Field label="Hiệu lực được kiểm tra lúc">
           <div className={styles.protectedValue}>
             {snapshot?.checkedAt ? formatDateTime(snapshot.checkedAt) : '—'}
@@ -405,7 +405,7 @@ function RegulationAssignments({ type, routeId, onAssigned }: { type: HostType; 
               {submitting ? 'Đang gán…' : 'Gán quy định'}
             </Button>}
 </div>}>
-          <div className={styles.twoColumn}>
+          <div className={styles.twoColumn} style={{ marginBottom: '20px' }}>
             <Field htmlFor="candidate-search" label="Tìm quy định">
               <input
                 id="candidate-search"

@@ -1,5 +1,8 @@
 import {businessCopy} from '@/shared/i18n/business-copy'
 const messages:Readonly<Record<string,string>>={
+  INVOICE_VERSION_CHANGED:'Đã có phiên bản hóa đơn mới. Danh sách đang được tải lại; đối chiếu chứng từ trước khi phát hành tiếp.',
+  PAYMENT_SCHEDULE_UNAVAILABLE:'Hình thức thanh toán đã chọn không còn phù hợp với hạn thanh toán trước khởi hành. Chọn hình thức khác và yêu cầu báo giá mới; thông tin hành khách vẫn được giữ.',
+  UNSYNCHRONIZED_OFFLINE_TRANSACTIONS:'Còn giao dịch chi tiêu trên tàu chưa đồng bộ hoặc có xung đột. Cần đối soát các giao dịch này trước khi lập quyết toán.',
   PROGRAM_HANDOFF_READ_ONLY:'Chương trình chỉ cho phép xem. Bạn cần được giao việc và đang xử lý để chỉnh sửa. Nếu đã bàn giao, liên hệ Quản lý lịch trình để yêu cầu bổ sung, rồi nhận lại việc.',
   PASSENGER_IDENTITY_MISMATCH:'Thông tin định danh (họ tên, ngày sinh hoặc số giấy tờ) không khớp với hồ sơ hành khách đã lưu. Để trống ngày sinh/giấy tờ nếu dùng lại hồ sơ cũ, hoặc xác minh cập nhật hồ sơ trước khi tạo đặt chỗ.',
   CRUISE_NOT_SALE_READY:'Chuyến khởi hành chưa đủ điều kiện mở bán. Kiểm tra lại các điều kiện với phạm vi gói đang chọn.',

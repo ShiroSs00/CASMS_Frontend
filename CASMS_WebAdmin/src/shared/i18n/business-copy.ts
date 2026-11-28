@@ -9,7 +9,14 @@ export const cabinTypeLabels = {
   SUITE: businessCopy('cabin.type.SUITE'),
 }
 export function cabinTypeLabel(value: string): string {
-  return Object.hasOwn(cabinTypeLabels, value) ? cabinTypeLabels[value as keyof typeof cabinTypeLabels] : `Chưa xác định (${value})`
+  const trimmed = value.trim()
+  if (Object.hasOwn(cabinTypeLabels, trimmed)) {
+    return cabinTypeLabels[trimmed as keyof typeof cabinTypeLabels]
+  }
+  if (Object.values(cabinTypeLabels).includes(trimmed) || !/^[A-Z0-9_]+$/.test(trimmed)) {
+    return trimmed
+  }
+  return `Chưa xác định (${trimmed})`
 }
 export function domainStatus(domain: string, status: string): string {
   const key = `${domain}.${status}`

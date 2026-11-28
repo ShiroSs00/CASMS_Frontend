@@ -72,7 +72,6 @@ export function CustomerLoginPage() {
               <Field
                 htmlFor="customer-username"
                 label="Tên đăng nhập hoặc email *"
-                hint="Tên đăng nhập được gửi trong email xác nhận đặt chỗ."
               >
                 <input
                   id="customer-username"
@@ -83,26 +82,33 @@ export function CustomerLoginPage() {
                 />
               </Field>
               <Field htmlFor="customer-password" label="Mật khẩu *">
-                <input
-                  id="customer-password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={event => setPassword(event.target.value)}
-                />
+                <div className={styles.passwordControl}>
+                  <input
+                    id="customer-password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={event => setPassword(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className={styles.passwordToggle}
+                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                    aria-pressed={showPassword}
+                    aria-controls="customer-password"
+                    title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                    disabled={busy}
+                    onClick={() => setShowPassword(value => !value)}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                      <circle cx="12" cy="12" r="3" />
+                      {showPassword && <path d="m3 3 18 18" />}
+                    </svg>
+                  </button>
+                </div>
               </Field>
-              <div className={styles.actions}>
-                <Button
-                  tone="secondary"
-                  size="compact"
-                  autoWidth
-                  aria-pressed={showPassword}
-                  onClick={() => setShowPassword(value => !value)}
-                >
-                  {showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                </Button>
-              </div>
               {error && (
                 <Notice title="Chưa đăng nhập được" tone="error">
                   {error}

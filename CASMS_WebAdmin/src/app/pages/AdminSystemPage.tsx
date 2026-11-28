@@ -2,10 +2,13 @@ import { useCallback, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useSessionAccess } from '@/shared/auth'
 import { ApiError, apiRequest, useReadQuery } from '@/shared/api'
 import { businessErrorMessage } from '@/shared/api/business-errors'
-import { Badge, Button, CollectionSummary, DataTable, Empty, Field, Loading, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Badge, Button, DataTable, Empty, Field, Loading, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
+import { useSearchParams } from 'react-router'
+import { AccountAccess } from './AccountAccess'
+import { EmployeeImportModal } from './EmployeeImportModal'
 
-type UserLookup = { id: string; displayName?: string; username: string; status: string; capabilityLabel?: string }
+type UserLookup = { id: string; displayName?: string; username: string; status: string; roles?: string[]; capabilityLabel?: string }
 type EmployeeView = {
   employeeId: string
   userId: string
@@ -13,6 +16,9 @@ type EmployeeView = {
   fullName: string
   email: string
   phone?: string | null
+  gender?: string | null
+  dateOfBirth?: string | null
+  address?: string | null
   department?: string | null
   position?: string | null
   status: string
@@ -83,6 +89,13 @@ const roleDefaultOrg: Record<string, { department: string; position: string }> =
   FINANCE_OFFICER: { department: 'Tài chính & Kế toán', position: 'Nhân viên tài chính' },
 }
 
+const hrDepartmentList = [
+  'Dịch vụ trên tàu',
+  'Quản lý đội tàu',
+  'Hoạt động & Dịch vụ',
+  'Kinh doanh & Đặt chỗ',
+  'Tài chính & Kế toán',
+] as const
 const departmentList = Object.keys(departmentPositions)
 const EMPLOYEE_CODE_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,49}$/
 const PHONE_REGEX = /^[+]?[0-9\s().-]{8,20}$/
@@ -91,9 +104,33 @@ const statusLabels: Record<string, { label: string; tone: 'success' | 'warning' 
   ACTIVE: { label: 'Đang hoạt động', tone: 'success' },
   PENDING_ACTIVATION: { label: 'Chờ kích hoạt', tone: 'warning' },
   INACTIVE: { label: 'Ngừng hoạt động', tone: 'neutral' },
-  SUSPENDED: { label: 'Tạm khóa', tone: 'error' },
   LOCKED: { label: 'Đã khóa', tone: 'error' },
+  DISABLED: { label: 'Đã vô hiệu hóa', tone: 'neutral' },
 }
+
+type UnifiedStaffRow =
+  | {
+      kind: 'employee'
+      key: string
+      primaryName: string
+      secondaryLine: string
+      roleCodes: string[]
+      roleText: string
+      orgText: string
+      status: string
+      employee: EmployeeView
+    }
+  | {
+      kind: 'account'
+      key: string
+      primaryName: string
+      secondaryLine: string
+      roleCodes: string[]
+      roleText: string
+      orgText: string
+      status: string
+      user: UserLookup
+    }
 
 function accountStatus(status: string) {
   return statusLabels[status] ?? { label: status, tone: 'neutral' as const }
@@ -153,6 +190,9 @@ function apiErrorText(reason: unknown, fallback: string) {
 
 export function AdminSystemPage() {
   const access = useSessionAccess()
+  const [params, setParams] = useSearchParams()
+  const selectedAccount = access.roles.includes('ADMIN') ? params.get('account') : null
+  const [accountStatusFilter, setAccountStatusFilter] = useState('')
   const allowed = access.has('USER_READ')
   const isHrOrAdmin = access.roles.includes('ADMIN') || access.roles.includes('HR_MANAGER')
   const canCreateEmployee = access.canDo('USER_CREATE') && isHrOrAdmin
@@ -161,6 +201,7 @@ export function AdminSystemPage() {
   const canListEmployees = allowed && isHrOrAdmin
 
   const [creating, setCreating] = useState(false)
+  const [importingExcel, setImportingExcel] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -170,6 +211,9 @@ export function AdminSystemPage() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [gender, setGender] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
+  const [address, setAddress] = useState('')
   const [deptSelect, setDeptSelect] = useState('')
   const [deptCustom, setDeptCustom] = useState('')
   const [posSelect, setPosSelect] = useState('')
@@ -187,6 +231,9 @@ export function AdminSystemPage() {
   const [editFullName, setEditFullName] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editPhone, setEditPhone] = useState('')
+  const [editGender, setEditGender] = useState('')
+  const [editDateOfBirth, setEditDateOfBirth] = useState('')
+  const [editAddress, setEditAddress] = useState('')
   const [editDeptSelect, setEditDeptSelect] = useState('')
   const [editDeptCustom, setEditDeptCustom] = useState('')
   const [editPosSelect, setEditPosSelect] = useState('')
@@ -203,19 +250,27 @@ export function AdminSystemPage() {
 
   // Retry activation email state
   const [retryingEmployeeId, setRetryingEmployeeId] = useState<string | null>(null)
+  const [empPage, setEmpPage] = useState(1)
+  const EMP_PAGE_SIZE = 20
 
   const loadUsers = useCallback(async (signal: AbortSignal) => {
     if (!allowed) return []
-    const users = await apiRequest<UserLookup[]>('/identity/users', { query: { status: 'ACTIVE' }, signal })
+    const statuses = access.roles.includes('ADMIN') ? ['ACTIVE', 'LOCKED', 'DISABLED'] : ['ACTIVE']
+    const users = (await Promise.all(statuses.map(status => apiRequest<UserLookup[]>('/identity/users', { query: { status }, signal })))).flat()
     if (!Array.isArray(users) || users.some(user => !user || typeof user.id !== 'string' || typeof user.username !== 'string' || typeof user.status !== 'string')) {
       throw new ApiError('Không đọc được danh sách tài khoản.', 502)
     }
     return users
-  }, [allowed])
+  }, [allowed, access.roles])
 
   const loadEmployees = useCallback(async (signal: AbortSignal) => {
     if (!canListEmployees) return []
-    return apiRequest<EmployeeView[]>('/employees', { query: { page: 0, size: 100 }, signal })
+    const employees: EmployeeView[] = []
+    for (let page = 0; ; page++) {
+      const batch = await apiRequest<EmployeeView[]>('/employees', { query: { page, size: 100 }, signal })
+      employees.push(...batch)
+      if (batch.length < 100) return employees
+    }
   }, [canListEmployees])
 
   const loadRoles = useCallback(async (signal: AbortSignal) => {
@@ -227,43 +282,72 @@ export function AdminSystemPage() {
   const employeesQuery = useReadQuery(`system-employees:${access.userId}:${canListEmployees}`, loadEmployees)
   const rolesQuery = useReadQuery(`system-assignable-roles:${access.userId}:${canCreateEmployee}`, loadRoles)
 
-  const employeeRolesByUserId = useMemo(() => {
-    const map = new Map<string, string[]>()
-    for (const emp of employeesQuery.data ?? []) {
-      map.set(emp.userId, emp.roles)
-    }
-    return map
-  }, [employeesQuery.data])
-
   const normalizedQuery = searchTerm.trim().toLocaleLowerCase('vi')
-  const filteredEmployees = (employeesQuery.data ?? []).filter(emp => {
-    if (roleFilter && !emp.roles.includes(roleFilter)) return false
-    if (statusFilter && emp.status !== statusFilter) return false
-    if (!normalizedQuery) return true
-    return [emp.employeeCode, emp.fullName, emp.email, emp.department ?? '', emp.position ?? '', ...emp.roles.map(r => roleLabels[r] ?? r)]
-      .some(value => value.toLocaleLowerCase('vi').includes(normalizedQuery))
-  })
 
-  const filteredUsers = (query.data ?? []).filter(user => {
-    if (statusFilter && user.status !== statusFilter) return false
-    if (roleFilter) {
-      const roles = employeeRolesByUserId.get(user.id)
-      const label = (roleLabels[roleFilter] ?? roleFilter).toLocaleLowerCase('vi')
-      const matchesRoles = roles ? roles.includes(roleFilter) : false
-      const matchesCapability = Boolean(user.capabilityLabel?.toLocaleLowerCase('vi').includes(label))
-      if (!matchesRoles && !matchesCapability) return false
+  const unifiedRows = useMemo<UnifiedStaffRow[]>(() => {
+    const employees = employeesQuery.data ?? []
+    const employeeUserIds = new Set(employees.map(emp => emp.userId))
+    const empRows: UnifiedStaffRow[] = employees.map(emp => ({
+      kind: 'employee',
+      key: `emp:${emp.employeeId}`,
+      primaryName: emp.fullName,
+      secondaryLine: `${emp.employeeCode} · ${emp.email}`,
+      roleCodes: emp.roles,
+      roleText: emp.roles.map(r => roleLabels[r] ?? r).join(', ') || 'Chưa phân vai trò',
+      orgText: [emp.department, emp.position].filter(Boolean).join(' · ') || '—',
+      status: emp.status,
+      employee: emp,
+    }))
+    const accountRows: UnifiedStaffRow[] = (query.data ?? [])
+      .filter(user => !employeeUserIds.has(user.id))
+      .map(user => {
+        const apiRoles = Array.isArray(user.roles) && user.roles.length > 0 ? user.roles : null
+        const resolvedRoles = apiRoles ?? []
+        const roleText = resolvedRoles.length > 0
+          ? resolvedRoles.map(code => roleLabels[code] ?? code).join(', ')
+          : 'Chưa có dữ liệu vai trò'
+        const rawDisplay = user.displayName?.trim()
+        const distinctDisplay = rawDisplay && rawDisplay.toLowerCase() !== user.username.trim().toLowerCase() ? rawDisplay : null
+        return {
+          kind: 'account',
+          key: `usr:${user.id}`,
+          primaryName: distinctDisplay ?? user.username,
+          secondaryLine: distinctDisplay ? user.username : '',
+          roleCodes: resolvedRoles,
+          roleText,
+          orgText: 'Chưa lập hồ sơ nhân viên',
+          status: user.status,
+          user,
+        }
+      })
+    return [...empRows, ...accountRows]
+  }, [employeesQuery.data, query.data])
+
+  const filteredRows = unifiedRows.filter(row => {
+    const userId = row.kind === 'employee' ? row.employee.userId : row.user.id
+    if (accountStatusFilter && query.data?.find(user => user.id === userId)?.status !== accountStatusFilter) return false
+    if (roleFilter && !row.roleCodes.includes(roleFilter)) return false
+    if (statusFilter) {
+      const profileStatus = row.kind === 'employee' ? row.employee.status : 'NO_PROFILE'
+      if (profileStatus !== statusFilter) return false
     }
     if (!normalizedQuery) return true
-    return [user.username, user.displayName ?? '', user.capabilityLabel ?? '']
+    return [row.primaryName, row.secondaryLine, row.roleText, row.orgText]
       .some(value => value.toLocaleLowerCase('vi').includes(normalizedQuery))
   })
-  const hasFilters = Boolean(searchTerm.trim() || roleFilter || statusFilter)
+  const empTotalPages = Math.max(1, Math.ceil(filteredRows.length / EMP_PAGE_SIZE))
+  const safeEmpPage = Math.min(empPage, empTotalPages)
+  const pagedRows = filteredRows.slice((safeEmpPage - 1) * EMP_PAGE_SIZE, safeEmpPage * EMP_PAGE_SIZE)
+  const hasFilters = Boolean(searchTerm.trim() || roleFilter || statusFilter || accountStatusFilter)
 
   function resetForm() {
     setEmployeeCode('')
     setFullName('')
     setEmail('')
     setPhone('')
+    setGender('')
+    setDateOfBirth('')
+    setAddress('')
     setDeptSelect('')
     setDeptCustom('')
     setPosSelect('')
@@ -340,6 +424,9 @@ export function AdminSystemPage() {
           fullName: name,
           email: mail,
           phone: phone.trim() || null,
+          gender: gender.trim() || null,
+          dateOfBirth: dateOfBirth.trim() || null,
+          address: address.trim() || null,
           department: resolveDepartmentValue(deptSelect, deptCustom),
           position: resolvePositionValue(posSelect, posCustom),
           role,
@@ -375,6 +462,9 @@ export function AdminSystemPage() {
     setEditFullName(emp.fullName)
     setEditEmail(emp.email)
     setEditPhone(emp.phone ?? '')
+    setEditGender(emp.gender ?? '')
+    setEditDateOfBirth(emp.dateOfBirth ?? '')
+    setEditAddress(emp.address ?? '')
     setEditDeptSelect(org.deptSelect)
     setEditDeptCustom(org.deptCustom)
     setEditPosSelect(org.posSelect)
@@ -409,6 +499,9 @@ export function AdminSystemPage() {
           fullName: name,
           email: mail,
           phone: editPhone.trim() || null,
+          gender: editGender.trim() || null,
+          dateOfBirth: editDateOfBirth.trim() || null,
+          address: editAddress.trim() || null,
           department: resolveDepartmentValue(editDeptSelect, editDeptCustom),
           position: resolvePositionValue(editPosSelect, editPosCustom),
         },
@@ -491,23 +584,36 @@ export function AdminSystemPage() {
   const createPositions = deptSelect && deptSelect !== CUSTOM_OPTION ? (departmentPositions[deptSelect] ?? []) : []
   const editPositions = editDeptSelect && editDeptSelect !== CUSTOM_OPTION ? (departmentPositions[editDeptSelect] ?? []) : []
   const showEmployeeActions = canUpdateEmployee || canChangeStatus
+  const selectedRow = unifiedRows.find(row => (row.kind === 'employee' ? row.employee.userId : row.user.id) === selectedAccount)
+
+  const isAdmin = access.roles.includes('ADMIN')
 
   return (
     <AdminShell>
       <PageHeader
-        breadcrumb="HỆ THỐNG / NHÂN SỰ"
-        title="Tài khoản nhân sự"
+        breadcrumb={isAdmin ? 'HỆ THỐNG / TÀI KHOẢN' : 'QUẢN LÝ NHÂN SỰ'}
+        title={selectedAccount ? selectedRow?.primaryName ?? 'Chi tiết tài khoản' : isAdmin ? 'Tài khoản và quyền truy cập' : 'Hồ sơ & tài khoản nhân sự'}
+        description={selectedAccount ? selectedRow?.secondaryLine : ''}
         actions={
-          canCreateEmployee ? (
-            <Button
-              autoWidth
-              onClick={() => {
-                resetForm()
-                setCreating(true)
-              }}
-            >
-              + Thêm nhân viên mới
-            </Button>
+          selectedAccount ? <Button tone="secondary" onClick={() => setParams({})}>Về danh sách tài khoản</Button> : canCreateEmployee ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              <Button
+                tone="secondary"
+                autoWidth
+                onClick={() => setImportingExcel(true)}
+              >
+                Nhập từ Excel
+              </Button>
+              <Button
+                autoWidth
+                onClick={() => {
+                  resetForm()
+                  setCreating(true)
+                }}
+              >
+                Thêm nhân viên
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -518,172 +624,188 @@ export function AdminSystemPage() {
         </Notice>
       )}
 
-      {allowed && (
-        <CollectionSummary
-          count={query.loading || query.error ? null : query.data?.length ?? null}
-          label="Tài khoản đang hoạt động"
-          scope="Kết quả danh sách được phép xem"
-        />
+      {access.status === 'loading' && <Loading label="Đang kiểm tra quyền…" />}
+      {access.status === 'error' && <Notice title="Chưa tải được quyền" tone="error">{access.error}</Notice>}
+      {access.status === 'ready' && !allowed && (
+        <Notice title="Chưa có quyền xem tài khoản" tone="warning">Liên hệ người quản trị phân quyền.</Notice>
       )}
 
-      {allowed && (
-        <Panel title="Tìm kiếm và lọc nhân sự">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(12rem, 1fr))', gap: '16px', alignItems: 'end' }}>
-            <Field htmlFor="system-search" label="Tìm kiếm">
-              <input
-                id="system-search"
-                type="search"
-                placeholder="Mã NV, họ tên, email, tài khoản…"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-              />
-            </Field>
-            {canListEmployees && (
-              <Field htmlFor="system-role-filter" label="Vai trò">
-                <select id="system-role-filter" value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
-                  <option value="">Tất cả vai trò</option>
-                  {activeFilterRoles.map(code => (
-                    <option key={code} value={code}>{roleLabels[code] ?? code}</option>
+      {allowed && selectedAccount && <AccountAccess key={`${selectedAccount}:${selectedRow?.status}:${selectedRow?.secondaryLine}`} userId={selectedAccount} roleLabels={roleLabels} actions={selectedRow?.kind === 'employee' && <>
+        {canUpdateEmployee && <Button tone="secondary" onClick={() => openEditModal(selectedRow.employee)}>Chỉnh sửa hồ sơ nhân viên</Button>}
+        {canChangeStatus && selectedRow.employee.status !== 'INACTIVE' && selectedRow.employee.userId !== access.userId && <Button tone="danger" onClick={() => { setInactivatingEmployee(selectedRow.employee); setInactivateReason(''); setInactivateError('') }}>Vô hiệu hóa tài khoản</Button>}
+      </>} />}
+
+      {allowed && !selectedAccount && (
+        <Panel>
+          <div style={{ display: 'grid', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(12rem, 1fr))', gap: '12px 16px', alignItems: 'end' }}>
+              <Field htmlFor="system-search" label="Tìm kiếm">
+                <input
+                  id="system-search"
+                  type="search"
+                  placeholder="Tìm mã NV, họ tên, email…"
+                  value={searchTerm}
+                  onChange={e => { setSearchTerm(e.target.value); setEmpPage(1) }}
+                />
+              </Field>
+              {canListEmployees && (
+                <Field htmlFor="system-role-filter" label="Vai trò">
+                  <select id="system-role-filter" value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setEmpPage(1) }}>
+                    <option value="">Tất cả vai trò</option>
+                    {activeFilterRoles
+                      .filter(code => access.roles.includes('ADMIN') || code !== 'ADMIN')
+                      .map(code => (
+                        <option key={code} value={code}>{roleLabels[code] ?? code}</option>
+                      ))}
+                  </select>
+                </Field>
+              )}
+              {access.roles.includes('ADMIN') && <Field htmlFor="account-status-filter" label="Trạng thái tài khoản"><select id="account-status-filter" value={accountStatusFilter} onChange={e => { setAccountStatusFilter(e.target.value); setEmpPage(1) }}><option value="">Tất cả trạng thái</option><option value="ACTIVE">Đang hoạt động</option><option value="LOCKED">Đã khóa</option><option value="DISABLED">Đã vô hiệu hóa</option></select></Field>}
+              <Field htmlFor="system-status-filter" label="Trạng thái hồ sơ nhân sự">
+                <select id="system-status-filter" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setEmpPage(1) }}>
+                  <option value="">Tất cả trạng thái</option>
+                  <option value="NO_PROFILE">Chưa có hồ sơ</option>
+                  {Object.entries(statusLabels).map(([code, meta]) => (
+                    <option key={code} value={code}>{meta.label}</option>
                   ))}
                 </select>
               </Field>
-            )}
-            <Field htmlFor="system-status-filter" label="Trạng thái">
-              <select id="system-status-filter" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-                <option value="">Tất cả trạng thái</option>
-                {Object.entries(statusLabels).map(([code, meta]) => (
-                  <option key={code} value={code}>{meta.label}</option>
-                ))}
-              </select>
-            </Field>
-            <div>
-              <Button tone="secondary" autoWidth disabled={!hasFilters} onClick={() => { setSearchTerm(''); setRoleFilter(''); setStatusFilter('') }}>
-                Xóa bộ lọc
-              </Button>
+              {hasFilters && (
+                <div>
+                  <Button tone="secondary" autoWidth onClick={() => { setSearchTerm(''); setRoleFilter(''); setStatusFilter(''); setAccountStatusFilter(''); setEmpPage(1) }}>
+                    Xóa lọc
+                  </Button>
+                </div>
+              )}
             </div>
+
+            {!(query.loading || (canListEmployees && employeesQuery.loading)) && !query.error && !employeesQuery.error && (
+              <div style={{ fontSize: 'var(--text-sm, 13px)', color: 'var(--ui-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                Hiển thị {filteredRows.length} / {unifiedRows.length} nhân sự
+              </div>
+            )}
+
+            {(query.loading || (canListEmployees && employeesQuery.loading)) && <Loading label="Đang tải danh sách nhân sự…" />}
+            {(query.error || employeesQuery.error) && (
+              <Notice title="Không tải được danh sách nhân sự" tone="error">
+                {(employeesQuery.error ?? query.error)?.message}{' '}
+                <Button tone="secondary" size="compact" autoWidth onClick={() => { query.retry(); if (canListEmployees) employeesQuery.retry() }}>
+                  Thử lại
+                </Button>
+              </Notice>
+            )}
+            {!query.loading && !(canListEmployees && employeesQuery.loading) && !query.error && !employeesQuery.error && filteredRows.length === 0 && (
+              <Empty title={hasFilters ? 'Không tìm thấy nhân sự phù hợp' : 'Chưa có nhân sự nào trong danh sách'}>
+                {hasFilters && (
+                  <Button tone="secondary" size="compact" autoWidth onClick={() => { setSearchTerm(''); setRoleFilter(''); setStatusFilter(''); setAccountStatusFilter(''); setEmpPage(1) }}>
+                    Xóa bộ lọc
+                  </Button>
+                )}
+              </Empty>
+            )}
+            {!query.loading && !(canListEmployees && employeesQuery.loading) && !query.error && !employeesQuery.error && filteredRows.length > 0 && (
+              <DataTable
+                label="Danh sách nhân sự và tài khoản"
+                headers={[
+                  'Nhân sự',
+                  'Vai trò',
+                  'Bộ phận / Chức vụ',
+                  'Hồ sơ nhân sự',
+                  'Tài khoản đăng nhập',
+                  ...(access.roles.includes('ADMIN') ? ['Quyền truy cập'] : showEmployeeActions ? ['Thao tác'] : []),
+                ]}
+              >
+                {pagedRows.map(row => {
+                  const st = accountStatus(row.status)
+                  const rowUserId = row.kind === 'employee' ? row.employee.userId : row.user.id
+                  const linkedAccount = query.data?.find(user => user.id === rowUserId)
+                  const accSt = linkedAccount ? accountStatus(linkedAccount.status) : null
+                  const isSelf = rowUserId === access.userId
+                  return (
+                    <tr key={row.key}>
+                      <th scope="row">
+                        <div style={{ display: 'grid', gap: '2px' }}>
+                          <span style={{ fontWeight: 600, color: 'var(--ui-ink)' }}>{row.primaryName}</span>
+                          {row.secondaryLine && (
+                            <span style={{ fontSize: 'var(--text-xs, 12px)', fontWeight: 400, color: 'var(--ui-muted)' }}>{row.secondaryLine}</span>
+                          )}
+                        </div>
+                      </th>
+                      <td>{row.roleText}</td>
+                      <td>
+                        <span style={{ color: row.kind === 'account' ? 'var(--ui-muted)' : 'inherit' }}>{row.orgText}</span>
+                      </td>
+                      <td>
+                        {row.kind === 'employee' ? <Badge label={st.label} tone={st.tone} /> : <span style={{ color: 'var(--ui-muted)' }}>Chưa có hồ sơ</span>}
+                      </td>
+                      <td>
+                        {accSt ? <Badge label={accSt.label} tone={accSt.tone} /> : <span style={{ color: 'var(--ui-muted)' }}>—</span>}
+                      </td>
+                      {access.roles.includes('ADMIN') ? <td><Button tone="secondary" size="compact" autoWidth onClick={() => setParams({ account: rowUserId })}>Xem tài khoản</Button></td> : showEmployeeActions && (
+                        <td>
+                          {row.kind === 'employee' ? (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                              {canUpdateEmployee && (
+                                <Button tone="secondary" size="compact" autoWidth onClick={() => openEditModal(row.employee)}>
+                                  Sửa
+                                </Button>
+                              )}
+                              {canUpdateEmployee && row.employee.status === 'PENDING_ACTIVATION' && (
+                                <Button
+                                  tone="secondary"
+                                  size="compact"
+                                  autoWidth
+                                  busy={retryingEmployeeId === row.employee.employeeId}
+                                  disabled={Boolean(retryingEmployeeId)}
+                                  onClick={() => void retryActivationEmail(row.employee)}
+                                >
+                                  Gửi lại email
+                                </Button>
+                              )}
+                              {canChangeStatus && row.employee.status !== 'INACTIVE' && !isSelf && (
+                                <Button
+                                  tone="danger"
+                                  size="compact"
+                                  autoWidth
+                                  onClick={() => {
+                                    setInactivatingEmployee(row.employee)
+                                    setInactivateReason('')
+                                    setInactivateError('')
+                                  }}
+                                >
+                                  Vô hiệu hóa
+                                </Button>
+                              )}
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: 'var(--text-xs, 12px)', color: 'var(--ui-muted)' }}>—</span>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  )
+                })}
+              </DataTable>
+            )}
+            {filteredRows.length > EMP_PAGE_SIZE && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 'var(--text-sm, 13px)', color: 'var(--ui-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                  Hiển thị {(safeEmpPage - 1) * EMP_PAGE_SIZE + 1}–{Math.min(safeEmpPage * EMP_PAGE_SIZE, filteredRows.length)} / {filteredRows.length} nhân sự
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Button tone="secondary" size="compact" autoWidth disabled={safeEmpPage <= 1} onClick={() => setEmpPage(p => Math.max(1, p - 1))}>
+                    Trang trước
+                  </Button>
+                  <span>Trang {safeEmpPage} / {empTotalPages}</span>
+                  <Button tone="secondary" size="compact" autoWidth disabled={safeEmpPage >= empTotalPages} onClick={() => setEmpPage(p => Math.min(empTotalPages, p + 1))}>
+                    Trang sau
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </Panel>
       )}
-
-      {canListEmployees && (
-        <Panel title={`Hồ sơ nhân viên (${filteredEmployees.length})`}>
-          {employeesQuery.loading && <Loading label="Đang tải hồ sơ nhân viên…" />}
-          {employeesQuery.error && (
-            <Notice title="Không tải được hồ sơ nhân viên" tone="error">
-              {employeesQuery.error.message}{' '}
-              <Button tone="secondary" size="compact" autoWidth onClick={employeesQuery.retry}>
-                Thử lại
-              </Button>
-            </Notice>
-          )}
-          {employeesQuery.data && filteredEmployees.length === 0 && (
-            <Empty title={hasFilters ? 'Không tìm thấy hồ sơ nhân viên phù hợp' : 'Chưa có hồ sơ nhân viên nào được tạo'} />
-          )}
-          {employeesQuery.data && filteredEmployees.length > 0 && (
-            <DataTable
-              label="Danh sách hồ sơ nhân viên"
-              headers={[
-                'Mã NV',
-                'Họ và tên',
-                'Email',
-                'Vai trò',
-                'Bộ phận / Chức danh',
-                'Trạng thái',
-                ...(showEmployeeActions ? ['Thao tác'] : []),
-              ]}
-            >
-              {filteredEmployees.map(emp => {
-                const st = accountStatus(emp.status)
-                const isSelf = emp.userId === access.userId
-                return (
-                  <tr key={emp.employeeId}>
-                    <th scope="row">{emp.employeeCode}</th>
-                    <td>{emp.fullName}</td>
-                    <td>{emp.email}</td>
-                    <td>{emp.roles.map(r => roleLabels[r] ?? r).join(', ') || '—'}</td>
-                    <td>{[emp.department, emp.position].filter(Boolean).join(' · ') || '—'}</td>
-                    <td>
-                      <Badge label={st.label} tone={st.tone} />
-                    </td>
-                    {showEmployeeActions && (
-                      <td>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                          {canUpdateEmployee && (
-                            <Button tone="secondary" size="compact" autoWidth onClick={() => openEditModal(emp)}>
-                              Sửa
-                            </Button>
-                          )}
-                          {canUpdateEmployee && emp.status === 'PENDING_ACTIVATION' && (
-                            <Button
-                              tone="secondary"
-                              size="compact"
-                              autoWidth
-                              busy={retryingEmployeeId === emp.employeeId}
-                              disabled={Boolean(retryingEmployeeId)}
-                              onClick={() => void retryActivationEmail(emp)}
-                            >
-                              Gửi lại email
-                            </Button>
-                          )}
-                          {canChangeStatus && emp.status !== 'INACTIVE' && !isSelf && (
-                            <Button
-                              tone="danger"
-                              size="compact"
-                              autoWidth
-                              onClick={() => {
-                                setInactivatingEmployee(emp)
-                                setInactivateReason('')
-                                setInactivateError('')
-                              }}
-                            >
-                              Vô hiệu hóa
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                )
-              })}
-            </DataTable>
-          )}
-        </Panel>
-      )}
-
-      <Panel title={`Tài khoản đang hoạt động (${filteredUsers.length})`}>
-        {access.status === 'loading' && <Loading label="Đang kiểm tra quyền…" />}
-        {access.status === 'error' && <Notice title="Chưa tải được quyền" tone="error">{access.error}</Notice>}
-        {access.status === 'ready' && !allowed && (
-          <Notice title="Chưa có quyền xem tài khoản" tone="warning">Liên hệ người quản trị phân quyền.</Notice>
-        )}
-        {allowed && query.loading && <Loading label="Đang tải tài khoản…" />}
-        {allowed && query.error && (
-          <Notice title="Không tải được tài khoản" tone="error">
-            {query.error.message} <Button onClick={query.retry}>Thử lại</Button>
-          </Notice>
-        )}
-        {allowed && query.data && !filteredUsers.length && <Empty title={hasFilters ? 'Không có tài khoản khớp bộ lọc' : 'Chưa có tài khoản trong danh sách'} />}
-        {allowed && query.data && filteredUsers.length > 0 && (
-          <DataTable
-            label="Tài khoản đang hoạt động"
-            headers={['Tên đăng nhập', 'Tên hiển thị', 'Trạng thái', 'Khả năng được phân công']}
-          >
-            {filteredUsers.map(user => {
-              const st = accountStatus(user.status)
-              return (
-                <tr key={user.id}>
-                  <td>{user.username}</td>
-                  <td>{user.displayName ?? '—'}</td>
-                  <td>
-                    <Badge label={st.label} tone={st.tone} />
-                  </td>
-                  <td>{user.capabilityLabel ?? '—'}</td>
-                </tr>
-              )
-            })}
-          </DataTable>
-        )}
-      </Panel>
 
       {creating && canCreateEmployee && (
         <Modal
@@ -799,6 +921,22 @@ export function AdminSystemPage() {
                 }}
               />
             </Field>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(11rem, 1fr))', gap: '12px' }}>
+              <Field htmlFor="emp-gender" label="Giới tính">
+                <select id="emp-gender" value={gender} disabled={saving} onChange={e => setGender(e.target.value)}>
+                  <option value="">Chưa chọn</option>
+                  <option value="MALE">Nam</option>
+                  <option value="FEMALE">Nữ</option>
+                  <option value="OTHER">Khác</option>
+                </select>
+              </Field>
+              <Field htmlFor="emp-dob" label="Ngày sinh">
+                <input id="emp-dob" type="date" value={dateOfBirth} disabled={saving} onChange={e => setDateOfBirth(e.target.value)} />
+              </Field>
+            </div>
+            <Field htmlFor="emp-address" label="Địa chỉ">
+              <input id="emp-address" maxLength={350} value={address} disabled={saving} placeholder="Số nhà, đường, quận/huyện, tỉnh/thành…" onChange={e => setAddress(e.target.value)} />
+            </Field>
             <Field htmlFor="emp-dept" label="Phòng ban">
               <select
                 id="emp-dept"
@@ -815,7 +953,7 @@ export function AdminSystemPage() {
                 }}
               >
                 <option value="">Chưa chọn phòng ban</option>
-                {departmentList.map(item => (
+                {(isAdmin ? departmentList : hrDepartmentList).map(item => (
                   <option key={item} value={item}>{item}</option>
                 ))}
                 <option value={CUSTOM_OPTION}>Khác (nhập tay)</option>
@@ -833,7 +971,7 @@ export function AdminSystemPage() {
                 />
               </Field>
             )}
-            <Field htmlFor="emp-pos" label="Chức danh">
+            <Field htmlFor="emp-pos" label="Chức vụ">
               <select
                 id="emp-pos"
                 value={posSelect}
@@ -844,7 +982,7 @@ export function AdminSystemPage() {
                   if (next !== CUSTOM_OPTION) setPosCustom('')
                 }}
               >
-                <option value="">Chưa chọn chức danh</option>
+                <option value="">Chưa chọn chức vụ</option>
                 {createPositions.map(item => (
                   <option key={item} value={item}>{item}</option>
                 ))}
@@ -852,13 +990,13 @@ export function AdminSystemPage() {
               </select>
             </Field>
             {posSelect === CUSTOM_OPTION && (
-              <Field htmlFor="emp-pos-custom" label="Tên chức danh khác">
+              <Field htmlFor="emp-pos-custom" label="Tên chức vụ khác">
                 <input
                   id="emp-pos-custom"
                   maxLength={150}
                   value={posCustom}
                   disabled={saving}
-                  placeholder="Nhập tên chức danh"
+                  placeholder="Nhập tên chức vụ"
                   onChange={e => setPosCustom(e.target.value)}
                 />
               </Field>
@@ -934,6 +1072,22 @@ export function AdminSystemPage() {
                 }}
               />
             </Field>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(11rem, 1fr))', gap: '12px' }}>
+              <Field htmlFor="edit-emp-gender" label="Giới tính">
+                <select id="edit-emp-gender" value={editGender} disabled={editBusy} onChange={e => setEditGender(e.target.value)}>
+                  <option value="">Chưa chọn</option>
+                  <option value="MALE">Nam</option>
+                  <option value="FEMALE">Nữ</option>
+                  <option value="OTHER">Khác</option>
+                </select>
+              </Field>
+              <Field htmlFor="edit-emp-dob" label="Ngày sinh">
+                <input id="edit-emp-dob" type="date" value={editDateOfBirth} disabled={editBusy} onChange={e => setEditDateOfBirth(e.target.value)} />
+              </Field>
+            </div>
+            <Field htmlFor="edit-emp-address" label="Địa chỉ">
+              <input id="edit-emp-address" maxLength={350} value={editAddress} disabled={editBusy} placeholder="Số nhà, đường, quận/huyện, tỉnh/thành…" onChange={e => setEditAddress(e.target.value)} />
+            </Field>
             <Field htmlFor="edit-emp-dept" label="Phòng ban">
               <select
                 id="edit-emp-dept"
@@ -950,7 +1104,7 @@ export function AdminSystemPage() {
                 }}
               >
                 <option value="">Chưa chọn phòng ban</option>
-                {departmentList.map(item => (
+                {(isAdmin ? departmentList : hrDepartmentList).map(item => (
                   <option key={item} value={item}>{item}</option>
                 ))}
                 <option value={CUSTOM_OPTION}>Khác (nhập tay)</option>
@@ -968,7 +1122,7 @@ export function AdminSystemPage() {
                 />
               </Field>
             )}
-            <Field htmlFor="edit-emp-pos" label="Chức danh">
+            <Field htmlFor="edit-emp-pos" label="Chức vụ">
               <select
                 id="edit-emp-pos"
                 value={editPosSelect}
@@ -979,7 +1133,7 @@ export function AdminSystemPage() {
                   if (next !== CUSTOM_OPTION) setEditPosCustom('')
                 }}
               >
-                <option value="">Chưa chọn chức danh</option>
+                <option value="">Chưa chọn chức vụ</option>
                 {editPositions.map(item => (
                   <option key={item} value={item}>{item}</option>
                 ))}
@@ -987,13 +1141,13 @@ export function AdminSystemPage() {
               </select>
             </Field>
             {editPosSelect === CUSTOM_OPTION && (
-              <Field htmlFor="edit-emp-pos-custom" label="Tên chức danh khác">
+              <Field htmlFor="edit-emp-pos-custom" label="Tên chức vụ khác">
                 <input
                   id="edit-emp-pos-custom"
                   maxLength={150}
                   value={editPosCustom}
                   disabled={editBusy}
-                  placeholder="Nhập tên chức danh"
+                  placeholder="Nhập tên chức vụ"
                   onChange={e => setEditPosCustom(e.target.value)}
                 />
               </Field>
@@ -1037,6 +1191,20 @@ export function AdminSystemPage() {
             </Field>
           </form>
         </Modal>
+      )}
+      {importingExcel && canCreateEmployee && (
+        <EmployeeImportModal
+          onClose={() => setImportingExcel(false)}
+          onImported={count => {
+            setActionBanner({
+              tone: 'success',
+              title: 'Đã nhập danh sách nhân sự từ Excel',
+              message: `Đã tạo thành công ${count} hồ sơ nhân sự mới.`,
+            })
+            employeesQuery.retry()
+            query.retry()
+          }}
+        />
       )}
     </AdminShell>
   )

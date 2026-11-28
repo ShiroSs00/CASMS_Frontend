@@ -3,6 +3,7 @@ import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { businessErrorMessage } from '@/shared/api/business-errors'
 import { mutationOutcomeUnknown } from '@/shared/lib/mutation-outcome'
+import { journeyTime, SHIP_TIME_ZONE } from '@/shared/lib/journey-time'
 import { Badge, Button, DataTable, Empty, Field, Loading, Modal, Notice, Panel } from '@/shared/ui'
 import { portWindowApi, validateWindow, windowDays, type PortWindow, type WindowDraft } from '../api/port-window-api'
 import type { Port } from '../model/itinerary'
@@ -19,7 +20,7 @@ function WindowHistory({ port, window, onClose }: { port: string; window: PortWi
   return <Modal title="Lịch sử khung giờ" onClose={onClose}>
     {query.loading ? <Loading/> : query.error ? <Notice tone="error" title="Chưa đọc được lịch sử"><Button onClick={query.retry}>Thử lại</Button></Notice>
       : query.data?.content.length ? <DataTable label="Thay đổi khung giờ" headers={['Thời điểm', 'Thao tác']}>
-        {query.data.content.map(event => <tr key={event.auditId}><td>{new Date(event.occurredAt).toLocaleString('vi-VN')}</td><td>{labels[event.action] ?? 'Thay đổi'}</td></tr>)}
+        {query.data.content.map(event => <tr key={event.auditId}><td>{journeyTime(event.occurredAt, SHIP_TIME_ZONE)} (UTC+7)</td><td>{labels[event.action] ?? 'Thay đổi'}</td></tr>)}
       </DataTable> : <Empty title="Chưa ghi nhận thay đổi"/>}
     <div className={styles.actions}>
       <Button tone="secondary" disabled={page === 0 || query.loading} onClick={() => setPage(page - 1)}>Trang trước</Button>

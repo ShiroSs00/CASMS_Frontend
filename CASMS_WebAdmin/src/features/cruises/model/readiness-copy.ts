@@ -46,7 +46,7 @@ const explicitMessages:Readonly<Record<string,string>>={
 
 const rawSectionReplacements: ReadonlyArray<[RegExp, string]> = [
  [/\bTECHNICAL_NAUTICAL\b/g, 'Kỹ thuật & hàng hải'],
- [/\bHOTEL_CABIN\b/g, 'Khách sạn & cabin'],
+[/\bHOTEL_CABIN\b/g, 'Cabin phục vụ khách'],
  [/\bSAFETY_CREW\b/g, 'An toàn & thủy thủ đoàn'],
  [/\bENTERTAINMENT_SHORE\b/g, 'Giải trí & tour bờ'],
  [/\bNOT_STARTED\b/g, 'Chưa bắt đầu'],

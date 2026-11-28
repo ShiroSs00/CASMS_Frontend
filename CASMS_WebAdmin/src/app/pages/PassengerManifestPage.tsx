@@ -19,8 +19,8 @@ export function PassengerManifestPage() {
   }
   query.set('view','location')
   return <AdminShell>
-    <PageHeader title="Hành khách trên tàu" breadcrumb="HÀNH KHÁCH"
-      actions={canLocate && <ButtonLink to={`?${query}`}>Tra cứu vị trí hành khách</ButtonLink>} />
+    <PageHeader title="Danh sách hành khách trên tàu" breadcrumb="HÀNH KHÁCH"
+      actions={canLocate && <ButtonLink tone="secondary" size="compact" autoWidth to={`?${query}`}>Bản đồ định vị trên tàu</ButtonLink>} />
     <DepartureManifestWorkspace/>
   </AdminShell>
 }

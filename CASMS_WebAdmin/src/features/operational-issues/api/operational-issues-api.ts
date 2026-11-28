@@ -89,12 +89,47 @@ type LookupMaps = {
 
 let lookupCache: LookupMaps | null = null
 
+async function fetchPaginatedRows(
+  endpoint: string,
+  baseQuery: Record<string, string | number>,
+  signal?: AbortSignal,
+): Promise<Record<string, unknown>[]> {
+  const MAX_PAGES = 10
+  const pageSize = 100
+  const first = await apiRequest<unknown>(endpoint, { query: { ...baseQuery, page: 0, size: pageSize }, signal })
+  if (Array.isArray(first)) {
+    return first.filter((v): v is Record<string, unknown> => Boolean(v) && typeof v === 'object')
+  }
+  const paged = first && typeof first === 'object' ? (first as { content?: unknown[]; totalPages?: number }) : null
+  const rows: Record<string, unknown>[] = Array.isArray(paged?.content)
+    ? paged.content.filter((v): v is Record<string, unknown> => Boolean(v) && typeof v === 'object')
+    : []
+  const totalPages = Math.min(MAX_PAGES, Math.max(1, Number(paged?.totalPages ?? 1)))
+  if (totalPages > 1) {
+    const rest = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, idx) =>
+        apiRequest<unknown>(endpoint, { query: { ...baseQuery, page: idx + 1, size: pageSize }, signal }),
+      ),
+    )
+    for (const chunk of rest) {
+      if (chunk && typeof chunk === 'object' && Array.isArray((chunk as { content?: unknown[] }).content)) {
+        rows.push(
+          ...((chunk as { content: unknown[] }).content).filter(
+            (v): v is Record<string, unknown> => Boolean(v) && typeof v === 'object',
+          ),
+        )
+      }
+    }
+  }
+  return rows
+}
+
 async function loadIssueLookups(signal?: AbortSignal): Promise<LookupMaps> {
   if (lookupCache && Date.now() - lookupCache.loadedAt < 30_000) return lookupCache
-  const [shipsRaw, cruisesRaw, usersRaw] = await Promise.all([
-    apiRequest<unknown>('/ships', { query: { page: 0, size: 100 }, signal }).catch(() => []),
-    apiRequest<unknown>('/cruise', { query: { page: 0, size: 100 }, signal }).catch(() => []),
-    apiRequest<unknown>('/identity/users', { query: { status: 'ACTIVE' }, signal }).catch(() => []),
+  const [shipsRows, cruisesRows, usersRaw] = await Promise.all([
+    fetchPaginatedRows('/ships', {}, signal),
+    fetchPaginatedRows('/cruise', {}, signal),
+    apiRequest<unknown>('/identity/users', { query: { status: 'ACTIVE' }, signal }),
   ])
   const extractRows = (value: unknown): Record<string, unknown>[] => {
     if (Array.isArray(value)) return value.filter((v): v is Record<string, unknown> => Boolean(v) && typeof v === 'object')
@@ -104,13 +139,13 @@ async function loadIssueLookups(signal?: AbortSignal): Promise<LookupMaps> {
     return []
   }
   const ships = new Map<string, string>()
-  for (const row of extractRows(shipsRaw)) {
+  for (const row of shipsRows) {
     const id = typeof row.shipId === 'string' ? row.shipId : typeof row.id === 'string' ? row.id : ''
     const name = typeof row.shipName === 'string' ? row.shipName : typeof row.name === 'string' ? row.name : ''
     if (id && name.trim()) ships.set(id, name.trim())
   }
   const cruises = new Map<string, { code: string; name: string }>()
-  for (const row of extractRows(cruisesRaw)) {
+  for (const row of cruisesRows) {
     const id = typeof row.cruiseId === 'string' ? row.cruiseId : typeof row.id === 'string' ? row.id : ''
     const code = typeof row.cruiseCode === 'string' ? row.cruiseCode.trim() : ''
     const name = typeof row.cruiseName === 'string' ? row.cruiseName.trim() : ''

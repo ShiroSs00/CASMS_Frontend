@@ -36,14 +36,14 @@ function ActivityAreaSetup({shipId,deckId}:{shipId:string;deckId:string}) {
  const candidates = areas.filter(area=>area.area_usage==='OTHER'&&!area.has_services&&!area.cabin_id)
  const configured = areas.filter(area=>area.area_usage==='ACTIVITY_SPACE')
 
- async function save() {
-  if(lock.current||query.loading||query.error||!candidates.some(area=>area.id===areaId))return
+ async function updateUsage(targetAreaId:string,usage:'ACTIVITY_SPACE'|'OTHER') {
+  if(lock.current||query.loading||query.error)return
   lock.current=true
   setSaving(true)
   setError('')
   try{
-   await apiRequest(root+'/'+encodeURIComponent(areaId)+'/usage',{method:'PUT',body:{usage:'ACTIVITY_SPACE'}})
-   setAreaId('')
+   await apiRequest(root+'/'+encodeURIComponent(targetAreaId)+'/usage',{method:'PUT',body:{usage}})
+   if(usage==='ACTIVITY_SPACE')setAreaId('')
    query.retry()
   }catch(reason){
    setError(reason instanceof Error?reason.message:'Chưa cập nhật được khu vực.')
@@ -57,7 +57,7 @@ function ActivityAreaSetup({shipId,deckId}:{shipId:string;deckId:string}) {
    <h3>Khu vực hoạt động</h3>
    {query.loading&&<Loading label="Đang tải khu vực trên boong…" />}
    {query.error&&<Notice title="Chưa tải được khu vực" tone="error"><Button onClick={query.retry}>Thử lại</Button></Notice>}
-   {configured.length>0&&<ul>{configured.map(area=><li key={area.id}>{area.display_name??'Khu vực chưa đặt tên'}</li>)}</ul>}
+   {configured.length>0&&<ul style={{display:'grid',gap:'8px',listStyle:'none',padding:0,margin:0}}>{configured.map(area=><li key={area.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px',flexWrap:'wrap'}}><span>{area.display_name??'Khu vực chưa đặt tên'}</span><Button tone="secondary" size="compact" autoWidth disabled={saving} onClick={()=>void updateUsage(area.id,'OTHER')}>Gỡ khu vực hoạt động</Button></li>)}</ul>}
    {candidates.length>0&&<>
      <Field htmlFor="ship-activity-area" label="Khu vực để tổ chức hoạt động">
        <select id="ship-activity-area" value={areaId} disabled={saving} onChange={event=>setAreaId(event.target.value)}>
@@ -65,7 +65,7 @@ function ActivityAreaSetup({shipId,deckId}:{shipId:string;deckId:string}) {
          {candidates.map(area=><option key={area.id} value={area.id}>{area.display_name??'Khu vực chưa đặt tên'}</option>)}
        </select>
      </Field>
-     <div><Button busy={saving} disabled={!areaId} onClick={()=>void save()}>Đặt làm khu vực hoạt động</Button></div>
+     <div><Button busy={saving} disabled={!areaId} onClick={()=>void updateUsage(areaId,'ACTIVITY_SPACE')}>Đặt làm khu vực hoạt động</Button></div>
    </>}
    {query.data&&candidates.length===0&&configured.length===0&&<Empty title="Boong này chưa có khu vực phù hợp để tổ chức hoạt động" />}
    {error&&<Notice title="Chưa lưu được khu vực" tone="error">{error}</Notice>}
@@ -77,33 +77,30 @@ export function ShipAreas({shipId,initialDeck=''}:{shipId:string;initialDeck?:st
  const [deck,setDeck]=useState(initialDeck),[search,setSearch]=useState(''),[kind,setKind]=useState(''),[page,setPage]=useState(1)
  const loadDecks=useCallback((signal:AbortSignal)=>shipDeckCabinApi.listShipDecks(shipId,signal),[shipId])
  const decks=useFleetQuery(`area-decks:${shipId}`,loadDecks,access.canDo('DECK_READ'))
- const selected=decks.data?.find(value=>value.id===deck)
+ const selected=decks.data?.find(value=>value.id===deck) ?? decks.data?.[0]
  const loadAreas=useCallback((signal:AbortSignal)=>readShipServiceAreas(shipId,signal),[shipId])
  const areas=useFleetQuery(`service-areas:${shipId}`,loadAreas,access.canDo('SHIP_CONFIGURATION_READ'))
  const onDeck=areas.data?.filter(area=>area.deckId===selected?.id)??[]
  const term=search.normalize('NFD').replace(/\p{M}/gu,'').replace(/[đĐ]/g,'d').toLocaleLowerCase('vi').trim()
  const rows=onDeck.filter(area=>(!kind||area.kind===kind)&&(!term||`${displayName(area)} ${area.name??''} ${areaKindLabel(area.kind)}`.normalize('NFD').replace(/\p{M}/gu,'').replace(/[đĐ]/g,'d').toLocaleLowerCase('vi').includes(term)))
- const pagination=paginateFleet(rows,page,6)
+ const pagination=paginateFleet(rows,page,10)
  const kinds=[...new Set(onDeck.map(area=>area.kind).filter((value):value is string=>Boolean(value)))].sort()
- return <Panel title="Danh sách khu vực theo boong">
+ return <Panel title="Khu vực phục vụ theo boong">
   <div className={styles.stack}>
-   <div className={styles.deckPicker}><Field htmlFor="service-area-deck" label="Boong"><select id="service-area-deck" value={selected?.id??''} disabled={decks.loading||!decks.data?.length} onChange={event=>{setDeck(event.target.value);setSearch('');setKind('');setPage(1)}}><option value="">{decks.loading?'Đang tải boong…':'Chọn boong'}</option>{decks.data?.map(value=><option key={value.id} value={value.id}>Boong {value.number} · {value.name}</option>)}</select></Field></div>
-   {access.canDo('POS_MANAGE')
-    ?<ShipAreaPosConfig shipId={shipId} deckId={selected?.id??''} areasOnDeck={onDeck} allAreas={areas.data??[]}/>
-    :<Notice title="Cấu hình dịch vụ theo khu vực 3D & máy POS offline">Để mở khu vực và lập định biên nhân sự trong Kế hoạch chuyến, Quản trị hệ thống cần gắn dịch vụ vào khu vực 3D và đăng ký máy POS offline cho tàu trên tài khoản Quản trị.</Notice>}
-   {selected&&access.has('SHIP_MODEL_OBJECT_UPDATE')&&<ActivityAreaSetup key={selected.id} shipId={shipId} deckId={selected.id}/>}
+   <div className={styles.deckPicker}><Field htmlFor="service-area-deck" label="Boong"><select id="service-area-deck" value={selected?.id??''} disabled={decks.loading||!decks.data?.length} onChange={event=>{setDeck(event.target.value);setSearch('');setKind('');setPage(1)}}>{!decks.data?.length&&<option value="">{decks.loading?'Đang tải boong…':'Chưa có boong'}</option>}{decks.data?.map(value=><option key={value.id} value={value.id}>Boong {value.number} · {value.name}</option>)}</select></Field></div>
+   {access.canDo('POS_MANAGE')&&<ShipAreaPosConfig shipId={shipId} deckId={selected?.id??''} areasOnDeck={onDeck} allAreas={areas.data??[]}/>}
+   {selected&&access.canDo('SHIP_MODEL_OBJECT_UPDATE')&&<ActivityAreaSetup key={selected.id} shipId={shipId} deckId={selected.id}/>}
    {decks.error&&<Notice title="Không tải được danh sách boong" tone="error">{decks.error}</Notice>}
    {!access.canDo('DECK_READ')&&<Empty title="Chưa có quyền xem boong"/>}
    {!decks.loading&&!decks.error&&decks.data?.length===0&&<Empty title="Tàu chưa có boong"/>}
-   {!selected&&decks.data&&decks.data.length>0&&<Empty title="Chọn boong để xem danh sách khu vực dịch vụ" />}
    {selected&&areas.loading&&!areas.data&&<Loading label="Đang tải khu vực dịch vụ…"/>}
    {selected&&areas.error&&<Notice title="Không tải được khu vực dịch vụ" tone="error">{areas.error}</Notice>}
    {selected&&areas.data&&<>
-    <div className={styles.filters}>
+    <div className={styles.filters} style={{ alignItems: 'end' }}>
      <Field htmlFor="service-area-search" label="Tìm khu vực dịch vụ"><input id="service-area-search" type="search" value={search} placeholder="Tên khu vực dịch vụ" onChange={event=>{setSearch(event.target.value);setPage(1)}}/></Field>
      <Field htmlFor="service-area-kind" label="Loại khu vực dịch vụ"><select id="service-area-kind" value={kind} onChange={event=>{setKind(event.target.value);setPage(1)}}><option value="">Tất cả loại</option>{kinds.map(value=><option key={value} value={value}>{areaKindLabel(value)}</option>)}</select></Field>
+     {(search||kind)&&<Button tone="secondary" size="compact" autoWidth onClick={()=>{setSearch('');setKind('');setPage(1)}}>Xóa lọc</Button>}
     </div>
-    {(search||kind)&&<div><Button tone="text" onClick={()=>{setSearch('');setKind('');setPage(1)}}>Xóa bộ lọc</Button></div>}
     {rows.length?<div className={styles.areaTable}><DataTable label="Danh sách khu vực dịch vụ" headers={['Tên khu vực dịch vụ','Loại khu vực dịch vụ']}>
       {pagination.items.map(area=><tr key={area.id}><th scope="row">{displayName(area)}</th><td>{areaKindLabel(area.kind)}</td></tr>)}
     </DataTable></div>:<Empty title={onDeck.length?'Không có khu vực dịch vụ phù hợp':'Boong chưa có khu vực dịch vụ'}/>}

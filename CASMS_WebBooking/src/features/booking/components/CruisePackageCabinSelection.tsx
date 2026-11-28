@@ -142,10 +142,23 @@ export function CruisePackageCabinSelection({ catalog, cabins, shipId, render, p
           {errors[`person-${index}-cabinGroupKey`] && <p id={`person-${index}-cabinGroupKey`} tabIndex={-1} role="alert">{errors[`person-${index}-cabinGroupKey`]}</p>}
         </section>
       })}
-      {(!catalog.fareManaged || draft.passengers[group.members[0]].cabinSelectionMode === 'PHYSICAL_CABIN') && <>
-        <BookingCabinChoices name={`person-${group.members[0]}-cabinId`} cabins={choices(group.members[0])} selectedCabinId={draft.passengers[group.members[0]].cabinId} onSelect={id => select(group.members[0], id)} error={group.members.map(i => errors[`person-${i}-cabinId`]).find(Boolean)} />
-        {renderModel && shipId && <div><Button tone="secondary" onClick={() => setModelPerson(group.members[0])}>Mở 3D · {group.label}</Button></div>}
-      </>}
+      {(() => {
+        const physicalMemberIndex = group.members.find(i => !catalog.fareManaged || draft.passengers[i]?.cabinSelectionMode === 'PHYSICAL_CABIN')
+        if (physicalMemberIndex !== undefined) {
+          return <>
+            <BookingCabinChoices name={`person-${physicalMemberIndex}-cabinId`} cabins={choices(physicalMemberIndex)} selectedCabinId={draft.passengers[physicalMemberIndex].cabinId} onSelect={id => select(physicalMemberIndex, id)} error={group.members.map(i => errors[`person-${i}-cabinId`]).find(Boolean)} />
+            {renderModel && shipId && <div><Button tone="secondary" onClick={() => setModelPerson(physicalMemberIndex)}>Mở 3D · {group.label}</Button></div>}
+          </>
+        }
+        if (catalog.fareManaged && draft.passengers[group.members[0]]?.cabinSelectionMode === 'CATEGORY_HOLD') {
+          return (
+            <Notice title={`${group.label}: Đang giữ chỗ theo hạng cabin`} tone="info">
+              Tất cả hành khách trong {group.label.toLowerCase()} đang dùng chế độ giữ chỗ theo hạng. Nếu muốn tự chọn số phòng cụ thể, hãy chuyển sang <strong>Chọn cabin cụ thể</strong> phía trên.
+            </Notice>
+          )
+        }
+        return null
+      })()}
       </div>
     </Panel>)}
     {modelPerson !== null && renderModel && shipId && <Modal title="Xem và chọn cabin trên tàu" large protectChanges={false} onClose={() => setModelPerson(null)} footer={<Button data-overlay-dismiss onClick={() => setModelPerson(null)}>Xong</Button>}>

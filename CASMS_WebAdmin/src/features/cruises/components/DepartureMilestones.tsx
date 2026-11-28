@@ -109,7 +109,7 @@ export function DepartureMilestones({
             <span aria-hidden="true">2</span>
             <div>
               <strong>Bước 2: Chuẩn bị hồ sơ</strong>
-              <small>Ngân sách, bộ phận, gói giá & 4 nhóm hồ sơ</small>
+              <small>Ngân sách, chương trình và gói du thuyền</small>
             </div>
           </button>
         </li>

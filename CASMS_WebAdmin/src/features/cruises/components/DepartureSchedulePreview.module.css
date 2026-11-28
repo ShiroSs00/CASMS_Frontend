@@ -7,8 +7,35 @@
 @media (max-width: 600px) {
   .content dl > div { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 }
-.scheduleDays{display:grid;gap:16px;min-width:0}.scheduleDay{min-width:0;border:1px solid var(--ui-border);border-radius:var(--ui-panel-radius);background:var(--ui-surface);overflow:clip}.scheduleDay>summary{display:flex;align-items:center;gap:16px;padding:18px;min-height:72px;cursor:pointer;list-style:none}.scheduleDay>summary::-webkit-details-marker{display:none}.scheduleDay>summary::after{content:'+';margin-left:auto;font-size:24px;color:var(--ui-muted);flex-shrink:0}.scheduleDay[open]>summary::after{content:'−'}.scheduleDay>summary:hover{background:var(--ui-subtle)}.scheduleDay>summary:focus-visible{outline-offset:-3px}.dayNumber{flex-shrink:0;font-weight:600;color:var(--ui-brand)}.dayHeading{display:grid;gap:6px;min-width:0}.dayHeading strong{font-size:14px;line-height:1.6;overflow-wrap:anywhere}.dayHeading>span{font-size:12px;color:var(--ui-muted);line-height:1.65}.dayBody{padding:0 20px 20px;border-top:1px solid var(--ui-border)}.dayBody h3{font-size:15px;line-height:1.6}.dayBody>p{font-size:13px;color:var(--ui-muted)}.scheduleEntries{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:0}.scheduleEntries>li{padding:14px 0;border-top:1px solid var(--ui-border);min-width:0}.scheduleEntries strong{font-size:14px;line-height:1.65}.scheduleEntries p{margin:6px 0 0;color:var(--ui-muted);font-size:13px;line-height:1.65}.entryKind{display:block;color:var(--ui-muted);font-size:12px;margin-top:4px}.inventoryFacts{padding:0 16px;background:var(--ui-subtle);border-radius:var(--ui-panel-radius);margin-bottom:20px}
-@media(max-width:600px){.scheduleDay>summary{gap:12px;padding:14px;align-items:flex-start}.dayBody{padding:0 14px 16px}.dayNumber{font-size:13px}.inventoryFacts{padding:0 12px}}
+/* The operational schedule is a continuous read view: no arbitrarily privileged day. */
+.scheduleDays { display:grid; gap:var(--space-4); min-width:0; }
+.scheduleDay { min-width:0; border-bottom:1px solid var(--ui-border); }
+.dayHeader { display:flex; align-items:baseline; gap:var(--space-4); padding-block:var(--space-3); }
+.dayNumber { flex-shrink:0; font-weight:600; color:var(--ui-brand); }
+.dayHeading { min-width:0; }
+.dayHeading h3 { margin:0; font-size:var(--text-base); line-height:1.6; overflow-wrap:anywhere; }
+.dayHeading p, .portContext { margin:var(--space-1) 0; color:var(--ui-muted); font-size:var(--text-sm); line-height:1.6; overflow-wrap:anywhere; }
+.dayBody { padding:0 0 var(--space-4); }
+.dayBody h3 { margin:var(--space-3) 0 var(--space-1); font-size:var(--text-base); line-height:1.6; }
+.dayBody > p { color:var(--ui-muted); font-size:var(--text-sm); }
+.dayBody > div + div { border-top:1px solid var(--ui-border); margin-top:var(--space-4); padding-top:var(--space-2); }
+.dayDescription { white-space:pre-line; overflow-wrap:anywhere; }
+.stopTimes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--space-3); margin:var(--space-3) 0; }
+.stopTimes > div { display:grid; gap:var(--space-1); min-width:0; }
+.stopTimes dt { color:var(--ui-muted); font-size:var(--text-sm); }
+.stopTimes dd { margin:0; font-weight:600; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.scheduleEntries { list-style:none; padding:0; margin:var(--space-3) 0 0; display:grid; }
+.scheduleEntries > li { padding:var(--space-3) 0; border-top:1px solid var(--ui-border); min-width:0; }
+.scheduleEntries strong { font-size:var(--text-base); line-height:1.6; }
+.scheduleEntries p { margin:var(--space-1) 0 0; color:var(--ui-muted); font-size:var(--text-sm); line-height:1.6; overflow-wrap:anywhere; }
+.entryKind { display:block; color:var(--ui-muted); font-size:var(--text-sm); margin-top:var(--space-1); }
+.inventoryFacts { padding:0 var(--space-4); background:var(--ui-subtle); border-radius:var(--ui-panel-radius); margin-bottom:var(--space-5); }
+@media(max-width:600px) {
+  .dayHeader { align-items:flex-start; gap:var(--space-3); }
+  .stopTimes { grid-template-columns:minmax(0,1fr); gap:var(--space-2); }
+  .stopTimes > div { grid-template-columns:minmax(0,1fr) minmax(0,1.5fr); gap:var(--space-3); }
+  .inventoryFacts { padding:0 var(--space-3); }
+}
 
 .selectedDay { min-width:0; }
 .selectedDay header p { color:var(--ui-muted); }

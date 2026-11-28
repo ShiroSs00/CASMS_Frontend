@@ -90,7 +90,18 @@
 .comparison h3,.saleIdentity h3 { margin:0 0 var(--space-2);font-size:var(--text-base);overflow-wrap:anywhere; }
 .comparison dl { grid-template-columns:minmax(0,1fr); }
 .comparison dl > div { padding:var(--space-3) 0; }
-.saleToolbar { display:grid;grid-template-columns:minmax(0,16rem) auto;justify-content:start;align-items:end;gap:var(--space-4); }
+.saleToolbar { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr));align-items:end;gap:var(--space-4); }
+.financialSummary { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr));gap:var(--space-4);margin:var(--space-4) 0; }
+.financialSummary > div { min-width:0;padding-inline-end:var(--space-4); }
+.financialSummary dt { color:var(--text-secondary);font-size:var(--text-sm);margin-bottom:var(--space-2); }
+.financialSummary dd { margin:0;font-size:clamp(18px,1.5vw,24px);font-weight:600;line-height:1.4;font-variant-numeric:tabular-nums;overflow-wrap:anywhere; }
+.cabinSelection { display:grid;gap:var(--space-4); }
+.cabinSelection > .passengerSelection { margin:0; }
+.cabinFields { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-4);align-items:start; }
+.cabinFields > :first-child { grid-column:1/-1; }
+.passengerSelection :is(input,select) { width:100%; }
+.passengerSelection p { line-height:1.6; }
+@media(max-width:650px) { .cabinFields { grid-template-columns:minmax(0,1fr); } }
 .saleRows,.mobileRows { list-style:none;margin:0;padding:0;border:1px solid var(--border-default);border-radius:var(--radius-panel);background:var(--surface-default); }
 .saleRows > li,.mobileRows > li { padding:var(--space-4); }
 .saleRows > li + li,.mobileRows > li + li { border-block-start:1px solid var(--border-default); }

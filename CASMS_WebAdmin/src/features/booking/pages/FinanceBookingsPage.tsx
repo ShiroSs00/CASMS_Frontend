@@ -2,13 +2,16 @@ import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type K
 import { CancellationQueue } from '@/shared/cancellation'
 import { RefundHistory, RefundSummary } from '../components/RefundWorkspace'
 import { UsdDisplayRate } from '../components/UsdDisplayRate'
-import { ApiError, useReadQuery } from '@/shared/api'
+import { ApiError, apiRequest, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Badge, Button, DataTable, Empty, Field, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Badge, Button, DataTable, Empty, Field, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
 import { realBookingApi } from '../api/real-booking-api'
 import { BookingReadState, RealBookingFrame } from '../components/RealBookingUI'
 import { BookingInstallments } from '../components/BookingInstallments'
 import { PaymentLedger } from '../components/PaymentLedger'
+import { OnboardSettlement } from '../components/OnboardSettlement'
+import { mutationOutcomeUnknown } from '@/shared/lib/mutation-outcome'
+import { BookingPaymentFacts } from '../components/BookingRecord'
 import { SepayReconciliationPanel } from '../components/SepayReconciliationPanel'
 import { bookingMoney } from '../model/booking-presentation'
 import { bookingStatusName, bookingWhen } from '../model/real-booking-view'
@@ -46,6 +49,7 @@ function FinanceWorkspace() {
   const tabRefs = useRef<Partial<Record<WorkspaceTab, HTMLButtonElement | null>>>({})
 
   const [page, setPage] = useState(0)
+  const [documentRevision, setDocumentRevision] = useState(0)
   const [selected, setSelected] = useState<{ id: string; reference: string; currency: string; cruiseName?: string; status?: string; fareAmount?: number | null } | null>(null)
   const [bookingId, setBookingId] = useState(''), [error, setError] = useState(''), [lookupBusy, setLookupBusy] = useState(false)
   const list = useReadQuery(`finance-bookings:${access.userId}:${canBookings}:${page}`, useCallback(signal => canBookings ? realBookingApi.list(page, undefined, undefined, signal) : Promise.resolve(null), [canBookings, page]))
@@ -67,7 +71,7 @@ function FinanceWorkspace() {
     if (!canPayments || lookupBusy) return
     const queryText = bookingId.trim()
     if (!queryText) {
-      setError('Nhập mã đặt chỗ (ví dụ: DEMO-PAY-01) hoặc ID đặt chỗ để tra cứu.')
+      setError('Nhập mã đặt chỗ để tra cứu khoản thu.')
       return
     }
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(queryText)
@@ -91,26 +95,25 @@ function FinanceWorkspace() {
       setError('')
       try {
         const normalized = queryText.toLowerCase()
-        const maxPages = Math.min(25, Math.max(1, list.data?.totalPages ?? 1))
-        for (let p = 0; p < maxPages; p += 1) {
-          if (p === page && list.data) continue
-          const found = await realBookingApi.list(p, undefined, undefined)
-          const exact = found.content.find(row =>
-            row.bookingReference.toLowerCase() === normalized
-            || row.bookingId.toLowerCase() === normalized,
-          )
-          if (exact) {
-            selectBooking({
-              id: exact.bookingId,
-              reference: exact.bookingReference,
-              currency: exact.currency ?? '',
-              cruiseName: exact.cruiseName,
-              status: exact.bookingStatus,
-              fareAmount: exact.agreedFareAmount,
-            })
-            return
-          }
-          if (p + 1 >= found.totalPages || found.content.length === 0) break
+        const maxPages = Math.max(1, list.data?.totalPages ?? 1)
+        const pagesToFetch = Array.from({ length: maxPages }, (_, idx) => idx).filter(p => !(p === page && list.data))
+        const results = await Promise.all(
+          pagesToFetch.map(p => realBookingApi.list(p, undefined, undefined)),
+        )
+        const exact = results.flatMap(r => r.content).find(row =>
+          row.bookingReference.toLowerCase() === normalized
+          || row.bookingId.toLowerCase() === normalized,
+        )
+        if (exact) {
+          selectBooking({
+            id: exact.bookingId,
+            reference: exact.bookingReference,
+            currency: exact.currency ?? '',
+            cruiseName: exact.cruiseName,
+            status: exact.bookingStatus,
+            fareAmount: exact.agreedFareAmount,
+          })
+          return
         }
         setError(`Không tìm thấy đặt chỗ với mã “${queryText}”. Kiểm tra lại mã đặt chỗ hoặc chọn trực tiếp từ danh sách bên dưới.`)
       } catch (reason) {
@@ -149,12 +152,11 @@ function FinanceWorkspace() {
   const activeReference = detail.data?.bookingReference ?? selected?.reference ?? ''
   const activeCruiseName = detail.data?.cruiseName ?? selected?.cruiseName
   const activeStatus = detail.data?.bookingStatus ?? selected?.status
-  const activeFare = detail.data?.agreedFareAmount ?? selected?.fareAmount
 
   return <RealBookingFrame>
     <PageHeader
       breadcrumb="TÀI CHÍNH"
-      title="Tài chính & lịch thanh toán"
+      title="Thu tiền và đối soát"
       description=""
     />
 
@@ -185,9 +187,9 @@ function FinanceWorkspace() {
         aria-labelledby={tabs.length > 1 ? `${baseId}-tab-payments` : undefined}
         className={styles.financeTabPanel}
       >
-        {canPayments && <Panel title="Tra cứu nhanh khoản thu">
+        {canPayments && !selected && <Panel title="Tra cứu khoản thu theo đặt chỗ">
           <form className={styles.financeQuickLookupForm} noValidate onSubmit={event => void openLedger(event)}>
-            <Field htmlFor="finance-booking-id" label="Mã đặt chỗ hoặc ID *" error={error || undefined}>
+            <Field htmlFor="finance-booking-id" label="Mã đặt chỗ *" error={error || undefined}>
               <input id="finance-booking-id" required placeholder="Ví dụ: DEMO-PAY-01" value={bookingId} disabled={lookupBusy} onChange={event => { setBookingId(event.target.value); if (error) setError('') }} />
             </Field>
             <div className={styles.financeQuickLookupAction}>
@@ -205,15 +207,15 @@ function FinanceWorkspace() {
               </div>
               <p className={styles.financeDetailMeta}>
                 {activeCruiseName && <span>Chuyến: <strong>{activeCruiseName}</strong></span>}
-                {activeFare != null && activeCurrency && <span>Tổng giá vé: <strong className={styles.numericCell}>{bookingMoney(activeFare, activeCurrency)}</strong></span>}
-                <span className={styles.monoCode}>ID: {selected.id}</span>
               </p>
             </div>
             <div className={styles.formActions}>
-              <Button tone="secondary" size="compact" autoWidth onClick={() => setSelected(null)}>Đóng hồ sơ</Button>
+              <Button tone="secondary" size="compact" autoWidth onClick={() => setSelected(null)}>Về danh sách khoản thu</Button>
             </div>
           </div>
 
+          <BookingReadState {...detail} />
+          {detail.data && <BookingPaymentFacts booking={detail.data} />}
           <div className={styles.financeDetailGrid}>
             <div className={styles.financeDetailMain}>
               <PaymentLedger
@@ -224,7 +226,6 @@ function FinanceWorkspace() {
                 bookingOutstanding={detail.data?.outstandingBalance}
                 onChanged={() => { detail.retry(); list.retry() }}
               />
-              <RefundHistory key={selected.id + '-refunds'} bookingId={selected.id} />
             </div>
             {canBookings && <div className={styles.financeDetailSide}>
               <Panel title="Lịch thanh toán hợp đồng">
@@ -234,9 +235,14 @@ function FinanceWorkspace() {
               </Panel>
             </div>}
           </div>
+          <div className={styles.financeDetailMain}>
+            <BookingInvoiceSettlementPanel key={selected.id + '-invoice-' + documentRevision} bookingId={selected.id} bookingReference={activeReference} amount={detail.data?.agreedFareAmount} currency={activeCurrency} />
+            <OnboardSettlement key={selected.id + '-settlement'} bookingId={selected.id} />
+            <RefundHistory key={selected.id + '-refunds'} bookingId={selected.id} onChanged={() => { setDocumentRevision(value => value + 1); detail.retry() }} />
+          </div>
         </section>}
 
-        {canBookings && <Panel title="Danh sách đặt chỗ">
+        {canBookings && !selected && <Panel title="Chọn đặt chỗ để kiểm tra khoản thu">
           <BookingReadState {...list} />
           {list.data && <>
             {!list.data.content.length ? <Empty title="Chưa có đặt chỗ" /> : <DataTable label="Đặt chỗ và giá vé" headers={['Mã đặt chỗ', 'Tên chuyến', 'Trạng thái', 'Tổng giá vé', 'Thao tác']}>
@@ -336,4 +342,112 @@ function FinanceWorkspace() {
       </div>}
     </div>
   </RealBookingFrame>
+}
+
+type BookingInvoiceRow = {
+  invoiceId: string
+  invoiceReference?: string | null
+  versionNo?: number | null
+  documentType?: string | null
+  status?: string | null
+  snapshotTotalAmount?: number | null
+  currency?: string | null
+  issuedAt?: string | null
+  lines?: { invoiceLineId: string; lineNo: number; descriptionSnapshot: string; quantitySnapshot: number; baseAmountSnapshot: number; taxAmountSnapshot: number; totalAmountSnapshot: number }[]
+}
+
+function BookingInvoiceSettlementPanel({ bookingId, bookingReference, amount, currency }: { bookingId: string; bookingReference: string; amount?: number; currency: string }) {
+  const access = useSessionAccess()
+  const canReadInvoices = access.status === 'ready' && (access.has('PAYMENT_READ') || access.has('INVOICE_GENERATE'))
+  const canGenerateInvoice = access.status === 'ready' && (access.has('INVOICE_GENERATE') || access.has('PAYMENT_PROCESS'))
+  const invoices = useReadQuery(
+    `finance-invoices:${access.userId}:${bookingId}:${canReadInvoices}`,
+    useCallback(
+      (signal: AbortSignal) => (canReadInvoices ? apiRequest<BookingInvoiceRow[]>(`/invoices/booking/${encodeURIComponent(bookingId)}`, { signal }) : Promise.resolve(null)),
+      [canReadInvoices, bookingId],
+    ),
+  )
+  const [busy, setBusy] = useState<'invoice' | null>(null)
+  const lock = useRef(false)
+  const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null)
+  const [issuing, setIssuing] = useState(false)
+  const recoveryKey = `invoice-pending:${access.userId}:${bookingId}`
+  const [unknownVersion, setUnknownVersion] = useState<number | null>(() => {
+    try { const value = sessionStorage.getItem(recoveryKey); return value === null ? null : /^\d+$/.test(value) ? Number(value) : -1 } catch { return -1 }
+  })
+  const latestVersion = invoices.data?.reduce((version, invoice) => Math.max(version, invoice.versionNo ?? 0), 0) ?? 0
+  const inspectedInvoice = invoices.data?.find(invoice => invoice.invoiceId === expandedInvoice)
+  const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; message: string } | null>(null)
+
+  if (!canReadInvoices && !canGenerateInvoice) return null
+
+  async function generateInvoice() {
+    if (lock.current || unknownVersion !== null || invoices.loading || invoices.error || !canGenerateInvoice) return
+    lock.current = true
+    setBusy('invoice'); setFeedback(null)
+    try {
+      sessionStorage.setItem(recoveryKey, String(latestVersion))
+      const created = await apiRequest<BookingInvoiceRow>(`/invoices/booking/${encodeURIComponent(bookingId)}`, { method: 'POST', ifMatch: latestVersion })
+      sessionStorage.removeItem(recoveryKey)
+      setFeedback({ tone: 'success', message: created.invoiceReference ? `Đã lập chứng từ ${created.invoiceReference}.` : 'Đã lập chứng từ. Kiểm tra trạng thái phát hành trong danh sách.' })
+      setIssuing(false)
+      invoices.retry()
+    } catch (err) {
+      if (mutationOutcomeUnknown(err)) setUnknownVersion(latestVersion)
+      else { try { sessionStorage.removeItem(recoveryKey) } catch { setUnknownVersion(-1) } }
+      if (err instanceof ApiError && err.status === 409) { setIssuing(false); invoices.retry() }
+      setFeedback({ tone: 'error', message: err instanceof Error ? err.message : 'Chưa phát hành được hóa đơn.' })
+    } finally {
+      lock.current = false
+      setBusy(null)
+    }
+  }
+
+  return (
+    <Panel id="finance-booking-invoices" title="Hóa đơn đặt chỗ">
+      <div className={styles.formActions}>
+        {canGenerateInvoice && (
+          <Button size="compact" autoWidth busy={busy === 'invoice'} disabled={unknownVersion !== null || busy !== null || invoices.loading || Boolean(invoices.error)} onClick={() => setIssuing(true)}>
+            {invoices.data?.length ? 'Phát hành phiên bản hóa đơn mới' : 'Xuất hóa đơn đặt chỗ'}
+          </Button>
+        )}
+      </div>
+      {unknownVersion !== null && <Notice tone="warning" title="Chưa xác nhận được kết quả phát hành">
+        <p>Kiểm tra lại chứng từ trước khi phát hành tiếp để tránh tạo thêm phiên bản ngoài ý muốn.</p>
+        <Button tone="secondary" disabled={Boolean(busy)} onClick={invoices.retry}>Tải lại danh sách chứng từ</Button>
+        {unknownVersion >= 0 && latestVersion > unknownVersion && <Button tone="secondary" onClick={() => { try { sessionStorage.removeItem(recoveryKey); setUnknownVersion(null); setIssuing(false) } catch { setFeedback({ tone: 'error', message: 'Chưa lưu được kết quả đối chiếu trên trình duyệt.' }) } }}>Đã đối chiếu phiên bản {latestVersion}</Button>}
+      </Notice>}
+      {feedback && <Notice title={feedback.tone === 'success' ? 'Đã cập nhật' : 'Chưa thể thực hiện'} tone={feedback.tone}>{feedback.message}</Notice>}
+      {invoices.loading && <p role="status">Đang tải danh sách hóa đơn…</p>}
+      {invoices.error && <Notice title="Chưa tải được danh sách hóa đơn" tone="error"><Button tone="secondary" size="compact" autoWidth onClick={invoices.retry}>Tải lại</Button></Notice>}
+      {invoices.data && (invoices.data.length > 0 ? (
+        <DataTable label="Hóa đơn của đặt chỗ" headers={['Số hóa đơn', 'Loại chứng từ', 'Trạng thái', 'Tổng tiền', 'Ngày phát hành', 'Nội dung']}>
+          {invoices.data.map(inv => (
+            <tr key={inv.invoiceId}>
+              <td className={styles.monoCode}>{inv.invoiceReference ?? 'Chưa có số chứng từ'}{inv.versionNo != null && <small>Phiên bản {inv.versionNo}</small>}</td>
+              <td>{({ BookingInvoice: 'Hóa đơn đặt chỗ', PreliminaryFolio: 'Bảng kê tạm tính', FinalStatement: 'Bảng quyết toán', AdjustmentStatement: 'Chứng từ điều chỉnh' } as Record<string, string>)[inv.documentType ?? ''] ?? 'Chưa xác định'}</td>
+              <td>{({ Draft: 'Bản nháp', Issued: 'Đã phát hành', Superseded: 'Đã được thay thế', Voided: 'Đã hủy hiệu lực' } as Record<string, string>)[inv.status ?? ''] ?? 'Chưa có trạng thái phát hành'}</td>
+              <td className={styles.numericCell}>{inv.snapshotTotalAmount != null && inv.currency ? bookingMoney(inv.snapshotTotalAmount, inv.currency) : 'Chưa có số tiền'}</td>
+              <td>{inv.issuedAt ? bookingWhen(inv.issuedAt) : '—'}</td>
+              <td><Button tone="text" size="compact" autoWidth aria-expanded={expandedInvoice === inv.invoiceId} onClick={() => setExpandedInvoice(expandedInvoice === inv.invoiceId ? null : inv.invoiceId)}>{expandedInvoice === inv.invoiceId ? 'Đóng chi tiết' : 'Xem chứng từ'}</Button></td>
+            </tr>
+          ))}
+        </DataTable>
+      ) : (
+        <p className={styles.helper}>Chưa có hóa đơn nào được phát hành cho đặt chỗ này.</p>
+      ))}
+      {inspectedInvoice && <section aria-label={`Nội dung ${inspectedInvoice.invoiceReference ?? 'chứng từ'}`}>
+        <h3>{inspectedInvoice.invoiceReference ?? 'Nội dung chứng từ'}</h3>
+        {inspectedInvoice.lines?.length ? <DataTable label="Chi tiết chứng từ" headers={['Nội dung', 'Số lượng', 'Trước thuế', 'Thuế', 'Thành tiền']}>
+          {inspectedInvoice.lines.map(line => <tr key={line.invoiceLineId}><td>{line.descriptionSnapshot}</td><td className={styles.numericCell}>{line.quantitySnapshot}</td><td className={styles.numericCell}>{inspectedInvoice.currency && line.baseAmountSnapshot != null ? bookingMoney(line.baseAmountSnapshot, inspectedInvoice.currency) : 'Chưa có'}</td><td className={styles.numericCell}>{inspectedInvoice.currency && line.taxAmountSnapshot != null ? bookingMoney(line.taxAmountSnapshot, inspectedInvoice.currency) : 'Chưa có'}</td><td className={styles.numericCell}>{inspectedInvoice.currency && line.totalAmountSnapshot != null ? bookingMoney(line.totalAmountSnapshot, inspectedInvoice.currency) : 'Chưa có'}</td></tr>)}
+        </DataTable> : <p>Chứng từ chưa có chi tiết khoản mục.</p>}
+      </section>}
+      {issuing && unknownVersion === null && <Modal title={invoices.data?.length ? 'Phát hành phiên bản hóa đơn mới' : 'Phát hành hóa đơn đặt chỗ'} busy={busy !== null} onClose={() => { if (!busy) setIssuing(false) }} footer={<><Button tone="secondary" disabled={Boolean(busy)} onClick={() => setIssuing(false)}>Quay lại</Button><Button busy={Boolean(busy)} onClick={() => void generateInvoice()}>Phát hành chứng từ</Button></>}>
+        <p><strong>{bookingReference}</strong>{amount != null && currency ? ` · ${bookingMoney(amount, currency)}` : ''}</p>
+        <p>Hệ thống phát hành chứng từ theo giá trị đặt chỗ đang được lưu. Chứng từ mới không xác nhận đã thu tiền.</p>
+        {!!invoices.data?.length && <p>Hóa đơn hiện có được giữ trong lịch sử; thao tác này lập thêm phiên bản mới.</p>}
+        {feedback?.tone === 'error' && <Notice tone="error" title="Chưa phát hành được hóa đơn">{feedback.message}</Notice>}
+      </Modal>}
+    </Panel>
+  )
 }

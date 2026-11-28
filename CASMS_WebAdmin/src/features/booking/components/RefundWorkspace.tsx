@@ -2,7 +2,9 @@ import { useCallback, useId, useRef, useState } from 'react'
 import { ApiError, apiRequest, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { downloadCsv } from '@/shared/lib/download-csv'
-import { Badge, Button, DataTable, Field, Loading, Notice, Panel } from '@/shared/ui'
+import { mutationOutcomeUnknown } from '@/shared/lib/mutation-outcome'
+import { validRefundAmount } from '../model/financial-decimal'
+import { Badge, Button, DataTable, Field, Loading, Modal, Notice, Panel } from '@/shared/ui'
 import styles from './LiveBooking.module.css'
 
 type RefundTotal = { currency: string; status: string; count: number; requestedAmount: number; approvedAmount: number }
@@ -103,9 +105,18 @@ const refundActionLabels = {
   approve: 'Duyệt số tiền hoàn', reject: 'Từ chối hoàn tiền', complete: 'Ghi nhận chứng từ hoàn tiền',
 }
 function ManualRefundAction({ record, onChanged }: { record: RefundRecord; onChanged: () => void }) {
+  const access = useSessionAccess()
   const id = useId()
+  const recoveryKey = `refund-pending:${access.userId}:${record.refundId}`
+  const [pendingAction, setPendingAction] = useState<RefundAction | 'unknown' | ''>(() => {
+    try {
+      const saved = sessionStorage.getItem(recoveryKey)
+      return saved === 'approve' || saved === 'reject' || saved === 'complete' ? saved : saved ? 'unknown' : ''
+    } catch { return 'unknown' }
+  })
   const [action, setAction] = useState<RefundAction | ''>('')
   const [value, setValue] = useState('')
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const lock = useRef(false)
@@ -113,9 +124,10 @@ function ManualRefundAction({ record, onChanged }: { record: RefundRecord; onCha
     : record.status === 'Approved' ? ['complete', 'reject'] : []
   if (!options.length) return null
   const isVnd = record.currency.trim().toUpperCase() === 'VND'
-  async function submit() {
+
+  function validateBeforeConfirm(): boolean {
     const input = value.trim()
-    if (lock.current || !action || !options.includes(action)) return
+    if (!action || !options.includes(action)) return false
     if (!input) {
       setError(
         action === 'approve'
@@ -124,56 +136,119 @@ function ManualRefundAction({ record, onChanged }: { record: RefundRecord; onCha
             ? 'Nhập lý do từ chối hoàn tiền.'
             : 'Nhập mã biên lai hoặc tham chiếu giao dịch đã thực hiện.',
       )
-      return
+      return false
     }
     if (action === 'approve') {
-      const formatOk = isVnd ? /^\d+(\.0+)?$/.test(input) : /^\d+(\.\d{1,4})?$/.test(input)
-      if (!formatOk || Number(input) <= 0 || Number(input) > record.requestedAmount) {
+      if (!validRefundAmount(input, record.requestedAmount, record.currency)) {
         setError(
           isVnd
             ? 'Số tiền hoàn bằng VND phải là số nguyên dương trong giới hạn yêu cầu (không chứa phần thập phân).'
             : 'Nhập số tiền dương trong giới hạn yêu cầu, tối đa 4 chữ số thập phân.',
         )
-        return
+        return false
       }
     }
+    setError('')
+    return true
+  }
+
+  async function submit() {
+    const input = value.trim()
+    if (lock.current || pendingAction || !action || !options.includes(action)) return
     lock.current = true; setBusy(true); setError('')
     try {
+      try { sessionStorage.setItem(recoveryKey, action) }
+      catch { setPendingAction('unknown'); throw new Error('Chưa lưu được tham chiếu thao tác. Yêu cầu hoàn tiền chưa được gửi.') }
       await apiRequest(`/refunds/${encodeURIComponent(record.refundId)}/${action}`, {
         method: 'POST',
         ...(action === 'reject' ? { query: { reason: input } } : {
           body: action === 'approve' ? { approvedAmount: input } : { processorOrReceiptReference: input },
         }),
       })
-      setAction(''); setValue(''); onChanged()
+      sessionStorage.removeItem(recoveryKey); setPendingAction(''); setConfirmOpen(false); setAction(''); setValue(''); onChanged()
     } catch (failure) {
+      if (mutationOutcomeUnknown(failure)) setPendingAction(action || 'unknown')
+      else { try { sessionStorage.removeItem(recoveryKey) } catch { setPendingAction('unknown') } }
       setError(failure instanceof Error ? failure.message : 'Chưa lưu được thao tác hoàn tiền.')
       if (failure instanceof ApiError && failure.status === 409) onChanged()
     } finally { lock.current = false; setBusy(false) }
   }
+  async function checkResult() {
+    if (lock.current) return
+    lock.current = true; setBusy(true); setError('')
+    try {
+      const fresh = await apiRequest<RefundRecord>(`/refunds/${encodeURIComponent(record.refundId)}`)
+      const expected = { approve: 'Approved', reject: 'Rejected', complete: 'Completed', unknown: '' }
+      if (!pendingAction || fresh.refundId !== record.refundId || fresh.status !== expected[pendingAction]) {
+        setError('Chưa xác nhận được kết quả thao tác. Đối chiếu yêu cầu và chứng từ; không tự gửi lại.')
+        return
+      }
+      sessionStorage.removeItem(recoveryKey); setPendingAction(''); setConfirmOpen(false); onChanged()
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'Chưa tải được kết quả hoàn tiền.') }
+    finally { lock.current = false; setBusy(false) }
+  }
   const label = action === 'approve' ? `Số tiền duyệt (${record.currency}) *`
     : action === 'reject' ? 'Lý do từ chối *' : 'Mã biên lai hoặc giao dịch *'
-  return <form className={styles.stack} noValidate onSubmit={event => { event.preventDefault(); void submit() }}>
-    <div className={styles.financeInlineForm}>
-      <Field htmlFor={id} label="Thao tác hoàn tiền">
-        <select id={id} value={action} disabled={busy} onChange={event => {
-          setAction(event.target.value as RefundAction | ''); setValue(''); setError('')
-        }}>
-          <option value="">Chọn thao tác</option>
-          {options.map(option => <option key={option} value={option}>{refundActionLabels[option]}</option>)}
-        </select>
-      </Field>
-      {action && <Field htmlFor={id + '-value'} label={label} error={error || undefined}
-        hint={action === 'complete' ? 'Dùng mã trên chứng từ của giao dịch đã thực hiện.' : action === 'approve' && isVnd ? 'Nhập số nguyên VND (ví dụ: 500000).' : undefined}>
-        <input id={id + '-value'} required aria-invalid={Boolean(error)} value={value} maxLength={action === 'reject' ? 1000 : 255}
-          inputMode={action === 'approve' ? (isVnd ? 'numeric' : 'decimal') : undefined} onChange={event => { setValue(event.target.value); if (error) setError('') }}/>
-      </Field>}
-    </div>
-    {action && <div className={styles.formActions}><Button type="submit" size="compact" autoWidth tone={action === 'reject' ? 'danger' : 'primary'} busy={busy}>{refundActionLabels[action]}</Button></div>}
-  </form>
+  return <>
+    {pendingAction && <Notice title="Cần đối chiếu kết quả hoàn tiền" tone="warning"><p>{error || 'Thao tác trước chưa rõ kết quả. Kiểm tra trạng thái trước khi tiếp tục.'}</p><Button disabled={busy} onClick={() => void checkResult()}>Kiểm tra kết quả vừa gửi</Button></Notice>}
+    {!pendingAction && <>
+    <form className={styles.stack} noValidate onSubmit={event => {
+      event.preventDefault()
+      if (validateBeforeConfirm()) setConfirmOpen(true)
+    }}>
+      <div className={styles.financeInlineForm}>
+        <Field htmlFor={id} label="Thao tác hoàn tiền">
+          <select id={id} value={action} disabled={busy} onChange={event => {
+            setAction(event.target.value as RefundAction | ''); setValue(''); setError('')
+          }}>
+            <option value="">Chọn thao tác</option>
+            {options.map(option => <option key={option} value={option}>{refundActionLabels[option]}</option>)}
+          </select>
+        </Field>
+        {action && <Field htmlFor={id + '-value'} label={label} error={error || undefined}
+          hint={action === 'complete' ? 'Dùng mã trên chứng từ của giao dịch đã thực hiện.' : action === 'approve' && isVnd ? 'Nhập số nguyên VND (ví dụ: 500000).' : undefined}>
+          <input id={id + '-value'} required aria-invalid={Boolean(error)} value={value} maxLength={action === 'reject' ? 1000 : 255}
+            inputMode={action === 'approve' ? (isVnd ? 'numeric' : 'decimal') : undefined} onChange={event => { setValue(event.target.value); if (error) setError('') }}/>
+        </Field>}
+      </div>
+      {action && <div className={styles.formActions}><Button type="submit" size="compact" autoWidth tone={action === 'reject' ? 'danger' : 'primary'} busy={busy}>{refundActionLabels[action]}</Button></div>}
+    </form>
+    {confirmOpen && action && (
+      <Modal
+        title={`Xác nhận ${refundActionLabels[action].toLocaleLowerCase('vi')}`}
+        busy={busy}
+        onClose={() => { if (!busy) setConfirmOpen(false) }}
+        footer={
+          <>
+            <Button tone="secondary" data-overlay-dismiss disabled={busy} onClick={() => setConfirmOpen(false)}>Hủy</Button>
+            <Button tone={action === 'reject' ? 'danger' : 'primary'} busy={busy} onClick={() => void submit()}>
+              {refundActionLabels[action]}
+            </Button>
+          </>
+        }
+      >
+        <p>
+          Số tiền yêu cầu hoàn: <strong>{record.requestedAmount.toLocaleString('vi-VN')} {record.currency}</strong>
+        </p>
+        {action === 'approve' && (
+          <p>
+            Số tiền phê duyệt: <strong>{Number(value.trim()).toLocaleString('vi-VN')} {record.currency}</strong>. Thao tác này phê duyệt hạn mức hoàn tiền và chuyển sang bước ghi nhận chứng từ chi tiền.
+          </p>
+        )}
+        {action === 'reject' && (
+          <p>Lý do từ chối: <strong>{value.trim()}</strong>. Thao tác này sẽ đóng yêu cầu hoàn tiền.</p>
+        )}
+        {action === 'complete' && (
+          <p>Mã chứng từ chi tiền: <strong>{value.trim()}</strong>. Thao tác này xác nhận đã chi hoàn tiền thực tế và không thể hoàn tác.</p>
+        )}
+        {error && <Notice title="Chưa thể thực hiện" tone="error">{error}</Notice>}
+      </Modal>
+    )}
+    </>}
+  </>
 }
 
-export function RefundHistory({ bookingId }: { bookingId: string }) {
+export function RefundHistory({ bookingId, onChanged }: { bookingId: string; onChanged?: () => void }) {
   const access = useSessionAccess()
   const allowed = access.status === 'ready' && access.roles.includes('FINANCE_OFFICER') && access.has('PAYMENT_REFUND')
   const query = useReadQuery(`finance-refunds:${access.userId}:${bookingId}:${allowed}`, useCallback(
@@ -192,9 +267,9 @@ export function RefundHistory({ bookingId }: { bookingId: string }) {
         <p>{row.refundReason}</p>
         {row.rejectionReason && <p>Lý do từ chối: {row.rejectionReason}</p>}
         {row.processorOrReceiptReference && <p>Chứng từ ghi nhận: <span className={styles.monoCode}>{row.processorOrReceiptReference}</span></p>}
-        {row.adjustmentInvoiceId && <p>ID hóa đơn điều chỉnh: <span className={styles.monoCode}>{row.adjustmentInvoiceId}</span></p>}
+        {row.adjustmentInvoiceId && <p>Đã lập chứng từ điều chỉnh cho khoản hoàn tiền này. Đối chiếu tại danh sách hóa đơn của đặt chỗ.</p>}
       </div>
-      <ManualRefundAction key={row.status} record={row} onChanged={query.retry}/>
+      <ManualRefundAction key={row.status} record={row} onChanged={() => { query.retry(); onChanged?.() }}/>
     </li>)}</ul> : <p className={styles.helper}>Chưa có hồ sơ hoàn tiền cho đặt chỗ này.</p>)}
   </Panel>
 }

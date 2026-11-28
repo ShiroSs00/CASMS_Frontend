@@ -104,9 +104,9 @@
 
 .lookupHeader { display:grid;gap:var(--space-5);min-width:0; }
 .lookupHeader > header { margin-block-end:0; }
-.shipSelector { display:flex;align-items:flex-end;flex-wrap:wrap;gap:var(--space-3) var(--space-4); }
-.shipSelector > div { flex:1 1 220px;min-width:0; }
-.shipSelector select { text-overflow:ellipsis;white-space:nowrap;overflow:hidden; }
+.shipSelector { display:flex;align-items:flex-end;flex-wrap:wrap;gap:var(--space-3) var(--space-3); }
+.shipSelector > div { flex:1 1 320px;max-width:520px;min-width:0; }
+.shipSelector select { width:100%;padding-right:36px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden; }
 .shipList { display:grid;gap:var(--space-4);min-width:0; }
 .shipListHeading { display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap; }
 .shipListHeading h2 { margin:0;font-size:var(--text-xl);font-weight:600; }

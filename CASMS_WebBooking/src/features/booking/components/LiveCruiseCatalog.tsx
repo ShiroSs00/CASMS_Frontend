@@ -436,7 +436,7 @@ function LiveCruiseSearchPage({ page, cruiseType }: { page: number; cruiseType?:
               )}
             </div>
 
-            {!loading && !issue && totalFiltered > 0 && page <= pageCount && (
+            {!loading && !issue && totalFiltered > 0 && pageCount > 1 && page <= pageCount && (
               <nav className={c.pagination} aria-label="Phân trang danh mục hải trình">
                 <span>Trang {page} / {pageCount} · {totalFiltered} hành trình</span>
                 <div className={c.paginationLinks}>

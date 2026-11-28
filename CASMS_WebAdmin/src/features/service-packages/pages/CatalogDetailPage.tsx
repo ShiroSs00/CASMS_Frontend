@@ -4,7 +4,7 @@ import { Fragment, useCallback, useContext, useState } from 'react'
 import { useParams } from 'react-router'
 import { apiRequest, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { RecordFacts, Badge, ButtonLink, DataTable, Empty, Notice, PageHeader, Panel } from '@/shared/ui'
+import { RecordFacts, Badge, Button, ButtonLink, DataTable, Empty, Notice, PageHeader, Panel } from '@/shared/ui'
 import { AdminRoleContext, canRoleOpenAdminPath, staffRoleHome } from '@/shared/ui/admin-v3'
 import { servicePackageApi } from '../api/service-package-api'
 import { CatalogFrame, CatalogState } from '../components/CatalogUI'
@@ -101,8 +101,31 @@ export function ProductDetailPage() { return <CatalogDetail kind="products" /> }
 export function PackageDetailPage() { return <CatalogDetail kind="packages" /> }
 export function ServiceRequestDetailPage() {
   const { id = '' } = useParams()
-  const query = useReadQuery('service-request:' + id, useCallback(signal => servicePackageApi.request(id, signal), [id]))
+  const access = useSessionAccess()
+  const query = useReadQuery('service-request:' + access.userId + ':' + id, useCallback(signal => servicePackageApi.request(id, signal), [id]))
   const request = query.data
+  if (access.roles.includes('ONBOARD_STAFF')) return <CatalogFrame>
+    <PageHeader breadcrumb="Trên tàu / Công việc" title={request?.serviceName || 'Yêu cầu dịch vụ được giao'} description={request ? [request.cruiseName, request.shipName].filter(Boolean).join(' · ') : undefined} actions={<ButtonLink tone="secondary" to="/admin/service-requests">Về công việc phục vụ</ButtonLink>} />
+    <CatalogState {...query} />
+    {query.error && <Button tone="secondary" onClick={query.retry}>Tải lại yêu cầu</Button>}
+    {request && <>
+      <Panel title="Nội dung cần phục vụ"><RecordFacts entries={[
+        ['Khách cần phục vụ', request.passengerName || 'Chưa ghi nhận tên khách'],
+        ['Địa điểm', request.location || 'Chưa ghi địa điểm phục vụ'],
+        ['Số lượng yêu cầu', `${request.quantity} ${formatUnitCode(request.unitCode) || ''}`],
+        ['Giờ phục vụ', request.scheduledStart ? catalogTime(request.scheduledStart) : 'Chưa đặt khung giờ'],
+        ['Kết thúc dự kiến', request.scheduledEnd ? catalogTime(request.scheduledEnd) : 'Chưa đặt khung giờ'],
+        ['Trạng thái', statusLabels[request.status] ?? 'Cần tải lại trạng thái'],
+        ['Mã đặt chỗ', request.bookingReference || 'Chưa liên kết đặt chỗ'],
+        ['Lưu ý của khách', request.note || 'Không có lưu ý'],
+      ]} /></Panel>
+      <ServiceRequestActions key={request.id} request={request} onChanged={query.retry} />
+      {request.completedAt && <Panel title="Kết quả đã ghi nhận"><RecordFacts entries={[
+        ['Hoàn thành lúc', catalogTime(request.completedAt)],
+        ['Số lượng đã phục vụ', request.fulfilledQuantity == null ? 'Chưa có dữ liệu số lượng' : `${request.fulfilledQuantity} ${formatUnitCode(request.fulfillmentUnitCode) || formatUnitCode(request.unitCode) || ''}`],
+      ]} /></Panel>}
+    </>}
+  </CatalogFrame>
   return <CatalogFrame><Link className={styles.backLink} to="/admin/service-requests">← Yêu cầu dịch vụ</Link><PageHeader breadcrumb="DỊCH VỤ TÀU / YÊU CẦU" title="Chi tiết yêu cầu dịch vụ"  /><CatalogState {...query} />
     {request && <><ServiceRequestActions key={request.id} request={request} onChanged={query.retry} /><Panel title="Thông tin yêu cầu"><RecordFacts entries={[
       ['Trạng thái', statusLabels[request.status] ?? request.status], ['Số lượng', request.quantity],

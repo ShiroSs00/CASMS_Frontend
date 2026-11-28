@@ -16,7 +16,7 @@ export function AuthPageShell({ children, expired = false, image = '/images/port
         <img src={image} alt="Cảnh quan bến cảng châu Á" onError={e => { const el = e.currentTarget; if (!el.dataset.fallback) { el.dataset.fallback = '1'; el.src = '/images/ports/ha-long-bay.webp' } }} />
         <div className={styles.overlay} />
         <div className={styles.editorialCopy}><p className={styles.eyebrow}>HẢI TRÌNH OCEVIE</p><h2>{editorialTitle}</h2><p>{editorialDescription}</p></div>
-        {image === '/images/ports/hong-kong-victoria.webp' && <p className={styles.imageCredit}><a href="https://commons.wikimedia.org/wiki/File:Panorama_of_Hong_Kong_Harbour_from_The_Peak_dllu.jpg" target="_blank" rel="noreferrer">Victoria Harbour · Dllu</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a></p>}
+        {image === '/images/ports/hong-kong-victoria.webp' && <p className={styles.imageCredit}><a href="https://commons.wikimedia.org/wiki/File:Panorama_of_Hong_Kong_Harbour_from_The_Peak_dllu.jpg" target="_blank" rel="noopener noreferrer">Victoria Harbour · Dllu</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a></p>}
       </section>
     </main>
   </div>

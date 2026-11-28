@@ -12,12 +12,12 @@ export function BookingStatusBadge({ status }: { status: BookingDetail['bookingS
 
 export function BookingPaymentFacts({ booking }: { booking: BookingDetail }) {
   const money = (amount?: number | null) => amount == null ? 'Chưa cung cấp' : bookingMoney(amount, booking.currency)
-  return <RecordFacts entries={[
-    ['Tổng giá vé', money(booking.agreedFareAmount)],
-    ['Cọc yêu cầu', money(booking.requiredDepositAmount)],
-    ['Đã thu và đối soát', money(booking.totalPaidAmount)],
-    ['Còn phải thanh toán', money(booking.outstandingBalance)],
-  ]} />
+  return <dl className={styles.financialSummary} aria-label="Số tiền theo đặt chỗ">
+    <div><dt>Tổng giá trị đặt chỗ</dt><dd>{money(booking.agreedFareAmount)}</dd></div>
+    <div><dt>Đã ghi nhận thanh toán</dt><dd>{money(booking.totalPaidAmount)}</dd></div>
+    <div><dt>Còn phải thu</dt><dd>{money(booking.outstandingBalance)}</dd></div>
+    <div><dt>Mức đặt cọc yêu cầu</dt><dd>{money(booking.requiredDepositAmount)}</dd></div>
+  </dl>
 }
 
 export function BookingRecord({ booking, contractAction, summaryInHeader = false }:
@@ -34,13 +34,14 @@ export function BookingRecord({ booking, contractAction, summaryInHeader = false
         ['Tàu', booking.shipName ?? 'Chưa cung cấp'],
         ['Khởi hành', bookingWhen(booking.departureDatetime)],
         ['Kết thúc', bookingWhen(booking.returnDatetime)],
+        ...(booking.bookingStatus === 'Draft' && booking.holdExpiresAt ? [['Hạn giữ chỗ', bookingWhen(String(booking.holdExpiresAt))]] as const : []),
       ]} />
       {booking.cancellationReason && <p>Lý do hủy: {booking.cancellationReason}</p>}
     </Panel>
     <Panel title="Hành khách và cabin" className={styles.table}>
       {booking.passengers.length ? <DataTable label="Hành khách đặt chỗ" headers={['Hành khách', 'Ngày sinh / Quốc tịch', 'Liên hệ', 'Cabin', 'Gói đã chọn', 'Trạng thái']}>
         {booking.passengers.map(person => <tr key={person.bookingPassengerId}>
-          <th scope="row">{person.fullName}</th>
+          <th scope="row">{person.fullName}{booking.representativeBookingPassengerId === person.bookingPassengerId && <small className={styles.helper}>Người đại diện đặt chỗ</small>}</th>
           <td>{bookingBirthDate(person.dateOfBirth)}<br />{bookingNationalityName(person.nationality)}</td>
           <td>{person.email ?? 'Chưa cung cấp'}<br />{person.phoneNumber ?? 'Chưa cung cấp'}</td>
           <td>{person.cabinNumber ?? (person.cabinSelectionMode === 'CATEGORY_HOLD' ? 'Giữ chỗ theo hạng' : 'Chưa phân cabin')}</td>

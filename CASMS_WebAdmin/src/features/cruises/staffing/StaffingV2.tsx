@@ -2,7 +2,7 @@ import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { mutationOutcomeUnknown } from '@/shared/lib/mutation-outcome'
-import { Badge, Button, ButtonLink, Field, Loading, Modal, Notice, Panel } from '@/shared/ui'
+import { Badge, Button, ButtonLink, DataTable, Field, Loading, Modal, Notice, Panel } from '@/shared/ui'
 import { cruiseStaffApi } from '../api/cruise-staff-api'
 import {
   positionLabels, staffingApi, staffingCabinStatusLabels, staffingError, staffingMissing, staffingShipStatusLabels,
@@ -14,8 +14,9 @@ import { placementGuidance, placementKey, requiresReviewReload, resetImpactCopy,
 const actions = {
   PENDING_SHIP_REVIEW: { approve: 'SHIP_CHECKED', label: 'Xác nhận phương án tàu & chuyển HR', back: 'SHIP_RETURN_ASM', backLabel: 'Trả Quản lý dịch vụ bổ sung chương trình' },
   SHIP_REVIEWED: { approve: 'SEND_TO_HR', label: 'Gửi Quản lý nhân sự phân công', back: 'CRM_RETURN_SHIP', backLabel: 'Trả Quản lý tàu' },
-  SENT_TO_HR: { approve: 'HR_SUBMITTED', label: 'Gửi phương án cho Quản lý lịch trình', back: 'HR_RETURN_SHIP', backLabel: 'Báo thiếu hoặc yêu cầu kiểm tra lại tàu' },
-  HR_SUBMITTED: { approve: 'PLANNER_CONFIRMED', label: 'Gửi Quản lý vận hành duyệt', back: 'CRM_RETURN_HR', backLabel: 'Trả Quản lý nhân sự bổ sung' },
+  SENT_TO_HR: { approve: 'HR_SUBMITTED', label: 'Gửi Quản lý tàu xác nhận', back: 'HR_RETURN_SHIP', backLabel: 'Báo thiếu hoặc yêu cầu kiểm tra lại tàu' },
+  HR_SUBMITTED: { approve: 'SHIP_CONFIRMED', label: 'Xác nhận phương án sau phân công', back: 'RETURNED', backLabel: 'Trả Quản lý nhân sự bổ sung' },
+  SHIP_CONFIRMED: { approve: 'PLANNER_CONFIRMED', label: 'Gửi Quản lý vận hành duyệt', back: 'CRM_RETURN_HR', backLabel: 'Trả Quản lý nhân sự bổ sung' },
   PLANNER_CONFIRMED: { approve: 'OPS_APPROVED', label: 'Duyệt phương án nhân sự', back: 'OPS_RETURN_CRM', backLabel: 'Trả Quản lý lịch trình' },
 } satisfies Record<string, { approve: StaffingAction; label: string; back: StaffingAction; backLabel: string }>
 
@@ -23,7 +24,8 @@ const v2Steps = [
   { id: 'asm', title: 'Chương trình & định biên', owner: 'Quản lý dịch vụ', statuses: ['PENDING_ASM'] },
   { id: 'ship', title: 'Khu vực, POS & đặt dịch vụ', owner: 'Quản lý tàu', statuses: ['PENDING_SHIP_REVIEW', 'SHIP_REVIEWED'] },
   { id: 'hr', title: 'Phân công nhân sự', owner: 'Quản lý nhân sự', statuses: ['SENT_TO_HR'] },
-  { id: 'approval', title: 'Kiểm tra & phê duyệt', owner: 'Quản lý lịch trình → Quản lý vận hành', statuses: ['HR_SUBMITTED', 'PLANNER_CONFIRMED', 'OPS_APPROVED'] },
+  { id: 'ship-confirmation', title: 'Xác nhận sau phân công', owner: 'Quản lý tàu', statuses: ['HR_SUBMITTED'] },
+  { id: 'approval', title: 'Rà soát & phê duyệt', owner: 'Quản lý lịch trình → Quản lý vận hành', statuses: ['SHIP_CONFIRMED', 'PLANNER_CONFIRMED', 'OPS_APPROVED'] },
 ] as const
 
 const stageGuideCopy: Readonly<Record<string, { actor: string; next: string; title: string; detail: string }>> = {
@@ -36,8 +38,8 @@ const stageGuideCopy: Readonly<Record<string, { actor: string; next: string; tit
   PENDING_SHIP_REVIEW: {
     actor: 'Quản lý tàu',
     next: 'Quản lý nhân sự',
-    title: 'Mở khu vực phục vụ, gắn máy POS offline và bố trí dịch vụ',
-    detail: 'Thực hiện 3 bước bên dưới: (1) Chọn khu vực mở (có thể thêm vị trí riêng nếu cần) → (2) Gắn máy POS cho khu vực mở → (3) Đặt dịch vụ của Quản lý dịch vụ vào khu vực đã có POS, rồi chuyển thẳng sang HR phân công.',
+    title: 'Mở khu vực phục vụ, gắn thiết bị bán hàng và bố trí dịch vụ',
+    detail: 'Thực hiện 3 bước bên dưới: (1) Chọn khu vực mở (có thể thêm vị trí riêng nếu cần) → (2) Gắn thiết bị bán hàng cho khu vực mở → (3) Đặt dịch vụ vào khu vực đã cấu hình, rồi chuyển sang Quản lý nhân sự phân công.',
   },
   SHIP_REVIEWED: {
     actor: 'Quản lý lịch trình',
@@ -47,11 +49,17 @@ const stageGuideCopy: Readonly<Record<string, { actor: string; next: string; tit
   },
   SENT_TO_HR: {
     actor: 'Quản lý nhân sự',
-    next: 'Quản lý lịch trình',
+    next: 'Quản lý tàu',
     title: 'Phân công nhân sự đáp ứng định biên dịch vụ và ca hoạt động',
-    detail: 'Phân công đủ nhân viên cho từng dịch vụ (hệ thống tự liên kết khu vực/POS tương ứng) và các ca hoạt động/tour bờ, sau đó gửi Quản lý lịch trình kiểm tra.',
+    detail: 'Phân công đủ nhân viên cho từng dịch vụ và ca hoạt động/tour bờ, sau đó gửi Quản lý tàu xác nhận phương án.',
   },
   HR_SUBMITTED: {
+    actor: 'Quản lý tàu',
+    next: 'Quản lý lịch trình',
+    title: 'Kiểm tra phương án nhân sự sau khi HR phân công',
+    detail: 'Đối chiếu nhân viên, vị trí và ca làm với nhu cầu khai thác; xác nhận hoặc trả HR bổ sung trước khi CRM rà soát.',
+  },
+  SHIP_CONFIRMED: {
     actor: 'Quản lý lịch trình',
     next: 'Quản lý vận hành',
     title: 'Kiểm tra tổng hợp nhân sự và trình Quản lý vận hành phê duyệt',
@@ -117,6 +125,8 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
   const stage = state?.request.status ?? request.status
   const ship = !readOnly && !coordinator && stage === 'PENDING_SHIP_REVIEW'
     && access.roles.includes('SHIP_MANAGER') && access.has('CRUISE_PREPARATION_READ')
+  const shipConfirmation = !readOnly && !coordinator && stage === 'HR_SUBMITTED'
+    && access.roles.includes('SHIP_MANAGER') && access.has('CRUISE_PREPARATION_READ')
   const hr = !readOnly && !coordinator && stage === 'SENT_TO_HR'
     && access.roles.includes('HR_MANAGER') && access.canDo('CRUISE_STAFF_ASSIGN')
   const crm = coordinator && access.roles.includes('CRUISE_MANAGER') && access.canDo('CRUISE_PREPARATION_SUBMIT')
@@ -177,7 +187,7 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
       ? { approve: 'SHIP_CHECKED' as const, label: 'Xác nhận phương án tàu', back: undefined, backLabel: '' }
       : crm && (current.shipPlanStale || current.status === 'OPS_APPROVED')
         ? { approve: undefined, label: '', back: 'CRM_RETURN_SHIP' as const, backLabel: 'Trả Quản lý tàu kiểm tra lại' }
-        : ship || hr || ops || crm && (stage === 'SHIP_REVIEWED' || stage === 'HR_SUBMITTED')
+        : ship || shipConfirmation || hr || ops || crm && (stage === 'SHIP_REVIEWED' || stage === 'SHIP_CONFIRMED')
           ? actions[current.status as keyof typeof actions]
           : undefined
   const selected = current.activeAreaIds ?? []
@@ -958,6 +968,74 @@ export function StaffingV2({ request, onChanged, onCompleted, coordinator = fals
 
       {hr ? (
         <>
+          {(() => {
+            const areaMap = new Map<string, { name: string; required: number; assigned: number }>()
+            for (const svc of serviceNeeds) {
+              const key = svc.areaName || svc.serviceName
+              const entry = areaMap.get(key) ?? { name: key, required: 0, assigned: 0 }
+              entry.required += svc.requiredCount
+              entry.assigned += svc.assignedUserIds.length
+              areaMap.set(key, entry)
+            }
+            for (const need of needs) {
+              const key = need.areaName
+              const entry = areaMap.get(key) ?? { name: key, required: 0, assigned: 0 }
+              entry.required += need.requiredCount
+              entry.assigned += need.assignedUserIds.length
+              areaMap.set(key, entry)
+            }
+            if (state.activities.length > 0) {
+              const actReq = state.activities.reduce((sum, a) => sum + (a.requiredStaffCount ?? 1), 0)
+              const actAsg = state.activities.reduce((sum, a) => sum + a.staffIds.length, 0)
+              areaMap.set('__activities__', { name: 'Khu vực hoạt động & tour bờ', required: actReq, assigned: actAsg })
+            }
+            const areaRows = [...areaMap.values()]
+            return (
+              <Panel title="Tổng hợp nhu cầu & phân công theo khu vực">
+                <div className={styles.section}>
+                  <div className={styles.workforceKpiStrip} role="region" aria-label="Tổng hợp định biên nhân sự">
+                    <div className={styles.workforceKpiCard}>
+                      <span>Nhu cầu nhân sự</span>
+                      <strong>{totalRequired}</strong>
+                    </div>
+                    <div className={styles.workforceKpiCard}>
+                      <span>Đã phân công</span>
+                      <strong>{totalAssigned}</strong>
+                    </div>
+                    <div className={styles.workforceKpiCard}>
+                      <span>Còn thiếu</span>
+                      <strong className={missingStaffCount > 0 ? styles.queueGap : styles.queueReady}>{missingStaffCount}</strong>
+                    </div>
+                  </div>
+                  {areaRows.length > 0 && (
+                    <DataTable label="Phân bổ nhân sự theo khu vực" headers={['Khu vực', 'Nhu cầu', 'Đã phân công', 'Tình trạng']}>
+                      {areaRows.map(row => {
+                        const rowGap = Math.max(0, row.required - row.assigned)
+                        return (
+                          <tr key={row.name}>
+                            <th scope="row">{row.name}</th>
+                            <td>{row.required}</td>
+                            <td>{row.assigned}</td>
+                            <td>
+                              <Badge
+                                label={rowGap === 0 ? 'Đủ số lượng' : `Thiếu ${rowGap}`}
+                                tone={rowGap === 0 ? 'success' : 'warning'}
+                              />
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </DataTable>
+                  )}
+                  {missingStaffCount > 0 && (
+                    <p className={styles.queueGap}>
+                      Còn thiếu {missingStaffCount} nhân viên theo nhu cầu đã xác định.
+                    </p>
+                  )}
+                </div>
+              </Panel>
+            )
+          })()}
           {staffingAssignmentPanel}
           {!stale && !current.shipPlanStale && activitySection}
           <details className={styles.details}>

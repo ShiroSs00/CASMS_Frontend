@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, ScrollRestoration, useLocation, useNavigation } from 'react-router'
 import { PublicFooter } from './PublicFooter'
 import { PublicContact } from './PublicContact'
-import { NotificationBell } from '@/features/notifications/NotificationBell'
+import { NotificationBell } from '@/features/notifications'
 import styles from './PublicLayout.module.css'
 import experience from '@/shared/ui/Experience.module.css'
 
@@ -58,8 +58,10 @@ export function PublicLayout() {
       <div className={styles.brandNav}>
         <NavLink className={styles.brand} to="/" end aria-label="OceVie"><BrandLogo /></NavLink>
         <nav ref={desktopNav} aria-label="Điều hướng chính" className={styles.desktopNav}>
-          {navigationLinks.map(([to, label]) => <NavLink key={to} to={to}>{label}</NavLink>)}
-          {authStatus === 'authenticated' && <NavLink to="/my-bookings">Đặt chỗ của tôi</NavLink>}
+          {navigationLinks
+            .filter(([to]) => authStatus !== 'authenticated' || to !== '/booking/lookup')
+            .map(([to, label]) => <NavLink key={to} to={to}>{label}</NavLink>)}
+          {authStatus === 'authenticated' && <NavLink to="/my-bookings">Chuyến đi của tôi</NavLink>}
         </nav>
       </div>
       <div className={styles.accountNav}>
@@ -103,7 +105,7 @@ export function PublicLayout() {
         {navigationLinks.map(([to, label]) => <NavLink key={to} to={to} onClick={() => setMenuLocation(null)}>{label}</NavLink>)}
         {authStatus === 'authenticated' ? (
           <>
-            <NavLink to="/my-bookings" onClick={() => setMenuLocation(null)}>Đặt chỗ của tôi</NavLink>
+            <NavLink to="/my-bookings" onClick={() => setMenuLocation(null)}>Chuyến đi của tôi</NavLink>
             <Button tone="secondary" autoWidth onClick={() => { setMenuLocation(null); void logout() }}>Đăng xuất ({user?.username})</Button>
           </>
         ) : (

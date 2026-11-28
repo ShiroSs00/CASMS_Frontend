@@ -81,12 +81,20 @@ export function BookingAccountActivationPage({ link, support }: { link: Activati
       {showForm ? <form onSubmit={event => { void submit(event) }} noValidate aria-busy={status === 'busy'}>
         {error && <Notice title="Chưa thể hoàn tất" tone="error">{error}</Notice>}
         <Field htmlFor="activation-password" label="Mật khẩu mới *" hint="Từ 8 đến 24 ký tự (không quá dài khi dùng ký tự có dấu)." error={fields.password}>
-          <input ref={password} id="activation-password" type={visible ? 'text' : 'password'} autoComplete="new-password" required disabled={status === 'busy'} />
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <input ref={password} id="activation-password" type={visible ? 'text' : 'password'} autoComplete="new-password" required disabled={status === 'busy'} style={{ width: '100%', paddingRight: '44px' }} />
+            <button type="button" aria-label={visible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} aria-pressed={visible} aria-controls="activation-password activation-confirmation" title={visible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} disabled={status === 'busy'} onClick={() => setVisible(value => !value)} style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', border: 0, borderRadius: '6px', background: 'transparent', color: 'var(--muted, #506777)', cursor: 'pointer' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                <circle cx="12" cy="12" r="3" />
+                {visible && <path d="m3 3 18 18" />}
+              </svg>
+            </button>
+          </div>
         </Field>
         <Field htmlFor="activation-confirmation" label="Xác nhận mật khẩu *" error={fields.confirmation}>
           <input ref={confirmation} id="activation-confirmation" type={visible ? 'text' : 'password'} autoComplete="new-password" required disabled={status === 'busy'} />
         </Field>
-        <Button tone="text" autoWidth className={styles.visibility} aria-pressed={visible} aria-controls="activation-password activation-confirmation" disabled={status === 'busy'} onClick={() => setVisible(value => !value)}>{visible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}</Button>
         <Button type="submit" busy={status === 'busy'} fullWidth>{status === 'busy' ? 'Đang kích hoạt…' : 'Kích hoạt tài khoản'}</Button>
         {status === 'busy' && <p className={styles.pending} role="status">Đang xử lý yêu cầu…</p>}
       </form> : <div ref={result} tabIndex={-1} className={styles.result}>

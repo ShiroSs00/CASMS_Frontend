@@ -12,6 +12,7 @@ import { CruiseFrame } from './CruiseUI'
 import { PreparationEvidence } from './PreparationEvidence'
 import styles from '../staffing/Staffing.module.css'
 import workspaceStyles from './ManagerWorkspace.module.css'
+import { showStandaloneHandoff } from '../model/handoff-presentation'
 
 type Group = 'ASM' | 'SHIP'
 type Action = 'ACCEPT' | 'COMPLETE' | 'RETURN'
@@ -40,13 +41,13 @@ type Task = {
   staffingStatus?: string | null
   shipAssigned?: boolean
 }
-type Work = { canDispatch: boolean; shipAssigned: boolean; tasks: Task[]; staffingRequestId?: string | null; canReopenAsm?: boolean }
+export type Work = { canDispatch: boolean; shipAssigned: boolean; tasks: Task[]; staffingRequestId?: string | null; canReopenAsm?: boolean }
 const labels = { ASM: 'Hoạt động, dịch vụ và tour bờ', SHIP: 'Cabin, khu vực và khả năng phục vụ' }
 const teams = { ASM: 'Quản lý dịch vụ', SHIP: 'Quản lý tàu' }
 const statuses = {
-  PENDING: 'Chờ xử lý',
-  IN_PROGRESS: 'Đang xử lý',
-  COMPLETED: 'Đã phản hồi',
+  PENDING: 'Chờ tiếp nhận',
+  IN_PROGRESS: 'Đang chuẩn bị',
+  COMPLETED: 'Đã bàn giao',
   RETURNED: 'Cần bổ sung',
 }
 const statusTones = {
@@ -63,18 +64,24 @@ export function CruiseWorkHandoff({
   budgetAmount,
   budgetLoading,
   budgetUnavailable,
+  coordinated = false,
+  providedQuery,
 }: {
   cruiseId: string
   budgetAmount: string | null
   budgetLoading: boolean
   budgetUnavailable: boolean
+  coordinated?: boolean
+  providedQuery?: { data: Work | null; loading: boolean; error: Error | null; retry: () => void }
 }) {
   const access = useSessionAccess()
   const path = `${root}/${encodeURIComponent(cruiseId)}`
-  const read = useReadQuery(
+  const provided = Boolean(providedQuery)
+  const fallback = useReadQuery(
     `${path}:${access.userId}`,
-    useCallback(signal => apiRequest<Work>(path, { signal }), [path]),
+    useCallback(signal => provided ? Promise.resolve(null) : apiRequest<Work>(path, { signal }), [path, provided]),
   )
+  const read = providedQuery ?? fallback
   if (read.error instanceof ApiError && read.error.status === 403) return null
   return (
     <>
@@ -86,7 +93,7 @@ export function CruiseWorkHandoff({
       )}
       {read.data && (
         <>
-          {!budgetAmount && read.data.canDispatch && (
+          {(budgetLoading || budgetUnavailable) && read.data.canDispatch && (
             <div className={styles.handoffBudgetWrap}>
               <Notice title={budgetLoading ? 'Đang kiểm tra ngân sách vận hành…' : 'Cần nhập ngân sách vận hành trước khi giao việc'} tone={budgetUnavailable ? 'warning' : 'info'}>
                 {budgetLoading ? (
@@ -105,42 +112,34 @@ export function CruiseWorkHandoff({
           {(['ASM', 'SHIP'] as const).map(group => {
             if (group === 'SHIP' && read.data?.staffingRequestId) return null
             const task = read.data?.tasks.find(item => item.group === group)
-            const canSend = read.data?.canDispatch && (!task || task.status === 'RETURNED')
+            if (providedQuery && !task) return null
+            if (coordinated && !task && (group === 'ASM' || read.data?.shipAssigned)) return null
+            const canSend = showStandaloneHandoff(Boolean(read.data?.canDispatch), coordinated, task?.status, read.data?.staffingRequestId)
             return (
               <section className={workspaceStyles.deptUnitBox} key={group} aria-label={teams[group]}>
                 <header className={workspaceStyles.deptUnitHeader}>
                   <div>
-                    <h4>{teams[group]}</h4>
-                    <p className={workspaceStyles.sectionMeta}>{labels[group]}</p>
-                  </div>
+                    <div className={workspaceStyles.deptUnitTitle}>
+                      <h4>{teams[group]}</h4>
                   <Badge
                     tone={task ? statusTones[task.status] : 'neutral'}
-                    label={task ? statuses[task.status] : 'Chưa gửi'}
+                    label={task ? statuses[task.status] : group === 'SHIP' && !read.data?.shipAssigned ? 'Chưa phân công Quản lý tàu' : 'Chưa gửi yêu cầu'}
                   />
+                    </div>
+                    <p className={workspaceStyles.sectionMeta}>{labels[group]}</p>
+                  </div>
                 </header>
-                {task ? <TaskStatus task={task} compact /> : (
-                  <p className={workspaceStyles.sectionMeta}>Chưa gửi yêu cầu chuẩn bị.</p>
-                )}
+                {task ? <TaskStatus task={task} compact /> : null}
                 {task && group === 'ASM' && read.data?.canReopenAsm && (
                   <ReopenProgram task={task} onChanged={read.retry} />
                 )}
                 {task && group === 'ASM' && task.status === 'COMPLETED' && read.data?.staffingRequestId && read.data.canDispatch && (
                   <p className={workspaceStyles.sectionMeta}>Nếu cần bổ sung chương trình, trả phương án qua yêu cầu chuẩn bị tàu và nhân sự để đồng bộ các bộ phận.</p>
                 )}
-                {canSend && budgetAmount && (group === 'ASM' || read.data?.shipAssigned) ? (
-                  <details className={styles.handoffCompose} key={task?.revision ?? 0}>
-                    <summary>
-                      {task?.status === 'RETURNED'
-                        ? 'Bổ sung và gửi lại yêu cầu'
-                        : group === 'ASM'
-                          ? 'Soạn yêu cầu cho Quản lý dịch vụ'
-                          : 'Soạn yêu cầu cho Quản lý tàu'}
-                    </summary>
-                    <SendRequest path={`${path}/${group}`} group={group} initialMessage={task?.request ?? ''} onChanged={read.retry} />
-                  </details>
+                {canSend && budgetAmount && !budgetLoading && !budgetUnavailable && (group === 'ASM' || read.data?.shipAssigned) ? (
+                  <ComposeRequest key={task?.revision ?? 0} path={`${path}/${group}`} group={group} task={task} onChanged={read.retry} />
                 ) : (
-                  canSend &&
-                  budgetAmount && <p className={workspaceStyles.sectionMeta}>Phân công Quản lý tàu cho chuyến để gửi yêu cầu xác nhận.</p>
+                  group === 'SHIP' && !read.data?.shipAssigned && <p className={workspaceStyles.sectionMeta}>Phụ trách phân công: Quản lý nhân sự. Bạn có thể bắt đầu chuẩn bị chuyến ở trên; hệ thống chuyển tiếp theo tiến độ chương trình và phương án tàu. Yêu cầu xác nhận tàu riêng chỉ gửi được khi đã có người phụ trách.</p>
                 )}
               </section>
             )
@@ -211,6 +210,13 @@ function TaskStatus({ task, compact = false }: { task: Task; compact?: boolean }
       )}
     </dl>
   )
+  if (compact) return <div className={workspaceStyles.handoffSummary}>
+    {task.assignee && <p className={workspaceStyles.sectionMeta}>Người xử lý: {task.assignee}</p>}
+    <p><span className={workspaceStyles.sectionMeta}>Yêu cầu đã gửi: </span>{task.request}</p>
+    {task.response && <div className={workspaceStyles.deptResponseBox}>
+      <strong>{task.status === 'RETURNED' ? 'Lý do cần bổ sung' : 'Kết quả'}</strong><p>{task.response}</p>
+    </div>}
+  </div>
   return (
     <div className={styles.section}>
       {!compact && (
@@ -225,16 +231,23 @@ function TaskStatus({ task, compact = false }: { task: Task; compact?: boolean }
           <p>{task.response}</p>
         </div>
       )}
-      {compact ? (
-        <details className={styles.handoffCompose}>
-          <summary>Xem nội dung yêu cầu đã gửi</summary>
-          {details}
-        </details>
-      ) : (
-        details
-      )}
+      {details}
     </div>
   )
+}
+
+function ComposeRequest({ path, group, task, onChanged }: { path: string; group: Group; task?: Task; onChanged: () => void }) {
+  const [open, setOpen] = useState(false)
+  const formId = useId()
+  return <div className={workspaceStyles.handoffAction}>
+    <Button tone="secondary" size="compact" autoWidth aria-expanded={open} aria-controls={formId} onClick={() => setOpen(!open)}>
+      {task?.status === 'RETURNED' ? 'Bổ sung và gửi lại yêu cầu' : `Gửi yêu cầu riêng cho ${teams[group]}`}
+    </Button>
+    {!task && <p className={workspaceStyles.sectionMeta}>Dùng khi cần giao nội dung riêng cho bộ phận này.</p>}
+    <div id={formId} hidden={!open}>
+      <SendRequest path={path} group={group} initialMessage={task?.request ?? ''} onChanged={onChanged} />
+    </div>
+  </div>
 }
 
 function SendRequest({ path, group, initialMessage, onChanged }: {
@@ -317,7 +330,6 @@ const loadServiceLocationInbox = (signal: AbortSignal) =>
 export function CruiseWorkInboxPage() {
   const access = useSessionAccess()
   const isShipManager = access.roles.includes('SHIP_MANAGER') && access.has('CRUISE_PREPARATION_READ')
-  const isAsm = access.roles.includes('ACTIVITY_SERVICE_MANAGER') && !isShipManager
   const query = useReadQuery('cruise-work-inbox:' + access.userId, inbox)
   const locationInbox = useReadQuery(
     `ship-hub-locations:${access.userId}:${isShipManager}`,
@@ -327,27 +339,32 @@ export function CruiseWorkInboxPage() {
     `ship-hub-staffing:${access.userId}:${isShipManager}`,
     useCallback(signal => (isShipManager ? staffingApi.inbox(signal) : Promise.resolve([])), [isShipManager]),
   )
-  const [showDone, setShowDone] = useState(false)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'DONE'>('ALL')
   const [selectedKey, setSelectedKey] = useState<string>('')
 
-  const allTasks = query.data ?? []
-  const openTasks = allTasks.filter(task => task.status === 'PENDING' || task.status === 'IN_PROGRESS')
-  const doneTasks = allTasks.filter(task => task.status === 'COMPLETED' || task.status === 'RETURNED')
-  const activePool = showDone ? doneTasks : openTasks
+  const statusPriority = (s: Task['status']) =>
+    s === 'RETURNED' ? 0 : s === 'PENDING' ? 1 : s === 'IN_PROGRESS' ? 2 : 3
+  const allTasks = [...(query.data ?? [])].sort((a, b) => {
+    const pDiff = statusPriority(a.status) - statusPriority(b.status)
+    if (pDiff !== 0) return pDiff
+    return (Date.parse(b.departureAt ?? '') || 0) - (Date.parse(a.departureAt ?? '') || 0)
+      || b.cruiseCode.localeCompare(a.cruiseCode, 'vi', { numeric: true })
+  })
+  const openCount = allTasks.filter(t => t.status !== 'COMPLETED').length
+  const doneCount = allTasks.filter(t => t.status === 'COMPLETED').length
   const q = search.trim().toLowerCase()
-  const rows = q
-    ? activePool.filter(
-        task =>
-          task.cruiseName.toLowerCase().includes(q)
-          || task.cruiseCode.toLowerCase().includes(q)
-          || (task.shipName ?? '').toLowerCase().includes(q),
-      )
-    : activePool
+  const rows = allTasks.filter(task => {
+    if (statusFilter === 'OPEN' && task.status === 'COMPLETED') return false
+    if (statusFilter === 'DONE' && task.status !== 'COMPLETED') return false
+    if (!q) return true
+    return task.cruiseName.toLowerCase().includes(q)
+      || task.cruiseCode.toLowerCase().includes(q)
+      || (task.shipName ?? '').toLowerCase().includes(q)
+  })
   const taskKey = (task: Task) => `${task.cruiseId}:${task.group}`
   const activeTask = rows.find(task => taskKey(task) === selectedKey) ?? rows[0] ?? null
 
-  const pendingLocationTours = (locationInbox.data ?? []).length
   const pendingLocationCount = (locationInbox.data ?? []).reduce((sum, item) => sum + (item.pending ?? 0), 0)
   const pendingStaffingCount = (staffingInbox.data ?? []).filter(
     req => req.status === 'PENDING_SHIP_REVIEW' || (req.workflowVersion !== 'V2' && req.status === 'HR_SUBMITTED'),
@@ -366,126 +383,38 @@ export function CruiseWorkInboxPage() {
       <div className={styles.workspace}>
         <div className={styles.stack}>
           <PageHeader
-            breadcrumb={isAsm ? 'Quản lý hoạt động và dịch vụ' : 'Quản lý tàu'}
-            title={isAsm ? 'Yêu cầu chuẩn bị chương trình' : 'Xét duyệt tàu cho chuyến'}
-            description={
-              isAsm
-                ? 'Nhận yêu cầu từ Quản lý lịch trình, mở chương trình để thiết lập hoạt động & dịch vụ theo tàu rồi gửi xác nhận hoàn tất.'
-                : 'Tổng hợp toàn bộ đầu việc cần Quản lý tàu phản hồi cho các chuyến khởi hành: xác nhận khả năng đáp ứng tàu, duyệt bố trí dịch vụ trên boong và xét phương án nhân sự.'
-            }
-            actions={<Button tone="secondary" size="compact" autoWidth onClick={refreshAll}>Cập nhật</Button>}
+            breadcrumb={isShipManager ? 'Phối hợp & duyệt chuyến' : 'Quản lý hoạt động và dịch vụ'}
+            title={isShipManager ? 'Xác nhận tàu' : 'Yêu cầu chuẩn bị chương trình'}
+            description=""
+            actions={<Button tone="secondary" size="compact" autoWidth onClick={refreshAll}>Làm mới</Button>}
           />
 
-          {isShipManager && (
-            <section className={styles.hubGrid} aria-label="Tổng hợp đầu việc của Quản lý tàu">
-              <div className={`${styles.hubCard} ${styles.hubCardCurrent}`}>
-                <div className={styles.hubCardTop}>
-                  <h2 className={styles.hubCardTitle}>1. Xác nhận đáp ứng tàu</h2>
-                  <Badge
-                    tone={openTasks.length > 0 ? 'warning' : 'neutral'}
-                    label={openTasks.length > 0 ? `${openTasks.length} đang chờ` : 'Đang xem'}
-                  />
+          <Panel>
+            <div className={styles.section}>
+              {allTasks.length > 0 && (
+                <div className={styles.inboxToolbar}>
+                  <div className={styles.inboxTabs} role="tablist" aria-label="Lọc trạng thái công việc">
+                    <Button size="compact" autoWidth tone={statusFilter === 'ALL' ? 'primary' : 'secondary'} onClick={() => setStatusFilter('ALL')}>
+                      Tất cả ({allTasks.length})
+                    </Button>
+                    <Button size="compact" autoWidth tone={statusFilter === 'OPEN' ? 'primary' : 'secondary'} onClick={() => setStatusFilter('OPEN')}>
+                      Cần xử lý ({openCount})
+                    </Button>
+                    <Button size="compact" autoWidth tone={statusFilter === 'DONE' ? 'primary' : 'secondary'} onClick={() => setStatusFilter('DONE')}>
+                      Đã bàn giao ({doneCount})
+                    </Button>
+                  </div>
+                  <div className={styles.inboxSearch}>
+                    <input
+                      type="search"
+                      aria-label="Tìm nhanh theo mã chuyến, tên chuyến hoặc tên tàu"
+                      placeholder="Tìm theo mã chuyến, tên chuyến hoặc tên tàu…"
+                      value={search}
+                      onChange={event => setSearch(event.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className={styles.hubCardCount}>{openTasks.length}</div>
-                <p className={styles.hubCardDesc}>
-                  Yêu cầu từ Quản lý lịch trình xác nhận tàu, cabin và khả năng phục vụ của chuyến.
-                </p>
-                <div className={styles.hubCardFoot}>
-                  <span className={styles.subtle}>Hiển thị ngay bên dưới</span>
-                </div>
-              </div>
-
-              <div className={`${styles.hubCard} ${pendingLocationCount > 0 ? styles.hubCardAlert : ''}`}>
-                <div className={styles.hubCardTop}>
-                  <h2 className={styles.hubCardTitle}>2. Đề nghị bố trí dịch vụ</h2>
-                  <Badge
-                    tone={pendingLocationCount > 0 ? 'warning' : 'success'}
-                    label={pendingLocationCount > 0 ? `${pendingLocationCount} đề nghị chờ` : 'Đã xử lý hết'}
-                  />
-                </div>
-                <div className={styles.hubCardCount}>
-                  {locationInbox.loading ? '…' : pendingLocationCount}
-                </div>
-                <p className={styles.hubCardDesc}>
-                  {pendingLocationCount > 0
-                    ? `Có ${pendingLocationCount} đề nghị bố trí dịch vụ trên boong tại ${pendingLocationTours} chuyến cần bạn duyệt.`
-                    : 'Chưa có đề nghị bố trí dịch vụ nào từ Quản lý dịch vụ đang chờ duyệt.'}
-                </p>
-                <div className={styles.hubCardFoot}>
-                  <ButtonLink
-                    to="/admin/service-locations"
-                    tone={pendingLocationCount > 0 ? 'primary' : 'secondary'}
-                    size="compact"
-                    autoWidth
-                  >
-                    {pendingLocationCount > 0 ? `Mở ${pendingLocationCount} đề nghị cần duyệt →` : 'Xem bố trí dịch vụ'}
-                  </ButtonLink>
-                </div>
-              </div>
-
-              <div className={`${styles.hubCard} ${pendingStaffingCount > 0 ? styles.hubCardAlert : ''}`}>
-                <div className={styles.hubCardTop}>
-                  <h2 className={styles.hubCardTitle}>3. Chuẩn bị phương án tàu</h2>
-                  <Badge
-                    tone={pendingStaffingCount > 0 ? 'warning' : 'success'}
-                    label={pendingStaffingCount > 0 ? `${pendingStaffingCount} chờ xử lý` : 'Đã xử lý hết'}
-                  />
-                </div>
-                <div className={styles.hubCardCount}>
-                  {staffingInbox.loading ? '…' : pendingStaffingCount}
-                </div>
-                <p className={styles.hubCardDesc}>
-                  {pendingStaffingCount > 0
-                    ? `Có ${pendingStaffingCount} phương án khu vực, POS và định biên nhân sự chờ bạn xác nhận.`
-                    : 'Chưa có phương án tàu nào chờ bạn xử lý. Các chuyến mới xong chương trình cần HR gắn Quản lý tàu trước khi hiển thị tại đây.'}
-                </p>
-                <div className={styles.hubCardFoot}>
-                  <ButtonLink
-                    to="/admin/staffing-reviews"
-                    tone={pendingStaffingCount > 0 ? 'primary' : 'secondary'}
-                    size="compact"
-                    autoWidth
-                  >
-                    {pendingStaffingCount > 0 ? `Mở ${pendingStaffingCount} phương án →` : 'Xem phương án tàu'}
-                  </ButtonLink>
-                </div>
-              </div>
-            </section>
-          )}
-
-          <div className={styles.inboxToolbar}>
-            <div className={styles.inboxTabs} role="tablist" aria-label="Bộ lọc trạng thái yêu cầu">
-              <Button
-                tone={!showDone ? 'primary' : 'secondary'}
-                size="compact"
-                autoWidth
-                aria-pressed={!showDone}
-                onClick={() => setShowDone(false)}
-              >
-                Đang mở ({openTasks.length})
-              </Button>
-              <Button
-                tone={showDone ? 'primary' : 'secondary'}
-                size="compact"
-                autoWidth
-                aria-pressed={showDone}
-                onClick={() => setShowDone(true)}
-              >
-                Đã phản hồi ({doneTasks.length})
-              </Button>
-            </div>
-            {activePool.length > 0 && (
-              <div className={styles.inboxSearch}>
-                <input
-                  type="search"
-                  aria-label="Tìm nhanh theo mã chuyến, tên chuyến hoặc tên tàu"
-                  placeholder="Tìm theo mã chuyến, tên chuyến hoặc tên tàu…"
-                  value={search}
-                  onChange={event => setSearch(event.target.value)}
-                />
-              </div>
-            )}
-          </div>
+              )}
 
           {query.loading && <Loading label="Đang tải danh sách yêu cầu…" />}
           {query.error && (
@@ -498,11 +427,9 @@ export function CruiseWorkInboxPage() {
               title={
                 q
                   ? 'Không tìm thấy yêu cầu phù hợp từ khóa'
-                  : showDone
-                    ? 'Chưa có yêu cầu nào đã phản hồi'
-                    : isShipManager
-                      ? 'Không có yêu cầu xác nhận đáp ứng tàu đang mở'
-                      : 'Chưa có yêu cầu chuẩn bị chương trình nào đang mở'
+                  : isShipManager
+                    ? 'Chưa có yêu cầu xác nhận tàu nào'
+                    : 'Chưa có yêu cầu chuẩn bị chương trình nào'
               }
             >
               {q ? (
@@ -524,7 +451,7 @@ export function CruiseWorkInboxPage() {
                   </ButtonLink>
                 </>
               ) : isShipManager ? (
-                <p>Chuyến mới hoàn tất chương trình cần Quản lý nhân sự phân công bạn làm Quản lý tàu phụ trách trước khi xuất hiện tại đây.</p>
+                <p>Yêu cầu xác nhận tàu sẽ xuất hiện tại đây khi Quản lý lịch trình gửi chuẩn bị chuyến cho tàu bạn phụ trách.</p>
               ) : null}
             </Empty>
           )}
@@ -564,6 +491,8 @@ export function CruiseWorkInboxPage() {
               </div>
             </div>
           )}
+            </div>
+          </Panel>
         </div>
       </div>
     </CruiseFrame>
@@ -589,11 +518,11 @@ function WorkItem({ task, onChanged }: { task: Task; onChanged: () => void }) {
     : []
 
   const sourcePlanLabel = task.sourceTripCode
-    ? `${task.sourceTripCode}${task.sourceVersionNumber != null ? ` (v${task.sourceVersionNumber})` : ''}${task.sourceTripName ? ` · ${task.sourceTripName}` : ''}`
-    : 'Chưa gắn lịch trình nguồn'
+    ? `${task.sourceTripCode}${task.sourceTripName ? ` · ${task.sourceTripName}` : ''}`
+    : 'Chưa gắn lịch trình mẫu'
   const shipLabel = task.shipName
-    ? `${task.shipName}${task.shipCapacity != null ? ` · ${task.shipCapacity} chỗ` : ''}`
-    : 'Chưa phân công tàu'
+    ? `${task.shipName}${task.shipCapacity != null ? ` · ${task.shipCapacity} hành khách` : ''}`
+    : 'Chưa gán tàu'
   const scheduleRange =
     task.departureAt && task.returnAt
       ? `${journeyTime(task.departureAt)} → ${journeyTime(task.returnAt)}`
@@ -601,7 +530,7 @@ function WorkItem({ task, onChanged }: { task: Task; onChanged: () => void }) {
         ? journeyTime(task.departureAt)
         : 'Chưa có lịch khởi hành'
   const scaleBudget = [
-    task.expectedPassengerCount != null ? `${task.expectedPassengerCount} khách` : null,
+    task.expectedPassengerCount != null ? `${task.expectedPassengerCount} hành khách` : null,
     task.operatingBudgetVnd ? `Ngân sách ${formatOperatingBudget(task.operatingBudgetVnd)}` : null,
   ].filter(Boolean).join(' · ') || 'Chưa cập nhật'
 
@@ -623,31 +552,37 @@ function WorkItem({ task, onChanged }: { task: Task; onChanged: () => void }) {
 
         <div className={styles.workMetaGrid}>
           <div className={styles.workMetaItem}>
-            <span className={styles.workMetaLabel}>Tàu phân công</span>
+            <span className={styles.workMetaLabel}>Tàu &amp; sức chứa tàu</span>
             <span className={styles.workMetaValue}>{shipLabel}</span>
           </div>
           <div className={styles.workMetaItem}>
-            <span className={styles.workMetaLabel}>Thời gian chạy (giờ VN)</span>
+            <span className={styles.workMetaLabel}>Thời gian chạy</span>
             <span className={styles.workMetaValue}>{scheduleRange}</span>
           </div>
           <div className={styles.workMetaItem}>
-            <span className={styles.workMetaLabel}>Quy mô & ngân sách</span>
+            <span className={styles.workMetaLabel}>Quy mô chuyến &amp; ngân sách</span>
             <span className={styles.workMetaValue}>{scaleBudget}</span>
           </div>
           <div className={styles.workMetaItem}>
-            <span className={styles.workMetaLabel}>Lịch trình nguồn</span>
+            <span className={styles.workMetaLabel}>Lịch trình mẫu</span>
             <span className={styles.workMetaValue}>{sourcePlanLabel}</span>
           </div>
         </div>
+
+        {task.status === 'RETURNED' && task.response && (
+          <Notice tone="warning" title="Yêu cầu bổ sung">
+            {task.response}
+          </Notice>
+        )}
 
         <div className={styles.workBriefBox}>
           <span className={styles.workBriefLabel}>Yêu cầu từ Quản lý lịch trình</span>
           <p className={styles.workBriefText}>{task.request}</p>
         </div>
 
-        {task.response && (
+        {task.status !== 'RETURNED' && task.response && (
           <div className={workspaceStyles.deptResponseBox}>
-            <strong>{task.status === 'RETURNED' ? 'Nội dung đã yêu cầu bổ sung' : 'Kết quả đã phản hồi'}</strong>
+            <strong>Kết quả đã bàn giao</strong>
             <p>{task.response}</p>
           </div>
         )}
@@ -697,19 +632,10 @@ function WorkItem({ task, onChanged }: { task: Task; onChanged: () => void }) {
         {task.group === 'SHIP' && <PreparationEvidence cruiseId={task.cruiseId} sectionCode="TECHNICAL_NAUTICAL" refreshKey={task.revision} onChanged={onChanged} />}
 
         {task.canAccept && (
-          <div className={styles.stepBox}>
-            <div className={styles.stepHeader}>
-              <span className={styles.stepNum}>1</span>
-              <h4 className={styles.stepTitle}>Tiếp nhận yêu cầu chuẩn bị</h4>
-            </div>
-            <p className={styles.stepHint}>
-              Bấm nhận yêu cầu để mở không gian thiết lập chương trình và gửi phản hồi cho Quản lý lịch trình.
-            </p>
-            <div className={styles.inlineActions}>
-              <Button autoWidth busy={action.busy} onClick={() => respond('ACCEPT')}>
-                Nhận yêu cầu
-              </Button>
-            </div>
+          <div className={styles.inlineActions}>
+            <Button autoWidth busy={action.busy} onClick={() => respond('ACCEPT')}>
+              Tiếp nhận yêu cầu
+            </Button>
           </div>
         )}
 
@@ -719,14 +645,11 @@ function WorkItem({ task, onChanged }: { task: Task; onChanged: () => void }) {
               <div className={styles.stepBox}>
                 <div className={styles.stepHeader}>
                   <span className={styles.stepNum}>1</span>
-                  <h4 className={styles.stepTitle}>Thiết lập chương trình, hoạt động & bố trí dịch vụ</h4>
+                  <h4 className={styles.stepTitle}>Thiết lập chương trình & dịch vụ</h4>
                 </div>
-                <p className={styles.stepHint}>
-                  Mở không gian chương trình của chuyến để xếp lịch hoạt động trên tàu, tour bờ, gói áp dụng và gửi đề nghị bố trí dịch vụ tại các boong.
-                </p>
                 <div className={styles.inlineActions}>
                   <ButtonLink to={cruisePath + programContext} tone="secondary" autoWidth>
-                    Mở chương trình chuyến khởi hành →
+                    Mở chương trình chuyến →
                   </ButtonLink>
                 </div>
               </div>

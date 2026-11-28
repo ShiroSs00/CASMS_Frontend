@@ -58,7 +58,7 @@ export function FleetEditDialog({ target, onClose, onSaved }: { target: FleetEdi
           <Field htmlFor={`${formId}-date`} label="Ngày đưa vào hoạt động" error={errors.commissionDate}><input id={`${formId}-date`} type="date" value={draft.commissionDate} disabled={mutation.busy} onChange={event => change('commissionDate', event.target.value)} /></Field>
         </div>}
       </> : target.kind === 'decks' ? <>
-        <p className={styles.muted}>Boong {target.item.number}. Số boong và vị trí trong mô hình được giữ nguyên khi cập nhật thông tin vận hành.</p>
+        <p className={styles.muted}>Boong số {target.item.number}. Thứ tự boong và vị trí trong mô hình được giữ nguyên khi cập nhật thông tin vận hành.</p>
         <Field htmlFor={`${formId}-name`} label="Tên boong" error={errors.name}><input id={`${formId}-name`} value={deckName} maxLength={50} disabled={mutation.busy} onChange={event => { setDeckName(event.target.value); setErrors({}); mutation.clear() }} /></Field>
       </> : <>
         <dl className={styles.readonly}><div><dt>Số phòng</dt><dd>{target.item.number}</dd></div><div><dt>Loại phòng</dt><dd>{roomTypeLabels[target.item.type]}</dd></div></dl>

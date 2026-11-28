@@ -625,12 +625,15 @@
 .rcDayCard {
   display: grid;
   gap: var(--space-3);
+  min-width: 0;
+  overflow: hidden;
   background: var(--surface-default);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-panel);
   padding: var(--space-4) var(--space-5);
   transition: border-color var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard);
 }
+.rcDayCard img { max-width: 100%; display: block; }
 .rcDayActive .rcDayCard {
   border-color: var(--brand-teal);
   box-shadow: var(--shadow-panel);

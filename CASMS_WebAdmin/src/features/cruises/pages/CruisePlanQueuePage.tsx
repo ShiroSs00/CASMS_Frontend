@@ -11,6 +11,7 @@ import { CruiseShipTag, ShipHullIcon } from '../components/CruiseShipTag'
 import { CruiseFrame } from '../components/CruiseUI'
 import { DepartureSaleTerms } from '../components/DepartureSaleTerms'
 import { SubmittedPreparationGroups, type SubmittedGroupItem } from '../components/SubmittedPreparationGroups'
+import { OperatingBudgetQueue } from '../components/OperatingBudgetQueue'
 import {
   collectShipOptions,
   groupItemsByShip,
@@ -19,7 +20,7 @@ import {
 } from '../model/ship-grouping'
 import styles from '../components/Cruises.module.css'
 
-type QueueMode = 'tour-dossiers' | 'section-groups' | 'port-fees'
+import { planQueueConditions, queueCount, queueSelection, type QueueMode } from '../model/operations-queue'
 type FilterKey = 'pending' | 'reviewed' | 'returned'
 type SortKey = 'newest' | 'oldest' | 'ship' | 'code'
 type ReadinessFilter = 'ALL' | 'CLEAN' | 'HAS_BLOCKERS'
@@ -103,65 +104,40 @@ function QueueStepIcon({ kind }: { kind: 'groups' | 'tour' | 'fees' | 'clock' | 
   )
 }
 
-function handleTabKeys(event: KeyboardEvent<HTMLButtonElement>, index: number, onPick: (key: FilterKey) => void) {
-  let nextIndex = -1
-  if (event.key === 'ArrowRight') nextIndex = (index + 1) % filterOrder.length
-  else if (event.key === 'ArrowLeft') nextIndex = (index - 1 + filterOrder.length) % filterOrder.length
-  else if (event.key === 'Home') nextIndex = 0
-  else if (event.key === 'End') nextIndex = filterOrder.length - 1
-  if (nextIndex < 0) return
-  event.preventDefault()
-  const key = filterOrder[nextIndex]
-  onPick(key)
-  const list = event.currentTarget.closest('[role="tablist"]')
-  list?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[nextIndex]?.focus()
-}
-
 export function CruisePlanQueuePage() {
   const access = useSessionAccess()
   const allowed = access.roles.includes('OPERATIONS_MANAGER') && access.has('CRUISE_READ')
   const canConfirmGroups = allowed && access.has('CRUISE_PREPARATION_CONFIRM')
   const canSetFees = allowed && access.has('CRUISE_PRICING_APPROVE')
 
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { mode: resolvedMode, filter } = queueSelection(searchParams)
+
   const query = useReadQuery(
     `received-plans:${access.userId}:${allowed}`,
     useCallback(signal => (allowed ? mainflowApi.queue(signal, true) : Promise.resolve(null)), [allowed]),
   )
+  const shouldLoadGroups = canConfirmGroups && resolvedMode === 'section-groups'
   const groupsQuery = useReadQuery(
-    `submitted-groups-overview:${access.userId}:${canConfirmGroups}`,
+    `submitted-groups-overview:${access.userId}:${shouldLoadGroups}`,
     useCallback(
-      signal => (canConfirmGroups ? apiRequest<SubmittedGroupItem[]>('/cruise-preparation-reviews', { signal }) : Promise.resolve(null)),
-      [canConfirmGroups],
+      signal => (shouldLoadGroups ? apiRequest<SubmittedGroupItem[]>('/cruise-preparation-reviews', { signal }) : Promise.resolve(null)),
+      [shouldLoadGroups],
     ),
   )
+  const shouldLoadFees = canSetFees && resolvedMode === 'port-fees'
   const requests = useReadQuery(
-    `sale-terms-requests:${access.userId}:${canSetFees}`,
-    useCallback(signal => (canSetFees ? saleTermsApi.setupRequests(signal) : Promise.resolve(null)), [canSetFees]),
-  )
-
-  const [searchParams, setSearchParams] = useSearchParams()
-  const initialModeParam = searchParams.get('mode')
-  const initialFilterParam = searchParams.get('filter')
-  const [manualMode, setManualMode] = useState<QueueMode | null>(
-    initialModeParam === 'tour-dossiers' || initialModeParam === 'section-groups' || initialModeParam === 'port-fees'
-      ? initialModeParam
-      : null,
+    `sale-terms-requests:${access.userId}:${shouldLoadFees}`,
+    useCallback(signal => (shouldLoadFees ? saleTermsApi.setupRequests(signal) : Promise.resolve(null)), [shouldLoadFees]),
   )
   const [selected, setSelected] = useState<SaleTermsSetup | null>(null)
   const [saved, setSaved] = useState('')
-  const [filter, setFilter] = useState<FilterKey>(
-    initialFilterParam === 'pending' || initialFilterParam === 'reviewed' || initialFilterParam === 'returned'
-      ? initialFilterParam
-      : 'pending',
-  )
   const selectMode = (next: QueueMode) => {
-    setManualMode(next)
     const q = new URLSearchParams(searchParams)
     q.set('mode', next)
     setSearchParams(q, { replace: true })
   }
   const selectFilter = (next: FilterKey) => {
-    setFilter(next)
     setShipFilter('ALL')
     setPage(1)
     const q = new URLSearchParams(searchParams)
@@ -176,7 +152,7 @@ export function CruisePlanQueuePage() {
   const [senderFilter, setSenderFilter] = useState('ALL')
   const [readinessFilter, setReadinessFilter] = useState<ReadinessFilter>('ALL')
   const [timeWindow, setTimeWindow] = useState<TimeWindowFilter>('ALL')
-  const [sortBy, setSortBy] = useState<SortKey>('newest')
+  const [sortBy, setSortBy] = useState<SortKey>('oldest')
   const [feeShipFilter, setFeeShipFilter] = useState('ALL')
   const [pageSize, setPageSize] = useState(20)
   const [page, setPage] = useState(1)
@@ -189,22 +165,23 @@ export function CruisePlanQueuePage() {
   const pendingGroupsCount = useMemo(() => allGroups.filter(g => g.status === 'SUBMITTED').length, [allGroups])
   const pendingFeesCount = feeRequests.length
 
-  const queueTabs = useMemo(() => {
+  const queueTabs = (() => {
     const items: { id: QueueMode; label: string; icon: 'tour' | 'groups' | 'fees'; badge: string; pending: boolean }[] = [
       {
         id: 'tour-dossiers',
-        label: 'Hồ sơ chuyến khởi hành',
+        label: 'Kế hoạch chuyến',
         icon: 'tour',
-        badge: pendingPlansCount > 0 ? `${pendingPlansCount} chờ duyệt` : `${allPlans.length} hồ sơ`,
+        badge: queueCount(query.data, query.loading, query.error, pendingPlansCount, 'chờ xét duyệt'),
         pending: pendingPlansCount > 0,
       },
     ]
     if (canConfirmGroups) {
+      items.push({ id: 'operating-budgets', label: 'Ngân sách', icon: 'fees', badge: '', pending: false })
       items.push({
         id: 'section-groups',
-        label: 'Nhóm hồ sơ bộ phận',
+        label: 'Chuẩn bị theo bộ phận',
         icon: 'groups',
-        badge: pendingGroupsCount > 0 ? `${pendingGroupsCount} chờ xác nhận` : `${allGroups.length} nhóm`,
+        badge: queueCount(groupsQuery.data, shouldLoadGroups && groupsQuery.loading, groupsQuery.error, pendingGroupsCount, 'chờ xác nhận'),
         pending: pendingGroupsCount > 0,
       })
     }
@@ -213,16 +190,16 @@ export function CruisePlanQueuePage() {
         id: 'port-fees',
         label: 'Thuế và phí cảng',
         icon: 'fees',
-        badge: pendingFeesCount > 0 ? `${pendingFeesCount} yêu cầu` : '0 yêu cầu',
+        badge: queueCount(requests.data, shouldLoadFees && requests.loading, requests.error, pendingFeesCount, 'yêu cầu'),
         pending: pendingFeesCount > 0,
       })
     }
     return items
-  }, [allPlans.length, allGroups.length, canConfirmGroups, canSetFees, pendingPlansCount, pendingGroupsCount, pendingFeesCount])
+  })()
 
   // Default to primary cruise dossier review queue unless user explicitly picks another permitted tab via URL/click
-  const activeMode: QueueMode = manualMode && queueTabs.some(tab => tab.id === manualMode)
-    ? manualMode
+  const activeMode: QueueMode = queueTabs.some(tab => tab.id === resolvedMode)
+    ? resolvedMode
     : (queueTabs[0]?.id ?? 'tour-dossiers')
 
   const tabPlans = useMemo(() => allPlans.filter(plan => matchesFilter(plan, filter)), [allPlans, filter])
@@ -248,7 +225,7 @@ export function CruisePlanQueuePage() {
       if (shipFilter !== 'ALL' && shipGroupKey(plan.shipName) !== shipFilter) return false
       if (senderFilter !== 'ALL' && (plan.submittedByName ?? '') !== senderFilter) return false
 
-      const blockerCount = (plan.planBlockers?.length ?? 0) + (plan.programIssues?.length ?? 0)
+      const blockerCount = planQueueConditions(plan).length
       if (readinessFilter === 'CLEAN' && blockerCount > 0) return false
       if (readinessFilter === 'HAS_BLOCKERS' && blockerCount === 0) return false
 
@@ -310,14 +287,13 @@ export function CruisePlanQueuePage() {
     else if (event.key === 'End') nextIndex = queueTabs.length - 1
     if (nextIndex < 0) return
     event.preventDefault()
-    setManualMode(queueTabs[nextIndex].id)
     selectMode(queueTabs[nextIndex].id)
     const list = event.currentTarget.closest('[role="tablist"]')
     list?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[nextIndex]?.focus()
   }
 
   const renderPlanRow = (plan: PlanView) => {
-    const blockerCount = (plan.planBlockers?.length ?? 0) + (plan.programIssues?.length ?? 0)
+    const blockerCount = planQueueConditions(plan).length
     const revNumber = plan.submittedRevision ?? plan.revision
     return (
       <tr key={plan.cruiseId}>
@@ -332,14 +308,14 @@ export function CruisePlanQueuePage() {
                 {plan.cruiseCode} · Bản #{revNumber}
               </span>
               {plan.departureDatetime && (
-                <span className={styles.queueDepDate}>KH: {journeyTime(plan.departureDatetime)}</span>
+                <span className={styles.queueDepDate}>Khởi hành: {journeyTime(plan.departureDatetime)}</span>
               )}
             </div>
           </div>
         </td>
         <td>
           <div className={styles.queuePrimaryCell}>
-            <strong>{({ cruise_manager: 'Quản lý hành trình', operations_manager: 'Quản lý vận hành', ops_manager: 'Quản lý vận hành', activity_manager: 'Quản lý dịch vụ & hoạt động', ship_manager: 'Quản lý tàu', admin: 'Quản trị viên' } as Record<string, string>)[(plan.submittedByName ?? '').toLowerCase()] ?? (plan.submittedByName ?? '—')}</strong>
+            <strong>{({ cruise_manager: 'Quản lý lịch trình', operations_manager: 'Quản lý vận hành', ops_manager: 'Quản lý vận hành', activity_manager: 'Quản lý dịch vụ & hoạt động', ship_manager: 'Quản lý tàu', hr_manager: 'Quản lý nhân sự', admin: 'Quản trị viên' } as Record<string, string>)[(plan.submittedByName ?? '').toLowerCase()] ?? (plan.submittedByName ?? '—')}</strong>
             <span className={styles.queueTime}>
               {plan.submittedAt ? journeyTime(plan.submittedAt) : '—'}
             </span>
@@ -353,12 +329,12 @@ export function CruisePlanQueuePage() {
                 tone={statusTone(plan.planStatus)}
               />
               {blockerCount === 0 ? (
-                <Badge label="Đạt kiểm tra" tone="success" />
+                <span className={styles.queueConditionText}>Không có điều kiện kế hoạch đang chặn</span>
               ) : (
-                <Badge label={`${blockerCount} lưu ý`} tone="warning" />
+                <span className={styles.queueConditionText}>{blockerCount} điều kiện cần đối chiếu</span>
               )}
             </div>
-            {plan.reason && <span className={styles.muted}>Ghi chú: {plan.reason}</span>}
+            {plan.reason && <span className={styles.muted}>{plan.planStatus === 'REVISION_REQUESTED' ? 'Nội dung cần bổ sung' : plan.planStatus === 'REJECTED' ? 'Lý do từ chối' : 'Ghi nhận quyết định'}: {plan.reason}</span>}
           </div>
         </td>
         <td className={styles.queueActionCell}>
@@ -368,7 +344,7 @@ export function CruisePlanQueuePage() {
             autoWidth
             to={`/admin/cruises/${encodeURIComponent(plan.cruiseId)}?work=review&step=review&section=overview`}
           >
-            {filter === 'pending' ? 'Xét duyệt' : 'Mở hồ sơ'}
+            {filter === 'pending' ? 'Xét duyệt kế hoạch' : 'Xem kế hoạch'}
           </ButtonLink>
         </td>
       </tr>
@@ -387,7 +363,8 @@ export function CruisePlanQueuePage() {
       <div className={styles.content}>
         <PageHeader
           breadcrumb="Vận hành"
-          title="Hồ sơ chuyến khởi hành"
+          title="Xét duyệt và kiểm soát chuyến"
+          description="Tiếp nhận kế hoạch, xác nhận của các bộ phận và yêu cầu thuế, phí cảng. Quyết định kế hoạch không tự mở bán hoặc cho phép xuất bến."
           actions={
             allowed ? (
               <Button tone="secondary" size="compact" onClick={refreshAll}>
@@ -398,7 +375,7 @@ export function CruisePlanQueuePage() {
           }
         />
 
-        {!allowed ? (
+        {access.status === 'loading' ? <Loading label="Đang kiểm tra quyền xét duyệt…" /> : access.status === 'error' ? <Notice title="Chưa kiểm tra được quyền truy cập" tone="error"><p>{access.error}</p><Button tone="secondary" onClick={access.retry}>Kiểm tra lại quyền</Button></Notice> : !allowed ? (
           <Notice title="Bạn không có quyền xem hồ sơ">{null}</Notice>
         ) : (
           <>
@@ -413,6 +390,8 @@ export function CruisePlanQueuePage() {
                     key={tab.id}
                     type="button"
                     role="tab"
+                    id={`ops-queue-tab-${tab.id}`}
+                    aria-controls={`ops-queue-panel-${tab.id}`}
                     className={styles.opsQueueTabBtn}
                     aria-selected={active}
                     tabIndex={active ? 0 : -1}
@@ -421,17 +400,20 @@ export function CruisePlanQueuePage() {
                   >
                     <QueueStepIcon kind={tab.icon} />
                     <span>{tab.label}</span>
-                    <span
+                    {tab.badge && <span
                       className={`${styles.opsQueueTabBadge} ${tab.pending ? styles.opsQueueTabBadgePending : ''}`}
                     >
                       {tab.badge}
-                    </span>
+                    </span>}
                   </button>
                 )
               })}
             </div>
 
+            <div role="tabpanel" id={`ops-queue-panel-${activeMode}`} aria-labelledby={`ops-queue-tab-${activeMode}`}>
+
             {/* HÀNG ĐỢI 1: NHÓM HỒ SƠ BỘ PHẬN */}
+            {activeMode === 'operating-budgets' && canConfirmGroups && <Panel><OperatingBudgetQueue /></Panel>}
             {activeMode === 'section-groups' && canConfirmGroups && (
               <SubmittedPreparationGroups
                 externalGroups={groupsQuery.data}
@@ -444,33 +426,28 @@ export function CruisePlanQueuePage() {
             {/* HÀNG ĐỢI 2: HỒ SƠ TOÀN TOUR */}
             {activeMode === 'tour-dossiers' && (
               <Panel
-                title="Hồ sơ chuyến khởi hành"
+                title={`Danh sách ${filterLabels[filter].toLocaleLowerCase('vi-VN')}`}
                 subtitle=""
               >
-                {/* Status Tabs & Ship Grouping Toggle */}
+                {/* Status Filter Segmented Controls & Ship Grouping Toggle (no nested tablist) */}
                 <div className={styles.queueStatusBar}>
-                  <div className={styles.queueTabs} role="tablist" aria-label="Lọc theo tiến độ xét duyệt">
-                    {filterOrder.map((key, index) => {
+                  <div className={styles.queueTabs} role="group" aria-label="Lọc theo tiến độ xét duyệt">
+                    {filterOrder.map((key) => {
                       const count = allPlans.filter(plan => matchesFilter(plan, key)).length
                       const active = filter === key
                       return (
                         <button
                           key={key}
                           type="button"
-                          role="tab"
                           className={styles.queueTab}
-                          aria-selected={active}
-                          tabIndex={active ? 0 : -1}
+                          aria-pressed={active}
                           onClick={() => selectFilter(key)}
-                          onKeyDown={event =>
-                            handleTabKeys(event, index, nextKey => selectFilter(nextKey))
-                          }
                         >
                           <QueueStepIcon
                             kind={key === 'pending' ? 'clock' : key === 'reviewed' ? 'check' : 'return'}
                           />
                           <span>{filterLabels[key]}</span>
-                          <span className={styles.queueTabCount}>{count}</span>
+                          {!query.loading && !query.error && query.data !== null && <span className={styles.queueTabCount}>{count}</span>}
                         </button>
                       )
                     })}
@@ -492,7 +469,7 @@ export function CruisePlanQueuePage() {
                   </div>
                 </div>
 
-                {/* Multi-criteria Filter & Sort Grid */}
+                {/* Primary Filter Bar + Progressive Disclosure for Secondary Filters */}
                 <div className={styles.queueFilterGrid}>
                   <Field htmlFor="ops-plan-ship" label="Lọc theo tàu">
                     <select
@@ -503,7 +480,7 @@ export function CruisePlanQueuePage() {
                         setPage(1)
                       }}
                     >
-                      <option value="ALL">Tất cả tàu ({shipOptions.length})</option>
+                      <option value="ALL">Tất cả tàu</option>
                       {shipOptions.map(ship => (
                         <option key={ship.key} value={ship.key}>
                           {ship.label} ({ship.count})
@@ -526,72 +503,77 @@ export function CruisePlanQueuePage() {
                       />
                     </Field>
                   </div>
-
-                  <Field htmlFor="ops-plan-sender" label="Người gửi hồ sơ">
-                    <select
-                      id="ops-plan-sender"
-                      value={senderFilter}
-                      onChange={event => {
-                        setSenderFilter(event.target.value)
-                        setPage(1)
-                      }}
-                    >
-                      <option value="ALL">Tất cả ({senderOptions.length})</option>
-                      {senderOptions.map(sender => (
-                        <option key={sender} value={sender}>
-                          {({ cruise_manager: 'Quản lý hành trình', operations_manager: 'Quản lý vận hành', ops_manager: 'Quản lý vận hành', activity_manager: 'Quản lý dịch vụ & hoạt động', ship_manager: 'Quản lý tàu', admin: 'Quản trị viên' } as Record<string, string>)[sender.toLowerCase()] ?? sender}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-
-                  <Field htmlFor="ops-plan-readiness" label="Đối chiếu điều kiện">
-                    <select
-                      id="ops-plan-readiness"
-                      value={readinessFilter}
-                      onChange={event => {
-                        setReadinessFilter(event.target.value as ReadinessFilter)
-                        setPage(1)
-                      }}
-                    >
-                      <option value="ALL">Tất cả</option>
-                      <option value="CLEAN">Đạt kiểm tra</option>
-                      <option value="HAS_BLOCKERS">Có điểm lưu ý</option>
-                    </select>
-                  </Field>
-
-                  <Field htmlFor="ops-plan-time" label="Thời gian gửi">
-                    <select
-                      id="ops-plan-time"
-                      value={timeWindow}
-                      onChange={event => {
-                        setTimeWindow(event.target.value as TimeWindowFilter)
-                        setPage(1)
-                      }}
-                    >
-                      <option value="ALL">Mọi thời điểm</option>
-                      <option value="24H">24 giờ gần nhất</option>
-                      <option value="7D">7 ngày gần nhất</option>
-                      <option value="30D">30 ngày gần nhất</option>
-                    </select>
-                  </Field>
-
-                  <Field htmlFor="ops-plan-sort" label="Sắp xếp">
-                    <select
-                      id="ops-plan-sort"
-                      value={sortBy}
-                      onChange={event => {
-                        setSortBy(event.target.value as SortKey)
-                        setPage(1)
-                      }}
-                    >
-                      <option value="newest">Mới gửi gần đây nhất</option>
-                      <option value="oldest">Chờ lâu nhất trước</option>
-                      <option value="ship">Theo tên tàu (A → Z)</option>
-                      <option value="code">Theo mã chuyến (A → Z)</option>
-                    </select>
-                  </Field>
                 </div>
+
+                <details className={styles.queueAdvancedFilters}>
+                  <summary>Bộ lọc nâng cao &amp; sắp xếp</summary>
+                  <div className={styles.queueFilterGrid}>
+                    <Field htmlFor="ops-plan-sender" label="Người gửi hồ sơ">
+                      <select
+                        id="ops-plan-sender"
+                        value={senderFilter}
+                        onChange={event => {
+                          setSenderFilter(event.target.value)
+                          setPage(1)
+                        }}
+                      >
+                        <option value="ALL">Tất cả người gửi</option>
+                        {senderOptions.map(sender => (
+                          <option key={sender} value={sender}>
+                            {({ cruise_manager: 'Quản lý hành trình', operations_manager: 'Quản lý vận hành', ops_manager: 'Quản lý vận hành', activity_manager: 'Quản lý dịch vụ & hoạt động', ship_manager: 'Quản lý tàu', admin: 'Quản trị viên' } as Record<string, string>)[sender.toLowerCase()] ?? sender}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+
+                    <Field htmlFor="ops-plan-readiness" label="Đối chiếu điều kiện">
+                      <select
+                        id="ops-plan-readiness"
+                        value={readinessFilter}
+                        onChange={event => {
+                          setReadinessFilter(event.target.value as ReadinessFilter)
+                          setPage(1)
+                        }}
+                      >
+                        <option value="ALL">Tất cả</option>
+                        <option value="CLEAN">Không có điều kiện kế hoạch đang chặn</option>
+                        <option value="HAS_BLOCKERS">Có điều kiện cần đối chiếu</option>
+                      </select>
+                    </Field>
+
+                    <Field htmlFor="ops-plan-time" label="Thời gian gửi">
+                      <select
+                        id="ops-plan-time"
+                        value={timeWindow}
+                        onChange={event => {
+                          setTimeWindow(event.target.value as TimeWindowFilter)
+                          setPage(1)
+                        }}
+                      >
+                        <option value="ALL">Mọi thời điểm</option>
+                        <option value="24H">24 giờ gần nhất</option>
+                        <option value="7D">7 ngày gần nhất</option>
+                        <option value="30D">30 ngày gần nhất</option>
+                      </select>
+                    </Field>
+
+                    <Field htmlFor="ops-plan-sort" label="Sắp xếp">
+                      <select
+                        id="ops-plan-sort"
+                        value={sortBy}
+                        onChange={event => {
+                          setSortBy(event.target.value as SortKey)
+                          setPage(1)
+                        }}
+                      >
+                        <option value="newest">Mới gửi gần đây nhất</option>
+                        <option value="oldest">Chờ lâu nhất trước</option>
+                        <option value="ship">Theo tên tàu (A → Z)</option>
+                        <option value="code">Theo mã chuyến (A → Z)</option>
+                      </select>
+                    </Field>
+                  </div>
+                </details>
 
                 {/* Summary & Reset Row */}
                 {!query.loading && !query.error && (
@@ -759,7 +741,7 @@ export function CruisePlanQueuePage() {
                             value={feeShipFilter}
                             onChange={event => setFeeShipFilter(event.target.value)}
                           >
-                            <option value="ALL">Tất cả tàu ({feeShipOptions.length})</option>
+                            <option value="ALL">Tất cả tàu</option>
                             {feeShipOptions.map(ship => (
                               <option key={ship.key} value={ship.key}>
                                 {ship.label} ({ship.count})
@@ -798,7 +780,7 @@ export function CruisePlanQueuePage() {
                                 <div className={styles.queueMetaRow}>
                                   <span className={styles.queueCodeBadge}>{item.cruiseCode}</span>
                                   {item.departureDatetime && (
-                                    <span className={styles.queueDepDate}>KH: {journeyTime(item.departureDatetime)}</span>
+                                    <span className={styles.queueDepDate}>Khởi hành: {journeyTime(item.departureDatetime)}</span>
                                   )}
                                 </div>
                               </div>
@@ -819,6 +801,7 @@ export function CruisePlanQueuePage() {
                 )}
               </Panel>
             )}
+            </div>
           </>
         )}
 

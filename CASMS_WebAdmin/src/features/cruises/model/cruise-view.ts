@@ -124,10 +124,10 @@ export type CruiseDetailView = CruiseListItem & {
 }
 
 export const cruiseStatusLabels: Record<CruiseStatus, string> = {
-  DRAFT: 'Nháp',
-  PUBLISHED: 'Chuyến khởi hành đã công bố',
+  DRAFT: 'Chưa công bố',
+  PUBLISHED: 'Đã công bố',
   IN_PROGRESS: 'Đang vận hành',
-  COMPLETED: 'Hoàn thành',
+  COMPLETED: 'Đã kết thúc chuyến',
   CANCELLED: 'Đã hủy',
 }
 

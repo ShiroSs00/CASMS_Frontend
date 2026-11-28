@@ -15,10 +15,11 @@ const listeners = new Set<() => void>()
 
 function stopTimers() { clearTimeout(refreshTimer); clearTimeout(expiryTimer) }
 function publish(status: AuthState['status'], session: AuthSession | null) {
-  if (!session || session.accessToken !== state.session?.accessToken || session.user.id !== state.session?.user.id) {
+  const isSameUserRefresh = Boolean(session && state.session && session.user.id === state.session.user.id)
+  if (!session || !isSameUserRefresh) {
     setSessionAccess({ status: session ? 'loading' : 'anonymous', userId: session?.user.id ?? null, permissions: [], error: '' })
   }
-  setApiAccessToken(session?.accessToken ?? null)
+  setApiAccessToken(session?.accessToken ?? null, { silentRefresh: isSameUserRefresh })
   state = { status, session }
   listeners.forEach((listener) => listener())
 }

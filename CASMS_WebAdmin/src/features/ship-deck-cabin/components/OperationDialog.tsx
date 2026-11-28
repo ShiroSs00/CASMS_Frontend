@@ -21,10 +21,10 @@ const titles: Record<Operation, string> = {
 }
 const allowedShipTransitions: Record<ShipStatus, ShipStatus[]> = {
   DRAFT: ['READY'],
-  READY: ['IN_SERVICE', 'MAINTENANCE', 'SUSPENDED'],
-  IN_SERVICE: ['READY', 'MAINTENANCE', 'SUSPENDED'],
-  MAINTENANCE: ['READY', 'SUSPENDED'],
-  SUSPENDED: ['READY', 'MAINTENANCE'],
+  READY: ['MAINTENANCE', 'SUSPENDED', 'RETIRED'],
+  IN_SERVICE: ['MAINTENANCE', 'SUSPENDED'],
+  MAINTENANCE: ['READY', 'SUSPENDED', 'RETIRED'],
+  SUSPENDED: ['READY', 'MAINTENANCE', 'RETIRED'],
   RETIRED: [],
 }
 
@@ -103,9 +103,7 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
   }
   return <Modal title={titles[operation]} onClose={onClose} busy={mutation.busy}>
     <div className={styles.stack}>
-      <Notice title={isShip ? `${item.code} · ${item.name}` : `${kind === 'decks' ? 'Boong' : 'Cabin'} ${item.number}`}>
-        {isCheck ? 'Kiểm tra điều kiện hiện tại từ hệ thống.' : 'Thao tác sẽ cập nhật dữ liệu trong hệ thống sau khi xác nhận.'}
-      </Notice>
+      <p className={styles.muted}><strong>{isShip ? `${item.code} · ${item.name}` : `${kind === 'decks' ? 'Boong' : 'Cabin'} ${item.number}`}</strong></p>
       {isCheck ? <>
         {(operation === 'schedule' || operation === 'affected') && <div className={styles.twoColumns}>
           <InputField label="Bắt đầu *" type="datetime-local" value={start} disabled={mutation.busy} onChange={(event) => { setStart(event.target.value); clear() }} />
@@ -134,7 +132,7 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
               label="Trạng thái mới"
               value={status}
               disabled={mutation.busy}
-              hint="Tàu đang ở trạng thái Đang thiết lập chỉ có thể chuyển sang Sẵn sàng hoạt động (READY) sau khi hoàn thiện hồ sơ vận hành."
+              hint="Tàu đang thiết lập chỉ có thể chuyển sang Sẵn sàng hoạt động sau khi hoàn thiện hồ sơ vận hành."
               onChange={(value) => { setStatus(value); mutation.clear() }}
             >
               {allowedNextShipStatuses.map((value) => (
@@ -146,7 +144,7 @@ export function OperationDialog({ item, kind, ships, shipChoicesState, operation
               label="Trạng thái mới"
               value={status}
               disabled={mutation.busy}
-              hint={`Trạng thái hiện tại: ${shipStatuses[currentStatus as ShipStatus]}. Chỉ hiển thị các trạng thái chuyển tiếp hợp lệ.`}
+              hint={`Trạng thái hiện tại: ${shipStatuses[currentStatus as ShipStatus]}. Trạng thái Đang khai thác do hệ thống tự cập nhật theo chuyến; khi hết hạn đăng kiểm tàu tự chuyển về Bảo trì.`}
               onChange={(value) => { setStatus(value); mutation.clear() }}
             >
               {allowedNextShipStatuses.map((value) => (

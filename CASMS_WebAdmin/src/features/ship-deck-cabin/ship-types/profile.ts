@@ -23,12 +23,12 @@ export const profileGroups = [
     { key: 'deliveryDate', label: 'Ngày bàn giao', kind: 'date' },
   ] },
   { title: 'Đăng ký và đăng kiểm', fields: [
-    { key: 'imoNumber', label: 'Số IMO', max: 7, hint: 'Nhập chính xác 7 chữ số (0–9) hợp lệ theo checksum IMO, ví dụ: 9074729.' },
-    { key: 'registrationCountry', label: 'Quốc gia đăng ký', max: 2, hint: 'Chọn quốc gia đăng ký tàu (quốc kỳ, chuẩn ISO 3166-1 alpha-2).' },
-    { key: 'registrationNumber', label: 'Số đăng ký', max: 50, hint: 'Tối đa 50 ký tự, cho phép chữ, số và dấu phân cách (ví dụ: BS-2025-00128).' },
-    { key: 'classificationSociety', label: 'Tổ chức đăng kiểm', max: 150, hint: 'Chọn tổ chức đăng kiểm từ danh mục hoặc chọn Khác để nhập tên (2–150 ký tự).' },
-    { key: 'classificationDate', label: 'Ngày đăng kiểm', kind: 'date', hint: 'Ngày thực hiện đăng kiểm gần nhất (không ở tương lai).' },
-    { key: 'classificationExpiryDate', label: 'Ngày hết hạn đăng kiểm', kind: 'date', hint: 'Phải sau ngày đăng kiểm và còn hiệu lực đến hết thời gian chuyến đi (ExpiryDate ≥ CruiseEndDate).' },
+    { key: 'imoNumber', label: 'Số IMO', max: 7, hint: '7 chữ số hợp lệ theo chuẩn IMO (VD: 9074729).' },
+    { key: 'registrationCountry', label: 'Quốc gia đăng ký', max: 2 },
+    { key: 'registrationNumber', label: 'Số đăng ký', max: 50 },
+    { key: 'classificationSociety', label: 'Tổ chức đăng kiểm', max: 150 },
+    { key: 'classificationDate', label: 'Ngày đăng kiểm', kind: 'date' },
+    { key: 'classificationExpiryDate', label: 'Ngày hết hạn đăng kiểm', kind: 'date', hint: 'Phải sau ngày đăng kiểm.' },
   ] },
   { title: 'Tham chiếu hồ sơ', fields: [
     { key: 'certificateReferences', label: 'Chứng nhận', kind: 'references' },
@@ -66,7 +66,7 @@ export function isClassificationExpired(expiryDate?: string): boolean {
   return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value) && value < localDate())
 }
 
-const requiredFieldMessages: Record<ProfileKey, string> = {
+const requiredFieldMessages: Partial<Record<ProfileKey, string>> = {
   deliveryDate: 'Vui lòng nhập ngày bàn giao.',
   imoNumber: 'Vui lòng nhập số IMO (7 chữ số hợp lệ).',
   registrationCountry: 'Vui lòng chọn quốc gia đăng ký.',
@@ -74,9 +74,6 @@ const requiredFieldMessages: Record<ProfileKey, string> = {
   classificationSociety: 'Vui lòng chọn hoặc nhập tổ chức đăng kiểm.',
   classificationDate: 'Vui lòng nhập ngày đăng kiểm.',
   classificationExpiryDate: 'Vui lòng nhập ngày hết hạn đăng kiểm.',
-  certificateReferences: 'Vui lòng nhập ít nhất một tham chiếu chứng nhận.',
-  warrantyReferences: 'Vui lòng nhập ít nhất một tham chiếu bảo hành.',
-  maintenanceReferences: 'Vui lòng nhập ít nhất một tham chiếu bảo trì và sửa chữa.',
 }
 
 export function validateProfile(draft: ProfileDraft, options?: { requireAll?: boolean }): ProfileErrors {
@@ -85,11 +82,13 @@ export function validateProfile(draft: ProfileDraft, options?: { requireAll?: bo
   for (const { fields } of profileGroups) for (const field of fields) {
     const raw = draft[field.key] ?? ''
     const value = raw.trim()
+    const isReferenceField = 'kind' in field && field.kind === 'references'
     if (!value) {
       if (raw.length > 0 && (field.key === 'registrationNumber' || field.key === 'classificationSociety')) {
         errors[field.key] = 'Không được chỉ nhập khoảng trắng.'
-      } else if (requireAll) {
-        errors[field.key] = requiredFieldMessages[field.key]
+      } else if (requireAll && !isReferenceField) {
+        const message = requiredFieldMessages[field.key]
+        if (message) errors[field.key] = message
       }
       continue
     }
@@ -177,7 +176,7 @@ export function profilePayload(draft: ProfileDraft): EditableProfile {
 export function missingProfileLabels(details: unknown): string[] {
   const groups = (details as { missingGroups?: unknown } | undefined)?.missingGroups
   const labels: Record<string, string> = {
-    certification: 'Đăng kiểm và hồ sơ chứng nhận',
+    certification: 'Thông tin đăng kiểm',
     warranty: 'Hồ sơ bảo hành',
     maintenance: 'Hồ sơ bảo trì và sửa chữa',
   }

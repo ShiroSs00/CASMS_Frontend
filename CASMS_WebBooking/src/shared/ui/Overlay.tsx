@@ -1,14 +1,15 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import experience from './Experience.module.css'
 import styles from './Overlay.module.css'
 
 let openCount = 0
 let previousOverflow = ''
 
-export function Modal({ title, description, onClose, busy = false, wide = false, large = false, children, footer, variant = 'modal', protectChanges = true }:
-  { title: string; description?: string; onClose: () => void; busy?: boolean; wide?: boolean; large?: boolean; children: ReactNode; footer?: ReactNode; variant?: 'modal' | 'drawer'; protectChanges?: boolean }) {
+export function Modal({ title, description, onClose, busy = false, wide = false, large = false, children, footer, variant = 'modal', quiet = false, protectChanges = true, dirty: dirtyProp }:
+  { title: string; description?: string; onClose: () => void; busy?: boolean; wide?: boolean; large?: boolean; children: ReactNode; footer?: ReactNode; variant?: 'modal' | 'drawer'; quiet?: boolean; protectChanges?: boolean; dirty?: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const dirty = useRef(false)
+  const isDirty = () => (dirtyProp !== undefined ? dirtyProp : dirty.current)
   const lastControl = useRef<HTMLElement | null>(null)
   const dismiss = useRef<HTMLButtonElement>(null)
   const closeControl = useRef<HTMLButtonElement>(null)
@@ -22,10 +23,12 @@ export function Modal({ title, description, onClose, busy = false, wide = false,
       previousOverflow = document.documentElement.style.overflow
       document.documentElement.style.overflow = 'hidden'
     }
-    element.showModal()
+    if (!element.open) element.showModal()
     return () => {
-      element.close()
-      if (--openCount === 0) document.documentElement.style.overflow = previousOverflow
+      dirty.current = false
+      if (element.open) element.close()
+      openCount = Math.max(0, openCount - 1)
+      if (openCount === 0) document.documentElement.style.overflow = previousOverflow
       if (trigger?.isConnected) trigger.focus({ preventScroll: true })
     }
   }, [])
@@ -39,28 +42,61 @@ export function Modal({ title, description, onClose, busy = false, wide = false,
   }, [confirmDiscard])
   function requestClose() {
     if (busy) return
-    if (protectChanges && dirty.current) setConfirmDiscard(true)
+    if (protectChanges && isDirty()) setConfirmDiscard(true)
     else onClose()
   }
   function continueEditing() {
     if (busy) return
     setConfirmDiscard(false)
   }
+  function keepTabFocus(event: KeyboardEvent<HTMLDialogElement>) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      event.stopPropagation()
+      if (confirmDiscard) continueEditing()
+      else requestClose()
+      return
+    }
+    if (event.key !== 'Tab') return
+    const element = event.currentTarget
+    const controls = Array.from(element.querySelectorAll<HTMLElement>(
+      'button, input, select, textarea, a[href], summary, [tabindex], [contenteditable="true"]',
+    )).filter(control => control.tabIndex >= 0 && !control.matches(':disabled, input[type="hidden"]')
+      && !control.closest('[inert]')
+      && (typeof control.checkVisibility === 'function' ? control.checkVisibility({ visibilityProperty: true }) : control.offsetParent !== null))
+    const first = controls[0]
+    const last = controls.at(-1)
+    const active = document.activeElement
+    const boundary = event.shiftKey ? first : last
+    if (!first || !last || active === element || !element.contains(active)
+      || active === boundary) {
+      event.preventDefault()
+      const next = event.shiftKey ? last : first
+      next?.focus()
+    }
+  }
   return <dialog ref={dialog} aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined} aria-busy={busy || undefined}
-    className={`${experience.overlay} ${styles.dialog} ${large ? styles.large : wide ? styles.wide : ''} ${variant === 'drawer' ? styles.drawer : ''}`}
-    onChangeCapture={event => { dirty.current = true; if (event.target instanceof HTMLElement) lastControl.current = event.target }}
+    className={`${experience.overlay} ${styles.dialog} ${large ? styles.large : wide ? styles.wide : ''} ${variant === 'drawer' ? styles.drawer : ''} ${quiet ? styles.quiet : ''}`}
+    onChangeCapture={event => {
+      const target = event.target
+      const isSearchOrIgnored = (target instanceof HTMLInputElement && (target.type === 'search' || target.getAttribute('role') === 'searchbox'))
+        || (target instanceof Element && Boolean(target.closest('[data-no-dirty]')))
+      if (!isSearchOrIgnored) dirty.current = true
+      if (target instanceof HTMLElement) lastControl.current = target
+    }}
     onClickCapture={event => {
       if (event.target instanceof Element && event.target.closest('[role="radio"][aria-checked="false"]')) {
         dirty.current = true
         lastControl.current = event.target.closest<HTMLElement>('[role="radio"]')
       }
       const target = event.target instanceof Element ? event.target.closest('[data-overlay-dismiss]') : null
-      if (target && (busy || (protectChanges && dirty.current))) { event.preventDefault(); event.stopPropagation(); requestClose() }
+      if (target && (busy || (protectChanges && isDirty()))) { event.preventDefault(); event.stopPropagation(); requestClose() }
     }}
+    onKeyDown={keepTabFocus}
     onCancel={event => { event.preventDefault(); event.stopPropagation(); if (confirmDiscard) continueEditing(); else requestClose() }}>
     <div className={`${styles.frame} ${confirmDiscard ? styles.confirming : ''}`}>
       <header className={styles.header}><div><h2 id={titleId}>{title}</h2>{description && <p id={descriptionId}>{description}</p>}</div>
-        <button ref={closeControl} type="button" autoFocus aria-label="Đóng hộp thoại" disabled={busy} className={styles.close} onClick={requestClose}>×</button>
+        <button ref={closeControl} type="button" aria-label="Đóng hộp thoại" disabled={busy} className={styles.close} onClick={requestClose}>{quiet ? 'Đóng' : '×'}</button>
       </header>
       <div className={styles.body} inert={confirmDiscard}>{children}</div>
       {footer && <footer className={styles.footer} inert={confirmDiscard}>{footer}</footer>}

@@ -13,6 +13,8 @@ export function OperatingBudget({
   loadError,
   retry,
   onSaved,
+  prioritizeEntry = false,
+  reviewAllowed = true,
 }: {
   cruiseId: string
   budget: Budget | null
@@ -20,6 +22,8 @@ export function OperatingBudget({
   loadError: Error | null
   retry: () => void
   onSaved: () => void
+  prioritizeEntry?: boolean
+  reviewAllowed?: boolean
 }) {
   const access = useSessionAccess()
   const field = useId()
@@ -33,10 +37,12 @@ export function OperatingBudget({
   const [rejectError, setRejectError] = useState('')
   const lock = useRef(false)
   const input = useRef<HTMLInputElement>(null)
-  const editing = draft !== null
+  const entryRequired = prioritizeEntry && Boolean(budget?.canEdit && !budget.amountVnd)
+  const explicitEditing = draft !== null
+  const editing = explicitEditing || entryRequired
   useEffect(() => {
-    if (editing) input.current?.focus()
-  }, [editing])
+    if (explicitEditing) input.current?.focus()
+  }, [explicitEditing])
 
   if (loadError instanceof ApiError && loadError.status === 403) return null
   const text = draft?.trim() ?? ''
@@ -49,7 +55,7 @@ export function OperatingBudget({
     && access.canDo('CRUISE_PREPARATION_SUBMIT'),
   )
   const canReviewBudget = Boolean(
-    budget?.status === 'SUBMITTED'
+    reviewAllowed && budget?.status === 'SUBMITTED'
     && access.roles.includes('OPERATIONS_MANAGER')
     && access.canDo('CRUISE_PREPARATION_CONFIRM'),
   )
@@ -130,19 +136,19 @@ export function OperatingBudget({
           </Button>
         </Notice>
       )}
-      {budget && draft === null && (
+      {budget && !editing && (
         <div className={styles.budgetSummaryRow}>
           <div className={styles.budgetAmountGroup}>
             <strong className={styles.budgetAmount}>
               {budget.amountVnd ? formatOperatingBudget(budget.amountVnd) : 'Chưa nhập ngân sách'}
             </strong>
-            <Badge
+            {!prioritizeEntry && <Badge
               label={!budget.amountVnd ? 'Cần nhập dự kiến' : {
                 DRAFT: 'Đã lưu dự kiến', SUBMITTED: 'Chờ duyệt ngân sách',
                 APPROVED: 'Ngân sách đã được duyệt', REJECTED: 'Ngân sách cần điều chỉnh',
               }[budget.status]}
               tone={budget.status === 'APPROVED' ? 'success' : budget.status === 'DRAFT' && budget.amountVnd ? 'neutral' : 'warning'}
-            />
+            />}
             {budget.rejectionReason && <span className={styles.sectionMeta}>{budget.rejectionReason}</span>}
             {budget.amountVnd && (
               <span className={styles.sectionMeta}>Chưa gồm thuế và phí cảng</span>
@@ -204,7 +210,7 @@ export function OperatingBudget({
           </div>
         </div>
       )}
-      {budget?.canEdit && draft !== null && (
+      {budget?.canEdit && editing && (
         <form
           className={styles.budgetEditor}
           noValidate
@@ -241,22 +247,19 @@ export function OperatingBudget({
             hint={value ? formatOperatingBudget(value) : 'Ví dụ 18.000.000'}
             error={text && !value ? 'Nhập số tiền nguyên lớn hơn 0, tối đa 18 chữ số.' : undefined}
           >
-            <input
+            <div className={styles.budgetInputAction}><input
               id={field}
               inputMode="numeric"
               ref={input}
-              value={draft}
+              value={draft ?? ''}
               maxLength={24}
               required
               disabled={busy}
               onChange={event => setDraft(event.target.value)}
-            />
+            /><Button type="submit" autoWidth busy={busy} disabled={!value || value === budget.amountVnd}>Lưu ngân sách</Button></div>
           </Field>
           <div className={styles.budgetActions}>
-            <Button type="submit" autoWidth busy={busy} disabled={!value || value === budget.amountVnd}>
-              Lưu ngân sách
-            </Button>
-            <Button
+            {!entryRequired && <Button
               type="button"
               tone="secondary"
               autoWidth
@@ -267,7 +270,7 @@ export function OperatingBudget({
               }}
             >
               Hủy
-            </Button>
+            </Button>}
           </div>
         </form>
       )}

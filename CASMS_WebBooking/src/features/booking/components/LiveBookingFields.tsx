@@ -128,7 +128,10 @@ export function PassengerDetailsFields({
       const id = `person-${index}-${key}`
       const autoComplete = ({ fullName: 'name', dateOfBirth: 'bday', email: 'email', phoneNumber: 'tel' } as Record<string, string>)[key]
       const emailRequired = publicJourney && representativeEmailRequired && index === 0 && key === 'email'
-      return <Field key={key} htmlFor={id} label={emailRequired ? 'Email người đại diện *' : label} error={errors[id]}><input id={id} type={type} maxLength={maxLength} required={key === 'fullName' || emailRequired} aria-required={emailRequired || undefined} autoComplete={publicJourney && autoComplete ? `section-traveller${index} ${autoComplete}` : undefined} value={person[key]} aria-invalid={Boolean(errors[id])} aria-describedby={errors[id] || emailRequired ? id + '-hint' : undefined} onChange={event => update(index, key, event.target.value)} /></Field>
+      const fieldLabel = key === 'email'
+        ? (emailRequired ? 'Email người đại diện *' : `Email (Hành khách ${index + 1})`)
+        : label
+      return <Field key={key} htmlFor={id} label={fieldLabel} error={errors[id]}><input id={id} type={type} maxLength={maxLength} required={key === 'fullName' || emailRequired} aria-required={emailRequired || undefined} autoComplete={publicJourney && autoComplete ? `section-traveller${index} ${autoComplete}` : undefined} value={person[key]} aria-invalid={Boolean(errors[id])} aria-describedby={errors[id] || emailRequired ? id + '-hint' : undefined} onChange={event => update(index, key, event.target.value)} /></Field>
     })}
     <Field htmlFor={`person-${index}-nationality`} label="Quốc tịch (tùy chọn)" error={errors[`person-${index}-nationality`]}>
       <select id={`person-${index}-nationality`} aria-invalid={Boolean(errors[`person-${index}-nationality`])} aria-describedby={errors[`person-${index}-nationality`] ? `person-${index}-nationality-hint` : undefined} value={person.nationality} onChange={event => update(index, 'nationality', event.target.value)}>

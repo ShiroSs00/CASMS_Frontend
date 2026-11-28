@@ -89,7 +89,9 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
       const nextEmail = lead.email || customerUser.email || ''
       const nextPhone = lead.phoneNumber || customerUser.phoneNumber || ''
       const nextDob = lead.dateOfBirth || customerUser.dateOfBirth || ''
-      const nextNationality = lead.nationality || customerUser.nationality || ''
+      const rawNat = (customerUser.nationality || '').trim()
+      const normalizedNat = /^vietnam/i.test(rawNat) ? 'VN' : rawNat
+      const nextNationality = lead.nationality || normalizedNat
       const nextDocType = lead.documentType || customerUser.documentType || ''
       const nextDocNumber = lead.documentNumber || customerUser.documentNumber || ''
       if (
@@ -485,10 +487,10 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
                 {(Object.entries(bookingPlanLabels) as [typeof draft.paymentPlan, string][]).map(([key, label]) => {
                   const active = draft.paymentPlan === key
                   const desc = key === 'FULL'
-                    ? 'Đóng 1 lần (100% tổng giá trị) trong vòng 2 ngày kể từ lúc đặt chỗ.'
+                    ? 'Thanh toán toàn bộ 1 lần theo đúng báo giá và thời hạn giữ chỗ từ hệ thống.'
                     : key === 'DEPOSIT'
-                      ? 'Đợt 1: đặt cọc 30% trong 2 ngày để giữ cabin · Đợt 2: đóng 70% còn lại trước ngày đi.'
-                      : 'Chia 3 đợt rõ ràng: Đợt 1 cọc 30% (2 ngày) · Đợt 2 giữa kỳ 40% (30 ngày trước đi) · Đợt 3 tất toán 30%.'
+                      ? 'Đặt cọc đợt 1 để giữ cabin và thanh toán phần còn lại trước ngày khởi hành theo chính sách giá của chuyến.'
+                      : 'Chia nhiều đợt thanh toán theo chính sách giá của chuyến; tỷ lệ và hạn từng đợt hiển thị chính xác ở bước Xác nhận.'
                   return <button
                     key={key}
                     type="button"
@@ -549,22 +551,43 @@ export function RealBookingCreatePage({ step = 2, renderShipModel }: { step?: Bo
           </>
         )}
         {readError && step > 2 && <><BookingReadState {...cabins} publicResource="phòng trống" /><BookingReadState {...fares} publicResource="gói du thuyền" /></>}
-        <div className={flow.actions}>
-          {step > 1 && <Button tone="secondary" onClick={() => navigate(path(step - 1))}>Quay lại</Button>}
-          <Button
-            type="submit"
-            busy={busy || quoteLoading}
-            disabled={locked || choicesLoading || Boolean(readError) || (step === 4 && (quoteLoading || !usable))}
-          >
-            {step === 1
-              ? 'Tiếp tục chọn gói & cabin'
-              : step === 2
-                ? 'Tiếp tục nhập thông tin'
-                : step === 3
-                  ? 'Xem xác nhận & lịch thanh toán'
-                  : 'Xác nhận đặt chỗ'}
-          </Button>
-        </div>
+        {(() => {
+          const submitDisabledReason = locked
+            ? 'Yêu cầu đặt chỗ đang được xử lý hoặc cần đối chiếu kết quả trước khi gửi lại.'
+            : choicesLoading
+              ? 'Đang tải dữ liệu chuyến, phòng trống và gói du thuyền từ máy chủ…'
+              : readError
+                ? 'Không tải đủ dữ liệu bắt buộc từ máy chủ. Vui lòng thử tải lại trước khi tiếp tục.'
+                : step === 4 && quoteLoading
+                  ? 'Đang lấy báo giá và lịch thanh toán chính thức từ máy chủ…'
+                  : step === 4 && !usable
+                    ? 'Cần báo giá còn hiệu lực từ máy chủ trước khi xác nhận đặt chỗ.'
+                    : ''
+          return (
+            <div className={flow.actions}>
+              {step > 1 && <Button tone="secondary" onClick={() => navigate(path(step - 1))}>Quay lại</Button>}
+              <Button
+                type="submit"
+                busy={busy || quoteLoading}
+                disabled={Boolean(submitDisabledReason)}
+                aria-describedby={submitDisabledReason ? 'booking-submit-disabled-hint' : undefined}
+              >
+                {step === 1
+                  ? 'Tiếp tục chọn gói & cabin'
+                  : step === 2
+                    ? 'Tiếp tục nhập thông tin'
+                    : step === 3
+                      ? 'Xem xác nhận & lịch thanh toán'
+                      : 'Xác nhận đặt chỗ'}
+              </Button>
+              {submitDisabledReason && (
+                <p id="booking-submit-disabled-hint" className={styles.helper} role="status" aria-live="polite">
+                  {submitDisabledReason}
+                </p>
+              )}
+            </div>
+          )
+        })()}
       </div></fieldset>
     </form>
   </BookingFlowLayout></RealBookingFrame>

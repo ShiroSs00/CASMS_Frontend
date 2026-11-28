@@ -1,5 +1,6 @@
 import { useCallback, useId, useRef, useState } from 'react'
 import { apiRequest, useReadQuery } from '@/shared/api'
+import { useSessionAccess } from '@/shared/auth'
 import { journeyTime, validTimeZone, wallTimeToInstant, zonedInput } from '@/shared/lib/journey-time'
 import { Badge, Button, Field, Loading, Notice, Panel } from '@/shared/ui'
 import styles from './ManagerWorkspace.module.css'
@@ -52,6 +53,8 @@ export function DisembarkationPlan({ cruiseId }: { cruiseId: string }) {
 }
 
 function PlanForm({ plan, path, onSaved }: { plan: Plan; path: string; onSaved: () => void }) {
+  const access = useSessionAccess()
+  const operator = access.roles.includes('OPERATIONS_MANAGER') && access.has('CRUISE_VALIDATE')
   const zone = validTimeZone(plan.timeZone) ? plan.timeZone : null
   const id = useId()
   const arrival = Date.parse(plan.arrival)
@@ -96,7 +99,7 @@ function PlanForm({ plan, path, onSaved }: { plan: Plan; path: string; onSaved: 
         <div>
           <strong>{plan.portName}</strong>
           <span className={styles.sectionMeta}>
-            {plan.expectedPassengerCount ? `${plan.expectedPassengerCount} khách dự kiến` : 'Chưa ghi nhận số khách'}
+            {plan.expectedPassengerCount != null ? `${plan.expectedPassengerCount} khách dự kiến` : 'Chưa ghi nhận số khách'}
           </span>
         </div>
         <Badge
@@ -105,7 +108,7 @@ function PlanForm({ plan, path, onSaved }: { plan: Plan; path: string; onSaved: 
               ? 'Đã thiết lập khung trả khách'
               : plan.needsUpdate
                 ? 'Cần cập nhật lại'
-                : 'Chưa thiết lập'
+                : 'Chưa có khung giờ trả khách'
           }
           tone={plan.startsAt && plan.endsAt ? 'success' : 'warning'}
         />
@@ -113,11 +116,11 @@ function PlanForm({ plan, path, onSaved }: { plan: Plan; path: string; onSaved: 
 
       <div className={styles.disembarkationMetrics3Col}>
         <div className={styles.disembarkationMetricItem}>
-          <span>Tàu cập cảng cuối</span>
+          <span>Giờ tàu cập cảng cuối</span>
           <strong>{display(plan.arrival)}</strong>
         </div>
         <div className={styles.disembarkationMetricItem}>
-          <span>Mốc kết thúc lịch trình</span>
+          <span>Giờ kết thúc chuyến dự kiến</span>
           <strong>{display(plan.scheduledEnd)}</strong>
         </div>
         <div className={styles.disembarkationMetricItem}>
@@ -127,10 +130,15 @@ function PlanForm({ plan, path, onSaved }: { plan: Plan; path: string; onSaved: 
               ? `${display(plan.startsAt)} – ${display(plan.endsAt)}`
               : plan.needsUpdate
                 ? 'Lịch cảng đã thay đổi, cần lập lại'
-                : 'Chưa thiết lập'}
+                : 'Chưa lưu giờ bắt đầu và thời lượng trả khách'}
           </strong>
         </div>
       </div>
+
+      {(!plan.startsAt || plan.needsUpdate) && !plan.canEdit && <p className={styles.sectionMeta}>
+        {operator ? 'Khung trả khách hiện chỉ xem ở trạng thái chuyến này.' : 'Quản lý vận hành lập và cập nhật khung giờ trả khách. Quản lý lịch trình theo dõi kết quả tại đây.'}
+      </p>}
+      <p className={styles.sectionMeta}>Các mốc hiển thị theo giờ địa phương của cảng{zone ? ` (${zone})` : '; chưa xác định được múi giờ cảng'}.</p>
 
       {plan.canEdit && !zone && <p>Cập nhật múi giờ của cảng trước khi lập khung trả khách.</p>}
       {plan.canEdit && zone && (

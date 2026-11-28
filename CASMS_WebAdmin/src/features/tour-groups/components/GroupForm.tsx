@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react'
 
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, Field, FormErrorSummary, Loading, Notice, useUnsavedFormGuard } from '@/shared/ui'
+import { Button, ButtonLink, Empty, Field, FormErrorSummary, Loading, Notice, useUnsavedFormGuard } from '@/shared/ui'
 import { listExcursionOptions } from '../api/group-context-api'
 import { canUseGroupExcursion, displayTime, emptyGroupForm, excursionGroupDefaults, formToGroupRequest, groupToForm, inheritedGroupFields, validateGroupForm, type GroupFormValues, type GroupRequest, type TourGroup } from '../model/tour-group'
 import styles from './TourGroups.module.css'
@@ -77,19 +77,29 @@ export function GroupForm({ initial, initialExcursionId = '', busy, onSave }: { 
         aria-invalid={!!errors[key]} onChange={event => change(key, event.target.value)} />
     </Field>
   }
+  if (!initial && !excursions.loading && !excursions.error && excursions.data?.length === 0) {
+    return (
+      <Empty title="Chưa có chuyến tham quan bờ">
+        <p>Cần tạo ít nhất một chuyến tham quan bờ trước khi lập nhóm tour.</p>
+        <div className={styles.actions}>
+          {access.canDo('EXCURSION_CREATE') && (
+            <ButtonLink to="/admin/shore-excursions/new">+ Tạo tour bờ</ButtonLink>
+          )}
+          <ButtonLink tone="secondary" to="/admin/tour-groups">Quay lại</ButtonLink>
+        </div>
+      </Empty>
+    )
+  }
   return <>{guard.prompt}
-    <p className={styles.hint}>Chọn chuyến tham quan để lấy sẵn sức chứa, điểm tập trung và lịch trình. Chỉ bổ sung thông tin còn thiếu hoặc điều chỉnh riêng khi cần.</p>
     {excursions.loading && <Loading label="Đang tải chuyến tham quan…" />}
     {excursions.error && <Notice title="Không tải được chuyến tham quan" tone="error">{excursions.error.message}<Button tone="secondary" onClick={excursions.retry}>Thử lại</Button></Notice>}
-    {!excursions.loading && excursions.data?.length === 0 && <Notice title="Chưa có chuyến tham quan">Cần có chuyến tham quan trước khi tạo nhóm. <Link to="/admin/shore-excursions">Mở chuyến tham quan</Link></Notice>}
     {contextError && <Notice title="Kiểm tra chuyến tham quan" tone="error">{contextError}</Notice>}
-    <p className={styles.hint}>Giờ hiển thị theo múi giờ hiện tại trên thiết bị của bạn. Các trường có dấu * là bắt buộc.</p>
     <form className={styles.form} onSubmit={submit} noValidate><fieldset disabled={busy}>
       <div className={styles.fullRow}><FormErrorSummary errors={errors} /></div>
-      <div className={styles.fullRow}><Field htmlFor="group-shoreExcursionId" label="Chuyến tham quan *" error={errors.shoreExcursionId} hint="Khi đổi chuyến tham quan, sức chứa, điểm tập trung và lịch trình của nhóm sẽ lấy theo chuyến mới.">
+      <div className={styles.fullRow}><Field htmlFor="group-shoreExcursionId" label="Chuyến tham quan *" error={errors.shoreExcursionId}>
         <select id="group-shoreExcursionId" name="shoreExcursionId" required value={excursionId} disabled={excursions.loading || Boolean(excursions.error)} onChange={event => { setExcursionId(event.target.value); resetInherited(true) }}>
           <option value="">Chọn chuyến tham quan</option>
-          {excursions.data?.map(item => <option key={item.shoreExcursionId} value={item.shoreExcursionId} disabled={!canUseGroupExcursion(item)}>{item.excursionName}{item.excursionCode ? ` · ${item.excursionCode}` : ''}{item.startTime ? ` · ${displayTime(item.startTime)}` : ''}{!canUseGroupExcursion(item) ? ' · Không thể tạo hoặc chỉnh sửa nhóm' : ''}</option>)}
+          {excursions.data?.map(item => <option key={item.shoreExcursionId} value={item.shoreExcursionId} disabled={!canUseGroupExcursion(item)}>{item.excursionName}{item.excursionCode ? ` · ${item.excursionCode}` : ''}{item.startTime ? ` · ${displayTime(item.startTime)}` : ''}{!canUseGroupExcursion(item) ? ' · Không khả dụng' : ''}</option>)}
         </select>
       </Field></div>
       {selected && <>

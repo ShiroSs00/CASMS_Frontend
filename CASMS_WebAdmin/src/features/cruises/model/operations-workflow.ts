@@ -42,5 +42,5 @@ export function planMakerReason(data: PlanView, actorId: string | null): string 
  return null
 }
 export function operationsPlanLabel(data: PlanView) {
- return data.planStatus === 'APPROVED' && (data.planBlockers.length > 0 || data.readyBlockers.includes('PLAN_APPROVAL_REQUIRED')) ? 'Cần xét duyệt lại' : ({DRAFT:'Chưa gửi',SUBMITTED:'Chờ xét duyệt',APPROVED:'Đã phê duyệt',REJECTED:'Đã từ chối',REVISION_REQUESTED:'Cần chỉnh sửa',WITHDRAWN:'Đã rút hồ sơ'} as const)[data.planStatus]
+ return data.planStatus === 'APPROVED' && (data.planBlockers.length > 0 || data.readyBlockers.includes('PLAN_APPROVAL_REQUIRED')) ? 'Cần xét duyệt lại' : ({DRAFT:'Đang lập kế hoạch',SUBMITTED:'Chờ xét duyệt',APPROVED:'Đã phê duyệt',REJECTED:'Đã từ chối',REVISION_REQUESTED:'Cần chỉnh sửa',WITHDRAWN:'Đã rút hồ sơ'} as const)[data.planStatus]
 }

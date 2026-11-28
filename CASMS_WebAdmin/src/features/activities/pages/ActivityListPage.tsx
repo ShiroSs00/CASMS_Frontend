@@ -9,8 +9,13 @@ import { ActivityFrame, ActivityState } from '../components/ActivityUI'
 import { activityTime, activityStatusLabels } from '../model/activity'
 import styles from '../components/Activities.module.css'
 import { ActivityDetailPage } from './ActivityDetailPage'
+import { AssignedActivityWorkspace } from '../components/AssignedActivityWorkspace'
 
 export function ActivityListPage() {
+  const access = useSessionAccess()
+  return access.roles.includes('ONBOARD_STAFF') ? <AssignedActivityWorkspace /> : <ManagedActivityList />
+}
+function ManagedActivityList() {
   const access = useSessionAccess()
   const navigate = useNavigate()
   const query = useReadQuery('activities', activityApi.list)
@@ -138,9 +143,11 @@ export function ActivityListPage() {
               <ListFilters
                 label="Tìm trong kho hoạt động mẫu"
                 actions={
-                  <Button tone="secondary" disabled={!search} onClick={() => setSearch('')}>
-                    Xóa bộ lọc
-                  </Button>
+                  search ? (
+                    <Button tone="secondary" onClick={() => setSearch('')}>
+                      Xóa lọc
+                    </Button>
+                  ) : undefined
                 }
               >
                 <Field htmlFor="activity-catalog-search" label="Tên hoặc mã hoạt động">
@@ -159,7 +166,9 @@ export function ActivityListPage() {
                   <p>
                     {search
                       ? 'Thử tìm bằng tên hoặc mã khác.'
-                      : 'Tạo hoạt động mẫu trước để có thể chọn nhanh khi xếp lịch chương trình cho từng chuyến khởi hành.'}
+                      : access.canDo('ACTIVITY_CREATE')
+                        ? 'Tạo hoạt động mẫu trước để có thể chọn nhanh khi xếp lịch chương trình cho từng chuyến khởi hành.'
+                        : 'Chưa có hoạt động mẫu nào được thiết lập cho chuyến của bạn.'}
                   </p>
                 </Empty>
               )}

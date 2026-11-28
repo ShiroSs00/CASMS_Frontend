@@ -57,15 +57,15 @@ export function ShipProfilePanel({ id, readOnly = false }: { id: string; readOnl
   const load = useCallback((signal: AbortSignal) => shipTypesApi.profile(id, signal), [id])
   const result = useReadQuery('operational-profile:' + id, load)
   return <Panel className={styles.profilePanel}>
-    <div className={styles.profileHeader}><div><h3>Hồ sơ vận hành</h3><p>{readOnly ? 'Hồ sơ ở chế độ chỉ đọc.' : 'Thông tin bàn giao, đăng ký, đăng kiểm và các hồ sơ liên quan.'}</p></div>
-      {!readOnly && !result.loading && !result.error && <Button tone="secondary" autoWidth onClick={() => { setSaved(false); setEditing(true) }}>Chỉnh sửa hồ sơ vận hành</Button>}
+    <div className={styles.profileHeader}><h3>Hồ sơ vận hành</h3>
+      {!readOnly && !result.loading && !result.error && <Button tone="secondary" autoWidth onClick={() => { setSaved(false); setEditing(true) }}>Chỉnh sửa hồ sơ</Button>}
     </div>
     {result.loading && <Loading label="Đang tải hồ sơ…" />}
     {result.error && <Notice title="Chưa tải được hồ sơ" tone="error">{shipError(result.error)} <Button tone="text" onClick={result.retry}>Thử lại</Button></Notice>}
     {saved && <Notice title="Đã lưu hồ sơ" tone="success">Hồ sơ vận hành đã cập nhật.</Notice>}
     {!result.loading && !result.error && <>
       {result.data && Object.keys(result.data).length ? <ProfileFacts profile={result.data} className={styles.profileRecord} /> :
-        <div className={styles.profileEmpty}><strong>Chưa bổ sung hồ sơ vận hành</strong><p>Bổ sung thông tin đăng kiểm, chứng nhận, bảo hành và bảo trì trước khi đổi trạng thái tàu.</p></div>}
+        <div className={styles.profileEmpty}><strong>Chưa bổ sung hồ sơ vận hành</strong><p>Bổ sung thông tin đăng kiểm trước khi đưa tàu vào khai thác.</p></div>}
     </>}
     {editing && !readOnly && <ProfileEditor id={id} initial={result.data} onClose={() => setEditing(false)}
       onSave={() => { setEditing(false); setSaved(true); result.retry() }} />}

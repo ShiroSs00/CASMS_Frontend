@@ -123,11 +123,12 @@ export function SupplierForm({
         {input('contactName')}
         {input('contactPhone')}
         {input('contactEmail')}
-        <div className={styles.context}>
-          <p>Trạng thái &amp; xác minh</p>
-          <p>Được quản lý ngoài biểu mẫu này.</p>
-        </div>
       </FormSection>
+      {mode === 'edit' && (
+        <p style={{ margin: 0, fontSize: '13px', color: 'var(--ui-muted)' }}>
+          Lưu ý xác minh: thay đổi Tên hoặc Loại nhà cung cấp sẽ chuyển trạng thái về Chờ xác minh; cập nhật liên hệ và ghi chú nội bộ giữ nguyên trạng thái đã xác minh.
+        </p>
+      )}
       <div className={styles.notes}>
         <Field htmlFor="supplier-form-notes" label="Ghi chú" error={errorFor('notes')}>
           <textarea

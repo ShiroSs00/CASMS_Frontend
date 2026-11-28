@@ -21,13 +21,13 @@ export function DepartureSourcePicker({
 
   const body = <>
     <form className={styles.sourceSearch} onSubmit={event=>{event.preventDefault();setFilter({keyword:input.trim(),page:0})}}>
-      <Field htmlFor="departure-source-search" label="Tìm theo tên hoặc mã chuyến"><input id="departure-source-search" type="search" value={input} disabled={disabled} onChange={e=>setInput(e.target.value)}/></Field><Button type="submit" tone="secondary" disabled={disabled||query.loading}>Tìm lịch trình</Button>
+      <Field htmlFor="departure-source-search" label="Tìm theo tên hoặc mã chuyến"><input id="departure-source-search" type="search" value={input} disabled={disabled} onChange={e=>setInput(e.target.value)}/></Field><Button type="submit" tone="secondary" disabled={disabled||query.loading}>Tìm</Button>
     </form>
     {query.loading?<Loading label="Đang tải mẫu lịch trình…"/>:query.error?<Notice title="Chưa tải được lịch trình nguồn" tone="error">{query.error.message}<Button tone="secondary" onClick={query.retry}>Tải lại</Button></Notice>:query.data&&<>
       {query.data.content.length > 0 && <ul className={styles.sourceOptions} aria-label="Mẫu lịch trình có thể dùng">
         {query.data.content.map(source => <li key={source.versionId}>
-          <div><strong>{source.tripName}</strong><small>{source.tripCode} · Phiên bản {source.versionNumber} · {source.durationDays} ngày</small></div>
-          {value === source.versionId ? <span>Mẫu đang dùng</span> : <Button tone="secondary" size="compact" disabled={disabled} aria-label={`Dùng mẫu ${source.tripName} · ${source.tripCode} · Phiên bản ${source.versionNumber}`} onClick={() => onChange(source.versionId, source.tripName)}>Dùng phiên bản {source.versionNumber}</Button>}
+          <div><strong>{source.tripName}</strong><small>{source.tripCode} · {source.durationDays} ngày</small></div>
+          {value === source.versionId ? <span>Đang chọn</span> : <Button tone="secondary" size="compact" disabled={disabled} aria-label={`Chọn mẫu ${source.tripName}`} onClick={() => onChange(source.versionId, source.tripName)}>Chọn mẫu này</Button>}
         </li>)}
       </ul>}
       {!query.data.content.length && (

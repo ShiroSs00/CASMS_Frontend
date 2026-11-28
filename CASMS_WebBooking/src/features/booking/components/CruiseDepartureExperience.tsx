@@ -13,7 +13,7 @@ import { publicContentFailure } from '../model/public-content-feedback'
 import { PublicCruiseItinerary, type PublicItineraryRead } from './PublicCruiseInformation'
 import { IncludedBenefits, PublicCruisePackages, type CruisePackageRead } from './PublicCruisePackages'
 import { useBookingModelRenderer } from './BookingModelIntegration'
-import { useUsdReference, type DisplayRate } from './UsdReference'
+import { useUsdReference, type DisplayRate } from './usd-reference'
 import styles from './CruiseDetail.module.css'
 
 const departureTime = new Intl.DateTimeFormat('vi-VN', {

@@ -36,7 +36,7 @@ export function IssueActions({ issue, onChanged }: Props) {
   const validationLock = useRef(false)
   const [activeAction, setActiveAction] = useState<IssueAction | null>(null)
   const actions = useIssueActions(issue.id, onChanged)
-  const availability = getIssueActionAvailability(issue)
+  const availability = getIssueActionAvailability(issue, access.userId)
   const availableActions = (Object.keys(availability) as IssueAction[]).filter(
     (action) => availability[action].visible && access.canDo(issueActionPermissions[action]),
   )

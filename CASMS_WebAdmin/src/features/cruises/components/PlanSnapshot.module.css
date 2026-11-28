@@ -43,3 +43,17 @@
 .selectionDetails summary { cursor: pointer; width: fit-content; padding-block: var(--space-2); }
 .selectionDetails summary:focus-visible { outline: 2px solid var(--ui-focus); }
 .selectionActions { display: flex; justify-content: flex-end; padding-top: var(--space-2); }
+.selectionPanel{gap:var(--space-3)}
+.selectionContext{display:grid;justify-items:start;gap:var(--space-2);padding-block:var(--space-2);min-width:0}
+.selectionContext>div{min-width:0}
+.selectionContext p,.selectionTerms p{margin:var(--space-1) 0 0;color:var(--ui-muted);max-width:75ch;line-height:var(--leading-body)}
+.selectionContext strong{font-size:var(--text-base)}
+.selectionBlockers{padding-block-start:var(--space-3);color:var(--ui-ink);font-size:var(--text-base)}
+.selectionBlockers ul{margin:var(--space-1) 0 0;padding-inline-start:var(--space-5)}
+.selectionTerms{display:grid;gap:var(--space-3);border-top:1px solid var(--ui-border);padding-top:var(--space-4);margin-top:var(--space-4);min-width:0}
+.selectionTerms header{display:flex;align-items:start;gap:var(--space-3);flex-wrap:wrap}
+.selectionTerms h3{margin:0;font-size:var(--text-lg)}
+.selectionActions{align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.selectionActions p{margin:0;color:var(--ui-muted)}
+.selectionChoice span{min-width:0;overflow-wrap:anywhere}
+@media(max-width:600px){.selectionContext>button{width:100%}.selectionActions>button{width:100%}.selectionPrice{overflow-wrap:anywhere}}

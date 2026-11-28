@@ -47,15 +47,18 @@ export function ScheduleContents({ schedule, preview = false,cruiseId,entryTitle
       const title = customTitle && customTitle !== label ? customTitle : role
       const type = day.dayType ? dayLabels[day.dayType] ?? day.dayType : 'Chưa xác định loại ngày'
       const body = <div className={selectedDay === undefined ? scheduleStyles.dayBody : scheduleStyles.selectedDayBody}>
-      {selectedDay === undefined && <p>{role} · Giờ tàu (Việt Nam)</p>}
-      {day.description&&<p>{day.description}</p>}
+      {day.description?.trim() && day.description.trim() !== title && <p className={scheduleStyles.dayDescription}>{day.description}</p>}
       {day.stops.map((stop, index) => <div key={stop.sourceStopId ?? `${day.dayNumber}:${stop.stopOrder ?? index}`}>
         <h3>Lần ghé {stop.stopOrder ?? index + 1} · {stop.portName ?? 'Chưa có tên cảng'}</h3>
-        <RecordFacts entries={[
-          ['Dự kiến đến · Giờ cảng', time(stop.plannedArrival, stop.portTimeZoneId)], ['Dự kiến rời · Giờ cảng', time(stop.plannedDeparture, stop.portTimeZoneId)],
-          ['Hạn trở lại tàu', time(stop.allAboardTime, stop.portTimeZoneId)], ['Múi giờ cảng', ({ 'Asia/Ho_Chi_Minh': 'Giờ Việt Nam (UTC+7)', 'Asia/Bangkok': 'Giờ Bangkok (UTC+7)', 'Asia/Singapore': 'Giờ Singapore (UTC+8)', 'Asia/Kuala_Lumpur': 'Giờ Kuala Lumpur (UTC+8)', 'Asia/Tokyo': 'Giờ Tokyo (UTC+9)', 'Asia/Seoul': 'Giờ Seoul (UTC+9)', 'Asia/Taipei': 'Giờ Đài Bắc (UTC+8)', 'Asia/Hong_Kong': 'Giờ Hồng Kông (UTC+8)' } as Record<string, string>)[stop.portTimeZoneId ?? ''] ?? (stop.portTimeZoneId ?? 'Chưa xác định')],
-          ['Tiếp cận', stop.arrivalMethod === 'BERTH' ? 'Cập bến' : stop.arrivalMethod === 'ANCHOR_TENDER' ? 'Neo và trung chuyển' : shown(stop.arrivalMethod)],
-        ]} />
+        <p className={scheduleStyles.portContext}>Giờ địa phương tại cảng · {stop.portTimeZoneId ?? 'Chưa xác định múi giờ'}</p>
+        <dl className={scheduleStyles.stopTimes}>
+          {[
+            ['Dự kiến đến', time(stop.plannedArrival, stop.portTimeZoneId)],
+            ['Hạn trở lại tàu', time(stop.allAboardTime, stop.portTimeZoneId)],
+            ['Dự kiến rời', time(stop.plannedDeparture, stop.portTimeZoneId)],
+          ].map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}
+        </dl>
+        <p className={scheduleStyles.portContext}>{stop.arrivalMethod === 'BERTH' ? 'Cập cầu cảng' : stop.arrivalMethod === 'ANCHOR_TENDER' ? 'Neo đậu, trung chuyển vào bờ' : 'Chưa xác định hình thức cập cảng'}{stop.arrivalMethod === 'ANCHOR_TENDER' && stop.tenderTransferMinutes != null ? ` · Trung chuyển ${stop.tenderTransferMinutes} phút` : ''}</p>
         {stop.visits?.length?<section><h4>Các điểm tham quan</h4><ol>{stop.visits.map((visit,i)=><li key={visit.visitId??visit.clientKey??i}>{visit.destinationName??'Chưa có tên điểm đến đã lưu'}</li>)}</ol></section>:null}
         {allowActions&&!preview&&cruiseId&&stop.cruiseStopId&&access.canDo('EXCURSION_CREATE')&&<ButtonLink tone="secondary" to={'/admin/shore-excursions/new?'+new URLSearchParams({cruiseId,cruiseStopId:stop.cruiseStopId,returnTo:'/admin/cruises/'+cruiseId+'?section=schedule'})}>Tạo tour cho lần ghé này</ButtonLink>}
       </div>)}
@@ -63,7 +66,7 @@ export function ScheduleContents({ schedule, preview = false,cruiseId,entryTitle
         const zone=entry.timeZoneId??(entry.kind==='SHORE_EXCURSION'?day.stops.find(stop=>stop.stopOrder===entry.stopOrder)?.portTimeZoneId??null:SHIP_TIME_ZONE)
         return <li key={entry.sourceEntryId ?? entry.clientKey ?? `${day.dayNumber}:${index}`}><strong>{entry.title||(entryTitles[entry.sourceEntryId??'']||entryTitles[entry.targetId??entry.clientKey??''])||`${entry.kind ? kindLabels[entry.kind] ?? entry.kind : 'Chương trình'} ${index+1}`}</strong>{(entryTitles[entry.sourceEntryId??'']||entryTitles[entry.targetId??entry.clientKey??''])&&<span className={scheduleStyles.entryKind}>{entry.kind?kindLabels[entry.kind]??entry.kind:''}</span>}<p>{time(entry.plannedStartTime, zone)} → {time(entry.plannedEndTime, zone)} · {entry.kind==='SHORE_EXCURSION'?'Giờ cảng':'Giờ tàu (Việt Nam)'}{entry.stopOrder != null ? ` · Lần ghé ${entry.stopOrder}` : ''}</p>{entry.locationText&&<p>Địa điểm: {entry.locationText}</p>}{entry.meetingPoint&&<p>Điểm tập trung: {entry.meetingPoint}</p>}{entry.notes&&<p>{entry.notes}</p>}</li>
       })}</ul></>}
-      {!day.stops.length && !day.entries.length && <p>Chưa có cảng ghé hoặc hoạt động cố định riêng trong ngày này.</p>}
+      {!day.entries.length && <p>{day.dayType === 'SEA_DAY' && !day.stops.length ? 'Ngày trên biển · Chưa có chương trình trong lịch.' : !day.stops.length ? 'Chưa có lịch ghé cảng hoặc chương trình cho ngày này.' : 'Chưa có chương trình trong lịch ngày này.'}</p>}
       </div>
 
       if (selectedDay !== undefined) return <div className={scheduleStyles.selectedDay} key={day.dayNumber}>
@@ -71,11 +74,10 @@ export function ScheduleContents({ schedule, preview = false,cruiseId,entryTitle
         {body}
       </div>
 
-      const defaultOpenDay = schedule.days.find(d => d.stops.length > 0 || d.entries.length > 0)?.dayNumber ?? 1
-      return <details className={scheduleStyles.scheduleDay} key={day.dayNumber} open={day.dayNumber === defaultOpenDay}>
-        <summary><span className={scheduleStyles.dayNumber}>{label}</span><span className={scheduleStyles.dayHeading}><strong>{day.title || role}</strong><span>{day.calendarDate?.split('-').reverse().join('/') ?? 'Chưa có ngày'} · {type} · {day.entries.length} mục chương trình</span></span></summary>
+      return <section className={scheduleStyles.scheduleDay} key={day.dayNumber} aria-label={label}>
+        <header className={scheduleStyles.dayHeader}><span className={scheduleStyles.dayNumber}>{label}</span><div className={scheduleStyles.dayHeading}><h3>{title}</h3><p>{day.calendarDate?.split('-').reverse().join('/') ?? 'Chưa có ngày'} · {type}</p></div></header>
         {body}
-      </details>
+      </section>
     })}
     {selectedDay !== undefined && <details className={scheduleStyles.tripTimes}>
       <summary>Mốc giờ toàn chuyến</summary>
@@ -98,7 +100,7 @@ export function DepartureScheduleRead({ cruise,readOnly=false }: { cruise: Cruis
   const mismatch = query.data && (query.data.sourceVersionId !== (cruise.sourceVersionId??null) || !query.data.departureDatetime || Date.parse(query.data.departureDatetime)!==Date.parse(cruise.departureDatetime) || !query.data.returnDatetime || Date.parse(query.data.returnDatetime)!==Date.parse(cruise.returnDatetime))
   return <Panel title="Lịch theo ngày thực tế">
     <ReadState {...query} />
-    {mismatch ? <Notice title="Lịch chưa khớp nguồn" tone="error">Phiên bản nguồn hoặc mốc thời gian trong lịch chưa khớp hồ sơ chuyến khởi hành. Tải lại để đối chiếu.</Notice> : query.data && <>{programNames.error&&<Notice title="Chưa tải được tên chương trình">Giờ và lần ghé vẫn hiển thị theo lịch thực tế.<Button tone="text" onClick={programNames.retry}>Thử tải lại tên</Button></Notice>}<ScheduleContents schedule={query.data} cruiseId={cruise.cruiseId} entryTitles={entryTitles} allowActions={!readOnly}/><div className={scheduleStyles.scheduleFooterBar}><p>Các mốc giờ hiển thị theo lịch trình hiện tại. Kiểm tra và quản lý chi tiết hoạt động tại mục Chương trình và dịch vụ.</p><Button tone="secondary" size="compact" autoWidth onClick={query.retry}>Tải lại lịch</Button></div></>}
+    {mismatch ? <Notice title="Lịch chưa khớp nguồn" tone="error">Phiên bản nguồn hoặc mốc thời gian trong lịch chưa khớp hồ sơ chuyến khởi hành. Tải lại để đối chiếu.</Notice> : query.data && <>{programNames.error&&<Notice title="Chưa tải được tên chương trình">Giờ và lần ghé vẫn hiển thị theo lịch thực tế.<Button tone="text" onClick={programNames.retry}>Thử tải lại tên</Button></Notice>}<ScheduleContents schedule={query.data} cruiseId={cruise.cruiseId} entryTitles={entryTitles} allowActions={!readOnly}/><div className={scheduleStyles.scheduleFooterBar} style={{ justifyContent: 'flex-end' }}><Button tone="secondary" size="compact" autoWidth onClick={query.retry}>Tải lại lịch</Button></div></>}
     {(!query.data || mismatch) && <div className={scheduleStyles.scheduleFooterBar}><Button tone="secondary" size="compact" autoWidth onClick={query.retry}>Tải lại lịch</Button></div>}
   </Panel>
 }

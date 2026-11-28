@@ -3,7 +3,31 @@ import { ApiError, apiRequest } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { Badge, Button, Field, Modal, Notice, Panel } from '@/shared/ui'
 import type { BookingDetail } from '../api/real-booking-api'
+import { bookingWhen } from '../model/real-booking-view'
 import styles from './LiveBooking.module.css'
+
+const PHONE_COUNTRY_CODES = [
+  ['+84', 'Việt Nam (+84)'],
+  ['+1', 'Hoa Kỳ / Canada (+1)'],
+  ['+65', 'Singapore (+65)'],
+  ['+81', 'Nhật Bản (+81)'],
+  ['+82', 'Hàn Quốc (+82)'],
+  ['+44', 'Vương quốc Anh (+44)'],
+  ['+61', 'Úc (+61)'],
+  ['+33', 'Pháp (+33)'],
+  ['+49', 'Đức (+49)'],
+  ['+66', 'Thái Lan (+66)'],
+  ['+60', 'Malaysia (+60)'],
+] as const
+
+function buildE164Phone(countryCode: string, rawInput: string): string {
+  const cleaned = rawInput.trim().replace(/[\s\-().]+/g, '')
+  if (!cleaned) return ''
+  if (cleaned.startsWith('+')) return cleaned
+  if (cleaned.startsWith('00')) return '+' + cleaned.slice(2)
+  const withoutLeadingZero = cleaned.startsWith('0') ? cleaned.slice(1) : cleaned
+  return `${countryCode}${withoutLeadingZero}`
+}
 
 type CheckinRecord = {
   checkinStatus: string
@@ -29,12 +53,14 @@ function PassengerOnlineCheckinRow({
   fullName,
   cabinNumber,
   canCheckinWindow,
+  departed,
   shouldAutoLoad,
 }: {
   passengerId: string
   fullName: string
   cabinNumber: string | null
   canCheckinWindow: boolean
+  departed: boolean
   shouldAutoLoad: boolean
 }) {
   const access = useSessionAccess()
@@ -49,6 +75,7 @@ function PassengerOnlineCheckinRow({
   const [error, setError] = useState('')
   const [modalAction, setModalAction] = useState<'start' | 'complete' | null>(null)
   const [emergencyName, setEmergencyName] = useState('')
+  const [phoneCountryCode, setPhoneCountryCode] = useState('+84')
   const [emergencyPhone, setEmergencyPhone] = useState('')
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; phone?: string }>({})
 
@@ -69,13 +96,15 @@ function PassengerOnlineCheckinRow({
       } else if (reason instanceof ApiError && reason.status === 403) {
         setForbiddenSelfOnly(true)
         setRecord(null)
+      } else if (departed) {
+        setRecord({ checkinStatus: 'NotStarted', boardingBlockReason: null })
       } else {
-        setError(reason instanceof Error ? reason.message : 'Chưa tải được trạng thái check-in.')
+        setError('Chưa thể kiểm tra trạng thái check-in lúc này. Vui lòng thử lại.')
       }
     } finally {
       setLoading(false)
     }
-  }, [canRead, passengerId])
+  }, [canRead, departed, passengerId])
 
   useEffect(() => {
     if (!shouldAutoLoad) return
@@ -85,13 +114,16 @@ function PassengerOnlineCheckinRow({
 
   async function submitAction() {
     if (!modalAction || lockRef.current) return
+    let normalizedE164 = ''
     if (modalAction === 'start') {
       const nextErrors: { name?: string; phone?: string } = {}
       const trimmedName = emergencyName.trim()
-      const normalizedPhone = emergencyPhone.replace(/[\s-]/g, '')
+      normalizedE164 = buildE164Phone(phoneCountryCode, emergencyPhone)
       if (!trimmedName) nextErrors.name = 'Nhập tên người liên hệ khẩn cấp.'
-      if (!normalizedPhone) nextErrors.phone = 'Nhập số điện thoại liên hệ khẩn cấp.'
-      else if (!/^(\+?[0-9]{8,15})$/.test(normalizedPhone)) nextErrors.phone = 'Số điện thoại cần gồm 8–15 chữ số, có thể bắt đầu bằng +.'
+      if (!emergencyPhone.trim()) nextErrors.phone = 'Nhập số điện thoại liên hệ khẩn cấp.'
+      else if (!/^\+[1-9]\d{6,14}$/.test(normalizedE164)) {
+        nextErrors.phone = 'Số điện thoại không đúng chuẩn quốc tế E.164 (7–15 chữ số, VD: +84912345678).'
+      }
       setFieldErrors(nextErrors)
       if (Object.keys(nextErrors).length > 0) return
     }
@@ -100,7 +132,7 @@ function PassengerOnlineCheckinRow({
     setError('')
     try {
       const query = modalAction === 'start'
-        ? { emergencyContactName: emergencyName.trim(), emergencyContactPhone: emergencyPhone.replace(/[\s-]/g, '') }
+        ? { emergencyContactName: emergencyName.trim(), emergencyContactPhone: normalizedE164 }
         : undefined
       const data = await apiRequest<CheckinRecord>(
         `/checkin/passenger/${encodeURIComponent(passengerId)}/${modalAction}`,
@@ -147,7 +179,7 @@ function PassengerOnlineCheckinRow({
               loading
                 ? 'Đang kiểm tra…'
                 : forbiddenSelfOnly
-                  ? 'Tự check-in bằng tài khoản riêng'
+                  ? 'Không có quyền thao tác'
                   : (CHECKIN_LABELS[status] ?? status)
             }
             tone={forbiddenSelfOnly ? 'neutral' : checkinTone(status)}
@@ -160,7 +192,7 @@ function PassengerOnlineCheckinRow({
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-        {!forbiddenSelfOnly && status === 'NotStarted' && canCreate && (
+        {!departed && !forbiddenSelfOnly && status === 'NotStarted' && canCreate && (
           <Button
             size="compact"
             autoWidth
@@ -170,7 +202,7 @@ function PassengerOnlineCheckinRow({
             Bắt đầu Check-in online
           </Button>
         )}
-        {!forbiddenSelfOnly && status === 'InProgress' && canUpdate && (
+        {!departed && !forbiddenSelfOnly && status === 'InProgress' && canUpdate && (
           <Button
             size="compact"
             autoWidth
@@ -180,14 +212,16 @@ function PassengerOnlineCheckinRow({
             Hoàn tất Check-in online
           </Button>
         )}
-        <Button tone="secondary" size="compact" autoWidth disabled={loading || busy} onClick={() => void loadStatus()}>
-          Làm mới
-        </Button>
+        {!departed && (
+          <Button tone="secondary" size="compact" autoWidth disabled={loading || busy} onClick={() => void loadStatus()}>
+            Làm mới
+          </Button>
+        )}
       </div>
 
       {modalAction && (
         <Modal
-          title={modalAction === 'start' ? 'Bắt đầu Check-in online' : 'Hoàn tất Check-in online'}
+          title={modalAction === 'start' ? 'Bắt đầu check-in trực tuyến' : 'Hoàn tất check-in trực tuyến'}
           description={fullName}
           busy={busy}
           onClose={() => setModalAction(null)}
@@ -224,7 +258,24 @@ function PassengerOnlineCheckinRow({
                   placeholder="Ví dụ: Lê Văn B"
                 />
               </Field>
-              <Field htmlFor={`online-em-phone-${passengerId}`} label="Số điện thoại liên hệ khẩn cấp *" error={fieldErrors.phone}>
+              <Field htmlFor={`online-em-cc-${passengerId}`} label="Mã quốc gia">
+                <select
+                  id={`online-em-cc-${passengerId}`}
+                  disabled={busy}
+                  value={phoneCountryCode}
+                  onChange={e => { setPhoneCountryCode(e.target.value); if (fieldErrors.phone) setFieldErrors(prev => ({ ...prev, phone: undefined })) }}
+                >
+                  {PHONE_COUNTRY_CODES.map(([code, label]) => (
+                    <option key={code} value={code}>{label}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field
+                htmlFor={`online-em-phone-${passengerId}`}
+                label="Số điện thoại liên hệ khẩn cấp *"
+                hint="Nhập số di động kèm mã quốc gia hoặc số nội địa (VD: 0912345678)."
+                error={fieldErrors.phone}
+              >
                 <input
                   id={`online-em-phone-${passengerId}`}
                   type="tel"
@@ -233,7 +284,7 @@ function PassengerOnlineCheckinRow({
                   aria-invalid={Boolean(fieldErrors.phone)}
                   value={emergencyPhone}
                   onChange={e => { setEmergencyPhone(e.target.value); if (fieldErrors.phone) setFieldErrors(prev => ({ ...prev, phone: undefined })) }}
-                  placeholder="Ví dụ: 0901112223"
+                  placeholder="Ví dụ: 0912345678 hoặc +84912345678"
                 />
               </Field>
             </form>
@@ -264,6 +315,7 @@ export function OnlineCheckinPanel({ booking }: { booking: BookingDetail }) {
 
   const departureMs = booking.departureDatetime ? Date.parse(booking.departureDatetime) : NaN
   const threeHoursMs = 3 * 60 * 60 * 1000
+  const opensAtIso = Number.isFinite(departureMs) ? new Date(departureMs - threeHoursMs).toISOString() : null
   const inWindow = Number.isFinite(departureMs) && departureMs > nowMs && departureMs - nowMs <= threeHoursMs
   const departed = Number.isFinite(departureMs) && departureMs <= nowMs
 
@@ -276,11 +328,12 @@ export function OnlineCheckinPanel({ booking }: { booking: BookingDetail }) {
           </Notice>
         ) : !inWindow ? (
           <Notice title="Cửa sổ Check-in trực tuyến mở trước giờ khởi hành 3 giờ" tone="info">
-            Bạn có thể kiểm tra trạng thái hồ sơ bên dưới và thực hiện check-in trực tuyến khi còn tối đa 3 giờ trước giờ xuất bến.
+            Trạng thái thực tế của từng hành khách được hiển thị bên dưới.
+            {opensAtIso ? <> Thời điểm mở check-in trực tuyến: <strong>{bookingWhen(opensAtIso)}</strong>.</> : null}
           </Notice>
         ) : (
           <Notice title="Đang trong khung giờ Check-in trực tuyến" tone="success">
-            Chuyến khởi hành trong vòng 3 giờ tới. Hành khách có thể hoàn tất khai báo liên hệ khẩn cấp và xác nhận sẵn sàng lên tàu ngay tại đây.
+            Chuyến khởi hành trong vòng 3 giờ tới. Người đại diện đặt chỗ có thể hoàn tất khai báo liên hệ khẩn cấp và xác nhận sẵn sàng lên tàu cho mình và khách đi cùng ngay tại đây.
           </Notice>
         )}
         {activePassengers.map(person => (
@@ -290,7 +343,8 @@ export function OnlineCheckinPanel({ booking }: { booking: BookingDetail }) {
             fullName={person.fullName}
             cabinNumber={person.cabinNumber ?? null}
             canCheckinWindow={inWindow}
-            shouldAutoLoad={inWindow}
+            departed={departed}
+            shouldAutoLoad={true}
           />
         ))}
       </div>

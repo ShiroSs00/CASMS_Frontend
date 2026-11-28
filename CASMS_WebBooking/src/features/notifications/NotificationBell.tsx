@@ -332,54 +332,78 @@ export function NotificationBell() {
               const unread = !item.readAt && !item.read
               const needsAck = item.notificationType === 'CRUISE_SCHEDULE_CHANGE' && unread
               const canOpenBookings = ['BOOKING_CREATED', 'CONTRACT_SIGNING_INVITATION', 'PAYMENT_CONFIRMED', 'CRUISE_SCHEDULE_CHANGE'].includes(item.notificationType)
-              return (
-                <div
-                  key={item.notificationId}
-                  onClick={() => {
-                    if (unread && !needsAck) void markRead(item.notificationId)
-                    if (canOpenBookings && !needsAck) {
-                      setOpen(false)
-                      void navigate('/my-bookings')
-                    }
-                  }}
-                  style={{
-                    borderBottom: '1px solid #EDF3F1',
-                    background: unread ? '#F2F8F7' : '#FFFFFF',
-                    padding: '12px 16px',
-                    cursor: (unread || canOpenBookings) && !needsAck ? 'pointer' : 'default',
-                    display: 'grid',
-                    gap: '4px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                    <strong style={{ fontSize: '13px', color: '#0B2A4A' }}>{cleanNotificationText(item.title)}</strong>
-                    {unread && <span style={{ width: '8px', height: '8px', flexShrink: 0, borderRadius: '50%', background: '#0E6B7A' }} />}
-                  </div>
-                  <span style={{ fontSize: '12px', color: '#506777', lineHeight: 1.5, whiteSpace: 'pre-line' }}>{cleanNotificationText(item.content)}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '4px' }}>
-                    <span style={{ fontSize: '11px', color: '#718391' }}>{formatNotifTime(item.createdAt)}</span>
-                    {needsAck ? (
+              if (needsAck) {
+                return (
+                  <div
+                    key={item.notificationId}
+                    style={{
+                      borderBottom: '1px solid #EDF3F1',
+                      background: '#F2F8F7',
+                      padding: '12px 16px',
+                      display: 'grid',
+                      gap: '4px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                      <strong style={{ fontSize: '13px', color: '#0B2A4A' }}>{cleanNotificationText(item.title)}</strong>
+                      <span role="img" aria-label="Chưa đọc" title="Chưa đọc" style={{ width: '8px', height: '8px', flexShrink: 0, borderRadius: '50%', background: '#0E6B7A' }} />
+                    </div>
+                    <span style={{ fontSize: '12px', color: '#506777', lineHeight: 1.5, whiteSpace: 'pre-line' }}>{cleanNotificationText(item.content)}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '4px' }}>
+                      <span style={{ fontSize: '12px', color: '#506777' }}>{formatNotifTime(item.createdAt)}</span>
                       <button
                         type="button"
-                        onClick={e => { e.stopPropagation(); void acknowledge(item.notificationId) }}
+                        onClick={() => void acknowledge(item.notificationId)}
                         style={{
                           border: '1px solid #0B2A4A',
                           background: '#0B2A4A',
                           color: '#FFFFFF',
                           borderRadius: '6px',
                           padding: '4px 10px',
-                          fontSize: '11px',
+                          fontSize: '12px',
                           fontWeight: 600,
                           cursor: 'pointer',
                         }}
                       >
                         Xác nhận đã biết
                       </button>
-                    ) : canOpenBookings ? (
-                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#0E6B7A' }}>Xem đặt chỗ →</span>
-                    ) : null}
+                    </div>
                   </div>
-                </div>
+                )
+              }
+              return (
+                <button
+                  key={item.notificationId}
+                  type="button"
+                  onClick={() => {
+                    if (unread) void markRead(item.notificationId)
+                    if (canOpenBookings) {
+                      setOpen(false)
+                      void navigate('/my-bookings')
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    border: 0,
+                    borderBottom: '1px solid #EDF3F1',
+                    background: unread ? '#F2F8F7' : '#FFFFFF',
+                    padding: '12px 16px',
+                    cursor: unread || canOpenBookings ? 'pointer' : 'default',
+                    display: 'grid',
+                    gap: '4px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <strong style={{ fontSize: '13px', color: '#0B2A4A' }}>{cleanNotificationText(item.title)}</strong>
+                    {unread && <span role="img" aria-label="Chưa đọc" title="Chưa đọc" style={{ width: '8px', height: '8px', flexShrink: 0, borderRadius: '50%', background: '#0E6B7A' }} />}
+                  </div>
+                  <span style={{ fontSize: '12px', color: '#506777', lineHeight: 1.5, whiteSpace: 'pre-line' }}>{cleanNotificationText(item.content)}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '4px' }}>
+                    <span style={{ fontSize: '12px', color: '#506777' }}>{formatNotifTime(item.createdAt)}</span>
+                    {canOpenBookings && <span style={{ fontSize: '12px', fontWeight: 600, color: '#0E6B7A' }}>Xem đặt chỗ →</span>}
+                  </div>
+                </button>
               )
             })}
           </div>

@@ -29,7 +29,7 @@ export function domesticRegionLabel(code?:string|null){
   return code?({BAC_BO:'Miền Bắc',TRUNG_BO:'Miền Trung',NAM_BO:'Miền Nam'} as Record<string,string>)[code]??'Miền chưa xác định':'Miền chưa xác định'
 }
 export const versionLabels = { DRAFT: businessCopy('trip.template.DRAFT'), IN_REVIEW: businessCopy('trip.template.IN_REVIEW_LEGACY'), PUBLISHED: businessCopy('trip.template.PUBLISHED'), CANCELLED:'Đã hủy' }
-export const tripLabels = { DRAFT: businessCopy('trip.DRAFT'), READY: businessCopy('trip.READY'), ARCHIVED: 'Đã lưu trữ' }
+export const tripLabels = { DRAFT: businessCopy('trip.DRAFT'), READY: businessCopy('trip.READY'), ARCHIVED: 'Ngừng sử dụng' }
 export const kindLabels = { ONBOARD_ACTIVITY: 'Hoạt động trên tàu', SHORE_EXCURSION: 'Tour tham quan trên bờ', SERVING_WINDOW: 'Khung phục vụ' }
 export const emptyInfo = (): TripInfo => ({ name: '', durationBand: 'SHORT', scope: '', regionIds: [], countryCodes: [], description: '', earliestDeparture: '', latestDeparture: '' })
 export const contentOf = (v: Version): Content => structuredClone({ days: v.days, stops: v.stops, entries: v.entries })

@@ -35,7 +35,7 @@ function toRegulation(dto: RegulationDto): MockRegulation {
     effectiveTo: dto.effectiveTo ?? null,
     status: dto.status,
     hasBeenActive: dto.status !== 'DRAFT',
-    version: 1,
+    version: null,
   }
 }
 
@@ -151,6 +151,9 @@ export const regulationsApi = {
   },
   async create(draft: RegulationDraft) {
     return toRegulation(await apiRequest<RegulationDto>(root, { method: 'POST', body: body(draft) }))
+  },
+  async createVersion(id: string) {
+    return toRegulation(await apiRequest<RegulationDto>(`${byId(id)}/versions`, { method: 'POST' }))
   },
   async update(id: string, update: RegulationUpdate) {
     const current = toRegulation(await apiRequest<RegulationDto>(byId(id)))

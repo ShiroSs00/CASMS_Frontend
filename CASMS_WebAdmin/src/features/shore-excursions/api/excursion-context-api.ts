@@ -4,6 +4,7 @@ import { type ExcursionFormValues, type ShoreExcursion } from '../model/shore-ex
 
 export type StopOption = { cruiseStopId: string; cruiseId?:string|null; timeZoneId?:string|null; label: string; plannedArrival: string; plannedDeparture: string; allAboardTime?: string | null; arrivalMethod?: string | null; tenderTransferMinutes?: number | null }
 export type SupplierOption = { supplierId: string; supplierName: string; status: string; verificationStatus: string }
+export type DestinationOption = { destinationId: string; destinationName: string; country?: string | null }
 async function plans(signal?: AbortSignal) {
   const items: { itineraryId: string; itineraryName: string;cruiseId?:string|null }[] = []
   for (let page = 0, count = 1; page < count; page++) {
@@ -18,6 +19,10 @@ export const excursionContextApi = {
     const data = await apiRequest<SupplierOption[]>('/suppliers', { signal })
     if (!Array.isArray(data) || data.some(item => !item?.supplierId || !item.supplierName || typeof item.status !== 'string' || typeof item.verificationStatus !== 'string')) throw new Error('Danh sách nhà cung cấp không đầy đủ.')
     return data
+  },
+  async destinations(signal?: AbortSignal): Promise<DestinationOption[]> {
+    const data = await apiRequest<DestinationOption[]>('/destinations', { signal })
+    return Array.isArray(data) ? data.filter(item => Boolean(item?.destinationId && item?.destinationName)) : []
   },
   async stops(signal?: AbortSignal,cruiseId?:string): Promise<StopOption[]> {
     const [itineraries, ports] = await Promise.all([plans(signal), apiRequest<{ portId: string; portName: string; timeZoneId?: string | null }[]>('/ports/active', { signal })])

@@ -3,7 +3,7 @@ import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { Badge, Button, Notice } from '@/shared/ui'
 import { mutationOutcomeUnknown } from '@/shared/lib/mutation-outcome'
-import type { BookingDetail } from '../api/real-booking-api'
+import { realBookingApi, type BookingDetail } from '../api/real-booking-api'
 import {
   sepayPaymentApi,
   vietQrAttemptStorage,
@@ -29,6 +29,21 @@ export function BookingPaymentActionCard({
   const isPassenger = access.status === 'ready' && access.roles.includes('PASSENGER')
   const userId = access.userId ?? ''
   if (!isPassenger) return null
+  if (booking.bookingStatus === 'Cancelled') return null
+  const isFullyPaid = booking.outstandingBalance != null && booking.outstandingBalance <= 0
+  if (isFullyPaid) {
+    return (
+      <div className={styles.paymentActionBox} role="status">
+        <div className={styles.paymentHeaderRow}>
+          <strong>Trạng thái thanh toán</strong>
+          <Badge label="Đã thanh toán đủ" tone="success" />
+        </div>
+        <p className={styles.helper}>
+          Đặt chỗ đã hoàn tất thanh toán. Không còn khoản phải trả trước khi khởi hành.
+        </p>
+      </div>
+    )
+  }
   return (
     <BookingPaymentActionCardContent
       key={`${userId}:${booking.bookingId}`}
@@ -59,12 +74,31 @@ function BookingPaymentActionCardContent({
   const [choiceMode, setChoiceMode] = useState<ChoiceMode>('RECOMMENDED')
   const [activeOrder, setActiveOrder] = useState<SepayCheckoutOrder | null>(null)
   const [busy, setBusy] = useState(false)
+  const [contractBusy, setContractBusy] = useState(false)
+  const [contractNotice, setContractNotice] = useState('')
   const [error, setError] = useState('')
   const [balanceChanged, setBalanceChanged] = useState(false)
   const [uncertainKey, setUncertainKey] = useState<string | null>(() =>
     userId ? (vietQrAttemptStorage.read(userId, booking.bookingId)?.idempotencyKey ?? null) : null,
   )
   const lock = useRef(false)
+
+  async function acceptOnlineContract() {
+    if (contractBusy || lock.current) return
+    setContractBusy(true)
+    setError('')
+    setContractNotice('')
+    try {
+      await realBookingApi.acceptContract(booking.bookingId, `E-CONTRACT-${booking.bookingReference}`)
+      setContractNotice('Đã chấp nhận hợp đồng điện tử thành công.')
+      onBookingReload()
+      optionsQuery.retry()
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Chưa thể chấp nhận hợp đồng điện tử. Vui lòng thử lại.')
+    } finally {
+      setContractBusy(false)
+    }
+  }
 
   if (optionsQuery.loading) {
     return (
@@ -197,6 +231,24 @@ function BookingPaymentActionCardContent({
 
   return (
     <div className={styles.paymentActionBox}>
+      {booking.bookingStatus === 'Draft' && booking.contractStatus !== 'Accepted' && (
+        <Notice title="Xác nhận hợp đồng điện tử (RG-11)" tone="info">
+          <p>
+            Để đặt chỗ tự động chuyển sang <strong>Đã xác nhận</strong> ngay khi thanh toán đủ khoản yêu cầu qua
+            VietQR, vui lòng chấp nhận hợp đồng điện tử trực tuyến.
+          </p>
+          <div className={styles.actions}>
+            <Button autoWidth busy={contractBusy} disabled={contractBusy || busy} onClick={() => void acceptOnlineContract()}>
+              {contractBusy ? 'Đang ghi nhận hợp đồng…' : 'Chấp nhận hợp đồng điện tử'}
+            </Button>
+          </div>
+        </Notice>
+      )}
+      {contractNotice && (
+        <Notice title="Hợp đồng điện tử" tone="success">
+          {contractNotice}
+        </Notice>
+      )}
       {!options.vietQrEligible ? (
         <Notice
           title={options.fullyPaid ? 'Đặt chỗ đã thanh toán đủ' : 'Chưa thể tạo lệnh thanh toán VietQR'}
