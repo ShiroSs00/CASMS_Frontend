@@ -153,7 +153,7 @@ export function RegulationFormPage() {
     try {
       let saved: MockRegulation
       if (source) {
-        const update: RegulationUpdate = { ...draft, version: source.version }
+        const update: RegulationUpdate = { ...draft }
         saved = await regulationsApi.update(source.id, update)
       } else {
         saved = await regulationsApi.create(draft)
@@ -162,6 +162,9 @@ export function RegulationFormPage() {
     } catch (error) {
       if (error instanceof ApiError && error.code === 'DUPLICATE_CODE') {
         setErrors((current) => ({ ...current, code: 'Mã quy định đã tồn tại.' }))
+        setSubmitError('Mã quy định đã tồn tại. Vui lòng kiểm tra lại.')
+      } else if (error instanceof ApiError && error.code === 'ACTIVE_REGULATION_IMMUTABLE') {
+        setSubmitError('Quy định đang có hiệu lực không thể sửa trực tiếp. Hãy tạo phiên bản mới từ trang chi tiết.')
       } else {
         setSubmitError(
           error instanceof ApiError && error.code === 'STALE_DATA'
@@ -186,6 +189,42 @@ export function RegulationFormPage() {
         <Notice title="Dữ liệu không tồn tại" tone="error">
           <Button onClick={() => navigate('/admin/regulations')} tone="secondary">Về danh sách</Button>
         </Notice>
+      </AdminFrame>
+    )
+  }
+
+  if (isEdit && source?.status === 'ACTIVE') {
+    return (
+      <AdminFrame>
+        <PageHeader
+          title="Quy định đang có hiệu lực (chỉ đọc)"
+          description={`${source.code} · ${source.name}`}
+        />
+        <Notice title="Không thể chỉnh sửa trực tiếp quy định đang có hiệu lực" tone="warning">
+          <p>Theo quy chuẩn quản lý phiên bản bất biến, hãy tạo phiên bản nháp mới để chỉnh sửa và kích hoạt thay thế.</p>
+          <div className={styles.formActions}>
+            <Button tone="secondary" onClick={() => navigate(`/admin/regulations/${source.id}`)}>Quay lại chi tiết</Button>
+            {access.canDo('REGULATION_CREATE') && (
+              <Button
+                busy={submitting}
+                disabled={submitting}
+                onClick={() => {
+                  if (submitLock.current) return
+                  submitLock.current = true
+                  setSubmitting(true)
+                  setSubmitError('')
+                  void regulationsApi.createVersion(source.id)
+                    .then((next) => navigate(`/admin/regulations/${next.id}/edit`))
+                    .catch((err: unknown) => setSubmitError(err instanceof Error ? err.message : 'Không tạo được phiên bản mới.'))
+                    .finally(() => { submitLock.current = false; setSubmitting(false) })
+                }}
+              >
+                Tạo phiên bản mới
+              </Button>
+            )}
+          </div>
+        </Notice>
+        {submitError ? <Notice title="Không thể tạo phiên bản mới" tone="error" role="alert">{submitError}</Notice> : null}
       </AdminFrame>
     )
   }

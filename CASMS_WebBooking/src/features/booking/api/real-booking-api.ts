@@ -234,8 +234,9 @@ export function bookingFieldErrors(draft: BookingDraft, cruise: BookingCruiseOpt
             day: '2-digit',
         }).format(new Date(now));
         draft.passengers.forEach((person, index) => {
-            const field = (key: keyof BookingPersonDraft, message: string) => { errors[`person-${index}-${key}`] = message; };
             const trimmedName = person.fullName.trim();
+            const who = trimmedName ? `Hành khách ${index + 1} (${trimmedName})` : `Hành khách ${index + 1}`;
+            const field = (key: keyof BookingPersonDraft, message: string) => { errors[`person-${index}-${key}`] = `${who}: ${message}`; };
             if (trimmedName.length < 2 || trimmedName.length > 100)
                 field('fullName', 'Họ tên cần từ 2 đến 100 ký tự.');
             else if (!/^[\p{L}\s.'-]+$/u.test(trimmedName) || !/\p{L}/u.test(trimmedName))
@@ -312,6 +313,15 @@ export const realBookingApi = {
         if (data.bookingId !== bookingId) {
             throw new Error('Chi tiết đặt chỗ trả về không khớp mã yêu cầu.');
         }
+        return data;
+    },
+    async acceptContract(bookingId: string, documentReference?: string): Promise<BookingDetail> {
+        const data = decodeBookingDetail(
+            await apiRequest<unknown>(`/booking/${encodeURIComponent(bookingId)}/contract/accept`, {
+                method: 'POST',
+                body: { documentReference: documentReference?.trim() || undefined },
+            }),
+        );
         return data;
     },
     async lookup(reference: string, email: string, phoneNumber: string, signal?: AbortSignal) { const data = decodeBookingDetail(await apiRequest<unknown>('/booking/lookup', { query: { reference: reference.trim(), email: email.trim() || undefined, phoneNumber: phoneNumber.trim() || undefined }, signal })); if (data.bookingReference !== reference.trim())

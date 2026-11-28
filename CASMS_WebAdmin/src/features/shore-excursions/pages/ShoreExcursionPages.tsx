@@ -1,11 +1,11 @@
 import { PermissionLink as Link } from '@/shared/ui'
 import { TechnicalDetails, RecordFacts } from '@/shared/ui'
-import { useCallback, type FormEvent } from 'react'
+import { useCallback, useState, type FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import {cruiseContextReturn} from '@/shared/lib/cruise-context'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, ButtonLink, CollectionSummary, DataTable, Empty, Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Button, ButtonLink, DataTable, Empty, Field, Loading, Modal, Notice, PageHeader, Panel } from '@/shared/ui'
 import { shoreExcursionApi } from '../api/shore-excursion-api'
 import { excursionContextApi } from '../api/excursion-context-api'
 import { ExcursionActions, ExcursionAvailability } from '../components/ExcursionActions'
@@ -46,36 +46,41 @@ export function ShoreExcursionListPage() {
     for (const key of ['q', 'cruiseStopId', 'supplierId', 'status']) { const value = String(values.get(key) ?? '').trim(); if (value) next.set(key, value) }
     setSearch(next)
   }
+  const hasFilters = Boolean(keyword || cruiseStopId || supplierId || rawStatus)
   return <ShoreLayout>
-    <PageHeader breadcrumb="Dịch vụ bờ" title="Chuyến tham quan bờ" actions={access.canDo("EXCURSION_CREATE") && <ButtonLink to={`${root}/new`}>Tạo chuyến tham quan</ButtonLink>} />
-    <CollectionSummary count={query.loading || query.error ? null : visibleItems.length} filtered={Boolean(keyword || cruiseStopId || supplierId || rawStatus)} label="Chuyến tham quan" scope="Kết quả trả về theo bộ lọc" />
-    <Panel title="Bộ lọc">
-      <form key={search.toString()} noValidate onSubmit={filter}>
-        <div className={styles.filters}>
-          <Field htmlFor="excursion-filter-q" label="Tìm tên hoặc mã tour">
-            <input id="excursion-filter-q" name="q" type="search" defaultValue={keyword} placeholder="Tên tour, mã tour hoặc nhà cung cấp…" />
-          </Field>
-          <Field htmlFor="excursion-filter-stop" label="Điểm dừng">
-            <select id="excursion-filter-stop" key={`${cruiseStopId}:${stops.data?.length}`} name="cruiseStopId" defaultValue={cruiseStopId} disabled={stops.loading || Boolean(stops.error)}><option value="">Tất cả điểm dừng</option>{stops.data?.map(item => <option key={item.cruiseStopId} value={item.cruiseStopId}>{item.label}</option>)}</select>
-          </Field>
-          {canReadSuppliers && (
-            <Field htmlFor="excursion-filter-supplier" label="Nhà cung cấp">
-              <select id="excursion-filter-supplier" key={`${supplierId}:${suppliers.data?.length}`} name="supplierId" defaultValue={supplierId} disabled={suppliers.loading || Boolean(suppliers.error)}><option value="">Tất cả nhà cung cấp</option>{suppliers.data?.map(item => <option key={item.supplierId} value={item.supplierId}>{item.supplierName}</option>)}</select>
+    <PageHeader breadcrumb="Dịch vụ bờ" title="Chuyến tham quan bờ" actions={access.canDo("EXCURSION_CREATE") && <ButtonLink to={`${root}/new`}>+ Tạo tour bờ</ButtonLink>} />
+    {[stops, suppliers].map((lookup, index) => lookup.error && <Notice key={index} title="Chưa tải được danh mục lọc" tone="warning"><p>{lookup.error.message}</p><Button tone="secondary" size="compact" autoWidth onClick={lookup.retry}>Thử lại</Button></Notice>)}
+    <Panel>
+      <div style={{ display: 'grid', gap: '16px' }}>
+        <form key={search.toString()} noValidate onSubmit={filter}>
+          <div className={styles.filters} style={{ alignItems: 'end' }}>
+            <Field htmlFor="excursion-filter-q" label="Tìm kiếm">
+              <input id="excursion-filter-q" name="q" type="search" defaultValue={keyword} placeholder="Tên tour, mã tour hoặc nhà cung cấp…" />
             </Field>
-          )}
-          <Field htmlFor="excursion-filter-status" label="Trạng thái">
-            <select id="excursion-filter-status" name="status" defaultValue={rawStatus ?? ''}><option value="">Tất cả</option>{excursionStatuses.map((value) => <option key={value} value={value}>{statusLabels[value]}</option>)}</select>
-          </Field>
-        </div>
-        <div className={styles.actions}><Button type="submit">Áp dụng bộ lọc</Button><Button tone="secondary" onClick={() => setSearch({})}>Xóa bộ lọc</Button><Button tone="secondary" onClick={query.reload}>Tải lại</Button></div>
-      </form>
+            <Field htmlFor="excursion-filter-stop" label="Điểm dừng">
+              <select id="excursion-filter-stop" key={`${cruiseStopId}:${stops.data?.length}`} name="cruiseStopId" defaultValue={cruiseStopId} disabled={stops.loading || Boolean(stops.error)}><option value="">Tất cả điểm dừng</option>{stops.data?.map(item => <option key={item.cruiseStopId} value={item.cruiseStopId}>{item.label}</option>)}</select>
+            </Field>
+            {canReadSuppliers && (
+              <Field htmlFor="excursion-filter-supplier" label="Nhà cung cấp">
+                <select id="excursion-filter-supplier" key={`${supplierId}:${suppliers.data?.length}`} name="supplierId" defaultValue={supplierId} disabled={suppliers.loading || Boolean(suppliers.error)}><option value="">Tất cả nhà cung cấp</option>{suppliers.data?.map(item => <option key={item.supplierId} value={item.supplierId}>{item.supplierName}</option>)}</select>
+              </Field>
+            )}
+            <Field htmlFor="excursion-filter-status" label="Trạng thái">
+              <select id="excursion-filter-status" name="status" defaultValue={rawStatus ?? ''}><option value="">Tất cả</option>{excursionStatuses.map((value) => <option key={value} value={value}>{statusLabels[value]}</option>)}</select>
+            </Field>
+            <div className={styles.actions}>
+              <Button type="submit" autoWidth>Lọc</Button>
+              {hasFilters && <Button tone="secondary" autoWidth onClick={() => setSearch({})}>Xóa lọc</Button>}
+            </div>
+          </div>
+        </form>
+        {query.loading ? <Loading label="Đang tải chuyến tham quan…" /> : query.error != null ? <ShoreError error={query.error} onRetry={query.reload} /> : query.data && (
+          !visibleItems.length ? <Empty title="Chưa có chuyến tham quan phù hợp" /> : <DataTable label="Danh sách chuyến tham quan bờ" headers={['Mã / tên', 'Nhà cung cấp', 'Bắt đầu', 'Trở về dự kiến', 'Chỗ còn lại', 'Trạng thái']}>
+            {[...visibleItems].sort((a, b) => (Date.parse(b.createdAt ?? b.startTime) || 0) - (Date.parse(a.createdAt ?? a.startTime) || 0)).map((item) => <tr key={item.shoreExcursionId}><td><Link className={styles.link} to={`${root}/${item.shoreExcursionId}`}>{item.excursionName}</Link><div>{item.excursionCode ?? '—'}</div></td><td>{item.supplierName}</td><td>{displayTime(item.startTime)}</td><td>{displayTime(item.plannedReturnTime)}</td><td>{item.availableCapacity} / {item.maximumCapacity}</td><td><ExcursionBadge status={item.status} /></td></tr>)}
+          </DataTable>
+        )}
+      </div>
     </Panel>
-    {[stops, suppliers].map((lookup, index) => lookup.error && <Notice key={index} title="Chưa tải được tên trong bộ lọc" tone="warning"><p>{lookup.error.message}</p><Button tone="secondary" size="compact" autoWidth onClick={lookup.retry}>Thử lại danh mục</Button></Notice>)}
-    {query.loading ? <Loading label="Đang tải chuyến tham quan…" /> : query.error != null ? <ShoreError error={query.error} onRetry={query.reload} /> : query.data && <Panel title={`Danh sách · ${visibleItems.length}`}>
-      {!visibleItems.length ? <Empty title="Chưa có chuyến tham quan phù hợp"><p>{access.canDo('EXCURSION_CREATE') ? 'Thử đổi bộ lọc. Khi tạo chuyến tham quan mới, cần chọn nhà cung cấp đã xác minh và lần ghé cảng phù hợp.' : 'Thử đổi bộ lọc để xem các chuyến tham quan bờ khác.'}</p></Empty> : <DataTable label="Danh sách chuyến tham quan bờ" headers={['Mã / tên', 'Nhà cung cấp', 'Bắt đầu', 'Trở về dự kiến', 'Chỗ còn lại', 'Trạng thái']}>
-        {[...visibleItems].sort((a, b) => (Date.parse(b.createdAt ?? b.startTime) || 0) - (Date.parse(a.createdAt ?? a.startTime) || 0)).map((item) => <tr key={item.shoreExcursionId}><td><Link className={styles.link} to={`${root}/${item.shoreExcursionId}`}>{item.excursionName}</Link><div>{item.excursionCode ?? '—'}</div></td><td>{item.supplierName}</td><td>{displayTime(item.startTime)}</td><td>{displayTime(item.plannedReturnTime)}</td><td>{item.availableCapacity} / {item.maximumCapacity}</td><td><ExcursionBadge status={item.status} /></td></tr>)}
-      </DataTable>}
-    </Panel>}
   </ShoreLayout>
 }
 
@@ -87,17 +92,69 @@ function ExcursionDetail({ id }: { id: string }) {
   const access = useSessionAccess()
   const load = useCallback((signal: AbortSignal) => shoreExcursionApi.get(id, signal), [id])
   const query = useShoreRequest(load), item = query.data
+  const canLinkDestination = Boolean(item && !item.cruiseStopId && access.roles.includes('ACTIVITY_SERVICE_MANAGER') && access.canDo('EXCURSION_UPDATE'))
+  const [destOpen, setDestOpen] = useState(false)
+  const [destId, setDestId] = useState('')
+  const [destBusy, setDestBusy] = useState(false)
+  const [destError, setDestError] = useState('')
+  const [destSuccess, setDestSuccess] = useState('')
+  const destinations = useReadQuery(
+    `excursion-destinations:${destOpen}`,
+    useCallback((signal: AbortSignal) => (destOpen ? excursionContextApi.destinations(signal) : Promise.resolve([])), [destOpen]),
+  )
+  async function saveDestination() {
+    if (!item || !destId || destBusy) return
+    setDestBusy(true); setDestError('')
+    try {
+      await shoreExcursionApi.linkDefinitionDestination(item.shoreExcursionId, destId)
+      setDestOpen(false)
+      setDestSuccess('Đã cập nhật điểm đến cho tour tham quan mẫu.')
+      query.reload()
+    } catch (cause) {
+      setDestError(cause instanceof Error ? cause.message : 'Chưa cập nhật được điểm đến.')
+    } finally {
+      setDestBusy(false)
+    }
+  }
   return <ShoreLayout>
     <Link className={styles.link} to={root}>← Chuyến tham quan bờ</Link>
+    {destSuccess && <Notice title="Đã cập nhật" tone="success">{destSuccess}</Notice>}
     {query.loading ? <Loading label="Đang tải chi tiết…" /> : query.error != null ? <ShoreError error={query.error} onRetry={query.reload} /> : item && <>
       <PageHeader breadcrumb="Dịch vụ bờ / Chuyến tham quan" title={item.excursionName} description={item.excursionCode ?? 'Chưa có mã chuyến tham quan'} actions={<div className={styles.detailToolbar}>
         <div className={styles.recordStatus}><span>Trạng thái</span><ExcursionBadge status={item.status} /></div>
         <ExcursionActions excursion={item} onRefresh={query.reload}>
+          {canLinkDestination && <Button tone="secondary" onClick={() => { setDestId(''); setDestError(''); setDestOpen(true) }}>Gắn điểm đến</Button>}
           {canEditExcursion(item.status) && access.canDo('EXCURSION_UPDATE') && <ButtonLink tone="secondary" to={`${root}/${id}/edit`}>Chỉnh sửa</ButtonLink>}
           <Button tone="secondary" onClick={query.reload}>Tải lại</Button>
         </ExcursionActions>
       </div>} />
       <ExcursionFacts item={item} />
+      {destOpen && (
+        <Modal
+          title="Gắn / đổi điểm đến cho tour mẫu"
+          description={item.excursionName}
+          busy={destBusy}
+          onClose={() => { if (!destBusy) setDestOpen(false) }}
+          footer={
+            <>
+              <Button tone="secondary" disabled={destBusy} data-overlay-dismiss onClick={() => setDestOpen(false)}>Hủy</Button>
+              <Button busy={destBusy} disabled={destBusy || !destId || destinations.loading} onClick={() => void saveDestination()}>Lưu điểm đến</Button>
+            </>
+          }
+        >
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {destinations.loading && <Loading label="Đang tải danh sách điểm đến…" />}
+            {destinations.error && <Notice title="Chưa tải được điểm đến" tone="error">{destinations.error.message}</Notice>}
+            <Field htmlFor="excursion-def-dest" label="Điểm đến *">
+              <select id="excursion-def-dest" value={destId} disabled={destBusy || destinations.loading} onChange={e => setDestId(e.target.value)}>
+                <option value="">Chọn điểm đến</option>
+                {(destinations.data ?? []).map(d => <option key={d.destinationId} value={d.destinationId}>{d.destinationName}{d.country ? ` · ${d.country}` : ''}</option>)}
+              </select>
+            </Field>
+            {destError && <Notice title="Chưa lưu được" tone="error">{destError}</Notice>}
+          </div>
+        </Modal>
+      )}
       {!item.cruiseStopId&&<Notice title="Tour chưa gắn với lần ghé cảng">Chưa có chuyến khởi hành để đăng ký hoặc điểm danh hành khách. Tour này không tự trở thành quyền lợi trong Gói du thuyền.</Notice>}
       <Panel title="Thông tin liên quan"><nav className={styles.relatedLinks} aria-label="Thông tin liên quan chuyến tham quan">
         <ButtonLink tone="secondary" to={`/admin/suppliers/${item.supplierId}`}>Xem nhà cung cấp</ButtonLink>

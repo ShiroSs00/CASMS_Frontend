@@ -67,6 +67,19 @@ export function RegulationDetailPage() {
     finally { lock.current = false; setBusy(false) }
   }
 
+  async function handleCreateVersion() {
+    if (lock.current || !access.canDo('REGULATION_CREATE')) return
+    lock.current = true; setBusy(true); setError(''); setSuccess('')
+    try {
+      const next = await regulationsApi.createVersion(regulationId)
+      navigate(`/admin/regulations/${next.id}/edit`)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Không tạo được phiên bản quy định mới.')
+    } finally {
+      lock.current = false; setBusy(false)
+    }
+  }
+
   async function handleDelete() {
     if (lock.current || !access.canDo('REGULATION_DELETE')) return
     lock.current = true; setBusy(true); setError('')
@@ -84,7 +97,9 @@ export function RegulationDetailPage() {
     {loading && <LoadingPanel />}
     {!loading && !data && <><PageHeader title={error ? 'Không tải được quy định' : 'Không tìm thấy quy định'} description={error || 'Quy định không tồn tại hoặc đã được xóa.'} /><Button tone="secondary" onClick={() => navigate('/admin/regulations')}>Về danh sách</Button></>}
     {data && <>
-      <PageHeader title={`${data.regulation.code} · ${data.regulation.name}`} description={typeLabels[data.regulation.type]} actions={<><Button tone="secondary" onClick={() => navigate('/admin/regulations')}>Về danh sách</Button>{access.canDo("REGULATION_UPDATE") ? <Button disabled={!access.canDo("REGULATION_UPDATE")} onClick={() => navigate(`/admin/regulations/${regulationId}/edit`)}>Chỉnh sửa quy định</Button> : null}</>} />
+      <PageHeader title={`${data.regulation.code} · ${data.regulation.name}`} description={typeLabels[data.regulation.type]} actions={<><Button tone="secondary" onClick={() => navigate('/admin/regulations')}>Về danh sách</Button>{data.regulation.status === 'ACTIVE'
+        ? (access.canDo('REGULATION_CREATE') ? <Button busy={busy} disabled={busy} onClick={() => void handleCreateVersion()}>Tạo phiên bản mới</Button> : null)
+        : (access.canDo('REGULATION_UPDATE') ? <Button disabled={!access.canDo('REGULATION_UPDATE')} onClick={() => navigate(`/admin/regulations/${regulationId}/edit`)}>Chỉnh sửa quy định</Button> : null)}</>} />
       <div className={styles.summaryBadges}><StatusBadge status={data.regulation.status} /><span className={styles.scopeBadge}>{scopeLabels[data.regulation.scope]}</span></div>
       {error && !nextStatus && !deleteOpen && <Notice title="Chưa thể thực hiện" tone="error">{error}</Notice>}
       {success && <Notice title="Đã cập nhật" tone="success">{success}</Notice>}
@@ -104,7 +119,7 @@ export function RegulationDetailPage() {
             ? canStatus("INACTIVE") && <Button disabled={busy || !canStatus("INACTIVE") || !data.capabilities.canDeactivate.allowed} onClick={() => void openStatus('INACTIVE')}>Ngừng kích hoạt</Button>
             : canStatus("ACTIVE") && <Button disabled={busy || !canStatus("ACTIVE") || !data.capabilities.canActivate.allowed} onClick={() => void openStatus('ACTIVE')}>Kích hoạt</Button>}
           {data.regulation.status !== 'ACTIVE' && !data.capabilities.canActivate.allowed && <Notice title="Chưa thể kích hoạt" tone="warning">{data.capabilities.canActivate.reason}</Notice>}
-          {access.canDo("REGULATION_DELETE") && <Button tone="danger" disabled={busy || !access.canDo("REGULATION_DELETE")} onClick={() => { setError(''); setDeleteOpen(true) }}>Xóa quy định</Button>}
+          {data.regulation.status !== 'ACTIVE' && access.canDo("REGULATION_DELETE") && <Button tone="danger" disabled={busy || !access.canDo("REGULATION_DELETE")} onClick={() => { setError(''); setDeleteOpen(true) }}>Xóa quy định</Button>}
           {busy && <p role="status">Đang kiểm tra…</p>}
           {precheck && !nextStatus && <ConflictCard result={precheck} />}
         </aside>

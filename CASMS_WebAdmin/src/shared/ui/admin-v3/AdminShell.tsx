@@ -8,7 +8,6 @@ import { Link, useLocation } from 'react-router'
 import styles from './AdminShell.module.css'
 import experience from '../Experience.module.css'
 import { AdminAccountContext, AdminRoleContext } from './admin-account-context'
-import { NotificationBell } from '@/features/notifications/NotificationBell'
 
 const bookingNavigation = [
   { to: '/admin/bookings', label: 'Danh sách đặt chỗ', icon: 'bookings' },
@@ -21,7 +20,7 @@ export function AdminShell({ children, className = '', topbar, contextNavigation
   children: ReactNode; className?: string; topbar?: ReactNode
   contextNavigation?: { ariaLabel: string; label: string; description?: string; parentTo?: string; parentHref?: string; parentState?: unknown; items: { label: string; to: string; active: boolean; state?: unknown }[] }
 }) {
-  const { pathname, hash } = useLocation()
+  const { pathname, search, hash } = useLocation()
   const access = useSessionAccess()
   const roles=useContext(AdminRoleContext)
   const roleLabel=staffRoleLabel(roles)
@@ -66,10 +65,15 @@ export function AdminShell({ children, className = '', topbar, contextNavigation
   const creatingCruise = pathname.replace(/\/$/, '') === '/admin/cruises/new'
   let activeTo = pathname.startsWith('/admin/staff/') ? pathname : pathname.split('/').slice(0,3).join('/')
   if (creatingCruise) activeTo = ''
+  else if (pathname === '/admin/trips/geography' || pathname.startsWith('/admin/trips/geography/')) activeTo = '/admin/trips/geography'
   else if (pathname.includes('/regulations')) activeTo = pathname.startsWith('/admin/cruises/') ? '/admin/cruises' : pathname.startsWith('/admin/ships/') ? '/admin/ships' : '/admin/regulations'
   else if (pathname.startsWith('/admin/itinerary-history')) activeTo = '/admin/itinerary-history'
   else if (pathname.startsWith('/admin/activity-registrations')) activeTo = '/admin/activity-registrations'
   const currentGroups = roleNavigationGroups(roles,access)
+  if(activeTo==='/admin/staffing'&&currentGroups.some(group=>group.id==='hr-staffing')) {
+    const tab = new URLSearchParams(search).get('tab')
+    activeTo = `/admin/staffing?tab=${tab === 'assign' || tab === 'tracking' || tab === 'ship-manager' ? tab : 'ship-manager'}`
+  }
   if(activeTo==='/admin/itinerary-history'&&!currentGroups.some(group=>group.items.some(item=>item.to==='/admin/itinerary-history'))) activeTo='/admin/cruises'
   if(activeTo==='/admin/cabins'&&currentGroups.some(group=>group.items.some(item=>item.to==='/admin/decks'&&item.label==='Boong và phòng'))) activeTo='/admin/decks'
   const activeLabel = creatingCruise ? 'Tạo chuyến khởi hành' : currentGroups.flatMap(group => group.items).find(item => item.to === activeTo)?.label
@@ -79,7 +83,8 @@ export function AdminShell({ children, className = '', topbar, contextNavigation
   const contextItems = contextNavigation?.items.filter(item => contextIdentityMatches || item.label.toLocaleLowerCase('vi-VN').includes(query)) ?? []
   const visibleGroups = currentGroups.map(group => ({ ...group, items: group.label.toLocaleLowerCase('vi-VN').includes(query) ? group.items : group.items.filter(item => item.label.toLocaleLowerCase('vi-VN').includes(query) || (item.to === contextParent?.to && contextItems.length > 0)) })).filter(group => group.items.length)
   const selectedContext = contextNavigation?.items.find(item => item.active)
-  const bookingWorkspace = roles.length === 1 && roles[0] === 'BOOKING_AGENT' && !contextNavigation
+  const staffRoles = roles.filter(role => role !== 'PASSENGER')
+  const bookingWorkspace = staffRoles.length === 1 && staffRoles[0] === 'BOOKING_AGENT' && !contextNavigation
   const bookingLinks = bookingWorkspace
     ? bookingNavigation.filter(item => canRoleOpenAdminPath(roles, item.to, '', access))
     : []
@@ -111,7 +116,6 @@ export function AdminShell({ children, className = '', topbar, contextNavigation
       <Link to="/admin" className={styles.brand} aria-label="Trang chủ OceVie"><BrandLogo variant="dark" /></Link>
       {topbar ?? <div className={styles.context}><span className={styles.contextEyebrow}>Điều hành OceVie</span><p>{pageLabel}</p></div>}
       <div style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
-        <NotificationBell variant="dark" />
         {account}
       </div>
       <div className={styles.mobileBar}><button ref={menuButton} type="button" aria-expanded={menuOpen} aria-controls="admin-navigation" onClick={() => setMenu({ path: pathname, open: !menuOpen })}>{menuOpen ? 'Đóng menu' : 'Mở menu'}</button></div>

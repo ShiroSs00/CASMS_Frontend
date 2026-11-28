@@ -32,4 +32,13 @@ export const shoreExcursionApi = {
     if (!payload || typeof payload !== 'object' || !('message' in payload) || typeof payload.message !== 'string') throw new Error('Kết quả kiểm tra không đúng định dạng.')
     return payload.message
   }), { method: 'POST', signal }),
+  linkDefinitionDestination: (id: string, destinationId: string, signal?: AbortSignal) =>
+    apiRequestRaw(
+      `${base}/definitions/${encodeURIComponent(id)}/destination`,
+      (payload, status) => {
+        if (status >= 400) throw new ApiError('Chưa cập nhật được điểm đến.', status)
+        return payload
+      },
+      { method: 'PATCH', body: { destinationId }, signal },
+    ),
 }

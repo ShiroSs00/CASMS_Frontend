@@ -1,25 +1,29 @@
 import { useCallback, useRef, useState } from 'react'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { Badge, Button, Loading, Notice } from '@/shared/ui'
-import { positionLabels, staffingApi, staffingError, staffingStatusLabel } from './staffing-api'
+import { positionLabels, staffingApi, staffingError, staffingStatusLabel, type Preparation } from './staffing-api'
 import { StaffingV2 } from './StaffingV2'
 import styles from './Staffing.module.css'
 import workspaceStyles from '../components/ManagerWorkspace.module.css'
 
 const v2WaitingCopy: Record<string, string> = {
-  PENDING_ASM: 'Đang chờ Quản lý dịch vụ hoàn tất chương trình và định biên nhân sự phục vụ cho từng dịch vụ/hoạt động.',
+  PENDING_ASM: 'Quản lý dịch vụ đang phụ trách chuẩn bị chương trình và xác định số nhân viên cần cho từng dịch vụ, hoạt động.',
   PENDING_SHIP_REVIEW: 'Đang chờ Quản lý tàu mở khu vực, gắn máy POS và bố trí dịch vụ (xong sẽ chuyển thẳng sang HR phân công).',
   SENT_TO_HR: 'Đang chờ Quản lý nhân sự phân công đủ nhân viên cho từng dịch vụ, khu vực và ca hoạt động.',
+  HR_SUBMITTED: 'Quản lý nhân sự đã gửi phương án. Đang chờ Quản lý tàu xác nhận sau phân công trước khi bạn rà soát.',
   PLANNER_CONFIRMED: 'Đã gửi Quản lý vận hành xem xét và phê duyệt phương án nhân sự.',
 }
 
-export function StaffingPreparation({ cruiseId, refreshKey, onStarted, onBudgetRequired }: {
+export function StaffingPreparation({ cruiseId, refreshKey, onStarted, onBudgetRequired, providedQuery }: {
   cruiseId: string; refreshKey: string; onStarted: () => void; onBudgetRequired: () => void
+  providedQuery?: { data: Preparation | null; loading: boolean; error: Error | null; retry: () => void }
 }) {
-  const query = useReadQuery(
+  const provided = Boolean(providedQuery)
+  const fallback = useReadQuery(
     'staffing-preparation:' + cruiseId + ':' + refreshKey,
-    useCallback(signal => staffingApi.preparation(cruiseId, signal), [cruiseId]),
+    useCallback(signal => provided ? Promise.resolve(null) : staffingApi.preparation(cruiseId, signal), [cruiseId, provided]),
   )
+  const query = providedQuery ?? fallback
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const lock = useRef(false)
@@ -37,7 +41,7 @@ export function StaffingPreparation({ cruiseId, refreshKey, onStarted, onBudgetR
   const current = data.request
   const active = current && !['RETURNED', 'CANCELLED'].includes(current.status)
   const v2 = current?.workflowVersion === 'V2'
-  const actionable = current?.status === 'SHIP_REVIEWED' || current?.status === 'HR_SUBMITTED'
+  const actionable = current?.status === 'SHIP_REVIEWED' || current?.status === 'SHIP_CONFIRMED'
     || current?.status === 'OPS_APPROVED' || (current?.shipPlanStale && current.status === 'PLANNER_CONFIRMED')
 
   async function start() {
@@ -64,16 +68,13 @@ export function StaffingPreparation({ cruiseId, refreshKey, onStarted, onBudgetR
   }
 
   return (
-    <section className={workspaceStyles.deptUnitBox} aria-label="Nhân sự của tour">
+    <section className={workspaceStyles.deptUnitBox} aria-label="Điều phối chuẩn bị chuyến">
       <header className={workspaceStyles.deptUnitHeader}>
         <div>
-          <h4>Chuẩn bị nhân sự</h4>
-          {active && v2 && v2WaitingCopy[current.status] && (
-            <p className={workspaceStyles.sectionMeta}>{v2WaitingCopy[current.status]}</p>
-          )}
-        </div>
-        <Badge
-          label={current ? staffingStatusLabel(current) : data.requiresReplanning ? 'Cần lập lại phương án' : 'Chưa khởi tạo'}
+          <div className={workspaceStyles.deptUnitTitle}>
+            <h4>Chương trình, tàu và nhân sự</h4>
+        {!providedQuery && <Badge
+          label={current ? staffingStatusLabel(current) : data.requiresReplanning ? 'Cần lập lại phương án' : 'Chưa bắt đầu'}
           tone={
             current?.status === 'OPS_APPROVED'
               ? 'success'
@@ -81,7 +82,13 @@ export function StaffingPreparation({ cruiseId, refreshKey, onStarted, onBudgetR
                 ? 'warning'
                 : 'neutral'
           }
-        />
+        />}
+          </div>
+          {!active && <p className={workspaceStyles.sectionMeta}>Giao công việc chuẩn bị cho Dịch vụ, Tàu và Nhân sự.</p>}
+          {active && v2 && v2WaitingCopy[current.status] && (
+            <p className={workspaceStyles.sectionMeta}>{v2WaitingCopy[current.status]}</p>
+          )}
+        </div>
       </header>
       {current?.returnReason && <Notice title="Yêu cầu cần bổ sung" tone="warning">{current.returnReason}</Notice>}
       {active && v2 && actionable && (
@@ -129,18 +136,9 @@ export function StaffingPreparation({ cruiseId, refreshKey, onStarted, onBudgetR
               })}
             </ul>
           ) : null}
-          <details className={styles.details}>
-            <summary>Xem chi tiết phương án tàu và tiến độ nhân sự</summary>
-            <div className={styles.detailsBody}>
-              <StaffingV2
-                request={current}
-                coordinator
-                readOnly
-                onChanged={() => {}}
-                onCompleted={query.retry}
-              />
-            </div>
-          </details>
+          {!current.serviceNeeds?.length && !current.needs?.length && <p className={workspaceStyles.sectionMeta}>
+            Chưa có danh sách vị trí hoặc nhân viên được phân công trong phương án hiện tại.
+          </p>}
         </div>
       )}
       {active && !v2 && <>
@@ -166,17 +164,14 @@ export function StaffingPreparation({ cruiseId, refreshKey, onStarted, onBudgetR
             }
           }}>Gửi phương án cho Quản lý vận hành</Button>}
       </>}
-      {!active && <div className={styles.form}>
+      {!active && <div className={workspaceStyles.coordinationStart}>
         {data.requiresReplanning && <Notice title="Phương án trước không còn hiệu lực" tone="warning">
-          Chuyến đã có yêu cầu nhân sự bị hủy hiệu lực. Khởi tạo phương án mới để Quản lý tàu kiểm tra khu vực, POS và nhu cầu; HR phân công theo chương trình hiện tại.
-        </Notice>}
-        <p className={workspaceStyles.sectionMeta}>Khởi tạo để Quản lý dịch vụ hoàn thiện chương trình và Quản lý tàu xác định khu vực mở cùng số người cần.</p>
-        {!data.hasOperatingBudget && <Notice tone="warning" title="Cần lưu ngân sách vận hành dự kiến">
-          <a href="#operating-budget">Đến mục ngân sách vận hành</a>
+          Khởi tạo lại phương án tàu và nhân sự theo chương trình hiện tại.
         </Notice>}
         <Button busy={busy} disabled={!data.hasOperatingBudget} autoWidth onClick={() => void start()}>
-          {data.requiresReplanning ? 'Lập lại phương án tàu và nhân sự' : 'Khởi tạo yêu cầu nhân sự'}
+            {data.requiresReplanning ? 'Lập lại phương án tàu và nhân sự' : 'Bắt đầu chuẩn bị chuyến'}
         </Button>
+        {!data.hasOperatingBudget && <p className={workspaceStyles.sectionMeta}>Lưu ngân sách dự kiến trước khi giao việc.</p>}
       </div>}
       {error && <Notice tone="error" title="Chưa hoàn tất thao tác">{error}</Notice>}
       {current && <Button tone="text" size="compact" autoWidth disabled={busy} onClick={query.retry}>

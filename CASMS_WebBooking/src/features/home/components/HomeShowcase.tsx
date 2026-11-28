@@ -72,7 +72,7 @@ export function HomeHero() {
       <p>Khám phá những điểm đến châu Á và chọn hành trình đang mở đặt chỗ phù hợp cho kỳ nghỉ của bạn cùng OceVie.</p>
       <div className={styles.heroActions}><a className={styles.goldButton} href="#cruise-finder">Tìm hành trình <span aria-hidden="true">↗</span></a><Link className={styles.lightLink} to="/cruises">Xem tất cả hải trình <span aria-hidden="true">→</span></Link></div>
     </div>
-    <div className={styles.heroFoot}><span>DI SẢN VIỆT NAM · KỲ NGHỈ TRÊN BIỂN</span><div className={styles.slideshow}><p aria-live={rotating ? 'off' : 'polite'} aria-atomic="true">Ảnh địa danh · {heroSlides[active].label}<span className={styles.screenReader}> · {heroSlides[active].alt}</span></p></div></div>
+    <div className={styles.heroFoot}><span>OCEVIE CRUISES · HẢI TRÌNH CHÂU Á</span><div className={styles.slideshow}><p aria-live={rotating ? 'off' : 'polite'} aria-atomic="true">{heroSlides[active].label}<span className={styles.screenReader}> · {heroSlides[active].alt}</span></p></div></div>
   </section>
 }
 

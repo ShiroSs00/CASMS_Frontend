@@ -27,7 +27,7 @@ export type SupplierFilters = {
 export const emptySupplierFilters: SupplierFilters = { search: '', status: 'ALL', verification: 'ALL' }
 
 export const supplierStatusLabels: Record<SupplierStatus, string> = {
-  ACTIVE: 'Đang dùng', INACTIVE: 'Tạm dừng',
+  ACTIVE: 'Đang hoạt động', INACTIVE: 'Tạm dừng',
 }
 export const supplierVerificationLabels: Record<SupplierVerification, string> = {
   PENDING: 'Chờ xác minh', VERIFIED: 'Đã xác minh', REJECTED: 'Bị từ chối',

@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { setApiAccessToken, subscribeApiUnauthorized } from '@/shared/api'
 import { setSessionAccess } from '@/shared/auth'
 import {
+  clearCustomerSensitiveStorage,
   fetchCustomerMe,
   loginCustomer,
   logoutCustomer,
+  readStoredCustomerSessionMeta,
   readStoredCustomerToken,
-  writeStoredCustomerToken,
+  refreshCustomerToken,
   type CustomerUser,
 } from './customer-auth-api'
 import { CustomerAuthContext } from './useCustomerAuth'
@@ -16,16 +18,62 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     readStoredCustomerToken() ? 'loading' : 'anonymous',
   )
   const [user, setUser] = useState<CustomerUser | null>(null)
+  const refreshInFlightRef = useRef(false)
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const clearSession = useCallback(() => {
+    clearTimeout(refreshTimerRef.current)
     setApiAccessToken(null)
-    writeStoredCustomerToken(null)
+    clearCustomerSensitiveStorage()
     setUser(null)
     setStatus('anonymous')
     setSessionAccess({ status: 'anonymous', userId: null, roles: [], permissions: [], error: '' })
+    window.dispatchEvent(new CustomEvent('ocevie:customer-logout'))
   }, [])
 
   useEffect(() => subscribeApiUnauthorized(() => clearSession()), [clearSession])
+
+  useEffect(() => {
+    if (status !== 'authenticated') return
+    let active = true
+    const scheduleNext = () => {
+      clearTimeout(refreshTimerRef.current)
+      if (!active || !readStoredCustomerToken()) return
+      const meta = readStoredCustomerSessionMeta()
+      const now = Date.now()
+      const delay = meta ? Math.max(0, meta.refreshAt - now) : 45 * 60 * 1000
+      if (meta && now >= meta.expiresAt) {
+        clearSession()
+        return
+      }
+      refreshTimerRef.current = setTimeout(() => {
+        if (!active || refreshInFlightRef.current || !readStoredCustomerToken()) return
+        refreshInFlightRef.current = true
+        refreshCustomerToken()
+          .then(() => {
+            if (active) scheduleNext()
+          })
+          .catch(() => {
+            if (active) clearSession()
+          })
+          .finally(() => {
+            refreshInFlightRef.current = false
+          })
+      }, Math.min(delay, 2147483647))
+    }
+    scheduleNext()
+    const onResume = () => {
+      if (document.visibilityState === 'visible') scheduleNext()
+    }
+    document.addEventListener('visibilitychange', onResume)
+    window.addEventListener('focus', onResume)
+    return () => {
+      active = false
+      clearTimeout(refreshTimerRef.current)
+      document.removeEventListener('visibilitychange', onResume)
+      window.removeEventListener('focus', onResume)
+    }
+  }, [status, clearSession])
 
   useEffect(() => {
     const stored = readStoredCustomerToken()

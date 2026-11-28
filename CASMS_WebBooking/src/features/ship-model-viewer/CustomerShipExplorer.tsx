@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useSearchParams } from 'react-router'
 import { ApiError, apiRequest, useReadQuery } from '@/shared/api'
-import { Button, Field, Loading, Notice } from '@/shared/ui'
+import { Button, Empty, Field, Loading, Notice } from '@/shared/ui'
 import { CustomerModelScene } from './CustomerModelScene'
 import { decodeManifest } from './model'
 import { mapBookingCabins } from './customer-model-selection'
@@ -24,7 +24,21 @@ export function CustomerShipExplorer(props: CustomerShipExplorerProps) {
   }, [shipId])
   const query = useReadQuery(`customer-model:${shipId}`, load)
   if (query.loading) return <Loading label="Đang tải cấu trúc tàu 3D…" />
-  if (query.error) return <Notice title="Chưa tải được mô hình tàu" tone="warning">{query.error instanceof ApiError && query.error.status === 404 ? 'Tàu chưa có mô hình đang hoạt động.' : 'Không thể tải mô hình lúc này. Bạn có thể tiếp tục chọn phòng bằng danh sách.'}<Button tone="secondary" onClick={query.retry}>Thử lại mô hình</Button></Notice>
+  if (query.error) {
+    if (query.error instanceof ApiError && query.error.status === 404) {
+      return (
+        <Empty title="Tàu chưa có mô hình 3D đang hoạt động">
+          <p>Bạn vẫn có thể xem thông tin hạng phòng và chọn cabin trực tiếp từ danh sách phòng trống.</p>
+        </Empty>
+      )
+    }
+    return (
+      <Notice title="Chưa tải được mô hình tàu" tone="warning">
+        <p>Không thể tải mô hình lúc này. Bạn có thể tiếp tục chọn phòng bằng danh sách.</p>
+        <Button tone="secondary" onClick={query.retry}>Thử lại mô hình</Button>
+      </Notice>
+    )
+  }
   if (!query.data) return null
   const { modelId, manifest, mappings } = query.data
   const choices = cabins ? mapBookingCabins(cabins, mappings, manifest.cabins) : undefined

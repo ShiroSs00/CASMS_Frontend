@@ -34,6 +34,9 @@ function record<T extends { id: string }>(value: unknown, status: number, reques
     || ('usageTimeZoneSnapshot' in value && value.usageTimeZoneSnapshot != null && typeof value.usageTimeZoneSnapshot !== 'string')
   )) throw new ApiError('Dữ liệu thực hiện dịch vụ không hợp lệ.', status)
   const row=value as Record<string,unknown>
+  if (request && (['serviceName', 'passengerName', 'bookingReference', 'cruiseName', 'shipName', 'location', 'unitCode'].some(key => row[key] != null && typeof row[key] !== 'string')
+    || ['scheduledStart', 'scheduledEnd'].some(key => row[key] != null && (typeof row[key] !== 'string' || !Number.isFinite(Date.parse(row[key] as string))))))
+    throw new ApiError('Chưa đọc được thời gian hoặc nội dung công việc phục vụ.', status)
   if(!request&&(row.requiresSchedule!=null&&typeof row.requiresSchedule!=='boolean'||['categoryId','categoryName','unitCode','applicabilityScope'].some(key=>row[key]!=null&&typeof row[key]!=='string')))throw new ApiError('Cấu hình lịch, nhóm hoặc đơn vị dịch vụ không hợp lệ.',status)
   return value as T
 }

@@ -10,7 +10,7 @@ export function SourceScheduleDialog({versionId,source,onClose}:{versionId:strin
  return <Modal large title={query.data?query.data.tripName:'Lịch trình nguồn'} protectChanges={false} onClose={onClose} footer={<Button tone="secondary" onClick={onClose}>Đóng</Button>}>
   {query.loading&&<Loading label="Đang tải lịch trình đã chốt…"/>}
   {query.error&&<Notice title="Chưa tải được lịch trình" tone="error">{query.error.message}<Button tone="secondary" onClick={query.retry}>Tải lại mẫu</Button></Notice>}
-  {query.data&&!query.loading&&!query.error&&<><p>{query.data.tripCode} · Phiên bản {query.data.versionNumber} · {query.data.days.length} ngày</p>{query.data.tripStatus==='ARCHIVED'&&<p>Chuyến đi nguồn đã lưu trữ · Chỉ xem lịch trình đã chốt.</p>}{query.data.description&&<p>{query.data.description}</p>}<TemplateSchedule days={query.data.days} stops={query.data.stops} entries={query.data.entries}/></>}
+  {query.data&&!query.loading&&!query.error&&<><p>{query.data.tripCode} · {query.data.days.length} ngày</p>{query.data.tripStatus==='ARCHIVED'&&<p>Khung chuyến đã ngừng sử dụng.</p>}{query.data.description&&<p>{query.data.description}</p>}<TemplateSchedule days={query.data.days} stops={query.data.stops} entries={query.data.entries}/></>}
  </Modal>
 }
 
@@ -37,7 +37,7 @@ export function InheritedSourcePlan({
     <p className={styles.sourceEyebrow}>TUYẾN MẪU ĐÃ CHỌN</p>
     <h2 className={styles.sourceSummaryTitle}>{source.tripName}</h2>
     <p className={styles.sourceSummaryMeta}>
-     {source.tripCode} · Phiên bản {source.versionNumber} · {source.durationDays} ngày{source.durationNights ? ` ${source.durationNights} đêm` : ''}
+     {source.tripCode} · {source.durationDays} ngày{source.durationNights ? ` ${source.durationNights} đêm` : ''}
     </p>
    </div>
    {onChangeSource&&<Button type="button" tone="secondary" size="compact" autoWidth disabled={disabled} onClick={onChangeSource}>Đổi lịch trình mẫu</Button>}

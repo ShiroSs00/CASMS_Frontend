@@ -77,8 +77,9 @@ function ReportIssueDialogContent({ open, onClose, onCreated }: Props) {
     description="Ghi nhận mức độ, vị trí và nội dung sự cố. Sự cố mới bắt đầu ở trạng thái Chờ xử lý."
     onClose={() => { if (!pending) onClose() }}
     footer={<>
-      <button className={styles.secondaryButton} disabled={pending} onClick={onClose} data-overlay-dismiss>Hủy</button>
+      <button type="button" className={styles.secondaryButton} disabled={pending} onClick={onClose} data-overlay-dismiss>Hủy</button>
       <button
+        type="button"
         className={styles.primaryButton}
         disabled={blockedByContext || pending}
         title={blockedByContext ? 'Cần có quyền báo cáo và danh mục tàu khả dụng để gửi báo cáo.' : undefined}

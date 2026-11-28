@@ -7,23 +7,27 @@ import styles from './PlanSnapshot.module.css'
 import { Badge, Button, Loading, Notice, Panel } from '@/shared/ui'
 import { planPackages, type Choice } from '../api/plan-packages'
 import { saleTermsApi } from '../api/sale-terms'
+import { invalidPackageChoices, packageSelectionState } from '../model/package-selection-state'
+import { SaleTermsSetupButton } from './SaleTermsSetupButton'
 
-export function PlanPackageSelection({ cruiseId, onSaved }: { cruiseId: string; onSaved: () => void }) {
+export function PlanPackageSelection({ cruiseId, onSaved, preparation = false, onPackages, refreshKey = '' }: { cruiseId: string; onSaved: () => void; preparation?: boolean; onPackages?: () => void; refreshKey?: string }) {
   const access = useSessionAccess()
   const editable = access.roles.includes('CRUISE_MANAGER') && access.canDo('CRUISE_UPDATE_DRAFT')
-  const query = useReadQuery('plan-package-selection:' + access.userId + ':' + access.status + ':' + cruiseId, useCallback(signal => planPackages(cruiseId, signal), [cruiseId]))
-  const terms = useReadQuery('plan-package-terms:' + access.userId + ':' + cruiseId, useCallback(signal => saleTermsApi.read(cruiseId, signal), [cruiseId]))
+  const query = useReadQuery('plan-package-selection:' + access.userId + ':' + access.status + ':' + cruiseId + ':' + refreshKey, useCallback(signal => planPackages(cruiseId, signal), [cruiseId]))
+  const terms = useReadQuery('plan-package-terms:' + access.userId + ':' + cruiseId + ':' + refreshKey, useCallback(signal => saleTermsApi.read(cruiseId, signal), [cruiseId]))
   const [draft, setDraft] = useState<Choice[] | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const lock = useRef(false)
   const data = query.data
   const selected = draft ?? data?.selections ?? []
+  const invalidChoices = data ? invalidPackageChoices(data, selected) : []
+  const selectionState = data ? packageSelectionState(data, selected) : null
   const hasChanges = draft !== null && Boolean(data) && (draft.length !== data!.selections.length
     || draft.some(choice => !data!.selections.some(saved => saved.offerId === choice.offerId && saved.priceRevisionId === choice.priceRevisionId)))
 
   async function save() {
-    if (!editable || !data || !draft || lock.current || query.loading || query.error) return
+    if (!editable || !data || !draft || lock.current || query.loading || query.error || invalidChoices.length) return
     lock.current = true
     setBusy(true)
     setError('')
@@ -40,14 +44,18 @@ export function PlanPackageSelection({ cruiseId, onSaved }: { cruiseId: string; 
     }
   }
 
-  return <Panel title="Gói du thuyền gửi duyệt">
+  return <Panel title="Gói du thuyền gửi duyệt" className={styles.selectionPanel}>
     {query.loading && <Loading/>}
     {(query.error || error) && <Notice tone="error" title="Cần đối chiếu lựa chọn"><p>{error || 'Không tải được gói du thuyền.'}</p><Button tone="secondary" onClick={() => { setDraft(null); setError(''); query.retry() }}>Tải lại gói</Button></Notice>}
-    {!query.loading && !query.error && data?.offers.length === 0 && <p>Chuyến chưa có gói du thuyền. Đang chờ Quản lý hoạt động và dịch vụ cấu hình gói và gửi phiên bản giá.</p>}
+    {!query.loading && !query.error && selectionState && <div className={styles.selectionContext}>
+      <div><strong>{selectionState.title}</strong><p>{selectionState.description}</p></div>
+      {onPackages && Boolean(data?.offers.length) && <Button tone="secondary" size="compact" autoWidth onClick={onPackages}>Xem gói của chuyến</Button>}
+    </div>}
     {data?.offers.map(({ product, eligiblePriceRevisionId, planEligibility }) => {
       const id = product.offer.id
       const choice = selected.find(item => item.offerId === id)
       const price = product.prices.find(item => item.id === (choice?.priceRevisionId ?? eligiblePriceRevisionId))
+      const currentPrice = product.prices.find(item => item.id === eligiblePriceRevisionId)
       const canSelect = Boolean(eligiblePriceRevisionId && planEligibility.eligible)
       const staleSelection = choice && choice.priceRevisionId !== eligiblePriceRevisionId
       const blockers = [...new Set(planEligibility.blockers.map(blocker => blocker.message))]
@@ -68,10 +76,11 @@ export function PlanPackageSelection({ cruiseId, onSaved }: { cruiseId: string; 
           </div>
           {(!canSelect||staleSelection)&&<Badge label={staleSelection?'Cần chọn lại giá':'Chưa thể chọn'} tone="warning"/>}
         </div>
-        {blockers.length>0&&<details className={styles.selectionDetails}>
-          <summary>Việc cần xử lý</summary>
+        {staleSelection && canSelect && currentPrice && <Button tone="secondary" size="compact" autoWidth disabled={!editable || busy || query.loading || Boolean(query.error) || Boolean(error)} onClick={() => setDraft(selected.map(item => item.offerId === id ? { offerId: id, priceRevisionId: currentPrice.id } : item))}>Chọn giá hiện tại: {new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 4 }).format(Number(currentPrice.amount))} {currentPrice.currencyCode}/người</Button>}
+        {blockers.length>0&&<div className={styles.selectionBlockers}>
+          <strong>Chưa thể đưa vào hồ sơ</strong>
           <ul>{blockers.map(message=><li key={message}>{message}</li>)}</ul>
-        </details>}
+        </div>}
         {benefits.length>0&&<details className={styles.selectionDetails}>
           <summary>Quyền lợi trong gói</summary>
           <ul>{benefits.map(benefit=><li key={benefit.id}>
@@ -80,16 +89,35 @@ export function PlanPackageSelection({ cruiseId, onSaved }: { cruiseId: string; 
         </details>}
       </article>
     })}
-    {selected.filter(choice => !data?.offers.some(candidate => candidate.product.offer.id === choice.offerId)).map(choice =>
-      <p key={choice.offerId}>Gói đã chọn không còn khả dụng. <Button tone="secondary" disabled={busy} onClick={() => setDraft(selected.filter(item => item.offerId !== choice.offerId))}>Bỏ gói khỏi hồ sơ</Button></p>)}
-    {terms.data?.terms && <p>Thuế: {chargeText(terms.data.terms.tax, true)} · Phí cảng: {chargeText(terms.data.terms.portFee, false, terms.data.currency)}</p>}
-    {terms.error && <div className={styles.selectionActions}><Button tone="secondary" size="compact" autoWidth onClick={terms.retry}>Tải lại thuế và phí cảng</Button></div>}
-    <div className={styles.selectionActions}>
-      {!hasChanges && !query.loading && !query.error && selected.length > 0 && <p role="status">Đã lưu lựa chọn gói vào hồ sơ. Tiếp tục đến bước nộp hồ sơ chuyến.</p>}
-      <Button autoWidth disabled={!editable || !hasChanges || busy || Boolean(error) || query.loading || Boolean(query.error)} onClick={() => void save()}>Lưu lựa chọn gói</Button>
-    </div>
+    {data && !query.loading && !query.error && selected.filter(choice => !data.offers.some(candidate => candidate.product.offer.id === choice.offerId)).map(choice =>
+      <p key={choice.offerId}>Gói đã chọn không còn khả dụng. <Button tone="secondary" disabled={!editable || busy || query.loading || Boolean(query.error)} onClick={() => setDraft(selected.filter(item => item.offerId !== choice.offerId))}>Bỏ gói khỏi hồ sơ</Button></p>)}
+    {((data?.offers.length ?? 0) > 0 || selected.length > 0) && (
+      <div className={styles.selectionActions}>
+        {!hasChanges && !query.loading && !query.error && !invalidChoices.length && selected.length > 0 && <p role="status">Đã lưu lựa chọn gói vào hồ sơ.</p>}
+        {hasChanges && <p role="status">Lựa chọn chưa được lưu.</p>}
+        <Button autoWidth disabled={!editable || !hasChanges || busy || Boolean(error) || query.loading || Boolean(query.error) || invalidChoices.length > 0} onClick={() => void save()}>Lưu lựa chọn gói</Button>
+      </div>
+    )}
+    {preparation ? <section className={styles.selectionTerms} aria-label="Thuế và phí cảng">
+      <header><div><h3>Thuế và phí cảng</h3><p>Phụ trách: Quản lý vận hành</p></div>
+        {terms.data && !terms.loading && !terms.error && <Badge label={termsLabels[terms.data.status]} tone={terms.data.status === 'APPROVED' ? 'success' : ['MISSING','RETURNED'].includes(terms.data.status) ? 'warning' : 'neutral'} />}
+      </header>
+      {terms.loading && <Loading label="Đang kiểm tra thuế và phí cảng…" />}
+      {terms.error && <Notice tone="error" title="Chưa xác định được cấu hình thuế và phí cảng"><Button tone="secondary" onClick={terms.retry}>Tải lại thuế và phí cảng</Button></Notice>}
+      {!terms.loading && !terms.error && terms.data && <>
+        {terms.data.terms && <p>Thuế: {chargeText(terms.data.terms.tax, true)} · Phí cảng: {chargeText(terms.data.terms.portFee, false, terms.data.currency)}</p>}
+        {['MISSING','RETURNED'].includes(terms.data.status)
+          ? <><p>{terms.data.status === 'MISSING' ? 'Hồ sơ còn thiếu cấu hình thuế và phí cảng. Bạn có thể gửi yêu cầu để Quản lý vận hành bổ sung.' : 'Cấu hình đã bị trả lại. Quản lý vận hành cần cập nhật trước khi bạn gửi hồ sơ.'}</p><SaleTermsSetupButton key={cruiseId} cruiseId={cruiseId} onSent={onSaved} /></>
+          : <p>{terms.data.status === 'APPROVED' ? 'Thuế và phí cảng đã được phê duyệt.' : 'Đã có cấu hình để đưa vào hồ sơ. Việc xét duyệt thực hiện theo luồng của Quản lý vận hành.'}</p>}
+      </>}
+    </section> : <>
+      {terms.data?.terms && <p>Thuế: {chargeText(terms.data.terms.tax, true)} · Phí cảng: {chargeText(terms.data.terms.portFee, false, terms.data.currency)}</p>}
+      {terms.error && <Button tone="secondary" onClick={terms.retry}>Tải lại thuế và phí cảng</Button>}
+    </>}
   </Panel>
 }
+
+const termsLabels = { MISSING: 'Chưa cấu hình', DRAFT: 'Đã lưu cấu hình', PENDING_APPROVAL: 'Chờ xét duyệt', APPROVED: 'Đã phê duyệt', RETURNED: 'Cần cập nhật' } as const
 
 const inclusionLabels: Record<string, string> = { INCLUDED: 'Đã bao gồm', LIMITED_INCLUDED: 'Đã bao gồm · Có giới hạn', OPTIONAL: 'Mua thêm nếu lựa chọn', NOT_INCLUDED: 'Không bao gồm' }
 const show = (value: unknown) => evidenceText(value) ?? 'Chưa có thông tin trong bản đã gửi'
@@ -104,34 +132,37 @@ export function FrozenPlanPackages({ snapshot }: { snapshot: unknown }) {
         {frozen.packages.map((item, index) => <section className={styles.package} key={item.offerId ?? index}>
           <div className={styles.packageTitleRow}>
             <h4>{item.name ?? 'Chưa có tên gói trong hồ sơ'}</h4>
-            <Badge label={`Mẫu v${item.version ?? '—'} · Giá v${item.priceRevision ?? '—'}`} tone="neutral" />
+            <Badge label={`Phiên bản gói ${item.version ?? '—'} · Bảng giá lần ${item.priceRevision ?? '—'}`} tone="neutral" />
           </div>
           <p className={styles.reference}>{item.category ?? 'Chưa có hạng cabin'}</p>
           <p className={styles.packagePrice}>{item.amount !== null && (item.currency === 'USD' || item.currency === 'VND') && item.priceUnit === 'PERSON' ? `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 4 }).format(item.amount)} ${item.currency}/người` : 'Chưa xác nhận được giá'}</p>
           {!item.valid && <Notice title="Bằng chứng giá chưa đầy đủ" tone="error">Đọc lại hồ sơ để đối chiếu đúng gói và phiên bản giá trước khi quyết định.</Notice>}
-          <details className={styles.group}><summary>Quyền lợi và lần phục vụ <span>{item.benefits.length} quyền lợi</span></summary><div className={styles.groupBody}>
-            {item.benefits.length === 0 && <p>Chưa có chi tiết quyền lợi trong bản đã gửi.</p>}
-            {item.benefits.map((benefit, bIndex) => {
-              const binding = item.bindings.find(b => b.benefit_id === benefit.benefit_id)
-              const resource = frozenResource(snapshot, binding ?? benefit)
-              const quantity = evidenceNumber(benefit.quantity_limit)
-              return <section key={evidenceText(benefit.benefit_id) ?? bIndex}>
-                <strong>{resource.name ?? resource.kind}</strong>
-                {!resource.name && <p>Chưa có tên trong bản đã gửi. Mã tham chiếu: {resource.id ?? 'Chưa có'}</p>}
-                <p>{inclusionLabels[String(benefit.inclusion)] ?? 'Chưa xác định loại quyền lợi'}</p>
-                {benefit.inclusion === 'LIMITED_INCLUDED' && <p>Giới hạn: {quantity ?? 'Chưa có số lượng'} · {benefit.usage_unit==='PARTICIPATION'?'Lần tham gia':show(benefit.service_unit_code ?? benefit.usage_unit)}</p>}
-                {benefit.usage_policy === 'UNLIMITED' && <p>Sử dụng không giới hạn theo chính sách của bản đã gửi.</p>}
-                {typeof benefit.requires_reservation === 'boolean' && <p>{benefit.requires_reservation ? 'Cần đăng ký trước; quyền lợi chưa giữ suất phục vụ.' : 'Không yêu cầu đăng ký theo cấu hình quyền lợi.'}</p>}
-                {evidenceText(benefit.eligibility) && <p>{String(benefit.eligibility)}</p>}
-                {benefit.usage_starts_at != null && <p>Được sử dụng từ: {journeyTime(String(benefit.usage_starts_at))}</p>}
-                {benefit.usage_ends_at != null && <p>Được sử dụng đến: {journeyTime(String(benefit.usage_ends_at))}</p>}
-                <p>{binding ? 'Đã gắn lần phục vụ trong hồ sơ' : 'Chưa có liên kết lần phục vụ trong hồ sơ'}</p>
-                {resource.row.start_time != null && <p>Bắt đầu (giờ Việt Nam): {journeyTime(String(resource.row.start_time))}</p>}
-                {resource.row.end_time != null && <p>Kết thúc (giờ Việt Nam): {journeyTime(String(resource.row.end_time))}</p>}
-                {resource.row.service_id != null && <ul>{(Array.isArray(frozen.source.servingWindows) ? frozen.source.servingWindows : []).map(evidenceRow).filter(w => w.service_id === resource.id).map((w, i) => <li key={i}>{journeyTime(String(w.starts_at))} – {journeyTime(String(w.ends_at))}{w.location ? ` · ${String(w.location)}` : ''}</li>)}</ul>}
-              </section>
-            })}
-          </div></details>
+          {item.benefits.length === 0 ? (
+            <p className={styles.reference}>Không có quyền lợi bổ sung đi kèm trong gói này.</p>
+          ) : (
+            <details className={styles.group}><summary>Quyền lợi đi kèm <span>{item.benefits.length} quyền lợi</span></summary><div className={styles.groupBody}>
+              {item.benefits.map((benefit, bIndex) => {
+                const binding = item.bindings.find(b => b.benefit_id === benefit.benefit_id)
+                const resource = frozenResource(snapshot, binding ?? benefit)
+                const quantity = evidenceNumber(benefit.quantity_limit)
+                return <section key={evidenceText(benefit.benefit_id) ?? bIndex}>
+                  <strong>{resource.name ?? resource.kind}</strong>
+                  {!resource.name && <p>Chưa có tên trong bản đã gửi. Mã tham chiếu: {resource.id ?? 'Chưa có'}</p>}
+                  <p>{inclusionLabels[String(benefit.inclusion)] ?? 'Chưa xác định loại quyền lợi'}</p>
+                  {benefit.inclusion === 'LIMITED_INCLUDED' && <p>Giới hạn: {quantity ?? 'Chưa có số lượng'} · {benefit.usage_unit==='PARTICIPATION'?'Lần tham gia':show(benefit.service_unit_code ?? benefit.usage_unit)}</p>}
+                  {benefit.usage_policy === 'UNLIMITED' && <p>Sử dụng không giới hạn theo chính sách của bản đã gửi.</p>}
+                  {typeof benefit.requires_reservation === 'boolean' && <p>{benefit.requires_reservation ? 'Cần đăng ký trước; quyền lợi chưa giữ suất phục vụ.' : 'Không yêu cầu đăng ký theo cấu hình quyền lợi.'}</p>}
+                  {evidenceText(benefit.eligibility) && <p>{String(benefit.eligibility)}</p>}
+                  {benefit.usage_starts_at != null && <p>Được sử dụng từ: {journeyTime(String(benefit.usage_starts_at))}</p>}
+                  {benefit.usage_ends_at != null && <p>Được sử dụng đến: {journeyTime(String(benefit.usage_ends_at))}</p>}
+                  <p>{binding ? 'Đã gắn lần phục vụ trong hồ sơ' : 'Chưa có liên kết lần phục vụ trong hồ sơ'}</p>
+                  {resource.row.start_time != null && <p>Bắt đầu (giờ Việt Nam): {journeyTime(String(resource.row.start_time))}</p>}
+                  {resource.row.end_time != null && <p>Kết thúc (giờ Việt Nam): {journeyTime(String(resource.row.end_time))}</p>}
+                  {resource.row.service_id != null && <ul>{(Array.isArray(frozen.source.servingWindows) ? frozen.source.servingWindows : []).map(evidenceRow).filter(w => w.service_id === resource.id).map((w, i) => <li key={i}>{journeyTime(String(w.starts_at))} – {journeyTime(String(w.ends_at))}{w.location ? ` · ${String(w.location)}` : ''}</li>)}</ul>}
+                </section>
+              })}
+            </div></details>
+          )}
         </section>)}
       </div>
 

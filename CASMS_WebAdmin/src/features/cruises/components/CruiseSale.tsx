@@ -53,8 +53,11 @@ export function CruiseSale({cruise,onSection,onReview,onReady,onChanged}:{cruise
  const selectedFares=selectedFaresOverride??defaultFares
  const hasSelectedFares=selectedFares.length>0
  const canQuerySale=Boolean(plan.data&&!plan.loading&&!plan.error&&(!unified||hasSelectedFares))
- const offerSelection=sortedCsv(selectedFares),selection=scope==='SELECTED_PACKAGES'?sortedCsv(selected):undefined,key=JSON.stringify([cruise.cruiseId,scope,selection,offerSelection,epoch,cruise.revision])
- const fetchSaleReadiness=useCallback((signal:AbortSignal)=>canQuerySale?apiRequest(`/cruise/${cruise.cruiseId}/sale-readiness`,{query:{saleScope:scope,selectedPackageIds:selection,selectedCruisePackageOfferIds:offerSelection},signal}).then(value=>decodeSaleReadiness(value,cruise.cruiseId)):Promise.resolve(null),[canQuerySale,cruise.cruiseId,scope,selection,offerSelection])
+ const cruiseId=cruise.cruiseId
+ const offerSelection=String(sortedCsv(selectedFares))
+ const selection=scope==='SELECTED_PACKAGES'?String(sortedCsv(selected)):undefined
+ const key=JSON.stringify([cruiseId,scope,selection,offerSelection,epoch,cruise.revision])
+ const fetchSaleReadiness=useCallback((signal:AbortSignal)=>canQuerySale?apiRequest(`/cruise/${cruiseId}/sale-readiness`,{query:{saleScope:scope,selectedPackageIds:selection,selectedCruisePackageOfferIds:offerSelection},signal}).then(value=>decodeSaleReadiness(value,cruiseId)):Promise.resolve(null),[canQuerySale,cruiseId,scope,selection,offerSelection])
  const query=useReadQuery(`scoped-sale:${access.userId}:${plan.data?.revision}:${key}`,fetchSaleReadiness)
  const saleRecord=useReadQuery(`sale-record:${cruise.cruiseId}:${epoch}:${cruise.revision}`,useCallback(signal=>apiRequest<SaleRecord>(`/cruise/${cruise.cruiseId}`,{signal}).then(value=>decodeSaleRecord(value,cruise.cruiseId)),[cruise.cruiseId]))
  const publicUrl=externalAppUrl(import.meta.env.VITE_BOOKING_APP_URL,'/cruises/'+encodeURIComponent(cruise.cruiseId))

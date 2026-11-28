@@ -82,21 +82,14 @@ export function CruiseHubDashboard({
         {salePlan.error != null && <Button tone="secondary" onClick={salePlan.retry}>Tải lại hồ sơ</Button>}
         <div className={styles.actions}>
           {plan && <Button autoWidth onClick={onReview}>{packageCount ? 'Xem hồ sơ, gói và giá đã gửi' : 'Xem hồ sơ xét duyệt'}</Button>}
-          {link('transaction-policy', 'Xem chính sách giao dịch')}
-          {link('resources', 'Xem tàu và quy định')}
           {onStop && <Button tone="danger" autoWidth onClick={onStop}>Dừng bán</Button>}
         </div>
       </Panel>
       <Panel title="Chuẩn bị và vận hành khởi hành">
         {sections.includes('operation') && <p>{detail.supplementaryLoading ? 'Đang tải sự cố…' : detail.supplementaryErrors?.issues ? 'Chưa đọc được sự cố' : `${issues.length} sự cố đang xử lý`}</p>}
+        <p className={styles.muted}>Sử dụng mục "Tra cứu thông tin chuyến" phía trên để mở Lịch thực tế, Nhân sự, Hồ sơ chuẩn bị, Hướng dẫn và Tồn cabin.</p>
         <div className={styles.actions}>
-          {link('schedule', 'Xem lịch thực tế')}
-          {link('staff', 'Nhân sự chuyến khởi hành')}
-          {link('preparation', 'Hồ sơ chuẩn bị')}
-          {link('guidance', 'Hướng dẫn trước chuyến')}
           {link('operation', 'Vận hành và sự cố')}
-          {link('changes', 'Theo dõi thay đổi lịch')}
-          {link('sales', 'Xem tồn cabin')}
         </div>
       </Panel>
     </div>

@@ -199,7 +199,7 @@ function PaymentLedgerContent({
         </div>
       )}
 
-      {canRead ? (
+      {canRead && !query.loading && !query.error && query.data ? (
         <div className={styles.financeToolbar}>
           <div className={styles.financeToolbarStats}>
             <span>
@@ -237,11 +237,11 @@ function PaymentLedgerContent({
             Tải lại khoản thu
           </Button>
         </div>
-      ) : (
+      ) : !canRead ? (
         <Notice title="Chưa có quyền xem khoản thu">
           Tài khoản cần quyền đọc hoặc báo cáo thanh toán để đối chiếu lịch sử.
         </Notice>
-      )}
+      ) : null}
 
       {canWrite && !['USD', 'VND'].includes(currency) && (
         <Notice title="Cần đối chiếu tiền tệ" tone="warning">
@@ -324,7 +324,7 @@ function PaymentLedgerContent({
       ) : (
         <div className={styles.financeFormSection}>
           <h3 className={styles.financeSubheading}>Ghi nhận giao dịch thu thủ công</h3>
-          <form onSubmit={create} className={styles.financePaymentForm}>
+          <form noValidate onSubmit={create} className={styles.financePaymentForm}>
             <div className={styles.financePaymentFields}>
               <Field htmlFor="payment-amount" label={`Số tiền yêu cầu thu (${currency})`}>
                 <input

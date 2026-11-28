@@ -7,7 +7,6 @@ import { Badge, Button, Field, Loading, Modal, Notice, Panel } from '@/shared/ui
 import {
   preparationApi,
   preparationActionAllowed,
-  preparationApprovalLabels,
   type PreparationSection as Section,
   type PreparationAction,
   formatOperatingBudget,
@@ -15,6 +14,8 @@ import {
 import { PreparationCoordinator } from './PreparationCoordinator'
 import { allowedDepartureSections, type DepartureSection } from '../model/preparation'
 import { operationsStaffRole } from '../model/operations-workflow'
+import { preparationProgress, preparationSubmissionReason } from '../model/preparation-presentation'
+import { staffingApi, staffingStatusLabel } from '../staffing/staffing-api'
 import styles from './ManagerWorkspace.module.css'
 
 const actions = {
@@ -36,7 +37,7 @@ const sectionMeta: Record<
     stage: 'departure',
   },
   HOTEL_CABIN: {
-    title: 'Khách sạn và cabin',
+    title: 'Cabin phục vụ khách',
     specialist: 'Quản lý lịch trình gửi kèm hồ sơ kế hoạch chuyến',
     targetSection: 'sales',
     targetLabel: 'Xem cabin và sức chứa',
@@ -50,8 +51,8 @@ const sectionMeta: Record<
     stage: 'plan',
   },
   SAFETY_CREW: {
-    title: 'An toàn và thuyền viên',
-    specialist: 'Quản lý nhân sự xếp người · Quản lý vận hành xác nhận trước xuất bến (không chặn mở bán)',
+    title: 'Nhân sự phục vụ trên tàu',
+    specialist: 'Quản lý tàu xác định nhu cầu → Nhân sự phân công → Quản lý tàu xác nhận → Quản lý lịch trình rà soát → Quản lý vận hành phê duyệt. Đây là điều kiện trước xuất bến.',
     targetSection: 'staff',
     targetLabel: 'Xem phân công nhân sự',
     stage: 'departure',
@@ -64,9 +65,9 @@ const sectionOrder: readonly string[] = [...planSectionCodes, ...departureSectio
 
 const checks: Record<string, string> = {
   SHIP_ASSIGNED: 'Tàu đã được phân công',
-  SHIP_STATUS_ACTIVE: 'Tàu đang hoạt động',
+  SHIP_STATUS_ACTIVE: 'Tình trạng hoạt động của tàu',
   SHIP_CONFIG: 'Cấu hình boong và cabin',
-  CABIN_INVENTORY: 'Kiểm kê Cabin',
+  CABIN_INVENTORY: 'Cabin khả dụng trên tàu',
   SHORE_EXCURSIONS: 'Hoạt động trên tàu và tour tham quan trên bờ',
   ONBOARD_STAFF_ASSIGNED: 'Phân công nhân sự trên tàu',
 }
@@ -105,6 +106,9 @@ export function PreparationEvidence({
   const availableSections = allowedDepartureSections(access)
   const allowed = access.has('CRUISE_PREPARATION_READ')
   const isOps = access.roles.includes('OPERATIONS_MANAGER')
+  const readStaffing = allowed && access.roles.includes('CRUISE_MANAGER') && !sectionCode
+  const staffing = useReadQuery(`dossier-staffing:${access.userId}:${cruiseId}:${refreshKey}:${readStaffing}`,
+    useCallback(signal => readStaffing ? staffingApi.preparation(cruiseId, signal) : Promise.resolve(null), [readStaffing, cruiseId]))
 
   const [epoch, setEpoch] = useState(0)
   const [selected, setSelected] = useState<{ section: Section; action: keyof typeof actions } | null>(null)
@@ -127,10 +131,7 @@ export function PreparationEvidence({
   const can = (section: Section, action: PreparationAction) =>
     preparationActionAllowed(section, action, access.userId) &&
     (action === 'submit'
-      ? access.has('CRUISE_PREPARATION_SUBMIT') &&
-        (section.submitterRole === 'CRUISE_MANAGER'
-          ? query.data?.coordinatorUserId === access.userId && access.roles.includes('CRUISE_MANAGER')
-          : access.roles.includes(section.submitterRole))
+      ? access.has('CRUISE_PREPARATION_SUBMIT')
       : access.roles.includes('OPERATIONS_MANAGER') && access.has('CRUISE_PREPARATION_CONFIRM'))
 
   async function execute() {
@@ -159,7 +160,9 @@ export function PreparationEvidence({
   const sortedSections = [...sections].sort(
     (a, b) => sectionOrder.indexOf(a.sectionCode) - sectionOrder.indexOf(b.sectionCode),
   )
-  const confirmedCount = sortedSections.filter(s => s.status === 'CONFIRMED').length
+  const coordinatorView = access.roles.includes('CRUISE_MANAGER') && !isOps
+  const planGroups = sortedSections.filter(s => planSectionCodes.some(code => code === s.sectionCode))
+  const departureGroups = sortedSections.filter(s => departureSectionCodes.some(code => code === s.sectionCode))
 
   async function reconcile() {
     if (lock.current) return
@@ -183,10 +186,10 @@ export function PreparationEvidence({
 
   return (
     <Panel
-      title={sectionCode ? 'Hồ sơ kỹ thuật của chuyến' : businessCopy('preparation.dashboard.title')}
-      subtitle={sectionCode ? 'Quản lý tàu được phân công nộp hồ sơ kỹ thuật cho Quản lý vận hành xét duyệt.' : 'Mỗi nhóm có người nộp riêng. Dữ liệu đủ điều kiện chưa có nghĩa hồ sơ đã được nộp hoặc xét duyệt.'}
+      className={coordinatorView ? styles.coordinatorEvidence : undefined}
+      title={sectionCode ? 'Hồ sơ kỹ thuật của chuyến' : coordinatorView ? undefined : businessCopy('preparation.dashboard.title')}
     >
-      {query.data && !sectionCode && (
+      {query.data && !sectionCode && !coordinatorView && (
         <div className={styles.prepSummaryStrip}>
           <div className={styles.prepSummaryMetric}>
             <span className={styles.prepSummaryLabel}>Điều phối phụ trách</span>
@@ -207,15 +210,10 @@ export function PreparationEvidence({
           </div>
 
           <div className={styles.prepSummaryMetric}>
-            <span className={styles.prepSummaryLabel}>Tiến độ xác nhận 4 nhóm hồ sơ</span>
+            <span className={styles.prepSummaryLabel}>Theo từng giai đoạn</span>
             <div className={styles.prepSummaryProgressRow}>
-              <strong className={styles.prepSummaryValue}>
-                {confirmedCount} / {sortedSections.length || 4} nhóm đã xác nhận
-              </strong>
-              <Badge
-                label={confirmedCount === 4 ? 'Đủ 4/4 nhóm' : `Còn ${Math.max(0, 4 - confirmedCount)} nhóm`}
-                tone={confirmedCount === 4 ? 'success' : 'warning'}
-              />
+              <span>Hồ sơ chuyến: {planGroups.filter(s => s.submissionStatus === 'SUBMITTED').length}/{planGroups.length} nhóm đã gửi</span>
+              <span>Trước xuất bến: {departureGroups.filter(s => s.approvalStatus === 'CONFIRMED').length}/{departureGroups.length} nhóm đã xác nhận</span>
             </div>
           </div>
         </div>
@@ -241,17 +239,13 @@ export function PreparationEvidence({
         return (
           <div key={stage} style={{ marginTop: stage === 'departure' ? '20px' : '0' }}>
             {stage !== 'all' && (
-              <div style={{ marginBottom: '10px' }}>
-                <h3 style={{ margin: '0 0 2px', fontSize: '14px', fontWeight: 700, color: 'var(--brand-navy)' }}>
+              <div className={styles.dossierGroupHeading}>
+                <h3>
                   {stage === 'plan'
-                    ? '1. Hồ sơ gửi kèm kế hoạch chuyến (Quản lý lịch trình nộp)'
-                    : '2. Hồ sơ xác nhận trước xuất bến (không chặn gửi kế hoạch hay mở bán)'}
+                    ? 'Hồ sơ kế hoạch chuyến'
+                    : 'Xác nhận trước xuất bến'}
                 </h3>
-                <p className={styles.prepCardMeta} style={{ margin: 0 }}>
-                  {stage === 'plan'
-                    ? 'Hai nhóm này được gửi tự động khi Quản lý lịch trình nộp hồ sơ chuyến cho Quản lý vận hành.'
-                    : 'Hai nhóm này do Quản lý tàu của chuyến và Quản lý vận hành xác nhận ở giai đoạn chuẩn bị xuất bến.'}
-                </p>
+                {coordinatorView && <p className={styles.prepStageNote}>{stage === 'plan' ? 'Nội dung đưa vào kế hoạch gửi Quản lý vận hành.' : 'Theo dõi xác nhận tàu và phương án nhân sự của chuyến.'}</p>}
               </div>
             )}
             <div className={sectionCode ? undefined : styles.prepCardGrid2x2}>
@@ -261,47 +255,17 @@ export function PreparationEvidence({
             section.checkItems.find(item => item.itemCode === itemCode) ?? { itemCode, evidence: null })
           const passed = section.checkItems.filter(item => item.ready)
           const allPassed = section.dataReadiness === 'READY'
-          const target = meta.targetSection
+          const target = coordinatorView && section.sectionCode === 'HOTEL_CABIN' ? 'resources' : meta.targetSection
           const canNavigate = target && onNavigateSection && availableSections.some(([key]) => key === target)
           const canReview =
             isOps && access.has('CRUISE_PREPARATION_CONFIRM') && ['SUBMITTED', 'CONFIRMED'].includes(section.status)
           const canSubmit = can(section, 'submit')
+          const individualSubmission = canSubmit && !(coordinatorView && !sectionCode && stage === 'plan') &&
+            !(coordinatorView && section.sectionCode === 'SAFETY_CREW' && !allPassed)
 
-          const statusTone = section.approvalStatus === 'CONFIRMED' ? 'success'
-            : section.approvalStatus === 'REJECTED' ? 'error'
-              : ['RETURNED', 'PENDING', 'STALE'].includes(section.approvalStatus) ? 'warning' : 'neutral'
-          const ownerLabel = operationsStaffRole(section.submitterRole)
-          const waitingToSubmit = ['NOT_STARTED', 'IN_PROGRESS', 'RETURNED', 'REJECTED', 'STALE'].includes(section.status)
-          const blockMessages: Record<string, string> = {
-            SUBMIT_PERMISSION_REQUIRED: 'Tài khoản chưa có quyền nộp hồ sơ. Liên hệ người quản trị để kiểm tra quyền.',
-            SECTION_SUBMITTER_ROLE_REQUIRED: `${ownerLabel} phụ trách nộp nhóm này. Bạn đang xem hồ sơ.`,
-            ASSIGNED_SHIP_MANAGER_REQUIRED: 'Chỉ Quản lý tàu được phân công đang hoạt động cho chuyến này mới có thể nộp hồ sơ kỹ thuật.',
-            PLAN_RECEIPT_REQUIRED: 'Quản lý lịch trình cần gửi Cruise Plan trước. Sau khi tiếp nhận, Quản lý vận hành mới nộp nhóm An toàn.',
-            PREPARATION_COORDINATOR_REQUIRED: 'Chỉ Quản lý lịch trình được giao điều phối chuyến này mới có thể nộp nhóm hồ sơ.',
-          }
-          const submissionHint = !canSubmit && waitingToSubmit && section.submissionBlockReason && blockMessages[section.submissionBlockReason]
-            ? blockMessages[section.submissionBlockReason]
-            : !canSubmit && waitingToSubmit
-            ? !access.roles.includes(section.submitterRole)
-              ? `Bạn đang xem hồ sơ. ${ownerLabel} phụ trách nộp nhóm này.`
-              : !access.has('CRUISE_PREPARATION_SUBMIT')
-                ? 'Tài khoản của bạn chưa có quyền nộp hồ sơ. Liên hệ người quản trị để kiểm tra quyền.'
-                : section.submitterRole === 'CRUISE_MANAGER' && query.data?.coordinatorUserId !== access.userId
-                  ? 'Chỉ Quản lý lịch trình được giao điều phối chuyến này mới có thể nộp nhóm hồ sơ.'
-                  : section.submitterRole === 'SHIP_MANAGER'
-                    ? 'Chưa được phép nộp. Kiểm tra tài khoản có được phân công Quản lý tàu đang hoạt động cho chuyến này.'
-                    : section.submitterRole === 'OPERATIONS_MANAGER'
-                      ? 'Chưa được phép nộp. Kiểm tra hồ sơ kế hoạch chuyến đã được chuyển đến Quản lý vận hành và tải lại hồ sơ.'
-                      : 'Chưa được phép nộp nhóm hồ sơ. Tải lại để kiểm tra quyền và trạng thái mới nhất.'
-            : null
-          const next = section.status === 'RETURNED' || section.status === 'REJECTED'
-            ? `${ownerLabel} rà soát phản hồi rồi bổ sung hồ sơ.`
-            : section.status === 'STALE'
-              ? `${ownerLabel} đối chiếu thay đổi của chuyến trước khi gửi lại.`
-              : section.approvalStatus === 'PENDING'
-                ? 'Tiếp theo: Quản lý vận hành xét duyệt hồ sơ.'
-                : section.submissionStatus === 'NOT_SUBMITTED' && section.approvalStatus !== 'CONFIRMED'
-                  ? `Tiếp theo: ${ownerLabel} chuẩn bị và nộp hồ sơ.` : null
+          const ownerLabel = section.submitterRole === 'CRUISE_MANAGER' && query.data?.coordinatorUserId === access.userId ? 'Bạn · Điều phối chuyến' : operationsStaffRole(section.submitterRole)
+          const progress = preparationProgress(section)
+          const eligibility = preparationSubmissionReason(section)
 
           return (
             <section key={section.sectionCode} className={styles.prepCard}>
@@ -309,24 +273,28 @@ export function PreparationEvidence({
                 <div className={styles.prepCardTitleRow}>
                   <div>
                     <h3 className={styles.prepCardTitle}>{meta.title}</h3>
-                    {meta.specialist && <p className={styles.prepCardMeta}>{meta.specialist}</p>}
                   </div>
                 </div>
                 <div className={styles.prepCardTags}>
-                  <Badge label={`Dữ liệu: ${allPassed ? 'Đủ điều kiện' : 'Còn thiếu'}`} tone={allPassed ? 'success' : 'warning'} />
-                  <Badge label={section.submissionStatus === 'SUBMITTED' ? 'Đã nộp hồ sơ' : 'Chưa nộp hồ sơ'} />
-                  <Badge label={`Xét duyệt: ${preparationApprovalLabels[section.approvalStatus]}`} tone={statusTone} />
+                  {coordinatorView ? !['NOT_STARTED','IN_PROGRESS'].includes(section.status) && <span className={styles.dossierWorkflowState}>{progress.label}</span> : <Badge label={progress.label} tone={progress.tone} />}
                 </div>
               </header>
 
               <div className={styles.prepCardBody}>
-                <p className={styles.prepCardMeta}>Người nộp hồ sơ: {ownerLabel}.</p>
-                {next && <p className={styles.prepCardMeta}>{next}</p>}
-                {submissionHint && <p className={styles.prepCardMeta}>{submissionHint}</p>}
-                {section.submittedRevision !== null ? <p className={styles.prepCardMeta}>Phiên bản đã nộp {section.submittedRevision}</p>
-                  : (section.submissionStatus === 'SUBMITTED' || section.approvalStatus !== 'NOT_REVIEWED') &&
-                    <p className={styles.prepCardMeta}>Hồ sơ lịch sử chưa có bằng chứng về phiên bản đã nộp.</p>}
-                {missing.length > 0 && (
+                {coordinatorView && <dl className={styles.dossierContentFacts}>
+                  {section.checkItems.map(item => <div key={item.itemCode}>
+                    <dt>{({CABIN_INVENTORY:'Cabin trên tàu',SHORE_EXCURSIONS:'Chương trình đã chuẩn bị',SHIP_ASSIGNED:'Tàu được phân công',SHIP_STATUS_ACTIVE:'Tình trạng tàu',SHIP_CONFIG:'Boong và cabin',ONBOARD_STAFF_ASSIGNED:'Nhân sự trên chuyến'} as Record<string,string>)[item.itemCode] ?? checks[item.itemCode] ?? 'Thông tin ghi nhận'}</dt>
+                    <dd>{item.evidence?.replaceAll('Hoạt động onboard', 'Hoạt động trên tàu') || 'Chưa có dữ liệu để đối chiếu'}</dd>
+                  </div>)}
+                </dl>}
+                {!coordinatorView && <dl className={styles.dossierFacts}>
+                  {!coordinatorView && <div><dt>Dữ liệu kiểm tra</dt><dd>{allPassed ? 'Đã đủ dữ liệu' : missing.length ? `Còn ${missing.length} điều kiện chưa đạt` : 'Chưa xác minh đủ dữ liệu'}</dd></div>}
+                  <div><dt>Nộp hồ sơ</dt><dd>{ownerLabel}</dd></div>
+                  <div><dt>Xét duyệt</dt><dd>Quản lý vận hành</dd></div>
+                </dl>}
+                {section.sectionCode === 'SAFETY_CREW' && readStaffing && <p className={styles.dossierRouting}><strong>Tiến độ phương án:</strong> {staffing.loading ? 'Đang xác minh…' : staffing.error ? 'Chưa tải được tiến độ nhân sự' : staffing.data?.request ? staffingStatusLabel(staffing.data.request) : 'Chưa bắt đầu phối hợp'}{staffing.error && <Button tone="text" size="compact" onClick={staffing.retry}>Tải lại tiến độ</Button>}</p>}
+                {eligibility && (!coordinatorView || section.submissionBlockReason !== 'SECTION_SUBMITTER_ROLE_REQUIRED') && <p className={styles.dossierRouting}>{eligibility}</p>}
+                {!coordinatorView && missing.length > 0 && (
                   <ul className={styles.prepCheckList} aria-label="Điều kiện còn thiếu">
                     {missing.map(item => (
                       <li key={item.itemCode} className={styles.prepCheckItem}>
@@ -336,13 +304,15 @@ export function PreparationEvidence({
                             {checks[item.itemCode] || 'Cần bổ sung thông tin'}
                           </p>
                           {item.evidence && <p className={styles.prepCheckHint}>{item.evidence}</p>}
+                          {item.itemCode === 'SHORE_EXCURSIONS' && <p className={styles.prepCheckHint}>Quản lý dịch vụ bổ sung chương trình hoạt động hoặc tour bờ.</p>}
+                          {['SHIP_ASSIGNED', 'SHIP_STATUS_ACTIVE', 'SHIP_CONFIG', 'CABIN_INVENTORY'].includes(item.itemCode) && <p className={styles.prepCheckHint}>Đối chiếu với Quản lý tàu tại mục Tàu và quy định.</p>}
                         </div>
                       </li>
                     ))}
                   </ul>
                 )}
 
-                {passed.length > 0 && (
+                {!coordinatorView && passed.length > 0 && <details className={styles.dossierChecks}><summary>{passed.length} điều kiện đã đạt</summary>
                   <ul className={styles.prepCheckList} aria-label="Thông tin kiểm tra đã đạt">
                     {passed.map(item => (
                       <li key={item.itemCode} className={styles.prepCheckItem}>
@@ -353,8 +323,7 @@ export function PreparationEvidence({
                         </div>
                       </li>
                     ))}
-                  </ul>
-                )}
+                  </ul></details>}
 
                 {section.returnReason && (
                   <Notice title="Phản hồi của Quản lý vận hành" tone="error">
@@ -362,17 +331,18 @@ export function PreparationEvidence({
                   </Notice>
                 )}
 
-                {((!allPassed && canNavigate) || canReview || canSubmit) && (
+                {(canNavigate || canReview || individualSubmission) && (
                   <div className={styles.prepCardFooter}>
                     <div className={styles.prepCardActions}>
-                      {!allPassed && canNavigate && (
+                      {canNavigate && (
                         <Button tone="secondary" size="compact" autoWidth onClick={() => onNavigateSection(target)}>
-                          {meta.targetLabel}
+                          {coordinatorView && section.sectionCode === 'HOTEL_CABIN' ? 'Xem tàu và cabin' : meta.targetLabel}
                         </Button>
                       )}
-                      {canSubmit && (
+                      {individualSubmission && (
                         <Button
                           size="compact"
+                          tone={coordinatorView ? 'secondary' : 'primary'}
                           autoWidth
                           disabled={busy || unknown}
                           onClick={() => {
@@ -381,7 +351,7 @@ export function PreparationEvidence({
                             setError('')
                           }}
                         >
-                          {actions.submit}
+                          {section.sectionCode === 'SAFETY_CREW' ? 'Chuyển hồ sơ nhân sự để duyệt' : actions.submit}
                         </Button>
                       )}
                       {canReview && (
@@ -441,15 +411,6 @@ export function PreparationEvidence({
           </div>
         )
       })}
-
-      {query.data && !sectionCode && access.roles.includes('CRUISE_MANAGER') && onNavigateSection && (
-        <Notice title="Hồ sơ kế hoạch chuyến còn có điều kiện riêng">
-          <p>Kiểm tra gói, phiên bản giá và các mục cần hoàn thiện ở Tổng quan trước khi nộp hồ sơ chuyến khởi hành cho Quản lý vận hành.</p>
-          <Button tone="secondary" autoWidth onClick={() => onNavigateSection('overview')}>
-            Xem gói giá và điều kiện gửi
-          </Button>
-        </Notice>
-      )}
 
       {error && (
         <Notice title="Không thể hoàn tất thao tác" tone="error">

@@ -3,6 +3,7 @@ import { ApiError } from '@/shared/api'
 /** Customer copy is selected from reviewed codes; never render an arbitrary server message. */
 export function bookingTransactionFailure(error:unknown) {
   if(error instanceof ApiError){
+    if(error.code==='PAYMENT_SCHEDULE_UNAVAILABLE')return 'Hình thức thanh toán đã chọn không phù hợp với các hạn thanh toán của chuyến. Chọn hình thức được hệ thống cho phép và yêu cầu báo giá mới; thông tin hành khách vẫn được giữ.'
     if(error.code==='BOOKING_CONTRACT_NOT_ACCEPTED')return 'Cần ghi nhận hợp đồng đã ký trước khi xác nhận đặt chỗ.'
     if(error.code==='BOOKING_DEPOSIT_NOT_PAID')return 'Khoản thu đã được đối soát chưa đủ mức cọc yêu cầu. Kiểm tra thanh toán trước khi xác nhận đặt chỗ.'
     if(error.code==='CANCELLATION_CASE_REQUIRED')return 'Đặt chỗ này cần gửi yêu cầu hủy để bộ phận tài chính xem xét. Không hủy trực tiếp.'

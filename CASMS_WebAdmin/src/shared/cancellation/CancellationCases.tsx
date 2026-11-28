@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { ApiError, useReadQuery } from '@/shared/api'
+import { ApiError, apiRequest, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { Badge, Button, Field, Loading, Modal, Notice, Panel } from '@/shared/ui'
 import { cancellationApi, cancellationStatus, type CancellationCase, type CancellationStatus } from './api'
@@ -201,9 +201,7 @@ export function StaffCancellation({ bookingId, bookingStatus, onChanged, onLegac
           <option value="OPERATIONAL_DISRUPTION">Sự cố vận hành</option>
         </select>
       </Field>
-      {scenario === 'OPERATIONAL_DISRUPTION' && <Field htmlFor={field + '-issue'} label="ID sự cố của chuyến">
-        <input id={field + '-issue'} required value={issueId} onChange={e => setIssueId(e.target.value)}/>
-      </Field>}
+      {scenario === 'OPERATIONAL_DISRUPTION' && <OperationalIssueSelect fieldId={field + '-issue'} value={issueId} onChange={setIssueId} />}
       <Field htmlFor={field} label="Lý do yêu cầu hủy" error={reasonError}><textarea id={field} required maxLength={1000} value={reason} onChange={event => {
         setReason(event.target.value); setReasonError('')
       }}/></Field>
@@ -216,4 +214,37 @@ export function StaffCancellation({ bookingId, bookingStatus, onChanged, onLegac
       <p>Lý do: {reason}</p>{error && <Notice title="Chưa gửi được yêu cầu hủy" tone="error">{error}</Notice>}
     </Modal>}
   </Panel>
+}
+
+type IssueOption = { issueId: string; issueCode: string; description: string; status: string }
+
+function OperationalIssueSelect({ fieldId, value, onChange }: { fieldId: string; value: string; onChange: (next: string) => void }) {
+  const access = useSessionAccess()
+  const canRead = access.canDo('OPERATIONAL_ISSUE_READ')
+  const issues = useReadQuery(
+    `cancellation-issues:${access.userId}:${canRead}`,
+    useCallback(
+      (signal: AbortSignal) => (canRead ? apiRequest<IssueOption[]>('/operational-issues', { signal }) : Promise.resolve(null)),
+      [canRead],
+    ),
+  )
+  if (canRead && issues.data && issues.data.length > 0) {
+    return (
+      <Field htmlFor={fieldId} label="Sự cố vận hành liên quan *">
+        <select id={fieldId} required value={value} onChange={e => onChange(e.target.value)}>
+          <option value="">Chọn sự cố vận hành</option>
+          {issues.data.map(issue => (
+            <option key={issue.issueId} value={issue.issueId}>
+              {issue.issueCode} · {issue.description.slice(0, 72)}
+            </option>
+          ))}
+        </select>
+      </Field>
+    )
+  }
+  return (
+    <Field htmlFor={fieldId} label="Mã sự cố vận hành *" hint={issues.loading ? 'Đang tải danh sách sự cố…' : 'Chọn hoặc nhập mã sự cố của chuyến.'}>
+      <input id={fieldId} required value={value} onChange={e => onChange(e.target.value)} placeholder="Nhập mã sự cố" />
+    </Field>
+  )
 }

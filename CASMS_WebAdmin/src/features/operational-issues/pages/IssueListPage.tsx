@@ -1,6 +1,5 @@
 import { CancellationQueue } from '@/shared/cancellation'
 import { useSessionAccess } from '@/shared/auth'
-import { useState } from 'react'
 import { Button, ButtonLink, ListFooter, PageHeader, Panel } from '@/shared/ui'
 
 import { AdminFrame } from '../components/AdminFrame'
@@ -8,14 +7,12 @@ import { IssueListState } from '../components/IssueListState'
 import { IssueMetrics } from '../components/IssueMetrics'
 import { IssueSearchFilters } from '../components/IssueSearchFilters'
 import { IssueTable } from '../components/IssueTable'
-import { ReportIssueDialog } from '../components/ReportIssueDialog'
 import { useIssueList } from '../hooks/useIssueList'
 import { hasActiveIssueFilters } from '../model/issue-query'
 
 export function IssueListPage() {
   const access = useSessionAccess()
   const canCreate = access.canDo('OPERATIONAL_ISSUE_CREATE')
-  const [reportOpen, setReportOpen] = useState(false)
   const {
     query,
     state,
@@ -42,10 +39,7 @@ export function IssueListPage() {
         breadcrumb="VẬN HÀNH / SỰ CỐ"
         actions={
           canCreate ? (
-            <>
-              <Button tone="secondary" onClick={() => setReportOpen(true)}>Báo cáo nhanh</Button>
-              <ButtonLink to="/admin/issues/new">Báo cáo sự cố</ButtonLink>
-            </>
+            <ButtonLink to="/admin/issues/new">Báo cáo sự cố</ButtonLink>
           ) : undefined
         }
       />
@@ -117,8 +111,6 @@ export function IssueListPage() {
           </>
         ) : null}
       </Panel>
-
-      {canCreate && <ReportIssueDialog open={reportOpen} onClose={() => setReportOpen(false)} onCreated={retry} />}
     </AdminFrame>
   )
 }

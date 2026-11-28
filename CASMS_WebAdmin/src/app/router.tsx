@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router'
-import { AccessDeniedPage, AdminGuard, LoginPage, SessionBoundary } from '@/features/auth'
+import { AccessDeniedPage, AdminGuard, EmployeeActivationPage, LoginPage, SessionBoundary } from '@/features/auth'
 import { loadModelViewerPage, loadShipImportPage } from '@/features/ship-model-viewer'
 import { shipPageWithViewer } from './ship-workflow-routes'
 import { AdminAccountLayout } from './layouts/AdminAccountLayout'
@@ -130,12 +130,11 @@ export const router = createBrowserRouter([{
   Component: BookingSessionLayout, children: [{ Component: AdminAccountLayout, children: [{ Component: SessionBoundary, children: [
     { path: '/', element: <Navigate to="/admin" replace /> },
     { path: '/login', Component: LoginPage },
-    { path: '/activate-employee-account', lazy: featurePage(() => import('@/features/auth/pages/EmployeeActivationPage'), 'EmployeeActivationPage') },
+    { path: '/activate-employee-account', Component: EmployeeActivationPage },
     { path: '/403', Component: AccessDeniedPage },
     { path: '/admin/workflow', element: <Navigate to="/admin" replace /> },
     { path: '/admin/workspaces/:workspaceId', element: <Navigate to="/admin" replace /> },
     { Component: AdminGuard, children: [
       ...adminRoutes,
-      { path: '/admin/*', element: <Navigate to="/admin" replace /> },
     ] },
   ] }] }] }])

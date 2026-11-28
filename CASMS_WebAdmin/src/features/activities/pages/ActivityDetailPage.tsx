@@ -31,8 +31,24 @@ export function ActivityDetailPage({ recordId, embedded = false, onDeleted }: { 
   const access = useSessionAccess()
   const params = useParams(), activityId = recordId ?? params.activityId ?? ''
   const Frame = embedded ? Fragment : ActivityFrame
-  const query = useReadQuery('activity:' + activityId, useCallback(signal => activityApi.read(activityId, signal), [activityId]))
+  const query = useReadQuery('activity:' + access.userId + ':' + activityId, useCallback(signal => activityApi.read(activityId, signal), [activityId]))
   const activity = query.data
+  if (access.roles.includes('ONBOARD_STAFF')) return <Frame>
+    <PageHeader breadcrumb="Trên tàu / Hoạt động được giao" title={activity?.name ?? 'Hoạt động được phân công'} actions={<ButtonLink tone="secondary" to="/admin/activities">Về lịch hoạt động</ButtonLink>} />
+    <ActivityState {...query} />
+    {activity && activity.catalogEntry !== true && <>
+      <Panel title="Nhiệm vụ và địa điểm"><RecordFacts entries={[
+        ['Bắt đầu · giờ Việt Nam', activityTime(activity.startTime)],
+        ['Kết thúc · giờ Việt Nam', activityTime(activity.endTime)],
+        ['Địa điểm', activity.location || 'Chưa ghi địa điểm'],
+        ['Boong / cabin', [activity.deckName || (activity.deckNumber != null ? `Boong ${activity.deckNumber}` : ''), activity.cabinNumber ? `Cabin ${activity.cabinNumber}` : ''].filter(Boolean).join(' · ') || 'Chưa ghi nhận'],
+        ['Trạng thái hoạt động', activityStatusLabels[activity.status] ?? 'Cần kiểm tra trạng thái'],
+        ['Hướng dẫn thực hiện', activity.description || 'Chưa có hướng dẫn bổ sung'],
+      ]} /></Panel>
+      {activity.cruiseId && <RegistrationPanel context={{ kind: 'activities', id: activity.id, cruiseId: activity.cruiseId, status: activity.status, startTime: activity.startTime, endTime: activity.endTime }} />}
+      <ActivityOperations activity={activity} onChanged={query.retry} />
+    </>}
+  </Frame>
   if (activity?.catalogEntry === true) return <Frame>
     <ActivityOperations key={activity.id} activity={activity} onChanged={query.retry} onDeleted={onDeleted} renderCatalogHeader={deleteAction => {
       const editAction = access.canDo('ACTIVITY_UPDATE') && <ButtonLink tone={embedded ? 'secondary' : 'primary'} to={`/admin/activities/${activity.id}/edit`}>Chỉnh sửa</ButtonLink>

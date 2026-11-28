@@ -132,13 +132,13 @@ export function SepayReconciliationPanel({
         <div className={styles.financeToolbar}>
           <div className={styles.financeToolbarStats}>
             <span>
-              Chờ Tài chính đối soát: <strong>{data?.pendingReviewCount ?? 0}</strong>
+              Chờ Tài chính đối soát: <strong>{!listQuery.loading && !listQuery.error && data ? data.pendingReviewCount : 'Chưa xác định'}</strong>
             </span>
             <span>
-              Cần thử ghi sổ lại: <strong>{data?.retryRequiredCount ?? 0}</strong>
+              Cần thử ghi sổ lại: <strong>{!listQuery.loading && !listQuery.error && data ? data.retryRequiredCount : 'Chưa xác định'}</strong>
             </span>
             <span>
-              Đang hiển thị: <strong>{data?.totalElements ?? 0}</strong> giao dịch
+              Số giao dịch phù hợp: <strong>{!listQuery.loading && !listQuery.error && data ? data.totalElements : 'Chưa xác định'}</strong>
             </span>
           </div>
           <Button tone="secondary" size="compact" autoWidth disabled={listQuery.loading} onClick={listQuery.retry}>
@@ -163,10 +163,10 @@ export function SepayReconciliationPanel({
               <option value="RESOLVED">Đã đối soát hoàn tất</option>
             </select>
           </Field>
-          <Field htmlFor={`${baseId}-search`} label="Tìm theo mã đặt chỗ, nội dung CK hoặc tham chiếu ngân hàng">
+          <Field htmlFor={`${baseId}-search`} label="Tìm mã đặt chỗ / nội dung CK">
             <input
               id={`${baseId}-search`}
-              placeholder="Ví dụ: BK-0001, CASMS, FT26..."
+              placeholder="Ví dụ: BK-0001, FT26..."
               value={searchInput}
               onChange={event => setSearchInput(event.target.value)}
             />

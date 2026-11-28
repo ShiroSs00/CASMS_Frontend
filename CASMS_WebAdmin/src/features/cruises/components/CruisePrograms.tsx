@@ -195,7 +195,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
   }catch(reason){setError(businessErrorMessage(reason instanceof ApiError?reason.code:undefined,''));if(written||mutationOutcomeUnknown(reason))setUncertain(true)}finally{lock.current=false;setBusy(false)}
  }
  if(!allowed)return null
- return <Panel className={styles.programPanel} title={ops?'Chương trình và dịch vụ đã cấu hình':businessCopy('program.configuration')}>
+ return <Panel className={styles.programPanel} title={ops?'Chương trình và dịch vụ đã cấu hình':programWork?businessCopy('program.configuration'):'Chương trình của chuyến'}>
   {data?.plan.completionIssues && data.plan.completionIssues.length > 0 && <Notice title="Cần bổ sung trước khi hoàn tất chương trình" tone="warning">
     <ul>{data.plan.completionIssues.map((issue,index)=><li key={`${issue.code}:${issue.id}:${index}`}>{issue.message}</li>)}</ul>
     {data.plan.completionIssues.some(issue=>issue.kind==='SERVICE_WINDOW')&&<Button tone="secondary" autoWidth onClick={()=>{setKind('serving-windows');setSearch('')}}>Xem khung giờ phục vụ</Button>}
@@ -204,7 +204,7 @@ export function CruisePrograms({cruiseId,departure,arrival,itineraryMode,onChang
   {query.loading&&<Loading label="Đang tải chương trình của chuyến khởi hành…"/>}{query.error&&<Notice title={query.error instanceof ApiError&&query.error.status===403?'Chưa có quyền xem chương trình':'Chưa tải được chương trình'} tone="error"><p>{query.error instanceof ApiError&&query.error.status===403?'Tài khoản hiện tại chưa được cấp đủ quyền đọc chương trình của chuyến khởi hành.':query.error.message}</p><Button onClick={query.retry}>Tải lại dữ liệu</Button></Notice>}
   {data&&<>
    {programWork&&!data.plan.mayConfigure&&<Notice title="Chương trình chỉ cho phép xem">Bạn cần được giao việc và đang xử lý để chỉnh sửa. Nếu đã bàn giao, liên hệ Quản lý lịch trình để yêu cầu bổ sung, rồi nhận lại việc.</Notice>}
-   {kind==='activities'&&programModelBlocker(data.options)&&<Notice title="Chưa thể chọn khu vực hoạt động" tone="warning">
+   {editable&&kind==='activities'&&(creating||Boolean(editing))&&programModelBlocker(data.options)&&<Notice title="Chưa thể chọn khu vực hoạt động" tone="warning">
     {programModelBlocker(data.options)}
    </Notice>}
    <div className={styles.programKindTabs} role="tablist" aria-label={businessCopy('program.field.content')}>

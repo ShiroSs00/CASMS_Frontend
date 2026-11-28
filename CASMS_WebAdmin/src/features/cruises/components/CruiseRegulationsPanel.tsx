@@ -153,10 +153,6 @@ export function CruiseRegulationsPanel({
       title={`Quy định vận hành${countSuffix}`}
       subtitle=""
     >
-      <p className={styles.muted}>
-        Danh sách này hỗ trợ kiểm tra điều kiện an toàn trước chuyến đi; không thay thế giấy phép cảng hay kiểm tra thuyền viên.
-      </p>
-
       <div className={styles.regReferenceBar}>
         <div className={styles.regReferenceMeta}>
           <span className={styles.regReferenceLabel}>
@@ -215,7 +211,7 @@ export function CruiseRegulationsPanel({
                     <h3>
                       {group.title} · {group.items.length}
                     </h3>
-                    <span className={styles.regGroupRole}>{group.roleLabel}</span>
+                    <span className={styles.regGroupRole}>{group.roleLabel.replace(/\s*·\s*Chỉ đọc/gi, '')}</span>
                   </div>
                   <div className={styles.regGroupActions}>
                     {isCruiseGroup && canAssign && renderAssignment?.(cruise.cruiseId, handleAssigned)}

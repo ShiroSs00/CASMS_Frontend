@@ -1,8 +1,8 @@
 import { useId, useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { useSearchParams } from 'react-router'
 import { apiRequest, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, ButtonLink, Empty, Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Button, Empty, Field, Loading, Notice, PageHeader, Panel } from '@/shared/ui'
 import { CruiseFrame } from '../components/CruiseUI'
 import { ServiceLocationRequests } from '../components/ServiceLocationRequests'
 import styles from '../staffing/Staffing.module.css'
@@ -36,33 +36,18 @@ export function ServiceLocationInboxPage() {
       <div className={styles.workspace}>
         <div className={styles.stack}>
           <PageHeader
-            breadcrumb="Quản lý tàu / Xét duyệt chuyến"
-            title="Đề nghị bố trí dịch vụ trên boong"
-            description="Xác nhận vị trí boong cho từng dịch vụ do Quản lý dịch vụ đề xuất, hoặc yêu cầu bổ sung nếu boong chưa đáp ứng sức chứa / chưa gắn dịch vụ."
+            breadcrumb="Phối hợp & duyệt chuyến"
+            title="Bố trí dịch vụ"
+            description="Xác nhận vị trí boong cho từng dịch vụ do Quản lý dịch vụ đề xuất, hoặc yêu cầu bổ sung nếu boong chưa phù hợp."
             actions={
               <Button tone="secondary" size="compact" autoWidth onClick={query.retry}>
                 Cập nhật
               </Button>
             }
           />
-          <nav className={styles.shipSwitcher} aria-label="Các đầu việc duyệt của Quản lý tàu">
-            <Link to="/admin/preparation-requests" className={styles.shipSwitchTab}>
-              1. Xác nhận đáp ứng tàu
-            </Link>
-            <Link to="/admin/service-locations" aria-current="page" className={`${styles.shipSwitchTab} ${styles.shipSwitchTabActive}`}>
-              2. Đề nghị bố trí dịch vụ ({totalPending})
-            </Link>
-            <Link to="/admin/staffing-reviews" className={styles.shipSwitchTab}>
-              3. Chuẩn bị phương án tàu
-            </Link>
-          </nav>
           <Panel
-            title="Chuyến đang chờ duyệt bố trí"
-            subtitle={
-              pending.length > 0
-                ? `${pending.length} chuyến · Tổng ${totalPending} đề nghị chờ bạn xác nhận`
-                : 'Chọn chuyến để xem và phản hồi đề nghị bố trí dịch vụ'
-            }
+            title={pending.length > 0 ? 'Chuyến đang chờ duyệt bố trí' : undefined}
+            subtitle={pending.length > 0 ? `${pending.length} chuyến · Tổng ${totalPending} đề nghị chờ bạn xác nhận` : undefined}
           >
             {query.loading && <Loading label="Đang tải các chuyến chờ phản hồi…" />}
             {query.error && (
@@ -78,11 +63,8 @@ export function ServiceLocationInboxPage() {
               </Empty>
             )}
             {query.data && !requestedId && !pending.length && (
-              <Empty title="Không còn đề nghị bố trí dịch vụ nào đang chờ duyệt">
+              <Empty title="Chưa có đề nghị bố trí dịch vụ nào đang chờ duyệt">
                 <p>Khi Quản lý dịch vụ gửi đề nghị bố trí mới cho tàu bạn phụ trách, danh sách sẽ hiển thị tại đây.</p>
-                <ButtonLink to="/admin/preparation-requests" tone="secondary" size="compact" autoWidth>
-                  ← Quay lại Trung tâm duyệt chuyến
-                </ButtonLink>
               </Empty>
             )}
             {current && options.length <= 6 && (

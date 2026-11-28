@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { ApiError, apiRequest, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Button, DataTable, Empty, Loading, Notice, Panel } from '@/shared/ui'
+import { Badge, Button, DataTable, Empty, Loading, Notice, Panel } from '@/shared/ui'
 export { DepartureManifestWorkspace } from './DepartureManifestWorkspace'
 
 export type ManifestPassenger = { bookingPassengerId:string; fullName:string; bookingCode:string; bookingStatus:string; cabinNumber:string|null; deckName:string|null; checkinStatus:string|null }
@@ -28,8 +28,8 @@ export function CruisePassengerManifest({cruiseId,onSelectPassenger,refreshKey=0
   return <Panel title="Danh sách hành khách của chuyến">
     {query.loading&&<Loading label="Đang tải hành khách…"/>}
     {query.error&&<Notice title={query.error instanceof ApiError&&query.error.status===403?'Chưa được phép xem hành khách chuyến này':'Chưa tải được hành khách'} tone="error">{query.error instanceof ApiError&&query.error.status===403?'Kiểm tra quyền đọc danh sách và phân công chuyến còn hiệu lực với người quản lý.':query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>}
-    {!query.loading&&!query.error&&query.data&&<><h3>{query.data.cruiseName}</h3><p>{query.data.cruiseCode}</p>{query.data.passengers.length?<DataTable label="Hành khách của chuyến khởi hành" headers={['Hành khách','Đặt chỗ','Trạng thái đặt chỗ','Cabin','Boong','Check-in',...(onSelectPassenger?['Thao tác']:[])]}>
-      {query.data.passengers.map(p=><tr key={p.bookingPassengerId}><td>{p.fullName}</td><td>{p.bookingCode}</td><td>{bookingLabels[p.bookingStatus]??'Trạng thái chưa được hỗ trợ'}</td><td>{!p.cabinNumber||p.cabinNumber==='UNASSIGNED'?'Chưa phân Cabin':p.cabinNumber==='ASSIGNED'?'Đã phân Cabin · chưa có số':p.cabinNumber}</td><td>{!p.deckName||['N/A','MAIN'].includes(p.deckName)?'Chưa có thông tin boong':p.deckName}</td><td>{p.checkinStatus?checkinLabels[p.checkinStatus]??'Trạng thái chưa được hỗ trợ':'Chưa có trạng thái'}</td>{onSelectPassenger&&<td><Button tone="secondary" onClick={()=>onSelectPassenger(p)}>Xem thủ tục</Button></td>}</tr>)}
+    {!query.loading&&!query.error&&query.data&&<><h3>{query.data.cruiseName}</h3><p>{query.data.cruiseCode}</p>{query.data.passengers.length?<DataTable label="Hành khách của chuyến khởi hành" headers={['Hành khách','Đặt chỗ','Trạng thái đặt chỗ','Cabin','Boong','Thủ tục lên tàu',...(onSelectPassenger?['Thao tác']:[])]}>
+      {query.data.passengers.map(p=><tr key={p.bookingPassengerId}><td>{p.fullName}</td><td style={{whiteSpace:'nowrap'}}>{p.bookingCode}</td><td><Badge label={bookingLabels[p.bookingStatus]??'Trạng thái chưa được hỗ trợ'} tone={p.bookingStatus==='Confirmed'?'success':p.bookingStatus==='Draft'?'warning':'neutral'}/></td><td>{!p.cabinNumber||p.cabinNumber==='UNASSIGNED'?'Chưa phân Cabin':p.cabinNumber==='ASSIGNED'?'Đã phân Cabin · chưa có số':p.cabinNumber}</td><td>{!p.deckName||['N/A','MAIN'].includes(p.deckName)?'Chưa có thông tin boong':p.deckName}</td><td><Badge label={p.checkinStatus?checkinLabels[p.checkinStatus]??'Trạng thái chưa được hỗ trợ':'Chưa bắt đầu'} tone={p.checkinStatus==='BoardingReady'||p.checkinStatus==='Completed'?'success':p.checkinStatus==='InProgress'?'info':p.checkinStatus==='NeedsReview'?'warning':'neutral'}/></td>{onSelectPassenger&&<td><Button tone="secondary" size="compact" autoWidth onClick={()=>onSelectPassenger(p)}>Xem thủ tục</Button></td>}</tr>)}
     </DataTable>:<Empty title="Chưa có hành khách trong chuyến"/>}</>}
     <Button tone="secondary" disabled={query.loading} onClick={query.retry}>Tải lại danh sách</Button>
     <p>Check-in, sẵn sàng lên tàu và xác nhận lên tàu được theo dõi theo từng bước trong hồ sơ thủ tục hành khách.</p>

@@ -90,6 +90,17 @@
 @media(max-width:760px) { .journeyGrid { grid-template-columns:1fr; } .daysSidebar { position:static; } }
 
 .dayChoices { display:grid; gap:10px; }
+.historyContent{display:grid;gap:var(--space-4);min-width:0}
+.historyDiffValue{white-space:pre-wrap;overflow-wrap:anywhere;max-width:32rem;font-variant-numeric:tabular-nums}
+.historyRawEvidence{min-width:0;border-top:1px solid var(--ui-border);padding-top:var(--space-3)}
+.historyRawEvidence>summary{min-height:var(--ocevie-control-height-default);padding-block:var(--space-2);cursor:pointer;color:var(--ui-muted)}
+.historyRawEvidence>summary:focus-visible{outline:2px solid var(--ui-focus);outline-offset:var(--space-1)}
+.historySnapshots{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr));gap:var(--space-3);min-width:0}
+.historySnapshots>div{min-width:0}
+.historySnapshots pre{margin:var(--space-2) 0 0;padding:var(--space-3);border-radius:var(--radius-sm);background:var(--surface-warm);overflow:auto;font-size:var(--text-xs);max-height:24rem}
+.historyFilters{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:var(--space-3);align-items:end}
+.historyFilters>div{min-width:0}
+@media(max-width:700px){.historyFilters{grid-template-columns:minmax(0,1fr)}.historyFilters>button{width:100%}}
 .dayChoice { transition:background-color var(--motion-feedback) var(--ease-feedback),border-color var(--motion-feedback) var(--ease-feedback),color var(--motion-feedback) var(--ease-feedback); }
 .programCard { padding:20px; margin-bottom:12px; border:1px solid var(--border-default); border-radius:12px; background:var(--surface-default); }
 .timeline li { padding-left:30px; padding-bottom:24px; color:var(--text-secondary); line-height:1.7; }

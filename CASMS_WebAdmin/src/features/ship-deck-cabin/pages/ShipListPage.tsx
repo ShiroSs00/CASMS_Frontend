@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router'
 import { useSessionAccess } from '@/shared/auth'
-import { Badge, Button, ButtonLink, DataTable, Empty, Field, Loading, Notice, PageHeader, PermissionLink } from '@/shared/ui'
+import { Badge, Button, ButtonLink, DataTable, Empty, Field, Loading, Notice, PageHeader, Panel, PermissionLink } from '@/shared/ui'
 import { AdminShell } from '@/shared/ui/admin-v3'
 import { PageControls } from '../ship-types/Catalog'
 import { shipError, shipTypesApi } from '../ship-types/api'
@@ -29,25 +29,20 @@ function Filters({ filters, options, canViewArchive, onSubmit, onReset }: {
       onSubmit({ ...draft, search: draft.search.trim() })
     }}>
       <div className={styles.shipListSearchField}><Field htmlFor="find-vessel" label="Tìm theo tên hoặc mã tàu">
-        <input type="search" placeholder="Nhập tên hoặc mã tàu" maxLength={100} value={draft.search} onChange={event => setDraft(value => ({ ...value, search: event.target.value }))} />
+        <input id="find-vessel" type="search" placeholder="Nhập tên hoặc mã tàu" maxLength={100} value={draft.search} onChange={event => setDraft(value => ({ ...value, search: event.target.value }))} />
       </Field></div>
       <div className={styles.shipListSelects} data-has-archive={canViewArchive}>
       <Field htmlFor="vessel-type-filter" label="Loại tàu">
-        <select value={draft.type} onChange={event => applyImmediate({ type: event.target.value })}>
-          <option value="">Tất cả loại tàu</option><option value="legacy">Chưa phân loại</option>
+        <select id="vessel-type-filter" value={draft.type} onChange={event => applyImmediate({ type: event.target.value })}>
+          <option value="">Tất cả loại tàu</option>
           {[...options].map(([id, label]) => <option key={id} value={id}>{label}</option>)}
         </select>
       </Field>
       <Field htmlFor="vessel-status-filter" label="Trạng thái">
-        <select value={draft.status} onChange={event => applyImmediate({ status: event.target.value as ShipStatus | '' })}>
-          <option value="">Tất cả trạng thái</option>{Object.entries(shipStatuses).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+        <select id="vessel-status-filter" value={draft.status} onChange={event => applyImmediate({ status: event.target.value as ShipStatus | '' })}>
+          <option value="">Tất cả trạng thái</option>{Object.entries(shipStatuses).filter(([code]) => code !== 'DRAFT').map(([code, label]) => <option key={code} value={code}>{label}</option>)}
         </select>
       </Field>
-      {canViewArchive && <Field htmlFor="vessel-archive-filter" label="Tình trạng lưu trữ">
-        <select value={draft.archived ? 'archived' : 'active'} onChange={event => applyImmediate({ archived: event.target.value === 'archived' })}>
-          <option value="active">Chưa lưu trữ</option><option value="archived">Đã lưu trữ</option>
-        </select>
-      </Field>}
       </div>
       <div className={styles.shipFilterActions}><Button type="submit" tone="secondary" autoWidth>Tìm kiếm</Button>
       {(filters.search || filters.type || filters.status || filters.archived || draft.search || draft.type || draft.status || draft.archived) &&
@@ -64,7 +59,7 @@ export function ShipListPage() {
   const params = new URLSearchParams(locationSearch)
   const filters = readShipListFilters(params)
   const { type } = filters
-  const canViewArchive = access.roles.includes('SHIP_MANAGER') && !access.roles.includes('ADMIN') && access.canDo('SHIP_ARCHIVE')
+  const canViewArchive = access.roles.includes('SHIP_MANAGER') && access.canDo('SHIP_ARCHIVE')
   const page = readShipListPage(params)
   const listQuery = shipListParams(filters, page).toString()
   const canReadTypes = access.roles.some(role => role === 'ADMIN' || role === 'SHIP_MANAGER')
@@ -91,41 +86,44 @@ export function ShipListPage() {
   function reset() { setParams(shipListParams(blankFilters, 0)) }
 
   return <AdminShell><div className={`${styles.stack} ${styles.designPage}`}>
-    <PageHeader breadcrumb="Quản lý tàu / Danh sách tàu" title="Quản lý tàu"
+    <PageHeader breadcrumb="Quản lý tàu" title="Danh sách tàu"
       description=""
       actions={access.roles.includes('SHIP_MANAGER') && <ButtonLink to="/admin/ships/new">Thêm tàu</ButtonLink>} />
     {state?.archivedShipName && <Notice title="Đã lưu trữ tàu" tone="success">{state.archivedShipName}</Notice>}
-    <Filters key={shipListParams(filters, 0).toString()} filters={filters} options={typeOptions} canViewArchive={canViewArchive}
-      onSubmit={value => setParams(shipListParams(value, 0))} onReset={reset} />
     {types.error && <Notice tone="warning" title="Chưa tải được toàn bộ danh mục loại tàu">
       Danh sách tàu vẫn tra cứu được. <Button tone="text" onClick={types.retry}>Tải lại danh mục</Button>
     </Notice>}
-    <section className={`${styles.catalogList} ${styles.shipListTable}`} aria-labelledby="ship-list-heading" aria-busy={result.loading}>
-      <div className={styles.listHeading}><div className={styles.shipListTitle}><h2 id="ship-list-heading">{filters.archived ? 'Danh sách tàu đã lưu trữ' : 'Danh sách tàu'}</h2>
-        {result.data && <span aria-live="polite">{result.data.totalElements.toLocaleString('vi-VN')} tàu</span>}</div>
-        <Button tone="text" busy={result.loading} onClick={result.retry}>Làm mới danh sách</Button></div>
-      {result.loading && <Loading label="Đang tải danh sách tàu…" />}
-      {result.error && <Notice title="Chưa tải được danh sách tàu" tone="error">{shipError(result.error)} <Button tone="text" onClick={result.retry}>Thử lại</Button></Notice>}
-      {result.data && <>
-      {result.data.content.length > 0 && <p className={styles.tableHint}>Vuốt ngang bảng để xem đầy đủ thông tin tàu.</p>}
-      {page > 0 && page >= totalPages ? <Empty title="Trang này không còn kết quả">
-        <Button tone="text" onClick={() => setParams(shipListParams(filters, Math.max(0, totalPages - 1)))}>Về trang còn dữ liệu</Button>
-      </Empty> : result.data.content.length ? <DataTable label="Danh sách tàu"
-        headers={['Mã tàu', 'Tên tàu', 'Loại tàu', 'Sức chứa (khách)', 'Số boong', 'Trạng thái', 'Thao tác']}>
-        {result.data.content.map(ship => <tr key={ship.id}>
-          <td>{ship.code}</td><th scope="row">{ship.name}</th>
-          <td>{ship.shipTypeId ? ship.shipTypeName || ship.shipTypeCode || 'Loại tàu đã gắn' : 'Chưa phân loại'}</td>
-          <td className={styles.number}>{ship.capacity.toLocaleString('vi-VN')}</td>
-          <td className={styles.number}>{ship.totalDecks}</td><td>{ship.archivedAt ? <Badge label="Đã lưu trữ" /> : <StatusBadge status={ship.status} />}</td>
-          <td><PermissionLink to={'/admin/ships/' + ship.id} state={{ listQuery }}
-            aria-label={'Chi tiết tàu ' + ship.name}>Chi tiết</PermissionLink></td>
-        </tr>)}
-      </DataTable> : <Empty title={filtered ? 'Không có tàu phù hợp' : 'Chưa có tàu trong phạm vi quản lý'}>
-        <p>{filtered ? 'Thử đổi điều kiện tìm kiếm hoặc xóa bộ lọc để xem lại danh sách.' : access.roles.includes('SHIP_MANAGER')
-          ? 'Chọn Thêm tàu để tạo tàu từ một loại tàu đang sử dụng.' : 'Danh sách chỉ hiển thị tàu trong phạm vi được phân công cho bạn.'}</p>
-      </Empty>}
-      {result.data.totalPages > 1 && page < result.data.totalPages && <PageControls page={result.data} label="tàu" onPage={value => setParams(shipListParams(filters, value))} />}
-      </>}
-    </section>
+    <Panel>
+      <div className={styles.stack}>
+        <Filters key={shipListParams(filters, 0).toString()} filters={filters} options={typeOptions} canViewArchive={canViewArchive}
+          onSubmit={value => setParams(shipListParams(value, 0))} onReset={reset} />
+        <section className={styles.shipListTable} aria-labelledby="ship-list-heading" aria-busy={result.loading}>
+          <div className={styles.listHeading}><div className={styles.shipListTitle}><h2 id="ship-list-heading">{filters.archived ? 'Tàu đã lưu trữ' : 'Đội tàu'}</h2>
+            {result.data && <span aria-live="polite">{result.data.totalElements.toLocaleString('vi-VN')} tàu</span>}</div>
+            <Button tone="text" busy={result.loading} onClick={result.retry}>Làm mới</Button></div>
+          {result.loading && <Loading label="Đang tải danh sách tàu…" />}
+          {result.error && <Notice title="Chưa tải được danh sách tàu" tone="error">{shipError(result.error)} <Button tone="text" onClick={result.retry}>Thử lại</Button></Notice>}
+          {result.data && <>
+          {page > 0 && page >= totalPages ? <Empty title="Trang này không còn kết quả">
+            <Button tone="text" onClick={() => setParams(shipListParams(filters, Math.max(0, totalPages - 1)))}>Về trang còn dữ liệu</Button>
+          </Empty> : result.data.content.length ? <DataTable label="Danh sách tàu"
+            headers={['Mã tàu', 'Tên tàu', 'Loại tàu', 'Sức chứa (khách)', 'Số boong', 'Trạng thái', 'Thao tác']}>
+            {result.data.content.map(ship => <tr key={ship.id}>
+              <td>{ship.code}</td><th scope="row">{ship.name}</th>
+              <td>{ship.shipTypeId ? ship.shipTypeName || ship.shipTypeCode || '—' : '—'}</td>
+              <td className={styles.number}>{ship.capacity.toLocaleString('vi-VN')}</td>
+              <td className={styles.number}>{ship.totalDecks}</td><td>{ship.archivedAt ? <Badge label="Đã lưu trữ" /> : <StatusBadge status={ship.status} />}</td>
+              <td><PermissionLink to={'/admin/ships/' + ship.id} state={{ listQuery }}
+                aria-label={'Chi tiết tàu ' + ship.name}>Chi tiết</PermissionLink></td>
+            </tr>)}
+          </DataTable> : <Empty title={filtered ? 'Không có tàu phù hợp' : 'Chưa có tàu trong phạm vi quản lý'}>
+            <p>{filtered ? 'Thử đổi điều kiện tìm kiếm hoặc xóa bộ lọc để xem lại danh sách.' : access.roles.includes('SHIP_MANAGER')
+              ? 'Chọn Thêm tàu để khởi tạo tàu từ loại tàu đang hoạt động.' : 'Danh sách chỉ hiển thị tàu trong phạm vi được phân công cho bạn.'}</p>
+          </Empty>}
+          {result.data.totalPages > 1 && page < result.data.totalPages && <PageControls page={result.data} label="tàu" onPage={value => setParams(shipListParams(filters, value))} />}
+          </>}
+        </section>
+      </div>
+    </Panel>
   </div></AdminShell>
 }

@@ -3,16 +3,14 @@
  * Reference API reads deliberately remain independent of workspace membership.
  */
 export const ROLE_WORK_MODULES: Readonly<Record<string, readonly string[]>> = {
-  ADMIN: ['system', 'ship-import', 'ship-models'],
-  SHIP_MANAGER: ['fleet-dashboard', 'ships', 'decks', 'cabins', 'passenger-tracking', 'ship-regulations'],
+  ADMIN: ['system', 'ship-import'],
+  SHIP_MANAGER: ['fleet-dashboard', 'ships', 'decks', 'cabins', 'ship-models', 'passenger-tracking', 'ship-regulations'],
   CRUISE_MANAGER: ['trips', 'cruises', 'itineraries', 'itinerary-history', 'cruise-regulations'],
   OPERATIONS_MANAGER: ['cruise-plan-reviews', 'issues', 'regulations', 'destinations', 'ports', 'trips', 'cruises', 'itineraries', 'itinerary-history', 'ship-regulations', 'cruise-regulations'],
   ACTIVITY_SERVICE_MANAGER: ['activities', 'shore-excursions', 'tour-groups', 'suppliers', 'services', 'products', 'service-packages', 'cruise-package-templates', 'fare-package-templates', 'service-requests', 'activity-registrations', 'cruises'],
-  BOOKING_AGENT: ['bookings', 'staff/checkin', 'package-assignments', 'cruises'],
-  CHECKIN_STAFF: ['staff/checkin'],
-  CUSTOMER_SERVICE: ['bookings', 'service-requests'],
+  BOOKING_AGENT: ['bookings', 'staff/checkin'],
   FINANCE_OFFICER: ['staff/finance', 'bookings'],
-  ONBOARD_STAFF: ['service-requests', 'activities', 'shore-excursions', 'tour-groups', 'activity-registrations'],
+  ONBOARD_STAFF: ['activities', 'shore-excursions', 'tour-groups', 'service-requests'],
   PASSENGER: [],
 }
 
@@ -23,7 +21,7 @@ export function hasWorkScope(roles: readonly string[], module: string): boolean 
 // These are reference/inspection authorities, not permission to manage a module.
 const referencePermission = /(?:_READ(?:_|$)|_VIEW$|_REPORT$|_SEARCH$|_AVAILABILITY$|_HISTORY$|_SUMMARY$|_READINESS$|_CHECK$|_CURRENT_CRUISE$|_AFFECTED_CRUISES$)/
 const actionPatterns: Readonly<Record<string, readonly RegExp[]>> = {
-  ADMIN: [/^USER_/, /^SHIP_MODEL_/, /^SHIP_CONFIGURATION_/, /^BLE_ANCHOR_/, /^SHIP_(CREATE|UPDATE)$/],
+  ADMIN: [/^USER_/, /^SHIP_MODEL_/, /^SHIP_CONFIGURATION_/, /^SHIP_(CREATE|UPDATE)$/],
   SHIP_MANAGER: [/^SHIP_/, /^DECK_/, /^CABIN_/, /^BLE_ANCHOR_/],
   // Aligned with RolePermissionInitializer.CRUISE_MANAGER. /auth/me remains mandatory.
   // Source-version review is intentionally absent; legacy ITINERARY_PUBLISH is a different authority.
@@ -36,11 +34,9 @@ const actionPatterns: Readonly<Record<string, readonly RegExp[]>> = {
   ],
   OPERATIONS_MANAGER: [/^TRIP_PLAN_(REVIEW|VALIDATE)$/, /^(PORT_|DESTINATION_|REGULATION_|OPERATIONAL_ISSUE_|CRUISE_STAFF_|CRUISE_REGULATION_|SHIP_REGULATION_)/, /^ITINERARY_(APPROVE|REJECT|VALIDATE|DAYS_MANAGE)$/, /^CRUISE_(CANCEL|START|COMPLETE|VALIDATE|STATUS_CHANGE|OPEN_SALE|STOP_SALE|RESUME_SALE|PRICING_APPROVE)$/, /^CRUISE_STOP_(ACTUAL_ARRIVAL|ACTUAL_DEPARTURE|ALL_ABOARD|OMIT|SUBSTITUTE|VALIDATE|TIME_MANAGE)$/],
   ACTIVITY_SERVICE_MANAGER: [/^(ACTIVITY_|EXCURSION_|TOUR_GROUP_|SUPPLIER_|SERVICE_|PRODUCT_|PACKAGE_COMPONENT_|REGISTRATION_|PARTICIPATION_)/, /^TOUR_PACKAGE_MANAGE$/],
-  BOOKING_AGENT: [/^BOOKING_/, /^CHECKIN_(CREATE|UPDATE)$/, /^TOUR_PACKAGE_ASSIGN$/, /^CABIN_(BLOCK|RELEASE|STATUS_CHANGE)$/],
-  CHECKIN_STAFF: [/^CHECKIN_/, /^PASSENGER_BLE_/, /^CRUISE_GUIDANCE_/],
-  CUSTOMER_SERVICE: [/^BOOKING_(UPDATE|CANCEL)$/, /^SERVICE_REQUEST_CREATE$/],
+  BOOKING_AGENT: [/^BOOKING_/, /^CHECKIN_(CREATE|UPDATE|STEP_UPDATE|IDENTITY_VERIFY|DOCUMENT_VERIFY|PAYMENT_VERIFY|BOARDING)$/, /^TOUR_PACKAGE_ASSIGN$/, /^CABIN_(BLOCK|RELEASE|STATUS_CHANGE)$/],
   FINANCE_OFFICER: [/^(PAYMENT_|INVOICE_|SETTLEMENT_)/],
-  ONBOARD_STAFF: [/^SERVICE_REQUEST_(ASSIGN|EXECUTE)$/, /^ACTIVITY_ATTENDANCE$/, /^PARTICIPATION_ATTENDANCE$/, /^TOUR_GROUP_PASSENGER_ATTENDANCE$/, /^PRODUCT_SALE$/],
+  ONBOARD_STAFF: [/^SERVICE_REQUEST_(ASSIGN|EXECUTE)$/, /^ACTIVITY_ATTENDANCE$/, /^PARTICIPATION_ATTENDANCE$/, /^TOUR_GROUP_PASSENGER_ATTENDANCE$/, /^CHECKOUT_PROCESS$/],
 }
 
 export function actionInWorkScope(roles: readonly string[], permission: string): boolean {

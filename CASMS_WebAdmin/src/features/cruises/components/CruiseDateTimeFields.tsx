@@ -141,7 +141,7 @@ export function CruiseDateTimeFields({
     ? `Khung giờ hợp lệ: ${minClock} – ${maxClock} (giờ Việt Nam).`
     : normalizedSuggested
       ? `Đã điền sẵn theo giờ mẫu (${normalizedSuggested}). Có thể chọn nhanh hoặc nhập giờ khác.`
-      : 'Nhập theo định dạng 24 tiếng (ví dụ 08:00, 16:00) hoặc chọn nhanh.'
+      : undefined
 
   return (
     <div className={styles.departureDateTime}>
@@ -149,7 +149,6 @@ export function CruiseDateTimeFields({
         <Field
           htmlFor={id}
           label={`Ngày ${label} *`}
-          hint="Định dạng DD/MM/YYYY, ví dụ 25/04/2028"
           error={dateError}
         >
           <input

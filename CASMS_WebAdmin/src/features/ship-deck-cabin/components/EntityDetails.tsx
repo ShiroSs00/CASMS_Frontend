@@ -55,7 +55,7 @@ export function DeckInfo({ deck }: { deck: Deck }) {
   const cabins = useApiQuery(`deck-cabins:${deck.id}`, loadCabins)
   return <>
     <Panel title="Thông tin boong"><Definition rows={[
-      ['Số boong', deck.number], ['Tên boong', deck.name || 'Chưa đặt tên'],
+      ['Boong số', deck.number], ['Tên boong', deck.name || 'Chưa đặt tên'],
       ['Tàu', <>
         <Link className={styles.link} to={`/admin/ships/${deck.shipId}`}>{parent.data ? `${parent.data.code} · ${parent.data.name}` : 'Xem tàu liên kết'}</Link>
         <DataState loading={parent.loading} error={parent.error} retry={parent.retry} />

@@ -3,7 +3,6 @@ import { createScheduleTemplate } from '../model/schedule-validation'
 import { describeRouteDays, projectRoute } from '../model/route-order'
 import { mergePlanningViolations } from '../model/validation-copy'
 import { useSessionAccess } from '@/shared/auth/session-access'
-import {PublishedTemplateDialog} from '../components/PublishedTemplateDialog'
 import { departureReturn } from '@/shared/lib/departure-return'
 import { businessCopy } from '@/shared/i18n/business-copy'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -22,7 +21,7 @@ import type { Report } from '../model/plan'
 import styles from '../Planning.module.css'
 import { violationTarget } from '../model/violation-target'
 import { normalizeBoundaryDays } from '../model/day-labels'
-import { versionContext, workingVersionLabel } from '../model/version-context'
+import { versionContext } from '../model/version-context'
 import { durationRules, supportedDuration } from '../model/duration'
 import { callTypeTimingViolations, callsAfterTerminal, consecutiveSamePortViolations, departureTimingViolations, stopTimingViolations, portScopeViolations, linkedTourViolations, routeOrderViolations, portMatchesScope } from '../model/port-rules'
 
@@ -102,7 +101,6 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew,creatingRevision}:Ed
   const [version,setVersion]=useState(initial),[content,setContent]=useState<Content>(()=>normalizedContent(initial))
   const [selected,setSelected]=useState(1),[busy,setBusy]=useState(''),lock=useRef(false)
   const [fault,setFault]=useState<PlanningFault|null>(null),[message,setMessage]=useState(''),[report,setReport]=useState<Report|null>(null),[uncertain,setUncertain]=useState(false),[serverLocked,setServerLocked]=useState(false)
-  const [templatePreview,setTemplatePreview]=useState(false)
   const [history,setHistory]=useState(false),[compare,setCompare]=useState(false)
   const [stopDrawer,setStopDrawer]=useState<{stop?:Stop;violation?:Violation;allAboardOnly?:boolean}|null>(null),[entryDrawer,setEntryDrawer]=useState<{kind:Entry['kind'];entry?:Entry;stopClientKey?:string;violation?:Violation}|null>(null)
   const [showMissingFields,setShowMissingFields]=useState(false)
@@ -110,7 +108,6 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew,creatingRevision}:Ed
   const [removal,setRemoval]=useState<{kind:'stop'|'entry';key:string}|null>(null),[dayChange,setDayChange]=useState<{remove?:number}|null>(null)
   const dirty=JSON.stringify(content)!==JSON.stringify(normalizedContent(version)),guard=useUnsavedGuard(dirty,Boolean(busy))
   const versions=versionContext(trip.versions)
-  const sourceVersionNumber=version.sourceVersionId?trip.versions?.find(v=>v.versionId===version.sourceVersionId)?.versionNumber:undefined
   const canEdit=version.status==='DRAFT'&&can('TRIP_PLAN_WRITE')&&!gateway.readOnly&&trip.status!=='ARCHIVED'
   const editable=canEdit&&!uncertain
   const locked=serverLocked||Boolean(trip.structuralLockedAt||trip.versions?.some(v=>v.status==='PUBLISHED'))
@@ -150,16 +147,9 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew,creatingRevision}:Ed
   const [validationExpanded,setValidationExpanded]=useState(false)
   const showValidationResult=Boolean(fault?.violations.length||report)
   const maxDays=limits?.[1]??0
-  const isShortTrip=trip.info.durationBand==='SHORT'
   const atMaxDays=Boolean(limits&&content.days.length>=maxDays)
   const canAddDay=structureAllowed&&!atMaxDays
   const canRemoveDay=Boolean(day&&structureAllowed&&content.days.length>(limits?.[0]??0)&&(gateway.supportsMiddleDayRemoval||day.dayNumber===content.days.length))
-  const addDayDisabledReason=atMaxDays
-    ?(isShortTrip?'Chuyến ngắn (1–2 ngày) đã có đủ 2 ngày, không thể thêm ngày.':`Nhóm thời lượng hiện tại đã đạt tối đa ${maxDays} ngày, không thể thêm ngày.`)
-    :locked?'Chuyến đã có mẫu đã chốt nên không thể thay đổi số ngày. Nhân bản chuyến nếu cần đổi số ngày.'
-    :trip.durationIssue?trip.durationIssue
-    :!limits?'Nhóm thời lượng hiện tại chưa hỗ trợ thêm ngày.'
-    :''
   function showValidation(){setValidationExpanded(true);requestAnimationFrame(()=>{const section=document.getElementById('planning-validation');section?.scrollIntoView({block:'center'});section?.focus()})}
   function invalidateCheck(){setReport(null);setValidationExpanded(false)}
   function accept(saved:Version){invalidateCheck();setVersion(saved);setContent(normalizedContent(saved));setReport(null);setTrip(old=>({...old,status:saved.status==='PUBLISHED'&&old.status==='DRAFT'?'READY':old.status,versions:old.versions?.map(v=>v.versionId===saved.versionId?saved:v)}))}
@@ -212,6 +202,13 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew,creatingRevision}:Ed
       setValidationExpanded(false)
       locate(first)
     } else showValidation()
+  }
+  async function saveDraft(){
+    if(!editable||!dirty||busy||uncertain)return
+    await run('Đang lưu bản nháp…',async()=>{
+      await save()
+      setMessage('Đã lưu bản nháp lịch trình.')
+    })
   }
   async function transition(){
     if(!canSubmit||busy)return
@@ -306,42 +303,39 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew,creatingRevision}:Ed
   }
 
   return <>
-    {templatePreview&&<PublishedTemplateDialog trip={trip} onClose={()=>setTemplatePreview(false)}/>}
     {version.status==='IN_REVIEW'&&<Notice title="Mẫu theo quy trình duyệt cũ · Chỉ xem">Quy trình duyệt mẫu đã dừng. Nội dung, trạng thái và lịch sử của phiên bản này được giữ nguyên.</Notice>}
     <div className={styles.editorTop}>
       <header className={styles.editorHeading}>
         <div className={styles.editorTitle}>
           <h1>{trip.name}</h1>
-          <DepartureWindowSummary trip={trip}/>
           <div className={styles.editorMeta}>
+            <span>{trip.tripCode}</span>
             <span>{content.days.length} ngày</span>
             {trip.tripType && <span>{trip.tripType === 'ROUND_TRIP' ? 'Khứ hồi' : 'Một chiều'}</span>}
-            <span>{trip.tripCode}</span>
-            <Badge tone={version.status === 'PUBLISHED' ? 'success' : version.status === 'DRAFT' || version.status === 'IN_REVIEW' ? 'warning' : 'neutral'} label={version.status === 'DRAFT' ? 'Bản nháp' : versionLabels[version.status]} />
+            {departureWindowLabel(trip) && <span>Khởi hành: {departureWindowLabel(trip)}</span>}
+            <Badge tone={version.status === 'PUBLISHED' ? 'success' : version.status === 'DRAFT' || version.status === 'IN_REVIEW' ? 'warning' : 'neutral'} label={version.status === 'DRAFT' ? 'Bản nháp' : version.status === 'PUBLISHED' ? 'Đã chốt' : versionLabels[version.status]} />
           </div>
         </div>
-        <Link className={styles.versionLink} to={root}>Về danh sách khung chuyến</Link>
-      </header>
-      <div className={styles.versionContext}>
-        <details className={styles.scheduleHistoryMeta}>
-          <summary>Bản lịch trình và lịch sử</summary>
-          <div className={styles.editorVersionTools}>
-            {(trip.versions?.length??0)>1?<Field htmlFor="planning-version" label="Bản lịch trình đang xem"><select id="planning-version" value={version.versionId} disabled={Boolean(busy)} onChange={e=>switchVersion(e.target.value)}>{trip.versions?.toSorted((a,b)=>b.versionNumber-a.versionNumber).map(v=><option key={v.versionId} value={v.versionId}>Bản {v.versionNumber} — {versionLabels[v.status]}</option>)}</select></Field>:null}
-            <Link to={`${root}/${trip.tripId}/info`}>Thông tin khung chuyến</Link>
-            <Button tone="text" size="compact" disabled={Boolean(busy)} onClick={()=>setHistory(true)}>Xem lịch sử thay đổi</Button>
-          </div>
-          {versions.working&&versions.working.versionId!==version.versionId&&<p>{workingVersionLabel(versions.working.status)}: bản {versions.working.versionNumber}</p>}
-          {version.creatorName && <p>Người lập lịch: {version.creatorName}</p>}
-          {version.createdAt && <p>Ngày tạo: {new Date(version.createdAt).toLocaleDateString('vi-VN', { timeZone:'Asia/Ho_Chi_Minh' })}</p>}
-          {version.publishedAt && <p>Chốt lịch lúc {new Date(version.publishedAt).toLocaleString('vi-VN', { timeZone:'Asia/Ho_Chi_Minh' })}{version.publishedByName ? ' bởi ' + version.publishedByName : ''}</p>}
-          {version.sourceVersionId && <p>Dựa trên {sourceVersionNumber != null ? 'bản ' + sourceVersionNumber : 'mẫu đã lưu'}</p>}
-        </details>
         <div className={styles.actions}>
-          {versions.published&&versions.published.versionId!==version.versionId&&<Button tone="text" size="compact" disabled={Boolean(busy)} onClick={()=>setTemplatePreview(true)}>Xem mẫu đã chốt · V{versions.published.versionNumber}</Button>}
-          {versions.working&&versions.working.versionId!==version.versionId&&<Button tone="secondary" size="compact" disabled={Boolean(busy)} onClick={()=>switchVersion(versions.working!.versionId)}>{can('TRIP_PLAN_WRITE')&&versions.working.status==='DRAFT'?'Tiếp tục bản nháp':versions.working.status==='DRAFT'?'Xem bản nháp':'Xem bản chờ duyệt'} · V{versions.working.versionNumber}</Button>}
-          {onNew&&!versions.working&&!(version.status==='DRAFT'||version.status==='IN_REVIEW')&&<Button tone="secondary" size="compact" busy={creatingRevision} disabled={dirty||Boolean(busy)||Boolean(creatingRevision)} onClick={onNew}>{creatingRevision?'Đang tạo…':'Tạo bản chỉnh sửa'}</Button>}
+          <Link className={styles.versionLink} to={`${root}/${trip.tripId}/info`}>Thông tin khung chuyến</Link>
+          <Button tone="text" size="compact" disabled={Boolean(busy)} onClick={()=>setHistory(true)}>Lịch sử thay đổi</Button>
+          <Link className={styles.versionLink} to={root}>Danh sách chuyến</Link>
         </div>
-      </div>
+      </header>
+      {((trip.versions?.length??0)>1 || (onNew&&!versions.working&&!(version.status==='DRAFT'||version.status==='IN_REVIEW'))) && (
+        <div className={styles.versionContext}>
+          {(trip.versions?.length??0)>1 ? (
+            <Field htmlFor="planning-version" label="Phiên bản">
+              <select id="planning-version" value={version.versionId} disabled={Boolean(busy)} onChange={e=>switchVersion(e.target.value)}>
+                {trip.versions?.toSorted((a,b)=>b.versionNumber-a.versionNumber).map(v=><option key={v.versionId} value={v.versionId}>Bản {v.versionNumber} — {v.status === 'DRAFT' ? 'Bản nháp' : v.status === 'PUBLISHED' ? 'Đã chốt' : versionLabels[v.status]}</option>)}
+              </select>
+            </Field>
+          ) : <div />}
+          <div className={styles.actions}>
+            {onNew&&!versions.working&&!(version.status==='DRAFT'||version.status==='IN_REVIEW')&&<Button tone="secondary" size="compact" busy={creatingRevision} disabled={dirty||Boolean(busy)||Boolean(creatingRevision)} onClick={onNew}>{creatingRevision?'Đang tạo…':'Chỉnh sửa lịch trình'}</Button>}
+          </div>
+        </div>
+      )}
     </div>
     {uncertain&&<Notice title="Cần đối chiếu dữ liệu trước khi tiếp tục" tone="warning"><Button disabled={Boolean(busy)} onClick={()=>setCompare(true)}>Đối chiếu bản đã lưu</Button></Notice>}
     {!editable&&version.status==='DRAFT'&&!uncertain&&<p className={styles.muted}>Chỉ xem · {trip.status==='ARCHIVED'?'Chuyến đã lưu trữ':'Tài khoản không có quyền chỉnh sửa'}</p>}
@@ -367,17 +361,14 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew,creatingRevision}:Ed
             </button>
           </li>
         ))}</ol>
-        {editable&&<div className={styles.manageDays}>
-          <Button
+        {editable && (canAddDay || canRemoveDay) && <div className={styles.manageDays}>
+          {canAddDay && <Button
             tone="secondary"
             size="compact"
-            disabled={Boolean(busy)||!canAddDay}
-            aria-describedby={addDayDisabledReason?'planning-day-limit-note':undefined}
-            onClick={()=>{if(canAddDay)setDayChange({})}}
-          >{canAddDay?`+ Thêm Ngày ${content.days.length+1}`:'+ Thêm ngày'}</Button>
-          {addDayDisabledReason&&<p id="planning-day-limit-note" className={atMaxDays?`${styles.dayLimitHint} ${styles.dayLimitWarning}`:styles.dayLimitHint} role="status">{addDayDisabledReason}</p>}
+            disabled={Boolean(busy)}
+            onClick={()=>setDayChange({})}
+          >{`+ Thêm Ngày ${content.days.length+1}`}</Button>}
           {canRemoveDay&&day&&<Button tone="secondary" size="compact" disabled={Boolean(busy)} onClick={()=>setDayChange({remove:day.dayNumber})}>Xóa Ngày {day.dayNumber}</Button>}
-          {!gateway.supportsMiddleDayRemoval&&structureAllowed&&content.days.length>(limits?.[0]??0)&&!canRemoveDay&&<small className={styles.dayLimitHint}>Mở Ngày {content.days.length} để xóa ngày cuối.</small>}
         </div>}
       </nav>
       <section id="planning-day-panel" aria-label="Ngày đang xem">{day?<DayPane key={day.key} content={content} day={day} editable={canEdit} busy={Boolean(busy)||uncertain} violation={located} violations={violationRows} departurePorts={{...ports,data:ports.data.filter(port=>portMatchesScope(port,trip.info))}} departureWindow={{earliest:trip.info.earliestDeparture,latest:trip.info.latestDeparture}} onDeparture={value=>edit({...content,days:content.days.map(d=>d.key===day.key?{...d,...value}:d)})} onDisembarkation={handleDisembarkation}
@@ -391,6 +382,7 @@ function VersionEditor({initial,trip,setTrip,onSwitch,onNew,creatingRevision}:Ed
       <div className={styles.saveState} role="status"><span>{busy||message||(version.status==='DRAFT'?'Lịch trình đang soạn':versionLabels[version.status])}</span></div>
       <div className={styles.actions}>
         {showValidationResult&&<Button tone="text" size="compact" aria-expanded={validationExpanded} aria-controls={validationExpanded?'planning-validation':undefined} onClick={()=>validationExpanded?setValidationExpanded(false):showValidation()}>{validationExpanded?'Ẩn chi tiết':'Xem thông tin cần bổ sung'}</Button>}
+        {editable&&<Button tone="secondary" busy={Boolean(busy)} disabled={!dirty||Boolean(busy)||uncertain} onClick={()=>void saveDraft()}>Lưu nháp</Button>}
         {canSubmit&&<Button busy={Boolean(busy)} onClick={()=>void transition()}>{businessCopy('trip.template.FINALIZE_ACTION')}</Button>}
       </div>
     </footer>}

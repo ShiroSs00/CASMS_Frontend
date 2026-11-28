@@ -63,17 +63,7 @@ export function DayPane({
 
   const isFirstDay = day.dayNumber === 1
   const isLastDay = day.dayNumber === content.days.length
-  const firstDay = content.days.find(item => item.dayNumber === 1)
-  const effectiveDepartureTime = firstDay?.plannedDepartureTime || departureWindow?.earliest || null
   const disembarkationStop = content.stops.find(s => s.isDisembarkation)
-  const latestIntermediateStop = content.stops
-    .filter(stop => !stop.isDisembarkation && Boolean(stop.plannedDepartureTime))
-    .toSorted((a, b) => timeNumber(b.departureDayNumber, b.plannedDepartureTime) - timeNumber(a.departureDayNumber, a.plannedDepartureTime))[0]
-  const arrivalReferenceHint = latestIntermediateStop
-    ? `Phải sau giờ tàu rời ${latestIntermediateStop.portName || 'cảng trước'} (Ngày ${latestIntermediateStop.departureDayNumber} ${shortTime(latestIntermediateStop.plannedDepartureTime)}).`
-    : effectiveDepartureTime
-      ? `Phải sau giờ khởi hành Ngày 1 (${shortTime(effectiveDepartureTime)}).`
-      : undefined
   const hasEndingTours = Boolean(disembarkationStop && content.entries.some(entry => entry.kind === 'SHORE_EXCURSION' && entry.stopClientKey === disembarkationStop.clientKey))
   const legacyDeparture = isFirstDay ? stops.find(stop => stop.isEmbarkation) : undefined
   const visits = stops.filter(stop => !stop.isEmbarkation && (!stop.isDisembarkation || !isLastDay))
@@ -199,19 +189,11 @@ export function DayPane({
                     })
                   }
                 />
-              <div className={styles.timeGrid}>
-                {departureWindow?.earliest && departureWindow?.latest ? (
-                  <div className={styles.portSummary}>
-                    <div>
-                      <small>Khung giờ khởi hành cho phép (giờ Việt Nam)</small>
-                      <b>{shortTime(departureWindow.earliest)} – {shortTime(departureWindow.latest)}</b>
-                    </div>
-                    <small>Giờ khởi hành cụ thể sẽ được chọn trong khung này khi tạo chuyến khởi hành.</small>
-                  </div>
-                ) : (
+              {!(departureWindow?.earliest && departureWindow?.latest) && (
+                <div className={styles.timeGrid}>
                   <Field
                     htmlFor="planning-departure-time"
-                    label="Giờ khởi hành (giờ Việt Nam) *"
+                    label="Giờ khởi hành *"
                     error={fieldError('planning-departure-time')}
                   >
                     <input
@@ -225,19 +207,19 @@ export function DayPane({
                       onChange={event => onDeparture?.({ plannedDepartureTime: event.target.value || null })}
                     />
                   </Field>
-                )}
-              </div>
+                </div>
+              )}
                 </div>)}
             </section>
           )}
 
           {isLastDay && (
             <section className={styles.boundaryFields}>
-              <h3>Cảng cuối và giờ tàu đến</h3>
+              <h3>Cảng cuối và giờ kết thúc chuyến</h3>
               {!editEndingInline && <div className={styles.portSummary}>
                 <strong>{disembarkationStop?.portName || 'Chưa chọn cảng'}</strong>
-                <div><small>Tàu cập cảng</small><b>{shortTime(disembarkationStop?.plannedArrivalTime)}</b></div>
-                <div><small>Kết thúc hành trình</small><b>{shortTime(disembarkationStop?.plannedDepartureTime)}</b></div>
+                <div><small>Giờ tàu cập cảng cuối</small><b>{shortTime(disembarkationStop?.plannedArrivalTime)}</b></div>
+                <div><small>Giờ kết thúc chuyến dự kiến</small><b>{shortTime(disembarkationStop?.plannedDepartureTime)}</b></div>
               </div>}
               {editEndingInline && <div className={styles.boundaryEditor}>
                 <SourcePicker
@@ -260,8 +242,7 @@ export function DayPane({
               <div className={styles.timeGrid}>
                 <Field
                   htmlFor="planning-disembarkation-arrival"
-                  label="Giờ tàu dự kiến cập cảng *"
-                  hint={arrivalReferenceHint}
+                  label="Giờ tàu cập cảng cuối *"
                   error={fieldError('planning-disembarkation-arrival')}
                 >
                   <input
@@ -279,8 +260,7 @@ export function DayPane({
                 </Field>
                 <Field
                   htmlFor="planning-disembarkation-time"
-                  label="Giờ kết thúc hành trình *"
-                  hint={disembarkationStop?.plannedArrivalTime ? `Phải sau giờ tàu cập cảng (${shortTime(disembarkationStop.plannedArrivalTime)}).` : undefined}
+                  label="Giờ kết thúc chuyến dự kiến *"
                   error={fieldError('planning-disembarkation-time')}
                 >
                   <input
@@ -333,20 +313,14 @@ export function DayPane({
                   <select
                     id="planning-day-type"
                     aria-invalid={Boolean(fieldError('planning-day-type'))}
-                    aria-describedby={isFirstDay ? 'planning-day-type-help' : undefined}
                     value={day.dayType ?? ''}
                     disabled={busy}
                     onChange={e => onType(e.target.value as Day['dayType'])}
                   >
-                    <option value="">Chọn trên biển hoặc ghé cảng</option>
+                    <option value="">Chọn loại ngày</option>
                     <option value="SEA_DAY">Trên biển</option>
                     <option value="PORT_DAY">Có ghé cảng</option>
                   </select>
-                )}
-                {!isLastDay && isFirstDay && (
-                  <small id="planning-day-type-help" className={styles.muted}>
-                    Sau khi rời cảng khởi hành, chọn &ldquo;Trên biển&rdquo; nếu tàu đi thẳng sang ngày sau hoặc &ldquo;Có ghé cảng&rdquo; nếu có ghé thêm cảng trung gian trong Ngày 1.
-                  </small>
                 )}
               </Field>
             )}
@@ -364,22 +338,18 @@ export function DayPane({
           </div>
           </section>}
 
-      {((canConfigurePort && !isLastDay) || visits.length > 0) && (
-          <Panel title={day.dayType === 'SEA_DAY' ? 'Di chuyển trên biển' : 'Các điểm ghé cảng trong ngày'}>
+      {(canConfigurePort || visits.length > 0) && (
+          <Panel>
             <div className={styles.sectionTitle}>
-              <span className={styles.muted}>{canConfigurePort ? 'Giờ địa phương của từng cảng ghé' : 'Không xuống bờ trong ngày này'}</span>
-              {editable && canConfigurePort && !isLastDay && (
-                <Button tone="secondary" size="compact" disabled={busy} onClick={() => onStop()}>
-                  {isFirstDay ? 'Thêm cảng ghé trung gian' : 'Thêm cảng ghé'}
+              <h3 style={{ margin: 0 }}>{day.dayType === 'SEA_DAY' ? 'Di chuyển trên biển' : 'Các điểm ghé cảng trong ngày'}</h3>
+              {editable && canConfigurePort && (
+                <Button tone="secondary" size="compact" autoWidth disabled={busy} onClick={() => onStop()}>
+                  {isFirstDay || isLastDay ? '+ Thêm cảng trung gian' : '+ Thêm cảng ghé'}
                 </Button>
               )}
             </div>
             {!visits.length ? (
-              <p className={styles.muted}>
-                {isFirstDay
-                  ? 'Chỉ thêm nếu sau khi rời cảng khởi hành, tàu có ghé thêm một cảng trung gian ngay trong Ngày 1.'
-                  : 'Thêm cảng ghé để đặt giờ tàu đến và giờ rời cảng.'}
-              </p>
+              <p className={styles.muted}>Chưa có điểm ghé cảng trong ngày này.</p>
             ) : (
               <div className={styles.cards}>
                 {visits.map(stop => {

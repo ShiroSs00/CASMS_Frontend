@@ -89,12 +89,12 @@ function Explore({ ship, model, manifest, mappings }: {
   return <div className={styles.workspace}>
     <aside className={styles.structure} aria-label="Cấu trúc tàu"><div className={styles.panelLabel}><h2>Cấu trúc tàu</h2></div>
       <Field htmlFor="structure-deck" label="Boong"><select id="structure-deck" value={deckId} onChange={event=>chooseDeck(event.target.value)}><option value="">Toàn tàu</option>{[...decks].sort((a,b)=>a.number-b.number).map(d=><option key={d.id} value={d.id}>Boong {d.number} · {d.name}</option>)}</select></Field>
-      {deck&&<><div className={styles.listSwitch} aria-label="Danh sách trên tàu"><button aria-pressed={list==='rooms'} onClick={()=>setList('rooms')}>Phòng</button><button aria-pressed={list==='services'} onClick={()=>setList('services')}>Khu vực dịch vụ</button></div>
+      {deck&&<><div className={styles.listSwitch} aria-label="Danh sách trên tàu"><button type="button" aria-pressed={list==='rooms'} onClick={()=>setList('rooms')}>Phòng</button><button type="button" aria-pressed={list==='services'} onClick={()=>setList('services')}>Khu vực dịch vụ</button></div>
       {list==='services'&&<>      <div className={styles.cabinHeading}><h3>Khu vực dịch vụ</h3><input type="search" aria-label="Tìm khu vực dịch vụ trên tàu" value={areaSearch} placeholder="Tên hoặc loại khu vực dịch vụ" onChange={event=>setAreaSearch(event.target.value)}/></div>
-      <div className={`${styles.cabinList} ${styles.areaList}`} aria-label="Khu vực dịch vụ trên tàu">{areas.map(value=><button key={value.id} aria-pressed={areaId===value.id} onClick={()=>chooseArea(value)}><strong>{serviceName(value)}</strong></button>)}{!areas.length&&<p className={styles.note}>{manifest.areas===undefined?'Chưa có khu vực dịch vụ.':areaSearch?'Không có khu vực dịch vụ khớp tìm kiếm.':'Chưa có khu vực dịch vụ.'}</p>}</div>
+      <div className={`${styles.cabinList} ${styles.areaList}`} aria-label="Khu vực dịch vụ trên tàu">{areas.map(value=><button type="button" key={value.id} aria-pressed={areaId===value.id} onClick={()=>chooseArea(value)}><strong>{serviceName(value)}</strong></button>)}{!areas.length&&<p className={styles.note}>{manifest.areas===undefined?'Chưa có khu vực dịch vụ.':areaSearch?'Không có khu vực dịch vụ khớp tìm kiếm.':'Chưa có khu vực dịch vụ.'}</p>}</div>
 </>}
       {list==='rooms'&&<>      <div className={styles.cabinHeading}><h3>Phòng</h3><input type="search" aria-label="Tìm phòng" value={search} placeholder="Số phòng hoặc loại phòng" onChange={event=>setSearch(event.target.value)}/></div>
-      <div className={styles.cabinList}>{cabins.map(value=><button key={value.id} aria-pressed={cabinId===value.id} onClick={()=>chooseCabin(value)}><strong>{value.cabinNumber}</strong></button>)}{!cabins.length&&<p className={styles.note}>Không tìm thấy phòng.</p>}</div></>}
+      <div className={styles.cabinList}>{cabins.map(value=><button type="button" key={value.id} aria-pressed={cabinId===value.id} onClick={()=>chooseCabin(value)}><strong>{value.cabinNumber}</strong></button>)}{!cabins.length&&<p className={styles.note}>Không tìm thấy phòng.</p>}</div></>}
       </>}
     </aside>
     <div className={styles.sceneColumn}><div className={styles.sceneHeading}><div><span>{deck?`${deck.number<=0?'BOONG KỸ THUẬT':'BOONG'} ${deck.number}`:'TỔNG THỂ'}</span><h2>{deck?.name??manifest.name}</h2></div>{!deck&&<label className={styles.toggle}><input type="checkbox" checked={full} onChange={event=>setFull(event.target.checked)}/>Toàn bộ cấu trúc</label>}</div>
@@ -102,7 +102,7 @@ function Explore({ ship, model, manifest, mappings }: {
       {file?<ModelCanvas key={`${model}:${file}`} ship={ship} model={model} file={file} autoFocusSelection selectionLabel={(area?serviceName(area):undefined)??(cabin?`Phòng ${cabin.cabinNumber}`:deck?.name)} selectionContext={deck?`Boong ${deck.number} · ${deck.name}`:undefined} selected={area?.nodeName??cabin?.nodeName??deck?.nodeName??''} onPick={pick}/>:<Notice title="Chưa có sơ đồ 3D" tone="warning">Không có dữ liệu hiển thị.</Notice>}
       <div className={styles.sceneLegend}><span><i/> {area?'Khu vực dịch vụ được chọn':cabin?'Phòng được chọn':'Đối tượng được chọn'}</span></div>
     </div>
-    <aside className={styles.inspector} aria-label="Chi tiết đối tượng">{area?<><button className={styles.clearSelection} onClick={()=>setArea('')}>← Thông tin boong</button><AreaDetails area={area} manifest={manifest}/><AreaActivityUsage key={area.id} ship={ship} areaId={area.id}/></>:cabin?<><button className={styles.clearSelection} onClick={()=>setCabin('')}>← Thông tin boong</button><CabinDetails cabin={cabin} manifest={manifest}/></>:<><div className={styles.detailTitle}><span>{deck?'BOONG ĐANG XEM':'THÔNG TIN TỔNG THỂ'}</span><h2>{deck?.name??manifest.name}</h2></div><Facts rows={deck?[
+    <aside className={styles.inspector} aria-label="Chi tiết đối tượng">{area?<><button type="button" className={styles.clearSelection} onClick={()=>setArea('')}>← Thông tin boong</button><AreaDetails area={area} manifest={manifest}/><AreaActivityUsage key={area.id} ship={ship} areaId={area.id}/></>:cabin?<><button type="button" className={styles.clearSelection} onClick={()=>setCabin('')}>← Thông tin boong</button><CabinDetails cabin={cabin} manifest={manifest}/></>:<><div className={styles.detailTitle}><span>{deck?'BOONG ĐANG XEM':'THÔNG TIN TỔNG THỂ'}</span><h2>{deck?.name??manifest.name}</h2></div><Facts rows={deck?[
       ['Boong số',deck.number],['Cao độ',deck.elevationMetres!=null?`${deck.elevationMetres} m`:undefined],['Số khu vực dịch vụ',manifest.areas?.filter(a=>a.deckId===deck.id).length],['Số phòng',manifest.cabins.filter(c=>c.deckId===deck.id).length],
     ]:[['Số boong',decks.length],['Số khu vực dịch vụ',manifest.areas?.length],['Số phòng',manifest.cabins.length]]}/></>}
     {mappings && (cabin || deck) && <p role="status" className={styles.note}>
@@ -140,13 +140,13 @@ export function ShipRecordViewer({ ship }: { ship: string }) {
       <p>{result.data.mappings.decks.size} boong và {result.data.mappings.cabins.size} cabin đã liên kết với tàu.</p>
       <Explore key={ship + ':' + result.data.id} ship={ship} model={result.data.id} manifest={result.data.manifest}
         mappings={result.data.mappings} />
-    </> : <Panel><Empty title="Tàu chưa có mô hình 3D đang sử dụng" /></Panel>)}
+    </> : <Panel><Empty title="Tàu chưa có mô hình 3D" /></Panel>)}
   </div>
 }
 
 function ModelDetail({ship,id}:{ship:string;id:string}) {
   const access = useSessionAccess()
-  const canManage = access.inWorkScope('ship-import') && access.canDo('BLE_ANCHOR_READ')
+  const canManage = (access.inWorkScope('ship-models') || access.inWorkScope('ship-import')) && access.canDo('BLE_ANCHOR_READ')
   const load = useCallback((signal:AbortSignal) => canManage ? viewerApi.manifest(ship,id,signal) : Promise.resolve(null), [canManage,ship,id])
   const manifest = useReadQuery(`positioning-manifest:${access.userId}:${ship}:${id}`,load)
   if (!canManage) return <Notice title="Chưa có quyền xem cấu hình thiết bị định vị" tone="warning">Tài khoản chưa được cấp quyền thiết lập định vị cho tàu.</Notice>
@@ -168,7 +168,10 @@ function ShipModels({ ship, requested, onModel, renderHeader }: {
     {renderHeader()}
     {query.loading && <Loading label="Đang tải dữ liệu tàu…" />}
     {query.error && <Failure error={query.error} retry={query.retry} />}
-    {query.data?.length===0 && <Empty title="Chưa có dữ liệu bố trí để thiết lập định vị">Tàu cần có cấu trúc boong được liên kết trước khi bố trí thiết bị.</Empty>}
+    {query.data?.length===0 && <Empty title="Tàu chưa có sơ đồ boong 3D">
+      <p>Tàu này chưa có sơ đồ boong 3D để gắn thiết bị định vị.</p>
+      <ButtonLink to={`/admin/ships/${ship.shipId}?tab=decks`} tone="secondary" size="compact" autoWidth>Xem cấu trúc boong tàu</ButtonLink>
+    </Empty>}
     {requested && !selected && !query.loading && models.length>0 && <Notice title="Không tìm thấy dữ liệu bố trí đã chọn" tone="warning"><Button tone="text" onClick={() => onModel('')}>Dùng dữ liệu hiện hành</Button></Notice>}
     {selected && <ModelDetail key={`${ship.shipId}:${selected.shipModelId}:${selected.updatedAt}`} ship={ship.shipId} id={selected.shipModelId} />}
   </>
@@ -212,22 +215,21 @@ export function ModelViewerPage() {
     <PageHeader title="Thiết lập thiết bị định vị" breadcrumb="Cấu hình tàu / Thiết lập thiết bị định vị"
       description="" />
     <div className={styles.shipSelector}>
-      <Field htmlFor="positioning-type" label="Loại tàu">
-        <select id="positioning-type" value={typeFilter} disabled={query.loading || types.loading} onChange={event => changeType(event.target.value)}>
-          <option value="">Tất cả loại tàu</option>
-          <option value="legacy">Chưa phân loại</option>
-          {[...typeOptions].sort((a,b) => a[1].localeCompare(b[1],'vi')).map(([id,label]) => <option key={id} value={id}>{label}</option>)}
-          {typeFilter && typeFilter!=='legacy' && !typeOptions.has(typeFilter) && <option value={typeFilter}>Loại tàu không có trong danh mục</option>}
-        </select>
-      </Field>
+      {typeOptions.size > 0 && (
+        <Field htmlFor="positioning-type" label="Loại tàu">
+          <select id="positioning-type" value={typeFilter} disabled={query.loading || types.loading} onChange={event => changeType(event.target.value)}>
+            <option value="">Tất cả loại tàu</option>
+            {[...typeOptions].sort((a,b) => a[1].localeCompare(b[1],'vi')).map(([id,label]) => <option key={id} value={id}>{label}</option>)}
+            {typeFilter && typeFilter!=='legacy' && !typeOptions.has(typeFilter) && <option value={typeFilter}>Loại tàu không có trong danh mục</option>}
+          </select>
+        </Field>
+      )}
       <Field htmlFor="viewer-ship" label="Chọn tàu">
         <select id="viewer-ship" value={ship?.shipId ?? ''} disabled={query.loading || !ships.length} onChange={event => setParams(selectShip(event.target.value))}>
           <option value="">Xem danh sách tàu</option>
           {ships.map(row => <option key={row.shipId} value={row.shipId}>{row.shipCode} · {row.shipName}</option>)}
         </select>
       </Field>
-      {shipId && <ButtonLink to={listPath} tone="secondary" autoWidth><span aria-hidden="true">←</span> Chọn tàu khác</ButtonLink>}
-      <ButtonLink to="/admin/ships" tone="secondary" autoWidth><span aria-hidden="true">←</span> Danh sách tàu</ButtonLink>
     </div>
   </div>
   return <AdminShell><div className={styles.page}>
@@ -244,10 +246,13 @@ export function ModelViewerPage() {
         {ships.length ? <DataTable label="Danh sách tàu" headers={['Mã tàu','Tên tàu','Thao tác']}>
           {ships.map(row => <tr key={row.shipId}>
             <th scope="row" className={styles.shipCode}>{row.shipCode}</th>
-            <td>{row.shipName}<span className={styles.shipTypeHint}>Loại tàu: {row.shipTypeId ? row.shipTypeName || typeOptions.get(row.shipTypeId) || row.shipTypeCode || 'Chưa tải được tên loại' : 'Chưa phân loại'}</span></td>
+            <td>{row.shipName}{row.shipTypeId && <span className={styles.shipTypeHint}>Loại tàu: {row.shipTypeName || typeOptions.get(row.shipTypeId) || row.shipTypeCode || '—'}</span>}</td>
             <td><Link className={styles.designLink} to={'/admin/ship-models?'+selectShip(row.shipId)} aria-label={'Thiết lập định vị tàu '+row.shipCode}>Thiết lập định vị</Link></td>
           </tr>)}
-        </DataTable> : <Empty title={typeFilter ? 'Chưa có tàu thuộc loại đang chọn' : 'Chưa có tàu trong phạm vi truy cập'}>Chọn loại tàu khác để tra cứu.</Empty>}
+        </DataTable> : <Empty title={typeFilter ? 'Chưa có tàu thuộc loại đang chọn' : 'Chưa có tàu trong phạm vi truy cập'}>
+          <p>{typeFilter ? 'Chọn loại tàu khác hoặc xóa bộ lọc để xem toàn bộ tàu.' : 'Hiện chưa có tàu nào trong phạm vi quản lý.'}</p>
+          {typeFilter && <Button tone="secondary" size="compact" autoWidth onClick={() => changeType('')}>Xóa bộ lọc loại tàu</Button>}
+        </Empty>}
       </section>}
   </div></AdminShell>
 }

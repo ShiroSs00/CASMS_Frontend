@@ -3,7 +3,7 @@ import { decodeCruisePackageOffer, type CruisePackageOffer } from '@/domain/crui
 
 export type Choice = { offerId: string; priceRevisionId: string }
 type Candidate = { product: CruisePackageOffer; eligiblePriceRevisionId: string | null; planEligibility: CruisePackageOffer['eligibility'] }
-type Selection = { cruiseId: string; selectionRevision: number; selections: Choice[]; offers: Candidate[] }
+export type Selection = { cruiseId: string; selectionRevision: number; selections: Choice[]; offers: Candidate[] }
 
 export async function planPackages(id: string, signal?: AbortSignal, write?: { expectedSelectionRevision: number; selections: Choice[] }): Promise<Selection> {
   const data = await apiRequest<Selection>(`/cruise-plans/${encodeURIComponent(id)}/cruise-packages`, write ? { method: 'PUT', body: write } : { signal })

@@ -13,7 +13,7 @@ const POLL_INTERVAL_MS = 4000
 const LONG_WAIT_MS = 60_000
 
 const contractLabel: Record<string, string> = {
-  Draft: 'Chờ ký hợp đồng bản cứng',
+  Draft: 'Chờ xác nhận hợp đồng điện tử / bản cứng',
   Accepted: 'Hợp đồng đã chấp thuận',
   Cancelled: 'Hợp đồng đã hủy',
 }
@@ -251,8 +251,8 @@ export function VietQrCheckoutModal({
             </p>
             {effectiveBookingStatus === 'Draft' && effectiveContractStatus !== 'Accepted' && (
               <p>
-                Khoản tiền đã được ghi nhận. Đặt chỗ sẽ tự động chuyển sang <strong>Đã xác nhận</strong> ngay sau khi
-                hoàn tất ghi nhận hợp đồng bản cứng.
+                Khoản tiền đã được ghi nhận. Hãy bấm <strong>Chấp nhận hợp đồng điện tử</strong> trên trang đặt chỗ để
+                đặt chỗ tự động chuyển sang <strong>Đã xác nhận</strong> ngay lập tức.
               </p>
             )}
             {liveStatus?.remainingBookingBalance != null && liveStatus.remainingBookingBalance > 0 && (
@@ -330,24 +330,16 @@ export function VietQrCheckoutModal({
 
               <div className={styles.qrDetailsPane}>
                 <dl className={styles.qrBankFacts}>
-                  <div>
-                    <dt>Ngân hàng thụ hưởng</dt>
-                    <dd>{order.bankName}</dd>
-                  </div>
-                  <div>
-                    <dt>Chủ tài khoản</dt>
-                    <dd>{order.accountHolderName}</dd>
-                  </div>
-                  <div className={styles.qrCopyRow}>
+                  <div className={`${styles.qrCopyRow} ${styles.qrTransferHighlight}`}>
                     <div>
-                      <dt>Số tài khoản</dt>
-                      <dd className={styles.monoCode}>{order.accountNumber}</dd>
+                      <dt>Nội dung chuyển khoản (bắt buộc đúng chính xác)</dt>
+                      <dd className={styles.qrTransferCode}>{order.transferContent}</dd>
                     </div>
                     <Button
                       tone="secondary"
                       size="compact"
                       autoWidth
-                      onClick={() => void copyText(order.accountNumber, 'số tài khoản')}
+                      onClick={() => void copyText(order.transferContent, 'nội dung chuyển khoản')}
                     >
                       Sao chép
                     </Button>
@@ -366,19 +358,23 @@ export function VietQrCheckoutModal({
                       Sao chép
                     </Button>
                   </div>
-                  <div className={`${styles.qrCopyRow} ${styles.qrTransferHighlight}`}>
+                  <div className={styles.qrCopyRow}>
                     <div>
-                      <dt>Nội dung chuyển khoản (bắt buộc đúng chính xác)</dt>
-                      <dd className={styles.qrTransferCode}>{order.transferContent}</dd>
+                      <dt>Số tài khoản</dt>
+                      <dd className={styles.monoCode}>{order.accountNumber}</dd>
                     </div>
                     <Button
                       tone="secondary"
                       size="compact"
                       autoWidth
-                      onClick={() => void copyText(order.transferContent, 'nội dung chuyển khoản')}
+                      onClick={() => void copyText(order.accountNumber, 'số tài khoản')}
                     >
                       Sao chép
                     </Button>
+                  </div>
+                  <div>
+                    <dt>Ngân hàng &amp; chủ tài khoản</dt>
+                    <dd>{order.bankName} · {order.accountHolderName}</dd>
                   </div>
                 </dl>
 

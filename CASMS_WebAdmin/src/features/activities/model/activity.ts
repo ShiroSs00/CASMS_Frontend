@@ -1,4 +1,4 @@
-import {wallTimeToInstant,SHIP_TIME_ZONE} from '@/shared/lib/journey-time'
+import {journeyTime,wallTimeToInstant,SHIP_TIME_ZONE} from '@/shared/lib/journey-time'
 export type ActivityCurrency = 'VND' | 'USD'
 export function isActivityCurrency(value: string): value is ActivityCurrency {
   return value === 'VND' || value === 'USD'
@@ -17,7 +17,7 @@ export type Registration = { id: string; bookingPassengerId: string; passengerNa
 export type Participation = { id: string; registrationId: string; status: string; checkInTime: string | null; checkOutTime: string | null }
 export const activityStatusLabels: Record<string, string> = { PLANNED: 'Đã lên kế hoạch', OPEN: 'Mở đăng ký', FULL: 'Đủ chỗ', IN_PROGRESS: 'Đang diễn ra', COMPLETED: 'Hoàn thành', CANCELLED: 'Đã hủy' }
 export const attendanceLabels: Record<string, string> = { PENDING: 'Chờ xác nhận', CONFIRMED: 'Đã xác nhận', CANCELLED: 'Đã hủy', COMPLETED: 'Hoàn thành', REGISTERED: 'Đã đăng ký', CHECKED_IN: 'Đã điểm danh', IN_PROGRESS: 'Đang tham gia', NO_SHOW: 'Vắng mặt' }
-export function activityTime(value: string | null) { return value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString('vi-VN') : 'Chưa có thông tin' }
+export function activityTime(value: string | null) { return value && Number.isFinite(Date.parse(value)) ? `${journeyTime(value, SHIP_TIME_ZONE)} (giờ tàu UTC+7)` : 'Chưa có thông tin' }
 export function validateActivity(draft: ActivityDraft, cruises: CruiseOption[] | null): Record<string, string> {
   const errors: Record<string, string> = {}, cruise = cruises?.find(item => item.cruiseId === draft.cruiseId)
   if (!cruise) errors.cruiseId = 'Vui lòng chọn chuyến từ danh sách đã tải.'

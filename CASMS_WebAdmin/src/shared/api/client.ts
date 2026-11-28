@@ -32,9 +32,13 @@ let sessionGeneration = 0
 const activeRequests = new Set<AbortController>()
 export function getApiAccessToken() { return accessToken }
 export function getApiBaseUrl() { return baseUrl }
-export function setApiAccessToken(token: string | null) {
+export function setApiAccessToken(token: string | null, options?: { silentRefresh?: boolean }) {
   if (token === accessToken) return
+  const wasAuthenticated = accessToken !== null
   accessToken = token
+  if (options?.silentRefresh && wasAuthenticated && token !== null) {
+    return
+  }
   sessionGeneration += 1
   activeRequests.forEach(controller => controller.abort())
 }

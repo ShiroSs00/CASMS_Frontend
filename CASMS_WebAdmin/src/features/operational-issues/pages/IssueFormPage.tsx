@@ -1,4 +1,4 @@
-import { EditorLayout } from '@/shared/ui'
+import { EditorLayout, useUnsavedFormGuard } from '@/shared/ui'
 import { PermissionLink as Link } from '@/shared/ui'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
@@ -77,6 +77,25 @@ export function IssueFormPage() {
 
   const isBlockedEdit = isEdit && (!existingIssue || existingIssue.id !== issueId || existingIssue.status !== 'OPEN')
   const allowed = access.canDo(isEdit ? 'OPERATIONAL_ISSUE_UPDATE' : 'OPERATIONAL_ISSUE_CREATE')
+  const baseline = existingIssue
+    ? {
+        shipId: existingIssue.ship.id,
+        cruiseId: existingIssue.cruise?.id ?? '',
+        cabinId: existingIssue.cabinId ?? '',
+        issueType: existingIssue.type,
+        severity: existingIssue.severity,
+        description: existingIssue.description,
+      }
+    : initialForm
+  const isDirty = !loading && !busy && !isBlockedEdit && (
+    form.shipId !== baseline.shipId
+    || form.cruiseId !== baseline.cruiseId
+    || form.cabinId !== baseline.cabinId
+    || form.issueType !== baseline.issueType
+    || form.severity !== baseline.severity
+    || form.description !== baseline.description
+  )
+  const unsavedGuard = useUnsavedFormGuard(isDirty)
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -99,6 +118,7 @@ export function IssueFormPage() {
           severity: form.severity,
           description: form.description.trim(),
         })
+        unsavedGuard.allowLeave()
         navigate(`/admin/issues/${updated.id}`)
       } else {
         const created = await operationalIssuesApi.create({
@@ -109,6 +129,7 @@ export function IssueFormPage() {
           severity: form.severity,
           description: form.description.trim(),
         })
+        unsavedGuard.allowLeave()
         navigate(`/admin/issues/${created.id}`)
       }
     } catch (err) {
@@ -149,7 +170,7 @@ export function IssueFormPage() {
           <p>
             {existingIssue ? <>Sự cố đang ở trạng thái <strong>{issueStatusLabels[existingIssue.status]}</strong>. Chỉ có thể chỉnh sửa sự cố đang mở.</> : 'Chưa tải được hồ sơ sự cố để chỉnh sửa.'}
           </p>
-          <Link className={styles.primaryButton} to={`/admin/issues/${issueId}`}>Quay lại chi tiết</Link>
+          <Link className={styles.secondaryButton} to={`/admin/issues/${issueId}`}>Quay lại chi tiết</Link>
         </Notice>
       )}
 
@@ -232,6 +253,7 @@ export function IssueFormPage() {
           </Panel>
         </form></EditorLayout>
       )}
+      {unsavedGuard.prompt}
     </AdminFrame>
   )
 }

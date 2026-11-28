@@ -4,7 +4,7 @@ export type PreparationAction='submit'|'confirm'|'return'|'reject'
 export const preparationStatuses=['NOT_STARTED','IN_PROGRESS','SUBMITTED','CONFIRMED','RETURNED','REJECTED','STALE'] as const
 export type PreparationStatus=typeof preparationStatuses[number]
 export const preparationStatusLabels: Record<PreparationStatus,string> = {
- NOT_STARTED:'Chưa gửi xét duyệt', IN_PROGRESS:'Đang chuẩn bị', SUBMITTED:'Chờ Vận hành xét duyệt',
+ NOT_STARTED:'Chưa bắt đầu chuẩn bị', IN_PROGRESS:'Đang hoàn thiện hồ sơ', SUBMITTED:'Chờ Quản lý vận hành xét duyệt',
  CONFIRMED:'Đã xác nhận', RETURNED:'Cần bổ sung', REJECTED:'Đã từ chối', STALE:'Cần đối chiếu lại',
 }
 const dataReadinessValues = ['READY', 'INCOMPLETE'] as const

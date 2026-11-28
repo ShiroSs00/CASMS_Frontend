@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { cabinTypeLabel } from '@/shared/i18n/business-copy'
+import { journeyTime, SHIP_TIME_ZONE } from '@/shared/lib/journey-time'
 import {
   Badge,
   Button,
@@ -730,8 +731,7 @@ function ShipCabinSelection({
       <div className={styles.shipSelectorBox}>
         <Field
           htmlFor="fare-source-ship"
-          label="Tàu áp dụng từ đội tàu hiện có *"
-          hint="Chọn chiếc tàu cụ thể trong đội tàu để tải đúng danh mục hạng phòng và các cabin thực tế trên tàu đó."
+          label="Tàu áp dụng *"
           error={shipId && ships.data && !ship ? 'Tàu đã lưu không còn trong danh sách. Chọn tàu khác.' : undefined}
         >
           <select
@@ -820,9 +820,6 @@ function ShipCabinSelection({
           <div className={styles.shipCabinHeaderBar}>
             <div>
               <legend>Hạng phòng áp dụng từ tàu {ship.name} *</legend>
-              <p className={styles.helper} id="fare-source-cabin-count">
-                Lấy trực tiếp từ danh mục cabin thực tế của tàu <strong>{ship.name}</strong> (không tự tạo phòng rời). Tồn chỗ trống sẽ được đối chiếu theo từng chuyến khởi hành.
-              </p>
             </div>
             <div className={styles.shipCabinBulkActions}>
               <Badge
@@ -1057,12 +1054,7 @@ function TemplateVersions({
       {!isComposing && (
         <Panel className={styles.panel}>
           <div className={styles.sectionHeader}>
-            <div>
-              <h2>Quản lý phiên bản của mẫu ({template.code})</h2>
-              <p className={styles.helper}>
-                Phiên bản ở trạng thái <strong>Đã phát hành</strong> sẽ được dùng để tạo gói thương mại trên các chuyến khởi hành mới.
-              </p>
-            </div>
+            <h2>Phiên bản của mẫu ({template.code})</h2>
             {canWrite && (
               <Button
                 id="fare-new-version"
@@ -1098,8 +1090,7 @@ function TemplateVersions({
           {current && (
             <section className={styles.versionSection} aria-label="Phiên bản hiện hành">
               <div className={styles.versionSectionHeader}>
-                <h3>Phiên bản đang phát hành (Áp dụng cho chuyến mới)</h3>
-                <Badge label="Đang hiệu lực" tone="success" />
+                <h3>Phiên bản đang phát hành</h3>
               </div>
               <VersionCard item={current} />
             </section>
@@ -1108,8 +1099,7 @@ function TemplateVersions({
           {drafts.length > 0 && (
             <section className={styles.versionSection} aria-label="Bản nháp">
               <div className={styles.versionSectionHeader}>
-                <h3>Bản nháp chờ phát hành ({drafts.length})</h3>
-                <span className={styles.helper}>Kiểm tra kỹ hạng phòng và quyền lợi trước khi nhấn Phát hành phiên bản.</span>
+                <h3>Bản nháp ({drafts.length})</h3>
               </div>
               {drafts.map(item => (
                 <VersionCard
@@ -1172,14 +1162,10 @@ function TemplateVersions({
             <div className={styles.editorTitleRow}>
               <h2 ref={editorHeading} tabIndex={-1}>
                 {versions.length === 0
-                  ? `Thiết lập nội dung gói cho mẫu ${template.code}`
-                  : `Soạn phiên bản mới · Mẫu ${template.code}`}
+                  ? `Thiết lập nội dung gói (${template.code})`
+                  : `Soạn phiên bản mới (${template.code})`}
               </h2>
-              <Badge label={`Mã mẫu: ${template.code}`} tone="neutral" />
             </div>
-            <p className={styles.helper}>
-              Hoàn tất 3 bước dưới đây để lưu phiên bản nháp. Sau khi lưu, bạn có thể kiểm tra lại và nhấn <strong>Phát hành phiên bản</strong> để đưa vào sử dụng.
-            </p>
           </header>
 
           {mutation.feedback}
@@ -1542,10 +1528,7 @@ function UnifiedNewTemplateWizard({
               <span className={styles.stepNumberBadge}>1</span>
               <StepIcon kind="info" />
               <div>
-                <h3 id="new-tpl-step-1">Định danh & Thông tin gói du thuyền</h3>
-                <p className={styles.helper}>
-                  Nhập tên gói hiển thị cho khách hàng. Mã định danh mẫu sẽ được gợi ý tự động hoặc bạn có thể tùy chỉnh.
-                </p>
+                <h3 id="new-tpl-step-1">Thông tin gói du thuyền</h3>
               </div>
             </div>
           </div>
@@ -1604,7 +1587,6 @@ function UnifiedNewTemplateWizard({
             <Field
               htmlFor="fare-version-description"
               label="Mô tả gói du thuyền"
-              hint="Tóm tắt quyền lợi nổi bật và phong cách trải nghiệm của gói du thuyền này."
             >
               <textarea
                 rows={3}
@@ -1626,10 +1608,7 @@ function UnifiedNewTemplateWizard({
               <span className={styles.stepNumberBadge}>2</span>
               <StepIcon kind="cabin" />
               <div>
-                <h3 id="new-tpl-step-2">Chọn tàu & Hạng phòng từ tàu hiện có</h3>
-                <p className={styles.helper}>
-                  Chọn chiếc tàu cụ thể trong đội tàu, sau đó đánh dấu các hạng phòng và cabin thực tế có trên tàu đó.
-                </p>
+                <h3 id="new-tpl-step-2">Tàu & hạng phòng áp dụng</h3>
               </div>
             </div>
           </div>
@@ -1646,10 +1625,7 @@ function UnifiedNewTemplateWizard({
               <span className={styles.stepNumberBadge}>3</span>
               <StepIcon kind="benefit" />
               <div>
-                <h3 id="new-tpl-step-3">Quyền lợi đi kèm trong gói</h3>
-                <p className={styles.helper}>
-                  Thêm các hoạt động trên tàu, tour tham quan bờ hoặc dịch vụ đi kèm trong gói du thuyền.
-                </p>
+                <h3 id="new-tpl-step-3">Quyền lợi đi kèm</h3>
               </div>
             </div>
             <Badge label={`${benefits.length} quyền lợi đã thêm`} tone={benefits.length > 0 ? 'info' : 'neutral'} />
@@ -1790,13 +1766,9 @@ function VersionCard({
           <div>
             <h4>Hạng phòng ({version.logicalCategories.length})</h4>
             {version.logicalCategories.length > 0 ? (
-              <div className={styles.cabinBadgeRow}>
-                {version.logicalCategories.map(cat => (
-                  <Badge key={cat} label={cabinTypeLabel(cat)} tone="neutral" />
-                ))}
-              </div>
+              <p>{version.logicalCategories.map(cabinTypeLabel).join(', ')}</p>
             ) : (
-              <p>Chưa khai báo hạng cabin</p>
+              <p>Chưa khai báo hạng phòng</p>
             )}
           </div>
           {version.description && (
@@ -1809,7 +1781,7 @@ function VersionCard({
 
         <div>
           <h4>Quyền lợi đi kèm ({item.benefits.length})</h4>
-          {item.benefits.length === 0 && <p className={styles.helper}>Phiên bản này chưa cấu hình quyền lợi đi kèm.</p>}
+          {item.benefits.length === 0 && <p className={styles.helper}>Chưa có quyền lợi đi kèm.</p>}
           <ul className={styles.benefitList}>
             {item.benefits.map(b => (
               <li key={b.id}>
@@ -1860,8 +1832,8 @@ function VersionCard({
                         <div>
                           <dt>Khoảng sử dụng</dt>
                           <dd>
-                            {b.usageStartsAt ? new Date(b.usageStartsAt).toLocaleString('vi-VN') : 'Chưa có mốc bắt đầu'}{' '}
-                            đến {b.usageEndsAt ? new Date(b.usageEndsAt).toLocaleString('vi-VN') : 'Chưa có mốc kết thúc'}
+                            {b.usageStartsAt ? `${journeyTime(b.usageStartsAt, SHIP_TIME_ZONE)} (UTC+7)` : 'Chưa có mốc bắt đầu'}{' '}
+                            đến {b.usageEndsAt ? `${journeyTime(b.usageEndsAt, SHIP_TIME_ZONE)} (UTC+7)` : 'Chưa có mốc kết thúc'}
                           </dd>
                         </div>
                       )}
@@ -2055,30 +2027,6 @@ function TemplateWorkspace() {
 
         {showCatalog && !query.loading && !query.error && (
           <Panel className={styles.panel}>
-            <div className={styles.workflowIntroBanner}>
-              <div className={styles.workflowStepPill}>
-                <span className={styles.stepNumberBadge}>1</span>
-                <div>
-                  <strong>Soạn mẫu & phiên bản gói</strong>
-                  <span>Chọn tàu, hạng phòng và quyền lợi đi kèm</span>
-                </div>
-              </div>
-              <div className={styles.workflowStepPill}>
-                <span className={styles.stepNumberBadge}>2</span>
-                <div>
-                  <strong>Phát hành phiên bản</strong>
-                  <span>Chốt phiên bản chính thức để sẵn sàng sử dụng</span>
-                </div>
-              </div>
-              <div className={styles.workflowStepPill}>
-                <span className={styles.stepNumberBadge}>3</span>
-                <div>
-                  <strong>Gán vào chuyến khởi hành</strong>
-                  <span>Chọn gói theo tàu và gửi giá xét duyệt</span>
-                </div>
-              </div>
-            </div>
-
             <div className={styles.catalogToolbar}>
               <div className={styles.catalogFiltersGroup}>
                 <div className={styles.catalogSearch}>
@@ -2186,11 +2134,9 @@ function TemplateWorkspace() {
                         {primaryVersion ? (
                           <div className={styles.catalogStructureCell}>
                             {categories.length > 0 && (
-                              <div className={styles.cabinBadgeRow}>
-                                {categories.map(cat => (
-                                  <Badge key={cat} label={cabinTypeLabel(cat)} tone="neutral" />
-                                ))}
-                              </div>
+                              <strong>
+                                {categories.map(cat => cabinTypeLabel(cat)).join(', ')}
+                              </strong>
                             )}
                             <span className={styles.helper}>
                               {categories.length} hạng phòng · {benefitCount} quyền lợi đi kèm
@@ -2202,7 +2148,7 @@ function TemplateWorkspace() {
                       </td>
                       <td>
                         {published ? (
-                          <Badge label={`Phiên bản ${published.version.versionNumber} · Đã phát hành`} tone="success" />
+                          <Badge label="Đã phát hành" tone="success" />
                         ) : versions ? (
                           <Badge label="Chưa phát hành" tone="warning" />
                         ) : (

@@ -2,15 +2,51 @@
 :is(.managerRoot,.operationsRoot) { min-width: 0; }
 .modalForm { display: grid; gap: 16px; min-width: 0; }
 .reviewPanel{min-width:0}
-.planWorkspace{display:grid;gap:24px;min-width:0;padding:24px;background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:var(--ui-panel-radius)}
-.planWorkspaceHeader{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--ui-border)}
+.decisionContext { padding-block:var(--space-4); border-block:1px solid var(--border-soft); }
+.decisionContext dl { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:var(--space-4); margin:0; }
+.decisionContext dt { font-size:var(--text-sm); color:var(--muted); margin-bottom:var(--space-2); }
+.decisionContext dd { margin:0; font-weight:600; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+.decisionContext p { font-size:var(--text-sm); color:var(--muted); line-height:1.6; margin:var(--space-4) 0 0; }
+.reviewEvidence > h3 { margin-block:var(--space-5) var(--space-4); font-size:var(--text-xl); }
+.operationsReview .reviewDecision { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-4); padding-block:var(--space-4); border-block:1px solid var(--border-soft); }
+.operationsReview .reviewDecision .planActions { margin:0; }
+@media(max-width:850px) { .decisionContext dl { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:500px) { .decisionContext dl { grid-template-columns:minmax(0,1fr); } }
+.planWorkspace{display:grid;gap:var(--space-5);min-width:0;padding:var(--space-5);background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:var(--ui-panel-radius)}
+.planWorkspaceHeader{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-3);padding-bottom:var(--space-3);border-bottom:1px solid var(--ui-border)}
 .planWorkspaceHeader h2{font-size:18px;line-height:1.4;margin:0 0 4px}
+.coordinatorColumns{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(300px,1fr);gap:var(--space-8);align-items:start;min-width:0}
+.coordinatorTasks,.coordinatorSupport{display:grid;gap:var(--space-6);min-width:0}
+.currentPlanTask{display:flex;align-items:center;justify-content:space-between;gap:var(--space-5);padding-block:var(--space-3) var(--space-5);border-bottom:1px solid var(--ui-border);min-width:0}
+.currentPlanTask p{margin:var(--space-2) 0 0;max-width:72ch;font-size:var(--text-base);line-height:var(--leading-body);color:var(--ui-muted)}
+.currentPlanTask h3{margin:0;font-size:var(--text-lg);line-height:var(--leading-body)}
+.currentPlanTask>button{flex-shrink:0}
+@media(max-width:760px){.currentPlanTask{align-items:flex-start;flex-direction:column}.currentPlanTask>button{max-width:100%;white-space:normal}}
+.coordinatorSupport{padding-inline-start:var(--space-6);border-inline-start:1px solid var(--ui-border)}
+.planWorkspace .coordinatorTasks .prepWorkflowStep>section{padding:0;border:0;box-shadow:none;margin:0}
+@media(max-width:1100px){.coordinatorColumns{grid-template-columns:minmax(0,1fr)}.coordinatorSupport{padding-inline-start:0;padding-block-start:var(--space-5);border-inline-start:0;border-block-start:1px solid var(--ui-border)}}
 .prepWorkflowStack{display:grid;gap:24px;min-width:0}
 .prepWorkflowStep{display:grid;gap:12px;min-width:0}
 .prepWorkflowStep+.prepWorkflowStep,.prepWorkflowStack+.prepWorkflowStep{padding-top:20px;border-top:1px solid var(--ui-border)}
 .prepWorkflowStepHead{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px 16px}
 .prepWorkflowStepHead h3{margin:0 0 4px;font-size:16px;line-height:1.4}
 .departmentGrid{display:grid;min-width:0}
+.handoffAction{display:grid;justify-items:start;gap:var(--space-2)}
+.handoffSummary{display:grid;gap:var(--space-2);font-size:var(--text-base);line-height:var(--leading-body);max-width:75ch}
+.handoffSummary>p{margin:0}
+.saleTermsRequest{display:grid;justify-items:start;gap:var(--space-1)}
+.departmentGrid .deptUnitBox{gap:var(--space-2);padding-block:var(--space-3)}
+.departmentGrid .deptUnitBox>div>button{justify-self:start}
+.deptUnitBox>button{justify-self:start}
+.deptUnitTitle{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2) var(--space-3)}
+.deptUnitTitle h4{margin:0}
+.deptUnitHeader .deptUnitTitle+p{margin-top:var(--space-1)}
+.handoffAction>div{width:100%;min-width:0}
+.bookingSchedule{min-width:0;display:grid;gap:var(--space-3);padding-top:var(--space-4);border-top:1px solid var(--ui-border)}
+.bookingSchedule h4{margin:0;font-size:var(--text-lg);line-height:var(--leading-body)}
+.planWorkspace .budgetInlineCard{padding:var(--space-2) 0;border:0;border-radius:0;background:transparent;scroll-margin-block-start:12rem}
+.planWorkspace .windowsInlineBox{padding:0;border:0;border-radius:0;background:transparent}
+.planWorkspace .prepWorkflowStep>section{padding:var(--space-4) 0 0;border:0;border-top:1px solid var(--ui-border);border-radius:0;box-shadow:none;margin:0}
 .deptUnitBox{display:grid;gap:10px;padding:14px 0;border-bottom:1px solid var(--ui-border);min-width:0;overflow-wrap:anywhere}
 .deptUnitHeader{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px 14px}
 .deptUnitHeader h4{margin:0 0 2px;font-size:15px;font-weight:600;color:var(--ui-ink)}
@@ -369,3 +405,114 @@
 .sourceOptions li { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:var(--space-2) var(--space-4); padding-block:var(--space-3); border-block-start:1px solid var(--border-soft); }
 .sourceOptions strong,.sourceOptions small { display:block; overflow-wrap:anywhere; }
 .sourceOptions small { color:var(--muted); }
+.evidenceIntro{margin:0;max-width:75ch;color:var(--ui-muted);line-height:var(--leading-body)}
+.coordinatorEvidence{margin:0;gap:var(--space-4);padding:var(--space-4)}
+.coordinatorEvidence .prepSummaryStrip{padding:var(--space-3) 0;gap:var(--space-4);border:0;border-block:1px solid var(--ui-border);border-radius:0;background:transparent}
+.coordinatorEvidence .prepSummaryProgressRow{display:grid;gap:var(--space-1);font-size:var(--text-sm)}
+.coordinatorEvidence .prepCardGrid2x2{grid-template-columns:minmax(0,1fr);gap:0}
+.coordinatorEvidence .prepCard{display:grid;grid-template-columns:minmax(12rem,1fr) minmax(0,2fr);height:auto;gap:var(--space-4);padding:var(--space-4) 0;border:0;border-bottom:1px solid var(--ui-border);border-radius:0;background:transparent;overflow:visible}
+.coordinatorEvidence .prepCardHeader{display:grid;align-content:start;justify-content:start;gap:var(--space-2);padding:0;border:0;background:transparent}
+.coordinatorEvidence .prepCardBody{padding:0;gap:var(--space-2);align-content:start}
+.coordinatorEvidence .prepCheckItem{padding:var(--space-1) 0;border:0;border-radius:0;background:transparent}
+.coordinatorEvidence .prepCardFooter{padding-top:var(--space-2)}
+.coordinatorEvidence .prepSummaryValue{font-size:var(--text-lg)}
+.prepStageNote{margin:var(--space-2) 0 0;color:var(--ui-muted);font-size:var(--text-sm);line-height:1.6}
+.programList:empty{display:none}
+.dossierContentFacts { display:grid; gap:var(--space-2); margin:0; }
+.dossierContentFacts > div { display:grid; grid-template-columns:minmax(8rem,.8fr) minmax(0,1.5fr); gap:var(--space-3); align-items:baseline; }
+.dossierContentFacts dt { color:var(--muted); font-size:var(--text-sm); line-height:var(--leading-body); }
+.dossierContentFacts dd { margin:0; font-size:var(--text-base); line-height:var(--leading-body); overflow-wrap:anywhere; }
+@media(max-width:600px) { .dossierContentFacts > div { grid-template-columns:minmax(0,1fr); gap:var(--space-1); } }
+.dossierWorkspace .reviewPanel { gap:var(--space-4); }
+.dossierWorkspace .coordinatorEvidence { margin:0; padding:0; border:0; }
+.dossierWorkspace .coordinatorEvidence .prepCardGrid2x2 { gap:0; }
+.dossierWorkspace .coordinatorEvidence .prepCard { padding-block:var(--space-4); }
+.dossierWorkspace .coordinatorEvidence .prepCardHeader { margin-block-end:var(--space-2); }
+.dossierWorkspace .coordinatorEvidence .prepCardBody:empty { display:none; }
+.dossierWorkspace .dossierColumns .prepCardFooter { padding-block-start:var(--space-2); border-top:0; }
+.dossierWorkspace .dossierGroupHeading { margin-block-end:var(--space-2); }
+.dossierWorkspace .dossierGroupHeading h3 { font-size:var(--text-lg); line-height:var(--leading-heading); }
+.dossierWorkspace .prepCardTitle { line-height:var(--leading-body); }
+.budgetInputAction { display:flex; align-items:center; gap:var(--space-3); }
+.budgetInputAction input { min-width:0; flex:1; }
+.budgetInputAction button { flex:none; }
+.overviewBudget .budgetEditor > div:first-child { max-width:none; }
+.coordinationStart { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-3) var(--space-4); }
+.coordinationStart > p { margin:0; }
+.overviewCoordination .deptUnitBox { border-bottom:0; }
+@media(max-width:600px) { .budgetInputAction { flex-direction:column; align-items:stretch; } .budgetInputAction button { width:100%; } }
+.dossierGroupHeading { margin-block-end:var(--space-3); }
+.dossierGroupHeading h3 { margin:0; font-size:var(--text-lg); font-weight:600; }
+.dossierWorkflowState { color:var(--muted); font-size:var(--text-sm); line-height:var(--leading-body); }
+.dossierColumns .coordinatorEvidence .prepCard { padding-block:var(--space-4); }
+.dossierColumns .coordinatorEvidence .prepCardHeader { margin-block-end:var(--space-2); }
+.dossierColumns .prepCardTitle { font-size:var(--text-base); }
+.dossierColumns .prepStageNote { max-width:65ch; }
+.overviewLayout { display:grid; grid-template-columns:minmax(0,2fr) minmax(16rem,1fr); gap:var(--space-5); align-items:start; }
+.overviewMain { display:grid; gap:var(--space-5); min-width:0; }
+.progressSidebar { border:1px solid var(--border-soft); border-radius:var(--radius-panel); padding:var(--space-5); min-width:0; background:var(--surface); }
+.progressSidebar h3 { margin:0 0 var(--space-4); font-size:var(--text-lg); }
+.progressSidebar ul { margin:0; padding:0; list-style:none; }
+.progressSidebar li { display:grid; gap:var(--space-2); padding-block:var(--space-4); border-block-start:1px solid var(--border-soft); }
+.progressRole { color:var(--muted); font-size:var(--text-sm); line-height:var(--leading-body); }
+.progressState { color:var(--fg-2); font-size:var(--text-sm); font-weight:600; line-height:var(--leading-body); }
+.overviewMain .overviewBudget { grid-template-columns:minmax(0,1fr); }
+@media(max-width:1100px) { .overviewLayout { grid-template-columns:minmax(0,1fr); } }
+.dossierColumns { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(18rem,1fr); align-items:start; gap:var(--space-5); }
+.dossierColumns > div,.dossierSupporting { min-width:0; }
+.dossierSupporting { display:grid; gap:var(--space-5); }
+.dossierWindows { padding:var(--space-5); border:1px solid var(--border-soft); border-radius:var(--radius-panel); }
+.dossierWindows h3 { margin:0 0 var(--space-4); font-size:var(--text-lg); }
+.dossierWindows dl { display:grid; grid-template-columns:minmax(0,1fr); }
+.dossierWindows dl > div { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:var(--space-4); align-items:baseline; }
+.dossierWindows dl dd { text-align:end; font-variant-numeric:tabular-nums; white-space:normal; }
+.dossierWindows button { width:auto; margin-block-start:var(--space-3); }
+.dossierColumns .coordinatorEvidence { padding:0; border:0; }
+.dossierColumns .prepCard { padding-block:var(--space-4); }
+.dossierColumns .prepCardHeader { margin-block-end:var(--space-3); }
+.dossierColumns .dossierFacts { gap:var(--space-3) var(--space-5); }
+.dossierColumns .dossierFacts div { min-width:0; }
+@media(max-width:1100px) { .dossierColumns { grid-template-columns:minmax(0,1fr); } }
+.planWorkspace .overviewBudget { display:grid; grid-template-columns:minmax(12rem,.8fr) minmax(0,1.6fr); align-items:start; gap:var(--space-6); padding:var(--space-5); border:1px solid var(--border-soft); border-radius:var(--radius-panel); }
+.planWorkspace .overviewBudget.budgetPriority { background:var(--surface-subtle); border-color:var(--fg-2); }
+.overviewTaskLabel h3 { margin:0 0 var(--space-2); font-size:var(--text-lg); }
+.overviewTaskLabel p { margin:0; line-height:var(--leading-body); color:var(--muted); }
+.overviewBudget .budgetEditor { align-items:end; }
+.overviewBudget .budgetActions { margin:0; }
+.overviewBudget .budgetSummaryRow { align-items:start; }
+.overviewBudget .budgetAmountGroup { gap:var(--space-2); }
+.planWorkspace .overviewPlan { padding:var(--space-5); border:1px solid var(--border-soft); border-radius:var(--radius-panel); }
+.planWorkspace .overviewCoordination { padding:var(--space-5); border:1px solid var(--border-soft); border-radius:var(--radius-panel); }
+.planWorkspace .overviewCoordination .deptUnitBox:first-child { padding-block-start:0; }
+.planWorkspaceHeader h2 { font-size:var(--text-xl); }
+@media(max-width:900px) { .planWorkspace .overviewBudget { grid-template-columns:minmax(0,1fr); gap:var(--space-4); } }
+.overviewBudget { padding-block: var(--space-4); border-block-end: 1px solid var(--border-soft); }
+.overviewPlan { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:var(--space-4); padding-block:var(--space-4); border-block-end:1px solid var(--border-soft); }
+.overviewPlan h3,.overviewCoordination h3 { margin:0 0 var(--space-3); font-size:var(--text-lg); }
+.overviewPlan p { margin:var(--space-2) 0 0; color:var(--muted); }
+.overviewCoordination { min-width:0; }
+.dossierWorkspace { display:grid; gap:var(--space-5); }
+.dossierWorkspace .reviewPanel { padding:var(--space-5); }
+.dossierWorkspace .coordinatorEvidence { margin:0; padding:0; border:0; border-radius:0; }
+.dossierWorkspace .coordinatorEvidence .prepCard { display:block; padding-block:var(--space-4); border:0; }
+.dossierWorkspace .coordinatorEvidence .prepCardHeader { display:flex; justify-content:space-between; align-items:baseline; gap:var(--space-3); flex-wrap:wrap; margin-block-end:var(--space-2); }
+.dossierFacts { display:flex; flex-wrap:wrap; gap:var(--space-4) var(--space-8); margin:0 0 var(--space-3); }
+.dossierFacts div { min-width:10rem; }
+.dossierFacts dt { color:var(--muted); font-size:var(--text-sm); margin-block-end:var(--space-1); }
+.dossierFacts dd { margin:0; font-size:var(--text-base); font-weight:500; }
+.dossierRouting { margin:var(--space-2) 0; line-height:var(--leading-body); }
+.taskWorkspace { border-block: 1px solid var(--border-soft); padding-block: var(--space-4); margin-block-end: var(--space-6); }
+.taskContext { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2) var(--space-4); padding-block-end: var(--space-4); }
+.taskContext > span { color: var(--muted); font-size: var(--text-sm); }
+.taskGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); }
+.taskGrid > section { min-width: 0; border-block-start: 1px solid var(--border-soft); padding-block-start: var(--space-4); }
+.taskGrid h3 { margin: 0 0 var(--space-3); font-size: var(--text-lg); }
+.taskGrid p, .taskGrid ul { margin: 0 0 var(--space-3); line-height: var(--leading-body); }
+.taskGrid ul { padding-inline-start: var(--space-5); }
+.taskGrid li + li { margin-block-start: var(--space-2); }
+.dossierNext { margin: 0; line-height: var(--leading-body); }
+.dossierChecks summary { cursor: pointer; min-height: var(--ocevie-control-height-compact); padding-block: var(--space-2); color: var(--fg-2); }
+.dossierChecks summary:focus-visible { outline: 2px solid var(--fg-2); outline-offset: 2px; }
+.coordinatorEvidence .prepCardMeta { margin: var(--space-2) 0 0; line-height: var(--leading-body); }
+@media(max-width:700px) { .taskGrid { grid-template-columns: minmax(0,1fr); gap: var(--space-4); } }
+@media(max-width:700px){.coordinatorEvidence .prepCard{grid-template-columns:minmax(0,1fr);gap:var(--space-3)}}

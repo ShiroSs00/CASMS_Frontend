@@ -63,26 +63,51 @@ export function ValidationPanel({report,violations,onLocate,serverErrors=false}:
 }
 
 export function HistoryDialog({versionId,tripId,onClose}:{versionId:string;tripId:string;onClose:()=>void}) {
-  const {gateway}=usePlanning(),[page,setPage]=useState(0),[scope,setScope]=useState<'trip'|'version'>('version')
-  const query=useReadQuery(`planning-history:${scope}:${versionId}:${tripId}:${page}`,useCallback(async signal=>{
-    if(gateway.historyPage)return gateway.historyPage(scope==='trip'?tripId:versionId,scope,page,signal)
-    const content=await gateway.history(versionId,signal);return {content,totalPages:1,totalElements:content.length}
-  },[gateway,versionId,tripId,page,scope]))
-  const labels:Record<string,string>={SUBMIT:'Gửi mẫu theo quy trình cũ',RETURN:'Trả lại chỉnh sửa',PUBLISH:'Công bố mẫu theo quy trình cũ',FINALIZE:businessCopy('trip.template.FINALIZE_ACTION'),SAVE_CONTENT:'Lưu nội dung',SAVE_DRAFT:'Lưu nháp',CREATE_VERSION:'Tạo phiên bản',CREATE_SCHEDULE_VERSION:'Tạo phiên bản',CREATE_TRIP:'Tạo chuyến đi',PATCH_DRAFT:'Sửa thông tin chuyến',CLONE_TRIP:'Nhân bản chuyến',ARCHIVE_TRIP:'Lưu trữ chuyến',WITHDRAW:'Thu hồi mẫu theo quy trình cũ',CANCEL_DRAFT:'Hủy bản nháp',MANAGE_DAYS_ADD:'Thêm ngày',MANAGE_DAYS_REMOVE:'Xóa ngày'}
+  const {gateway}=usePlanning()
+  const query=useReadQuery(`planning-history:all:${versionId}:${tripId}`,useCallback(async signal=>{
+    if(gateway.historyPage){
+      const [verPage, tripPage] = await Promise.all([
+        gateway.historyPage(versionId,'version',0,signal).catch(()=>({content:[],totalPages:1,totalElements:0})),
+        gateway.historyPage(tripId,'trip',0,signal).catch(()=>({content:[],totalPages:1,totalElements:0})),
+      ])
+      const seen = new Set<string>()
+      const merged = [...verPage.content, ...tripPage.content]
+        .filter(row => { if (seen.has(row.auditId)) return false; seen.add(row.auditId); return true })
+        .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
+      return merged
+    }
+    const content=await gateway.history(versionId,signal)
+    return [...content].sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
+  },[gateway,versionId,tripId]))
+  const labels:Record<string,string>={SUBMIT:'Gửi duyệt mẫu',RETURN:'Trả lại chỉnh sửa',PUBLISH:'Chốt mẫu lịch trình',FINALIZE:businessCopy('trip.template.FINALIZE_ACTION'),SAVE_CONTENT:'Lưu nội dung lịch trình',SAVE_DRAFT:'Lưu bản nháp',CREATE_VERSION:'Tạo phiên bản lịch trình',CREATE_SCHEDULE_VERSION:'Tạo phiên bản lịch trình',CREATE_TRIP:'Tạo khung chuyến',PATCH_DRAFT:'Cập nhật thông tin chuyến',CLONE_TRIP:'Nhân bản chuyến',ARCHIVE_TRIP:'Lưu trữ chuyến',WITHDRAW:'Thu hồi mẫu',CANCEL_DRAFT:'Hủy bản nháp',MANAGE_DAYS_ADD:'Thêm ngày',MANAGE_DAYS_REMOVE:'Xóa ngày'}
   const formatAuditDetail = (detail?: string | null) => {
     if (!detail) return ''
-    const pub = /^Published version (\d+)\.?$/i.exec(detail.trim())
+    const trimmed = detail.trim()
+    const pub = /^Published version (\d+)\.?$/i.exec(trimmed)
     if (pub) return `Đã chốt phiên bản ${pub[1]}`
-    const draft = /^Saved draft content with revision (\d+)\.?$/i.exec(detail.trim())
-    if (draft) return `Đã lưu nội dung nháp (lần chỉnh sửa ${draft[1]})`
-    const created = /^Created (?:schedule )?version (\d+)\.?$/i.exec(detail.trim())
-    if (created) return `Đã tạo phiên bản lịch trình ${created[1]}`
-    return detail
+    const draft = /^Saved draft content with revision (\d+)\.?$/i.exec(trimmed)
+    if (draft) return `Đã lưu bản nháp (lần ${draft[1]})`
+    const createdVer = /^Created (?:schedule )?version (\d+)\.?$/i.exec(trimmed)
+    if (createdVer) return `Đã tạo phiên bản ${createdVer[1]}`
+    const createdTrip = /^Created Trip ([A-Z0-9-]+)\.?$/i.exec(trimmed)
+    if (createdTrip) return `Mã chuyến ${createdTrip[1]}`
+    const clonedTrip = /^Cloned Trip ([A-Z0-9-]+)(?: from ([A-Z0-9-]+))?\.?$/i.exec(trimmed)
+    if (clonedTrip) return clonedTrip[2] ? `Nhân bản ${clonedTrip[1]} từ ${clonedTrip[2]}` : `Nhân bản chuyến ${clonedTrip[1]}`
+    const archivedTrip = /^Archived Trip ([A-Z0-9-]+)\.?$/i.exec(trimmed)
+    if (archivedTrip) return `Đã lưu trữ chuyến ${archivedTrip[1]}`
+    const updatedTrip = /^(?:Updated|Patched) Trip ([A-Z0-9-]+)\.?$/i.exec(trimmed)
+    if (updatedTrip) return `Đã cập nhật chuyến ${updatedTrip[1]}`
+    return trimmed
   }
-  return <Modal wide title="Lịch sử chuyến và lịch trình" onClose={onClose}>
-    <div className={styles.actions}><Button tone={scope==='version'?'primary':'secondary'} onClick={()=>{setScope('version');setPage(0)}}>Phiên bản hiện tại</Button>{gateway.historyPage&&<Button tone={scope==='trip'?'primary':'secondary'} onClick={()=>{setScope('trip');setPage(0)}}>Thông tin chuyến</Button>}</div>
-    {query.loading?<Loading/>:query.error?<Notice title="Chưa tải được lịch sử" tone="error">{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>:!query.data?.content.length?<Empty title="Chưa có lịch sử"/>:<ol className={styles.violations}>{query.data.content.map(row=><li key={row.auditId}><strong>{labels[row.action]??'Cập nhật dữ liệu'}</strong><p>{new Date(row.occurredAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'})} · {row.actorName||'Chưa có tên người thực hiện'} · {row.result==='SUCCESS'?'Thành công':row.result}</p><p>{formatAuditDetail(row.detail)}</p></li>)}</ol>}
-    {query.data&&<div className={styles.pagination}><span>{query.data.totalElements} sự kiện · Trang {page+1}/{Math.max(1,query.data.totalPages)}</span><div className={styles.actions}><Button tone="secondary" disabled={!page||query.loading} onClick={()=>setPage(n=>n-1)}>Trang trước</Button><Button tone="secondary" disabled={query.loading||page+1>=query.data.totalPages} onClick={()=>setPage(n=>n+1)}>Trang sau</Button></div></div>}
+  return <Modal wide title="Lịch sử thay đổi" onClose={onClose}>
+    {query.loading?<Loading/>:query.error?<Notice title="Chưa tải được lịch sử" tone="error">{query.error.message}<Button onClick={query.retry}>Thử lại</Button></Notice>:!query.data?.length?<Empty title="Chưa có lịch sử thay đổi"/>:<ol className={styles.violations}>{query.data.map(row=>{
+      const detailText = formatAuditDetail(row.detail)
+      return <li key={row.auditId}>
+        <strong>{labels[row.action]??'Cập nhật dữ liệu'}</strong>
+        <p className={styles.muted}>{new Date(row.occurredAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'})}{row.result==='SUCCESS'?' · Thành công':row.result?` · ${row.result}`:''}</p>
+        {detailText && <p>{detailText}</p>}
+      </li>
+    })}</ol>}
   </Modal>
 }
 function ContentSummary({content}:{content:Content}) {

@@ -1,0 +1,15 @@
+.detail { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: start; }
+.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 0; }
+.facts dt { color: var(--ui-muted); font-size: 13px; margin-bottom: 6px; }
+.facts dd { margin: 0; overflow-wrap: anywhere; font-weight: 600; font-variant-numeric: tabular-nums; }
+.roles { display: flex; flex-wrap: wrap; gap: 12px 24px; font-size: 17px; }
+.note { color: var(--ui-muted); line-height: 1.6; font-size: 13px; max-width: 68ch; }
+.permissionGroups { display: grid; margin: 20px 0; }
+.permissionGroups > div { display: flex; justify-content: space-between; gap: 20px; padding: 12px 0; border-bottom: 1px solid var(--ui-border-soft, #d5e0e4); }
+.permissionGroups > div > :last-child { color: var(--ui-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.permissionDetails summary { cursor: pointer; padding: 12px 0; font-weight: 600; }
+.permissionDetails ul { columns: 2; padding-left: 20px; }
+.permissionDetails li { overflow-wrap: anywhere; font-size: 12px; padding: 5px 0; }
+.detailActions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+@media (max-width: 960px) { .detail { grid-template-columns: 1fr; } }
+@media (max-width: 540px) { .facts { grid-template-columns: 1fr; gap: 20px; } .permissionDetails ul { columns: 1; } }

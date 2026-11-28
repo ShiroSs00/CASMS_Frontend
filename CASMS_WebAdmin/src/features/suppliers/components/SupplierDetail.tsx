@@ -16,7 +16,8 @@ type Props = {
   onDelete?: () => Promise<void> | void
 }
 function formatVerifier(value?: string | null) {
-  return !value || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value) ? 'Người dùng hệ thống' : value
+  if (!value || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) return null
+  return value
 }
 export function SupplierDetail({ supplier, embedded = false, actionInProgress = null, actionFeedback = null, onDismissFeedback, onToggleStatus, onVerify, onDelete }: Props) {
   const access = useSessionAccess()
@@ -49,7 +50,7 @@ export function SupplierDetail({ supplier, embedded = false, actionInProgress = 
   const actions = <div className={styles.actions}>
     {access.canDo('SUPPLIER_UPDATE') && <ButtonLink to={`/admin/suppliers/${supplier.id}/edit`}>Chỉnh sửa</ButtonLink>}
     {access.canDo('SUPPLIER_VERIFY') && supplier.verificationStatus !== 'VERIFIED' && <Button tone="secondary" disabled={actionInProgress !== null} onClick={() => { onDismissFeedback?.(); setVerifyNoteError(''); setShowVerifyModal(true) }}>Xác minh nhà cung cấp</Button>}
-    {access.canDo('SUPPLIER_STATUS_CHANGE') && <Button tone="secondary" busy={isStatusBusy} disabled={supplier.status === 'INACTIVE' && !canActivate} onClick={onToggleStatus}>{supplier.status === 'ACTIVE' ? 'Tạm dừng' : 'Kích hoạt'}</Button>}
+    {access.canDo('SUPPLIER_STATUS_CHANGE') && <Button tone="secondary" busy={isStatusBusy} disabled={supplier.status === 'INACTIVE' && !canActivate} title={supplier.status === 'INACTIVE' && !canActivate ? 'Cần xác minh nhà cung cấp trước khi kích hoạt.' : undefined} onClick={onToggleStatus}>{supplier.status === 'ACTIVE' ? 'Tạm dừng' : 'Kích hoạt'}</Button>}
     {access.canDo('SUPPLIER_DELETE') && <Button tone="danger" disabled={actionInProgress !== null} onClick={() => { onDismissFeedback?.(); setShowDeleteModal(true) }}>Xóa</Button>}
     <ButtonLink tone="secondary" to={`/admin/shore-excursions?supplierId=${supplier.id}`}>Các chuyến tham quan</ButtonLink>
   </div>
@@ -57,16 +58,28 @@ export function SupplierDetail({ supplier, embedded = false, actionInProgress = 
     {!embedded ? <PageHeader title={supplier.supplierName} breadcrumb="NHÀ CUNG CẤP" actions={actions} /> : actions}
     {actionFeedback && !anyModalOpen && <Notice title={actionFeedback.type === 'error' ? 'Chưa thực hiện được' : 'Đã cập nhật'} tone={actionFeedback.type === 'error' ? 'error' : 'success'}>{actionFeedback.message}{onDismissFeedback && <Button tone="text" onClick={onDismissFeedback}>Đóng thông báo</Button>}</Notice>}
     <div className={styles.statuses}><Badge label={supplierStatusLabels[supplier.status]} tone={supplier.status === 'ACTIVE' ? 'success' : 'neutral'} /><Badge label={supplierVerificationLabels[supplier.verificationStatus]} tone={supplier.verificationStatus === 'VERIFIED' ? 'success' : supplier.verificationStatus === 'REJECTED' ? 'error' : 'warning'} /></div>
+    {access.canDo('SUPPLIER_STATUS_CHANGE') && supplier.status === 'INACTIVE' && !canActivate && (
+      <Notice title="Chưa thể kích hoạt nhà cung cấp" tone="info">
+        Cần hoàn tất xác minh nhà cung cấp trước khi kích hoạt sử dụng cho các tour tham quan.
+      </Notice>
+    )}
     <Panel title="Thông tin nhà cung cấp"><RecordFacts entries={[
       ['Loại đối tác', (supplier.supplierType && supplierTypeLabels[supplier.supplierType]) || supplier.supplierType || 'Chưa phân loại'], ['Ghi chú', supplier.notes || 'Chưa có ghi chú'],
       ['Tên liên hệ', supplier.contactName || 'Chưa có tên liên hệ'], ['Email', supplier.contactEmail || 'Chưa có email'],
       ['Điện thoại', supplier.contactPhone || 'Chưa có số điện thoại'], ['Cập nhật', supplierDateTime(supplier.updatedAt)],
       ['Tạo lúc', supplierDateTime(supplier.createdAt)],
     ]} /></Panel>
-    {(supplier.verificationStatus === 'VERIFIED' || supplier.verificationNotes) && <Panel title="Thông tin xác minh"><RecordFacts entries={[
-      ...(supplier.verificationStatus === 'VERIFIED' ? [['Xác minh lúc', supplierDateTime(supplier.verifiedAt)] as const, ['Người xác minh', formatVerifier(supplier.verifiedBy)] as const] : []),
-      ...(supplier.verificationNotes ? [['Ghi chú xác minh', supplier.verificationNotes] as const] : []),
-    ]} /></Panel>}
+    {(() => {
+      const verifierName = formatVerifier(supplier.verifiedBy)
+      const verificationEntries = [
+        ...(supplier.verifiedAt ? [['Xác minh lúc', supplierDateTime(supplier.verifiedAt)] as const] : []),
+        ...(verifierName ? [['Người xác minh', verifierName] as const] : []),
+        ...(supplier.verificationNotes ? [['Ghi chú xác minh', supplier.verificationNotes] as const] : []),
+      ]
+      return verificationEntries.length > 0 ? (
+        <Panel title="Thông tin xác minh"><RecordFacts entries={verificationEntries} /></Panel>
+      ) : null
+    })()}
     {showVerifyModal && access.canDo('SUPPLIER_VERIFY') && <Modal title="Xác minh nhà cung cấp" busy={verifying} onClose={() => { setShowVerifyModal(false); setVerificationNotes(''); setVerifyNoteError('') }} footer={<>
       <Button tone="secondary" data-overlay-dismiss disabled={verifying} onClick={() => { setShowVerifyModal(false); setVerificationNotes(''); setVerifyNoteError('') }}>Hủy</Button><Button busy={verifying} onClick={() => void handleConfirmVerify()}>Xác nhận</Button>
     </>}><div className={styles.stack}>

@@ -19,28 +19,27 @@ const registrationCountries = [...new Set(SUPPORTED_FLAG_COUNTRY_CODES)]
   .sort((a, b) => a.name.localeCompare(b.name, 'vi'))
 
 const fieldPlaceholders: Partial<Record<ProfileKey, string>> = {
-  imoNumber: 'Ví dụ: 9074729',
-  registrationNumber: 'Ví dụ: BS-2025-00128',
-  certificateReferences: 'Passenger Ship Safety Certificate\nSafety Management Certificate',
-  warrantyReferences: 'Main Engine Warranty\nHVAC System Warranty',
-  maintenanceReferences: 'Main Engine Maintenance - 2026\nFire Safety System Inspection',
+  imoNumber: 'VD: 9074729',
+  registrationNumber: 'VD: BS-2025-00128',
+  certificateReferences: 'VD: Giấy chứng nhận an toàn tàu khách\nGiấy chứng nhận quản lý an toàn',
+  warrantyReferences: 'VD: Bảo hành động cơ chính\nBảo hành hệ thống điều hòa',
+  maintenanceReferences: 'VD: Bảo dưỡng định kỳ động cơ chính 2026\nKiểm định hệ thống PCCC',
 }
 
-function formatCountryCode(code: string) {
+function formatCountryName(code: string) {
   const upper = code.trim().toUpperCase()
   if (!upper) return ''
   try {
-    const label = regionDisplayNames.of(upper)
-    return label && label !== upper ? `${label} (${upper})` : upper
+    return regionDisplayNames.of(upper) ?? upper
   } catch {
     return upper
   }
 }
 
 const groupDescriptions: Record<string, string> = {
-  'Bàn giao': 'Ghi nhận thời điểm nhận bàn giao tàu.',
-  'Đăng ký và đăng kiểm': 'Thông tin định danh, quốc kỳ và cơ quan đăng kiểm của tàu.',
-  'Tham chiếu hồ sơ': 'Chứng nhận, bảo hành và bảo trì. Nhập mỗi tham chiếu trên một dòng, không trùng lặp (tối đa 255 ký tự/dòng).',
+  'Bàn giao': '',
+  'Đăng ký và đăng kiểm': '',
+  'Tham chiếu hồ sơ': 'Không bắt buộc — nhập mỗi mục trên một dòng.',
 }
 
 function isPresetSociety(value: string) {
@@ -63,15 +62,16 @@ export function ProfileFields({ draft, errors, disabled, onChange, onBlur, group
 
   return <>{profileGroups.map((group, groupIndex) => <section className={`${styles.formSection} ${grouped ? styles.profileFormGroup : ''}`} key={group.title}
     data-reference-group={group.fields.every(field => 'kind' in field && field.kind === 'references')}>
-    {grouped ? <div className={styles.profileGroupHeading}><h4>{group.title}</h4><p id={`${prefix}-group-${groupIndex}`}>{groupDescriptions[group.title]}</p></div> : <h3>{group.title}</h3>}
+    {grouped ? <div className={styles.profileGroupHeading}><h4>{group.title}</h4>{groupDescriptions[group.title] && <p id={`${prefix}-group-${groupIndex}`}>{groupDescriptions[group.title]}</p>}</div> : <h3>{group.title}</h3>}
     <div className={styles.grid}>
       {group.fields.map(field => {
         const id = prefix + '-' + field.key
         const kind = 'kind' in field ? field.kind : 'text'
         const currentValue = draft[field.key] ?? ''
-        const fieldLabel = required ? `${field.label} *` : field.label
+        const isFieldRequired = required && kind !== 'references'
+        const fieldLabel = isFieldRequired ? `${field.label} *` : field.label
         const props = {
-          id, value: currentValue, disabled, required,
+          id, value: currentValue, disabled, required: isFieldRequired,
           onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => onChange(field.key, event.target.value),
           onBlur: () => onBlur(field.key),
           'aria-describedby': grouped ? `${prefix}-group-${groupIndex}` : undefined,
@@ -81,7 +81,7 @@ export function ProfileFields({ draft, errors, disabled, onChange, onBlur, group
           const selectVal = customSocietyMode
             ? OTHER_CLASSIFICATION_VALUE
             : isPresetSociety(currentValue) ? currentValue : ''
-          return <Field key={field.key} htmlFor={id} label={fieldLabel} error={errors[field.key]} hint={field.hint}>
+          return <Field key={field.key} htmlFor={id} label={fieldLabel} error={errors[field.key]}>
             <>
               <select
                 id={id}
@@ -131,10 +131,10 @@ export function ProfileFields({ draft, errors, disabled, onChange, onBlur, group
             <select {...props}>
               <option value="">Chọn quốc gia đăng ký</option>
               {currentValue && !registrationCountries.some(c => c.code === currentValue.toUpperCase()) && (
-                <option value={currentValue.toUpperCase()}>{formatCountryCode(currentValue)}</option>
+                <option value={currentValue.toUpperCase()}>{formatCountryName(currentValue)}</option>
               )}
               {registrationCountries.map(country => (
-                <option key={country.code} value={country.code}>{country.name} ({country.code})</option>
+                <option key={country.code} value={country.code}>{country.name}</option>
               ))}
             </select>
           ) : kind === 'references' ? (
@@ -170,13 +170,14 @@ export function ProfileFacts({ profile, onlyProvided = false, className = '' }: 
     <h3>{group.title}</h3><dl className={styles.facts}>
       {group.fields.map(field => {
         const value = profile[field.key]
+        const isReferenceField = 'kind' in field && field.kind === 'references'
         const displayValue = field.key === 'registrationCountry' && typeof value === 'string'
-          ? formatCountryCode(value)
+          ? formatCountryName(value)
           : 'kind' in field && field.kind === 'date' && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
             ? value.split('-').reverse().join('/') : value
         return <div key={field.key}><dt>{field.label}</dt><dd className={styles.reference}>
           {Array.isArray(value) && value.length > 0 ? <ul>{value.map((item, index) => <li key={item + ':' + index}>{item}</li>)}</ul>
-            : !Array.isArray(value) && value ? displayValue : <span className={styles.missingValue}>Chưa cung cấp</span>}
+            : !Array.isArray(value) && value ? displayValue : <span className={styles.missingValue}>{isReferenceField ? 'Không có' : 'Chưa cung cấp'}</span>}
         </dd></div>
       })}
     </dl>

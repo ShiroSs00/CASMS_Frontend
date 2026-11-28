@@ -7,13 +7,18 @@
 .resultCount { font-size:var(--text-sm, 13px); color:var(--ui-muted); font-variant-numeric:tabular-nums; }
 @media(max-width:960px){ .filterBar { grid-template-columns:repeat(2, minmax(0, 1fr)); } .candidateFilterBar { grid-template-columns:minmax(0, 1fr); } }
 @media(max-width:600px){ .filterBar { grid-template-columns:minmax(0, 1fr); } .filterActions button { width:100%; } }
-.tableCellTitle { font-weight:600; color:var(--ui-ink); display:block; }
+.tableCellTitle { font-weight:600; color:var(--ui-ink); display:block; min-width:150px; }
 .tableCellSub { font-size:var(--text-xs, 12px); color:var(--ui-muted); font-variant-numeric:tabular-nums; }
+.workforceKpiStrip { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:var(--space-3); }
+.workforceKpiCard { display:grid; gap:4px; padding:var(--space-3) var(--space-4); background:var(--ui-subtle); border:1px solid var(--ui-border); border-radius:var(--radius-sm, 6px); }
+.workforceKpiCard span { font-size:var(--text-xs, 12px); color:var(--ui-muted); }
+.workforceKpiCard strong { font-size:24px; line-height:1.2; font-weight:600; color:var(--ui-ink); font-variant-numeric:tabular-nums; }
+@media(max-width:600px){ .workforceKpiStrip { grid-template-columns:minmax(0, 1fr); } }
 .tableActionBtn { white-space:nowrap; }
 .queueGap { color:var(--warn, #995700); font-size:var(--text-xs, 12px); font-weight:600; }
 .queueReady { color:var(--success, #167347); font-size:var(--text-xs, 12px); font-weight:600; }
-.assignGrid { display:grid; grid-template-columns:minmax(18rem, 24rem) minmax(0, 1fr); gap:var(--space-5, 20px); align-items:start; }
-@media(max-width:960px){ .assignGrid { grid-template-columns:minmax(0, 1fr); } }
+.assignGrid { display:grid; grid-template-columns:minmax(16rem, 22rem) minmax(0, 1fr); gap:var(--space-5, 20px); align-items:start; }
+@media(max-width:900px){ .assignGrid { grid-template-columns:minmax(0, 1fr); } }
 .targetList { list-style:none; margin:0; padding:0; display:grid; gap:var(--space-2); }
 .targetButton { display:flex; width:100%; align-items:center; justify-content:space-between; gap:var(--space-3); padding:var(--space-3); text-align:left; background:var(--ui-surface); border:1px solid var(--ui-border); border-radius:var(--radius-md); font:inherit; color:var(--ui-ink); cursor:pointer; transition:background-color var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard); }
 .targetButton:hover { background:var(--ui-subtle); border-color:var(--border); }
@@ -54,7 +59,7 @@
 @media(max-width:480px){ .fields { grid-template-columns:minmax(0,1fr); } }
 
 /* Staffing V2 operational workspace: visual pipeline stepper, KPI progress cards, guided step headers, staff avatars, and handoff card. */
-.workflowStepper { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:var(--space-2); list-style:none; margin:0; padding:var(--space-3) var(--space-4); background:var(--ui-surface, #fff); border:1px solid var(--ui-border, #d5e0e4); border-radius:var(--radius-md, 10px); }
+.workflowStepper { display:grid; grid-template-columns:repeat(auto-fit, minmax(11rem, 1fr)); gap:var(--space-2); list-style:none; margin:0; padding:var(--space-3) var(--space-4); background:var(--ui-surface, #fff); border:1px solid var(--ui-border, #d5e0e4); border-radius:var(--radius-md, 10px); }
 .workflowStep { position:relative; display:flex; align-items:flex-start; gap:var(--space-2); padding:var(--space-2) var(--space-3); border-radius:var(--radius-control, 6px); border:1px solid transparent; font-size:var(--text-xs, 12px); color:var(--ui-muted, #506777); min-width:0; }
 .workflowStepMarker { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:999px; flex-shrink:0; font-size:12px; font-weight:700; background:var(--surface-subtle, #f4f7f8); border:1px solid var(--ui-border, #d5e0e4); color:var(--ui-muted, #506777); margin-top:1px; }
 .workflowStepBody { display:grid; gap:2px; min-width:0; }
@@ -221,9 +226,9 @@
 .tourChipBar { display:flex; flex-wrap:wrap; gap:var(--space-2, 8px); }
 .tourChip { display:inline-flex; align-items:center; gap:var(--space-2, 8px); padding:8px 14px; border:1px solid var(--border, #718391); border-radius:var(--radius-sm, 6px); background:var(--ui-surface, #fff); color:var(--ui-ink, #0b2a4a); font:inherit; font-size:var(--text-sm, 13px); font-weight:500; cursor:pointer; text-align:left; transition:background-color var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard); }
 .tourChip:hover { background:var(--surface-subtle, #f4f7f8); }
-.tourChip[aria-pressed="true"] { background:var(--accent, #0b2a4a); border-color:var(--accent, #0b2a4a); color:var(--accent-on, #fff); }
+.tourChip[aria-pressed="true"], .tourChip[aria-selected="true"] { background:var(--accent, #0b2a4a); border-color:var(--accent, #0b2a4a); color:var(--accent-on, #fff); }
 .tourChipCount { display:inline-flex; align-items:center; justify-content:center; padding:1px 8px; border-radius:999px; background:var(--surface-warm, #f3ebdd); color:var(--warn, #995700); font-size:var(--text-xs, 12px); font-weight:700; font-variant-numeric:tabular-nums; }
-.tourChip[aria-pressed="true"] .tourChipCount { background:rgba(255,255,255,0.2); color:#fff; }
+.tourChip[aria-pressed="true"] .tourChipCount, .tourChip[aria-selected="true"] .tourChipCount { background:rgba(255,255,255,0.2); color:#fff; }
 
 .serviceCardList { list-style:none; margin:0; padding:0; display:grid; gap:var(--space-3, 12px); }
 .serviceCard { display:grid; gap:var(--space-3, 12px); padding:var(--space-4, 16px); border:1px solid var(--ui-border, #d5e0e4); border-radius:var(--radius-md, 10px); background:var(--ui-surface, #fff); }
@@ -271,3 +276,9 @@
 .shipSwitchTab:hover { background:var(--ui-surface, #fff); border-color:var(--ui-border, #d5e0e4); }
 .shipSwitchTabActive { background:var(--accent, #0b2a4a); color:var(--accent-on, #fff); }
 .shipSwitchTabActive:hover { background:var(--accent, #0b2a4a); color:var(--accent-on, #fff); border-color:var(--accent, #0b2a4a); }
+
+/* Inline Ship Manager assignment controls inside unified table */
+.inlineRowControl { display:grid; gap:4px; min-width:12rem; }
+.inlineRowFeedback { display:flex; align-items:center; gap:var(--space-2, 8px); flex-wrap:wrap; }
+.inlineSelect { min-height:var(--ocevie-control-height-compact, 36px); padding:0 var(--space-3, 12px); border:1px solid var(--ui-border, #d5e0e4); border-radius:var(--radius-sm, 6px); background:var(--ui-surface, #fff); color:var(--ui-ink, #0b2a4a); font:inherit; font-size:var(--text-sm, 13px); max-width:18rem; width:100%; }
+.inlineSelect:focus-visible { outline:none; box-shadow:var(--focus-ring); border-color:var(--accent, #0b2a4a); }

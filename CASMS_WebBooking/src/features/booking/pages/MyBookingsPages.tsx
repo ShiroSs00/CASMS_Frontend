@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { ApiError, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
-import { Badge, Button, ButtonLink, DataTable, Empty, Field, Notice, PageHeader, Panel } from '@/shared/ui'
+import { Badge, Button, ButtonLink, Empty, Field, Notice, PageHeader, Panel } from '@/shared/ui'
 import { realBookingApi } from '../api/real-booking-api'
 import { BookingPaymentActionCard } from '../components/BookingPaymentActionCard'
 import { CustomerCancellation } from '../components/CustomerCancellation'
@@ -45,34 +45,34 @@ export function MyBookingsPage() {
           <Link to="/booking/lookup">Tra cứu bằng mã đặt chỗ</Link>
         </div>
         <PageHeader
-          breadcrumb="TÀI KHOẢN / ĐẶT CHỖ CỦA TÔI"
-          title="Đặt chỗ của tôi"
+          breadcrumb="TÀI KHOẢN / CHUYẾN ĐI CỦA TÔI"
+          title="Chuyến đi của tôi"
         />
 
         {access.status === 'loading' && <p role="status">Đang kiểm tra phiên đăng nhập…</p>}
 
         {access.status !== 'loading' && !ready && (
-          <Notice title="Vui lòng đăng nhập để xem đặt chỗ của bạn" tone="info">
-            <p>Đăng nhập bằng tài khoản hành khách để quản lý đặt chỗ và thanh toán VietQR.</p>
+          <Notice title="Vui lòng đăng nhập để xem chuyến đi của bạn" tone="info">
+            <p>Đăng nhập bằng tài khoản hành khách để theo dõi lịch khởi hành, thanh toán và làm thủ tục check-in trực tuyến.</p>
             <div className={styles.actions}>
               <ButtonLink to="/login?next=%2Fmy-bookings" autoWidth>
                 Đăng nhập tài khoản hành khách
               </ButtonLink>
               <ButtonLink tone="secondary" to="/booking/lookup" autoWidth>
-                Tra cứu công khai bằng mã
+                Tra cứu bằng mã đặt chỗ
               </ButtonLink>
             </div>
           </Notice>
         )}
 
         {ready && (
-          <Panel title="Danh sách đặt chỗ">
-            <div className={styles.fields} role="group" aria-label="Bộ lọc đặt chỗ của tôi" style={{ marginBottom: '16px' }}>
-              <Field htmlFor="my-bookings-search" label="Tìm nhanh trên trang">
+          <Panel>
+            <div className={styles.fields} role="group" aria-label="Bộ lọc chuyến đi của tôi" style={{ marginBottom: '20px', alignItems: 'end' }}>
+              <Field htmlFor="my-bookings-search" label="Tìm chuyến đi">
                 <input
                   id="my-bookings-search"
                   type="search"
-                  placeholder="Mã đặt chỗ hoặc tên chuyến…"
+                  placeholder="Mã đặt chỗ hoặc tên hải trình…"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                 />
@@ -101,7 +101,7 @@ export function MyBookingsPage() {
                 </select>
               </Field>
               {hasActiveFilter && (
-                <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                <div>
                   <Button
                     tone="secondary"
                     size="compact"
@@ -113,7 +113,7 @@ export function MyBookingsPage() {
                       setPage(0)
                     }}
                   >
-                    Xóa bộ lọc
+                    Xóa lọc
                   </Button>
                 </div>
               )}
@@ -121,57 +121,92 @@ export function MyBookingsPage() {
             <BookingReadState {...listQuery} />
             {listQuery.data && !listQuery.loading && !listQuery.error && (
               visibleRows.length === 0 ? (
-                <Empty title={hasActiveFilter ? 'Không có đặt chỗ khớp bộ lọc' : 'Bạn chưa có đặt chỗ nào'}>
+                <Empty title={hasActiveFilter ? 'Không có chuyến đi khớp bộ lọc' : 'Bạn chưa có chuyến đi nào'}>
                   <p>
                     {hasActiveFilter
                       ? 'Thử thay đổi trạng thái hoặc từ khóa tìm kiếm.'
-                      : 'Khám phá các hành trình đang mở bán để tạo đặt chỗ đầu tiên.'}
+                      : 'Khám phá các hải trình đang mở đặt chỗ để lên kế hoạch cho kỳ nghỉ tiếp theo.'}
                   </p>
                   {!hasActiveFilter && (
                     <ButtonLink to="/cruises" autoWidth>
-                      Khám phá chuyến du thuyền
+                      Khám phá hải trình
                     </ButtonLink>
                   )}
                 </Empty>
               ) : (
-                <div className={styles.bookingsTableWrap}>
-                  <DataTable
-                    label="Đặt chỗ của bạn"
-                    headers={['Mã đặt chỗ', 'Chuyến khởi hành', 'Trạng thái', 'Tổng giá vé', 'Ngày tạo', '']}
-                  >
-                    {visibleRows.map(item => (
-                      <tr key={item.bookingId}>
-                        <td className={styles.monoCode} style={{ whiteSpace: 'nowrap' }}>{item.bookingReference}</td>
-                        <td>
-                          <strong>{item.cruiseName}</strong>
-                          {item.departureDatetime && <small>Khởi hành: {bookingWhen(item.departureDatetime)}</small>}
-                        </td>
-                        <td className={styles.statusCell}>
+                <div style={{ display: 'grid', gap: '16px' }}>
+                  {visibleRows.map(item => {
+                    const isConfirmed = item.bookingStatus === 'Confirmed'
+                    const isCancelled = item.bookingStatus === 'Cancelled'
+                    const ctaLabel = isCancelled
+                      ? 'Xem chi tiết'
+                      : isConfirmed
+                        ? 'Quản lý chuyến đi'
+                        : 'Tiếp tục thanh toán'
+                    return (
+                      <article
+                        key={item.bookingId}
+                        style={{
+                          display: 'grid',
+                          gap: '14px',
+                          padding: '20px 24px',
+                          background: 'var(--surface-default, #fff)',
+                          border: '1px solid var(--border-default, #d5e0e4)',
+                          borderLeft: `4px solid ${isConfirmed ? 'var(--status-success, #167347)' : isCancelled ? 'var(--border-default, #d5e0e4)' : 'var(--brand-gold, #d4af37)'}`,
+                          borderRadius: '12px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                          <div style={{ display: 'grid', gap: '4px' }}>
+                            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--brand-teal, #0e6b7a)', letterSpacing: '0.04em' }}>
+                              MÃ ĐẶT CHỖ · {item.bookingReference}
+                            </span>
+                            <h2 style={{ margin: 0, fontSize: '19px', fontFamily: 'var(--font-heading)', color: 'var(--brand-navy, #0b2a4a)' }}>
+                              {item.cruiseName}
+                            </h2>
+                          </div>
                           <Badge
                             label={bookingStatusName[item.bookingStatus] ?? item.bookingStatus}
-                            tone={
-                              item.bookingStatus === 'Confirmed'
-                                ? 'success'
-                                : item.bookingStatus === 'Cancelled'
-                                  ? 'neutral'
-                                  : 'warning'
-                            }
+                            tone={isConfirmed ? 'success' : isCancelled ? 'neutral' : 'warning'}
                           />
-                        </td>
-                        <td className={styles.numericCell}>
-                          {item.agreedFareAmount != null && item.currency
-                            ? bookingMoney(item.agreedFareAmount, item.currency)
-                            : '—'}
-                        </td>
-                        <td style={{ whiteSpace: 'nowrap' }}>{bookingWhen(item.createdAt)}</td>
-                        <td className={styles.actionCell}>
-                          <ButtonLink tone="secondary" size="compact" autoWidth className={styles.tableActionBtn} to={`/my-bookings/${item.bookingId}`}>
-                            {item.bookingStatus === 'Cancelled' ? 'Xem chi tiết' : 'Chi tiết & thanh toán'}
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px 20px', paddingBlock: '12px', borderBlock: '1px solid var(--border-default, #d5e0e4)' }}>
+                          <div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-secondary, #506777)' }}>Khởi hành</div>
+                            <strong style={{ fontSize: '14px', color: 'var(--brand-navy, #0b2a4a)', fontVariantNumeric: 'tabular-nums' }}>
+                              {item.departureDatetime ? bookingWhen(item.departureDatetime) : 'Đang cập nhật'}
+                            </strong>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-secondary, #506777)' }}>Tổng giá trị đặt chỗ</div>
+                            <strong style={{ fontSize: '15px', color: 'var(--brand-navy, #0b2a4a)', fontVariantNumeric: 'tabular-nums' }}>
+                              {item.agreedFareAmount != null && item.currency
+                                ? bookingMoney(item.agreedFareAmount, item.currency)
+                                : '—'}
+                            </strong>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-secondary, #506777)' }}>Ngày đặt</div>
+                            <strong style={{ fontSize: '14px', color: 'var(--brand-navy, #0b2a4a)', fontVariantNumeric: 'tabular-nums' }}>
+                              {bookingWhen(item.createdAt)}
+                            </strong>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: '10px' }}>
+                          <ButtonLink
+                            tone={isCancelled ? 'secondary' : 'primary'}
+                            size="compact"
+                            autoWidth
+                            to={`/my-bookings/${item.bookingId}`}
+                          >
+                            {ctaLabel} →
                           </ButtonLink>
-                        </td>
-                      </tr>
-                    ))}
-                  </DataTable>
+                        </div>
+                      </article>
+                    )
+                  })}
                   {listQuery.data.totalPages > 1 && (
                     <div className={styles.financePagination}>
                       <Button
@@ -209,6 +244,7 @@ export function MyBookingsPage() {
 
 export function MyBookingDetailPage() {
   const { bookingId = '' } = useParams()
+  const [renderNow] = useState(() => Date.now())
   const access = useSessionAccess()
   const ready = access.status === 'ready' && access.roles.includes('PASSENGER') && Boolean(access.userId) && Boolean(bookingId)
 
@@ -223,15 +259,15 @@ export function MyBookingDetailPage() {
     <RealBookingFrame>
       <div className={styles.stack}>
         <div className={styles.journeyTopline}>
-          <Link to="/my-bookings">← Danh sách đặt chỗ của tôi</Link>
+          <Link to="/my-bookings">← Chuyến đi của tôi</Link>
           <Button tone="secondary" size="compact" autoWidth disabled={detailQuery.loading} onClick={detailQuery.retry}>
-            Tải lại đặt chỗ
+            Làm mới
           </Button>
         </div>
 
         <PageHeader
-          breadcrumb="ĐẶT CHỖ CỦA TÔI / CHI TIẾT"
-          title={detailQuery.data?.bookingReference ?? 'Chi tiết đặt chỗ'}
+          breadcrumb="CHUYẾN ĐI CỦA TÔI / CHI TIẾT"
+          title={detailQuery.data?.cruiseName ?? detailQuery.data?.bookingReference ?? 'Chi tiết chuyến đi'}
         />
 
         {access.status === 'loading' && <p role="status">Đang kiểm tra phiên đăng nhập…</p>}
@@ -256,6 +292,47 @@ export function MyBookingDetailPage() {
 
         {ready && detailQuery.data && (
           <>
+            {(() => {
+              const b = detailQuery.data
+              const isPaid = b.outstandingBalance != null && b.outstandingBalance <= 0
+              const contractDone = b.contractStatus === 'Accepted'
+              const departed = Boolean(b.departureDatetime && Date.parse(b.departureDatetime) <= renderNow)
+              return (
+                <div
+                  role="region"
+                  aria-label="Tiến độ chuẩn bị chuyến đi"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '12px',
+                    padding: '16px 20px',
+                    background: 'var(--surface-default, #fff)',
+                    border: '1px solid var(--border-default, #d5e0e4)',
+                    borderTop: '3px solid var(--brand-gold, #d4af37)',
+                    borderRadius: '12px',
+                  }}
+                >
+                  <div style={{ display: 'grid', gap: '4px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary, #506777)' }}>1. Hợp đồng & xác nhận</span>
+                    <Badge label={contractDone ? 'Đã chấp nhận hợp đồng' : 'Chờ chấp nhận hợp đồng'} tone={contractDone ? 'success' : 'warning'} />
+                  </div>
+                  <div style={{ display: 'grid', gap: '4px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary, #506777)' }}>2. Thanh toán</span>
+                    <Badge
+                      label={isPaid ? 'Đã thanh toán đủ' : b.outstandingBalance != null && b.currency ? `Còn ${bookingMoney(b.outstandingBalance, b.currency)}` : 'Chờ thanh toán'}
+                      tone={isPaid ? 'success' : 'warning'}
+                    />
+                  </div>
+                  <div style={{ display: 'grid', gap: '4px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary, #506777)' }}>3. Check-in lên tàu</span>
+                    <Badge
+                      label={departed ? 'Chuyến đã khởi hành' : b.bookingStatus === 'Confirmed' ? 'Mở trước giờ xuất bến 3 giờ' : 'Mở sau khi xác nhận'}
+                      tone={departed ? 'neutral' : b.bookingStatus === 'Confirmed' ? 'info' : 'neutral'}
+                    />
+                  </div>
+                </div>
+              )
+            })()}
             <PublicBookingRecord
               booking={detailQuery.data}
               showPassengerDetails

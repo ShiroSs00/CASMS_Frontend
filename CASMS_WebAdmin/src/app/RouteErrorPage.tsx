@@ -10,8 +10,8 @@ export function RouteErrorPage() {
     <title>{missing ? 'OceVie — Không tìm thấy trang' : 'OceVie — Chưa thể mở trang'}</title>
     <section><p className={styles.eyebrow}>{missing ? '404 · KHÔNG TÌM THẤY' : 'OCEVIE · CẦN THỬ LẠI'}</p>
       <h1>{missing?'Không tìm thấy trang':'Chưa thể mở trang này'}</h1>
-      <p>{missing?'Đường dẫn có thể đã thay đổi. Về trang chủ để tiếp tục tìm hành trình.':'Vui lòng tải lại trang hoặc quay về trang chủ để tiếp tục.'}</p>
-      <div><button type="button" onClick={()=>window.location.reload()}>Tải lại trang</button><Link to="/" reloadDocument>Về trang chủ</Link></div>
+      <p>{missing ? 'Đường dẫn quản trị có thể đã thay đổi hoặc không tồn tại. Quay về trang chủ quản trị để tiếp tục công việc.' : 'Vui lòng tải lại trang hoặc quay về trang chủ quản trị để tiếp tục.'}</p>
+      <div><Link to="/admin" reloadDocument>Về trang chủ quản trị</Link><button type="button" onClick={() => window.location.reload()}>Tải lại trang</button></div>
     </section>
   </main>
 }

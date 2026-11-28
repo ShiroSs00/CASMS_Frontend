@@ -45,11 +45,11 @@ export type Regulation = {
 /** Adapter-only metadata; these fields are not columns in FOREP.sql. */
 export type MockRegulation = Regulation & {
   hasBeenActive: boolean
-  version: number
+  version: number | null
 }
 export type RegulationDraft = Omit<Regulation, 'id' | 'status'>
 
-export type RegulationUpdate = Partial<RegulationDraft> & { version: number }
+export type RegulationUpdate = Partial<RegulationDraft>
 
 export type Capability = {
   allowed: boolean

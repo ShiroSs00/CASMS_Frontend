@@ -1,21 +1,49 @@
 import { apiAsset, apiRequest } from '@/shared/api'
 import { assetPath, decodeAsset, decodeManifest, type Issue, type Job, type ShipModel, type ShipChoice, type ShipTypeChoice } from './model'
+const MAX_DIRECTORY_PAGES = 20
+
 export const viewerApi = {
   async shipTypes(signal: AbortSignal) {
-    const rows: ShipTypeChoice[] = []
-    for (let page = 0; page < 1000; page++) {
-      const data = await apiRequest<{ content: ShipTypeChoice[]; totalPages: number }>('/ship-types', { query: { page, size: 100, sort: 'code,asc' }, signal })
+    const first = await apiRequest<{ content: ShipTypeChoice[]; totalPages: number }>('/ship-types', { query: { page: 0, size: 100, sort: 'code,asc' }, signal })
+    const validate = (data: { content: ShipTypeChoice[]; totalPages: number }) => {
       if (!Array.isArray(data.content) || !Number.isInteger(data.totalPages) || data.totalPages < 0
-        || data.content.some(row => !row || !row.shipTypeId || typeof row.name !== 'string' || typeof row.code !== 'string')) throw new Error('Danh mục loại tàu không hợp lệ.')
-      rows.push(...data.content)
-      if (page + 1 >= data.totalPages) return rows
+        || data.content.some(row => !row || !row.shipTypeId || typeof row.name !== 'string' || typeof row.code !== 'string')) {
+        throw new Error('Danh mục loại tàu không hợp lệ.')
+      }
     }
-    throw new Error('Danh mục loại tàu vượt giới hạn tải.')
+    validate(first)
+    const rows: ShipTypeChoice[] = [...first.content]
+    const totalPages = Math.min(MAX_DIRECTORY_PAGES, first.totalPages)
+    if (totalPages > 1) {
+      const rest = await Promise.all(
+        Array.from({ length: totalPages - 1 }, (_, i) =>
+          apiRequest<{ content: ShipTypeChoice[]; totalPages: number }>('/ship-types', { query: { page: i + 1, size: 100, sort: 'code,asc' }, signal }),
+        ),
+      )
+      for (const pageData of rest) {
+        validate(pageData)
+        rows.push(...pageData.content)
+      }
+    }
+    return rows
   },
   async ships(signal: AbortSignal) {
-    const result: ShipChoice[]=[]
-    for(let page=0;page<1000;page++) { const data=await apiRequest<{content:ShipChoice[];totalPages:number}>('/ships',{query:{page,size:100},signal}); if(!Array.isArray(data.content)) throw new Error('Danh sách tàu không hợp lệ.'); result.push(...data.content); if(page+1>=data.totalPages) return result }
-    throw new Error('Danh sách tàu vượt giới hạn tải.')
+    const first = await apiRequest<{ content: ShipChoice[]; totalPages: number }>('/ships', { query: { page: 0, size: 100 }, signal })
+    if (!Array.isArray(first.content)) throw new Error('Danh sách tàu không hợp lệ.')
+    const result: ShipChoice[] = [...first.content]
+    const totalPages = Math.min(MAX_DIRECTORY_PAGES, Math.max(1, first.totalPages))
+    if (totalPages > 1) {
+      const rest = await Promise.all(
+        Array.from({ length: totalPages - 1 }, (_, i) =>
+          apiRequest<{ content: ShipChoice[]; totalPages: number }>('/ships', { query: { page: i + 1, size: 100 }, signal }),
+        ),
+      )
+      for (const pageData of rest) {
+        if (!Array.isArray(pageData.content)) throw new Error('Danh sách tàu không hợp lệ.')
+        result.push(...pageData.content)
+      }
+    }
+    return result
   },
   async models(ship: string, signal?: AbortSignal) {
     const rows = await apiRequest<ShipModel[]>(`/ships/${encodeURIComponent(ship)}/models`, { signal })

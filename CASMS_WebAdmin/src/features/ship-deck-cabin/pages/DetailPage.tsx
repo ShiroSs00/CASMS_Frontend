@@ -44,7 +44,7 @@ function DetailPage({ kind }: { kind: EntityKind }) {
         {access.canDo(operationPermission(kind, 'validate')) && <Button tone="secondary" disabled={!access.canDo(operationPermission(kind, 'validate'))} onClick={() => open('validate')}>Kiểm tra cấu hình</Button>}
         {'deckId' in item && <>{access.canDo(operationPermission(kind, 'availability')) && <Button tone="secondary" disabled={!access.canDo(operationPermission(kind, 'availability'))} onClick={() => open('availability')}>Kiểm tra cabin</Button>}
           {item.status === 'AVAILABLE' && (access.canDo(operationPermission(kind, 'block')) ? <Button tone="secondary" disabled={!access.canDo(operationPermission(kind, 'block'))} onClick={() => open('block')}>Khóa cabin</Button> : null)}
-          {item.status !== 'AVAILABLE' && (access.canDo(operationPermission(kind, 'release')) ? <Button tone="secondary" disabled={!access.canDo(operationPermission(kind, 'release'))} onClick={() => open('release')}>Mở cabin</Button> : null)}
+          {item.status !== 'AVAILABLE' && item.status !== 'OCCUPIED' && (access.canDo(operationPermission(kind, 'release')) ? <Button tone="secondary" disabled={!access.canDo(operationPermission(kind, 'release'))} onClick={() => open('release')}>Mở cabin</Button> : null)}
         </>}
         <Button tone="secondary" onClick={() => navigate(`/admin/${kind}${hostId ? `?ship=${hostId}` : ''}`)}>Về danh sách</Button>
       </>} />

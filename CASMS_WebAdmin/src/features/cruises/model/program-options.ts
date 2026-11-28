@@ -15,7 +15,7 @@ export function effectiveActivityAreas<Area extends AreaOnDeck>(options: Program
 export function programModelBlocker(options: ProgramVenue) {
   if (!options.ship.id) return 'Quản lý lịch trình cần gán tàu cho chuyến.'
   if (options.decks.length === 0) return 'Quản lý tàu cần hoàn tất cấu hình boong.'
-  if (!options.ship.modelId) return 'Quản lý tàu cần hoàn tất mô hình tàu sẵn sàng trước khi chọn khu vực hoạt động.'
+  if (!options.ship.modelId) return 'Tàu chưa có mô hình khu vực để chọn nơi tổ chức hoạt động. Quản lý tàu phụ trách bổ sung mô hình.'
   return null
 }
 

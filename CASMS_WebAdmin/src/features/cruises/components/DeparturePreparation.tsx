@@ -20,7 +20,7 @@ const preparationGroups: readonly { code: string; title: string; destination: De
   { code: 'TECHNICAL_NAUTICAL', title: 'Kỹ thuật tàu và hàng hải', destination: 'resources' },
   { code: 'HOTEL_CABIN', title: 'Cabin', destination: 'preparation' },
   { code: 'ENTERTAINMENT_SHORE', title: 'Hoạt động và tham quan trên bờ', destination: 'program' },
-  { code: 'SAFETY_CREW', title: 'An toàn và thuyền viên', destination: 'resources' },
+  { code: 'SAFETY_CREW', title: 'Nhân sự phục vụ trên tàu', destination: 'preparation' },
 ]
 
 function TabSectionIcon({ section }: { section: DepartureSection }) {

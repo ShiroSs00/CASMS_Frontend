@@ -13,7 +13,8 @@ import { OperationRecovery } from '../components/OperationNotice'
 import { TripSteps } from '../components/TripSteps'
 import { CatalogChoices } from '../components/CatalogChoices'
 import { portScopeViolations } from '../model/port-rules'
-import { durationRules, supportedDuration } from '../model/duration'
+import { supportedDuration } from '../model/duration'
+import { TripLifecycleTools } from '../components/TripLifecycleTools'
 
 export function TripInfoPage({id}:{id?:string}) {
   const {gateway}=usePlanning()
@@ -59,7 +60,7 @@ function InfoForm({trip:initial}:{trip?:Trip}) {
     try {const input={...form,name:form.name.trim()},request=trip?{payload:input,key:''}:operation.begin(input);const saved=await gateway.saveInfo(request.payload,request.key,trip);if(!trip)operation.succeeded(saved.tripId);guard.allowLeave();navigate(`${root}/${saved.tripId}/schedule`)} catch(e){if(!trip)operation.failed(e);setError(failure(e).message)} finally {lock.current=false;setBusy(false)}
   }
   return <div className={styles.info}>
-    <header className={styles.heading}><div><h1>{trip?'Thông tin khung chuyến':'Tạo khung chuyến'}</h1><p className={styles.muted}>{trip?.tripCode??'Chọn phạm vi và thời lượng để bắt đầu lập tuyến cảng.'}</p></div><Link to={root}>Về danh sách</Link></header><TripSteps stage="info" tripId={trip?.tripId}/>
+    <header className={styles.heading}><div><h1>{trip?'Thông tin khung chuyến':'Tạo khung chuyến'}</h1>{trip?.tripCode&&<p className={styles.muted}>{trip.tripCode}</p>}</div><Link to={root}>Về danh sách</Link></header><TripSteps stage="info" tripId={trip?.tripId}/>
     {!full&&<Notice title={trip?'Phạm vi chỉnh sửa hiện có':'Chức năng tạo đang chờ cập nhật'} tone="warning">{trip?'Chế độ hiện tại chỉ lưu tên và giới thiệu. Thời lượng, nhiều miền/quốc gia của biểu mẫu mới chưa có hợp đồng lưu đầy đủ.':'Chưa thể tạo khung chuyến ở đây. Bạn có thể quay lại danh sách và mở lịch trình của chuyến đã có.'}</Notice>}
     {!permitted&&<Notice title="Chỉ xem thông tin chuyến">Tài khoản hoặc trạng thái chuyến hiện tại không cho phép chỉnh sửa.</Notice>}
     {trip?.durationIssue&&<Notice title="Cần đối soát thời lượng" tone="warning">{trip.durationIssue}</Notice>}{locked&&<Notice title="Thời lượng đã khóa">Chuyến đi có mẫu đã chốt nên không thể đổi số ngày. Nếu cần đổi thời lượng, hãy <Link to={`${root}/new`}>tạo khung chuyến mới</Link>.</Notice>}
@@ -71,7 +72,6 @@ function InfoForm({trip:initial}:{trip?:Trip}) {
       </section>
       <section className={styles.infoSection} aria-labelledby="trip-scope-heading">
         <h3 id="trip-scope-heading">Phạm vi hành trình</h3>
-        <p>Phạm vi quyết định danh mục cảng có thể chọn.</p>
       <Field htmlFor="trip-scope" label="Phạm vi *" error={show('scope')}><select id="trip-scope" value={form.scope} disabled={!permitted||busy||(!full&&Boolean(trip))} aria-invalid={Boolean(show('scope'))} onBlur={()=>setTouched(t=>({...t,scope:true}))} onChange={e=>change('scope',e.target.value as TripInfo['scope'])}><option value="">Chọn phạm vi</option><option value="DOMESTIC">Trong nước</option><option value="INTERNATIONAL">{businessCopy('source.scope.INTERNATIONAL')}</option></select></Field>
       {form.scope&&<fieldset disabled={!permitted||busy||!full}><legend>{form.scope==='DOMESTIC'?'Chọn các miền *':'Chọn quốc gia/vùng lãnh thổ *'}</legend><CatalogChoices catalog={geography} values={form.scope==='DOMESTIC'?form.regionIds:form.countryCodes} onChange={values=>change(form.scope==='DOMESTIC'?'regionIds':'countryCodes',values)}/>{show(form.scope==='DOMESTIC'?'regions':'countries')&&<p className={styles.error} role="alert">{show(form.scope==='DOMESTIC'?'regions':'countries')}</p>}</fieldset>}
       {scopeChanged&&<section aria-label="Đối chiếu cảng khi đổi phạm vi">{(scopeData.loading||portCatalog.loading)?<Loading label="Đang đối chiếu các lần ghé cảng…"/>:(scopeData.error||portCatalog.error)?<Notice title="Chưa đối chiếu được phạm vi" tone="warning">{scopeData.error?.message||portCatalog.error}<Button type="button" tone="secondary" onClick={()=>{scopeData.retry();portCatalog.retry()}}>Thử lại</Button></Notice>:Boolean(scopeData.data?.length)&&<Notice title="Các lần ghé cần xử lý trước khi đổi phạm vi" tone="warning"><ul>{scopeData.data?.map((issue,index)=><li key={issue.clientKey+':'+index}>{issue.message}</li>)}</ul><Link to={root+'/'+trip!.tripId+'/schedule'}>Mở lịch trình để xử lý</Link></Notice>}</section>}
@@ -89,23 +89,19 @@ function InfoForm({trip:initial}:{trip?:Trip}) {
         const fallbackBand = form.durationBand || (trip ? (trip.durationDays <= 2 ? 'SHORT' : 'LONG') : '')
         return <Field htmlFor="trip-band" label="Thời lượng *" error={durations.error||show('durationBand')}><select id="trip-band" value={fallbackBand} disabled={!permitted||busy||locked||(durations.loading&&!trip)||Boolean(durations.error)||(gateway.mode==='api'&&Boolean(trip))} aria-invalid={Boolean(show('durationBand'))} onBlur={()=>setTouched(t=>({...t,durationBand:true}))} onChange={e=>change('durationBand',e.target.value as TripInfo['durationBand'])}><option value="">{durations.loading&&!trip?'Đang tải thời lượng…':'Chọn thời lượng'}</option>{effectiveOptions.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select>{durations.error&&<Button type="button" tone="text" onClick={durations.retry}>Tải lại thời lượng</Button>}{gateway.mode==='api'&&trip&&!locked&&<small>Chuyến đang có giữ nhóm thời lượng để bảo toàn số ngày và nội dung. Chọn nhóm khác khi tạo chuyến mới.</small>}</Field>
       })()}
-      {trip
-        ? <p>Khung hiện có {trip.durationDays} ngày.</p>
-        : supportedDuration(form.durationBand) && <p>Lịch trình bắt đầu với {durationRules[form.durationBand].defaultDays} ngày. Bạn có thể thêm ngày ở bước lập lịch trình, trong nhóm thời lượng đã chọn.</p>}
+      {trip && <p className={styles.muted}>Hiện có {trip.durationDays} ngày.</p>}
       </section>
       <section className={styles.infoSection} aria-labelledby="trip-departure-window">
-        <h3 id="trip-departure-window">Khung giờ khởi hành cho phép</h3>
-        <p id="trip-departure-window-hint">Áp dụng theo giờ trên tàu (giờ Việt Nam) cho mọi ngày khởi hành dùng mẫu này.</p>
-        {windowLocked && <p>Khung khởi hành đã khóa vì lịch trình đang được duyệt hoặc đã công bố.</p>}
-        {trip && !baseline.earliestDeparture && !baseline.latestDeparture && <p>Chưa thiết lập khung giờ khởi hành.</p>}
-        <div className={styles.grid}>
+        <h3 id="trip-departure-window">Khung giờ khởi hành</h3>
+        {windowLocked && <p className={styles.muted}>Khung giờ khởi hành đã khóa.</p>}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(12rem, 1fr))', gap: '16px' }}>
           {([
             ['earliestDeparture', 'Giờ khởi hành sớm nhất'],
             ['latestDeparture', 'Giờ khởi hành trễ nhất'],
           ] as const).map(([field, label]) => (
             <Field key={field} htmlFor={'trip-' + field} label={requireWindow && !windowLocked ? label + ' *' : label} error={show(field)}>
               <input id={'trip-' + field} type="time" step={60} value={form[field]}
-                aria-describedby="trip-departure-window-hint" required={requireWindow && !windowLocked}
+                required={requireWindow && !windowLocked}
                 disabled={!permitted || busy || windowLocked || !full}
                 onBlur={() => setTouched(old => ({ ...old, [field]: true }))}
                 onChange={event => change(field, event.target.value)} />
@@ -116,6 +112,6 @@ function InfoForm({trip:initial}:{trip?:Trip}) {
       {trip&&!full&&<p className={styles.note}>Dữ liệu hiện có: {trip.durationDays} ngày · Phạm vi: {domainStatus('source.scope',trip.plannedScope??'')}.</p>}
       {error&&<Notice title="Chưa lưu được thông tin" tone="error">{error}<p>Bản nhập vẫn được giữ. Bạn có thể sửa rồi thử lại.</p>{trip&&<Button type="button" tone="secondary" onClick={()=>setCompare(true)}>Đối chiếu bản đã lưu</Button>}</Notice>}
       <div className={styles.formFooter}><Link to={root}>Hủy</Link>{trip&&<Link to={`${root}/${trip.tripId}/schedule`}>Lịch trình</Link>}{permitted&&<Button type="submit" busy={busy} disabled={scopeBlocked||(!full&&!trip)||(full&&catalogBlocked)}>{busy?'Đang lưu…':!full?'Lưu tên và giới thiệu':'Lưu và lập lịch trình'}</Button>}</div>
-    </form></Panel>{compare&&trip&&<InfoConflictDialog trip={trip} local={form} onClose={()=>setCompare(false)} onReplace={server=>{setTrip(server);setBaseline(structuredClone(server.info));setForm(structuredClone(server.info));setCompare(false);setError('');setAttempted(false);setTouched({})}}/>}{guard.prompt}
+    </form></Panel>{trip && <TripLifecycleTools trip={trip} disabled={dirty || busy} onChanged={setTrip} />}{compare&&trip&&<InfoConflictDialog trip={trip} local={form} onClose={()=>setCompare(false)} onReplace={server=>{setTrip(server);setBaseline(structuredClone(server.info));setForm(structuredClone(server.info));setCompare(false);setError('');setAttempted(false);setTouched({})}}/>}{guard.prompt}
   </div>
 }

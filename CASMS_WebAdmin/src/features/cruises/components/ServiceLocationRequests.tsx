@@ -122,16 +122,10 @@ export function ServiceLocationRequests({ cruiseId, onChanged }: { cruiseId: str
                 Quản lý tàu cần hoàn tất danh sách boong trước khi Quản lý dịch vụ gửi đề nghị.
               </Notice>
             )}
-            {view.shipId && !view.deckBlocker && access.roles.includes('ACTIVITY_SERVICE_MANAGER') && (view.canPropose || pendingCount > 0) && (
-              view.shipAssigned === false ? (
-                <Notice tone="warning" title="Chuyến chưa có Quản lý tàu">
-                  Đề nghị sẽ hiển thị trong mục Bố trí dịch vụ của Quản lý tàu ngay khi Quản lý tàu được phân công cho chuyến.
-                </Notice>
-              ) : (
-                <p className={styles.statusNote}>
-                  Các đề nghị gửi tại đây sẽ chuyển sang mục Bố trí dịch vụ để Quản lý tàu kiểm tra sơ đồ boong và xác nhận.
-                </p>
-              )
+            {view.shipId && !view.deckBlocker && access.roles.includes('ACTIVITY_SERVICE_MANAGER') && (view.canPropose || pendingCount > 0) && view.shipAssigned === false && (
+              <Notice tone="warning" title="Chuyến chưa có Quản lý tàu">
+                Đề nghị sẽ tự chuyển sang Quản lý tàu ngay khi được phân công.
+              </Notice>
             )}
 
             {!view.requests.length && (

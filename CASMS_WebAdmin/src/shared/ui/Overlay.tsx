@@ -23,10 +23,12 @@ export function Modal({ title, description, onClose, busy = false, wide = false,
       previousOverflow = document.documentElement.style.overflow
       document.documentElement.style.overflow = 'hidden'
     }
-    element.showModal()
+    if (!element.open) element.showModal()
     return () => {
-      element.close()
-      if (--openCount === 0) document.documentElement.style.overflow = previousOverflow
+      dirty.current = false
+      if (element.open) element.close()
+      openCount = Math.max(0, openCount - 1)
+      if (openCount === 0) document.documentElement.style.overflow = previousOverflow
       if (trigger?.isConnected) trigger.focus({ preventScroll: true })
     }
   }, [])
@@ -60,7 +62,8 @@ export function Modal({ title, description, onClose, busy = false, wide = false,
     const controls = Array.from(element.querySelectorAll<HTMLElement>(
       'button, input, select, textarea, a[href], summary, [tabindex], [contenteditable="true"]',
     )).filter(control => control.tabIndex >= 0 && !control.matches(':disabled, input[type="hidden"]')
-      && !control.closest('[inert]') && control.checkVisibility({ visibilityProperty: true }))
+      && !control.closest('[inert]')
+      && (typeof control.checkVisibility === 'function' ? control.checkVisibility({ visibilityProperty: true }) : control.offsetParent !== null))
     const first = controls[0]
     const last = controls.at(-1)
     const active = document.activeElement
@@ -74,7 +77,13 @@ export function Modal({ title, description, onClose, busy = false, wide = false,
   }
   return <dialog ref={dialog} aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined} aria-busy={busy || undefined}
     className={`${experience.overlay} ${styles.dialog} ${large ? styles.large : wide ? styles.wide : ''} ${variant === 'drawer' ? styles.drawer : ''} ${quiet ? styles.quiet : ''}`}
-    onChangeCapture={event => { dirty.current = true; if (event.target instanceof HTMLElement) lastControl.current = event.target }}
+    onChangeCapture={event => {
+      const target = event.target
+      const isSearchOrIgnored = (target instanceof HTMLInputElement && (target.type === 'search' || target.getAttribute('role') === 'searchbox'))
+        || (target instanceof Element && Boolean(target.closest('[data-no-dirty]')))
+      if (!isSearchOrIgnored) dirty.current = true
+      if (target instanceof HTMLElement) lastControl.current = target
+    }}
     onClickCapture={event => {
       if (event.target instanceof Element && event.target.closest('[role="radio"][aria-checked="false"]')) {
         dirty.current = true

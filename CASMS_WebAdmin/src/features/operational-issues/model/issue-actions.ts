@@ -23,7 +23,11 @@ export type IssueActionAvailability = {
 
 export function getIssueActionAvailability(
   issue: OperationalIssue,
+  currentUserId?: string | null,
 ): Record<IssueAction, IssueActionAvailability> {
+  const isSelfResolver = Boolean(
+    currentUserId && issue.resolvedBy?.id && issue.resolvedBy.id === currentUserId,
+  )
   return {
     ASSIGN_HANDLER: {
       visible: issue.status === 'OPEN' || issue.status === 'IN_PROGRESS',
@@ -40,10 +44,12 @@ export function getIssueActionAvailability(
     },
     VERIFY_RESOLUTION: {
       visible: issue.status === 'IN_PROGRESS',
-      enabled: issue.status === 'IN_PROGRESS' && Boolean(issue.resolution?.trim()),
+      enabled: issue.status === 'IN_PROGRESS' && Boolean(issue.resolution?.trim()) && !isSelfResolver,
       reason: issue.status === 'IN_PROGRESS' && !issue.resolution?.trim()
-        ? 'Cần ghi resolution trước khi xác minh.'
-        : undefined,
+        ? 'Cần ghi phương án xử lý trước khi xác minh.'
+        : isSelfResolver
+          ? 'Người ghi nhận phương án xử lý không thể tự xác minh (nguyên tắc 4 mắt).'
+          : undefined,
     },
     CLOSE: {
       visible: issue.status === 'RESOLVED',

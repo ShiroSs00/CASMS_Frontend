@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useMemo, useState, type KeyboardEvent } from 'react'
+import { Fragment, useCallback, useMemo, useState } from 'react'
 import { ApiError, apiRequest, useReadQuery } from '@/shared/api'
 import { useSessionAccess } from '@/shared/auth'
 import { journeyTime } from '@/shared/lib/journey-time'
@@ -74,20 +74,6 @@ function StatusTabIcon({ status }: { status: GroupStatus }) {
       <path d="M4.5 8h5a2.5 2.5 0 0 1 0 5H7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   )
-}
-
-function handleTabKeys(event: KeyboardEvent<HTMLButtonElement>, index: number, onPick: (key: GroupTab) => void) {
-  let nextIndex = -1
-  if (event.key === 'ArrowRight') nextIndex = (index + 1) % statusOrder.length
-  else if (event.key === 'ArrowLeft') nextIndex = (index - 1 + statusOrder.length) % statusOrder.length
-  else if (event.key === 'Home') nextIndex = 0
-  else if (event.key === 'End') nextIndex = statusOrder.length - 1
-  if (nextIndex < 0) return
-  event.preventDefault()
-  const key = statusOrder[nextIndex]
-  onPick(key)
-  const list = event.currentTarget.closest('[role="tablist"]')
-  list?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[nextIndex]?.focus()
 }
 
 export function SubmittedPreparationGroups({
@@ -227,7 +213,7 @@ export function SubmittedPreparationGroups({
           autoWidth
           onClick={() => setSelected(group)}
         >
-          {group.status === 'SUBMITTED' ? 'Xác nhận' : 'Xem chi tiết'}
+          {group.status === 'SUBMITTED' ? 'Kiểm tra bản gửi' : 'Xem kết quả xác nhận'}
         </Button>
       </td>
     </tr>
@@ -235,41 +221,31 @@ export function SubmittedPreparationGroups({
 
   return (
     <Panel
-      title="Nhóm hồ sơ bộ phận đã gửi"
-      subtitle=""
+      title="Hồ sơ chuẩn bị từng bộ phận"
+      subtitle="Xác nhận hồ sơ do các bộ phận (Tàu, Nhân sự, Dịch vụ) gửi lên cho từng chuyến khởi hành."
     >
-      {/* Status Tabs & Ship Grouping Toggle */}
+      {/* Status Filters & Ship Grouping Toggle (no nested tablist) */}
       <div className={styles.queueStatusBar}>
-        <div className={styles.queueTabs} role="tablist" aria-label="Lọc nhóm hồ sơ theo trạng thái">
-          {statusOrder.map((key, index) => {
+        <div className={styles.queueTabs} role="group" aria-label="Lọc hồ sơ chuẩn bị theo trạng thái">
+          {statusOrder.map((key) => {
             const count = allGroups.filter(group => tabForStatus(group.status) === key).length
             const active = key === status
             return (
               <button
                 key={key}
                 type="button"
-                role="tab"
                 className={styles.queueTab}
-                aria-selected={active}
-                tabIndex={active ? 0 : -1}
+                aria-pressed={active}
                 onClick={() => {
                   setStatus(key)
                   setShipFilter('ALL')
                   setCruiseFilter('ALL')
                   setPage(1)
                 }}
-                onKeyDown={event =>
-                  handleTabKeys(event, index, nextKey => {
-                    setStatus(nextKey)
-                    setShipFilter('ALL')
-                    setCruiseFilter('ALL')
-                    setPage(1)
-                  })
-                }
               >
                 <StatusTabIcon status={key} />
                 <span>{statuses[key]}</span>
-                <span className={styles.queueTabCount}>{count}</span>
+                {!loading && !error && <span className={styles.queueTabCount}>{count}</span>}
               </button>
             )
           })}

@@ -72,6 +72,6 @@ export function DestinationDiscovery() {
     <div className={styles.results} aria-busy={!current}>
       {!current ? <Loading label="Đang tải điểm đến…" /> : current.error ? <Notice tone="error" title="Chưa tải được điểm đến"><p>{current.error}</p><Button onClick={() => setAttempt(value => value + 1)}>Thử lại</Button></Notice> : current.data?.length ? <div className={styles.grid}>{current.data.map(destination => <DestinationCard key={destination.destinationId} destination={destination} />)}</div> : <Notice title="Chưa có điểm đến đang hoạt động">Vui lòng quay lại sau để khám phá các điểm đến mới.</Notice>}
     </div>
-    <Link className={styles.credits} to="/images/ports/credits.html" reloadDocument target="_blank" rel="noreferrer">Nguồn ảnh & giấy phép ↗</Link>
+    <Link className={styles.credits} to="/images/ports/credits.html" reloadDocument target="_blank" rel="noopener noreferrer">Nguồn ảnh & giấy phép ↗</Link>
   </section>
 }

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import {useNavigate} from 'react-router'
 import {usePlanQuery} from '../hooks/usePlanQuery'
 import {planEvidence} from '../model/plan-evidence'
@@ -21,10 +22,11 @@ import {journeyTime,SHIP_TIME_ZONE,validTimeZone} from '@/shared/lib/journey-tim
 import styles from './ManagerWorkspace.module.css'
 import {planReviewActions,planReviewStates} from '../model/plan-review'
 import {planConditionMessage,planConditionTitle} from '../model/plan-condition-copy'
+import { bookingWindowsNeedAttention, packagePreparationBlockers } from '../model/package-selection-state'
 import {coordinatorDossierSections,preparationApi,preparationStatusLabels} from '../api/preparation-api'
 const actionKeys={submit:'cruise.plan.SUBMIT_ACTION',withdraw:'cruise.plan.WITHDRAW_ACTION',approve:'cruise.plan.APPROVE_ACTION',reject:'cruise.plan.REJECT_ACTION','request-revision':'cruise.plan.REQUEST_REVISION_ACTION',ready:'cruise.ready.SET_READY_ACTION'} as const
 const safeError=(error:unknown)=>error instanceof ApiError&&error.code==='SELF_APPROVAL_FORBIDDEN'?'Bạn đã tham gia chuẩn bị hồ sơ hoặc điều khoản. Cần người xét duyệt khác.':businessErrorMessage(error instanceof ApiError?error.code:undefined,'')
-export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onReview,onNextStep,itineraryMode,mode='all',embedded=false}:{cruiseId:string;refreshKey?:number|string;onChanged?:()=>void;onSection?:(section:DepartureSection)=>void;onReview?:()=>void;onNextStep?:()=>void;itineraryMode?:'FIXED'|'CUSTOM';embedded?:boolean;mode?:'all'|'prepare'|'submit'|'review'|'ready'|'summary'}){
+export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onReview,onNextStep,itineraryMode,mode='all',embedded=false,preparationContent}:{cruiseId:string;refreshKey?:number|string;onChanged?:()=>void;onSection?:(section:DepartureSection)=>void;onReview?:()=>void;onNextStep?:()=>void;itineraryMode?:'FIXED'|'CUSTOM';embedded?:boolean;preparationContent?:ReactNode;mode?:'dossier'|'all'|'prepare'|'submit'|'review'|'ready'|'summary'}){
  const access=useSessionAccess(),[epoch,setEpoch]=useState(0)
  const navigate=useNavigate()
  const allowed=['CRUISE_MANAGER','OPERATIONS_MANAGER','SHIP_MANAGER'].some(role=>access.roles.includes(role))&&access.has('CRUISE_READ')
@@ -47,7 +49,7 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
  const availableActions=data?planReviewActions(data,access).filter(action=>{
   if(mode==='ready')return action==='ready'
   if(mode==='review')return ['approve','reject','request-revision'].includes(action)
-  if(mode==='submit')return ['submit','withdraw'].includes(action)
+  if(mode==='submit'||mode==='dossier')return ['submit','withdraw'].includes(action)
   return true
  }):[]
  const approvalNeedsReview=data?.planStatus==='APPROVED'&&(data.planBlockers.length>0||data.readyBlockers.includes('PLAN_APPROVAL_REQUIRED'))
@@ -68,14 +70,25 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
   if(action==='submit'&&!dossierValid)return
   lock.current=true;setBusy(true);setError('');setSuccess('')
   try{const actual=await mainflowApi.action(data,action,reason,action==='submit'&&dossier.data?{preparationEvidence:evidence.trim(),pendingPreparationCodes:pendingSections.map(section=>section.sectionCode),preparationRevisions:Object.fromEntries(coordinatorSections.map(section=>[section.sectionCode,section.revision]))}:undefined,action==='request-revision'?{recallPackages,recallSaleTerms}:undefined);setAction(null);if(action==='submit')setEvidence('');if(action==='request-revision'){setRecallPackages(false);setRecallSaleTerms(false)}if(action==='request-revision'&&mode==='review'){void navigate('/admin/cruise-plan-reviews?mode=tour-dossiers&filter=returned');return}setSuccess(action==='submit'?'Đã gửi hồ sơ chuyến khởi hành':action==='ready'?domainStatus('cruise.ready',actual.readyStatus):domainStatus('cruise.plan',actual.planStatus));setEpoch(n=>n+1);query.retry();onChanged?.()}
-  catch(e){setError(safeError(e));if(e instanceof ApiError&&e.status===409){setAction(null);query.retry()}if(!(e instanceof ApiError)||e.status===0||e.status>=500)setUncertain(true)}finally{lock.current=false;setBusy(false)}
+  catch(e){
+   if(e instanceof ApiError&&e.status===409){
+    setError('Phiên bản hồ sơ vừa thay đổi trên hệ thống. Đã tự động tải lại phiên bản mới nhất — nội dung bạn nhập vẫn được giữ nguyên, hãy kiểm tra và gửi lại.')
+    setEpoch(n=>n+1);query.retry();dossier.retry();onChanged?.()
+   }else{
+    setError(safeError(e))
+   }
+   if(!(e instanceof ApiError)||e.status===0||e.status>=500)setUncertain(true)
+  }finally{lock.current=false;setBusy(false)}
  }
- const blockers = data ? uniqueConditionCodes(data.planBlockers) : []
+ const packagePreparation = Boolean(mode === 'prepare' && manager && data?.cruisePackagePricing && ['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.planStatus))
+ const blockers = data ? uniqueConditionCodes(data.planBlockers).filter(code =>
+   !(mode === 'prepare' && manager && ['ASM_HANDOFF_PENDING', 'SHIP_HANDOFF_PENDING'].includes(code))
+   && (!packagePreparation || !packagePreparationBlockers.some(handled => handled === code))) : []
  const planConditions = data && blockers.length > 0 && (
-  <div className={styles.blockerChecklist} role="region" aria-label={planConditionTitle(manager,data.planStatus)}>
+  <div className={styles.blockerChecklist} role="region" aria-label={packagePreparation ? 'Điều kiện khác của hồ sơ' : planConditionTitle(manager,data.planStatus)}>
    <div className={styles.blockerChecklistHead}>
-    <strong>{planConditionTitle(manager,data.planStatus)}</strong>
-    <Badge label={`Còn ${blockers.length} mục`} tone="warning" />
+    <strong>{packagePreparation ? 'Điều kiện khác của hồ sơ' : planConditionTitle(manager,data.planStatus)}</strong>
+    <Badge label={packagePreparation ? `${blockers.length} điều kiện khác` : `Còn ${blockers.length} mục`} tone="warning" />
    </div>
    <ol className={styles.conditionList}>
     {blockers.map((code, index) => {
@@ -106,16 +119,17 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
   </>
   return <>
   {manager&&planConditions}
-  {embedded?<div className={styles.windowsInlineBox}>
+  {manager&&editablePlan&&data?.cruisePackagePricing&&<PlanPackageSelection cruiseId={cruiseId} refreshKey={`${epoch}:${refreshKey}`} onSaved={refreshPlan} preparation onPackages={onSection && allowedDepartureSections(access).some(([key]) => key === 'fare-packages') ? () => onSection('fare-packages') : undefined}/>}
+  {embedded?<section className={styles.bookingSchedule} aria-label="Lịch nhận đặt chỗ và hướng dẫn">
+   <h4>Lịch nhận đặt chỗ và hướng dẫn{data && bookingWindowsNeedAttention(data.planBlockers) ? ' · Cần kiểm tra' : ''}</h4>
    <div className={styles.workspaceBody}>{timeFields}</div>
-  </div>:<Panel title="Thời gian nhận đặt chỗ và hướng dẫn">{timeFields}</Panel>}
-  {manager&&editablePlan&&data?.cruisePackagePricing&&<PlanPackageSelection cruiseId={cruiseId} onSaved={refreshPlan}/>}
+  </section>:<Panel title="Thời gian nhận đặt chỗ và hướng dẫn">{timeFields}</Panel>}
   {manager&&data&&!data.unifiedPackageReview&&<DeparturePricingPolicy cruiseId={cruiseId} refreshKey={refreshKey} onChanged={onChanged}/>}
  </>
  }
  const supplement=Boolean(data&&['SUBMITTED','APPROVED'].includes(data.planStatus))
  const submitLabel=supplement?'Gửi bổ sung cho Quản lý vận hành':'Nộp hồ sơ chuyến khởi hành'
- const actionLabel=(value:MainflowAction)=>value==='ready'?'Xác nhận sẵn sàng mở bán':value==='approve'?'Phê duyệt hồ sơ':value==='reject'?'Từ chối hồ sơ':value==='request-revision'?'Yêu cầu chỉnh sửa':businessCopy(actionKeys[value])
+ const actionLabel=(value:MainflowAction)=>value==='ready'?'Xác nhận sẵn sàng mở bán':value==='approve'?'Phê duyệt kế hoạch':value==='reject'?'Từ chối kế hoạch':value==='request-revision'?'Yêu cầu chỉnh sửa kế hoạch':businessCopy(actionKeys[value])
  const actionDialog=action&&<Modal busy={busy} title={action==='submit'?submitLabel:actionLabel(action)} onClose={()=>{if(!busy)setAction(null)}} footer={<><Button tone="secondary" disabled={busy} onClick={()=>setAction(null)}>Quay lại</Button><Button disabled={busy||uncertain||query.loading||Boolean(query.error)||(action==='approve'&&evidenceMissing)||(action==='submit'&&!dossierValid)||(['reject','request-revision'].includes(action)&&!reason.trim())} onClick={()=>void execute()}>{busy?'Đang gửi…':action==='submit'?submitLabel:actionLabel(action)}</Button></>}>
    {action==='submit'&&<>
     <p><strong>{data?.cruiseCode}</strong> · {supplement?'Bổ sung các nhóm hồ sơ được trả lại hoặc chưa gửi.':data?.unifiedPackageReview?'Gửi kế hoạch, các gói và phiên bản giá đã chọn cùng thuế/phí để xét duyệt chung.':'Gửi kế hoạch và hồ sơ chuẩn bị cho Quản lý vận hành.'}</p>
@@ -307,32 +321,58 @@ export function CruisePlanReview({cruiseId,refreshKey=0,onChanged,onSection,onRe
   </Panel>
  }
  const reviewActions=data&&availableActions.length>0&&<div className={styles.reviewDecision}>
-  {availableActions.length>0&&<p>{manager?'Gửi hồ sơ chuyến khởi hành cho Quản lý vận hành.':'Quyết định hồ sơ'}</p>}
+  {availableActions.length>0&&<p>{manager?'Gửi hồ sơ chuyến khởi hành cho Quản lý vận hành.':'Quyết định kế hoạch'}</p>}
   <div className={styles.planActions}>{availableActions.map(a=><Button key={a} tone={a==='submit'||a==='approve'?'primary':a==='reject'?'danger':'secondary'} disabled={busy||uncertain||query.loading||Boolean(query.error)||(a==='submit'&&data.planBlockers.length>0)||(a==='approve'&&evidenceMissing)} onClick={()=>{setAction(a);setReason('');setSuccess('')}}>{a==='submit'?submitLabel:actionLabel(a)}</Button>)}</div>
  </div>
- return <Panel className={styles.reviewPanel}>
-  <header className={styles.reviewHeader}><h2>{manager?'Gửi hồ sơ chuyến khởi hành':'Xét duyệt hồ sơ chuyến khởi hành'}</h2><Button tone="text" disabled={busy||query.loading} onClick={query.retry}>Tải lại kế hoạch</Button></header>
+ return <Panel className={`${styles.reviewPanel} ${mode==='review' ? styles.operationsReview : ''}`}>
+  {mode!=='dossier'&&(<header className={styles.reviewHeader}><h2>{manager?'Hồ sơ chuyến khởi hành':'Xét duyệt hồ sơ chuyến khởi hành'}</h2><Button tone="text" disabled={busy||query.loading} onClick={query.retry}>Tải lại kế hoạch</Button></header>)}
+
   {query.loading&&<Loading/>}{query.error&&<Notice title="Không thể hoàn tất thao tác" tone="error">{safeError(query.error)}<Button onClick={query.retry}>Tải lại dữ liệu</Button></Notice>}
   {data&&<>
-   <div className={styles.reviewSummary}>
-    <Badge label={approvalNeedsReview?'Phê duyệt trước đó cần xét lại':planReviewStates[data.planStatus].title} tone={approvalNeedsReview?'warning':planReviewStates[data.planStatus].tone}/>
-    <p>{approvalNeedsReview?'Nội dung kế hoạch đã thay đổi hoặc còn thiếu. Cần yêu cầu Quản lý lịch trình bổ sung trước khi phê duyệt lại.':readyToSubmit?'Kế hoạch đã đủ thông tin. Đối chiếu hồ sơ chuẩn bị trước khi gửi.':mode==='review'&&data.planStatus==='SUBMITTED'?'Đối chiếu bản kế hoạch đã gửi bên dưới trước khi quyết định.':planReviewStates[data.planStatus].description}</p>
-    {data.submittedAt&&<p className={styles.sectionMeta}>Đã gửi lúc {journeyTime(data.submittedAt,SHIP_TIME_ZONE)} · Giờ Việt Nam{data.submittedByName?' · Người gửi: '+data.submittedByName:''}</p>}
+   {mode==='review'&&<section className={styles.decisionContext} aria-label="Bản kế hoạch đang xét duyệt">
+    <dl>
+      <div><dt>Phiên bản đã gửi</dt><dd>{data.submittedRevision == null ? 'Chưa có bản gửi' : `Bản ${data.submittedRevision}`}</dd></div>
+      <div><dt>Thời điểm gửi</dt><dd>{data.submittedAt ? journeyTime(data.submittedAt,SHIP_TIME_ZONE) : 'Chưa có bản gửi'}</dd></div>
+      <div><dt>Người gửi</dt><dd>{data.submittedByName || 'Chưa có thông tin người gửi'}</dd></div>
+      <div><dt>Phạm vi quyết định</dt><dd>Kế hoạch chuyến khởi hành</dd></div>
+    </dl>
+    <p>Ngân sách, nhân sự, mở bán và xuất bến được kiểm tra, phê duyệt theo từng nghiệp vụ riêng.</p>
+   </section>}
+   {(mode!=='dossier'||data.submittedAt||data.reviewedAt)&&<div className={styles.reviewSummary}>
+    {mode!=='dossier'&&<><Badge label={approvalNeedsReview?'Phê duyệt trước đó cần xét lại':planReviewStates[data.planStatus].title} tone={approvalNeedsReview?'warning':planReviewStates[data.planStatus].tone}/>
+    <p>{approvalNeedsReview?'Nội dung kế hoạch đã thay đổi hoặc còn thiếu. Cần yêu cầu Quản lý lịch trình bổ sung trước khi phê duyệt lại.':readyToSubmit?'Kế hoạch đã đủ thông tin. Đối chiếu hồ sơ chuẩn bị trước khi gửi.':mode==='review'&&data.planStatus==='SUBMITTED'?'Đối chiếu bản kế hoạch đã gửi bên dưới trước khi quyết định.':planReviewStates[data.planStatus].description}</p></>}
+    {mode!=='review'&&data.submittedAt&&<p className={styles.sectionMeta}>Đã gửi lúc {journeyTime(data.submittedAt,SHIP_TIME_ZONE)} · Giờ Việt Nam{data.submittedByName?' · Người gửi: '+((({ cruise_manager: 'Quản lý lịch trình', operations_manager: 'Quản lý vận hành', ops_manager: 'Quản lý vận hành', activity_manager: 'Quản lý dịch vụ & hoạt động', ship_manager: 'Quản lý tàu', hr_manager: 'Quản lý nhân sự', admin: 'Quản trị viên' } as Record<string, string>)[data.submittedByName.toLowerCase()]) ?? data.submittedByName):''}</p>}
     {data.reviewedAt&&<p className={styles.sectionMeta}>Phản hồi lúc {journeyTime(data.reviewedAt,SHIP_TIME_ZONE)} · Giờ Việt Nam</p>}
-    {readyToSubmit&&<p className={styles.submitReady}>Đủ thông tin kế hoạch</p>}
+    {mode!=='dossier'&&readyToSubmit&&<p className={styles.submitReady}>Đủ thông tin kế hoạch</p>}
 
-   </div>
+   </div>}
    {!manager&&mode!=='review'&&<Badge label={data.readyStatus==='INVALIDATED'?'Cần xác nhận lại':domainStatus('cruise.ready',data.readyStatus)}/>}
    {makerReason&&mode==='review'&&data.planStatus==='SUBMITTED'&&<Notice title="Cần người xét duyệt khác">{makerReason}</Notice>}
    {evidenceMissing&&<Notice title="Bằng chứng thương mại chưa đầy đủ" tone="error">Tải lại bản hồ sơ để đối chiếu gói, phiên bản giá và thuế/phí trước khi phê duyệt.</Notice>}
    {data.reason&&<Notice title={data.planStatus==='APPROVED'?'Ghi nhận phê duyệt':'Phản hồi từ Quản lý vận hành'} tone={data.planStatus==='REJECTED'?'error':data.planStatus==='APPROVED'?'info':'warning'}>{data.reason}</Notice>}
-   {planConditions}
+   {!(manager&&mode==='dossier')&&planConditions}
 
-   {crm&&mode!=='submit'&&['DRAFT','WITHDRAWN','REVISION_REQUESTED'].includes(data.planStatus)&&<PlanWindows key={`${cruiseId}:${data.windows.expectedRevision}`} data={data} onSaved={()=>{setEpoch(n=>n+1);query.retry()}} editable/>}
-   {mode!=='submit'&&editablePlan&&data.cruisePackagePricing&&<PlanPackageSelection cruiseId={cruiseId} onSaved={refreshPlan}/>}
-   {data.unifiedPackageReview&&data.submittedSnapshot!=null&&<FrozenPlanPackages snapshot={data.submittedSnapshot}/>}
-   {data.submittedSnapshot!=null&&<details className={styles.snapshotDisclosure} open={mode==='review'}><summary>Nội dung kế hoạch đã gửi</summary><PlanSnapshot snapshot={data.submittedSnapshot} includePricing={mode!=='review'&&mode!=='submit'}/></details>}
+   {mode==='dossier' ? <div className={styles.dossierColumns}>
+    <div>{preparationContent}</div>
+    <aside className={styles.dossierSupporting} aria-label="Gói và thời gian của hồ sơ">
+      {editablePlan&&data.cruisePackagePricing&&<PlanPackageSelection cruiseId={cruiseId} refreshKey={`${epoch}:${refreshKey}`} onSaved={refreshPlan}/>}
+      {data.unifiedPackageReview&&data.submittedSnapshot!=null&&<FrozenPlanPackages snapshot={data.submittedSnapshot}/>}
+      <section className={styles.dossierWindows}><h3>Nhận đặt chỗ và hướng dẫn</h3>
+        <PlanWindows key={`${cruiseId}:${data.windows.expectedRevision}`} data={data} onSaved={refreshPlan} editable={editablePlan}/>
+      </section>
+      {!data.unifiedPackageReview&&<DeparturePricingPolicy cruiseId={cruiseId} refreshKey={refreshKey} onChanged={onChanged}/>}
+    </aside>
+   </div> : <>
+   {crm&&mode!=='submit'&&<PlanWindows key={`${cruiseId}:${data.windows.expectedRevision}`} data={data} onSaved={()=>{setEpoch(n=>n+1);query.retry()}} editable={editablePlan}/>}
+   {mode!=='submit'&&editablePlan&&data.cruisePackagePricing&&<PlanPackageSelection cruiseId={cruiseId} refreshKey={`${epoch}:${refreshKey}`} onSaved={refreshPlan}/>}
+   </>}
+   {mode!=='dossier'&&data.unifiedPackageReview&&data.submittedSnapshot!=null&&<FrozenPlanPackages snapshot={data.submittedSnapshot}/>}
+   {data.submittedSnapshot!=null&&(mode==='review'
+     ? <section className={styles.reviewEvidence} aria-label="Nội dung bản kế hoạch đã gửi"><h3>Nội dung bản kế hoạch đã gửi</h3><PlanSnapshot snapshot={data.submittedSnapshot} includePricing={false}/></section>
+     : <details className={styles.snapshotDisclosure}><summary>Nội dung kế hoạch đã gửi</summary><PlanSnapshot snapshot={data.submittedSnapshot} includePricing={mode!=='submit'}/></details>)}
+   {mode!=='dossier'&&preparationContent}
    {reviewActions}
+   {mode==='dossier'&&<Button tone="text" size="compact" autoWidth disabled={busy||query.loading} onClick={query.retry}>Tải lại hồ sơ</Button>}
   </>}
   {success&&<Notice title={manager?'Kết quả gửi hồ sơ':'Đã ghi nhận quyết định'} tone="success">{success}</Notice>} {error&&!action&&<Notice title="Không thể hoàn tất thao tác" tone="error">{error}</Notice>}
   {uncertain&&!action&&<Notice title="Hệ thống chưa xác nhận được kết quả"><Button onClick={()=>{setUncertain(false);setAction(null);setEpoch(n=>n+1);query.retry();onChanged?.()}}>Đối chiếu lại hồ sơ</Button></Notice>}

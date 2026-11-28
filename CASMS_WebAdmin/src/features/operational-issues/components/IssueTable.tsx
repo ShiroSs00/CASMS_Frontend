@@ -33,7 +33,7 @@ export function IssueTable({ issues }: { issues: OperationalIssue[] }) {
               </td>
               <td>{issue.ship.name}{issue.cruise ? ` · ${issue.cruise.code}` : ''}</td>
               <td>{issue.assignedTo?.name ?? 'Chưa gán'}</td>
-              <td>{new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(issue.reportedAt))}</td>
+              <td>{new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(issue.reportedAt))}</td>
             </tr>
           ))}
 

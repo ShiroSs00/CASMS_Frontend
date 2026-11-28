@@ -10,7 +10,7 @@ import { PermissionLink as Link } from '@/shared/ui';
 import { useSessionAccess } from '@/shared/auth';
 import { useReadQuery } from '@/shared/api';
 import { Badge, Button, ButtonLink, Empty, Field, Loading, Modal, Notice, PageHeader, Panel, RecordFacts, useUnsavedFormGuard } from '@/shared/ui';
-import { bookingFieldErrors, bookingPackageErrors, realBookingApi } from '../api/real-booking-api';
+import { bookingFieldErrors, bookingPackageErrors, realBookingApi, type BookingDraft } from '../api/real-booking-api';
 import { createQuotedBooking, quoteSelection, recoverQuotedBooking, requestBookingQuote, type BookingQuoteIntent } from '../api/booking-quote-api';
 import { CabinPassengerFields, PassengerDetailsFields } from '../components/LiveBookingFields';
 import { BookingReadState, RealBookingFrame } from '../components/RealBookingUI';
@@ -59,6 +59,7 @@ function ExistingBookingFlow({ step: routeStep, renderShipModel }: {
         return () => clearTimeout(timer);
     }, [quoteIntent]);
     const [validationAttempt, setValidationAttempt] = useState(0);
+    const [allowedPlanRecovery, setAllowedPlanRecovery] = useState<{ cruiseId: string; plans: BookingDraft['paymentPlan'][] } | null>(null);
     const back = catalogReturn(params.get('from')), requestedCruise = params.get('cruiseId');
     useEffect(() => {
         if (requestedCruise && requestedCruise !== draft.cruiseId && !busy && !uncertain) {
@@ -149,6 +150,11 @@ function ExistingBookingFlow({ step: routeStep, renderShipModel }: {
             }
             catch (value) {
                 setError(bookingTransactionFailure(value));
+                if (value instanceof ApiError && value.code === 'PAYMENT_SCHEDULE_UNAVAILABLE') {
+                    const options = (value.details as { eligiblePaymentPlans?: unknown } | undefined)?.eligiblePaymentPlans;
+                    if (Array.isArray(options) && options.every(option => ['FULL', 'DEPOSIT', 'STAGES'].includes(option)))
+                        setAllowedPlanRecovery({ cruiseId: draft.cruiseId, plans: options });
+                }
                 if (mutationOutcomeUnknown(value))
                     setQuoteUnknown(true);
             }
@@ -250,6 +256,7 @@ function ExistingBookingFlow({ step: routeStep, renderShipModel }: {
         event.preventDefault(); }}><span className={agentStyles.stepLabelFull}>{`${index + 1}. ${label}`}</span><span className={agentStyles.stepLabelShort}>{`${index + 1}. ${shortLabels[index]}`}</span></Link></li>)}</ol></nav>
     {uncertain && (<Notice title="Cần kiểm tra kết quả trước khi gửi lại" tone="warning">Thông tin được giữ nguyên; gửi lại đã khóa để tránh tạo trùng. Tra cứu bằng mã đã nhận hoặc liên hệ nhân viên hỗ trợ.<ButtonLink tone="secondary" to="/admin/bookings/lookup">Tra cứu đặt chỗ</ButtonLink></Notice>)}
     {error && !review && <Notice title="Chưa gửi được đặt chỗ" tone="error">{error}</Notice>}
+    {error && allowedPlanRecovery?.cruiseId === draft.cruiseId && <div className={agentStyles.operationButtons} aria-label="Hình thức thanh toán hệ thống cho phép">{allowedPlanRecovery.plans.map(plan => <Button key={plan} tone="secondary" onClick={() => { setDraft(current => ({ ...current, paymentPlan: plan })); setQuoteIntent(null); setError(''); setAllowedPlanRecovery(null) }}>Đổi sang {plans[plan].toLocaleLowerCase('vi')}</Button>)}</div>}
     {quoteUnknown && <Notice title="Chưa nhận được kết quả báo giá">Chưa có mã báo giá để đối chiếu nên chưa thể gửi yêu cầu tiếp. Thông tin đã nhập vẫn được giữ. Vui lòng liên hệ bộ phận hỗ trợ; chưa có đặt chỗ được xác nhận từ bước báo giá này.</Notice>}<form ref={form} noValidate onSubmit={next}><div className={styles.layout + ' ' + agentStyles.wizardLayout}><div className={styles.main}>
       {Object.keys(errors).length > 0 && <Notice title="Vui lòng kiểm tra thông tin" tone="error"><ul>{Object.entries(errors).map(([id, message]) => <li key={id}>{message}</li>)}</ul></Notice>}
       <fieldset disabled={busy || uncertain} className={styles.draftFields}><div className={styles.stack}>

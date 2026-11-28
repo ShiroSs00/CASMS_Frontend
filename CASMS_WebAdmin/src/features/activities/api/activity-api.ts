@@ -74,6 +74,32 @@ export const activityApi = {
   participation: (id: string, signal?: AbortSignal) => apiRequestRaw('/activities/participations/' + encodeURIComponent(id), participation, { signal }),
   attendance: (id: string, action: 'check-in' | 'checkout' | 'complete' | 'no-show') => apiRequestRaw('/activities/participations/' + encodeURIComponent(id) + '/' + action, participation, { method: 'POST' }),
   lifecycle: (id: string, action: 'open' | 'start' | 'complete' | 'cancel') => apiRequestRaw(byId(id) + '/actions/' + action, record, { method: 'POST' }),
+  weatherReschedule: (
+    id: string,
+    payload: { newLocation: string; newMeetingPoint?: string | null; newStartTime?: string | null; newEndTime?: string | null; reason: string },
+  ) =>
+    apiRequestRaw(
+      '/api/onboard-operations/activities/' + encodeURIComponent(id) + '/weather-reschedule',
+      (value, status) =>
+        unwrapActivityResponse(value, status) as {
+          activityId: string
+          activityName: string
+          oldLocation: string | null
+          newLocation: string
+          newMeetingPoint: string | null
+          notifiedPassengerCount: number
+        },
+      {
+        method: 'POST',
+        body: {
+          newLocation: payload.newLocation.trim(),
+          newMeetingPoint: payload.newMeetingPoint?.trim() || null,
+          newStartTime: payload.newStartTime ? wallTimeToInstant(payload.newStartTime, SHIP_TIME_ZONE) : null,
+          newEndTime: payload.newEndTime ? wallTimeToInstant(payload.newEndTime, SHIP_TIME_ZONE) : null,
+          reason: payload.reason.trim(),
+        },
+      },
+    ),
   remove: (id: string) => apiRequestRaw(byId(id), (_value, status) => { if (status !== 204) throw new ApiError('Chưa xác nhận xóa hoạt động.', status) }, { method: 'DELETE' }),
   async cruises(signal?: AbortSignal): Promise<CruiseOption[]> {
     const read = (page: number) => apiRequestRaw('/cruise', (value, status) => unwrapActivityResponse(value, status) as { content: CruiseOption[]; totalPages: number }, { query: { page, size: 100 }, signal })

@@ -1,5 +1,5 @@
-import { Link, useLocation } from 'react-router'
-import { Notice } from '@/shared/ui'
+import { useLocation } from 'react-router'
+import { Notice, PermissionLink as Link } from '@/shared/ui'
 import { PlanningProvider } from './context'
 import { usePlanning } from './hooks'
 import { TripListPage } from './pages/TripListPage'
@@ -7,12 +7,14 @@ import { TripInfoPage } from './pages/TripInfoPage'
 import { TripSchedulePage } from './pages/TripSchedulePage'
 import styles from './Planning.module.css'
 import { TripReviewPage } from './pages/TripReviewPage'
+import { GeographyPage } from './pages/GeographyPage'
 
 export function TripPlanningPage(){return <PlanningProvider><PlanningRoutes/></PlanningProvider>}
 function PlanningRoutes(){
   const {root,gateway,actorId}=usePlanning(),location=useLocation(),parts=location.pathname.slice(root.length).split('/').filter(Boolean)
   let page
   if(!parts.length)page=new URLSearchParams(location.search).get('view')==='review'?<TripReviewPage/>:<TripListPage/>
+  else if(parts.length===1&&parts[0]==='geography')page=<GeographyPage/>
   else if(parts.length===1&&parts[0]==='new')page=<TripInfoPage/>
   else if(parts.length===2&&parts[1]==='info')page=<TripInfoPage id={parts[0]}/>
   else if(parts.length===2&&parts[1]==='schedule')page=<TripSchedulePage id={parts[0]}/>

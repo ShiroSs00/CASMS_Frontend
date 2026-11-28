@@ -1,7 +1,8 @@
+import { domainStatus } from '@/shared/i18n/business-copy'
 import { journeyTime } from '@/shared/lib/journey-time'
-import { Badge, Button, Loading, Notice, Panel, RecordFacts } from '@/shared/ui'
+import { Badge, Button, Loading, Notice, Panel } from '@/shared/ui'
 import type { PlanView } from '../api/mainflow-api'
-import { cruiseStatusLabels, type CruiseDetailView } from '../model/cruise-view'
+import { type CruiseDetailView } from '../model/cruise-view'
 import { planReviewStates } from '../model/plan-review'
 import styles from './DeparturePreparation.module.css'
 
@@ -19,34 +20,42 @@ export function CruisePreparationOverview({
   onRetry: () => void
 }) {
   const { cruise } = detail
-  const baseState = !loading && !error && plan ? planReviewStates[plan.planStatus] : null
+  const baseState = !loading && !error && plan ? plan.planStatus === 'APPROVED' &&
+    ((plan.planBlockers?.length ?? 0) > 0 || plan.readyBlockers?.includes('PLAN_APPROVAL_REQUIRED'))
+    ? { title: 'Kế hoạch cần đối chiếu lại', tone: 'warning' as const }
+    : planReviewStates[plan.planStatus] : null
   const state = (() => {
     if (cruise.status === 'PUBLISHED' && cruise.stoppedAt) {
-      return { title: 'Đã tạm dừng mở bán', tone: 'error' as const, description: 'Chuyến khởi hành đã tạm dừng nhận đặt chỗ mới.' }
+      return { title: 'Đã tạm dừng mở bán', tone: 'error' as const }
     }
     if (cruise.status === 'PUBLISHED' && cruise.openedForSaleAt) {
-      return { title: 'Đang mở bán', tone: 'success' as const, description: 'Hồ sơ đã được phê duyệt và chuyến khởi hành đang mở bán cho hành khách.' }
+      return { title: 'Đang mở bán', tone: 'success' as const }
     }
     if (cruise.status === 'IN_PROGRESS') {
-      return { title: 'Đang vận hành', tone: 'info' as const, description: 'Chuyến khởi hành đang trong hành trình thực tế.' }
+      return { title: 'Đang vận hành', tone: 'info' as const }
     }
     if (cruise.status === 'COMPLETED') {
-      return { title: 'Hoàn thành', tone: 'success' as const, description: 'Chuyến khởi hành đã hoàn tất.' }
+      return { title: 'Hoàn thành', tone: 'success' as const }
     }
     if (cruise.status === 'CANCELLED') {
-      return { title: 'Đã hủy', tone: 'error' as const, description: 'Chuyến khởi hành đã bị hủy.' }
+      return { title: 'Đã hủy', tone: 'error' as const }
     }
-    return baseState
+    return baseState ? { title: baseState.title, tone: baseState.tone } : null
   })()
-  const source = [
-    cruise.sourceTripCode,
-    cruise.sourceVersionNumber != null ? `Phiên bản ${cruise.sourceVersionNumber}` : null,
+
+  const durationSummary = [
+    domainStatus('cruise.duration', cruise.cruiseType),
+    detail.itinerary?.itineraryType ? domainStatus('route.type', detail.itinerary.itineraryType) : null,
   ]
     .filter(Boolean)
     .join(' · ')
 
   return (
-    <Panel title="Tình trạng hồ sơ">
+    <Panel className={styles.managerOverview}>
+      <div className={styles.managerOverviewHeading}>
+        <h2>Thông tin chuyến khởi hành</h2>
+        {state && <Badge label={state.title} tone={state.tone} />}
+      </div>
       {loading && <Loading label="Đang tải tiến độ hồ sơ…" />}
       {error != null && (
         <Notice title="Chưa đọc được hồ sơ" tone="error">
@@ -55,29 +64,30 @@ export function CruisePreparationOverview({
           </Button>
         </Notice>
       )}
-      {state && plan && (
-        <div className={styles.overviewStatusBanner}>
-          <div className={styles.overviewStatusHeader}>
-            <Badge label={state.title} tone={state.tone} />
-          </div>
-          <p>{state.description}</p>
-          {plan.planStatus === 'REVISION_REQUESTED' && plan.reason && (
-            <p className={styles.overviewRevisionAlert}>
-              Quản lý vận hành yêu cầu bổ sung: {plan.reason}
-            </p>
-          )}
-        </div>
+      {plan?.planStatus === 'REVISION_REQUESTED' && plan.reason && (
+        <p className={styles.overviewRevisionAlert} style={{ marginBottom: '12px' }}>
+          Quản lý vận hành yêu cầu bổ sung: {plan.reason}
+        </p>
       )}
-      <RecordFacts
-        entries={[
-          ['Mã chuyến khởi hành', cruise.cruiseCode],
-          ['Tàu', detail.ship?.shipName ?? (detail.supplementaryLoading ? 'Đang tải thông tin tàu…' : cruise.shipId ? 'Chưa tải được thông tin tàu' : 'Chưa phân công tàu')],
-          ['Khởi hành', journeyTime(cruise.departureDatetime)],
-          ['Kết thúc', journeyTime(cruise.returnDatetime)],
-          ['Lịch trình nguồn', source || 'Chưa có thông tin lịch trình nguồn'],
-          ['Trạng thái chuyến', cruiseStatusLabels[cruise.status]],
-        ]}
-      />
+      <dl className={styles.managerJourney}>
+        <div>
+          <dt>Khởi hành · giờ Việt Nam</dt>
+          <dd><strong>{journeyTime(cruise.departureDatetime)}</strong><span>{detail.departurePort.portName}</span></dd>
+        </div>
+        <div>
+          <dt>Kết thúc · giờ Việt Nam</dt>
+          <dd><strong>{journeyTime(cruise.returnDatetime)}</strong><span>{detail.returnPort.portName}</span></dd>
+        </div>
+        <div>
+          <dt>Tàu được phân công</dt>
+          <dd><strong>{detail.ship?.shipName ?? (detail.supplementaryLoading ? 'Đang tải…' : cruise.shipId ? 'Chưa tải được thông tin tàu' : 'Chưa gán tàu')}</strong></dd>
+        </div>
+      </dl>
+      <dl className={styles.managerReference}>
+        <div><dt>Số hành khách dự kiến</dt><dd>{cruise.expectedPassengerCount == null ? 'Chưa nhập' : `${cruise.expectedPassengerCount} hành khách`}</dd></div>
+        <div><dt>Thời lượng</dt><dd>{durationSummary || 'Chưa có thông tin'}</dd></div>
+        {cruise.sourceTripCode && <div><dt>Lịch trình mẫu</dt><dd>{cruise.sourceTripCode}{cruise.sourceVersionNumber != null ? ` · Phiên bản ${cruise.sourceVersionNumber}` : ''}</dd></div>}
+      </dl>
     </Panel>
   )
 }
